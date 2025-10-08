@@ -1,50 +1,105 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+Version: 1.3.0 (Added Version Management and Governance)
+Added sections: Version Management, Amendment Process for governance
+Modified principles: Enhanced Governance section with semantic versioning and changelog requirements
+Templates requiring updates: ✅ All templates align with new constitution structure
+Follow-up TODOs: None - all placeholders resolved
+-->
+
+# Mobilispect Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Code Quality First
+All code MUST pass automated quality gates before merge. Every component requires linting, formatting, and static analysis. Technical debt MUST be documented with clear remediation plans. Code reviews are mandatory for all changes with at least one approval required. Code MUST follow DRY (Don't Repeat Yourself), YAGNI (You Aren't Gonna Need It), and SOLID principles.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+**Rationale**: Multi-platform development amplifies quality issues across all platforms. Consistent quality standards prevent platform-specific bugs from propagating. DRY/YAGNI/SOLID principles ensure maintainable, extensible code across all platforms.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Test-Driven Development (NON-NEGOTIABLE)
+Tests MUST be written before implementation. Every feature requires unit tests, integration tests, and platform-specific contract tests. Test coverage MUST exceed 80% for all new code. All tests MUST pass before deployment.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Rationale**: With Spring backend, Angular frontend, and Android/iOS apps, untested changes create cascading failures across the entire system.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Cross-Platform UX Consistency
+User experience MUST be consistent across all platforms while respecting platform conventions. Design systems MUST define shared components, typography, and interaction patterns. Platform-specific implementations MUST maintain functional parity. Light/dark mode support is mandatory across all platforms.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Rationale**: Users expect consistent behavior across platforms. Divergent experiences create confusion and support burden.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Performance Standards
+Backend APIs MUST respond within 200ms p95. Mobile apps MUST maintain 60fps during interactions. Database queries MUST use indexes and avoid N+1 patterns. Performance regressions block deployment.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+**Rationale**: Mobile users have zero tolerance for performance issues. API latency directly impacts user experience across all client platforms.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. Observability & Monitoring
+All services MUST emit structured logs, metrics, and traces. Error tracking is mandatory with alert thresholds. Performance monitoring covers all user journeys. Deployment health checks are required.
+
+**Rationale**: Distributed systems require comprehensive observability to diagnose issues across platform boundaries.
+
+### VI. Architecture Decision Records (NON-NEGOTIABLE)
+All significant technical decisions MUST be documented as Architecture Decision Records (ADRs). ADRs are required for technology choices, design patterns, architectural changes, and trade-offs. Each ADR MUST include context, decision, consequences, and alternatives considered.
+
+**Rationale**: Complex multi-platform systems require documented decision history to prevent repeated debates, ensure knowledge transfer, and provide context for future changes.
+
+## Cross-Platform Standards
+
+### Technology Stack
+- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL, Redis
+- **Frontend**: Angular 19 LTS with TypeScript, RxJS for state management
+- **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
+- **Android**: Compose UI with Material Design 3
+- **iOS**: SwiftUI with iOS Design Guidelines
+
+### API Contracts
+All backend APIs MUST follow OpenAPI 3.0 specification. Contract testing is mandatory between all services. Breaking changes require version increments and deprecation notices.
+
+### Security Requirements
+Authentication via OAuth 2.0/OIDC. All data transmission MUST use TLS 1.3+. Client certificates required for production APIs. Regular security audits are mandatory.
+
+### Architecture Decision Records
+ADRs MUST be stored in `docs/adr/` directory using numbered format (e.g., `0001-use-kotlin-for-backend.md`). Template MUST include: Title, Status, Context, Decision, Consequences, Alternatives. All ADRs require team review before acceptance.
+
+## Quality Gates
+
+### Pre-Commit Gates
+- [ ] All tests pass locally
+- [ ] Code formatting applied (Prettier, ktlint, SwiftFormat)
+- [ ] Linting violations resolved (ESLint, ktlint, SwiftLint)
+- [ ] Security scan passes (SonarQube, OWASP)
+
+### Pre-Merge Gates
+- [ ] Code review approved by platform expert
+- [ ] CI/CD pipeline passes completely
+- [ ] Performance tests show no regressions
+- [ ] Contract tests verify API compatibility
+
+### Pre-Deploy Gates
+- [ ] End-to-end tests pass in staging
+- [ ] Load testing confirms performance targets
+- [ ] Security scan shows no critical issues
+- [ ] Database migration validated
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### Version Management
+- **Semantic Versioning**: All components follow MAJOR.MINOR.PATCH format
+- **Breaking Changes**: MAJOR version increments require migration documentation
+- **Changelog**: All changes documented in CHANGELOG.md following Keep a Changelog format
+- **Release Coordination**: Multi-platform releases must maintain version synchronization
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+### Amendment Process
+- Constitution changes require version bump and changelog entry
+- All PRs/reviews must verify compliance with versioning requirements
+- Release approval requires changelog review and version validation
+
+**Authority**: This constitution supersedes all other development practices and coding standards. Violations require explicit justification and team approval.
+
+**Amendment Process**: Constitution changes require documentation, team consensus, and migration plan for existing code. All amendments must increment version number.
+
+**Compliance**: All pull requests MUST verify constitutional compliance. Code reviews MUST validate adherence to principles. Complexity that violates principles requires architectural justification.
+
+**Exception Handling**: Principle violations require explicit documentation in code comments and Architecture Decision Records (ADRs). Emergency exceptions require immediate follow-up remediation.
+
+**ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
+
+**Version**: 1.3.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-10-07
