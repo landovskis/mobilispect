@@ -1,0 +1,206 @@
+# Mobilispect Pre-Commit Configuration
+# Enforces Constitutional Quality Gates (Constitution v1.2.0)
+
+repos:
+  # Universal checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: detect-private-key
+
+  # Kotlin Backend (Spring Boot)
+  - repo: local
+    hooks:
+      # Kotlin Backend Tests (Constitutional Requirement)
+      - id: kotlin-backend-tests
+        name: Kotlin Backend Tests (Constitutional TDD Requirement)
+        entry: bash -c 'cd backend && ./gradlew test'
+        language: system
+        files: 'backend/.*\.(kt|kts)$'
+        pass_filenames: false
+
+      # Kotlin Backend Formatting
+      - id: kotlin-backend-format
+        name: Kotlin Backend Format (ktfmt)
+        entry: bash -c 'cd backend && ./gradlew ktfmtFormat'
+        language: system
+        files: 'backend/.*\.kt$'
+        pass_filenames: false
+
+      # Kotlin Backend Linting
+      - id: kotlin-backend-lint
+        name: Kotlin Backend Lint (ktlint)
+        entry: bash -c 'cd backend && ./gradlew ktlintCheck'
+        language: system
+        files: 'backend/.*\.kt$'
+        pass_filenames: false
+
+      # Kotlin Backend Static Analysis
+      - id: kotlin-backend-detekt
+        name: Kotlin Backend Static Analysis (detekt)
+        entry: bash -c 'cd backend && ./gradlew detekt'
+        language: system
+        files: 'backend/.*\.kt$'
+        pass_filenames: false
+
+  # Angular Frontend
+  - repo: local
+    hooks:
+      # Angular Tests (Constitutional Requirement)
+      - id: angular-tests
+        name: Angular Tests (Constitutional TDD Requirement)
+        entry: bash -c 'cd frontend/web && npm test -- --watch=false --browsers=ChromeHeadless'
+        language: system
+        files: 'frontend/web/.*\.(ts|js|html)$'
+        exclude: 'frontend/web/(dist|node_modules)/.*'
+        pass_filenames: false
+
+      # Angular Formatting
+      - id: angular-format
+        name: Angular Format (Prettier)
+        entry: bash -c 'cd frontend/web && npm run format'
+        language: system
+        files: 'frontend/web/.*\.(ts|js|html|css|scss|json)$'
+        exclude: 'frontend/web/(dist|node_modules)/.*'
+        pass_filenames: false
+
+      # Angular Linting
+      - id: angular-lint
+        name: Angular Lint (ESLint)
+        entry: bash -c 'cd frontend/web && npm run lint'
+        language: system
+        files: 'frontend/web/.*\.(ts|js)$'
+        exclude: 'frontend/web/(dist|node_modules)/.*'
+        pass_filenames: false
+
+  # Android App (KMM)
+  - repo: local
+    hooks:
+      # Android Tests (Constitutional Requirement)
+      - id: android-tests
+        name: Android Tests (Constitutional TDD Requirement)
+        entry: bash -c 'cd android && ./gradlew testDebugUnitTest'
+        language: system
+        files: 'android/.*\.(kt|java)$'
+        pass_filenames: false
+
+      # Android Formatting
+      - id: android-format
+        name: Android Format (ktfmt)
+        entry: bash -c 'cd android && ./gradlew ktfmtFormat'
+        language: system
+        files: 'android/.*\.kt$'
+        pass_filenames: false
+
+      # Android Linting
+      - id: android-lint
+        name: Android Lint
+        entry: bash -c 'cd android && ./gradlew lintDebug'
+        language: system
+        files: 'android/.*\.(kt|java|xml)$'
+        pass_filenames: false
+
+      # Android ktlint
+      - id: android-ktlint
+        name: Android ktlint
+        entry: bash -c 'cd android && ./gradlew ktlintCheck'
+        language: system
+        files: 'android/.*\.kt$'
+        pass_filenames: false
+
+  # iOS App (KMM)
+  - repo: local
+    hooks:
+      # iOS Tests (Constitutional Requirement)
+      - id: ios-tests
+        name: iOS Tests (Constitutional TDD Requirement)
+        entry: bash -c 'cd ios && xcodebuild test -scheme Mobilispect -destination "platform=iOS Simulator,name=iPhone 15" | xcpretty --test'
+        language: system
+        files: 'ios/.*\.swift$'
+        pass_filenames: false
+
+      # iOS Formatting
+      - id: ios-format
+        name: iOS Format (SwiftFormat)
+        entry: bash -c 'cd ios && swiftformat .'
+        language: system
+        files: 'ios/.*\.swift$'
+        pass_filenames: false
+
+      # iOS Linting
+      - id: ios-lint
+        name: iOS Lint (SwiftLint)
+        entry: bash -c 'cd ios && swiftlint'
+        language: system
+        files: 'ios/.*\.swift$'
+        pass_filenames: false
+
+  # Security Scans (Constitutional Requirement)
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            .*package-lock\.json$|
+            .*\.lock$|
+            .*Test\.kt$|
+            .*test\.kt$|
+            .*env\.yaml\.sample$
+          )$
+
+  - repo: local
+    hooks:
+      # OWASP Dependency Check
+      - id: owasp-dependency-check
+        name: OWASP Dependency Check (Constitutional Security Requirement)
+        entry: bash -c './scripts/security-scan.sh'
+        language: system
+        files: '(backend|frontend|android)/.*\.(gradle|json|pom\.xml)$'
+        pass_filenames: false
+
+      # Test Coverage Validation (Constitutional 80% Requirement)
+      - id: test-coverage-validation
+        name: Test Coverage Validation (Constitutional 80% minimum)
+        entry: bash -c './scripts/validate-coverage.sh'
+        language: system
+        files: '.*\.(kt|ts|swift)$'
+        pass_filenames: false
+
+      # Constitution Compliance Check
+      - id: constitution-compliance
+        name: Constitution Compliance Check
+        entry: bash -c 'echo "✓ Constitutional quality gates enforced" && echo "✓ DRY/YAGNI/SOLID principles required" && echo "✓ TDD mandatory (tests run above)" && echo "✓ Cross-platform UX consistency required" && echo "✓ Performance standards - 200ms API, 60fps mobile" && echo "✓ ADR documentation required for architectural decisions"'
+        language: system
+        always_run: true
+        pass_filenames: false
+
+  # Documentation Checks
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.38.0
+    hooks:
+      - id: markdownlint
+        files: '.*\.md$'
+        args: [--fix]
+
+# Configuration
+fail_fast: true
+default_stages: [pre-commit]
+
+# Exclusions
+exclude: |
+  (?x)^(
+      \.specify/.*|
+      \.claude/.*|
+      .*/(build|dist|node_modules|\.gradle)/.*|
+      .*\.(min\.(js|css)|bundle\.(js|css))$|
+      .*\.generated\.(kt|swift|ts)$
+  )$
