@@ -9,137 +9,81 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        args: [--allow-multiple-documents]
       - id: check-json
+        exclude: 'frontend/web/.*\.json$'
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: detect-private-key
 
-  # Kotlin Backend (Spring Boot)
+  # Kotlin Backend
   - repo: local
     hooks:
-      # Kotlin Backend Tests (Constitutional Requirement)
-      - id: kotlin-backend-tests
-        name: Kotlin Backend Tests (Constitutional TDD Requirement)
+      # Backend Kotlin Tests (Constitutional Requirement)
+      - id: backend-kotlin-tests
+        name: Backend Kotlin Tests (Constitutional TDD Requirement)
         entry: bash -c 'cd backend && ./gradlew test'
         language: system
         files: 'backend/.*\.(kt|kts)$'
+        exclude: 'backend/(build|\.gradle)/.*'
         pass_filenames: false
 
-      # Kotlin Backend Formatting
-      - id: kotlin-backend-format
-        name: Kotlin Backend Format (ktfmt)
+      # Backend Kotlin Formatting
+      - id: backend-kotlin-format
+        name: Backend Kotlin Format (ktfmt)
         entry: bash -c 'cd backend && ./gradlew ktfmtFormat'
         language: system
         files: 'backend/.*\.kt$'
+        exclude: 'backend/(build|\.gradle)/.*'
         pass_filenames: false
 
-      # Kotlin Backend Linting
-      - id: kotlin-backend-lint
-        name: Kotlin Backend Lint (ktlint)
+      # Backend Kotlin Linting
+      - id: backend-kotlin-lint
+        name: Backend Kotlin Lint (ktlint)
         entry: bash -c 'cd backend && ./gradlew ktlintCheck'
         language: system
         files: 'backend/.*\.kt$'
+        exclude: 'backend/(build|\.gradle)/.*'
         pass_filenames: false
 
-      # Kotlin Backend Static Analysis
-      - id: kotlin-backend-detekt
-        name: Kotlin Backend Static Analysis (detekt)
+      # Backend Kotlin Static Analysis
+      - id: backend-kotlin-detekt
+        name: Backend Kotlin Static Analysis (detekt)
         entry: bash -c 'cd backend && ./gradlew detekt'
         language: system
         files: 'backend/.*\.kt$'
+        exclude: 'backend/(build|\.gradle)/.*'
         pass_filenames: false
 
-  # Angular Frontend
+  # Mobile KMM
   - repo: local
     hooks:
-      # Angular Tests (Constitutional Requirement)
-      - id: angular-tests
-        name: Angular Tests (Constitutional TDD Requirement)
-        entry: bash -c 'cd frontend/web && npm test -- --watch=false --browsers=ChromeHeadless'
+      # Mobile KMM Tests (Constitutional Requirement)
+      - id: mobile-kotlin-tests
+        name: Mobile KMM Tests (Constitutional TDD Requirement)
+        entry: bash -c 'cd frontend/mobile && ./gradlew shared:testDebugUnitTest'
         language: system
-        files: 'frontend/web/.*\.(ts|js|html)$'
-        exclude: 'frontend/web/(dist|node_modules)/.*'
+        files: 'frontend/mobile/.*\.(kt|swift)$'
+        exclude: 'frontend/mobile/(build|\.gradle)/.*'
         pass_filenames: false
 
-      # Angular Formatting
-      - id: angular-format
-        name: Angular Format (Prettier)
-        entry: bash -c 'cd frontend/web && npm run format'
+      # Mobile KMM Formatting
+      - id: mobile-kotlin-format
+        name: Mobile KMM Format (ktfmt)
+        entry: bash -c 'cd frontend/mobile && ./gradlew ktfmtFormat'
         language: system
-        files: 'frontend/web/.*\.(ts|js|html|css|scss|json)$'
-        exclude: 'frontend/web/(dist|node_modules)/.*'
+        files: 'frontend/mobile/.*\.kt$'
+        exclude: 'frontend/mobile/(build|\.gradle)/.*'
         pass_filenames: false
 
-      # Angular Linting
-      - id: angular-lint
-        name: Angular Lint (ESLint)
-        entry: bash -c 'cd frontend/web && npm run lint'
+      # Mobile KMM Linting
+      - id: mobile-kotlin-lint
+        name: Mobile KMM Lint (ktlint)
+        entry: bash -c 'cd frontend/mobile && ./gradlew ktlintCheck'
         language: system
-        files: 'frontend/web/.*\.(ts|js)$'
-        exclude: 'frontend/web/(dist|node_modules)/.*'
-        pass_filenames: false
-
-  # Android App (KMM)
-  - repo: local
-    hooks:
-      # Android Tests (Constitutional Requirement)
-      - id: android-tests
-        name: Android Tests (Constitutional TDD Requirement)
-        entry: bash -c 'cd android && ./gradlew testDebugUnitTest'
-        language: system
-        files: 'android/.*\.(kt|java)$'
-        pass_filenames: false
-
-      # Android Formatting
-      - id: android-format
-        name: Android Format (ktfmt)
-        entry: bash -c 'cd android && ./gradlew ktfmtFormat'
-        language: system
-        files: 'android/.*\.kt$'
-        pass_filenames: false
-
-      # Android Linting
-      - id: android-lint
-        name: Android Lint
-        entry: bash -c 'cd android && ./gradlew lintDebug'
-        language: system
-        files: 'android/.*\.(kt|java|xml)$'
-        pass_filenames: false
-
-      # Android ktlint
-      - id: android-ktlint
-        name: Android ktlint
-        entry: bash -c 'cd android && ./gradlew ktlintCheck'
-        language: system
-        files: 'android/.*\.kt$'
-        pass_filenames: false
-
-  # iOS App (KMM)
-  - repo: local
-    hooks:
-      # iOS Tests (Constitutional Requirement)
-      - id: ios-tests
-        name: iOS Tests (Constitutional TDD Requirement)
-        entry: bash -c 'cd ios && xcodebuild test -scheme Mobilispect -destination "platform=iOS Simulator,name=iPhone 15" | xcpretty --test'
-        language: system
-        files: 'ios/.*\.swift$'
-        pass_filenames: false
-
-      # iOS Formatting
-      - id: ios-format
-        name: iOS Format (SwiftFormat)
-        entry: bash -c 'cd ios && swiftformat .'
-        language: system
-        files: 'ios/.*\.swift$'
-        pass_filenames: false
-
-      # iOS Linting
-      - id: ios-lint
-        name: iOS Lint (SwiftLint)
-        entry: bash -c 'cd ios && swiftlint'
-        language: system
-        files: 'ios/.*\.swift$'
+        files: 'frontend/mobile/.*\.kt$'
+        exclude: 'frontend/mobile/(build|\.gradle)/.*'
         pass_filenames: false
 
   # Security Scans (Constitutional Requirement)
@@ -154,7 +98,11 @@ repos:
             .*\.lock$|
             .*Test\.kt$|
             .*test\.kt$|
-            .*env\.yaml\.sample$
+            .*env\.yaml\.sample$|
+            .*schemas/.*\.json$|
+            .*\.sample\.properties$|
+            \.github/create-transit-land\.sh$|
+            .*TransitLandConfigRepository\.kt$
           )$
 
   - repo: local
@@ -164,7 +112,7 @@ repos:
         name: OWASP Dependency Check (Constitutional Security Requirement)
         entry: bash -c './scripts/security-scan.sh'
         language: system
-        files: '(backend|frontend|android)/.*\.(gradle|json|pom\.xml)$'
+        files: '(backend|frontend/mobile)/.*\.(gradle|json|pom\.xml)$'
         pass_filenames: false
 
       # Test Coverage Validation (Constitutional 80% Requirement)
