@@ -6,4 +6,3 @@ data class AgencyResultItem(
     val feedID: String,
     val agencyID: String?
 )
-

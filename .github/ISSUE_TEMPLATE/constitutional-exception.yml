@@ -1,0 +1,162 @@
+name: Constitutional Exception Request
+description: Request an emergency exception to constitutional quality gates
+title: "[CONSTITUTIONAL EXCEPTION] "
+labels: ["constitutional-exception", "urgent", "security"]
+assignees:
+  - technical-leads
+  - engineering-managers
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # 🚨 Constitutional Exception Request
+
+        **WARNING**: This form is for EMERGENCY exceptions to constitutional quality gates only.
+
+        Constitutional requirements are **NON-NEGOTIABLE** under normal circumstances.
+        Exceptions require extraordinary justification and immediate remediation.
+
+  - type: dropdown
+    id: exception-type
+    attributes:
+      label: Exception Type
+      description: What constitutional requirement needs an exception?
+      options:
+        - Test Coverage (80% minimum)
+        - Security Scanning
+        - Code Quality Gates
+        - Performance Standards
+        - Documentation Requirements
+        - Multiple Requirements
+    validations:
+      required: true
+
+  - type: dropdown
+    id: urgency-level
+    attributes:
+      label: Urgency Level
+      description: Why is this exception needed immediately?
+      options:
+        - Critical Production Outage
+        - Security Vulnerability Hotfix
+        - Data Loss Prevention
+        - Regulatory Compliance Emergency
+        - Customer-Critical Bug
+    validations:
+      required: true
+
+  - type: textarea
+    id: business-justification
+    attributes:
+      label: Business Justification
+      description: Detailed explanation of why this exception is absolutely necessary
+      placeholder: |
+        - What is the critical business impact?
+        - What are the consequences of waiting?
+        - Why can't this follow normal constitutional processes?
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-details
+    attributes:
+      label: Technical Details
+      description: Specific technical details about the change
+      placeholder: |
+        - What exactly needs to be changed?
+        - Which constitutional requirements are affected?
+        - What are the technical risks?
+    validations:
+      required: true
+
+  - type: textarea
+    id: risk-assessment
+    attributes:
+      label: Risk Assessment
+      description: Comprehensive risk analysis
+      placeholder: |
+        - What risks does this exception introduce?
+        - How will these risks be mitigated?
+        - What is the blast radius?
+        - What monitoring will be in place?
+    validations:
+      required: true
+
+  - type: textarea
+    id: remediation-plan
+    attributes:
+      label: Remediation Plan
+      description: Detailed plan to restore constitutional compliance
+      placeholder: |
+        - How will constitutional compliance be restored?
+        - What is the timeline for remediation?
+        - Who is responsible for follow-up work?
+        - How will we prevent this in the future?
+    validations:
+      required: true
+
+  - type: input
+    id: remediation-timeline
+    attributes:
+      label: Remediation Timeline
+      description: When will constitutional compliance be fully restored?
+      placeholder: "Within 24 hours / Within 48 hours / etc."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: exception-requirements
+    attributes:
+      label: Exception Requirements
+      description: Confirm all exception requirements are met
+      options:
+        - label: I have CTO or Technical Lead pre-approval
+          required: true
+        - label: I will create an ADR documenting this exception
+          required: true
+        - label: I will submit a follow-up PR within the specified timeline
+          required: true
+        - label: I will participate in a post-incident review
+          required: true
+        - label: I understand this exception is logged and tracked
+          required: true
+
+  - type: checkboxes
+    id: notification-acknowledgment
+    attributes:
+      label: Notification Acknowledgment
+      description: Who has been notified of this exception request?
+      options:
+        - label: Technical Leadership Team
+        - label: Engineering Managers
+        - label: Security Team (for security-related exceptions)
+        - label: Product Team (for customer-impacting changes)
+
+  - type: textarea
+    id: approvals
+    attributes:
+      label: Required Approvals
+      description: List who has approved this exception
+      placeholder: |
+        - @technical-lead: Approved
+        - @engineering-manager: Approved
+        - @security-lead: Approved (if security-related)
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+        ## Constitutional Compliance Restoration
+
+        **Remember**: This exception is temporary and **MUST** be followed by:
+
+        1. **Immediate Fix**: Address the emergency issue
+        2. **ADR Documentation**: Document the exception and decision
+        3. **Remediation PR**: Restore constitutional compliance
+        4. **Post-Incident Review**: Learn and improve processes
+
+        **Constitutional enforcement will resume immediately after emergency resolution.**

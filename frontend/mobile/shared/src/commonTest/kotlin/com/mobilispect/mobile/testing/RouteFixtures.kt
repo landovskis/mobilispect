@@ -34,5 +34,5 @@ const val ROUTES_SUCCESSFUL_FIXTURE = """
       "href" : "http://localhost:64123/routes/search/findAllByAgencyID?id=o-abcd-a"
     }
   }
-} 
+}
 """

@@ -21,4 +21,3 @@ fun AppPreview() {
         App()
     }
 }
-

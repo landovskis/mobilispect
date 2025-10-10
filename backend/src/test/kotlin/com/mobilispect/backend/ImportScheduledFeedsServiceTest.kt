@@ -758,4 +758,3 @@ internal class ImportScheduledFeedsServiceTest {
     }
 
 }
-

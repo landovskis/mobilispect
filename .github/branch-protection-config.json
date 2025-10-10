@@ -1,0 +1,135 @@
+{
+  "description": "Mobilispect Constitutional Branch Protection Rules",
+  "enforcement": "constitutional-compliance-mandatory",
+  "constitution_version": "v1.3.0",
+
+  "protection_rules": {
+    "required_status_checks": {
+      "strict": true,
+      "checks": [
+        {
+          "context": "Constitutional Compliance Check",
+          "description": "Verifies adherence to Mobilispect Constitution v1.3.0",
+          "required": true,
+          "bypass_allowed": false
+        },
+        {
+          "context": "Backend Kotlin Quality Gates",
+          "description": "Backend TDD, coverage, security, code quality enforcement",
+          "required": true,
+          "bypass_allowed": false
+        },
+        {
+          "context": "Mobile KMM Quality Gates",
+          "description": "Mobile TDD, coverage, security, cross-platform compliance",
+          "required": true,
+          "bypass_allowed": false
+        },
+        {
+          "context": "Security Quality Gates",
+          "description": "Constitutional security scanning and vulnerability assessment",
+          "required": true,
+          "bypass_allowed": false
+        },
+        {
+          "context": "Coverage Quality Gates (80% Constitutional Minimum)",
+          "description": "NON-NEGOTIABLE 80% test coverage requirement",
+          "required": true,
+          "bypass_allowed": false
+        },
+        {
+          "context": "Documentation Quality Gates",
+          "description": "ADR compliance and constitutional documentation requirements",
+          "required": true,
+          "bypass_allowed": false
+        },
+        {
+          "context": "Performance Quality Gates",
+          "description": "200ms API response time and 60fps mobile UI verification",
+          "required": true,
+          "bypass_allowed": false
+        }
+      ]
+    },
+
+    "enforce_admins": true,
+    "required_pull_request_reviews": {
+      "required_approving_review_count": 2,
+      "dismiss_stale_reviews": true,
+      "require_code_owner_reviews": true,
+      "require_last_push_approval": true,
+      "constitutional_compliance_required": true
+    },
+
+    "restrictions": {
+      "users": [],
+      "teams": [],
+      "apps": [],
+      "constitutional_enforcement": "mandatory"
+    },
+
+    "allow_force_pushes": false,
+    "allow_deletions": false,
+    "block_creations": false,
+    "required_conversation_resolution": true
+  },
+
+  "constitutional_exceptions": {
+    "emergency_bypass": {
+      "allowed": true,
+      "conditions": [
+        "Critical production outage",
+        "Security vulnerability hotfix",
+        "Data loss prevention"
+      ],
+      "requirements": [
+        "CTO or Technical Lead approval",
+        "ADR documenting exception and remediation plan",
+        "Follow-up PR within 24 hours addressing quality gates",
+        "Post-incident review documenting constitutional compliance restoration"
+      ],
+      "notification": [
+        "team-leads",
+        "engineering-managers",
+        "security-team"
+      ]
+    }
+  },
+
+  "quality_gate_configuration": {
+    "coverage_threshold": {
+      "minimum": 80,
+      "target": 90,
+      "constitutional_requirement": "NON-NEGOTIABLE",
+      "measurement": "instruction_coverage"
+    },
+
+    "security_requirements": {
+      "dependency_vulnerabilities": "none_high_critical",
+      "secrets_detection": "zero_tolerance",
+      "owasp_compliance": "mandatory"
+    },
+
+    "performance_standards": {
+      "api_response_time": "200ms",
+      "mobile_ui_framerate": "60fps",
+      "constitutional_enforcement": "mandatory"
+    },
+
+    "code_quality_standards": {
+      "dry_principle": "enforced",
+      "yagni_principle": "enforced",
+      "solid_principles": "enforced",
+      "static_analysis": "mandatory",
+      "formatting": "automated"
+    }
+  },
+
+  "implementation_guide": {
+    "github_settings_path": "Settings > Branches > Add rule",
+    "branch_name_pattern": "main",
+    "required_checks": "Copy contexts from required_status_checks.checks",
+    "review_requirements": "Apply settings from required_pull_request_reviews",
+    "constitutional_note": "These rules enforce Mobilispect Constitution v1.3.0 compliance"
+  }
+}

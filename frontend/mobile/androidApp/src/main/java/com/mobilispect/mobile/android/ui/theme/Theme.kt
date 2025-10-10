@@ -275,4 +275,3 @@ fun MobilispectTheme(
         content = content
     )
 }
-
