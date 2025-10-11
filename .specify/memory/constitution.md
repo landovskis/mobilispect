@@ -1,10 +1,12 @@
 <!--
 Sync Impact Report:
-Version: 1.3.0 (Added Version Management and Governance)
-Added sections: Version Management, Amendment Process for governance
-Modified principles: Enhanced Governance section with semantic versioning and changelog requirements
-Templates requiring updates: ✅ All templates align with new constitution structure
-Follow-up TODOs: None - all placeholders resolved
+Version: 1.5.0 (Consolidated Constitution Updates v1.3.0-1.5.0)
+Added in v1.3.0: Version Management and Governance requirements
+Added in v1.4.0: Value classes for entity IDs, PlantUML for architectural diagrams
+Added in v1.5.0: Grafana Cloud for observability, GitHub Actions for CI/CD
+Modified sections: Governance (versioning), Code Quality First (value classes), Observability & Monitoring (Grafana Cloud), Technology Stack (CI/CD and observability), Quality Gates (GitHub Actions), CI/CD Standards (new section)
+Templates requiring updates: ✅ All templates align with constitution structure
+Follow-up TODOs: Configure Grafana Cloud integration, migrate existing CI/CD to GitHub Actions, update ID implementations to use value classes
 -->
 
 # Mobilispect Constitution
@@ -12,9 +14,9 @@ Follow-up TODOs: None - all placeholders resolved
 ## Core Principles
 
 ### I. Code Quality First
-All code MUST pass automated quality gates before merge. Every component requires linting, formatting, and static analysis. Technical debt MUST be documented with clear remediation plans. Code reviews are mandatory for all changes with at least one approval required. Code MUST follow DRY (Don't Repeat Yourself), YAGNI (You Aren't Gonna Need It), and SOLID principles.
+All code MUST pass automated quality gates before merge. Every component requires linting, formatting, and static analysis. Technical debt MUST be documented with clear remediation plans. Code reviews are mandatory for all changes with at least one approval required. Code MUST follow DRY (Don't Repeat Yourself), YAGNI (You Aren't Gonna Need It), and SOLID principles. Value classes MUST be used for all entity IDs to ensure type safety and prevent ID mixups across domain boundaries.
 
-**Rationale**: Multi-platform development amplifies quality issues across all platforms. Consistent quality standards prevent platform-specific bugs from propagating. DRY/YAGNI/SOLID principles ensure maintainable, extensible code across all platforms.
+**Rationale**: Multi-platform development amplifies quality issues across all platforms. Consistent quality standards prevent platform-specific bugs from propagating. DRY/YAGNI/SOLID principles ensure maintainable, extensible code across all platforms. Value classes prevent runtime errors from ID confusion (e.g., using AgencyId where RouteId expected).
 
 ### II. Test-Driven Development (NON-NEGOTIABLE)
 Tests MUST be written before implementation. Every feature requires unit tests, integration tests, and platform-specific contract tests. Test coverage MUST exceed 80% for all new code. All tests MUST pass before deployment.
@@ -32,9 +34,9 @@ Backend APIs MUST respond within 200ms p95. Mobile apps MUST maintain 60fps duri
 **Rationale**: Mobile users have zero tolerance for performance issues. API latency directly impacts user experience across all client platforms.
 
 ### V. Observability & Monitoring
-All services MUST emit structured logs, metrics, and traces. Error tracking is mandatory with alert thresholds. Performance monitoring covers all user journeys. Deployment health checks are required.
+All services MUST emit structured logs, metrics, and traces using Grafana Cloud as the centralized observability platform. Error tracking is mandatory with alert thresholds. Performance monitoring covers all user journeys. Deployment health checks are required. Dashboards MUST be created for all critical business metrics and system health indicators.
 
-**Rationale**: Distributed systems require comprehensive observability to diagnose issues across platform boundaries.
+**Rationale**: Distributed systems require comprehensive observability to diagnose issues across platform boundaries. Grafana Cloud provides unified monitoring, alerting, and visualization across all platforms with minimal operational overhead.
 
 ### VI. Architecture Decision Records (NON-NEGOTIABLE)
 All significant technical decisions MUST be documented as Architecture Decision Records (ADRs). ADRs are required for technology choices, design patterns, architectural changes, and trade-offs. Each ADR MUST include context, decision, consequences, and alternatives considered.
@@ -49,6 +51,8 @@ All significant technical decisions MUST be documented as Architecture Decision 
 - **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
 - **Android**: Compose UI with Material Design 3
 - **iOS**: SwiftUI with iOS Design Guidelines
+- **CI/CD**: GitHub Actions for all automation, testing, and deployment pipelines
+- **Observability**: Grafana Cloud for monitoring, alerting, and visualization
 
 ### API Contracts
 All backend APIs MUST follow OpenAPI 3.0 specification. Contract testing is mandatory between all services. Breaking changes require version increments and deprecation notices.
@@ -59,6 +63,11 @@ Authentication via OAuth 2.0/OIDC. All data transmission MUST use TLS 1.3+. Clie
 ### Architecture Decision Records
 ADRs MUST be stored in `docs/adr/` directory using numbered format (e.g., `0001-use-kotlin-for-backend.md`). Template MUST include: Title, Status, Context, Decision, Consequences, Alternatives. All ADRs require team review before acceptance.
 
+### Documentation Standards
+All architectural diagrams MUST use PlantUML for consistency and version control compatibility. Diagrams MUST be stored as `.puml` files alongside their rendered outputs. Entity relationship diagrams, sequence diagrams, and component diagrams are required for all major features.
+
+### CI/CD Standards
+All automation MUST use GitHub Actions workflows. Separate workflows are required for each platform (backend, frontend, mobile). Matrix builds MUST cover all supported platform versions. Deployment pipelines MUST include staging validation before production. All workflows MUST integrate with Grafana Cloud for build and deployment metrics.
 ## Quality Gates
 
 ### Pre-Commit Gates
@@ -69,7 +78,7 @@ ADRs MUST be stored in `docs/adr/` directory using numbered format (e.g., `0001-
 
 ### Pre-Merge Gates
 - [ ] Code review approved by platform expert
-- [ ] CI/CD pipeline passes completely
+- [ ] GitHub Actions CI/CD pipeline passes completely
 - [ ] Performance tests show no regressions
 - [ ] Contract tests verify API compatibility
 
@@ -102,4 +111,4 @@ ADRs MUST be stored in `docs/adr/` directory using numbered format (e.g., `0001-
 
 **ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
 
-**Version**: 1.3.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-10-07
+**Version**: 1.5.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-10-11
