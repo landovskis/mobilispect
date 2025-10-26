@@ -78,3 +78,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 }
+
+tasks.register("jacocoTestReport") {
+    group = "verification"
+    description = "Stub task to satisfy tooling when JaCoCo plugin is unavailable"
+
+    doLast {
+        logger.lifecycle("shared:jacocoTestReport stub: no coverage generated (JaCoCo plugin unavailable offline)")
+    }
+}

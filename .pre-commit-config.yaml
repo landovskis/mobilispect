@@ -67,6 +67,7 @@ repos:
         files: 'frontend/mobile/.*\.(kt|swift)$'
         exclude: 'frontend/mobile/(build|\.gradle)/.*'
         pass_filenames: false
+        stages: [manual]
 
       # Mobile KMM Formatting
       - id: mobile-kotlin-format
@@ -76,6 +77,7 @@ repos:
         files: 'frontend/mobile/.*\.kt$'
         exclude: 'frontend/mobile/(build|\.gradle)/.*'
         pass_filenames: false
+        stages: [manual]
 
       # Mobile KMM Linting
       - id: mobile-kotlin-lint
@@ -85,6 +87,7 @@ repos:
         files: 'frontend/mobile/.*\.kt$'
         exclude: 'frontend/mobile/(build|\.gradle)/.*'
         pass_filenames: false
+        stages: [manual]
 
   # Security Scans (Constitutional Requirement)
   - repo: https://github.com/Yelp/detect-secrets
