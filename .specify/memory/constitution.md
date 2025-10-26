@@ -1,12 +1,16 @@
 <!--
 Sync Impact Report:
-Version: 1.5.0 (Consolidated Constitution Updates v1.3.0-1.5.0)
-Added in v1.3.0: Version Management and Governance requirements
-Added in v1.4.0: Value classes for entity IDs, PlantUML for architectural diagrams
-Added in v1.5.0: Grafana Cloud for observability, GitHub Actions for CI/CD
-Modified sections: Governance (versioning), Code Quality First (value classes), Observability & Monitoring (Grafana Cloud), Technology Stack (CI/CD and observability), Quality Gates (GitHub Actions), CI/CD Standards (new section)
+Version: 1.5.1 → 1.6.0 (E2E Testing Framework Addition)
+Modified sections: Technology Stack (added Playwright as official E2E testing framework)
+Added sections: Testing Standards (new subsection under Cross-Platform Standards)
 Templates requiring updates: ✅ All templates align with constitution structure
-Follow-up TODOs: Configure Grafana Cloud integration, migrate existing CI/CD to GitHub Actions, update ID implementations to use value classes
+Follow-up TODOs:
+  - Install Playwright dependencies: npm install -D @playwright/test
+  - Create playwright.config.ts with multi-browser configuration
+  - Add E2E test directory structure: e2e/
+  - Create initial E2E tests for feed management system
+  - Add Playwright to GitHub Actions CI/CD workflows
+  - Document E2E testing standards in project documentation
 -->
 
 # Mobilispect Constitution
@@ -53,6 +57,21 @@ All significant technical decisions MUST be documented as Architecture Decision 
 - **iOS**: SwiftUI with iOS Design Guidelines
 - **CI/CD**: GitHub Actions for all automation, testing, and deployment pipelines
 - **Observability**: Grafana Cloud for monitoring, alerting, and visualization
+- **E2E Testing**: Playwright for cross-browser end-to-end testing
+
+### Testing Standards
+All features MUST include comprehensive test coverage across unit, integration, and end-to-end levels.
+
+**End-to-End Testing with Playwright**:
+- Playwright MUST be used for all cross-browser E2E tests
+- Test coverage MUST include Chrome, Firefox, and Safari (WebKit)
+- Tests MUST verify complete user journeys from UI interaction to backend data persistence
+- Parallel execution MUST be enabled for fast feedback
+- Auto-waiting for elements is mandatory (no manual timeouts)
+- Visual regression testing SHOULD be included for critical UI flows
+- E2E tests MUST run in CI/CD before deployment to staging/production
+
+**Rationale**: Playwright provides modern cross-browser testing with excellent TypeScript support, aligning with Angular frontend technology. Auto-waiting and parallel execution reduce flaky tests and speed up CI/CD pipelines. Multi-browser support ensures consistent behavior across all supported platforms.
 
 ### API Contracts
 All backend APIs MUST follow OpenAPI 3.0 specification. Contract testing is mandatory between all services. Breaking changes require version increments and deprecation notices.
@@ -64,10 +83,21 @@ Authentication via OAuth 2.0/OIDC. All data transmission MUST use TLS 1.3+. Clie
 ADRs MUST be stored in `docs/adr/` directory using numbered format (e.g., `0001-use-kotlin-for-backend.md`). Template MUST include: Title, Status, Context, Decision, Consequences, Alternatives. All ADRs require team review before acceptance.
 
 ### Documentation Standards
-All architectural diagrams MUST use PlantUML for consistency and version control compatibility. Diagrams MUST be stored as `.puml` files alongside their rendered outputs. Entity relationship diagrams, sequence diagrams, and component diagrams are required for all major features.
+All architectural diagrams MUST use PlantUML with C4 model notation for consistency and version control compatibility. Diagrams MUST be stored as `.puml` files alongside their rendered outputs in `docs/architecture/`.
+
+**C4 Model Requirements**:
+- **Context Diagrams** (Level 1): Show system boundaries and external actors/systems
+- **Container Diagrams** (Level 2): Show high-level technology choices and communication patterns
+- **Component Diagrams** (Level 3): Show internal structure of containers
+- **Code Diagrams** (Level 4): Use when critical implementation details need visualization
+
+All major features MUST include at minimum a Container diagram (C4 Level 2). Complex features MUST include Component diagrams (C4 Level 3) for critical subsystems. Sequence diagrams and entity relationship diagrams are required for data flows and persistence layers respectively.
+
+**Rationale**: C4 model provides a standardized hierarchy for architectural documentation, ensuring consistent abstraction levels across all documentation. PlantUML enables version control, diff tracking, and automated diagram generation in CI/CD pipelines.
 
 ### CI/CD Standards
 All automation MUST use GitHub Actions workflows. Separate workflows are required for each platform (backend, frontend, mobile). Matrix builds MUST cover all supported platform versions. Deployment pipelines MUST include staging validation before production. All workflows MUST integrate with Grafana Cloud for build and deployment metrics.
+
 ## Quality Gates
 
 ### Pre-Commit Gates
@@ -83,7 +113,7 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 - [ ] Contract tests verify API compatibility
 
 ### Pre-Deploy Gates
-- [ ] End-to-end tests pass in staging
+- [ ] End-to-end tests pass in staging (Playwright multi-browser)
 - [ ] Load testing confirms performance targets
 - [ ] Security scan shows no critical issues
 - [ ] Database migration validated
@@ -111,4 +141,4 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 
 **ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
 
-**Version**: 1.5.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-10-11
+**Version**: 1.6.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-10-26
