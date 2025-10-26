@@ -7,12 +7,14 @@ description: Generate a custom checklist for the current feature based on user r
 **CRITICAL CONCEPT**: Checklists are **UNIT TESTS FOR REQUIREMENTS WRITING** - they validate the quality, clarity, and completeness of requirements in a given domain.
 
 **NOT for verification/testing**:
+
 - ❌ NOT "Verify the button clicks correctly"
 - ❌ NOT "Test error handling works"
 - ❌ NOT "Confirm the API returns 200"
 - ❌ NOT checking if code/implementation matches the spec
 
 **FOR requirements quality validation**:
+
 - ✅ "Are visual hierarchy requirements defined for all card types?" (completeness)
 - ✅ "Is 'prominent display' quantified with specific sizing/positioning?" (clarity)
 - ✅ "Are hover state requirements consistent across all interactive elements?" (consistency)
@@ -33,6 +35,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json` from repo root and parse JSON for FEATURE_DIR and AVAILABLE_DOCS list.
    - All file paths must be absolute.
+   - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Clarify intent (dynamic)**: Derive up to THREE initial contextual clarifying questions (no pre-baked catalog). They MUST:
    - Be generated from the user's phrasing + extracted signals from spec/plan/tasks
@@ -221,6 +224,7 @@ To avoid clutter, use descriptive types and clean up obsolete checklists when do
 **UX Requirements Quality:** `ux.md`
 
 Sample items (testing the requirements, NOT the implementation):
+
 - "Are visual hierarchy requirements defined with measurable criteria? [Clarity, Spec §FR-1]"
 - "Is the number and positioning of UI elements explicitly specified? [Completeness, Spec §FR-1]"
 - "Are interaction state requirements (hover, focus, active) consistently defined? [Consistency]"
@@ -231,6 +235,7 @@ Sample items (testing the requirements, NOT the implementation):
 **API Requirements Quality:** `api.md`
 
 Sample items:
+
 - "Are error response formats specified for all failure scenarios? [Completeness]"
 - "Are rate limiting requirements quantified with specific thresholds? [Clarity]"
 - "Are authentication requirements consistent across all endpoints? [Consistency]"
@@ -240,6 +245,7 @@ Sample items:
 **Performance Requirements Quality:** `performance.md`
 
 Sample items:
+
 - "Are performance requirements quantified with specific metrics? [Clarity]"
 - "Are performance targets defined for all critical user journeys? [Coverage]"
 - "Are performance requirements under different load conditions specified? [Completeness]"
@@ -249,6 +255,7 @@ Sample items:
 **Security Requirements Quality:** `security.md`
 
 Sample items:
+
 - "Are authentication requirements specified for all protected resources? [Coverage]"
 - "Are data protection requirements defined for sensitive information? [Completeness]"
 - "Is the threat model documented and requirements aligned to it? [Traceability]"
@@ -278,6 +285,7 @@ Sample items:
 ```
 
 **Key Differences:**
+
 - Wrong: Tests if the system works correctly
 - Correct: Tests if the requirements are written correctly
 - Wrong: Verification of behavior
