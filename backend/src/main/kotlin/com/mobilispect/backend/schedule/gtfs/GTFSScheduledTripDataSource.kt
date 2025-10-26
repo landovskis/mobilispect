@@ -36,8 +36,9 @@ internal class GTFSScheduledTripDataSource(private val routeIDDataSource: RouteI
                     val calendars = findCalendars(extractedDir, csv)
 
                     val tripsIn = extractedDir.resolve("trips.txt").toFile().readTextAndNormalize()
-                    val (decodingTime, trips) = com.mobilispect.backend.util.measureTime {
-                        return@measureTime csv.decodeFromString<Collection<GTFSTrip>>(tripsIn)
+                    val trips: Collection<GTFSTrip>
+                    val decodingTime = kotlin.time.measureTime {
+                        trips = csv.decodeFromString<Collection<GTFSTrip>>(tripsIn)
                     }
                     logger.debug("Decoded {} trips in {}", trips.size, decodingTime)
 

@@ -1,0 +1,378 @@
+.scheduled-jobs-page {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  // Page Header
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    h1 {
+      margin: 0;
+      color: var(--mdc-theme-primary);
+      font-size: 2rem;
+      font-weight: 500;
+    }
+
+    .subtitle {
+      margin: 0.5rem 0 0 0;
+      color: var(--mdc-theme-on-surface-variant);
+      font-size: 1rem;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+
+      button {
+        min-width: 140px;
+
+        mat-icon {
+          margin-right: 0.5rem;
+        }
+      }
+    }
+  }
+
+  // Status Overview
+  .status-overview {
+    margin-bottom: 2rem;
+
+    mat-card {
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .status-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--mdc-theme-outline);
+        border-radius: 8px;
+        background: var(--mdc-theme-surface-variant);
+
+        mat-icon {
+          font-size: 2rem;
+          width: 2rem;
+          height: 2rem;
+
+          &.status-enabled {
+            color: #4caf50;
+          }
+
+          &.status-disabled {
+            color: #f44336;
+          }
+
+          &.info {
+            color: var(--mdc-theme-primary);
+          }
+        }
+
+        .status-info {
+          display: flex;
+          flex-direction: column;
+
+          .label {
+            font-size: 0.875rem;
+            color: var(--mdc-theme-on-surface-variant);
+            margin-bottom: 0.25rem;
+          }
+
+          .value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--mdc-theme-on-surface);
+
+            &.enabled {
+              color: #4caf50;
+            }
+
+            &.disabled {
+              color: #f44336;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Import Statistics
+  .import-stats {
+    margin-bottom: 2rem;
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem;
+      border-radius: 12px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+
+      .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+      }
+
+      mat-icon {
+        opacity: 0.1;
+        font-size: 4rem;
+        width: 4rem;
+        height: 4rem;
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+      }
+
+      &.success {
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+        border: 1px solid rgba(76, 175, 80, 0.2);
+        .stat-number { color: #4caf50; }
+        .stat-label { color: #388e3c; }
+      }
+
+      &.failed {
+        background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05));
+        border: 1px solid rgba(244, 67, 54, 0.2);
+        .stat-number { color: #f44336; }
+        .stat-label { color: #d32f2f; }
+      }
+
+      &.running {
+        background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.05));
+        border: 1px solid rgba(255, 152, 0, 0.2);
+        .stat-number { color: #ff9800; }
+        .stat-label { color: #f57c00; }
+      }
+
+      &.total {
+        background: linear-gradient(135deg, rgba(63, 81, 181, 0.1), rgba(63, 81, 181, 0.05));
+        border: 1px solid rgba(63, 81, 181, 0.2);
+        .stat-number { color: #3f51b5; }
+        .stat-label { color: #303f9f; }
+      }
+    }
+
+    .last-import {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: var(--mdc-theme-surface-variant);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: var(--mdc-theme-on-surface-variant);
+
+      mat-icon {
+        font-size: 1rem;
+        width: 1rem;
+        height: 1rem;
+      }
+    }
+  }
+
+  // Tables
+  .feed-versions,
+  .recent-imports {
+    margin-bottom: 2rem;
+
+    .table-container {
+      margin-top: 1rem;
+      max-height: 600px;
+      overflow: auto;
+      border: 1px solid var(--mdc-theme-outline);
+      border-radius: 8px;
+    }
+
+    .feed-versions-table,
+    .imports-table {
+      width: 100%;
+
+      th {
+        background: var(--mdc-theme-surface-variant);
+        font-weight: 600;
+      }
+
+      td {
+        border-bottom: 1px solid var(--mdc-theme-outline);
+      }
+
+      .sha1 {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 0.75rem;
+        background: var(--mdc-theme-surface-variant);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+      }
+
+      .update-available {
+        color: #ff9800;
+        animation: pulse 2s infinite;
+      }
+
+      .update-none {
+        color: #4caf50;
+      }
+
+      .error-message {
+        font-size: 0.875rem;
+        color: #f44336;
+        cursor: help;
+      }
+
+      mat-chip {
+        font-size: 0.75rem;
+        height: 24px;
+        line-height: 24px;
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+// Responsive Design
+@media (max-width: 1200px) {
+  .scheduled-jobs-page {
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .status-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .scheduled-jobs-page {
+    padding: 1rem;
+
+    .page-header {
+      flex-direction: column;
+      align-items: stretch;
+
+      .header-actions {
+        justify-content: stretch;
+
+        button {
+          flex: 1;
+          min-width: unset;
+        }
+      }
+    }
+
+    .stats-grid,
+    .status-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .table-container {
+      font-size: 0.875rem;
+
+      .sha1 {
+        max-width: 80px;
+        font-size: 0.7rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .scheduled-jobs-page {
+    padding: 0.5rem;
+
+    .stat-card {
+      padding: 1rem;
+
+      .stat-number {
+        font-size: 2rem;
+      }
+
+      mat-icon {
+        font-size: 3rem;
+        width: 3rem;
+        height: 3rem;
+      }
+    }
+  }
+}
+
+// Dark Theme Support
+@media (prefers-color-scheme: dark) {
+  .scheduled-jobs-page {
+    .status-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .last-import {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-card {
+      &.success {
+        background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.1));
+      }
+
+      &.failed {
+        background: linear-gradient(135deg, rgba(244, 67, 54, 0.2), rgba(244, 67, 54, 0.1));
+      }
+
+      &.running {
+        background: linear-gradient(135deg, rgba(255, 152, 0, 0.2), rgba(255, 152, 0, 0.1));
+      }
+
+      &.total {
+        background: linear-gradient(135deg, rgba(63, 81, 181, 0.2), rgba(63, 81, 181, 0.1));
+      }
+    }
+
+    .sha1 {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .table-container {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+  }
+}

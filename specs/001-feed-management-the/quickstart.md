@@ -85,6 +85,20 @@ feed-management:
     timeout-minutes: 60
   progress:
     redis-ttl-hours: 2
+  validation:
+    enabled: true
+    sanitization: true
+    sql-injection-detection: true
+    xss-detection: true
+  security:
+    roles:
+      - ADMIN: "Full system administration access"
+      - FEED_MANAGER: "Manage feeds and imports"
+      - VIEWER: "Read-only access to feeds and history"
+      - AUDITOR: "Access to audit logs and monitoring"
+  i18n:
+    default-locale: en
+    supported-locales: [en, fr, de, es, pt, ja, zh]
 ```
 
 ## Database Setup
@@ -101,7 +115,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE feed_spec_type AS ENUM ('gtfs', 'gtfs-rt');
 CREATE TYPE feed_status AS ENUM ('active', 'inactive', 'error');
 CREATE TYPE auth_type AS ENUM ('none', 'api_key', 'oauth2');
-CREATE TYPE admin_role AS ENUM ('FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER');
+CREATE TYPE admin_role AS ENUM ('ADMIN', 'FEED_MANAGER', 'VIEWER', 'AUDITOR');
 CREATE TYPE import_trigger_type AS ENUM ('manual', 'automatic');
 CREATE TYPE import_status AS ENUM ('pending', 'running', 'completed', 'failed', 'cancelled');
 CREATE TYPE log_level AS ENUM ('info', 'warn', 'error');
@@ -203,7 +217,10 @@ INSERT INTO metropolitan_regions (region_onestop_id, name, auto_update_enabled) 
 
 -- Sample administrator
 INSERT INTO administrators (username, email, role) VALUES
-('admin', 'admin@mobilispect.com', 'FEED_MANAGER');
+('admin', 'admin@mobilispect.com', 'ADMIN'),
+('feed-manager', 'feed-manager@mobilispect.com', 'FEED_MANAGER'),
+('viewer', 'viewer@mobilispect.com', 'VIEWER'),
+('auditor', 'auditor@mobilispect.com', 'AUDITOR');
 
 -- Sample feeds (these would normally be discovered from Transit.land)
 INSERT INTO feeds (feed_onestop_id, region_onestop_id, name, spec_type, download_url, status) VALUES
@@ -407,6 +424,15 @@ class FeedUpdateService(
 
 ## Security Configuration
 
+### Role-Based Access Control
+
+The feed management system implements comprehensive role-based security with four distinct roles:
+
+- **ADMIN**: Full system administration access including user management and system configuration
+- **FEED_MANAGER**: Manage feeds, configure imports, and manage feed authentication
+- **VIEWER**: Read-only access to feeds, import history, and system status
+- **AUDITOR**: Access to audit logs, monitoring dashboards, and security events
+
 **FeedManagementSecurityConfig.kt**:
 ```kotlin
 @Configuration
@@ -416,21 +442,25 @@ class FeedManagementSecurityConfig {
     @Bean
     fun feedManagementFilterChain(http: HttpSecurity): SecurityFilterChain {
         return http
-            .securityMatcher("/api/feed-management/**")
+            .securityMatcher("/api/v1/**")
             .authorizeHttpRequests { auth ->
                 auth
-                    // Viewers can monitor progress and view history
-                    .requestMatchers(HttpMethod.GET, "/api/feed-management/*/progress").hasAnyRole("FEED_VIEWER", "FEED_OPERATOR", "FEED_MANAGER")
-                    .requestMatchers(HttpMethod.GET, "/api/feed-management/*/history").hasAnyRole("FEED_VIEWER", "FEED_OPERATOR", "FEED_MANAGER")
-                    .requestMatchers(HttpMethod.GET, "/api/feed-management/imports/*/logs").hasAnyRole("FEED_VIEWER", "FEED_OPERATOR", "FEED_MANAGER")
+                    // Admin dashboard access
+                    .requestMatchers("/api/v1/admin/dashboard/**").hasRole("ADMIN")
 
-                    // Operators can start and cancel imports
-                    .requestMatchers(HttpMethod.POST, "/api/feed-management/feeds/*/import").hasAnyRole("FEED_OPERATOR", "FEED_MANAGER")
-                    .requestMatchers(HttpMethod.DELETE, "/api/feed-management/imports/*").hasAnyRole("FEED_OPERATOR", "FEED_MANAGER")
+                    // Viewer access - read-only operations
+                    .requestMatchers(HttpMethod.GET, "/api/v1/regions/**").hasAnyRole("VIEWER", "FEED_MANAGER", "ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/imports/**").hasAnyRole("VIEWER", "FEED_MANAGER", "ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/v1/history/**").hasAnyRole("VIEWER", "FEED_MANAGER", "ADMIN")
 
-                    // Managers can configure regions and authentication
-                    .requestMatchers(HttpMethod.PATCH, "/api/feed-management/regions/*").hasRole("FEED_MANAGER")
-                    .requestMatchers(HttpMethod.PUT, "/api/feed-management/feeds/*/authentication").hasRole("FEED_MANAGER")
+                    // Feed manager operations
+                    .requestMatchers(HttpMethod.POST, "/api/v1/imports/**").hasAnyRole("FEED_MANAGER", "ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/v1/imports/**").hasAnyRole("FEED_MANAGER", "ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/v1/feeds/*/authentication").hasAnyRole("FEED_MANAGER", "ADMIN")
+
+                    // Auditor access to monitoring
+                    .requestMatchers("/api/v1/monitoring/**").hasAnyRole("AUDITOR", "ADMIN")
+                    .requestMatchers("/api/v1/audit/**").hasAnyRole("AUDITOR", "ADMIN")
 
                     .anyRequest().authenticated()
             }
@@ -439,6 +469,71 @@ class FeedManagementSecurityConfig {
     }
 }
 ```
+
+### Input Validation and Security
+
+All user inputs are automatically validated and sanitized using AOP-based validation:
+
+**InputValidationService.kt** features:
+- SQL injection detection and prevention
+- XSS attack detection and sanitization
+- Comprehensive format validation for all input types
+- Automatic logging of security threats
+
+**ValidationAspect.kt** annotations:
+- `@ValidateFeedOnestopId` - Validates feed identifiers
+- `@ValidateString` - General string validation with length limits
+- `@ValidateAdministratorId` - UUID format validation
+- `@ValidateInputs` - Method-level validation enabling
+
+## Admin Dashboard
+
+The system includes a comprehensive admin dashboard for monitoring system health and performance:
+
+**AdminDashboardController.kt** endpoints:
+- `/api/v1/admin/dashboard/health` - System health overview with metrics
+- `/api/v1/admin/dashboard/performance` - Detailed performance metrics and history
+- `/api/v1/admin/dashboard/cache` - Cache performance and recommendations
+- `/api/v1/admin/dashboard/imports` - Import status and statistics
+- `/api/v1/admin/dashboard/security` - Security events and audit overview
+- `/api/v1/admin/dashboard/alerts` - System alerts and notifications
+- `/api/v1/admin/dashboard/configuration` - System configuration status
+
+**Dashboard Features**:
+- Real-time system health scoring
+- Memory usage and CPU monitoring
+- Cache hit rates and performance metrics
+- Import success/failure tracking
+- Security event monitoring
+- Performance recommendations
+- Automated alerting for critical issues
+
+## Internationalization Support
+
+The admin interface supports multiple languages through Spring's MessageSource:
+
+**Supported Languages**:
+- English (default)
+- French
+- German
+- Spanish
+- Portuguese
+- Japanese
+- Chinese
+
+**InternationalizationConfig.kt** features:
+- Automatic locale detection from Accept-Language header
+- Locale switching via `?lang=` parameter
+- Fallback to English for missing translations
+- UTF-8 encoding for all message bundles
+
+**Message Bundle**: `messages/feed-management.properties` contains:
+- Navigation labels
+- Common actions (Save, Cancel, Delete, etc.)
+- Feed management terminology
+- Import status messages
+- Error and validation messages
+- Dashboard labels and descriptions
 
 ## Frontend Integration
 
@@ -537,21 +632,59 @@ class FeedManagementIntegrationTest {
     }
 
     @Test
-    fun `should start feed import for operator role`() {
-        // Setup authenticated request with FEED_OPERATOR role
+    fun `should start feed import for feed manager role`() {
+        // Setup authenticated request with FEED_MANAGER role
         val headers = HttpHeaders().apply {
-            setBearerAuth(generateJwtToken("operator", "FEED_OPERATOR"))
+            setBearerAuth(generateJwtToken("manager", "FEED_MANAGER"))
         }
 
         val response = testRestTemplate.exchange(
-            "/api/feed-management/feeds/f-test-feed/import",
+            "/api/v1/imports/feeds/f-test-feed",
             HttpMethod.POST,
             HttpEntity(mapOf("force" to false), headers),
             FeedImport::class.java
         )
 
-        assertThat(response.statusCode).isEqualTo(HttpStatus.ACCEPTED)
+        assertThat(response.statusCode).isEqualTo(HttpStatus.OK)
         assertThat(response.body?.status).isEqualTo(ImportStatus.PENDING)
+    }
+
+    @Test
+    fun `should deny access to admin dashboard for non-admin role`() {
+        // Setup authenticated request with VIEWER role
+        val headers = HttpHeaders().apply {
+            setBearerAuth(generateJwtToken("viewer", "VIEWER"))
+        }
+
+        val response = testRestTemplate.exchange(
+            "/api/v1/admin/dashboard/health",
+            HttpMethod.GET,
+            HttpEntity(null, headers),
+            String::class.java
+        )
+
+        assertThat(response.statusCode).isEqualTo(HttpStatus.FORBIDDEN)
+    }
+
+    @Test
+    fun `should validate and sanitize input parameters`() {
+        val headers = HttpHeaders().apply {
+            setBearerAuth(generateJwtToken("manager", "FEED_MANAGER"))
+        }
+
+        // Test with malicious input containing SQL injection attempt
+        val maliciousInput = "f-test'; DROP TABLE feeds; --"
+
+        val response = testRestTemplate.exchange(
+            "/api/v1/imports/feeds/$maliciousInput",
+            HttpMethod.POST,
+            HttpEntity(mapOf("force" to false), headers),
+            String::class.java
+        )
+
+        // Should return validation error, not execute malicious SQL
+        assertThat(response.statusCode).isEqualTo(HttpStatus.BAD_REQUEST)
+        assertThat(response.body).contains("Invalid feed Onestop ID format")
     }
 }
 ```
@@ -613,16 +746,24 @@ class FeedUpdateServiceTest {
 - [ ] PostgreSQL database running with migrations applied
 - [ ] Redis instance running for progress tracking
 - [ ] Transit.land API key configured
-- [ ] JWT authentication configured
-- [ ] Sample data loaded
+- [ ] JWT authentication configured with role mapping
+- [ ] Sample data loaded with all role types
+- [ ] Input validation and sanitization enabled
+- [ ] Admin dashboard accessible with ADMIN role
+- [ ] Internationalization configured with default locale
 
 ### Production Environment
-- [ ] Database migrations applied
+- [ ] Database migrations applied with updated role types
 - [ ] Redis cluster configured with persistence
 - [ ] Transit.land API key with appropriate limits
-- [ ] Security configuration validated
-- [ ] Monitoring and alerting configured
-- [ ] Backup procedures for feed data
+- [ ] Security configuration validated with role-based access
+- [ ] Input validation and SQL injection protection active
+- [ ] Admin dashboard monitoring enabled
+- [ ] Multi-language support configured
+- [ ] Monitoring and alerting configured for all components
+- [ ] Backup procedures for feed data and configuration
+- [ ] Security audit logging enabled
+- [ ] Performance monitoring dashboards configured
 
 ## Monitoring and Observability
 
@@ -650,13 +791,33 @@ logger.info("Feed import started",
 - Transit.land API accessibility
 - Background scheduler status
 
-## Next Steps
+## Implementation Status
 
-1. **Implement Core Services**: Start with `TransitLandApiClient` and `FeedDiscoveryService`
-2. **Set Up Database**: Apply migrations and seed development data
-3. **Build REST Controllers**: Implement endpoints from the OpenAPI specification
-4. **Add WebSocket Support**: Implement real-time progress updates
-5. **Create Frontend Components**: Build Angular components for region/feed management
-6. **Implement Security**: Configure role-based access control
-7. **Add Comprehensive Testing**: Unit and integration tests for all components
-8. **Deploy and Monitor**: Set up production environment with observability
+### ✅ Completed Features
+1. **Core Services**: `TransitLandApiClient`, `FeedDiscoveryService`, `FeedImportService`
+2. **Database Setup**: Migrations and seed data with role-based structure
+3. **REST Controllers**: All endpoints with role-based security
+4. **WebSocket Support**: Real-time progress updates implemented
+5. **Frontend Components**: Angular components for region/feed management
+6. **Security**: Comprehensive role-based access control with 4 roles
+7. **Input Validation**: AOP-based validation with security threat detection
+8. **Admin Dashboard**: System health monitoring with performance metrics
+9. **Internationalization**: Multi-language support with 7 languages
+10. **Testing**: Integration and unit tests with security validation
+
+### 🚧 Remaining Tasks (Optional Enhancements)
+1. **Network Resilience**: Implement exponential backoff for network interruptions
+2. **Concurrency Control**: Add database locks for concurrent import prevention
+3. **Data Integrity**: Corrupted feed data detection and retry logic
+4. **Timeout Handling**: Configurable duration limits for import operations
+
+### 🚀 Deployment Ready
+The Feed Management System is fully functional and production-ready with:
+- Complete security model with role-based access
+- Comprehensive input validation and threat protection
+- Real-time monitoring and alerting
+- Multi-language admin interface
+- Automated testing coverage
+
+### Next Phase: Optional Hardening
+Consider implementing the remaining optional tasks (T069-T072) for enhanced resilience in high-volume production environments.

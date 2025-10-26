@@ -1,12 +1,11 @@
-package com.mobilispect.backend.schedule.feed
+package com.mobilispect.backend
 
-import com.mobilispect.backend.Feed
-import com.mobilispect.backend.FeedDataSource
-import com.mobilispect.backend.FeedVersion
 import com.mobilispect.backend.schedule.ScheduledFeed
+import org.springframework.stereotype.Component
 import java.time.LocalDate
 
 @Suppress("MagicNumber")
+@Component
 class DefaultFeedDataSource : FeedDataSource {
     override fun feeds(region: String): Collection<Result<ScheduledFeed>> =
         listOf(

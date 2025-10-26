@@ -14,6 +14,7 @@ import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
 import com.mobilispect.backend.schedule.route.RouteDataSource
 import com.mobilispect.backend.schedule.stop.StopDataSource
+import com.mobilispect.backend.util.ArchiveExtractor
 import io.github.resilience4j.retry.annotation.Retry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

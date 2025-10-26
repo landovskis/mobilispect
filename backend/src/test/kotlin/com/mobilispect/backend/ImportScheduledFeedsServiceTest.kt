@@ -12,12 +12,11 @@ import com.mobilispect.backend.schedule.ScheduledStop
 import com.mobilispect.backend.schedule.ScheduledStopDataSource
 import com.mobilispect.backend.schedule.ScheduledTrip
 import com.mobilispect.backend.schedule.ScheduledTripDataSource
-import com.mobilispect.backend.schedule.archive.ArchiveExtractor
+import com.mobilispect.backend.util.ArchiveExtractor
 import com.mobilispect.backend.schedule.download.Downloader
 import com.mobilispect.backend.schedule.gtfs.GTFSRouteDataSource
 import com.mobilispect.backend.schedule.gtfs.StubAgencyIDDataSource
 import com.mobilispect.backend.schedule.route.RouteDataSource
-import com.mobilispect.backend.schedule.schedule.*
 import com.mobilispect.backend.schedule.stop.StopDataSource
 import com.mobilispect.backend.util.DateTimeOffset
 import kotlinx.coroutines.test.runTest

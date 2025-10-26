@@ -3,7 +3,7 @@ package com.mobilispect.backend.schedule.gtfs
 import com.mobilispect.backend.schedule.ScheduledStop
 import com.mobilispect.backend.schedule.ScheduledStopDataSource
 import com.mobilispect.backend.util.DateTimeOffset
-import com.mobilispect.backend.util.measureTime
+import kotlin.time.measureTime
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.csv.Csv
@@ -29,8 +29,9 @@ class GTFSScheduledStopDataSource : ScheduledStopDataSource {
                 ignoreUnknownColumns = true
             }
             val stopTimesIn = extractedDir.resolve("stop_times.txt").toFile().readText()
-            val (decodingTime, stopTimes) = measureTime {
-                return@measureTime csv.decodeFromString<Collection<GTFSStopTime>>(stopTimesIn)
+            val stopTimes: Collection<GTFSStopTime>
+            val decodingTime = measureTime {
+                stopTimes = csv.decodeFromString<Collection<GTFSStopTime>>(stopTimesIn)
             }
             logger.debug("Decoded {} stop times in {}", stopTimes.size, decodingTime)
 

@@ -5,7 +5,7 @@ import com.mobilispect.backend.schedule.ImportScheduledFeedsService
 import com.mobilispect.backend.schedule.Route
 import com.mobilispect.backend.schedule.route.RouteDataSource
 import com.mobilispect.backend.schedule.route.RouteIDDataSource
-import com.mobilispect.backend.util.measureTime
+import kotlin.time.measureTime
 import com.mobilispect.backend.util.readTextAndNormalize
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
@@ -49,8 +49,9 @@ class GTFSRouteDataSource(
             }
             val routeIDs = routeIDRes.getOrNull()!!
 
-            val (decodingTime, gtfsRoutes) = measureTime {
-                return@measureTime csv.decodeFromString<Collection<GTFSRoute>>(input)
+            val gtfsRoutes: Collection<GTFSRoute>
+            val decodingTime = measureTime {
+                gtfsRoutes = csv.decodeFromString<Collection<GTFSRoute>>(input)
             }
             logger.debug("Decoded {} routes in {}", gtfsRoutes.size, decodingTime)
 

@@ -3,7 +3,6 @@ plugins {
     kotlin("plugin.spring") version "1.9.25"
     id("org.springframework.boot") version "3.5.3"
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.squareup.sort-dependencies") version "0.14"
     id("io.gitlab.arturbosch.detekt") version "1.23.6"
     alias(libs.plugins.kotlin.serialization)
 }
@@ -51,6 +50,10 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll("-Xjsr305=strict")
     }
+}
+
+springBoot {
+    mainClass.set("com.mobilispect.backend.FeedManagementApplicationKt")
 }
 
 tasks.withType<Test> {

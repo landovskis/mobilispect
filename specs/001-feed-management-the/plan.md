@@ -12,7 +12,7 @@ Implement a comprehensive feed management system enabling administrators to disc
 ## Technical Context
 
 **Language/Version**: Kotlin 2.0+ (Spring Boot backend), TypeScript (Angular frontend)
-**Primary Dependencies**: Spring Boot, Spring Security, PostgreSQL, Retrofit/OkHttp (transit.land integration), Jackson (JSON processing), Angular 19 LTS, RxJS, Grafana Cloud (observability), GitHub Actions (CI/CD)
+**Primary Dependencies**: Spring Boot, Spring Security, PostgreSQL, Retrofit/OkHttp (transit.land integration), Jackson (JSON processing), Angular 19 LTS, RxJS, Grafana Cloud (observability)
 **Storage**: PostgreSQL for feed metadata, import history, content hashes; File system/S3 for GTFS archives
 **Testing**: JUnit 5, Testcontainers, Mockito (backend); Jest, Cypress (frontend)
 **Target Platform**: Linux server deployment, web-based admin interface
@@ -30,30 +30,35 @@ Implement a comprehensive feed management system enabling administrators to disc
 **Post-Design Constitutional Compliance Verified**:
 
 ### Code Quality First ✅
+
 - **DRY/YAGNI/SOLID**: Clean separation with dedicated services (`TransitLandApiClient`, `FeedDiscoveryService`, `ImportProgressService`)
 - **Linting/Formatting**: ktlint for Kotlin backend, ESLint/Prettier for Angular frontend
 - **Code Reviews**: All changes require review, especially integration with external APIs
 - **Architecture**: Clear domain boundaries with feeds, imports, and authentication modules
 
 ### Test-Driven Development ✅
+
 - **Unit Tests**: 80%+ coverage planned for feed processing, validation, and API integration logic
 - **Integration Tests**: End-to-end tests for transit.land API integration and GTFS processing with Testcontainers
 - **Contract Tests**: OpenAPI specification provides contract validation between frontend and backend
 - **Test Strategy**: Comprehensive testing approach documented in quickstart guide
 
 ### Cross-Platform UX Consistency ✅
+
 - **Angular Frontend**: Consistent admin interface with Material Design and WebSocket real-time updates
 - **Responsive Design**: Mobile-friendly admin interface for monitoring imports
 - **Light/Dark Mode**: Required across admin interface per constitutional requirements
 - **API Design**: RESTful API with proper HTTP status codes and error handling
 
 ### Performance Standards ✅
+
 - **API Response**: 200ms p95 requirement maintained with async processing and Redis caching
 - **Database Optimization**: Proper indexing strategy for PostgreSQL with performance-focused queries
 - **Background Processing**: Spring async processing with controlled thread pools for imports
 - **Efficient Progress Tracking**: Redis-based transient data storage to reduce database load
 
 ### Observability & Monitoring ✅
+
 - **Grafana Cloud Integration**: Centralized observability platform for monitoring, alerting, and visualization
 - **Structured Logging**: Import progress, errors, and API interactions with structured arguments sent to Grafana Cloud
 - **Metrics**: Feed import success rates, processing times, Transit.land API usage exported to Grafana Cloud
@@ -61,14 +66,8 @@ Implement a comprehensive feed management system enabling administrators to disc
 - **WebSocket Monitoring**: Real-time connection tracking and performance metrics visualized in Grafana Cloud
 - **Business Dashboards**: Critical business metrics and system health indicators displayed in Grafana Cloud
 
-### CI/CD Standards ✅
-- **GitHub Actions Integration**: All automation, testing, and deployment pipelines use GitHub Actions
-- **Platform-Specific Workflows**: Separate workflows for backend (Kotlin/Spring Boot) and frontend (Angular/TypeScript)
-- **Matrix Builds**: Coverage of all supported platform versions and environments
-- **Staging Validation**: Deployment pipelines include staging environment validation before production
-- **Grafana Cloud Metrics**: All GitHub Actions workflows integrate with Grafana Cloud for build and deployment metrics
-
 ### Architecture Decision Records ✅
+
 - **External Integration**: Transit.land API v2 with rate limiting and SHA1-based change detection
 - **Data Storage**: PostgreSQL for persistent data, Redis for transient progress, file system/S3 for GTFS archives
 - **Authentication Strategy**: Role-based access control with three distinct permission levels
