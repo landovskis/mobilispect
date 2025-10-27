@@ -894,25 +894,6 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     this.loadMockData();
   }
 
-  testImport(): void {
-    console.log('Testing feed import...');
-    this.importService.startImport('f-sf-bay-area').pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (result) => {
-        console.log('Import result:', result);
-        this.snackBar.open(
-          `✅ Feed import ${result.status.toLowerCase()}! ID: ${result.id}`,
-          'Close',
-          { duration: 5000 }
-        );
-      },
-      error: (error) => {
-        console.error('Import failed:', error);
-        this.snackBar.open('❌ Import failed', 'Close', { duration: 5000 });
-      }
-    });
-  }
 
   selectRegion(region: MetropolitanRegion): void {
     // Navigate to the region's feeds using its onestop ID
@@ -962,28 +943,9 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   }
 
   importRegionFeeds(region: MetropolitanRegion): void {
-    // Show confirmation dialog first
-    const dialogRef = this.dialog.open(ImportConfirmationDialogComponent, {
-      width: '500px',
-      data: {
-        regionName: region.name,
-        feedCount: region.feedCount
-      }
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result === true) {
-        // User confirmed - start the import
-        // Navigate to active imports view
-        this.navigateToView('imports');
-
-        // Show starting notification
-        this.snackBar.open(`Starting import for ${region.name}...`, 'Close', { duration: 3000 });
-
-        // Start the import
-        this.testImport();
-      }
-    });
+    // Navigate to feeds view for the region so user can select individual feeds
+    this.selectRegion(region);
+    this.snackBar.open(`View feeds for ${region.name} to import individually`, 'Close', { duration: 3000 });
   }
 
   private loadMockData(): void {
