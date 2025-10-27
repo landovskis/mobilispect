@@ -33,7 +33,7 @@ export interface ImportProgressDialogData {
     MatDividerModule
   ],
   template: `
-    <div class="import-progress-dialog">
+    <div class="import-progress-dialog import-dialog">
       <h2 mat-dialog-title>
         <mat-icon>{{ getStatusIcon() }}</mat-icon>
         Importing {{ data.feedName }}

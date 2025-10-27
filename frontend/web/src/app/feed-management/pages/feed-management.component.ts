@@ -12,6 +12,7 @@ import { RegionService } from '../services/region.service';
 import { ImportService } from '../services/import.service';
 import { FeedAuthenticationService } from '../services/feed-authentication.service';
 import { ImportProgressDialogComponent } from '../components/import-progress-dialog.component';
+import { ImportConfirmationDialogComponent } from '../components/import-confirmation-dialog.component';
 import { ProgressMonitorComponent } from '../components/progress-monitor.component';
 import { ProgressWebSocketService } from '../services/progress-websocket.service';
 
@@ -44,10 +45,12 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
             </button>
           </div>
 
-          <mat-nav-list class="navigation-list">
+          <mat-nav-list class="navigation-list" role="tablist">
             <a
               mat-list-item
+              role="tab"
               [class.active]="currentView === 'regions'"
+              [attr.aria-selected]="currentView === 'regions'"
               (click)="navigateToView('regions')"
               [attr.aria-label]="'View regions'"
             >
@@ -58,7 +61,9 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
 
             <a
               mat-list-item
+              role="tab"
               [class.active]="currentView === 'imports'"
+              [attr.aria-selected]="currentView === 'imports'"
               (click)="navigateToView('imports')"
               [attr.aria-label]="'View active imports with ' + (activeImports$ | async)?.length + ' active'"
             >
@@ -79,7 +84,9 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
 
             <a
               mat-list-item
+              role="tab"
               [class.active]="currentView === 'history'"
+              [attr.aria-selected]="currentView === 'history'"
               (click)="navigateToView('history')"
               [attr.aria-label]="'View import history'"
             >
@@ -90,7 +97,9 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
 
             <a
               mat-list-item
+              role="tab"
               [class.active]="currentView === 'authentication'"
+              [attr.aria-selected]="currentView === 'authentication'"
               (click)="navigateToView('authentication')"
               [attr.aria-label]="'Manage feed authentication'"
             >
@@ -170,7 +179,7 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
                 </mat-card-header>
                 <mat-card-content>
                   <div class="regions-grid" *ngIf="mockRegions.length > 0">
-                    <mat-card *ngFor="let region of mockRegions" class="region-card">
+                    <mat-card *ngFor="let region of mockRegions" class="region-card region-item">
                       <mat-card-header>
                         <mat-card-title>{{ region.name }}</mat-card-title>
                         <mat-card-subtitle>{{ region.feedCount }} feeds</mat-card-subtitle>
@@ -225,7 +234,7 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
                   </div>
 
                   <!-- Active Imports List -->
-                  <div *ngFor="let activeImport of activeImports$ | async" class="active-import-card">
+                  <div *ngFor="let activeImport of activeImports$ | async" class="active-import-card active-import-item">
                     <div class="import-header">
                       <mat-checkbox
                         [checked]="selectedImportIds.has(activeImport.id)"
@@ -339,10 +348,67 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
               <mat-card>
                 <mat-card-header>
                   <mat-card-title>Import History</mat-card-title>
-                  <mat-card-subtitle>Review completed and failed import attempts</mat-card-subtitle>
+                  <mat-card-subtitle>Review completed and failed import attempts ({{ totalImportElements }} total)</mat-card-subtitle>
                 </mat-card-header>
                 <mat-card-content>
-                  <p>Import history will be displayed here when available.</p>
+                  <div *ngIf="loadingHistory" class="loading-container" style="text-align: center; padding: 40px;">
+                    <mat-spinner diameter="40" style="margin: 0 auto;"></mat-spinner>
+                    <p style="margin-top: 20px;">Loading import history...</p>
+                  </div>
+
+                  <div *ngIf="!loadingHistory && importHistory.length === 0" class="empty-state" style="text-align: center; padding: 60px 20px;">
+                    <mat-icon style="font-size: 64px; width: 64px; height: 64px; color: #999;">history</mat-icon>
+                    <p style="font-size: 18px; margin-top: 20px; color: #666;">No import history available yet.</p>
+                    <p style="color: #999;">Start an import to see it appear here when completed.</p>
+                  </div>
+
+                  <div *ngIf="!loadingHistory && importHistory.length > 0">
+                    <table mat-table [dataSource]="importHistory" class="history-table" style="width: 100%;">
+                      <ng-container matColumnDef="feedName">
+                        <th mat-header-cell *matHeaderCellDef>Feed</th>
+                        <td mat-cell *matCellDef="let import">{{ import.feedName || import.feedOnestopId }}</td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="region">
+                        <th mat-header-cell *matHeaderCellDef>Region</th>
+                        <td mat-cell *matCellDef="let import">{{ import.regionName || import.regionOnestopId }}</td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="status">
+                        <th mat-header-cell *matHeaderCellDef>Status</th>
+                        <td mat-cell *matCellDef="let import">
+                          <span [ngClass]="{'status-badge': true, 'status-completed': import.status === 'COMPLETED', 'status-failed': import.status === 'FAILED', 'status-cancelled': import.status === 'CANCELLED'}">{{ import.status }}</span>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="startedAt">
+                        <th mat-header-cell *matHeaderCellDef>Started</th>
+                        <td mat-cell *matCellDef="let import">{{ import.startedAt | date:'short' }}</td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="completedAt">
+                        <th mat-header-cell *matHeaderCellDef>Completed</th>
+                        <td mat-cell *matCellDef="let import">{{ import.completedAt | date:'short' }}</td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="records">
+                        <th mat-header-cell *matHeaderCellDef>Records</th>
+                        <td mat-cell *matCellDef="let import">{{ import.recordsImported | number }}</td>
+                      </ng-container>
+
+                      <tr mat-header-row *matHeaderRowDef="['feedName', 'region', 'status', 'startedAt', 'completedAt', 'records']"></tr>
+                      <tr mat-row *matRowDef="let row; columns: ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'records']"></tr>
+                    </table>
+
+                    <mat-paginator
+                      [length]="totalImportElements"
+                      [pageSize]="importHistorySize"
+                      [pageIndex]="importHistoryPage"
+                      [pageSizeOptions]="[10, 20, 50, 100]"
+                      (page)="loadImportHistory($event.pageIndex)"
+                      showFirstLastButtons>
+                    </mat-paginator>
+                  </div>
                 </mat-card-content>
               </mat-card>
             </div>
@@ -870,6 +936,14 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   selectedFeedForAuth: string | null = null;
   loadingFeeds = false;
 
+  // Import history state
+  importHistory: FeedImportSummary[] = [];
+  importHistoryPage = 0;
+  importHistorySize = 20;
+  totalImportPages = 0;
+  totalImportElements = 0;
+  loadingHistory = false;
+
   // Bulk selection state
   selectedImportIds = new Set<string>();
   allImportsSelected = false;
@@ -982,11 +1056,24 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (result) => {
-        // Open progress dialog with real-time monitoring
+        // Automatically redirect to active imports view
+        this.navigateToView('imports');
+
+        // Show success notification
+        this.snackBar.open(
+          `Import started for ${feed.name}`,
+          'Close',
+          { duration: 3000 }
+        );
+
+        // Refresh active imports
+        this.importService.refreshActiveImports();
+
+        // Open progress dialog with real-time monitoring (optional)
         const dialogRef = this.dialog.open(ImportProgressDialogComponent, {
           width: '600px',
           maxWidth: '90vw',
-          disableClose: true, // Prevent closing during active import
+          disableClose: false, // Allow closing
           data: {
             feedOnestopId: feed.feedOnestopId,
             feedName: feed.name,
@@ -1044,6 +1131,11 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   navigateToView(view: string): void {
     this.currentView = view;
     this.router.navigate(['/feed-management', view]);
+
+    // Load data specific to the view
+    if (view === 'history') {
+      this.loadImportHistory();
+    }
   }
 
   updateCurrentViewFromRoute(): void {
@@ -1052,6 +1144,11 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
 
     if (['regions', 'imports', 'history', 'authentication'].includes(lastSegment)) {
       this.currentView = lastSegment;
+
+      // Load data for the current view
+      if (lastSegment === 'history') {
+        this.loadImportHistory();
+      }
     } else {
       this.currentView = 'regions';
     }
@@ -1128,8 +1225,28 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   }
 
   importRegionFeeds(region: MetropolitanRegion): void {
-    this.snackBar.open(`Starting import for ${region.name}...`, 'Close', { duration: 3000 });
-    this.testImport();
+    // Show confirmation dialog first
+    const dialogRef = this.dialog.open(ImportConfirmationDialogComponent, {
+      width: '500px',
+      data: {
+        regionName: region.name,
+        feedCount: region.feedCount
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result === true) {
+        // User confirmed - start the import
+        // Navigate to active imports view
+        this.navigateToView('imports');
+
+        // Show starting notification
+        this.snackBar.open(`Starting import for ${region.name}...`, 'Close', { duration: 3000 });
+
+        // Start the import
+        this.testImport();
+      }
+    });
   }
 
   private loadMockData(): void {
@@ -1179,6 +1296,10 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
         );
         // Refresh the active imports list
         this.importService.refreshActiveImports();
+        // Refresh history if on history view
+        if (this.currentView === 'history') {
+          this.loadImportHistory();
+        }
       },
       error: (error) => {
         console.error('Failed to cancel import:', error);
@@ -1194,6 +1315,34 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
           // Retry cancellation when user clicks "Retry"
           this.cancelImport(importId);
         });
+      }
+    });
+  }
+
+  loadImportHistory(page: number = 0): void {
+    this.loadingHistory = true;
+    this.importHistoryPage = page;
+
+    this.importService.getAllImportHistory({
+      page: page,
+      size: this.importHistorySize
+    }).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        this.importHistory = response.imports as any[];
+        this.totalImportPages = response.totalPages;
+        this.totalImportElements = response.totalElements;
+        this.loadingHistory = false;
+      },
+      error: (error) => {
+        console.error('Failed to load import history:', error);
+        this.loadingHistory = false;
+        this.snackBar.open(
+          'Failed to load import history',
+          'Close',
+          { duration: 4000 }
+        );
       }
     });
   }
