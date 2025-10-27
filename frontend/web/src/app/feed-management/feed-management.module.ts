@@ -40,6 +40,9 @@ import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
 import { RegionService } from './services/region.service';
 import { ImportService } from './services/import.service';
 import { FeedAuthenticationService } from './services/feed-authentication.service';
+import { FeedRegionsTabComponent } from './components/feed-regions-tab.component';
+import { FeedActiveImportsTabComponent } from './components/feed-active-imports-tab.component';
+import { FeedHistoryTabComponent } from './components/feed-history-tab.component';
 
 @NgModule({
   declarations: [
@@ -61,6 +64,9 @@ import { FeedAuthenticationService } from './services/feed-authentication.servic
     ProgressBarComponent,
     ProgressMonitorComponent,
     ThemeToggleComponent,
+    FeedRegionsTabComponent,
+    FeedActiveImportsTabComponent,
+    FeedHistoryTabComponent,
 
     // Angular Material modules
     MatCardModule,

@@ -30,16 +30,22 @@ const routes: Routes = [
       },
       {
         path: 'imports',
-        redirectTo: 'regions',
-        pathMatch: 'full'
-      },
-      {
-        path: 'region/:regionId',
         component: FeedManagementComponent,
         data: {
-          title: 'Region Details',
-          breadcrumb: 'Region Details',
-          view: 'regions'
+          title: 'Active Imports',
+          breadcrumb: 'Active Imports',
+          view: 'imports',
+          tab: 'active'
+        }
+      },
+      {
+        path: 'history',
+        component: FeedManagementComponent,
+        data: {
+          title: 'Import History',
+          breadcrumb: 'Import History',
+          view: 'imports',
+          tab: 'history'
         }
       },
       {
@@ -49,6 +55,15 @@ const routes: Routes = [
           title: 'Import Details',
           breadcrumb: 'Import Details',
           view: 'imports'
+        }
+      },
+      {
+        path: ':onestopId',
+        component: FeedManagementComponent,
+        data: {
+          title: 'Region Feeds',
+          breadcrumb: 'Feeds',
+          view: 'feeds'
         }
       }
     ]
