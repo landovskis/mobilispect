@@ -1131,30 +1131,6 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     this.regionFeeds = [];
   }
 
-  private generateMockFeeds(region: MetropolitanRegion): Feed[] {
-    const mockFeeds: Feed[] = [];
-    const feedCount = region.feedCount || 3;
-
-    for (let i = 0; i < Math.min(feedCount, 10); i++) {
-      mockFeeds.push({
-        feedOnestopId: `f-${region.regionOnestopId.substring(2)}-feed${i + 1}`,
-        regionOnestopId: region.regionOnestopId,
-        name: `${region.name} Transit Feed ${i + 1}`,
-        specType: i === 0 ? FeedSpecType.GTFS : FeedSpecType.GTFS_RT,
-        downloadUrl: `https://transit.land/api/v2/feeds/${region.regionOnestopId}/feed${i + 1}/download`,
-        currentVersionSha1: i < 2 ? `sha1-${Date.now()}-${i}` : null,
-        lastCheckedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        lastUpdatedAt: i < 2 ? new Date(Date.now() - Math.random() * 3 * 24 * 60 * 60 * 1000).toISOString() : null,
-        status: i === 0 ? FeedStatus.ACTIVE : (i === 1 ? FeedStatus.INACTIVE : FeedStatus.ACTIVE),
-        hasAuthentication: i === 2,
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: new Date().toISOString()
-      });
-    }
-
-    return mockFeeds;
-  }
-
   importRegionFeeds(region: MetropolitanRegion): void {
     // Show confirmation dialog first
     const dialogRef = this.dialog.open(ImportConfirmationDialogComponent, {
@@ -1283,32 +1259,9 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   }
 
   private loadAllFeeds(): void {
-    // In a real implementation, this would load all feeds from all regions
-    // For now, we'll simulate with mock data
-    const mockAllFeeds: Feed[] = [];
-
-    // Generate mock feeds across multiple regions
-    const regions = ['sf-bay-area', 'la-metro', 'seattle', 'portland'];
-    regions.forEach((region, regionIndex) => {
-      for (let i = 0; i < 3; i++) {
-        mockAllFeeds.push({
-          feedOnestopId: `f-${region}-feed${i + 1}`,
-          regionOnestopId: `r-${region}`,
-          name: `${region.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} Feed ${i + 1}`,
-          specType: i === 0 ? FeedSpecType.GTFS : FeedSpecType.GTFS_RT,
-          downloadUrl: `https://transit.land/api/v2/feeds/${region}/feed${i + 1}/download`,
-          currentVersionSha1: i < 2 ? `sha1-${Date.now()}-${regionIndex}-${i}` : null,
-          lastCheckedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-          lastUpdatedAt: i < 2 ? new Date(Date.now() - Math.random() * 3 * 24 * 60 * 60 * 1000).toISOString() : null,
-          status: Math.random() > 0.2 ? FeedStatus.ACTIVE : FeedStatus.INACTIVE,
-          hasAuthentication: Math.random() > 0.7,
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: new Date().toISOString()
-        });
-      }
-    });
-
-    this.allFeeds = mockAllFeeds;
+    // Load all feeds from all regions for authentication management
+    // This could be implemented later if needed for bulk operations
+    this.allFeeds = [];
   }
 
   toggleImportSelection(importId: string, selected: boolean): void {
