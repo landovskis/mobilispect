@@ -179,10 +179,6 @@ import { ThemeService } from '../../core/services/theme.service';
                         <mat-card class="welcome-card">
                           <mat-card-content>
                             <p>Choose from available metropolitan regions to view and import their transit feeds.</p>
-                            <button mat-raised-button color="primary" (click)="testImport()">
-                              <mat-icon>download</mat-icon>
-                              Test Feed Import
-                            </button>
                           </mat-card-content>
                         </mat-card>
 
@@ -1107,11 +1103,26 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     this.loadingFeeds = true;
     this.regionFeeds = [];
 
-    // Mock feeds data since API might not be available
-    this.loadingFeeds = false;
-    this.regionFeeds = this.generateMockFeeds(region);
-
-    this.snackBar.open(`Viewing feeds for ${region.name}`, 'Close', { duration: 2000 });
+    // Fetch feeds from transit.land API via backend
+    this.regionService.listFeedsForRegion(region.regionOnestopId).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (feeds) => {
+        this.regionFeeds = feeds;
+        this.loadingFeeds = false;
+        this.snackBar.open(`Viewing ${feeds.length} feeds for ${region.name}`, 'Close', { duration: 2000 });
+      },
+      error: (error) => {
+        console.error('Failed to load feeds:', error);
+        this.loadingFeeds = false;
+        this.snackBar.open(`Failed to load feeds for ${region.name}`, 'Retry', {
+          duration: 5000
+        }).onAction().subscribe(() => {
+          // Retry loading feeds
+          this.selectRegion(region);
+        });
+      }
+    });
   }
 
   backToRegions(): void {
