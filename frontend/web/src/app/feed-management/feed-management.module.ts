@@ -17,8 +17,6 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -85,8 +83,6 @@ import { FeedHistoryTabComponent } from './components/feed-history-tab.component
     MatChipsModule,
     MatBadgeModule,
     MatToolbarModule,
-    MatSidenavModule,
-    MatListModule,
     MatTooltipModule,
     MatTabsModule,
     MatCheckboxModule,
