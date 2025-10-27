@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable, Subject, combineLatest } from 'rxjs';
 import { map, takeUntil, filter, take } from 'rxjs/operators';
 import { MetropolitanRegion, Feed, FeedStatus, FeedSpecType } from '../models/region.models';
@@ -19,138 +18,58 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
   standalone: false,
   template: `
     <div class="feed-management-container">
-      <!-- Mobile/Desktop Layout -->
-      <mat-sidenav-container class="sidenav-container" [hasBackdrop]="!(isDesktop$ | async)">
-        <!-- Side Navigation -->
-        <mat-sidenav
-          #drawer
-          class="sidenav"
-          [mode]="(isDesktop$ | async) ? 'side' : 'over'"
-          [opened]="(isDesktop$ | async)"
-          [fixedInViewport]="!(isDesktop$ | async)"
-          [attr.role]="'navigation'"
+      <!-- Toolbar -->
+      <mat-toolbar color="primary" class="main-toolbar">
+        <span class="toolbar-title">{{ getViewTitle() }}</span>
+
+        <span class="toolbar-spacer"></span>
+
+        <button
+          mat-button
+          class="toolbar-nav-button"
+          [class.active-toolbar-button]="currentView === 'regions' || currentView === 'imports'"
+          (click)="navigateToView('regions')"
         >
-          <div class="sidenav-header">
-            <h2>Feed Management</h2>
-            <button
-              mat-icon-button
-              (click)="drawer.toggle()"
-              class="drawer-toggle"
-              [attr.aria-label]="'Toggle navigation'"
-              *ngIf="!(isDesktop$ | async)"
-            >
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
+          <mat-icon>dashboard</mat-icon>
+          Overview
+        </button>
 
-          <mat-nav-list class="navigation-list" role="tablist">
-            <a
-              mat-list-item
-              role="tab"
-              [class.active]="currentView === 'regions' || currentView === 'imports'"
-              [attr.aria-selected]="currentView === 'regions' || currentView === 'imports'"
-              (click)="navigateToView('regions')"
-              [attr.aria-label]="'View feed management with ' + (activeImports$ | async)?.length + ' active imports'"
-            >
-              <mat-icon
-                matListItemIcon
-                [matBadge]="(activeImports$ | async)?.length || 0"
-                [matBadgeHidden]="((activeImports$ | async)?.length || 0) === 0"
-                matBadgeColor="accent"
-                matBadgeSize="small"
-                aria-hidden="false"
-                [attr.aria-label]="'Active imports: ' + ((activeImports$ | async)?.length || 0)"
-              >
-                dashboard
-              </mat-icon>
-              <span matListItemTitle>Feed Management</span>
-              <span matListItemLine>Regions & Imports</span>
-            </a>
+        <button
+          mat-button
+          class="toolbar-nav-button"
+          [class.active-toolbar-button]="currentView === 'feeds'"
+          (click)="navigateToView('feeds')"
+          [disabled]="!selectedRegion"
+        >
+          <mat-icon>rss_feed</mat-icon>
+          Feeds
+        </button>
 
-            <a
-              mat-list-item
-              role="tab"
-              [class.active]="currentView === 'feeds'"
-              [attr.aria-selected]="currentView === 'feeds'"
-              (click)="navigateToView('feeds')"
-              [attr.aria-label]="'View feeds' + (selectedRegion ? ' for ' + selectedRegion.name : '')"
-              *ngIf="selectedRegion"
-            >
-              <mat-icon
-                matListItemIcon
-                [matBadge]="regionFeeds.length || 0"
-                [matBadgeHidden]="regionFeeds.length === 0"
-                matBadgeColor="primary"
-                matBadgeSize="small"
-              >
-                rss_feed
-              </mat-icon>
-              <span matListItemTitle>{{ selectedRegion?.name }} Feeds</span>
-              <span matListItemLine>{{ regionFeeds.length }} feeds available</span>
-            </a>
+        <button
+          mat-icon-button
+          class="toolbar-icon-button"
+          (click)="refreshData()"
+          [attr.aria-label]="'Refresh all data'"
+        >
+          <mat-icon>refresh</mat-icon>
+        </button>
 
-            <mat-divider></mat-divider>
+        <!-- Quick Stats -->
+        <div class="quick-stats" *ngIf="quickStats$ | async as stats">
+          <mat-chip-set>
+            <mat-chip *ngIf="stats.activeImports > 0" class="active-imports">
+              <mat-icon>download</mat-icon>
+              {{ stats.activeImports }} importing
+            </mat-chip>
+          </mat-chip-set>
+        </div>
 
-            <a
-              mat-list-item
-              (click)="refreshData()"
-              [attr.aria-label]="'Refresh all data'"
-            >
-              <mat-icon matListItemIcon>refresh</mat-icon>
-              <span matListItemTitle>Refresh</span>
-              <span matListItemLine>Update all data</span>
-            </a>
-          </mat-nav-list>
-        </mat-sidenav>
+        <!-- Theme Toggle (Constitutional Requirement) -->
+        <app-theme-toggle></app-theme-toggle>
+      </mat-toolbar>
 
-        <!-- Main Content -->
-        <mat-sidenav-content class="main-content">
-          <!-- Toolbar -->
-          <mat-toolbar color="primary" class="main-toolbar">
-            <button
-              mat-icon-button
-              (click)="drawer.toggle()"
-              [attr.aria-label]="'Open navigation'"
-              *ngIf="!(isDesktop$ | async)"
-            >
-              <mat-icon>menu</mat-icon>
-            </button>
-
-            <span class="toolbar-title">{{ getViewTitle() }}</span>
-
-            <span class="toolbar-spacer"></span>
-
-            <!-- Centered Navigation -->
-            <div class="toolbar-nav-center">
-              <button
-                mat-button
-                (click)="navigateToView('feeds')"
-                [class.active-toolbar-button]="currentView === 'feeds'"
-                class="toolbar-nav-button"
-              >
-                <mat-icon>rss_feed</mat-icon>
-                Feeds
-              </button>
-            </div>
-
-            <span class="toolbar-spacer"></span>
-
-            <!-- Quick Stats -->
-            <div class="quick-stats" *ngIf="quickStats$ | async as stats">
-              <mat-chip-set>
-                <mat-chip *ngIf="stats.activeImports > 0" class="active-imports">
-                  <mat-icon>download</mat-icon>
-                  {{ stats.activeImports }} importing
-                </mat-chip>
-              </mat-chip-set>
-            </div>
-
-            <!-- Theme Toggle (Constitutional Requirement) -->
-            <app-theme-toggle></app-theme-toggle>
-          </mat-toolbar>
-
-          <!-- Content Area -->
-          <div class="content-area">
+      <!-- Content Area -->
+      <div class="content-area">
             <!-- Feed Management View (Regions, Active Imports & History Tabs) -->
             <div *ngIf="currentView === 'regions' || currentView === 'imports'" class="view-container">
               <mat-tab-group
@@ -299,8 +218,7 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
               </mat-card>
             </div>
           </div>
-        </mat-sidenav-content>
-      </mat-sidenav-container>
+      </div>
     </div>
   `,
   styles: [`
@@ -308,39 +226,6 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
       height: 100vh;
       display: flex;
       flex-direction: column;
-    }
-
-    .sidenav-container {
-      flex: 1;
-    }
-
-    .sidenav {
-      width: 280px;
-      background: white;
-      border-right: 1px solid #e0e0e0;
-    }
-
-    .sidenav-header {
-      padding: 20px 16px;
-      border-bottom: 1px solid #e0e0e0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .sidenav-header h2 {
-      margin: 0;
-      font-size: 1.25rem;
-      font-weight: 500;
-    }
-
-    .navigation-list {
-      padding-top: 8px;
-    }
-
-    .navigation-list a.active {
-      background-color: #f3e5f5;
-      color: #7b1fa2;
     }
 
     .main-toolbar {
@@ -369,6 +254,11 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
 
     .toolbar-nav-button.active-toolbar-button {
       background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .toolbar-icon-button {
+      color: white;
+      margin-right: 8px;
     }
 
     .quick-stats mat-chip {
@@ -711,7 +601,6 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   FeedSpecType = FeedSpecType;
 
   // Observable streams
-  isDesktop$: Observable<boolean>;
   activeImports$: Observable<FeedImportSummary[]>;
   quickStats$: Observable<any>;
   authStats$: Observable<AuthenticationStatistics>;
@@ -746,18 +635,8 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     private authService: FeedAuthenticationService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private breakpointObserver: BreakpointObserver,
     private router: Router
   ) {
-    // Setup responsive design
-    this.isDesktop$ = this.breakpointObserver.observe([
-      Breakpoints.Medium,
-      Breakpoints.Large,
-      Breakpoints.XLarge
-    ]).pipe(
-      map(result => result.matches)
-    );
-
     // Setup active imports observable
     this.activeImports$ = this.importService.getActiveImportsObservable();
 
