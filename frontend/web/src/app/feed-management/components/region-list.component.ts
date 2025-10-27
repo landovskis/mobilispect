@@ -654,7 +654,8 @@ export class RegionListComponent implements OnInit, OnDestroy {
       );
     }
 
-    return filtered;
+    // Prioritize Canadian regions by default
+    return this.regionService.sortWithCanadianPriority([...filtered]);
   }
 
   selectRegion(region: MetropolitanRegion): void {

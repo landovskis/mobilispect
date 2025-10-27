@@ -24,8 +24,10 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { FeedManagementRoutingModule } from './feed-management-routing.module';
+import { ThemeToggleComponent } from '../core/components/theme-toggle.component';
 import { FeedManagementComponent } from './pages/feed-management.component';
 import { RegionListComponent } from './components/region-list.component';
 import { ImportDialogComponent } from './components/import-dialog.component';
@@ -58,6 +60,7 @@ import { FeedAuthenticationService } from './services/feed-authentication.servic
     ImportProgressDialogComponent,
     ProgressBarComponent,
     ProgressMonitorComponent,
+    ThemeToggleComponent,
 
     // Angular Material modules
     MatCardModule,
@@ -82,7 +85,8 @@ import { FeedAuthenticationService } from './services/feed-authentication.servic
     MatTabsModule,
     MatCheckboxModule,
     MatExpansionModule,
-    MatDividerModule
+    MatDividerModule,
+    MatMenuModule
   ],
   providers: [
     RegionService,

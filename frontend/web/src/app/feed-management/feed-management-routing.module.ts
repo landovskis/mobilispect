@@ -23,28 +23,15 @@ const routes: Routes = [
         path: 'regions',
         component: FeedManagementComponent,
         data: {
-          title: 'Regional Transit Feeds',
-          breadcrumb: 'Regions',
+          title: 'Feed Management',
+          breadcrumb: 'Feed Management',
           view: 'regions'
         }
       },
       {
         path: 'imports',
-        component: FeedManagementComponent,
-        data: {
-          title: 'Active Imports',
-          breadcrumb: 'Active Imports',
-          view: 'imports'
-        }
-      },
-      {
-        path: 'history',
-        component: FeedManagementComponent,
-        data: {
-          title: 'Import History',
-          breadcrumb: 'Import History',
-          view: 'history'
-        }
+        redirectTo: 'regions',
+        pathMatch: 'full'
       },
       {
         path: 'region/:regionId',

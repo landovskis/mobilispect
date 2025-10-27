@@ -68,8 +68,55 @@ export class RegionService {
       map(regions => this.filterRegionsByAutoUpdate(regions, autoUpdateEnabled)),
       catchError(error => {
         console.warn('API not available, using mock data:', error);
-        // Return mock data for development
+        // Return mock data for development - prioritize Canadian cities
         const mockRegions: MetropolitanRegion[] = [
+          // Canadian cities (default suggestions)
+          {
+            regionOnestopId: 'r-toronto-on',
+            name: 'Toronto, Ontario',
+            autoUpdateEnabled: true,
+            feedCount: 18,
+            lastCheckAt: new Date().toISOString(),
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: new Date().toISOString()
+          },
+          {
+            regionOnestopId: 'r-vancouver-bc',
+            name: 'Vancouver, British Columbia',
+            autoUpdateEnabled: true,
+            feedCount: 12,
+            lastCheckAt: new Date().toISOString(),
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: new Date().toISOString()
+          },
+          {
+            regionOnestopId: 'r-montreal-qc',
+            name: 'Montreal, Quebec',
+            autoUpdateEnabled: true,
+            feedCount: 14,
+            lastCheckAt: new Date().toISOString(),
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: new Date().toISOString()
+          },
+          {
+            regionOnestopId: 'r-calgary-ab',
+            name: 'Calgary, Alberta',
+            autoUpdateEnabled: true,
+            feedCount: 8,
+            lastCheckAt: new Date().toISOString(),
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: new Date().toISOString()
+          },
+          {
+            regionOnestopId: 'r-ottawa-on',
+            name: 'Ottawa, Ontario',
+            autoUpdateEnabled: true,
+            feedCount: 6,
+            lastCheckAt: new Date().toISOString(),
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: new Date().toISOString()
+          },
+          // US cities (secondary)
           {
             regionOnestopId: 'r-sf-bay-area',
             name: 'San Francisco Bay Area',
@@ -262,5 +309,55 @@ export class RegionService {
         })
       )
     );
+  }
+
+  /**
+   * Checks if a region is a Canadian region based on name patterns
+   */
+  isCanadianRegion(region: MetropolitanRegion): boolean {
+    const canadianProvinces = [
+      'Ontario', 'Quebec', 'British Columbia', 'Alberta', 'Manitoba',
+      'Saskatchewan', 'Nova Scotia', 'New Brunswick', 'Newfoundland',
+      'Prince Edward Island', 'Yukon', 'Northwest Territories', 'Nunavut',
+      'ON', 'QC', 'BC', 'AB', 'MB', 'SK', 'NS', 'NB', 'NL', 'PE', 'YT', 'NT', 'NU'
+    ];
+
+    const canadianCities = [
+      'Toronto', 'Vancouver', 'Montreal', 'Calgary', 'Edmonton', 'Ottawa',
+      'Winnipeg', 'Quebec City', 'Hamilton', 'Kitchener', 'London', 'Victoria',
+      'Halifax', 'Oshawa', 'Windsor', 'Saskatoon', 'Regina', 'St. John\'s',
+      'Barrie', 'Kelowna', 'Sherbrooke', 'Guelph', 'Kanata', 'Abbotsford',
+      'Trois-Rivières', 'Kingston', 'Milton', 'Moncton', 'Thunder Bay'
+    ];
+
+    const nameAndId = `${region.name} ${region.regionOnestopId}`.toLowerCase();
+
+    // Check for Canadian province or city names
+    return canadianProvinces.some(province => nameAndId.includes(province.toLowerCase())) ||
+           canadianCities.some(city => nameAndId.includes(city.toLowerCase())) ||
+           nameAndId.includes('canada') ||
+           nameAndId.includes('canadian');
+  }
+
+  /**
+   * Sorts regions to prioritize Canadian regions first
+   */
+  sortWithCanadianPriority(regions: MetropolitanRegion[]): MetropolitanRegion[] {
+    return regions.sort((a, b) => {
+      const aIsCanadian = this.isCanadianRegion(a);
+      const bIsCanadian = this.isCanadianRegion(b);
+
+      // Canadian regions first
+      if (aIsCanadian && !bIsCanadian) return -1;
+      if (!aIsCanadian && bIsCanadian) return 1;
+
+      // Within same category, sort by feed count (descending)
+      if (a.feedCount !== b.feedCount) {
+        return b.feedCount - a.feedCount;
+      }
+
+      // Finally, sort alphabetically by name
+      return a.name.localeCompare(b.name);
+    });
   }
 }

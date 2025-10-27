@@ -15,6 +15,8 @@ import { ImportProgressDialogComponent } from '../components/import-progress-dia
 import { ImportConfirmationDialogComponent } from '../components/import-confirmation-dialog.component';
 import { ProgressMonitorComponent } from '../components/progress-monitor.component';
 import { ProgressWebSocketService } from '../services/progress-websocket.service';
+import { ThemeToggleComponent } from '../../core/components/theme-toggle.component';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-feed-management',
@@ -49,23 +51,10 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
             <a
               mat-list-item
               role="tab"
-              [class.active]="currentView === 'regions'"
-              [attr.aria-selected]="currentView === 'regions'"
+              [class.active]="currentView === 'regions' || currentView === 'imports'"
+              [attr.aria-selected]="currentView === 'regions' || currentView === 'imports'"
               (click)="navigateToView('regions')"
-              [attr.aria-label]="'View regions'"
-            >
-              <mat-icon matListItemIcon>location_on</mat-icon>
-              <span matListItemTitle>Regions</span>
-              <span matListItemLine>Select transit regions</span>
-            </a>
-
-            <a
-              mat-list-item
-              role="tab"
-              [class.active]="currentView === 'imports'"
-              [attr.aria-selected]="currentView === 'imports'"
-              (click)="navigateToView('imports')"
-              [attr.aria-label]="'View active imports with ' + (activeImports$ | async)?.length + ' active'"
+              [attr.aria-label]="'View feed management with ' + (activeImports$ | async)?.length + ' active imports'"
             >
               <mat-icon
                 matListItemIcon
@@ -76,36 +65,32 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
                 aria-hidden="false"
                 [attr.aria-label]="'Active imports: ' + ((activeImports$ | async)?.length || 0)"
               >
-                download
+                dashboard
               </mat-icon>
-              <span matListItemTitle>Active Imports</span>
-              <span matListItemLine>Monitor progress</span>
+              <span matListItemTitle>Feed Management</span>
+              <span matListItemLine>Regions & Imports</span>
             </a>
 
             <a
               mat-list-item
               role="tab"
-              [class.active]="currentView === 'history'"
-              [attr.aria-selected]="currentView === 'history'"
-              (click)="navigateToView('history')"
-              [attr.aria-label]="'View import history'"
+              [class.active]="currentView === 'feeds'"
+              [attr.aria-selected]="currentView === 'feeds'"
+              (click)="navigateToView('feeds')"
+              [attr.aria-label]="'View feeds' + (selectedRegion ? ' for ' + selectedRegion.name : '')"
+              *ngIf="selectedRegion"
             >
-              <mat-icon matListItemIcon>history</mat-icon>
-              <span matListItemTitle>Import History</span>
-              <span matListItemLine>View past imports</span>
-            </a>
-
-            <a
-              mat-list-item
-              role="tab"
-              [class.active]="currentView === 'authentication'"
-              [attr.aria-selected]="currentView === 'authentication'"
-              (click)="navigateToView('authentication')"
-              [attr.aria-label]="'Manage feed authentication'"
-            >
-              <mat-icon matListItemIcon>security</mat-icon>
-              <span matListItemTitle>Authentication</span>
-              <span matListItemLine>Manage feed credentials</span>
+              <mat-icon
+                matListItemIcon
+                [matBadge]="regionFeeds.length || 0"
+                [matBadgeHidden]="regionFeeds.length === 0"
+                matBadgeColor="primary"
+                matBadgeSize="small"
+              >
+                rss_feed
+              </mat-icon>
+              <span matListItemTitle>{{ selectedRegion?.name }} Feeds</span>
+              <span matListItemLine>{{ regionFeeds.length }} feeds available</span>
             </a>
 
             <mat-divider></mat-divider>
@@ -139,125 +124,225 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
 
             <span class="toolbar-spacer"></span>
 
+            <!-- Centered Navigation -->
+            <div class="toolbar-nav-center">
+              <button
+                mat-button
+                (click)="navigateToView('feeds')"
+                [class.active-toolbar-button]="currentView === 'feeds'"
+                class="toolbar-nav-button"
+              >
+                <mat-icon>rss_feed</mat-icon>
+                Feeds
+              </button>
+            </div>
+
+            <span class="toolbar-spacer"></span>
+
             <!-- Quick Stats -->
             <div class="quick-stats" *ngIf="quickStats$ | async as stats">
               <mat-chip-set>
-                <mat-chip *ngIf="stats.totalRegions > 0">
-                  <mat-icon>location_on</mat-icon>
-                  {{ stats.totalRegions }} regions
-                </mat-chip>
                 <mat-chip *ngIf="stats.activeImports > 0" class="active-imports">
                   <mat-icon>download</mat-icon>
                   {{ stats.activeImports }} importing
                 </mat-chip>
               </mat-chip-set>
             </div>
+
+            <!-- Theme Toggle (Constitutional Requirement) -->
+            <app-theme-toggle></app-theme-toggle>
           </mat-toolbar>
 
           <!-- Content Area -->
           <div class="content-area">
-            <!-- Regions View -->
-            <div *ngIf="currentView === 'regions'" class="view-container">
-              <mat-card class="welcome-card">
-                <mat-card-header>
-                  <mat-card-title>Regional Transit Feeds</mat-card-title>
-                  <mat-card-subtitle>Select metropolitan regions to manage transit feed imports</mat-card-subtitle>
-                </mat-card-header>
-                <mat-card-content>
-                  <p>Choose from available metropolitan regions to view and import their transit feeds.</p>
-                  <button mat-raised-button color="primary" (click)="testImport()">
-                    <mat-icon>download</mat-icon>
-                    Test Feed Import
-                  </button>
-                </mat-card-content>
-              </mat-card>
-
-              <!-- Mock Regions Display -->
-              <mat-card class="regions-card">
-                <mat-card-header>
-                  <mat-card-title>Available Regions</mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <div class="regions-grid" *ngIf="mockRegions.length > 0">
-                    <mat-card *ngFor="let region of mockRegions" class="region-card region-item">
-                      <mat-card-header>
-                        <mat-card-title>{{ region.name }}</mat-card-title>
-                        <mat-card-subtitle>{{ region.feedCount }} feeds</mat-card-subtitle>
-                      </mat-card-header>
-                      <mat-card-actions>
-                        <button mat-button (click)="selectRegion(region)">
-                          <mat-icon>visibility</mat-icon>
-                          View Feeds
-                        </button>
-                        <button mat-raised-button color="primary" (click)="importRegionFeeds(region)">
-                          <mat-icon>download</mat-icon>
-                          Import
-                        </button>
-                      </mat-card-actions>
-                    </mat-card>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            </div>
-
-            <!-- Active Imports View -->
-            <div *ngIf="currentView === 'imports'" class="view-container">
+            <!-- Feed Management View (Regions, Active Imports & History Tabs) -->
+            <div *ngIf="currentView === 'regions' || currentView === 'imports'" class="view-container">
               <mat-card>
                 <mat-card-header>
-                  <mat-card-title>Active Imports</mat-card-title>
-                  <mat-card-subtitle>Monitor feed import progress in real-time</mat-card-subtitle>
+                  <mat-card-title>Feed Management</mat-card-title>
+                  <mat-card-subtitle>Select regions and manage transit feed imports</mat-card-subtitle>
                 </mat-card-header>
 
-                <!-- Bulk Actions -->
-                <div class="bulk-actions" *ngIf="((activeImports$ | async)?.length ?? 0) > 0">
-                  <mat-checkbox
-                    [(ngModel)]="allImportsSelected"
-                    [indeterminate]="someImportsSelected && !allImportsSelected"
-                    (change)="toggleAllImports($event.checked)">
-                    Select All
-                  </mat-checkbox>
-                  <button
-                    mat-button
-                    color="warn"
-                    [disabled]="selectedImportIds.size === 0"
-                    (click)="bulkCancelImports()">
-                    <mat-icon>cancel</mat-icon>
-                    Cancel Selected ({{ selectedImportIds.size }})
-                  </button>
-                </div>
-
                 <mat-card-content>
-                  <div *ngIf="(activeImports$ | async)?.length === 0" class="no-imports">
-                    <mat-icon class="no-imports-icon">hourglass_empty</mat-icon>
-                    <p>No active imports at this time.</p>
-                    <p class="hint">Start an import from the regions view to see real-time progress here.</p>
-                  </div>
+                  <mat-tab-group animationDuration="200ms" [(selectedIndex)]="selectedTabIndex">
+                    <!-- Regions Tab -->
+                    <mat-tab>
+                      <ng-template mat-tab-label>
+                        <mat-icon class="tab-icon">location_on</mat-icon>
+                        Regions
+                        <span class="tab-badge" *ngIf="mockRegions.length > 0">
+                          {{ mockRegions.length }}
+                        </span>
+                      </ng-template>
 
-                  <!-- Active Imports List -->
-                  <div *ngFor="let activeImport of activeImports$ | async" class="active-import-card active-import-item">
-                    <div class="import-header">
-                      <mat-checkbox
-                        [checked]="selectedImportIds.has(activeImport.id)"
-                        (change)="toggleImportSelection(activeImport.id, $event.checked)"
-                        class="import-checkbox">
-                      </mat-checkbox>
-                      <h3>
-                        <mat-icon class="import-icon">download</mat-icon>
-                        {{ activeImport.feedName }}
-                      </h3>
-                      <p class="import-subtitle">
-                        {{ activeImport.regionName }} • Started: {{ activeImport.startedAt | date:'short' }}
-                      </p>
-                    </div>
+                      <div class="tab-content">
+                        <mat-card class="welcome-card">
+                          <mat-card-content>
+                            <p>Choose from available metropolitan regions to view and import their transit feeds.</p>
+                            <button mat-raised-button color="primary" (click)="testImport()">
+                              <mat-icon>download</mat-icon>
+                              Test Feed Import
+                            </button>
+                          </mat-card-content>
+                        </mat-card>
 
-                    <!-- Enhanced Progress Monitor -->
-                    <app-progress-monitor
-                      [importId]="activeImport.id"
-                      [showActions]="true"
-                      [showConnectionStatus]="false"
-                      (cancelRequested)="cancelImport($event)">
-                    </app-progress-monitor>
-                  </div>
+                        <!-- Regions Grid -->
+                        <div class="regions-grid" *ngIf="mockRegions.length > 0">
+                          <mat-card *ngFor="let region of mockRegions" class="region-card region-item">
+                            <mat-card-header>
+                              <mat-card-title>{{ region.name }}</mat-card-title>
+                              <mat-card-subtitle>{{ region.feedCount }} feeds</mat-card-subtitle>
+                            </mat-card-header>
+                            <mat-card-actions>
+                              <button mat-button (click)="selectRegion(region)">
+                                <mat-icon>visibility</mat-icon>
+                                View Feeds
+                              </button>
+                              <button mat-raised-button color="primary" (click)="importRegionFeeds(region)">
+                                <mat-icon>download</mat-icon>
+                                Import
+                              </button>
+                            </mat-card-actions>
+                          </mat-card>
+                        </div>
+                      </div>
+                    </mat-tab>
+
+                    <!-- Active Imports Tab -->
+                    <mat-tab>
+                      <ng-template mat-tab-label>
+                        <mat-icon class="tab-icon">download</mat-icon>
+                        Active Imports
+                        <span class="tab-badge" *ngIf="(activeImports$ | async)?.length">
+                          {{ (activeImports$ | async)?.length }}
+                        </span>
+                      </ng-template>
+
+                      <div class="tab-content">
+                        <!-- Bulk Actions -->
+                        <div class="bulk-actions" *ngIf="((activeImports$ | async)?.length ?? 0) > 0">
+                          <mat-checkbox
+                            [(ngModel)]="allImportsSelected"
+                            [indeterminate]="someImportsSelected && !allImportsSelected"
+                            (change)="toggleAllImports($event.checked)">
+                            Select All
+                          </mat-checkbox>
+                          <button
+                            mat-button
+                            color="warn"
+                            [disabled]="selectedImportIds.size === 0"
+                            (click)="bulkCancelImports()">
+                            <mat-icon>cancel</mat-icon>
+                            Cancel Selected ({{ selectedImportIds.size }})
+                          </button>
+                        </div>
+
+                        <div *ngIf="(activeImports$ | async)?.length === 0" class="no-imports">
+                          <mat-icon class="no-imports-icon">hourglass_empty</mat-icon>
+                          <p>No active imports at this time.</p>
+                          <p class="hint">Start an import from the regions view to see real-time progress here.</p>
+                        </div>
+
+                        <!-- Active Imports List -->
+                        <div *ngFor="let activeImport of activeImports$ | async" class="active-import-card active-import-item">
+                          <div class="import-header">
+                            <mat-checkbox
+                              [checked]="selectedImportIds.has(activeImport.id)"
+                              (change)="toggleImportSelection(activeImport.id, $event.checked)"
+                              class="import-checkbox">
+                            </mat-checkbox>
+                            <h3>
+                              <mat-icon class="import-icon">download</mat-icon>
+                              {{ activeImport.feedName }}
+                            </h3>
+                            <p class="import-subtitle">
+                              {{ activeImport.regionName }} • Started: {{ activeImport.startedAt | date:'short' }}
+                            </p>
+                          </div>
+
+                          <!-- Enhanced Progress Monitor -->
+                          <app-progress-monitor
+                            [importId]="activeImport.id"
+                            [showActions]="true"
+                            [showConnectionStatus]="false"
+                            (cancelRequested)="cancelImport($event)">
+                          </app-progress-monitor>
+                        </div>
+                      </div>
+                    </mat-tab>
+
+                    <!-- Import History Tab -->
+                    <mat-tab>
+                      <ng-template mat-tab-label>
+                        <mat-icon class="tab-icon">history</mat-icon>
+                        History
+                        <span class="tab-badge" *ngIf="totalImportElements > 0">
+                          {{ totalImportElements }}
+                        </span>
+                      </ng-template>
+
+                      <div class="tab-content">
+                        <div *ngIf="loadingHistory" class="loading-container" style="text-align: center; padding: 40px;">
+                          <mat-spinner diameter="40" style="margin: 0 auto;"></mat-spinner>
+                          <p style="margin-top: 20px;">Loading import history...</p>
+                        </div>
+
+                        <div *ngIf="!loadingHistory && importHistory.length === 0" class="empty-state" style="text-align: center; padding: 60px 20px;">
+                          <mat-icon style="font-size: 64px; width: 64px; height: 64px; color: #999;">history</mat-icon>
+                          <p style="font-size: 18px; margin-top: 20px; color: #666;">No import history available yet.</p>
+                          <p style="color: #999;">Start an import to see it appear here when completed.</p>
+                        </div>
+
+                        <div *ngIf="!loadingHistory && importHistory.length > 0">
+                          <table mat-table [dataSource]="importHistory" class="history-table" style="width: 100%;">
+                            <ng-container matColumnDef="feedName">
+                              <th mat-header-cell *matHeaderCellDef>Feed</th>
+                              <td mat-cell *matCellDef="let import">{{ import.feedName || import.feedOnestopId }}</td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="region">
+                              <th mat-header-cell *matHeaderCellDef>Region</th>
+                              <td mat-cell *matCellDef="let import">{{ import.regionName || import.regionOnestopId }}</td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="status">
+                              <th mat-header-cell *matHeaderCellDef>Status</th>
+                              <td mat-cell *matCellDef="let import">
+                                <span [ngClass]="{'status-badge': true, 'status-completed': import.status === 'COMPLETED', 'status-failed': import.status === 'FAILED', 'status-cancelled': import.status === 'CANCELLED'}">{{ import.status }}</span>
+                              </td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="startedAt">
+                              <th mat-header-cell *matHeaderCellDef>Started</th>
+                              <td mat-cell *matCellDef="let import">{{ import.startedAt | date:'short' }}</td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="completedAt">
+                              <th mat-header-cell *matHeaderCellDef>Completed</th>
+                              <td mat-cell *matCellDef="let import">{{ import.completedAt | date:'short' }}</td>
+                            </ng-container>
+
+                            <ng-container matColumnDef="records">
+                              <th mat-header-cell *matHeaderCellDef>Records</th>
+                              <td mat-cell *matCellDef="let import">{{ import.recordsImported | number }}</td>
+                            </ng-container>
+
+                            <tr mat-header-row *matHeaderRowDef="['feedName', 'region', 'status', 'startedAt', 'completedAt', 'records']"></tr>
+                            <tr mat-row *matRowDef="let row; columns: ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'records']"></tr>
+                          </table>
+
+                          <mat-paginator
+                            [length]="totalImportElements"
+                            [pageSize]="importHistorySize"
+                            [pageIndex]="importHistoryPage"
+                            [pageSizeOptions]="[10, 20, 50, 100]"
+                            (page)="loadImportHistory($event.pageIndex)"
+                            showFirstLastButtons>
+                          </mat-paginator>
+                        </div>
+                      </div>
+                    </mat-tab>
+                  </mat-tab-group>
                 </mat-card-content>
               </mat-card>
             </div>
@@ -342,146 +427,6 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
                 </mat-card-content>
               </mat-card>
             </div>
-
-            <!-- History View -->
-            <div *ngIf="currentView === 'history'" class="view-container">
-              <mat-card>
-                <mat-card-header>
-                  <mat-card-title>Import History</mat-card-title>
-                  <mat-card-subtitle>Review completed and failed import attempts ({{ totalImportElements }} total)</mat-card-subtitle>
-                </mat-card-header>
-                <mat-card-content>
-                  <div *ngIf="loadingHistory" class="loading-container" style="text-align: center; padding: 40px;">
-                    <mat-spinner diameter="40" style="margin: 0 auto;"></mat-spinner>
-                    <p style="margin-top: 20px;">Loading import history...</p>
-                  </div>
-
-                  <div *ngIf="!loadingHistory && importHistory.length === 0" class="empty-state" style="text-align: center; padding: 60px 20px;">
-                    <mat-icon style="font-size: 64px; width: 64px; height: 64px; color: #999;">history</mat-icon>
-                    <p style="font-size: 18px; margin-top: 20px; color: #666;">No import history available yet.</p>
-                    <p style="color: #999;">Start an import to see it appear here when completed.</p>
-                  </div>
-
-                  <div *ngIf="!loadingHistory && importHistory.length > 0">
-                    <table mat-table [dataSource]="importHistory" class="history-table" style="width: 100%;">
-                      <ng-container matColumnDef="feedName">
-                        <th mat-header-cell *matHeaderCellDef>Feed</th>
-                        <td mat-cell *matCellDef="let import">{{ import.feedName || import.feedOnestopId }}</td>
-                      </ng-container>
-
-                      <ng-container matColumnDef="region">
-                        <th mat-header-cell *matHeaderCellDef>Region</th>
-                        <td mat-cell *matCellDef="let import">{{ import.regionName || import.regionOnestopId }}</td>
-                      </ng-container>
-
-                      <ng-container matColumnDef="status">
-                        <th mat-header-cell *matHeaderCellDef>Status</th>
-                        <td mat-cell *matCellDef="let import">
-                          <span [ngClass]="{'status-badge': true, 'status-completed': import.status === 'COMPLETED', 'status-failed': import.status === 'FAILED', 'status-cancelled': import.status === 'CANCELLED'}">{{ import.status }}</span>
-                        </td>
-                      </ng-container>
-
-                      <ng-container matColumnDef="startedAt">
-                        <th mat-header-cell *matHeaderCellDef>Started</th>
-                        <td mat-cell *matCellDef="let import">{{ import.startedAt | date:'short' }}</td>
-                      </ng-container>
-
-                      <ng-container matColumnDef="completedAt">
-                        <th mat-header-cell *matHeaderCellDef>Completed</th>
-                        <td mat-cell *matCellDef="let import">{{ import.completedAt | date:'short' }}</td>
-                      </ng-container>
-
-                      <ng-container matColumnDef="records">
-                        <th mat-header-cell *matHeaderCellDef>Records</th>
-                        <td mat-cell *matCellDef="let import">{{ import.recordsImported | number }}</td>
-                      </ng-container>
-
-                      <tr mat-header-row *matHeaderRowDef="['feedName', 'region', 'status', 'startedAt', 'completedAt', 'records']"></tr>
-                      <tr mat-row *matRowDef="let row; columns: ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'records']"></tr>
-                    </table>
-
-                    <mat-paginator
-                      [length]="totalImportElements"
-                      [pageSize]="importHistorySize"
-                      [pageIndex]="importHistoryPage"
-                      [pageSizeOptions]="[10, 20, 50, 100]"
-                      (page)="loadImportHistory($event.pageIndex)"
-                      showFirstLastButtons>
-                    </mat-paginator>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            </div>
-
-            <!-- Authentication View -->
-            <div *ngIf="currentView === 'authentication'" class="view-container">
-              <mat-card class="auth-header-card">
-                <mat-card-header>
-                  <mat-card-title>Feed Authentication Management</mat-card-title>
-                  <mat-card-subtitle>Configure credentials for protected feeds</mat-card-subtitle>
-                </mat-card-header>
-                <mat-card-content>
-                  <p>Manage authentication credentials for feeds that require access tokens, API keys, or other authentication methods.</p>
-                </mat-card-content>
-              </mat-card>
-
-              <!-- Feed Selection for Authentication -->
-              <mat-card class="feed-selection-card">
-                <mat-card-header>
-                  <mat-card-title>Select Feed</mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <mat-form-field class="feed-select-field" appearance="outline">
-                    <mat-label>Choose a feed to configure authentication</mat-label>
-                    <mat-select
-                      [(value)]="selectedFeedForAuth"
-                      (selectionChange)="onFeedSelectedForAuth($event.value)">
-                      <mat-option *ngFor="let feed of allFeeds" [value]="feed.feedOnestopId">
-                        {{ feed.name }} ({{ feed.feedOnestopId }})
-                      </mat-option>
-                    </mat-select>
-                  </mat-form-field>
-                </mat-card-content>
-              </mat-card>
-
-              <!-- Authentication Configuration -->
-              <div *ngIf="selectedFeedForAuth" class="auth-config-container">
-                <app-feed-authentication
-                  [feedOnestopId]="selectedFeedForAuth">
-                </app-feed-authentication>
-              </div>
-
-              <!-- Authentication Statistics -->
-              <mat-card class="auth-stats-card">
-                <mat-card-header>
-                  <mat-card-title>Authentication Overview</mat-card-title>
-                </mat-card-header>
-                <mat-card-content>
-                  <div class="stats-grid" *ngIf="authStats$ | async as stats">
-                    <div class="stat-item">
-                      <div class="stat-value">{{ stats.total }}</div>
-                      <div class="stat-label">Total Feeds</div>
-                    </div>
-                    <div class="stat-item active">
-                      <div class="stat-value">{{ stats.active }}</div>
-                      <div class="stat-label">Active Auth</div>
-                    </div>
-                    <div class="stat-item expired">
-                      <div class="stat-value">{{ stats.expired }}</div>
-                      <div class="stat-label">Expired</div>
-                    </div>
-                    <div class="stat-item locked">
-                      <div class="stat-value">{{ stats.locked }}</div>
-                      <div class="stat-label">Locked</div>
-                    </div>
-                    <div class="stat-item no-auth">
-                      <div class="stat-value">{{ stats.noAuth }}</div>
-                      <div class="stat-label">No Auth Required</div>
-                    </div>
-                  </div>
-                </mat-card-content>
-              </mat-card>
-            </div>
           </div>
         </mat-sidenav-content>
       </mat-sidenav-container>
@@ -540,6 +485,19 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
 
     .toolbar-spacer {
       flex: 1;
+    }
+
+    .toolbar-nav-button {
+      margin-right: 16px;
+      color: rgba(255, 255, 255, 0.87);
+    }
+
+    .toolbar-nav-button mat-icon {
+      margin-right: 4px;
+    }
+
+    .toolbar-nav-button.active-toolbar-button {
+      background-color: rgba(255, 255, 255, 0.15);
     }
 
     .quick-stats mat-chip {
@@ -812,62 +770,22 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
       font-style: italic;
     }
 
-    /* Authentication View Styles */
-    .auth-header-card {
-      margin-bottom: 24px;
+    /* Tab Styles */
+    .tab-icon {
+      margin-right: 8px;
     }
 
-    .feed-selection-card {
-      margin-bottom: 24px;
+    .tab-badge {
+      margin-left: 8px;
+      padding: 2px 8px;
+      background-color: rgba(33, 150, 243, 0.1);
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
     }
 
-    .feed-select-field {
-      width: 100%;
-      max-width: 400px;
-    }
-
-    .auth-config-container {
-      margin-bottom: 24px;
-    }
-
-    .auth-stats-card {
-      margin-bottom: 24px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .stat-item {
-      text-align: center;
-      padding: 16px;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      background: white;
-      transition: background-color 0.2s;
-    }
-
-    .stat-item.active {
-      background: rgba(76, 175, 80, 0.1);
-      border-color: rgba(76, 175, 80, 0.3);
-    }
-
-    .stat-item.expired {
-      background: rgba(255, 152, 0, 0.1);
-      border-color: rgba(255, 152, 0, 0.3);
-    }
-
-    .stat-item.locked {
-      background: rgba(244, 67, 54, 0.1);
-      border-color: rgba(244, 67, 54, 0.3);
-    }
-
-    .stat-item.no-auth {
-      background: rgba(156, 163, 175, 0.1);
-      border-color: rgba(156, 163, 175, 0.3);
+    .tab-content {
+      padding: 24px 0;
     }
 
     .stat-value {
@@ -929,6 +847,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
 
   // Component state
   currentView = 'regions';
+  selectedTabIndex = 0; // Track which tab is selected (0=Regions, 1=Active Imports, 2=History)
   mockRegions: MetropolitanRegion[] = [];
   selectedRegion: MetropolitanRegion | null = null;
   regionFeeds: Feed[] = [];
@@ -1027,12 +946,13 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
 
   getViewTitle(): string {
     switch (this.currentView) {
-      case 'regions': return 'Regional Transit Feeds';
-      case 'feeds': return `${this.selectedRegion?.name || 'Region'} Feeds`;
-      case 'imports': return 'Active Imports';
-      case 'history': return 'Import History';
-      case 'authentication': return 'Feed Authentication';
-      default: return 'Feed Management';
+      case 'regions':
+      case 'imports':
+        return 'Feed Management';
+      case 'feeds':
+        return `${this.selectedRegion?.name || 'Region'} Feeds`;
+      default:
+        return 'Feed Management';
     }
   }
 
@@ -1133,7 +1053,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     this.router.navigate(['/feed-management', view]);
 
     // Load data specific to the view
-    if (view === 'history') {
+    if (view === 'imports') {
       this.loadImportHistory();
     }
   }
@@ -1142,11 +1062,11 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     const urlSegments = this.router.url.split('/');
     const lastSegment = urlSegments[urlSegments.length - 1];
 
-    if (['regions', 'imports', 'history', 'authentication'].includes(lastSegment)) {
+    if (['regions', 'imports'].includes(lastSegment)) {
       this.currentView = lastSegment;
 
       // Load data for the current view
-      if (lastSegment === 'history') {
+      if (lastSegment === 'imports') {
         this.loadImportHistory();
       }
     } else {
