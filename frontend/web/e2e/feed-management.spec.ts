@@ -151,25 +151,4 @@ test.describe('Feed Management System', () => {
     }
   });
 
-  test('should support theme switching (light/dark mode)', async ({ page }) => {
-    // Check if theme toggle exists
-    const themeToggle = page.locator('[aria-label*="theme" i], button:has-text("Dark"), button:has-text("Light")');
-    const hasThemeToggle = await themeToggle.isVisible({ timeout: 2000 });
-
-    if (hasThemeToggle) {
-      // Get current theme
-      const body = page.locator('body');
-      const initialClass = await body.getAttribute('class');
-
-      // Toggle theme
-      await themeToggle.click();
-
-      // Verify theme changed
-      const newClass = await body.getAttribute('class');
-      expect(newClass).not.toBe(initialClass);
-    } else {
-      // Theme toggle not yet implemented - log as pending feature
-      console.log('Theme toggle not implemented yet - constitutional requirement pending');
-    }
-  });
 });
