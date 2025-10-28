@@ -172,11 +172,11 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
                   <mat-card-content>
                     <div class="feed-details">
                       <div class="feed-status">
-                        <mat-chip [class]="'status-chip ' + feed.status">
-                          <mat-icon>{{ feed.status === 'active' ? 'check_circle' : 'cancel' }}</mat-icon>
+                        <mat-chip [class]="'status-chip ' + feed.status.toLowerCase()">
+                          <mat-icon>{{ feed.status === FeedStatus.ACTIVE ? 'check_circle' : 'cancel' }}</mat-icon>
                           {{ feed.status | titlecase }}
                         </mat-chip>
-                        <mat-chip class="spec-chip">{{ feed.specType.toUpperCase() }}</mat-chip>
+                        <mat-chip class="spec-chip">{{ feed.specType }}</mat-chip>
                       </div>
                       <div class="feed-meta">
                         <p *ngIf="feed.lastCheckedAt">
@@ -200,7 +200,7 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
                       Details
                     </button>
                     <button mat-raised-button color="primary" (click)="importFeed(feed)"
-                            [disabled]="feed.status !== 'active'">
+                            [disabled]="feed.status !== FeedStatus.ACTIVE">
                       <mat-icon>download</mat-icon>
                       Import
                     </button>

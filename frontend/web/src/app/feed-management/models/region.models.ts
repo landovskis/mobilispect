@@ -64,17 +64,17 @@ export interface FeedDetail extends Feed {
  * Feed specification types
  */
 export enum FeedSpecType {
-  GTFS = 'gtfs',
-  GTFS_RT = 'gtfs-rt'
+  GTFS = 'GTFS',
+  GTFS_RT = 'GTFS_RT'
 }
 
 /**
  * Feed status values
  */
 export enum FeedStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  ERROR = 'error'
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  ERROR = 'ERROR'
 }
 
 /**
