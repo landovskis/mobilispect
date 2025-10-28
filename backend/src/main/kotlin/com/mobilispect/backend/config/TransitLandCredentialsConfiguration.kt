@@ -17,7 +17,7 @@ class TransitLandCredentialsConfiguration {
     }
 }
 
-@ConfigurationProperties(prefix = "transitland")
+@ConfigurationProperties(prefix = "app.transit-land")
 data class TransitLandProperties(
     val apiKey: String? = null
 )
