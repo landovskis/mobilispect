@@ -38,3 +38,7 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+# Playwright test reports
+playwright-report/
+test-results/

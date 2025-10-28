@@ -1,6 +1,9 @@
 package com.mobilispect.backend.api.controller
 
+import com.mobilispect.backend.FeedDataSource
 import com.mobilispect.backend.api.dto.*
+import com.mobilispect.backend.schedule.transit_land.api.TransitLandCredentialsRepository
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
 import java.util.*
@@ -12,7 +15,11 @@ import java.util.*
  */
 @RestController
 @RequestMapping("/api/feed-management/regions")
-class RegionController {
+class RegionController(
+    private val feedDataSource: FeedDataSource,
+    private val credentialsRepository: TransitLandCredentialsRepository
+) {
+    private val logger = LoggerFactory.getLogger(RegionController::class.java)
 
     /**
      * List all metropolitan regions
@@ -60,46 +67,102 @@ class RegionController {
         @RequestParam(required = false) specType: FeedSpecType?,
         @RequestParam(required = false) status: FeedStatus?
     ): FeedsResponse {
-        // Mock feeds data for each region
-        val allFeeds = when (regionOnestopId) {
-            "r-toronto-on" -> listOf(
-                createFeed("f-toronto-ttc~rt", regionOnestopId, "Toronto TTC", FeedSpecType.GTFS),
-                createFeed("f-toronto-go~rt", regionOnestopId, "GO Transit", FeedSpecType.GTFS),
-                createFeed("f-toronto-ttc-realtime", regionOnestopId, "TTC Real-time", FeedSpecType.GTFS_RT)
-            )
-            "r-vancouver-bc" -> listOf(
-                createFeed("f-vancouver-translink~rt", regionOnestopId, "TransLink", FeedSpecType.GTFS),
-                createFeed("f-vancouver-translink-realtime", regionOnestopId, "TransLink Real-time", FeedSpecType.GTFS_RT)
-            )
-            "r-montreal-qc" -> listOf(
-                createFeed("f-montreal-stm~rt", regionOnestopId, "STM Montreal", FeedSpecType.GTFS),
-                createFeed("f-montreal-rtm~rt", regionOnestopId, "RTM Montreal", FeedSpecType.GTFS),
-                createFeed("f-montreal-stm-realtime", regionOnestopId, "STM Real-time", FeedSpecType.GTFS_RT)
-            )
-            "r-calgary-ab" -> listOf(
-                createFeed("f-calgary-transit~rt", regionOnestopId, "Calgary Transit", FeedSpecType.GTFS)
-            )
-            "r-ottawa-on" -> listOf(
-                createFeed("f-ottawa-octranspo~rt", regionOnestopId, "OC Transpo", FeedSpecType.GTFS)
-            )
-            "r-sf-bay-area" -> listOf(
-                createFeed("f-sf-bay-area~rt", regionOnestopId, "SF Bay Area", FeedSpecType.GTFS)
-            )
-            else -> emptyList()
+        // Extract region name from onestop ID (e.g., "r-montreal-qc" -> "Montreal")
+        val regionName = extractRegionName(regionOnestopId)
+
+        logger.info("Fetching feeds for region: $regionName (onestopId: $regionOnestopId)")
+
+        // Fetch feeds from transit.land API
+        val scheduledFeeds = try {
+            feedDataSource.feeds(regionName)
+                .mapNotNull { result -> result.getOrNull() }
+        } catch (e: Exception) {
+            logger.error("Failed to fetch feeds for region $regionName", e)
+            emptyList()
         }
 
-        var filteredFeeds = allFeeds
+        logger.info("Found ${scheduledFeeds.size} feeds for region $regionName")
+
+        // Convert to DTOs
+        var feeds = scheduledFeeds.map { scheduledFeed ->
+            // Generate a human-readable name from the feed ID
+            val feedName = generateFeedName(scheduledFeed.feed.uid, regionName)
+
+            FeedDTO(
+                feedOnestopId = scheduledFeed.feed.uid,
+                regionOnestopId = regionOnestopId,
+                name = feedName,
+                specType = FeedSpecType.GTFS, // Transit.land feeds are GTFS by default
+                downloadUrl = scheduledFeed.feed.url,
+                currentVersionSha1 = scheduledFeed.version.uid,
+                lastCheckedAt = null,
+                lastUpdatedAt = null,
+                status = FeedStatus.ACTIVE,
+                hasAuthentication = false,
+                createdAt = Instant.now(),
+                updatedAt = Instant.now()
+            )
+        }
+
+        // Apply filters
         if (specType != null) {
-            filteredFeeds = filteredFeeds.filter { it.specType == specType }
+            feeds = feeds.filter { it.specType == specType }
         }
         if (status != null) {
-            filteredFeeds = filteredFeeds.filter { it.status == status }
+            feeds = feeds.filter { it.status == status }
         }
 
         return FeedsResponse(
-            feeds = filteredFeeds,
-            total = filteredFeeds.size
+            feeds = feeds,
+            total = feeds.size
         )
+    }
+
+    /**
+     * Extracts a readable region name from a onestop ID
+     * Examples:
+     * - "r-montreal-qc" -> "Montreal"
+     * - "r-toronto-on" -> "Toronto"
+     * - "r-sf-bay-area" -> "San Francisco"
+     */
+    private fun extractRegionName(regionOnestopId: String): String {
+        return when {
+            regionOnestopId.contains("montreal") -> "Montreal"
+            regionOnestopId.contains("toronto") -> "Toronto"
+            regionOnestopId.contains("vancouver") -> "Vancouver"
+            regionOnestopId.contains("calgary") -> "Calgary"
+            regionOnestopId.contains("ottawa") -> "Ottawa"
+            regionOnestopId.contains("winnipeg") -> "Winnipeg"
+            regionOnestopId.contains("edmonton") -> "Edmonton"
+            regionOnestopId.contains("sf") || regionOnestopId.contains("bay-area") -> "San Francisco"
+            regionOnestopId.contains("nyc") || regionOnestopId.contains("new-york") -> "New York"
+            regionOnestopId.contains("la") || regionOnestopId.contains("los-angeles") -> "Los Angeles"
+            else -> regionOnestopId.removePrefix("r-").replace("-", " ").capitalize()
+        }
+    }
+
+    /**
+     * Generates a human-readable feed name from a feed onestop ID
+     * Examples:
+     * - "f-f25d-socitdetransportdemontral" with region "Montreal" -> "STM Montreal"
+     * - "f-abc123-ttc" with region "Toronto" -> "TTC Toronto"
+     */
+    private fun generateFeedName(feedOnestopId: String, regionName: String): String {
+        // Extract the operator code from the feed ID (everything after the last dash)
+        val parts = feedOnestopId.split("-")
+        val operatorCode = if (parts.size > 2) parts.last() else feedOnestopId
+
+        // Try to create a readable name from the operator code
+        return when {
+            operatorCode.contains("ttc", ignoreCase = true) -> "TTC $regionName"
+            operatorCode.contains("stm", ignoreCase = true) ||
+                feedOnestopId.contains("socitdetransportdemontral", ignoreCase = true) -> "STM $regionName"
+            operatorCode.contains("rtm", ignoreCase = true) -> "RTM $regionName"
+            operatorCode.contains("translink", ignoreCase = true) -> "TransLink $regionName"
+            operatorCode.contains("octranspo", ignoreCase = true) -> "OC Transpo $regionName"
+            operatorCode.contains("calgarytransit", ignoreCase = true) -> "Calgary Transit"
+            else -> "$regionName Transit (${feedOnestopId.take(12)}...)"
+        }
     }
 
     /**
@@ -140,26 +203,4 @@ class RegionController {
         )
     }
 
-    private fun createFeed(
-        id: String,
-        regionId: String,
-        name: String,
-        specType: FeedSpecType
-    ): FeedDTO {
-        val now = Instant.now()
-        return FeedDTO(
-            feedOnestopId = id,
-            regionOnestopId = regionId,
-            name = name,
-            specType = specType,
-            downloadUrl = "https://example.com/feeds/$id",
-            currentVersionSha1 = UUID.randomUUID().toString().replace("-", ""),
-            lastCheckedAt = now.minusSeconds(3600),
-            lastUpdatedAt = now.minusSeconds(86400),
-            status = FeedStatus.ACTIVE,
-            hasAuthentication = false,
-            createdAt = now.minusSeconds(86400 * 30),
-            updatedAt = now
-        )
-    }
 }
