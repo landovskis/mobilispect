@@ -218,7 +218,6 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
               </mat-card>
             </div>
           </div>
-      </div>
     </div>
   `,
   styles: [`

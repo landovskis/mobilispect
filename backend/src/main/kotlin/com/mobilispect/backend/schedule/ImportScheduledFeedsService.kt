@@ -58,12 +58,11 @@ class ImportScheduledFeedsService(
     suspend operator fun invoke(): Boolean {
         return withContext(Dispatchers.IO) {
             logger.info("Started")
-            var updatedFeeds = findUpdatedFeeds()
+            val updatedFeeds = findUpdatedFeeds()
             if (updatedFeeds.isEmpty()) {
                 logger.info("Completed without updates")
                 return@withContext true
             }
-            updatedFeeds = updatedFeeds.filter { it.feed.uid == "f-f25d-socitdetransportdemontral" }
 
             val results = updatedFeeds.map { updatedFeed -> importFeed(updatedFeed) }
 
@@ -74,6 +73,34 @@ class ImportScheduledFeedsService(
                 logger.error("Completed with errors")
                 return@withContext false
             }
+        }
+    }
+
+    /**
+     * Import a specific feed by its onestop ID
+     */
+    suspend fun importFeedById(feedOnestopId: String): Result<String> {
+        return withContext(Dispatchers.IO) {
+            logger.info("Starting import for feed: $feedOnestopId")
+
+            // Find the feed
+            val regions = regionRepository.findAll()
+            val allFeeds = regions.flatMap { region -> feedDataSource.feeds(region.name) }
+                .filter { it.isSuccess }
+                .mapNotNull { it.getOrNull() }
+
+            val scheduledFeed = allFeeds.firstOrNull { it.feed.uid == feedOnestopId }
+                ?: return@withContext Result.failure(
+                    IllegalArgumentException("Feed not found: $feedOnestopId")
+                )
+
+            val importId = "${scheduledFeed.feed.uid}:${scheduledFeed.version.uid}"
+
+            // Import the feed
+            importFeed(scheduledFeed)
+                .map { importId }
+                .onSuccess { logger.info("Successfully started import for feed: $feedOnestopId") }
+                .onFailure { error -> logger.error("Failed to start import for feed: $feedOnestopId", error) }
         }
     }
 
