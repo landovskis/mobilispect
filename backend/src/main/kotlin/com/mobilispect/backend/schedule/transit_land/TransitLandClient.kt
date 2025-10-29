@@ -60,8 +60,14 @@ class TransitLandClient(builder: WebClient.Builder) :
                 )
             }
 
-        webClient = builder.baseUrl("https://transit.land/api/v2/rest").clientConnector(ReactorClientHttpConnector(httpClient))
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build()
+        webClient = builder.baseUrl("https://transit.land/api/v2/rest")
+            .clientConnector(ReactorClientHttpConnector(httpClient))
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .codecs { configurer ->
+                // Increase buffer limit to 5MB to handle large feed responses
+                configurer.defaultCodecs().maxInMemorySize(5 * 1024 * 1024)
+            }
+            .build()
     }
 
     /**
@@ -86,6 +92,35 @@ class TransitLandClient(builder: WebClient.Builder) :
                 )
             } ?: emptyList()
             return@handleError Result.success(feeds.first())
+        }
+    }
+
+    /**
+     * Retrieve all feeds that match the given [search] criteria.
+     */
+    override fun feeds(apiKey: String, search: String, spec: String): Result<Collection<ScheduledFeed>> {
+        return handleError {
+            val uri = "/feeds.json?search=$search&spec=$spec&limit=100"
+            val response = get(uri, apiKey, TransitLandFeedResponse::class.java)
+            val feeds = response?.feeds?.mapNotNull { remote ->
+                val feedOnestopId = remote.onestop_id ?: return@mapNotNull null
+                val latestVersion = remote.feed_versions.firstOrNull() ?: return@mapNotNull null
+
+                ScheduledFeed(
+                    feed = Feed(
+                        uid = feedOnestopId,
+                        url = latestVersion.url
+                    ),
+                    version = FeedVersion(
+                        uid = latestVersion.sha1,
+                        feedID = feedOnestopId,
+                        startsOn = LocalDate.parse(latestVersion.earliest_calendar_date),
+                        endsOn = LocalDate.parse(latestVersion.latest_calendar_date)
+                    ),
+                )
+            } ?: emptyList()
+            logger.debug("Found {} feeds for search '{}'", feeds.size, search)
+            return@handleError Result.success(feeds)
         }
     }
 

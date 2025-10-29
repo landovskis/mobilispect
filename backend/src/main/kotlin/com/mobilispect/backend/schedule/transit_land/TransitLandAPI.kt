@@ -16,6 +16,12 @@ interface TransitLandAPI {
     fun feed(apiKey: String, feedID: String): Result<ScheduledFeed>
 
     /**
+     * Retrieve all feeds that match the given [search] criteria.
+     * Searches across feed names, operator names, and regions.
+     */
+    fun feeds(apiKey: String, search: String, spec: String = "gtfs"): Result<Collection<ScheduledFeed>>
+
+    /**
      * Retrieve all agencies that serve a given [region] or are contained in the feed identified by [feedID].
      */
     @Suppress("ReturnCount")
