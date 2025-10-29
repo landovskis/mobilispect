@@ -1,6 +1,6 @@
 [versions]
 arrow = "2.1.0"
-kotlin = "2.0.0"
+kotlin = "2.0.21"
 kotlinxCoroutines = "1.8.1"
 kotlinxSerializationCSV = "2.0.0"
 kotlinxSerialization = "1.9.0"

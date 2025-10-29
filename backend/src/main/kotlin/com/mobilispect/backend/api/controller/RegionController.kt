@@ -137,7 +137,7 @@ class RegionController(
             regionOnestopId.contains("sf") || regionOnestopId.contains("bay-area") -> "San Francisco"
             regionOnestopId.contains("nyc") || regionOnestopId.contains("new-york") -> "New York"
             regionOnestopId.contains("la") || regionOnestopId.contains("los-angeles") -> "Los Angeles"
-            else -> regionOnestopId.removePrefix("r-").replace("-", " ").capitalize()
+            else -> regionOnestopId.removePrefix("r-").replace("-", " ").replaceFirstChar { it.uppercase() }
         }
     }
 
