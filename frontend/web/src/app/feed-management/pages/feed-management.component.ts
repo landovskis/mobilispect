@@ -88,7 +88,6 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
 
                   <app-feed-regions-tab
                     [regions]="mockRegions"
-                    (viewFeeds)="selectRegion($event)"
                     (importRegion)="importRegionFeeds($event)"
                   ></app-feed-regions-tab>
                 </mat-tab>

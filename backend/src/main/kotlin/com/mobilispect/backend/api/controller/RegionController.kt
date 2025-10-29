@@ -2,6 +2,7 @@ package com.mobilispect.backend.api.controller
 
 import com.mobilispect.backend.FeedDataSource
 import com.mobilispect.backend.api.dto.*
+import com.mobilispect.backend.schedule.transit_land.TransitLandAPI
 import com.mobilispect.backend.schedule.transit_land.api.TransitLandCredentialsRepository
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
@@ -17,6 +18,7 @@ import java.util.*
 @RequestMapping("/api/feed-management/regions")
 class RegionController(
     private val feedDataSource: FeedDataSource,
+    private val transitLandAPI: TransitLandAPI,
     private val credentialsRepository: TransitLandCredentialsRepository
 ) {
     private val logger = LoggerFactory.getLogger(RegionController::class.java)
@@ -72,10 +74,25 @@ class RegionController(
 
         logger.info("Fetching feeds for region: $regionName (onestopId: $regionOnestopId)")
 
-        // Fetch feeds from transit.land API
+        // Get API key
+        val apiKey = credentialsRepository.get()
+            ?: return FeedsResponse(feeds = emptyList(), total = 0)
+
+        // Fetch feeds from transit.land API - use coordinates for Canadian cities
         val scheduledFeeds = try {
-            feedDataSource.feeds(regionName)
-                .mapNotNull { result -> result.getOrNull() }
+            val coordinates = getRegionCoordinates(regionOnestopId)
+            if (coordinates != null) {
+                logger.debug("Using coordinate-based search for $regionName: lat=${coordinates.lat}, lon=${coordinates.lon}, radius=${coordinates.radius}m")
+                transitLandAPI.feedsByCoordinates(
+                    apiKey = apiKey,
+                    lat = coordinates.lat,
+                    lon = coordinates.lon,
+                    radius = coordinates.radius
+                ).getOrElse { emptyList() }
+            } else {
+                logger.debug("Using text-based search for $regionName")
+                feedDataSource.feeds(regionName).mapNotNull { result -> result.getOrNull() }
+            }
         } catch (e: Exception) {
             logger.error("Failed to fetch feeds for region $regionName", e)
             emptyList()
@@ -138,6 +155,25 @@ class RegionController(
             regionOnestopId.contains("nyc") || regionOnestopId.contains("new-york") -> "New York"
             regionOnestopId.contains("la") || regionOnestopId.contains("los-angeles") -> "Los Angeles"
             else -> regionOnestopId.removePrefix("r-").replace("-", " ").replaceFirstChar { it.uppercase() }
+        }
+    }
+
+    /**
+     * Gets coordinates for a region to enable geographic-based feed searches.
+     * Returns null if the region should use text-based search instead.
+     */
+    private data class RegionCoordinates(val lat: Double, val lon: Double, val radius: Int = 50000)
+
+    private fun getRegionCoordinates(regionOnestopId: String): RegionCoordinates? {
+        return when {
+            regionOnestopId.contains("montreal") -> RegionCoordinates(45.5017, -73.5673, 50000) // Montreal, QC
+            regionOnestopId.contains("toronto") -> RegionCoordinates(43.6532, -79.3832, 50000) // Toronto, ON
+            regionOnestopId.contains("vancouver") -> RegionCoordinates(49.2827, -123.1207, 50000) // Vancouver, BC
+            regionOnestopId.contains("calgary") -> RegionCoordinates(51.0447, -114.0719, 50000) // Calgary, AB
+            regionOnestopId.contains("ottawa") -> RegionCoordinates(45.4215, -75.6972, 50000) // Ottawa, ON
+            regionOnestopId.contains("winnipeg") -> RegionCoordinates(49.8951, -97.1384, 50000) // Winnipeg, MB
+            regionOnestopId.contains("edmonton") -> RegionCoordinates(53.5461, -113.4938, 50000) // Edmonton, AB
+            else -> null // Use text search for US cities
         }
     }
 

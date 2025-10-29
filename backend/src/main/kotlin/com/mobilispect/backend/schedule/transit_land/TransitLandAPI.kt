@@ -22,6 +22,12 @@ interface TransitLandAPI {
     fun feeds(apiKey: String, search: String, spec: String = "gtfs"): Result<Collection<ScheduledFeed>>
 
     /**
+     * Retrieve all feeds within a geographic area.
+     * Uses latitude, longitude, and radius (in meters) to find feeds.
+     */
+    fun feedsByCoordinates(apiKey: String, lat: Double, lon: Double, radius: Int = 50000, spec: String = "gtfs"): Result<Collection<ScheduledFeed>>
+
+    /**
      * Retrieve all agencies that serve a given [region] or are contained in the feed identified by [feedID].
      */
     @Suppress("ReturnCount")

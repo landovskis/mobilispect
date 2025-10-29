@@ -46,8 +46,8 @@ class TransitLandClient(builder: WebClient.Builder) :
     init {
         val httpClient = HttpClient.create().option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_ms)
             .doOnConnected { connection ->
-                connection.addHandlerLast(ReadTimeoutHandler(5))
-                connection.addHandlerLast(WriteTimeoutHandler(5))
+                connection.addHandlerLast(ReadTimeoutHandler(30))
+                connection.addHandlerLast(WriteTimeoutHandler(30))
             }.doOnRequest { request, _ ->
                 logger.trace(
                     "${
@@ -120,6 +120,35 @@ class TransitLandClient(builder: WebClient.Builder) :
                 )
             } ?: emptyList()
             logger.debug("Found {} feeds for search '{}'", feeds.size, search)
+            return@handleError Result.success(feeds)
+        }
+    }
+
+    /**
+     * Retrieve all feeds within a geographic area.
+     */
+    override fun feedsByCoordinates(apiKey: String, lat: Double, lon: Double, radius: Int, spec: String): Result<Collection<ScheduledFeed>> {
+        return handleError {
+            val uri = "/feeds.json?lat=$lat&lon=$lon&radius=$radius&spec=$spec&limit=100"
+            val response = get(uri, apiKey, TransitLandFeedResponse::class.java)
+            val feeds = response?.feeds?.mapNotNull { remote ->
+                val feedOnestopId = remote.onestop_id ?: return@mapNotNull null
+                val latestVersion = remote.feed_versions.firstOrNull() ?: return@mapNotNull null
+
+                ScheduledFeed(
+                    feed = Feed(
+                        uid = feedOnestopId,
+                        url = latestVersion.url
+                    ),
+                    version = FeedVersion(
+                        uid = latestVersion.sha1,
+                        feedID = feedOnestopId,
+                        startsOn = LocalDate.parse(latestVersion.earliest_calendar_date),
+                        endsOn = LocalDate.parse(latestVersion.latest_calendar_date)
+                    ),
+                )
+            } ?: emptyList()
+            logger.debug("Found {} feeds for coordinates ({}  {}, radius {}m)", feeds.size, lat, lon, radius)
             return@handleError Result.success(feeds)
         }
     }

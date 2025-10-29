@@ -35,14 +35,6 @@ import { MetropolitanRegion } from '../models/region.models';
           </mat-card-header>
           <mat-card-actions>
             <button
-              mat-button
-              (click)="viewFeeds.emit(region)"
-              [attr.aria-label]="'View feeds for ' + region.name"
-            >
-              <mat-icon>visibility</mat-icon>
-              View Feeds
-            </button>
-            <button
               mat-raised-button
               color="primary"
               (click)="importRegion.emit(region)"
@@ -136,6 +128,5 @@ import { MetropolitanRegion } from '../models/region.models';
 })
 export class FeedRegionsTabComponent {
   @Input() regions: MetropolitanRegion[] | null = [];
-  @Output() viewFeeds = new EventEmitter<MetropolitanRegion>();
   @Output() importRegion = new EventEmitter<MetropolitanRegion>();
 }
