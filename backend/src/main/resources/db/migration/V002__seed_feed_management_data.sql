@@ -49,7 +49,7 @@ BEGIN
 
     -- Sample completed import for STM GTFS
     INSERT INTO feed_imports (id, feed_onestop_id, administrator_id, trigger_type, status, version_sha1, started_at, completed_at, file_size_bytes)
-    VALUES (uuid_generate_v4(), 'f-f25d-socitdetransportdemontreal', admin_id, 'manual', 'completed', '5817a9f002832e405651ccdd7e929d3c10590d25', NOW() - INTERVAL '2 hours', NOW() - INTERVAL '1 hour 45 minutes', 15728640)
+    VALUES (uuid_generate_v4(), 'f-f25d-socitdetransportdemontreal', admin_id, 'manual', 'completed', '5817a9f002832e405651ccdd7e929d3c10590d25', NOW() - INTERVAL '2 hours', NOW() - INTERVAL '1 hour 45 minutes', 15728640) -- pragma: allowlist secret
     RETURNING id INTO import_id;
 
     -- Sample logs for the completed import
@@ -78,5 +78,5 @@ BEGIN
     -- Sample logs for the running import
     INSERT INTO import_logs (import_id, level, message, component, details) VALUES
     (import_id, 'info', 'Automatic import started for TransLink GTFS', 'ScheduledImportService', '{"scheduledTime": "02:00:00", "actualTime": "02:00:15"}'),
-    (import_id, 'info', 'Downloading feed from TransLink', 'FileDownloadService', '{"url": "https://gtfs.translink.ca/static/latest", "progress": "45%"}}');
+    (import_id, 'info', 'Downloading feed from TransLink', 'FileDownloadService', '{"url": "https://gtfs.translink.ca/static/latest", "progress": "45%"}');
 END $$;

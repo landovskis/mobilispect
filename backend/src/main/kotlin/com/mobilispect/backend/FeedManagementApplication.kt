@@ -1,11 +1,10 @@
 package com.mobilispect.backend
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
-import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
 import org.springframework.boot.runApplication
+import org.springframework.context.annotation.ComponentScan
+import org.springframework.context.annotation.FilterType
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories
 import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
@@ -22,7 +21,16 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @SpringBootApplication(
     scanBasePackages = ["com.mobilispect.backend"]
 )
-@EnableMongoRepositories(basePackages = ["com.mobilispect.backend"])
+@EnableMongoRepositories(
+    basePackages = ["com.mobilispect.backend"],
+    excludeFilters = [
+        ComponentScan.Filter(
+            type = FilterType.REGEX,
+            pattern = ["com\\.mobilispect\\.backend\\.feed\\.repository\\..*"]
+        )
+    ]
+)
+@EnableJpaRepositories(basePackages = ["com.mobilispect.backend.feed.repository"])
 @EnableScheduling
 @EnableAsync
 class FeedManagementApplication

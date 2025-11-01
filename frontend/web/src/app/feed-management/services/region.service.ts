@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
 import {
   MetropolitanRegion,
@@ -67,90 +67,8 @@ export class RegionService {
       }),
       map(regions => this.filterRegionsByAutoUpdate(regions, autoUpdateEnabled)),
       catchError(error => {
-        console.warn('API not available, using mock data:', error);
-        // Return mock data for development - prioritize Canadian cities
-        const mockRegions: MetropolitanRegion[] = [
-          // Canadian cities (default suggestions)
-          {
-            regionOnestopId: 'r-toronto-on',
-            name: 'Toronto, Ontario',
-            autoUpdateEnabled: true,
-            feedCount: 18,
-            lastCheckAt: new Date().toISOString(),
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: new Date().toISOString()
-          },
-          {
-            regionOnestopId: 'r-vancouver-bc',
-            name: 'Vancouver, British Columbia',
-            autoUpdateEnabled: true,
-            feedCount: 12,
-            lastCheckAt: new Date().toISOString(),
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: new Date().toISOString()
-          },
-          {
-            regionOnestopId: 'r-montreal-qc',
-            name: 'Montreal, Quebec',
-            autoUpdateEnabled: true,
-            feedCount: 14,
-            lastCheckAt: new Date().toISOString(),
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: new Date().toISOString()
-          },
-          {
-            regionOnestopId: 'r-calgary-ab',
-            name: 'Calgary, Alberta',
-            autoUpdateEnabled: true,
-            feedCount: 8,
-            lastCheckAt: new Date().toISOString(),
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: new Date().toISOString()
-          },
-          {
-            regionOnestopId: 'r-ottawa-on',
-            name: 'Ottawa, Ontario',
-            autoUpdateEnabled: true,
-            feedCount: 6,
-            lastCheckAt: new Date().toISOString(),
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: new Date().toISOString()
-          },
-          // US cities (secondary)
-          {
-            regionOnestopId: 'r-sf-bay-area',
-            name: 'San Francisco Bay Area',
-            autoUpdateEnabled: true,
-            feedCount: 15,
-            lastCheckAt: new Date().toISOString(),
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: new Date().toISOString()
-          },
-          {
-            regionOnestopId: 'r-nyc-metro',
-            name: 'New York City Metro',
-            autoUpdateEnabled: true,
-            feedCount: 8,
-            lastCheckAt: new Date().toISOString(),
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: new Date().toISOString()
-          },
-          {
-            regionOnestopId: 'r-la-metro',
-            name: 'Los Angeles Metro',
-            autoUpdateEnabled: false,
-            feedCount: 12,
-            lastCheckAt: '2024-01-15T10:30:00Z',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: new Date().toISOString()
-          }
-        ];
-
-        // Update cache with mock data
-        this.regionsCache$.next(mockRegions);
-        this.lastCacheUpdate = Date.now();
-
-        return of(this.filterRegionsByAutoUpdate(mockRegions, autoUpdateEnabled));
+        console.error('Failed to load regions', error);
+        return throwError(() => error);
       })
     );
   }

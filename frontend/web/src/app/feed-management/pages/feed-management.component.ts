@@ -20,30 +20,26 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
     <div class="feed-management-container">
       <!-- Toolbar -->
       <mat-toolbar color="primary" class="main-toolbar">
-        <span class="toolbar-title">{{ getViewTitle() }}</span>
+        <div class="toolbar-left">
+          <span class="toolbar-title">Feed Management</span>
+          <!-- Breadcrumbs -->
+          <div class="breadcrumbs" *ngIf="selectedRegion">
+            <mat-icon class="breadcrumb-icon">chevron_right</mat-icon>
+            <span class="breadcrumb-region">{{ selectedRegion.name }}</span>
+          </div>
+        </div>
 
         <span class="toolbar-spacer"></span>
 
-        <button
-          mat-button
-          class="toolbar-nav-button"
-          [class.active-toolbar-button]="currentView === 'regions' || currentView === 'imports'"
-          (click)="navigateToView('regions')"
-        >
-          <mat-icon>dashboard</mat-icon>
-          Overview
-        </button>
-
-        <button
-          mat-button
-          class="toolbar-nav-button"
-          [class.active-toolbar-button]="currentView === 'feeds'"
-          (click)="navigateToView('feeds')"
-          [disabled]="!selectedRegion"
-        >
-          <mat-icon>rss_feed</mat-icon>
-          Feeds
-        </button>
+        <!-- Region Selector -->
+        <mat-form-field class="region-selector" appearance="fill">
+          <mat-label>Region</mat-label>
+          <mat-select [(value)]="selectedRegionId" (selectionChange)="onRegionChange($event.value)">
+            <mat-option *ngFor="let region of regions" [value]="region.regionOnestopId">
+              {{ region.name }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
 
         <button
           mat-icon-button
@@ -70,26 +66,89 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
 
       <!-- Content Area -->
       <div class="content-area">
-            <!-- Feed Management View (Regions, Active Imports & History Tabs) -->
-            <div *ngIf="currentView === 'regions' || currentView === 'imports'" class="view-container">
+            <!-- Consolidated Tab View -->
+            <div class="view-container">
               <mat-tab-group
                 animationDuration="200ms"
-                [(selectedIndex)]="selectedTabIndex"
-                (selectedIndexChange)="onTabChange($event)">
-                <!-- Regions Tab -->
+                [(selectedIndex)]="selectedTabIndex">
+
+                <!-- Feeds Tab -->
                 <mat-tab>
                   <ng-template mat-tab-label>
-                    <mat-icon class="tab-icon">location_on</mat-icon>
-                    Regions
-                    <span class="tab-badge" *ngIf="mockRegions.length > 0">
-                      {{ mockRegions.length }}
+                    <mat-icon class="tab-icon">rss_feed</mat-icon>
+                    Feeds
+                    <span class="tab-badge" *ngIf="regionFeeds.length > 0">
+                      {{ regionFeeds.length }}
                     </span>
                   </ng-template>
 
-                  <app-feed-regions-tab
-                    [regions]="mockRegions"
-                    (importRegion)="importRegionFeeds($event)"
-                  ></app-feed-regions-tab>
+                  <div class="tab-content">
+                    <!-- Loading State -->
+                    <mat-card *ngIf="loadingFeeds" class="loading-card">
+                      <mat-card-content class="loading-content">
+                        <mat-spinner diameter="40"></mat-spinner>
+                        <p>Loading feeds...</p>
+                      </mat-card-content>
+                    </mat-card>
+
+                    <!-- Feeds List -->
+                    <div *ngIf="!loadingFeeds && regionFeeds.length > 0" class="feeds-grid">
+                      <mat-card *ngFor="let feed of regionFeeds" class="feed-card">
+                        <mat-card-header>
+                          <mat-card-title class="feed-title">
+                            <mat-icon [class]="'feed-icon ' + feed.specType">{{ getFeedIcon(feed.specType) }}</mat-icon>
+                            {{ feed.name }}
+                          </mat-card-title>
+                          <mat-card-subtitle>{{ feed.feedOnestopId }}</mat-card-subtitle>
+                        </mat-card-header>
+                        <mat-card-content>
+                          <div class="feed-details">
+                            <div class="feed-status">
+                              <mat-chip [class]="'status-chip ' + feed.status.toLowerCase()">
+                                <mat-icon>{{ feed.status === FeedStatus.ACTIVE ? 'check_circle' : 'cancel' }}</mat-icon>
+                                {{ feed.status | titlecase }}
+                              </mat-chip>
+                              <mat-chip class="spec-chip">{{ feed.specType }}</mat-chip>
+                            </div>
+                            <div class="feed-meta">
+                              <p *ngIf="feed.lastCheckedAt">
+                                <mat-icon>schedule</mat-icon>
+                                Last checked: {{ feed.lastCheckedAt | date:'short' }}
+                              </p>
+                              <p *ngIf="feed.lastUpdatedAt">
+                                <mat-icon>download</mat-icon>
+                                Last updated: {{ feed.lastUpdatedAt | date:'short' }}
+                              </p>
+                              <p *ngIf="feed.downloadUrl">
+                                <mat-icon>link</mat-icon>
+                                <a [href]="feed.downloadUrl" target="_blank">Download URL</a>
+                              </p>
+                            </div>
+                          </div>
+                        </mat-card-content>
+                        <mat-card-actions>
+                          <button mat-button (click)="viewFeedDetails(feed)">
+                            <mat-icon>info</mat-icon>
+                            Details
+                          </button>
+                          <button mat-raised-button color="primary" (click)="importFeed(feed)"
+                                  [disabled]="feed.status !== FeedStatus.ACTIVE">
+                            <mat-icon>download</mat-icon>
+                            Import
+                          </button>
+                        </mat-card-actions>
+                      </mat-card>
+                    </div>
+
+                    <!-- Empty State -->
+                    <mat-card *ngIf="!loadingFeeds && regionFeeds.length === 0" class="empty-state">
+                      <mat-card-content class="empty-content">
+                        <mat-icon class="empty-icon">inbox</mat-icon>
+                        <h3>No feeds found</h3>
+                        <p>Select a region to view available transit feeds.</p>
+                      </mat-card-content>
+                    </mat-card>
+                  </div>
                 </mat-tab>
 
                 <!-- Active Imports Tab -->
@@ -135,87 +194,6 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
                     </mat-tab>
               </mat-tab-group>
             </div>
-
-            <!-- Feeds View -->
-            <div *ngIf="currentView === 'feeds'" class="view-container">
-              <mat-card class="feeds-header-card">
-                <mat-card-header>
-                  <mat-card-title>
-                    <button mat-icon-button (click)="backToRegions()" class="back-button">
-                      <mat-icon>arrow_back</mat-icon>
-                    </button>
-                    {{ selectedRegion?.name }} Feeds
-                  </mat-card-title>
-                  <mat-card-subtitle>{{ regionFeeds.length }} transit feeds available</mat-card-subtitle>
-                </mat-card-header>
-              </mat-card>
-
-              <!-- Loading State -->
-              <mat-card *ngIf="loadingFeeds" class="loading-card">
-                <mat-card-content class="loading-content">
-                  <mat-spinner diameter="40"></mat-spinner>
-                  <p>Loading feeds...</p>
-                </mat-card-content>
-              </mat-card>
-
-              <!-- Feeds List -->
-              <div *ngIf="!loadingFeeds && regionFeeds.length > 0" class="feeds-grid">
-                <mat-card *ngFor="let feed of regionFeeds" class="feed-card">
-                  <mat-card-header>
-                    <mat-card-title class="feed-title">
-                      <mat-icon [class]="'feed-icon ' + feed.specType">{{ getFeedIcon(feed.specType) }}</mat-icon>
-                      {{ feed.name }}
-                    </mat-card-title>
-                    <mat-card-subtitle>{{ feed.feedOnestopId }}</mat-card-subtitle>
-                  </mat-card-header>
-                  <mat-card-content>
-                    <div class="feed-details">
-                      <div class="feed-status">
-                        <mat-chip [class]="'status-chip ' + feed.status.toLowerCase()">
-                          <mat-icon>{{ feed.status === FeedStatus.ACTIVE ? 'check_circle' : 'cancel' }}</mat-icon>
-                          {{ feed.status | titlecase }}
-                        </mat-chip>
-                        <mat-chip class="spec-chip">{{ feed.specType }}</mat-chip>
-                      </div>
-                      <div class="feed-meta">
-                        <p *ngIf="feed.lastCheckedAt">
-                          <mat-icon>schedule</mat-icon>
-                          Last checked: {{ feed.lastCheckedAt | date:'short' }}
-                        </p>
-                        <p *ngIf="feed.lastUpdatedAt">
-                          <mat-icon>download</mat-icon>
-                          Last updated: {{ feed.lastUpdatedAt | date:'short' }}
-                        </p>
-                        <p *ngIf="feed.downloadUrl">
-                          <mat-icon>link</mat-icon>
-                          <a [href]="feed.downloadUrl" target="_blank">Download URL</a>
-                        </p>
-                      </div>
-                    </div>
-                  </mat-card-content>
-                  <mat-card-actions>
-                    <button mat-button (click)="viewFeedDetails(feed)">
-                      <mat-icon>info</mat-icon>
-                      Details
-                    </button>
-                    <button mat-raised-button color="primary" (click)="importFeed(feed)"
-                            [disabled]="feed.status !== FeedStatus.ACTIVE">
-                      <mat-icon>download</mat-icon>
-                      Import
-                    </button>
-                  </mat-card-actions>
-                </mat-card>
-              </div>
-
-              <!-- Empty State -->
-              <mat-card *ngIf="!loadingFeeds && regionFeeds.length === 0" class="empty-state">
-                <mat-card-content class="empty-content">
-                  <mat-icon class="empty-icon">inbox</mat-icon>
-                  <h3>No feeds found</h3>
-                  <p>No transit feeds are available for this region.</p>
-                </mat-card-content>
-              </mat-card>
-            </div>
           </div>
     </div>
   `,
@@ -232,9 +210,66 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
       z-index: 10;
     }
 
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .toolbar-title {
       font-size: 1.25rem;
       font-weight: 500;
+    }
+
+    .breadcrumbs {
+      display: flex;
+      align-items: center;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.9rem;
+    }
+
+    .breadcrumb-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      margin-right: 4px;
+    }
+
+    .breadcrumb-region {
+      font-weight: 400;
+    }
+
+    .region-selector {
+      width: 250px;
+      margin-right: 12px;
+    }
+
+    .region-selector ::ng-deep .mat-mdc-text-field-wrapper {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .region-selector ::ng-deep .mat-mdc-form-field-focus-overlay {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .region-selector ::ng-deep .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .region-selector ::ng-deep .mat-mdc-select-value,
+    .region-selector ::ng-deep .mat-mdc-form-field-label,
+    .region-selector ::ng-deep .mat-mdc-select-arrow {
+      color: white !important;
+    }
+
+    .region-selector ::ng-deep .mat-mdc-form-field-bottom-align::before {
+      display: none;
     }
 
     .toolbar-spacer {
@@ -604,11 +639,11 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   authStats$: Observable<AuthenticationStatistics>;
 
   // Component state
-  currentView = 'regions';
-  selectedTabIndex = 0; // Track which tab is selected (0=Regions, 1=Active Imports, 2=History)
+  selectedTabIndex = 0; // Track which tab is selected (0=Feeds, 1=Active Imports, 2=History)
   private isProgrammaticTabChange = false;
-  mockRegions: MetropolitanRegion[] = [];
+  regions: MetropolitanRegion[] = [];
   selectedRegion: MetropolitanRegion | null = null;
+  selectedRegionId: string | null = null;
   regionFeeds: Feed[] = [];
   allFeeds: Feed[] = [];
   selectedFeedForAuth: string | null = null;
@@ -665,19 +700,25 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('Feed Management Component initialized');
 
-    // Handle route-based view switching
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd),
+    // Load regions first
+    this.regionService.listRegions().pipe(
       takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.updateCurrentViewFromRoute();
+    ).subscribe({
+      next: (regions) => {
+        console.log('Loaded regions:', regions);
+        this.regions = regions;
+
+        // Set first region as default
+        if (regions.length > 0) {
+          this.selectedRegionId = regions[0].regionOnestopId;
+          this.selectedRegion = regions[0];
+          this.loadFeedsForRegion(this.selectedRegionId);
+        }
+      },
+      error: (error) => {
+        console.error('Failed to load regions:', error);
+      }
     });
-
-    // Initial view setup
-    this.updateCurrentViewFromRoute();
-
-    // Load mock data
-    this.loadMockData();
 
     // Start polling for active imports
     this.importService.startPollingActiveImports();
@@ -690,18 +731,6 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.importService.stopPollingActiveImports();
-  }
-
-  getViewTitle(): string {
-    switch (this.currentView) {
-      case 'regions':
-      case 'imports':
-        return 'Feed Management';
-      case 'feeds':
-        return `${this.selectedRegion?.name || 'Region'} Feeds`;
-      default:
-        return 'Feed Management';
-    }
   }
 
   getFeedIcon(specType: FeedSpecType): string {
@@ -720,16 +749,27 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
 
     switch (index) {
       case 0:
-        this.navigateToView('regions');
+        // Feeds tab - no action needed, feeds already loaded
         break;
       case 1:
-        this.navigateToView('imports');
+        // Active Imports tab
+        this.importService.refreshActiveImports();
         break;
       case 2:
-        this.navigateToView('history');
+        // History tab
+        this.loadImportHistory();
         break;
       default:
         break;
+    }
+  }
+
+  onRegionChange(regionId: string): void {
+    this.selectedRegionId = regionId;
+    const region = this.regions.find(r => r.regionOnestopId === regionId);
+    if (region) {
+      this.selectedRegion = region;
+      this.loadFeedsForRegion(regionId);
     }
   }
 
@@ -754,8 +794,8 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (result) => {
-        // Automatically redirect to active imports view
-        this.navigateToView('imports');
+        // Automatically switch to active imports tab
+        this.selectedTabIndex = 1;
 
         // Show success notification
         this.snackBar.open(
@@ -826,76 +866,27 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     });
   }
 
-  navigateToView(view: string): void {
-    if (view === 'imports') {
-      this.currentView = 'imports';
-      this.setSelectedTab(1);
-      this.router.navigate(['/feed-management', 'imports']);
-      this.loadImportHistory();
-      return;
-    }
-
-    if (view === 'history') {
-      this.currentView = 'imports';
-      this.setSelectedTab(2);
-      this.router.navigate(['/feed-management', 'history']);
-      this.loadImportHistory();
-      return;
-    }
-
-    this.currentView = view;
-
-    if (view === 'regions') {
-      this.setSelectedTab(0);
-    }
-
-    this.router.navigate(['/feed-management', view]);
-  }
-
-  updateCurrentViewFromRoute(): void {
-    const urlTree = this.router.parseUrl(this.router.url);
-    const primarySegments = urlTree.root.children['primary']?.segments ?? [];
-    const segmentCount = primarySegments.length;
-    const lastSegment = segmentCount > 0 ? primarySegments[segmentCount - 1].path : '';
-    const previousSegment = segmentCount > 1 ? primarySegments[segmentCount - 2].path : '';
-
-    if (lastSegment === 'imports') {
-      this.currentView = 'imports';
-      this.setSelectedTab(1);
-      this.loadImportHistory();
-    } else if (lastSegment === 'history') {
-      this.currentView = 'imports';
-      this.setSelectedTab(2);
-      this.loadImportHistory();
-    } else if (previousSegment === 'import' && lastSegment) {
-      this.currentView = 'imports';
-      this.setSelectedTab(1);
-      this.loadImportHistory();
-    } else if (lastSegment === 'regions' || lastSegment === '' || lastSegment === 'feed-management') {
-      this.currentView = 'regions';
-      this.setSelectedTab(0);
-    } else if (lastSegment) {
-      // Treat the final path segment as a region onestop ID
-      this.currentView = 'feeds';
-      this.setSelectedTab(0);
-      this.loadFeedsForRegion(lastSegment);
-    } else {
-      this.currentView = 'regions';
-      this.setSelectedTab(0);
-    }
-  }
-
   refreshData(): void {
     this.snackBar.open('Refreshing data...', 'Close', { duration: 2000 });
     this.regionService.clearCache();
     this.importService.refreshActiveImports();
-    this.loadMockData();
-  }
 
+    // Reload regions
+    this.regionService.listRegions().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (regions) => {
+        this.regions = regions;
+      },
+      error: (error) => {
+        console.error('Failed to load regions:', error);
+      }
+    });
 
-  selectRegion(region: MetropolitanRegion): void {
-    // Navigate to the region's feeds using its onestop ID
-    this.router.navigate(['/feed-management', region.regionOnestopId]);
+    // Reload feeds for current region
+    if (this.selectedRegionId) {
+      this.loadFeedsForRegion(this.selectedRegionId);
+    }
   }
 
   private loadFeedsForRegion(onestopId: string): void {
@@ -936,30 +927,6 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     });
   }
 
-  backToRegions(): void {
-    this.router.navigate(['/feed-management', 'regions']);
-  }
-
-  importRegionFeeds(region: MetropolitanRegion): void {
-    // Navigate to feeds view for the region so user can select individual feeds
-    this.selectRegion(region);
-    this.snackBar.open(`View feeds for ${region.name} to import individually`, 'Close', { duration: 3000 });
-  }
-
-  private loadMockData(): void {
-    this.regionService.listRegions().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (regions) => {
-        console.log('Loaded regions:', regions);
-        this.mockRegions = regions;
-      },
-      error: (error) => {
-        console.error('Failed to load regions:', error);
-      }
-    });
-  }
-
   viewImportDetails(activeImport: any): void {
     // Open the import progress dialog for detailed view
     const dialogRef = this.dialog.open(ImportProgressDialogComponent, {
@@ -993,8 +960,8 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
         );
         // Refresh the active imports list
         this.importService.refreshActiveImports();
-        // Refresh history if on history view
-        if (this.currentView === 'history') {
+        // Refresh history if on history tab (tab index 2)
+        if (this.selectedTabIndex === 2) {
           this.loadImportHistory();
         }
       },

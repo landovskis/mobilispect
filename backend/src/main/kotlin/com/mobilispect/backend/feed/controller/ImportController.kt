@@ -1,0 +1,370 @@
+package com.mobilispect.backend.feed.controller
+
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.mobilispect.backend.api.dto.ActiveImportsResponse
+import com.mobilispect.backend.api.dto.FeedImportDTO
+import com.mobilispect.backend.api.dto.FeedImportDetailDTO
+import com.mobilispect.backend.api.dto.FeedImportSummaryDTO
+import com.mobilispect.backend.api.dto.ImportLogDTO
+import com.mobilispect.backend.api.dto.ImportLogsResponse
+import com.mobilispect.backend.api.dto.ImportProgressDTO
+import com.mobilispect.backend.api.dto.ImportRequest
+import com.mobilispect.backend.api.dto.ImportResponse
+import com.mobilispect.backend.api.dto.ImportsResponse
+import com.mobilispect.backend.api.dto.ImportStatus as ImportStatusDto
+import com.mobilispect.backend.api.dto.LogLevel as LogLevelDto
+import com.mobilispect.backend.api.dto.PageInfo
+import com.mobilispect.backend.api.dto.TriggerType as TriggerTypeDto
+import com.mobilispect.backend.feed.model.FeedImport
+import com.mobilispect.backend.feed.model.ImportStatus
+import com.mobilispect.backend.feed.model.ImportTriggerType
+import com.mobilispect.backend.feed.model.LogLevel
+import com.mobilispect.backend.feed.repository.FeedImportRepository
+import com.mobilispect.backend.feed.repository.ImportLogRepository
+import com.mobilispect.backend.feed.service.FeedImportService
+import com.mobilispect.backend.websocket.ProgressTrackingService
+import org.slf4j.LoggerFactory
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
+import org.springframework.http.HttpStatus
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
+import java.util.UUID
+
+@RestController
+@RequestMapping("/api/feed-management")
+class ImportController(
+    private val feedImportService: FeedImportService,
+    private val feedImportRepository: FeedImportRepository,
+    private val importLogRepository: ImportLogRepository,
+    private val progressTrackingService: ProgressTrackingService,
+    private val objectMapper: ObjectMapper
+) {
+    private val logger = LoggerFactory.getLogger(ImportController::class.java)
+
+    private val activeStatuses = listOf(ImportStatus.RUNNING, ImportStatus.PENDING)
+
+    @PostMapping("/feeds/{feedOnestopId}/import")
+    fun startImport(
+        @PathVariable feedOnestopId: String,
+        @RequestBody(required = false) request: ImportRequest?
+    ): ImportResponse {
+        val import = feedImportService.startImport(
+            feedOnestopId = feedOnestopId,
+            administratorUsername = null,
+            triggerType = ImportTriggerType.MANUAL,
+            force = request?.force == true
+        )
+
+        val message = "Import started successfully"
+        return import.toResponse(message)
+    }
+
+    @GetMapping("/imports/active")
+    @Transactional(readOnly = true)
+    fun getActiveImports(): ActiveImportsResponse {
+        val imports = feedImportRepository.findAllByStatusIn(activeStatuses)
+            .sortedByDescending { it.startedAt ?: it.createdAt }
+        val summaries = imports.map { import ->
+            val progress = progressTrackingService.getProgress(import.requireIdAsString())?.toDto()
+            import.toSummary(progress)
+        }
+        return ActiveImportsResponse(
+            imports = summaries,
+            total = summaries.size
+        )
+    }
+
+    @GetMapping("/imports/{importId}/progress")
+    @Transactional(readOnly = true)
+    fun getImportProgress(@PathVariable importId: String): ImportProgressDTO {
+        progressTrackingService.getProgress(importId)?.let { return it.toDto() }
+
+        val uuid = runCatching { UUID.fromString(importId) }
+            .getOrElse { throw ResponseStatusException(HttpStatus.NOT_FOUND, "Import not found: $importId") }
+
+        val import = feedImportRepository.findById(uuid)
+            .orElseThrow { notFound("Import", importId) }
+
+        val progressPercentage = when (import.status) {
+            ImportStatus.COMPLETED -> 100
+            ImportStatus.FAILED, ImportStatus.CANCELLED -> 0
+            else -> 0
+        }
+
+        return ImportProgressDTO(
+            importId = importId,
+            feedOnestopId = import.feed?.feedOnestopId ?: "",
+            progressPercentage = progressPercentage,
+            currentStep = when (import.status) {
+                ImportStatus.COMPLETED -> "Completed"
+                ImportStatus.FAILED -> "Failed"
+                ImportStatus.CANCELLED -> "Cancelled"
+                else -> "Pending"
+            },
+            currentStepNumber = if (progressPercentage == 100) 8 else 0,
+            totalSteps = 8,
+            startedAt = import.startedAt ?: import.createdAt,
+            estimatedTimeRemainingSeconds = null,
+            processingRate = null
+        )
+    }
+
+    @GetMapping("/imports/{importId}")
+    @Transactional(readOnly = true)
+    fun getImport(@PathVariable importId: String): FeedImportDetailDTO {
+        val uuid = parseImportId(importId)
+        val import = feedImportRepository.findById(uuid)
+            .orElseThrow { notFound("Import", importId) }
+
+        val feed = import.feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${import.id}")
+        val regionName = feed.region?.name
+
+        val progress = progressTrackingService.getProgress(importId)?.toDto()
+        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(uuid)
+            .map { log -> log.toDto(importId) }
+
+        return FeedImportDetailDTO(
+            id = import.requireIdAsString(),
+            feedOnestopId = feed.feedOnestopId,
+            administratorId = import.administrator?.id?.toString(),
+            administratorUsername = import.administrator?.username,
+            triggerType = import.triggerType.toDto(),
+            status = import.status.toDto(),
+            versionSha1 = import.versionSha1,
+            startedAt = import.startedAt,
+            completedAt = import.completedAt,
+            fileSizeBytes = import.fileSizeBytes,
+            errorMessage = import.errorMessage,
+            createdAt = import.createdAt,
+            updatedAt = import.updatedAt,
+            feedName = feed.name,
+            regionName = regionName,
+            progress = progress,
+            recentLogs = logs
+        )
+    }
+
+    @DeleteMapping("/imports/{importId}")
+    fun cancelImport(@PathVariable importId: String): FeedImportDTO {
+        val uuid = parseImportId(importId)
+        feedImportService.cancelImport(uuid)
+        val updated = feedImportRepository.findById(uuid)
+            .orElseThrow { notFound("Import", importId) }
+        return updated.toFeedImportDTO()
+    }
+
+    @GetMapping("/imports")
+    @Transactional(readOnly = true)
+    fun listImports(
+        @RequestParam(required = false, defaultValue = "0") page: Int,
+        @RequestParam(required = false, defaultValue = "20") size: Int,
+        @RequestParam(required = false) status: ImportStatusDto?,
+        @RequestParam(required = false) triggerType: TriggerTypeDto?
+    ): ImportsResponse {
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt", "createdAt"))
+
+        val statuses = status?.let { listOf(it.toEntity()) }
+        val triggerTypes = triggerType?.let { listOf(it.toEntity()) }
+
+        val pageResult = when {
+            statuses != null && triggerTypes != null ->
+                feedImportRepository.findAllByStatusInAndTriggerTypeIn(statuses, triggerTypes, pageable)
+            statuses != null -> feedImportRepository.findAllByStatusIn(statuses, pageable)
+            triggerTypes != null -> feedImportRepository.findAllByTriggerTypeIn(triggerTypes, pageable)
+            else -> feedImportRepository.findAll(pageable)
+        }
+
+        val imports = pageResult.content.map { it.toFeedImportDTO() }
+
+        return ImportsResponse(
+            imports = imports,
+            page = PageInfo(
+                page = pageResult.number,
+                size = pageResult.size,
+                totalElements = pageResult.totalElements.toInt(),
+                totalPages = pageResult.totalPages,
+                hasNext = pageResult.hasNext(),
+                hasPrevious = pageResult.hasPrevious()
+            )
+        )
+    }
+
+    @GetMapping("/feeds/{feedOnestopId}/imports")
+    @Transactional(readOnly = true)
+    fun listImportsForFeed(
+        @PathVariable feedOnestopId: String,
+        @RequestParam(required = false, defaultValue = "0") page: Int,
+        @RequestParam(required = false, defaultValue = "20") size: Int,
+        @RequestParam(required = false) status: ImportStatusDto?
+    ): ImportsResponse {
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt", "createdAt"))
+        val statuses = status?.let { listOf(it.toEntity()) }
+
+        val pageResult = if (statuses != null) {
+            feedImportRepository.findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(feedOnestopId, statuses, pageable)
+        } else {
+            feedImportRepository.findAllByFeedFeedOnestopIdOrderByStartedAtDesc(feedOnestopId, pageable)
+        }
+
+        return ImportsResponse(
+            imports = pageResult.content.map { it.toFeedImportDTO() },
+            page = PageInfo(
+                page = pageResult.number,
+                size = pageResult.size,
+                totalElements = pageResult.totalElements.toInt(),
+                totalPages = pageResult.totalPages,
+                hasNext = pageResult.hasNext(),
+                hasPrevious = pageResult.hasPrevious()
+            )
+        )
+    }
+
+    @GetMapping("/imports/{importId}/logs")
+    @Transactional(readOnly = true)
+    fun getImportLogs(@PathVariable importId: String): ImportLogsResponse {
+        val uuid = parseImportId(importId)
+        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(uuid)
+            .map { it.toDto(importId) }
+        return ImportLogsResponse(logs)
+    }
+
+    private fun FeedImport.toResponse(message: String?): ImportResponse {
+        val feed = feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${id}")
+        return ImportResponse(
+            id = requireIdAsString(),
+            importId = requireIdAsString(),
+            feedOnestopId = feed.feedOnestopId,
+            administratorId = administrator?.id?.toString(),
+            administratorUsername = administrator?.username,
+            triggerType = triggerType.toDto(),
+            status = status.toDto(),
+            versionSha1 = versionSha1,
+            startedAt = startedAt ?: createdAt,
+            completedAt = completedAt,
+            fileSizeBytes = fileSizeBytes,
+            errorMessage = errorMessage,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+            message = message
+        )
+    }
+
+    private fun FeedImport.toSummary(progress: ImportProgressDTO?): FeedImportSummaryDTO {
+        val feed = feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${id}")
+        val region = feed.region
+        return FeedImportSummaryDTO(
+            id = requireIdAsString(),
+            feedOnestopId = feed.feedOnestopId,
+            feedName = feed.name,
+            regionOnestopId = region?.regionOnestopId,
+            regionName = region?.name ?: "",
+            status = status.toDto(),
+            triggerType = triggerType.toDto(),
+            startedAt = startedAt,
+            completedAt = completedAt,
+            progress = progress
+        )
+    }
+
+    private fun FeedImport.toFeedImportDTO(): FeedImportDTO = FeedImportDTO(
+        id = requireIdAsString(),
+        feedOnestopId = feed?.feedOnestopId ?: "",
+        administratorId = administrator?.id?.toString(),
+        administratorUsername = administrator?.username,
+        triggerType = triggerType.toDto(),
+        status = status.toDto(),
+        versionSha1 = versionSha1,
+        startedAt = startedAt,
+        completedAt = completedAt,
+        fileSizeBytes = fileSizeBytes,
+        errorMessage = errorMessage,
+        createdAt = createdAt,
+        updatedAt = updatedAt
+    )
+
+    private fun com.mobilispect.backend.feed.model.ImportLog.toDto(importId: String): ImportLogDTO {
+        val detailsMap: Map<String, Any?>? = details?.let { raw ->
+            runCatching {
+                objectMapper.readValue(raw, object : TypeReference<Map<String, Any?>>() {})
+            }.onFailure { ex ->
+                logger.warn("Failed to parse import log details for {}: {}", id, ex.message)
+            }.getOrNull()
+        }
+
+        return ImportLogDTO(
+            id = id?.toString() ?: "",
+            importId = importId,
+            level = level.toDto(),
+            message = message,
+            component = component,
+            details = detailsMap,
+            createdAt = createdAt
+        )
+    }
+
+    private fun com.mobilispect.backend.websocket.ImportProgress.toDto(): ImportProgressDTO = ImportProgressDTO(
+        importId = importId,
+        feedOnestopId = feedOnestopId,
+        progressPercentage = progressPercentage,
+        currentStep = currentStep,
+        currentStepNumber = currentStepNumber,
+        totalSteps = totalSteps,
+        startedAt = startedAt,
+        estimatedTimeRemainingSeconds = estimatedTimeRemainingSeconds,
+        processingRate = processingRate
+    )
+
+    private fun ImportStatus.toDto(): ImportStatusDto = when (this) {
+        ImportStatus.PENDING -> ImportStatusDto.PENDING
+        ImportStatus.RUNNING -> ImportStatusDto.RUNNING
+        ImportStatus.COMPLETED -> ImportStatusDto.COMPLETED
+        ImportStatus.FAILED -> ImportStatusDto.FAILED
+        ImportStatus.CANCELLED -> ImportStatusDto.CANCELLED
+    }
+
+    private fun ImportTriggerType.toDto(): TriggerTypeDto = when (this) {
+        ImportTriggerType.MANUAL -> TriggerTypeDto.MANUAL
+        ImportTriggerType.AUTOMATIC -> TriggerTypeDto.AUTOMATIC
+    }
+
+    private fun LogLevel.toDto(): LogLevelDto = when (this) {
+        LogLevel.INFO -> LogLevelDto.INFO
+        LogLevel.WARN -> LogLevelDto.WARN
+        LogLevel.ERROR -> LogLevelDto.ERROR
+    }
+
+    private fun ImportStatusDto.toEntity(): ImportStatus = when (this) {
+        ImportStatusDto.PENDING -> ImportStatus.PENDING
+        ImportStatusDto.RUNNING -> ImportStatus.RUNNING
+        ImportStatusDto.COMPLETED -> ImportStatus.COMPLETED
+        ImportStatusDto.FAILED -> ImportStatus.FAILED
+        ImportStatusDto.CANCELLED -> ImportStatus.CANCELLED
+    }
+
+    private fun TriggerTypeDto.toEntity(): ImportTriggerType = when (this) {
+        TriggerTypeDto.MANUAL -> ImportTriggerType.MANUAL
+        TriggerTypeDto.AUTOMATIC -> ImportTriggerType.AUTOMATIC
+    }
+
+    private fun parseImportId(importId: String): UUID = runCatching { UUID.fromString(importId) }
+        .getOrElse { throw notFound("Import", importId) }
+
+    private fun notFound(entity: String, identifier: String) =
+        ResponseStatusException(HttpStatus.NOT_FOUND, "$entity not found: $identifier")
+
+    private fun FeedImport.requireIdAsString(): String = requireId().toString()
+
+    private fun FeedImport.requireId(): UUID = id
+        ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Import identifier is not set")
+}
