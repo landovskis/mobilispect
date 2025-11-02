@@ -19,37 +19,11 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
   standalone: false,
   template: `
     <div class="feed-management-container">
-      <!-- Toolbar -->
-      <mat-toolbar color="primary" class="main-toolbar">
-        <div class="toolbar-left">
-          <img src="/logo.png" alt="Mobilispect" class="app-logo" />
-          <span class="toolbar-title">Mobilispect</span>
-        </div>
-
-        <span class="toolbar-spacer"></span>
-
-        <button
-          mat-icon-button
-          class="toolbar-icon-button"
-          (click)="refreshData()"
-          [attr.aria-label]="'Refresh all data'"
-        >
-          <mat-icon>refresh</mat-icon>
-        </button>
-
-        <!-- Quick Stats -->
-        <div class="quick-stats" *ngIf="quickStats$ | async as stats">
-          <mat-chip-set>
-            <mat-chip *ngIf="stats.activeImports > 0" class="active-imports">
-              <mat-icon>download</mat-icon>
-              {{ stats.activeImports }} importing
-            </mat-chip>
-          </mat-chip-set>
-        </div>
-
-        <!-- Theme Toggle (Constitutional Requirement) -->
-        <app-theme-toggle></app-theme-toggle>
-      </mat-toolbar>
+      <!-- App Bar -->
+      <app-bar
+        [activeImportsCount]="(quickStats$ | async)?.activeImports || 0"
+        (refresh)="refreshData()"
+      ></app-bar>
 
       <!-- Breadcrumbs (moved below toolbar) -->
       <app-breadcrumbs [tabName]="getCurrentTabName()" [region]="selectedRegion?.name"></app-breadcrumbs>
@@ -198,76 +172,6 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
       height: 100vh;
       display: flex;
       flex-direction: column;
-    }
-
-    .main-toolbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background-color: #1e3a8a !important; /* Blue from logo - same for both light and dark mode */
-      color: white !important;
-    }
-
-    .toolbar-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .toolbar-left .toolbar-title {
-      color: white !important;
-    }
-
-    .toolbar-left .mat-icon {
-      color: rgba(255, 255, 255, 0.9) !important;
-    }
-
-    .app-logo {
-      height: 40px;
-      width: 40px;
-      object-fit: contain;
-    }
-
-    .toolbar-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .toolbar-title {
-      font-size: 1.25rem;
-      font-weight: 500;
-    }
-
-    .toolbar-spacer {
-      flex: 1;
-    }
-
-    .toolbar-nav-button {
-      margin-right: 16px;
-      color: rgba(255, 255, 255, 0.87);
-    }
-
-    .toolbar-nav-button mat-icon {
-      margin-right: 4px;
-    }
-
-    .toolbar-nav-button.active-toolbar-button {
-      background-color: rgba(255, 255, 255, 0.15);
-    }
-
-    .toolbar-icon-button {
-      color: white;
-      margin-right: 8px;
-    }
-
-    .quick-stats mat-chip {
-      margin-left: 8px;
-    }
-
-    .quick-stats .active-imports {
-      background-color: #ff9800;
-      color: white;
     }
 
     .content-area {
