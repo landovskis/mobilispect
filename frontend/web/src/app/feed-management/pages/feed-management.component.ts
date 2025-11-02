@@ -688,13 +688,19 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('Feed Management Component initialized');
 
-    // Check if we're on the /feeds/imports route
+    // Check current route path to determine initial tab
     const currentPath = this.router.url;
     const isImportsRoute = currentPath.includes('/imports');
+    const isRegionsRoute = currentPath.includes('/regions');
 
-    // Check for tab in URL query params and set it before loading data
-    const tabParam = this.route.snapshot.queryParamMap.get('tab');
-    const initialTabIndex = isImportsRoute ? 1 : this.getTabIndexFromSlug(tabParam);
+    // Determine initial tab based on route
+    let initialTabIndex = 0; // Default to Feeds tab
+    if (isImportsRoute) {
+      initialTabIndex = 1; // Import History tab
+    } else if (isRegionsRoute) {
+      initialTabIndex = 0; // Feeds tab
+    }
+
     this.selectedTabIndex = initialTabIndex;
 
     // Load regions first
@@ -734,17 +740,10 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
               });
             }
           } else {
-            // Feeds tab - use query params
-            const needsRegionUpdate = !regionParam || regionParam !== initialRegion.regionOnestopId;
-            const needsTabUpdate = !tabParam || tabParam !== this.getTabSlug(initialTabIndex);
-
-            if (needsRegionUpdate || needsTabUpdate) {
-              this.router.navigate([], {
-                relativeTo: this.route,
-                queryParams: {
-                  region: initialRegion.regionOnestopId,
-                  tab: this.getTabSlug(initialTabIndex)
-                },
+            // Feeds tab - use /feeds/regions route
+            if (!isRegionsRoute || !regionParam || regionParam !== initialRegion.regionOnestopId) {
+              this.router.navigate(['/feeds/regions'], {
+                queryParams: { region: initialRegion.regionOnestopId },
                 replaceUrl: true
               });
             }
@@ -830,33 +829,32 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
 
   private getTabSlug(index: number): string {
     switch (index) {
-      case 0: return 'feeds';
+      case 0: return 'regions';
       case 1: return 'imports';
-      default: return 'feeds';
+      default: return 'regions';
     }
   }
 
   private getTabIndexFromSlug(slug: string | null): number {
     switch (slug) {
       case 'imports': return 1;
-      case 'feeds':
+      case 'regions':
       default: return 0;
     }
   }
 
   private updateUrlWithRegion(regionId: string): void {
-    // If on imports tab, navigate to /feeds/imports with region param
+    // Navigate to appropriate route based on current tab
     if (this.selectedTabIndex === 1) {
+      // Import History tab - navigate to /feeds/imports with region param
       this.router.navigate(['/feeds/imports'], {
         queryParams: { region: regionId },
         replaceUrl: true
       });
     } else {
-      // Otherwise use query params
-      this.router.navigate([], {
-        relativeTo: this.route,
+      // Feeds tab - navigate to /feeds/regions with region param
+      this.router.navigate(['/feeds/regions'], {
         queryParams: { region: regionId },
-        queryParamsHandling: 'merge',
         replaceUrl: true
       });
     }
@@ -865,16 +863,15 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   private updateUrlWithTab(tabIndex: number): void {
     const slug = this.getTabSlug(tabIndex);
     if (slug === 'imports') {
-      // Navigate to /feeds/imports with region query param
+      // Import History tab - navigate to /feeds/imports with region query param
       this.router.navigate(['/feeds/imports'], {
         queryParams: { region: this.selectedRegionId },
         replaceUrl: true
       });
     } else {
-      // For feeds tab, use query params
-      this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { tab: slug, region: this.selectedRegionId },
+      // Feeds tab - navigate to /feeds/regions with region query param
+      this.router.navigate(['/feeds/regions'], {
+        queryParams: { region: this.selectedRegionId },
         replaceUrl: true
       });
     }

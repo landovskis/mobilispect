@@ -6,6 +6,11 @@ import { FeedManagementGuard } from './feed-management.guard';
 const routes: Routes = [
   {
     path: '',
+    redirectTo: 'regions',
+    pathMatch: 'full'
+  },
+  {
+    path: 'regions',
     component: FeedManagementComponent,
     canActivate: [FeedManagementGuard],
     data: {
