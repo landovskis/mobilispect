@@ -44,6 +44,7 @@ import { FeedRegionsTabComponent } from './components/feed-regions-tab.component
 import { FeedActiveImportsTabComponent } from './components/feed-active-imports-tab.component';
 import { FeedHistoryTabComponent } from './components/feed-history-tab.component';
 import { RegionSelectorComponent } from './components/region-selector.component';
+import { AgencyFeedCardComponent } from './components/agency-feed-card.component';
 
 @NgModule({
   declarations: [
@@ -71,6 +72,7 @@ import { RegionSelectorComponent } from './components/region-selector.component'
     FeedRegionsTabComponent,
     FeedActiveImportsTabComponent,
     FeedHistoryTabComponent,
+    AgencyFeedCardComponent,
 
     // Angular Material modules
     MatCardModule,

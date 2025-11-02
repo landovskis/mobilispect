@@ -7,6 +7,7 @@ import { map, takeUntil, filter, take } from 'rxjs/operators';
 import { MetropolitanRegion, Feed, FeedStatus, FeedSpecType } from '../models/region.models';
 import { FeedImportSummary } from '../models/import.models';
 import { AuthenticationStatistics } from '../models/feed-authentication.model';
+import { AgencyFeedGroup, FeedGroupingUtils } from '../models/agency-feed-group.model';
 import { RegionService } from '../services/region.service';
 import { ImportService } from '../services/import.service';
 import { FeedAuthenticationService } from '../services/feed-authentication.service';
@@ -63,53 +64,15 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
                       </mat-card-content>
                     </mat-card>
 
-                    <!-- Feeds List -->
-                    <div *ngIf="!loadingFeeds && regionFeeds.length > 0" class="feeds-grid">
-                      <mat-card *ngFor="let feed of regionFeeds" class="feed-card">
-                        <mat-card-header>
-                          <mat-card-title class="feed-title">
-                            <mat-icon [class]="'feed-icon ' + feed.specType">{{ getFeedIcon(feed.specType) }}</mat-icon>
-                            {{ feed.name }}
-                          </mat-card-title>
-                          <mat-card-subtitle>{{ feed.feedOnestopId }}</mat-card-subtitle>
-                        </mat-card-header>
-                        <mat-card-content>
-                          <div class="feed-details">
-                            <div class="feed-status">
-                              <mat-chip [class]="'status-chip ' + feed.status.toLowerCase()">
-                                <mat-icon>{{ feed.status === FeedStatus.ACTIVE ? 'check_circle' : 'cancel' }}</mat-icon>
-                                {{ feed.status | titlecase }}
-                              </mat-chip>
-                              <mat-chip class="spec-chip">{{ feed.specType }}</mat-chip>
-                            </div>
-                            <div class="feed-meta">
-                              <p *ngIf="feed.lastCheckedAt">
-                                <mat-icon>schedule</mat-icon>
-                                Last checked: {{ feed.lastCheckedAt | date:'short' }}
-                              </p>
-                              <p *ngIf="feed.lastUpdatedAt">
-                                <mat-icon>download</mat-icon>
-                                Last updated: {{ feed.lastUpdatedAt | date:'short' }}
-                              </p>
-                              <p *ngIf="feed.downloadUrl">
-                                <mat-icon>link</mat-icon>
-                                <a [href]="feed.downloadUrl" target="_blank">Download URL</a>
-                              </p>
-                            </div>
-                          </div>
-                        </mat-card-content>
-                        <mat-card-actions>
-                          <button mat-button (click)="viewFeedDetails(feed)">
-                            <mat-icon>info</mat-icon>
-                            Details
-                          </button>
-                          <button mat-raised-button color="primary" (click)="importFeed(feed)"
-                                  [disabled]="feed.status !== FeedStatus.ACTIVE">
-                            <mat-icon>download</mat-icon>
-                            Import
-                          </button>
-                        </mat-card-actions>
-                      </mat-card>
+                    <!-- Agency Feed Cards (Grouped) -->
+                    <div *ngIf="!loadingFeeds && agencyGroups.length > 0" class="feeds-grid">
+                      <app-agency-feed-card
+                        *ngFor="let agencyGroup of agencyGroups"
+                        [agencyGroup]="agencyGroup"
+                        (importFeed)="importFeed($event)"
+                        (importAllFeeds)="importMultipleFeeds($event)"
+                        (viewDetails)="viewFeedDetails($event)">
+                      </app-agency-feed-card>
                     </div>
 
                     <!-- Empty State -->
@@ -516,6 +479,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   selectedRegion: MetropolitanRegion | null = null;
   selectedRegionId: string | null = null;
   regionFeeds: Feed[] = [];
+  agencyGroups: AgencyFeedGroup[] = [];
   allFeeds: Feed[] = [];
   selectedFeedForAuth: string | null = null;
   loadingFeeds = false;
@@ -775,6 +739,14 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     // In a real app, this would open a dialog or navigate to a details page
   }
 
+  importMultipleFeeds(feeds: Feed[]): void {
+    const feedNames = feeds.map(f => f.name).join(', ');
+    this.snackBar.open(`Starting imports for ${feeds.length} feeds...`, 'Close', { duration: 2000 });
+
+    // Import all feeds sequentially
+    feeds.forEach(feed => this.importFeed(feed));
+  }
+
   importFeed(feed: Feed): void {
     this.snackBar.open(`Starting import for ${feed.name}...`, 'Close', { duration: 2000 });
 
@@ -880,6 +852,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   private loadFeedsForRegion(onestopId: string): void {
     this.loadingFeeds = true;
     this.regionFeeds = [];
+    this.agencyGroups = [];
 
     // First, try to find the region in our cached regions
     this.regionService.getCachedRegions().pipe(
@@ -897,9 +870,17 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (feeds) => {
         this.regionFeeds = feeds;
+        // Group feeds by agency
+        this.agencyGroups = FeedGroupingUtils.sortAgencyGroups(
+          FeedGroupingUtils.groupFeedsByAgency(feeds)
+        );
         this.loadingFeeds = false;
         const regionName = this.selectedRegion?.name || onestopId;
-        this.snackBar.open(`Viewing ${feeds.length} feeds for ${regionName}`, 'Close', { duration: 2000 });
+        this.snackBar.open(
+          `Viewing ${feeds.length} feeds from ${this.agencyGroups.length} agencies for ${regionName}`,
+          'Close',
+          { duration: 2000 }
+        );
       },
       error: (error) => {
         console.error('Failed to load feeds:', error);
