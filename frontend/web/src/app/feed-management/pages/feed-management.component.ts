@@ -75,16 +75,11 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
 
                   <div class="tab-content">
                     <!-- Region Selector -->
-                    <div class="region-selector-container">
-                      <mat-form-field class="region-selector" appearance="outline">
-                        <mat-label>Select Region</mat-label>
-                        <mat-select [(value)]="selectedRegionId" (selectionChange)="onRegionChange($event.value)">
-                          <mat-option *ngFor="let region of regions" [value]="region.regionOnestopId">
-                            {{ region.name }}
-                          </mat-option>
-                        </mat-select>
-                      </mat-form-field>
-                    </div>
+                    <app-region-selector
+                      [regions]="regions"
+                      [selectedRegionId]="selectedRegionId"
+                      (regionChange)="onRegionChange($event)"
+                    ></app-region-selector>
 
                     <!-- Loading State -->
                     <mat-card *ngIf="loadingFeeds" class="loading-card">
@@ -169,16 +164,11 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
 
                   <div class="tab-content">
                     <!-- Region Selector -->
-                    <div class="region-selector-container">
-                      <mat-form-field class="region-selector" appearance="outline">
-                        <mat-label>Select Region</mat-label>
-                        <mat-select [(value)]="selectedRegionId" (selectionChange)="onRegionChange($event.value)">
-                          <mat-option *ngFor="let region of regions" [value]="region.regionOnestopId">
-                            {{ region.name }}
-                          </mat-option>
-                        </mat-select>
-                      </mat-form-field>
-                    </div>
+                    <app-region-selector
+                      [regions]="regions"
+                      [selectedRegionId]="selectedRegionId"
+                      (regionChange)="onRegionChange($event)"
+                    ></app-region-selector>
 
                     <app-feed-history-tab
                     [loading]="loadingHistory"
@@ -247,16 +237,6 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
     .toolbar-title {
       font-size: 1.25rem;
       font-weight: 500;
-    }
-
-    .region-selector-container {
-      padding: 16px 0;
-      margin-bottom: 16px;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    .region-selector {
-      width: 300px;
     }
 
     .toolbar-spacer {

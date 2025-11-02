@@ -42,6 +42,7 @@ import { FeedAuthenticationService } from './services/feed-authentication.servic
 import { FeedRegionsTabComponent } from './components/feed-regions-tab.component';
 import { FeedActiveImportsTabComponent } from './components/feed-active-imports-tab.component';
 import { FeedHistoryTabComponent } from './components/feed-history-tab.component';
+import { RegionSelectorComponent } from './components/region-selector.component';
 
 @NgModule({
   declarations: [
@@ -58,6 +59,7 @@ import { FeedHistoryTabComponent } from './components/feed-history-tab.component
 
     // Standalone components
     RegionListComponent,
+    RegionSelectorComponent,
     ImportDialogComponent,
     ImportProgressDialogComponent,
     ProgressBarComponent,
