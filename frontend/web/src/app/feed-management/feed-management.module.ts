@@ -26,6 +26,7 @@ import { MatMenuModule } from '@angular/material/menu';
 
 import { FeedManagementRoutingModule } from './feed-management-routing.module';
 import { ThemeToggleComponent } from '../core/components/theme-toggle.component';
+import { BreadcrumbsComponent } from '../shared/components/breadcrumbs.component';
 import { FeedManagementComponent } from './pages/feed-management.component';
 import { RegionListComponent } from './components/region-list.component';
 import { ImportDialogComponent } from './components/import-dialog.component';
@@ -62,6 +63,7 @@ import { FeedHistoryTabComponent } from './components/feed-history-tab.component
     ProgressBarComponent,
     ProgressMonitorComponent,
     ThemeToggleComponent,
+    BreadcrumbsComponent,
     FeedRegionsTabComponent,
     FeedActiveImportsTabComponent,
     FeedHistoryTabComponent,

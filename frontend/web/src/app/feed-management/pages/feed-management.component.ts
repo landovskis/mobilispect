@@ -12,6 +12,7 @@ import { ImportService } from '../services/import.service';
 import { FeedAuthenticationService } from '../services/feed-authentication.service';
 import { ImportProgressDialogComponent } from '../components/import-progress-dialog.component';
 import { ImportConfirmationDialogComponent } from '../components/import-confirmation-dialog.component';
+import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.component';
 
 @Component({
   selector: 'app-feed-management',
@@ -21,25 +22,11 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
       <!-- Toolbar -->
       <mat-toolbar color="primary" class="main-toolbar">
         <div class="toolbar-left">
-          <span class="toolbar-title">Feed Management</span>
-          <!-- Breadcrumbs -->
-          <div class="breadcrumbs" *ngIf="selectedRegion">
-            <mat-icon class="breadcrumb-icon">chevron_right</mat-icon>
-            <span class="breadcrumb-region">{{ selectedRegion.name }}</span>
-          </div>
+          <img src="/logo.png" alt="Mobilispect" class="app-logo" />
+          <span class="toolbar-title">Mobilispect</span>
         </div>
 
         <span class="toolbar-spacer"></span>
-
-        <!-- Region Selector -->
-        <mat-form-field class="region-selector" appearance="fill">
-          <mat-label>Region</mat-label>
-          <mat-select [(value)]="selectedRegionId" (selectionChange)="onRegionChange($event.value)">
-            <mat-option *ngFor="let region of regions" [value]="region.regionOnestopId">
-              {{ region.name }}
-            </mat-option>
-          </mat-select>
-        </mat-form-field>
 
         <button
           mat-icon-button
@@ -64,6 +51,9 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
         <app-theme-toggle></app-theme-toggle>
       </mat-toolbar>
 
+      <!-- Breadcrumbs (moved below toolbar) -->
+      <app-breadcrumbs [region]="selectedRegion?.name"></app-breadcrumbs>
+
       <!-- Content Area -->
       <div class="content-area">
             <!-- Consolidated Tab View -->
@@ -83,6 +73,18 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
                   </ng-template>
 
                   <div class="tab-content">
+                    <!-- Region Selector -->
+                    <div class="region-selector-container">
+                      <mat-form-field class="region-selector" appearance="outline">
+                        <mat-label>Select Region</mat-label>
+                        <mat-select [(value)]="selectedRegionId" (selectionChange)="onRegionChange($event.value)">
+                          <mat-option *ngFor="let region of regions" [value]="region.regionOnestopId">
+                            {{ region.name }}
+                          </mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+
                     <!-- Loading State -->
                     <mat-card *ngIf="loadingFeeds" class="loading-card">
                       <mat-card-content class="loading-content">
@@ -151,47 +153,50 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
                   </div>
                 </mat-tab>
 
-                <!-- Active Imports Tab -->
+                <!-- Import History Tab (includes active imports) -->
                 <mat-tab>
-                      <ng-template mat-tab-label>
-                        <mat-icon class="tab-icon">download</mat-icon>
-                        Active Imports
-                        <span class="tab-badge" *ngIf="(activeImports$ | async)?.length">
-                          {{ (activeImports$ | async)?.length }}
-                        </span>
-                      </ng-template>
+                  <ng-template mat-tab-label>
+                    <mat-icon class="tab-icon">history</mat-icon>
+                    Import History
+                    <span class="tab-badge" *ngIf="totalImportElements > 0">
+                      {{ totalImportElements }}
+                    </span>
+                    <span class="tab-badge active" *ngIf="(activeImports$ | async)?.length">
+                      {{ (activeImports$ | async)?.length }} active
+                    </span>
+                  </ng-template>
 
-                      <app-feed-active-imports-tab
-                        [activeImports$]="activeImports$"
-                        [selectedImportIds]="selectedImportIds"
-                        [allImportsSelected]="allImportsSelected"
-                        [someImportsSelected]="someImportsSelected"
-                        (selectAllChange)="toggleAllImports($event)"
-                        (selectionChange)="toggleImportSelection($event.id, $event.selected)"
-                        (bulkCancel)="bulkCancelImports()"
-                        (cancelImport)="cancelImport($event)"
-                      ></app-feed-active-imports-tab>
-                    </mat-tab>
+                  <div class="tab-content">
+                    <!-- Region Selector -->
+                    <div class="region-selector-container">
+                      <mat-form-field class="region-selector" appearance="outline">
+                        <mat-label>Select Region</mat-label>
+                        <mat-select [(value)]="selectedRegionId" (selectionChange)="onRegionChange($event.value)">
+                          <mat-option *ngFor="let region of regions" [value]="region.regionOnestopId">
+                            {{ region.name }}
+                          </mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
 
-                    <!-- Import History Tab -->
-                    <mat-tab>
-                      <ng-template mat-tab-label>
-                        <mat-icon class="tab-icon">history</mat-icon>
-                        History
-                        <span class="tab-badge" *ngIf="totalImportElements > 0">
-                          {{ totalImportElements }}
-                        </span>
-                      </ng-template>
-
-                      <app-feed-history-tab
-                        [loading]="loadingHistory"
-                        [history]="importHistory"
-                        [totalItems]="totalImportElements"
-                        [pageIndex]="importHistoryPage"
-                        [pageSize]="importHistorySize"
-                        (pageChange)="loadImportHistory($event)"
-                      ></app-feed-history-tab>
-                    </mat-tab>
+                    <app-feed-history-tab
+                    [loading]="loadingHistory"
+                    [history]="importHistory"
+                    [totalItems]="totalImportElements"
+                    [pageIndex]="importHistoryPage"
+                    [pageSize]="importHistorySize"
+                    [activeImports$]="activeImports$"
+                    [selectedImportIds]="selectedImportIds"
+                    [allImportsSelected]="allImportsSelected"
+                    [someImportsSelected]="someImportsSelected"
+                    (selectAllChange)="toggleAllImports($event)"
+                    (selectionChange)="toggleImportSelection($event.id, $event.selected)"
+                    (bulkCancel)="bulkCancelImports()"
+                    (cancelImport)="cancelImport($event)"
+                    (pageChange)="loadImportHistory($event)"
+                  ></app-feed-history-tab>
+                  </div>
+                </mat-tab>
               </mat-tab-group>
             </div>
           </div>
@@ -208,12 +213,28 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
       position: sticky;
       top: 0;
       z-index: 10;
+      background-color: #1e3a8a !important; /* Blue from logo - same for both light and dark mode */
+      color: white !important;
     }
 
     .toolbar-left {
       display: flex;
       align-items: center;
       gap: 12px;
+    }
+
+    .toolbar-left .toolbar-title {
+      color: white !important;
+    }
+
+    .toolbar-left .mat-icon {
+      color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .app-logo {
+      height: 40px;
+      width: 40px;
+      object-fit: contain;
     }
 
     .toolbar-right {
@@ -227,49 +248,14 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
       font-weight: 500;
     }
 
-    .breadcrumbs {
-      display: flex;
-      align-items: center;
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 0.9rem;
-    }
-
-    .breadcrumb-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      margin-right: 4px;
-    }
-
-    .breadcrumb-region {
-      font-weight: 400;
+    .region-selector-container {
+      padding: 16px 0;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #e0e0e0;
     }
 
     .region-selector {
-      width: 250px;
-      margin-right: 12px;
-    }
-
-    .region-selector ::ng-deep .mat-mdc-text-field-wrapper {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-
-    .region-selector ::ng-deep .mat-mdc-form-field-focus-overlay {
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-
-    .region-selector ::ng-deep .mdc-text-field--filled:not(.mdc-text-field--disabled) {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-
-    .region-selector ::ng-deep .mat-mdc-select-value,
-    .region-selector ::ng-deep .mat-mdc-form-field-label,
-    .region-selector ::ng-deep .mat-mdc-select-arrow {
-      color: white !important;
-    }
-
-    .region-selector ::ng-deep .mat-mdc-form-field-bottom-align::before {
-      display: none;
+      width: 300px;
     }
 
     .toolbar-spacer {
