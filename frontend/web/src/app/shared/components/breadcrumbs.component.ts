@@ -7,11 +7,11 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [CommonModule, MatIconModule],
   template: `
-    <div class="breadcrumbs-container" *ngIf="region">
+    <div class="breadcrumbs-container">
       <div class="breadcrumbs">
-        <span class="breadcrumb-item">Mobilispect</span>
-        <mat-icon class="breadcrumb-icon">chevron_right</mat-icon>
-        <span class="breadcrumb-item breadcrumb-region">{{ region }}</span>
+        <span class="breadcrumb-item" *ngIf="tabName">{{ tabName }}</span>
+        <mat-icon class="breadcrumb-icon" *ngIf="tabName && region">chevron_right</mat-icon>
+        <span class="breadcrumb-item breadcrumb-region" *ngIf="region">{{ region }}</span>
       </div>
     </div>
   `,
@@ -68,5 +68,6 @@ import { MatIconModule } from '@angular/material/icon';
   `]
 })
 export class BreadcrumbsComponent {
+  @Input() tabName: string | null | undefined = null;
   @Input() region: string | null | undefined = null;
 }

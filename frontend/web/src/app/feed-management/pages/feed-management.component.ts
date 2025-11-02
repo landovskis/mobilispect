@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { Observable, Subject, combineLatest } from 'rxjs';
@@ -52,7 +52,7 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
       </mat-toolbar>
 
       <!-- Breadcrumbs (moved below toolbar) -->
-      <app-breadcrumbs [region]="selectedRegion?.name"></app-breadcrumbs>
+      <app-breadcrumbs [tabName]="getCurrentTabName()" [region]="selectedRegion?.name"></app-breadcrumbs>
 
       <!-- Content Area -->
       <div class="content-area">
@@ -654,7 +654,8 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     private authService: FeedAuthenticationService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {
     // Setup active imports observable
     this.activeImports$ = this.importService.getActiveImportsObservable();
@@ -694,11 +695,29 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
         console.log('Loaded regions:', regions);
         this.regions = regions;
 
-        // Set first region as default
-        if (regions.length > 0) {
-          this.selectedRegionId = regions[0].regionOnestopId;
-          this.selectedRegion = regions[0];
+        // Check for region in URL query params
+        const regionParam = this.route.snapshot.queryParamMap.get('region');
+        let initialRegion: MetropolitanRegion | undefined;
+
+        if (regionParam) {
+          // Try to find the region from URL param
+          initialRegion = regions.find(r => r.regionOnestopId === regionParam);
+        }
+
+        // Fall back to first region if not found or not specified
+        if (!initialRegion && regions.length > 0) {
+          initialRegion = regions[0];
+        }
+
+        if (initialRegion) {
+          this.selectedRegionId = initialRegion.regionOnestopId;
+          this.selectedRegion = initialRegion;
           this.loadFeedsForRegion(this.selectedRegionId);
+
+          // Update URL if it doesn't match
+          if (!regionParam || regionParam !== initialRegion.regionOnestopId) {
+            this.updateUrlWithRegion(initialRegion.regionOnestopId);
+          }
         }
       },
       error: (error) => {
@@ -756,7 +775,25 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     if (region) {
       this.selectedRegion = region;
       this.loadFeedsForRegion(regionId);
+      this.updateUrlWithRegion(regionId);
     }
+  }
+
+  getCurrentTabName(): string {
+    switch (this.selectedTabIndex) {
+      case 0: return 'Feeds';
+      case 1: return 'Import History';
+      default: return '';
+    }
+  }
+
+  private updateUrlWithRegion(regionId: string): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { region: regionId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
   }
 
   private setSelectedTab(index: number): void {
