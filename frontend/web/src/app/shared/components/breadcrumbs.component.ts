@@ -23,8 +23,8 @@ import { MatIconModule } from '@angular/material/icon';
       padding: 12px 24px;
     }
 
-    .breadcrumbs-container.dark {
-      background-color: #2c2c2c;
+    :host-context(.dark-theme) .breadcrumbs-container {
+      background-color: #1e1e1e;
       border-bottom: 1px solid #404040;
     }
 
@@ -37,7 +37,7 @@ import { MatIconModule } from '@angular/material/icon';
       color: #666;
     }
 
-    .breadcrumbs-container.dark .breadcrumbs {
+    :host-context(.dark-theme) .breadcrumbs {
       color: #bbb;
     }
 
@@ -53,8 +53,8 @@ import { MatIconModule } from '@angular/material/icon';
       color: #999;
     }
 
-    .breadcrumbs-container.dark .breadcrumb-icon {
-      color: #777;
+    :host-context(.dark-theme) .breadcrumb-icon {
+      color: #888;
     }
 
     .breadcrumb-region {
@@ -62,7 +62,7 @@ import { MatIconModule } from '@angular/material/icon';
       color: #333;
     }
 
-    .breadcrumbs-container.dark .breadcrumb-region {
+    :host-context(.dark-theme) .breadcrumb-region {
       color: #fff;
     }
   `]
