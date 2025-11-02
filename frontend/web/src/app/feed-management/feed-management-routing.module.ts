@@ -12,61 +12,37 @@ const routes: Routes = [
       title: 'Feed Management',
       breadcrumb: 'Feed Management',
       permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    },
-    children: [
-      {
-        path: '',
-        redirectTo: 'regions',
-        pathMatch: 'full'
-      },
-      {
-        path: 'regions',
-        component: FeedManagementComponent,
-        data: {
-          title: 'Feed Management',
-          breadcrumb: 'Feed Management',
-          view: 'regions'
-        }
-      },
-      {
-        path: 'imports',
-        component: FeedManagementComponent,
-        data: {
-          title: 'Active Imports',
-          breadcrumb: 'Active Imports',
-          view: 'imports',
-          tab: 'active'
-        }
-      },
-      {
-        path: 'history',
-        component: FeedManagementComponent,
-        data: {
-          title: 'Import History',
-          breadcrumb: 'Import History',
-          view: 'imports',
-          tab: 'history'
-        }
-      },
-      {
-        path: 'import/:importId',
-        component: FeedManagementComponent,
-        data: {
-          title: 'Import Details',
-          breadcrumb: 'Import Details',
-          view: 'imports'
-        }
-      },
-      {
-        path: ':onestopId',
-        component: FeedManagementComponent,
-        data: {
-          title: 'Region Feeds',
-          breadcrumb: 'Feeds',
-          view: 'feeds'
-        }
-      }
-    ]
+    }
+  },
+  {
+    path: 'imports',
+    component: FeedManagementComponent,
+    canActivate: [FeedManagementGuard],
+    data: {
+      title: 'Import History',
+      breadcrumb: 'Import History',
+      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+    }
+  },
+  {
+    path: 'history',
+    component: FeedManagementComponent,
+    canActivate: [FeedManagementGuard],
+    data: {
+      title: 'Import History',
+      breadcrumb: 'Import History',
+      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+    }
+  },
+  {
+    path: 'import/:importId',
+    component: FeedManagementComponent,
+    canActivate: [FeedManagementGuard],
+    data: {
+      title: 'Import Details',
+      breadcrumb: 'Import Details',
+      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+    }
   }
 ];
 
