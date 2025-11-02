@@ -68,5 +68,5 @@ import { MatIconModule } from '@angular/material/icon';
   `]
 })
 export class BreadcrumbsComponent {
-  @Input() region: string | null = null;
+  @Input() region: string | null | undefined = null;
 }
