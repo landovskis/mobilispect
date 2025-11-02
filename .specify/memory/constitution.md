@@ -1,16 +1,23 @@
 <!--
 Sync Impact Report:
-Version: 1.5.1 → 1.6.0 (E2E Testing Framework Addition)
-Modified sections: Technology Stack (added Playwright as official E2E testing framework)
-Added sections: Testing Standards (new subsection under Cross-Platform Standards)
-Templates requiring updates: ✅ All templates align with constitution structure
-Follow-up TODOs:
-  - Install Playwright dependencies: npm install -D @playwright/test
-  - Create playwright.config.ts with multi-browser configuration
-  - Add E2E test directory structure: e2e/
-  - Create initial E2E tests for feed management system
-  - Add Playwright to GitHub Actions CI/CD workflows
-  - Document E2E testing standards in project documentation
+Version: 1.7.0 → 1.8.0 (Redis 8.2 Standardization)
+Modified sections: Technology Stack → Cache version pinned; Testing Standards → Cache compatibility enforcement; Governance version line updated
+Added sections: None
+Removed sections: None
+Templates requiring updates:
+  ✅ .specify/templates/plan-template.md (remains version-agnostic)
+  ✅ .specify/templates/spec-template.md (no cache version assumptions)
+  ✅ .specify/templates/tasks-template.md (no cache version assumptions)
+Supporting artifacts updated:
+  ✅ specs/001-feed-management-the/plan.md
+  ✅ specs/001-feed-management-the/research.md
+  ✅ specs/001-feed-management-the/data-model.md
+  ✅ specs/001-feed-management-the/tasks.md
+  ✅ specs/001-feed-management-the/quickstart.md
+  ✅ backend/src/main/kotlin/com/mobilispect/backend/config/RedisConfiguration.kt
+  ✅ docs/architecture/feed-management-system.puml
+  ✅ CLAUDE.md
+Follow-up TODOs: None
 -->
 
 # Mobilispect Constitution
@@ -50,7 +57,7 @@ All significant technical decisions MUST be documented as Architecture Decision 
 ## Cross-Platform Standards
 
 ### Technology Stack
-- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL, Redis
+- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 17, Redis 8.2
 - **Frontend**: Angular 19 LTS with TypeScript, RxJS for state management
 - **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
 - **Android**: Compose UI with Material Design 3
@@ -60,7 +67,7 @@ All significant technical decisions MUST be documented as Architecture Decision 
 - **E2E Testing**: Playwright for cross-browser end-to-end testing
 
 ### Testing Standards
-All features MUST include comprehensive test coverage across unit, integration, and end-to-end levels.
+All features MUST include comprehensive test coverage across unit, integration, and end-to-end levels. Database-dependent tests MUST execute against PostgreSQL 17 locally and in CI to guarantee compatibility with production storage. Cache-dependent tests MUST execute against Redis 8.2 in development and CI environments.
 
 **End-to-End Testing with Playwright**:
 - Playwright MUST be used for all cross-browser E2E tests
@@ -141,4 +148,4 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 
 **ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
 
-**Version**: 1.6.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-10-26
+**Version**: 1.8.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-11-02
