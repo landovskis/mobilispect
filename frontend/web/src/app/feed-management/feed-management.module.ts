@@ -48,7 +48,6 @@ import { AgencyFeedCardComponent } from './components/agency-feed-card.component
 
 @NgModule({
   declarations: [
-    FeedManagementComponent,
     FeedAuthenticationComponent,
     AutoUpdateConfigComponent,
     ScheduledJobsComponent
@@ -60,6 +59,7 @@ import { AgencyFeedCardComponent } from './components/agency-feed-card.component
     FeedManagementRoutingModule,
 
     // Standalone components
+    FeedManagementComponent,
     RegionListComponent,
     RegionSelectorComponent,
     ImportDialogComponent,

@@ -1,7 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatDialog } from '@angular/material/dialog';
+import { CommonModule } from '@angular/common';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatCardModule } from '@angular/material/card';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatIconModule } from '@angular/material/icon';
 import { Observable, Subject, combineLatest } from 'rxjs';
 import { map, takeUntil, filter, take } from 'rxjs/operators';
 import { MetropolitanRegion, Feed, FeedStatus, FeedSpecType } from '../models/region.models';
@@ -14,10 +19,28 @@ import { FeedAuthenticationService } from '../services/feed-authentication.servi
 import { ImportProgressDialogComponent } from '../components/import-progress-dialog.component';
 import { ImportConfirmationDialogComponent } from '../components/import-confirmation-dialog.component';
 import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.component';
+import { AppBarComponent } from '../../shared/components/app-bar.component';
+import { RegionSelectorComponent } from '../components/region-selector.component';
+import { AgencyFeedCardComponent } from '../components/agency-feed-card.component';
+import { FeedHistoryTabComponent } from '../components/feed-history-tab.component';
 
 @Component({
   selector: 'app-feed-management',
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatTabsModule,
+    MatCardModule,
+    MatProgressSpinnerModule,
+    MatIconModule,
+    MatSnackBarModule,
+    MatDialogModule,
+    BreadcrumbsComponent,
+    AppBarComponent,
+    RegionSelectorComponent,
+    AgencyFeedCardComponent,
+    FeedHistoryTabComponent
+  ],
   template: `
     <div class="feed-management-container">
       <!-- App Bar -->
@@ -27,7 +50,7 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
       ></app-bar>
 
       <!-- Breadcrumbs (moved below toolbar) -->
-      <app-breadcrumbs [tabName]="getCurrentTabName()" [region]="selectedRegion?.name"></app-breadcrumbs>
+      <app-breadcrumbs [region]="selectedRegion?.name || null"></app-breadcrumbs>
 
       <!-- Content Area -->
       <div class="content-area">

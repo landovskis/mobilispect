@@ -1,0 +1,216 @@
+@use '@angular/material' as mat;
+
+// Include the common styles for Angular Material
+@include mat.core();
+
+// Define custom typography configuration
+// Using a combination of fonts for different purposes:
+// - Public Sans: Primary body text and UI elements (designed for public services)
+// - Inter: Secondary text and data display (highly legible)
+// - Red Hat Display: Headlines and emphasis (modern, bold)
+// - Work Sans: Supporting text and labels (clean, geometric)
+$custom-typography: mat.define-typography-config(
+  $font-family: '"Public Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+  $headline-1: mat.define-typography-level(96px, 96px, 300, '"Red Hat Display", "Public Sans", sans-serif'),
+  $headline-2: mat.define-typography-level(60px, 60px, 400, '"Red Hat Display", "Public Sans", sans-serif'),
+  $headline-3: mat.define-typography-level(48px, 50px, 400, '"Red Hat Display", "Public Sans", sans-serif'),
+  $headline-4: mat.define-typography-level(34px, 40px, 500, '"Red Hat Display", "Public Sans", sans-serif'),
+  $headline-5: mat.define-typography-level(24px, 32px, 500, '"Work Sans", "Public Sans", sans-serif'),
+  $headline-6: mat.define-typography-level(20px, 32px, 500, '"Work Sans", "Public Sans", sans-serif'),
+  $subtitle-1: mat.define-typography-level(16px, 28px, 500, '"Inter", "Public Sans", sans-serif'),
+  $subtitle-2: mat.define-typography-level(14px, 24px, 500, '"Inter", "Public Sans", sans-serif'),
+  $body-1: mat.define-typography-level(16px, 24px, 400, '"Public Sans", "Inter", sans-serif'),
+  $body-2: mat.define-typography-level(14px, 20px, 400, '"Public Sans", "Inter", sans-serif'),
+  $caption: mat.define-typography-level(12px, 20px, 400, '"Inter", "Public Sans", sans-serif'),
+  $button: mat.define-typography-level(14px, 14px, 500, '"Work Sans", "Public Sans", sans-serif'),
+);
+
+// Mobilispect Brand Colors (from logo)
+$mobilispect-primary-palette: (
+  50: #e3f2fd,
+  100: #bbdefb,
+  200: #90caf9,
+  300: #64b5f6,
+  400: #42a5f5,
+  500: #2980B9,  // Primary Blue (from logo train/metro)
+  600: #2472a4,
+  700: #1e5f8c,
+  800: #194d73,
+  900: #1A3A52,  // Navy (from logo compass)
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+$mobilispect-accent-palette: (
+  50: #fef5e7,
+  100: #fdecc8,
+  200: #fce3a6,
+  300: #fad984,
+  400: #f9d169,
+  500: #F39C12,  // Orange (from logo pedestrian)
+  600: #e67e22,
+  700: #d35400,
+  800: #ba4a00,
+  900: #a04000,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: rgba(black, 0.87),
+    500: rgba(black, 0.87),
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+$mobilispect-warn-palette: (
+  50: #fde8e7,
+  100: #fac7c4,
+  200: #f6a09c,
+  300: #f27b74,
+  400: #ef5f57,
+  500: #E84B3C,  // Red (from logo bus)
+  600: #d8443a,
+  700: #c73c33,
+  800: #b5342c,
+  900: #9a2820,
+  contrast: (
+    50: rgba(black, 0.87),
+    100: rgba(black, 0.87),
+    200: rgba(black, 0.87),
+    300: rgba(black, 0.87),
+    400: white,
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+// Define the light theme
+$mobilispect-primary: mat.define-palette($mobilispect-primary-palette, 500);
+$mobilispect-accent: mat.define-palette($mobilispect-accent-palette, 500);
+$mobilispect-warn: mat.define-palette($mobilispect-warn-palette, 500);
+
+$mobilispect-light-theme: mat.define-light-theme((
+  color: (
+    primary: $mobilispect-primary,
+    accent: $mobilispect-accent,
+    warn: $mobilispect-warn,
+  ),
+  typography: $custom-typography,
+  density: 0,
+));
+
+// Define the dark theme
+$mobilispect-dark-theme: mat.define-dark-theme((
+  color: (
+    primary: $mobilispect-primary,
+    accent: $mobilispect-accent,
+    warn: $mobilispect-warn,
+  ),
+  typography: $custom-typography,
+  density: 0,
+));
+
+// Apply the light theme by default
+@include mat.all-component-themes($mobilispect-light-theme);
+
+// Global border-radius customizations for slightly rounded shapes
+// Material Design 3 uses 4px, 8px, 12px, and 16px as standard values
+// We'll use slightly more rounded values for a softer, modern look
+* {
+  // Cards and elevated surfaces
+  .mat-mdc-card,
+  .mat-card {
+    border-radius: 12px !important;
+  }
+
+  // Buttons
+  .mat-mdc-button,
+  .mat-mdc-raised-button,
+  .mat-mdc-outlined-button,
+  .mat-mdc-unelevated-button {
+    border-radius: 8px !important;
+  }
+
+  .mat-mdc-fab,
+  .mat-mdc-mini-fab {
+    border-radius: 16px !important;
+  }
+
+  // Form fields
+  .mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      border-radius: 8px !important;
+    }
+  }
+
+  // Chips
+  .mat-mdc-chip {
+    border-radius: 8px !important;
+  }
+
+  // Dialogs
+  .mat-mdc-dialog-container {
+    border-radius: 12px !important;
+  }
+
+  // Menus and select panels
+  .mat-mdc-menu-panel,
+  .mat-mdc-select-panel {
+    border-radius: 8px !important;
+  }
+
+  // Tabs
+  .mat-mdc-tab {
+    border-radius: 8px 8px 0 0 !important;
+  }
+
+  // Snackbars
+  .mat-mdc-snack-bar-container {
+    border-radius: 8px !important;
+  }
+
+  // Tooltips
+  .mat-mdc-tooltip {
+    border-radius: 6px !important;
+  }
+
+  // Progress bars
+  .mat-mdc-progress-bar {
+    border-radius: 4px !important;
+  }
+
+  // Sliders
+  .mat-mdc-slider {
+    .mdc-slider__track,
+    .mdc-slider__track--active,
+    .mdc-slider__track--inactive {
+      border-radius: 4px !important;
+    }
+  }
+}
+
+// Apply the dark theme when the dark-theme class is present
+.dark-theme {
+  @include mat.all-component-colors($mobilispect-dark-theme);
+
+  // Additional dark theme customizations
+  background-color: #121212;
+  color: rgba(255, 255, 255, 0.87);
+}
