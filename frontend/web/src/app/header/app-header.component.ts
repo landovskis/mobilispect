@@ -1,24 +1,20 @@
-import {Component} from '@angular/core';
-import {NgOptimizedImage} from '@angular/common';
+import { Component } from '@angular/core';
+import { AppBarComponent } from '../shared/components/app-bar.component';
 
 @Component({
   selector: 'app-header',
+  standalone: true,
   imports: [
-    NgOptimizedImage
+    AppBarComponent
   ],
-  templateUrl: './app-header.html',
+  template: `
+    <app-bar
+      appName="Mobilispect"
+      logoUrl="/logo.png"
+      [showRefresh]="false"
+    ></app-bar>
+  `,
+  styles: []
 })
 export class AppHeader {
-  navShown = false;
-  onNavClick() {
-    let classList = document.getElementsByTagName('nav')[0].classList;
-    if (this.navShown) {
-      classList.remove('visible')
-      classList.add('collapse')
-    } else {
-      classList.add('visible')
-      classList.remove('collapse')
-    }
-    this.navShown = !this.navShown
-  }
 }
