@@ -29,18 +29,22 @@ $dark-theme: mat.m2-define-dark-theme((
   @include mat.all-component-colors($dark-theme);
 
   // Custom dark theme variables
-  --background-color: #1e1e1e;
-  --surface-color: #2d2d2d;
-  --surface-hover: #3d3d3d;
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --surface-hover: #2d2d2d;
   --text-primary: rgba(255, 255, 255, 0.87);
   --text-secondary: rgba(255, 255, 255, 0.60);
   --text-disabled: rgba(255, 255, 255, 0.38);
   --divider-color: rgba(255, 255, 255, 0.12);
   --border-color: rgba(255, 255, 255, 0.12);
 
-  // Apply to body and main containers
-  background-color: var(--background-color);
-  color: var(--text-primary);
+  // Force dark background (applied at component level)
+  background-color: var(--background-color) !important;
+  color: var(--text-primary) !important;
+
+  // Override Material's app background variable
+  --mat-app-background-color: #121212 !important;
+  --mat-sidenav-content-background-color: #121212 !important;
 
   // Card overrides
   .mat-mdc-card {
@@ -102,7 +106,7 @@ $dark-theme: mat.m2-define-dark-theme((
   // WCAG AA compliant tab contrast (4.5:1 minimum for normal text)
   // Tab header background must be set explicitly for proper contrast calculation
   .mat-mdc-tab-header {
-    background-color: #1e1e1e; // Same as --background-color
+    background-color: var(--surface-color) !important;
     border-bottom: 1px solid var(--divider-color);
   }
 
@@ -143,4 +147,81 @@ $dark-theme: mat.m2-define-dark-theme((
       border-top-width: 3px;
     }
   }
+
+  // Additional dark mode overrides for comprehensive coverage
+  .mat-drawer-container {
+    background-color: var(--background-color) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .mat-drawer {
+    background-color: var(--surface-color) !important;
+    color: var(--text-primary) !important;
+  }
+
+  // Paginator
+  .mat-mdc-paginator {
+    background-color: var(--surface-color) !important;
+    color: var(--text-primary) !important;
+  }
+
+  // Menu and select panels
+  .mat-mdc-menu-panel,
+  .mat-mdc-select-panel {
+    background-color: var(--surface-color) !important;
+  }
+
+  // Progress bars and spinners
+  .mat-mdc-progress-bar {
+    --mdc-linear-progress-track-color: var(--surface-hover);
+  }
+
+  // Buttons
+  .mat-mdc-button,
+  .mat-mdc-raised-button {
+    &:not(.mat-primary):not(.mat-accent):not(.mat-warn) {
+      color: var(--text-primary) !important;
+    }
+  }
+
+  // Empty states
+  .empty-state {
+    color: var(--text-secondary) !important;
+
+    .empty-icon {
+      color: var(--text-disabled) !important;
+    }
+  }
+
+  // Active import cards
+  .active-import-card {
+    background-color: var(--surface-color) !important;
+    border-color: var(--border-color) !important;
+  }
+
+  // History table
+  .history-table {
+    background-color: var(--surface-color) !important;
+
+    tr {
+      &:hover {
+        background-color: var(--surface-hover) !important;
+      }
+    }
+  }
+
+  // Progress monitor component
+  app-progress-monitor {
+    .progress-container {
+      background-color: var(--surface-hover) !important;
+    }
+  }
+}
+
+// Force dark background on html and body elements when dark-theme is active
+// This must be outside the .dark-theme block to properly target the root elements
+html.dark-theme,
+body.dark-theme {
+  background-color: #121212 !important;
+  color: rgba(255, 255, 255, 0.87) !important;
 }

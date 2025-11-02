@@ -9,6 +9,8 @@ import { MatIconModule } from '@angular/material/icon';
   template: `
     <div class="breadcrumbs-container" *ngIf="region">
       <div class="breadcrumbs">
+        <span class="breadcrumb-item">Feeds</span>
+        <mat-icon class="breadcrumb-icon">chevron_right</mat-icon>
         <span class="breadcrumb-item breadcrumb-region">{{ region }}</span>
       </div>
     </div>

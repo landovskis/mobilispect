@@ -2,24 +2,27 @@
 
 ## Project Constitution
 
-This project follows the Mobilispect Constitution which defines core principles, standards, and governance for development.
+This project follows the Mobilispect Constitution which defines core
+principles, standards, and governance for development.
 
 **Constitution Location**: `.specify/memory/constitution.md`
 
 ### Key Constitutional Requirements
 
-Before working on any feature or making architectural decisions, review the full constitution. Key principles include:
+Before working on any feature or making architectural decisions, review the
+full constitution. Key principles include:
 
 1. **Code Quality First** - DRY, YAGNI, SOLID principles mandatory
 2. **Test-Driven Development** - NON-NEGOTIABLE, 80%+ coverage required
 3. **Cross-Platform UX Consistency** - Light/dark mode mandatory across all platforms
 4. **Performance Standards** - 200ms API response, 60fps mobile UI
 5. **Observability & Monitoring** - Structured logging, metrics, traces required
-6. **Architecture Decision Records** - NON-NEGOTIABLE for all significant technical decisions
+6. **Architecture Decision Records** - NON-NEGOTIABLE for all significant
+   technical decisions
 
 ### Technology Stack (Constitutional)
 
-- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL, Redis
+- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 17, Redis 8.2
 - **Frontend**: Angular 19 LTS with TypeScript, RxJS for state management
 - **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
 - **Android**: Compose UI with Material Design 3
@@ -30,8 +33,10 @@ Before working on any feature or making architectural decisions, review the full
 All changes must pass:
 
 - **Pre-Commit**: Tests pass, formatting applied, linting clean, security scan
-- **Pre-Merge**: Code review approved, CI/CD passes, performance tests, contract tests
-- **Pre-Deploy**: E2E tests pass, load testing, security scan, DB migration validated
+- **Pre-Merge**: Code review approved, CI/CD passes, performance tests,
+  contract tests
+- **Pre-Deploy**: E2E tests pass, load testing, security scan,
+  DB migration validated
 
 ### Pre-Commit Hook Enforcement
 
@@ -107,4 +112,7 @@ This project includes Spec-Kit commands for structured development:
 
 ---
 
-**Note**: This configuration ensures all Claude Code sessions maintain consistency with project standards and architectural decisions. Always reference the full constitution at `.specify/memory/constitution.md` for complete guidance.
+**Note**: This configuration ensures all Claude Code sessions maintain
+consistency with project standards and architectural decisions. Always
+reference the full constitution at `.specify/memory/constitution.md` for
+complete guidance.

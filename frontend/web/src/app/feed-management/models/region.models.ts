@@ -132,6 +132,17 @@ export interface RegionsResponse {
 }
 
 /**
+ * Response payload from manual feed discovery trigger
+ */
+export interface FeedDiscoveryResult {
+  regionOnestopId: string;
+  feedsDiscovered: number;
+  feedsCreated: number;
+  feedsUpdated: number;
+  errors: string[];
+}
+
+/**
  * Response wrapper for feeds list
  */
 export interface FeedsResponse {

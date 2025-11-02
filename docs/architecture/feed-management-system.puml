@@ -36,7 +36,7 @@ package "Data Layer" {
     [Audit Log Tables] as ALT
   }
 
-  database "Redis" {
+  database "Redis 8.2" {
     [Progress Cache] as PC
     [Session Storage] as SS
   }

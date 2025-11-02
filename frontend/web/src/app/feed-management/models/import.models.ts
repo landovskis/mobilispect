@@ -45,6 +45,9 @@ export interface FeedImportSummary {
   status: ImportStatus;
   triggerType: TriggerType;
   startedAt: string | null;
+  completedAt: string | null;
+  fileSizeBytes: number | null;
+  errorMessage: string | null;
   progress: ImportProgress | null;
   currentStep?: string; // For backward compatibility
 }

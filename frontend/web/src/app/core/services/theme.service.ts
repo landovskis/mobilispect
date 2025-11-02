@@ -127,7 +127,7 @@ export class ThemeService {
   }
 
   /**
-   * Apply theme to document body
+   * Apply theme to document html and body elements
    */
   private applyTheme(theme: Theme): void {
     const effective = this.resolveEffectiveTheme(theme);
@@ -135,15 +135,19 @@ export class ThemeService {
       this.effectiveTheme.set(effective);
       return;
     }
+    const html = document.documentElement;
     const body = document.body;
 
-    // Remove both theme classes first
+    // Remove both theme classes first from both elements
+    html.classList.remove(this.DARK_CLASS, this.LIGHT_CLASS);
     body.classList.remove(this.DARK_CLASS, this.LIGHT_CLASS);
 
-    // Add the appropriate theme class
+    // Add the appropriate theme class to both elements
     if (effective === 'dark') {
+      html.classList.add(this.DARK_CLASS);
       body.classList.add(this.DARK_CLASS);
     } else {
+      html.classList.add(this.LIGHT_CLASS);
       body.classList.add(this.LIGHT_CLASS);
     }
 

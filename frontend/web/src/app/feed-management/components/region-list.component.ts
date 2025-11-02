@@ -15,11 +15,12 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, Subject, BehaviorSubject, combineLatest } from 'rxjs';
 import { map, takeUntil, debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
-import { MetropolitanRegion, RegionUtils } from '../models/region.models';
+import { MetropolitanRegion, RegionUtils, FeedDiscoveryResult } from '../models/region.models';
 import { RegionService } from '../services/region.service';
 import { ImportService } from '../services/import.service';
 import { SchedulerService } from '../services/scheduler.service';
 import { FeedImportSummary } from '../models/import.models';
+import { FeedDiscoveryTriggerComponent } from './feed-discovery-trigger.component';
 
 /**
  * Region List Component
@@ -49,7 +50,8 @@ import { FeedImportSummary } from '../models/import.models';
     MatTooltipModule,
     MatBadgeModule,
     MatSlideToggleModule,
-    MatMenuModule
+    MatMenuModule,
+    FeedDiscoveryTriggerComponent
   ],
   template: `
     <div class="region-list-container">
@@ -162,6 +164,12 @@ import { FeedImportSummary } from '../models/import.models';
           </mat-card-content>
 
           <mat-card-actions align="end">
+            <app-feed-discovery-trigger
+              class="discovery-trigger"
+              [region]="region"
+              (completed)="handleDiscoveryCompleted(region, $event)"
+            ></app-feed-discovery-trigger>
+
             <button
               mat-button
               color="primary"
@@ -670,6 +678,15 @@ export class RegionListComponent implements OnInit, OnDestroy {
   refreshRegions(): void {
     this.regionService.clearCache();
     this.loadRegions();
+  }
+
+  handleDiscoveryCompleted(region: MetropolitanRegion, result: FeedDiscoveryResult): void {
+    // Refresh UI to reflect new feed counts and timestamps
+    this.refreshRegions();
+
+    if (this.selectedRegion && this.selectedRegion.regionOnestopId === region.regionOnestopId) {
+      this.regionSelected.emit(this.selectedRegion);
+    }
   }
 
   setAutoUpdateFilter(filter: boolean | undefined): void {

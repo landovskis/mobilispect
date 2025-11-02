@@ -77,29 +77,6 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
           </div>
         </div>
 
-        <!-- Status and Meta Information -->
-        <div class="section">
-          <div class="section-label">
-            <mat-icon class="label-icon">info</mat-icon>
-            <span>Status</span>
-          </div>
-          <div class="feed-meta">
-            <div class="meta-badge" [class.meta-badge-success]="agencyGroup.hasActiveFeeds" [class.meta-badge-inactive]="!agencyGroup.hasActiveFeeds">
-              <mat-icon class="badge-icon">
-                {{ agencyGroup.hasActiveFeeds ? 'check_circle' : 'cancel' }}
-              </mat-icon>
-              <span>{{ agencyGroup.hasActiveFeeds ? 'Active' : 'Inactive' }}</span>
-            </div>
-            <div class="meta-badge meta-badge-neutral" *ngIf="agencyGroup.hasAuthentication" matTooltip="Authentication configured">
-              <mat-icon class="badge-icon">lock</mat-icon>
-              <span>Secured</span>
-            </div>
-            <div class="meta-badge meta-badge-neutral" *ngIf="agencyGroup.lastUpdatedAt">
-              <mat-icon class="badge-icon">schedule</mat-icon>
-              <span>{{ agencyGroup.lastUpdatedAt | date:'short' }}</span>
-            </div>
-          </div>
-        </div>
       </mat-card-content>
 
       <mat-card-actions class="card-actions">
@@ -109,19 +86,9 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
           color="primary"
           class="primary-action"
           (click)="onImport()"
-          [disabled]="!agencyGroup.hasActiveFeeds"
-          [matTooltip]="getImportTooltip()">
+          [disabled]="!agencyGroup.hasActiveFeeds">
           <mat-icon>download</mat-icon>
           <span>Import{{ getActiveFeedsCount() > 1 ? ' All' : '' }}</span>
-        </button>
-
-        <!-- View details -->
-        <button
-          mat-stroked-button
-          class="secondary-action"
-          (click)="onViewDetails(agencyGroup.primaryFeed)">
-          <mat-icon>info_outline</mat-icon>
-          <span>Details</span>
         </button>
       </mat-card-actions>
     </mat-card>
@@ -385,32 +352,18 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
     }
 
     .primary-action {
-      flex: 1;
-      min-width: 140px;
+      width: 100%;
       border-radius: 8px !important;
       font-weight: 600 !important;
-      padding: 10px 20px !important;
-      font-size: 0.9375rem !important;
+      padding: 14px 24px !important;
+      font-size: 1rem !important;
+      height: 48px;
     }
 
     .primary-action mat-icon {
       margin-right: 8px;
     }
 
-    .secondary-action {
-      flex: 0.5;
-      min-width: 100px;
-      border-radius: 8px !important;
-      font-weight: 500 !important;
-      padding: 10px 16px !important;
-    }
-
-    .secondary-action mat-icon {
-      margin-right: 6px;
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
 
     /* Responsive Design */
     @media (max-width: 768px) {
@@ -449,15 +402,11 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
       }
 
       .card-actions {
-        flex-direction: column;
         padding: 12px 20px 16px !important;
       }
 
-      .primary-action,
-      .secondary-action {
+      .primary-action {
         width: 100%;
-        min-width: unset;
-        flex: 1;
       }
     }
   `],

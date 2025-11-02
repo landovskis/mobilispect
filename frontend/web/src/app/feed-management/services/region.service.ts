@@ -10,7 +10,8 @@ import {
   RegionUpdateRequest,
   Feed,
   FeedSpecType,
-  FeedStatus
+  FeedStatus,
+  FeedDiscoveryResult
 } from '../models/region.models';
 import { environment } from '../../../environments/environment';
 
@@ -124,20 +125,8 @@ export class RegionService {
   /**
    * Triggers feed discovery for a region (managers only)
    */
-  discoverFeedsForRegion(regionOnestopId: string): Observable<{
-    regionOnestopId: string;
-    feedsDiscovered: number;
-    feedsAdded: number;
-    feedsUpdated: number;
-    errors: string[];
-  }> {
-    return this.http.post<{
-      regionOnestopId: string;
-      feedsDiscovered: number;
-      feedsAdded: number;
-      feedsUpdated: number;
-      errors: string[];
-    }>(`${this.apiUrl}/${regionOnestopId}/discover`, {});
+  discoverFeedsForRegion(regionOnestopId: string): Observable<FeedDiscoveryResult> {
+    return this.http.post<FeedDiscoveryResult>(`${this.apiUrl}/${regionOnestopId}/discover`, {});
   }
 
   /**
