@@ -60,7 +60,8 @@ import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.compon
             <div class="view-container">
               <mat-tab-group
                 animationDuration="200ms"
-                [(selectedIndex)]="selectedTabIndex">
+                [(selectedIndex)]="selectedTabIndex"
+                (selectedIndexChange)="onTabChange($event)">
 
                 <!-- Feeds Tab -->
                 <mat-tab>
@@ -687,6 +688,11 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('Feed Management Component initialized');
 
+    // Check for tab in URL query params and set it before loading data
+    const tabParam = this.route.snapshot.queryParamMap.get('tab');
+    const initialTabIndex = this.getTabIndexFromSlug(tabParam);
+    this.selectedTabIndex = initialTabIndex;
+
     // Load regions first
     this.regionService.listRegions().pipe(
       takeUntil(this.destroy$)
@@ -715,9 +721,24 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
           this.loadFeedsForRegion(this.selectedRegionId);
 
           // Update URL if it doesn't match
-          if (!regionParam || regionParam !== initialRegion.regionOnestopId) {
-            this.updateUrlWithRegion(initialRegion.regionOnestopId);
+          const needsRegionUpdate = !regionParam || regionParam !== initialRegion.regionOnestopId;
+          const needsTabUpdate = !tabParam || tabParam !== this.getTabSlug(initialTabIndex);
+
+          if (needsRegionUpdate || needsTabUpdate) {
+            this.router.navigate([], {
+              relativeTo: this.route,
+              queryParams: {
+                region: initialRegion.regionOnestopId,
+                tab: this.getTabSlug(initialTabIndex)
+              },
+              replaceUrl: true
+            });
           }
+        }
+
+        // Load data for the initial tab
+        if (initialTabIndex === 1) {
+          this.loadImportHistory();
         }
       },
       error: (error) => {
@@ -752,16 +773,16 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Update URL with tab name
+    this.updateUrlWithTab(index);
+
     switch (index) {
       case 0:
         // Feeds tab - no action needed, feeds already loaded
         break;
       case 1:
-        // Active Imports tab
+        // Import History tab
         this.importService.refreshActiveImports();
-        break;
-      case 2:
-        // History tab
         this.loadImportHistory();
         break;
       default:
@@ -787,10 +808,35 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     }
   }
 
+  private getTabSlug(index: number): string {
+    switch (index) {
+      case 0: return 'feeds';
+      case 1: return 'history';
+      default: return 'feeds';
+    }
+  }
+
+  private getTabIndexFromSlug(slug: string | null): number {
+    switch (slug) {
+      case 'history': return 1;
+      case 'feeds':
+      default: return 0;
+    }
+  }
+
   private updateUrlWithRegion(regionId: string): void {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { region: regionId },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  private updateUrlWithTab(tabIndex: number): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: this.getTabSlug(tabIndex) },
       queryParamsHandling: 'merge',
       replaceUrl: true
     });
