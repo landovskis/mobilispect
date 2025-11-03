@@ -151,6 +151,7 @@ exclude: |
   (?x)^(
       \.specify/.*|
       \.claude/.*|
+      \.codex/.*|
       .*/(build|dist|node_modules|\.gradle)/.*|
       .*\.(min\.(js|css)|bundle\.(js|css))$|
       .*\.generated\.(kt|swift|ts)$
