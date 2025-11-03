@@ -42,6 +42,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")

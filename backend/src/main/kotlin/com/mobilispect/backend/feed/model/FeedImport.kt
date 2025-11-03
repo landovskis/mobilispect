@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.model
 
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity

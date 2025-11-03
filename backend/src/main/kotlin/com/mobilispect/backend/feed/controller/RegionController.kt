@@ -115,7 +115,7 @@ class RegionController(
     }
 
     @PostMapping("/{regionOnestopId}/discover")
-    fun discoverFeeds(
+    suspend fun discoverFeeds(
         @PathVariable regionOnestopId: String,
         @RequestParam(required = false, defaultValue = "GTFS") spec: FeedSpecTypeDto
     ): FeedDiscoveryResult {

@@ -29,6 +29,33 @@ class FeedAuthentication(
     @Column(name = "encrypted_credentials", columnDefinition = "text")
     var encryptedCredentials: String? = null,
 
+    @Column(name = "primary_credential", columnDefinition = "text")
+    var primaryCredential: String? = null,
+
+    @Column(name = "secondary_credential", columnDefinition = "text")
+    var secondaryCredential: String? = null,
+
+    @Column(name = "header_name", length = 120)
+    var headerName: String? = null,
+
+    @Column(name = "auth_parameters", columnDefinition = "text")
+    var authParameters: String? = null,
+
+    @Column(name = "is_active", nullable = false)
+    var isActive: Boolean = true,
+
+    @Column(name = "last_auth_success")
+    var lastAuthSuccess: Instant? = null,
+
+    @Column(name = "last_auth_failure")
+    var lastAuthFailure: Instant? = null,
+
+    @Column(name = "failure_count", nullable = false)
+    var failureCount: Int = 0,
+
+    @Column(name = "notes", columnDefinition = "text")
+    var notes: String? = null,
+
     @Column(name = "expires_at")
     var expiresAt: Instant? = null,
 

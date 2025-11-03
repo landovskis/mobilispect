@@ -36,6 +36,15 @@ class FeedEntity(
     @Column(name = "download_url", nullable = false, columnDefinition = "text")
     var downloadUrl: String = "",
 
+    @Column(name = "static_feed_url", columnDefinition = "text")
+    var staticFeedUrl: String? = null,
+
+    @Column(name = "realtime_feed_url", columnDefinition = "text")
+    var realtimeFeedUrl: String? = null,
+
+    @Column(name = "operator_name", length = 255)
+    var operatorName: String? = null,
+
     @Column(name = "current_version_sha1", length = 40)
     var currentVersionSha1: String? = null,
 
@@ -44,6 +53,9 @@ class FeedEntity(
 
     @Column(name = "last_updated_at")
     var lastUpdatedAt: Instant? = null,
+
+    @Column(name = "last_discovered_at")
+    var lastDiscoveredAt: Instant? = null,
 
     @Convert(converter = FeedStatusConverter::class)
     @ColumnTransformer(read = "status::text", write = "?::feed_status")
@@ -66,6 +78,7 @@ class FeedEntity(
         updatedAt = now
         lastCheckedAt = lastCheckedAt ?: now
         lastUpdatedAt = lastUpdatedAt ?: lastCheckedAt
+        lastDiscoveredAt = lastDiscoveredAt ?: now
     }
 
     @PreUpdate
