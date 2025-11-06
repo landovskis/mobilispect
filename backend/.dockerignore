@@ -1,0 +1,40 @@
+# Build outputs
+build/
+target/
+.gradle/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# Tests
+src/test/
+
+# Deployment configs
+deploy/
+*.yaml
+*.yml
+
+# Environment files
+*.env
+*.env.*
+*.sample.properties
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

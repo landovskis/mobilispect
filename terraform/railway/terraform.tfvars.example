@@ -1,0 +1,25 @@
+# Railway Deployment Configuration
+# Copy this file to terraform.tfvars and fill in your actual values
+
+# Project configuration
+project_name = "mobilispect"
+
+# GitHub repository (format: "owner/repo")
+github_repo = "yourusername/mobilispect"
+
+# Git branch to deploy
+github_branch = "main"
+
+# MongoDB configuration
+mongodb_uri = "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+mongodb_database = "mobilispect"
+
+# Transit Land API key
+transit_land_api_key = "your-transit-land-api-key"
+
+# Logging level (TRACE, DEBUG, INFO, WARN, ERROR)
+log_level = "INFO"
+
+# Custom domains (optional - leave empty if not using)
+backend_custom_domain = "api.yourdomain.com"
+frontend_custom_domain = "yourdomain.com"
