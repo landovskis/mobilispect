@@ -16,7 +16,8 @@ data class TransitLandFeedSummary(
     val latestVersionUrl: String?,
     val latestVersionFetchedAt: Instant?,
     val operatorName: String?,
-    val authorization: TransitLandAuthorizationSummary?
+    val authorization: TransitLandAuthorizationSummary?,
+    val places: List<PlaceSummary>
 )
 
 /**
@@ -26,4 +27,13 @@ data class TransitLandAuthorizationSummary(
     val type: String,
     val parameterName: String?,
     val infoUrl: String?
+)
+
+/**
+ * Geographic location information from Transit.land.
+ */
+data class PlaceSummary(
+    val adm0Name: String?,
+    val adm1Name: String?,
+    val cityName: String?
 )

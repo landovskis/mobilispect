@@ -4,12 +4,16 @@ import com.mobilispect.backend.TransitLandFeed
 import com.mobilispect.backend.TransitLandFeedResponse
 import com.mobilispect.backend.feed.model.FeedSpecType
 import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode
 import org.springframework.http.MediaType
+import org.springframework.http.codec.json.KotlinSerializationJsonDecoder
+import org.springframework.http.codec.json.KotlinSerializationJsonEncoder
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClientRequestException
@@ -37,10 +41,72 @@ class TransitLandApiClient(
     builder: WebClient.Builder
 ) {
     private val logger = LoggerFactory.getLogger(TransitLandApiClient::class.java)
+    @OptIn(ExperimentalSerializationApi::class)
+    private val json = Json {
+        ignoreUnknownKeys = true
+        explicitNulls = false
+    }
     private val webClient: WebClient = builder
         .baseUrl(baseUrl.trimEnd('/'))
         .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+        .codecs { configurer ->
+            configurer.defaultCodecs().maxInMemorySize(16 * 1024 * 1024) // 16MB buffer
+            configurer.defaultCodecs().kotlinSerializationJsonDecoder(KotlinSerializationJsonDecoder(json))
+            configurer.defaultCodecs().kotlinSerializationJsonEncoder(KotlinSerializationJsonEncoder(json))
+        }
         .build()
+
+    /**
+     * Discover ALL feeds from Transit.land filtered by specification type.
+     * Handles pagination automatically to retrieve all available feeds.
+     *
+     * @param specType Feed specification (GTFS or GTFS-RT)
+     * @param maxFeeds Maximum number of feeds to retrieve (default: unlimited)
+     */
+    suspend fun discoverAllFeeds(
+        specType: FeedSpecType,
+        maxFeeds: Int = Int.MAX_VALUE
+    ): List<TransitLandFeedSummary> {
+        val allFeeds = mutableListOf<TransitLandFeedSummary>()
+        var after: Int? = null
+        var hasMore = true
+
+        logger.info("Starting global feed discovery for spec={}", specType)
+
+        while (hasMore && allFeeds.size < maxFeeds) {
+            val remaining = maxFeeds - allFeeds.size
+            val pageLimit = minOf(DEFAULT_LIMIT, remaining)
+
+            val uri = buildString {
+                append("/feeds.json?spec=${specType.dbValue}&limit=$pageLimit")
+                after?.let { append("&after=$it") }
+            }
+
+            val response = executeRequestWithMeta(uri)
+            val pageFeedSummaries = response.feeds.mapNotNull { it.toSummary(specType) }
+
+            allFeeds.addAll(pageFeedSummaries)
+
+            // Check if there's more data
+            after = response.meta?.after
+            hasMore = response.meta?.next != null && allFeeds.size < maxFeeds
+
+            logger.debug(
+                "Transit.land global discovery: fetched {} feeds (total so far: {}, hasMore: {})",
+                pageFeedSummaries.size,
+                allFeeds.size,
+                hasMore
+            )
+        }
+
+        logger.info(
+            "Transit.land global discovery completed: {} feeds discovered (spec={})",
+            allFeeds.size,
+            specType
+        )
+
+        return allFeeds
+    }
 
     /**
      * Discover feeds for the given region name filtered by specification type.
@@ -67,6 +133,174 @@ class TransitLandApiClient(
                     specType
                 )
             }
+    }
+
+    /**
+     * Get operator information including geographic places for a specific operator.
+     *
+     * @param operatorOnestopId Operator onestop ID (e.g., "o-9q9-caltrain")
+     * @return Operator information with places, or null if not found
+     */
+    suspend fun getOperator(operatorOnestopId: String): com.mobilispect.backend.TransitLandOperator? {
+        require(operatorOnestopId.isNotBlank()) { "Operator onestop ID must not be blank" }
+
+        val uri = "/operators/$operatorOnestopId.json"
+
+        return try {
+            val response = executeOperatorRequest(uri)
+            response.operators.firstOrNull()
+        } catch (ex: TransitLandApiException) {
+            if (ex.statusCode == HttpStatus.NOT_FOUND) {
+                logger.debug("Operator {} not found", operatorOnestopId)
+                null
+            } else {
+                throw ex
+            }
+        }
+    }
+
+    /**
+     * Discover ALL operators from Transit.land with their geographic places.
+     * Handles pagination automatically to retrieve all available operators.
+     *
+     * @param maxOperators Maximum number of operators to retrieve (default: unlimited)
+     */
+    suspend fun discoverAllOperators(maxOperators: Int = Int.MAX_VALUE): List<com.mobilispect.backend.TransitLandOperator> {
+        val allOperators = mutableListOf<com.mobilispect.backend.TransitLandOperator>()
+        var after: Int? = null
+        var hasMore = true
+
+        logger.info("Starting global operator discovery")
+
+        while (hasMore && allOperators.size < maxOperators) {
+            val remaining = maxOperators - allOperators.size
+            val pageLimit = minOf(DEFAULT_LIMIT, remaining)
+
+            val uri = buildString {
+                append("/operators.json?limit=$pageLimit")
+                after?.let { append("&after=$it") }
+            }
+
+            val response = executeOperatorRequest(uri)
+            allOperators.addAll(response.operators)
+
+            // Check if there's more data
+            after = response.meta?.after
+            hasMore = response.meta?.next != null && allOperators.size < maxOperators
+
+            logger.debug(
+                "Transit.land operator discovery: fetched {} operators (total so far: {}, hasMore: {})",
+                response.operators.size,
+                allOperators.size,
+                hasMore
+            )
+        }
+
+        logger.info("Transit.land operator discovery completed: {} operators discovered", allOperators.size)
+
+        return allOperators
+    }
+
+    /**
+     * Execute a GET request and return the full response including metadata for pagination.
+     */
+    private suspend fun executeRequestWithMeta(uri: String): TransitLandFeedResponse {
+        val request = webClient.get()
+            .uri(uri)
+            .accept(MediaType.APPLICATION_JSON)
+
+        if (!apiKey.isNullOrBlank()) {
+            request.header(HEADER_API_KEY, apiKey)
+        } else {
+            logger.warn("Transit.land API key is not configured; relying on anonymous access limits")
+        }
+
+        return try {
+            request.retrieve()
+                .onStatus({ status -> status.isError }) { response ->
+                    response.bodyToMono(String::class.java)
+                        .defaultIfEmpty("")
+                        .map { body ->
+                            val message = "Transit.land request failed (${response.statusCode()}) $body"
+                            TransitLandApiException(message, response.statusCode())
+                        }
+                }
+                .bodyToMono(TransitLandFeedResponse::class.java)
+                .retryWhen(
+                    Retry.backoff(3, Duration.ofMillis(250))
+                        .filter { throwable ->
+                            (throwable as? TransitLandApiException)?.statusCode == HttpStatus.TOO_MANY_REQUESTS
+                        }
+                        .doBeforeRetry { signal ->
+                            logger.warn(
+                                "Transit.land rate limit hit (attempt {}), backing off...",
+                                signal.totalRetries() + 1
+                            )
+                        }
+                )
+                .awaitSingle()
+        } catch (ex: TransitLandApiException) {
+            logger.error("Transit.land responded with an error: {}", ex.message)
+            throw ex
+        } catch (ex: WebClientResponseException) {
+            val message = "Transit.land responded with status ${ex.statusCode}: ${ex.responseBodyAsString}"
+            logger.error(message, ex)
+            throw TransitLandApiException(message, ex.statusCode, ex)
+        } catch (ex: WebClientRequestException) {
+            logger.error("Failed to reach Transit.land API: {}", ex.message)
+            throw TransitLandApiException("Failed to reach Transit.land API: ${ex.message}", HttpStatus.SERVICE_UNAVAILABLE, ex)
+        }
+    }
+
+    /**
+     * Execute a GET request against the Transit.land API and return operators response.
+     */
+    private suspend fun executeOperatorRequest(uri: String): com.mobilispect.backend.TransitLandOperatorResponse {
+        val request = webClient.get()
+            .uri(uri)
+            .accept(MediaType.APPLICATION_JSON)
+
+        if (!apiKey.isNullOrBlank()) {
+            request.header(HEADER_API_KEY, apiKey)
+        } else {
+            logger.warn("Transit.land API key is not configured; relying on anonymous access limits")
+        }
+
+        return try {
+            request.retrieve()
+                .onStatus({ status -> status.isError }) { response ->
+                    response.bodyToMono(String::class.java)
+                        .defaultIfEmpty("")
+                        .map { body ->
+                            val message = "Transit.land request failed (${response.statusCode()}) $body"
+                            TransitLandApiException(message, response.statusCode())
+                        }
+                }
+                .bodyToMono(com.mobilispect.backend.TransitLandOperatorResponse::class.java)
+                .retryWhen(
+                    Retry.backoff(3, Duration.ofMillis(250))
+                        .filter { throwable ->
+                            (throwable as? TransitLandApiException)?.statusCode == HttpStatus.TOO_MANY_REQUESTS
+                        }
+                        .doBeforeRetry { signal ->
+                            logger.warn(
+                                "Transit.land rate limit hit (attempt {}), backing off...",
+                                signal.totalRetries() + 1
+                            )
+                        }
+                )
+                .awaitSingle()
+        } catch (ex: TransitLandApiException) {
+            logger.error("Transit.land responded with an error: {}", ex.message)
+            throw ex
+        } catch (ex: WebClientResponseException) {
+            val message = "Transit.land responded with status ${ex.statusCode}: ${ex.responseBodyAsString}"
+            logger.error(message, ex)
+            throw TransitLandApiException(message, ex.statusCode, ex)
+        } catch (ex: WebClientRequestException) {
+            logger.error("Failed to reach Transit.land API: {}", ex.message)
+            throw TransitLandApiException("Failed to reach Transit.land API: ${ex.message}", HttpStatus.SERVICE_UNAVAILABLE, ex)
+        }
     }
 
     /**
@@ -162,7 +396,8 @@ private fun TransitLandFeed.toSummary(specOverride: FeedSpecType): TransitLandFe
         latestVersionUrl = versionUrl,
         latestVersionFetchedAt = fetchedAt,
         operatorName = operatorDisplayName,
-        authorization = authorizationSummary
+        authorization = authorizationSummary,
+        places = emptyList() // Will be populated from operator data
     )
 }
 
