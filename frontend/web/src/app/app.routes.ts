@@ -8,7 +8,7 @@ export const routes: Routes = [
   },
   {
     path: 'feeds',
-    loadChildren: () => import('./feed-management/feed-management.module').then(m => m.FeedManagementModule),
+    loadChildren: () => import('./feeds/feed-management.module').then(m => m.FeedManagementModule),
     data: {
       title: 'Feed Management',
       breadcrumb: 'Feed Management'

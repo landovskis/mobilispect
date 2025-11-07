@@ -9,7 +9,7 @@ import { map, catchError, of } from 'rxjs';
  * Checks if the current user has at least FEED_VIEWER role.
  * Redirects to login if not authenticated, or access denied if insufficient permissions.
  *
- * Usage: { path: 'feed-management', canActivate: [feedViewerGuard] }
+ * Usage: { path: 'feeds', canActivate: [feedViewerGuard] }
  */
 export const feedViewerGuard: CanActivateFn = () => {
   const authService = inject(AuthService);

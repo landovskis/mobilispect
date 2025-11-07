@@ -15,7 +15,7 @@ import {
   providedIn: 'root'
 })
 export class SchedulerService {
-  private readonly apiUrl = `${environment.apiUrl}/api/feed-management/scheduler`;
+  private readonly apiUrl = `${environment.apiUrl}/api/feeds/scheduler`;
 
   constructor(private http: HttpClient) {}
 

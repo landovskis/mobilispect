@@ -73,7 +73,7 @@ export class WebSocketService implements OnDestroy {
     console.log('Connecting to WebSocket:', environment.wsUrl);
 
     this.socket$ = webSocket({
-      url: `${environment.wsUrl}/ws/feed-management`,
+      url: `${environment.wsUrl}/ws/feeds`,
       openObserver: {
         next: () => {
           console.log('WebSocket connected successfully');

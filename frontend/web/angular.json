@@ -27,6 +27,9 @@
             "styles": [
               "src/styles.scss",
               "src/styles-dark.scss"
+            ],
+            "allowedCommonJsDependencies": [
+              "sockjs-client"
             ]
           },
           "configurations": {
@@ -39,7 +42,7 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "6kB",
+                  "maximumWarning": "8kB",
                   "maximumError": "12kB"
                 }
               ],

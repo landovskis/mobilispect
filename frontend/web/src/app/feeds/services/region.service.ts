@@ -30,7 +30,7 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class RegionService {
-  private readonly apiUrl = `${environment.apiUrl}/api/feed-management/regions`;
+  private readonly apiUrl = `${environment.apiUrl}/api/feeds/regions`;
 
   // Cache for regions list to improve performance
   private regionsCache$ = new BehaviorSubject<MetropolitanRegion[] | null>(null);

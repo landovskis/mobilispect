@@ -25,7 +25,7 @@ import { AgencyFeedCardComponent } from '../components/agency-feed-card.componen
 import { FeedHistoryTabComponent } from '../components/feed-history-tab.component';
 
 @Component({
-  selector: 'app-feed-management',
+  selector: 'app-feeds',
   standalone: true,
   imports: [
     CommonModule,
@@ -42,7 +42,7 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
     FeedHistoryTabComponent
   ],
   template: `
-    <div class="feed-management-container">
+    <div class="feeds-container">
       <!-- App Bar -->
       <app-bar
         [activeImportsCount]="(quickStats$ | async)?.activeImports || 0"
@@ -154,7 +154,7 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
     </div>
   `,
   styles: [`
-    .feed-management-container {
+    .feeds-container {
       height: 100vh;
       display: flex;
       flex-direction: column;

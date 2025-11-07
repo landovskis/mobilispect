@@ -150,10 +150,10 @@ export const FEED_MANAGEMENT_CONSTANTS = {
 
   // API endpoints
   API_ENDPOINTS: {
-    REGIONS: '/api/feed-management/regions',
-    FEEDS: '/api/feed-management/feeds',
-    IMPORTS: '/api/feed-management/imports',
-    AUTHENTICATION: '/api/feed-management/feeds/{feedId}/authentication'
+    REGIONS: '/api/feeds/regions',
+    FEEDS: '/api/feeds/feeds',
+    IMPORTS: '/api/feeds/imports',
+    AUTHENTICATION: '/api/feeds/feeds/{feedId}/authentication'
   },
 
   // UI constants
