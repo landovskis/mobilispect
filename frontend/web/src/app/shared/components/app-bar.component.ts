@@ -95,7 +95,6 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
 export class AppBarComponent {
   @Input() appName = 'Mobilispect';
   @Input() logoUrl = '/logo.png';
-  @Input() activeImportsCount = 0;
   @Input() breadcrumbs: Breadcrumb[] = [];
 
   @Output() refresh = new EventEmitter<void>();

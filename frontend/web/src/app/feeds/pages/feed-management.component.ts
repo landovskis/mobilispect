@@ -43,7 +43,6 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
     <div class="feeds-container">
       <!-- App Bar -->
       <app-bar
-        [activeImportsCount]="(quickStats$ | async)?.activeImports || 0"
         [breadcrumbs]="breadcrumbs"
         (refresh)="refreshData()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
