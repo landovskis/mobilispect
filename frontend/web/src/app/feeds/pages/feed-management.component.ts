@@ -18,7 +18,6 @@ import { ImportService } from '../services/import.service';
 import { FeedAuthenticationService } from '../services/feed-authentication.service';
 import { ImportProgressDialogComponent } from '../components/import-progress-dialog.component';
 import { ImportConfirmationDialogComponent } from '../components/import-confirmation-dialog.component';
-import { BreadcrumbsComponent } from '../../shared/components/breadcrumbs.component';
 import { AppBarComponent } from '../../shared/components/app-bar.component';
 import { RegionSelectorComponent } from '../components/region-selector.component';
 import { AgencyFeedCardComponent } from '../components/agency-feed-card.component';
@@ -35,7 +34,6 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
     MatIconModule,
     MatSnackBarModule,
     MatDialogModule,
-    BreadcrumbsComponent,
     AppBarComponent,
     RegionSelectorComponent,
     AgencyFeedCardComponent,
@@ -46,11 +44,13 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
       <!-- App Bar -->
       <app-bar
         [activeImportsCount]="(quickStats$ | async)?.activeImports || 0"
+        [breadcrumbRegion]="selectedRegion?.name || null"
+        [breadcrumbRootLink]="['/feeds/regions']"
+        [breadcrumbRegionLink]="['/feeds/regions']"
+        [breadcrumbRegionQueryParams]="selectedRegionId ? { region: selectedRegionId } : null"
         (refresh)="refreshData()"
+        (breadcrumbRootSelected)="onBreadcrumbRootSelected($event)"
       ></app-bar>
-
-      <!-- Breadcrumbs (moved below toolbar) -->
-      <app-breadcrumbs [region]="selectedRegion?.name || null"></app-breadcrumbs>
 
       <!-- Content Area -->
       <div class="content-area">
@@ -673,6 +673,19 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
       default:
         break;
     }
+  }
+
+  onBreadcrumbRootSelected(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.setSelectedTab(0);
+    this.selectedRegionId = null;
+    this.selectedRegion = null;
+    this.regionFeeds = [];
+    this.agencyGroups = [];
+    this.router.navigate(['/feeds/regions'], {
+      replaceUrl: true
+    });
   }
 
   onRegionChange(regionId: string): void {
