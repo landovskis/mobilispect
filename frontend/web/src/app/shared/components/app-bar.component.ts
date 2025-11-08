@@ -4,6 +4,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { ThemeToggleComponent } from '../../core/components/theme-toggle.component';
 import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-breadcrumbs.component';
+import { AppToolbarNavComponent, ToolbarNavItem } from './app-toolbar-nav.component';
 
 @Component({
   selector: 'app-bar',
@@ -13,6 +14,7 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     MatToolbarModule,
     MatButtonModule,
     AppBreadcrumbsComponent,
+    AppToolbarNavComponent,
     ThemeToggleComponent
   ],
   template: `
@@ -29,24 +31,17 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
         </div>
       </div>
 
-      <div class="toolbar-nav" *ngIf="navItems?.length">
-        <button
-          mat-button
-          *ngFor="let item of navItems"
-          [disabled]="item.active"
-          [class.active]="item.active"
-        >
-          {{ item.label }}
-        </button>
+      <div class="toolbar-center" *ngIf="navItems?.length">
+        <app-toolbar-nav
+          [navItems]="navItems"
+          (navSelected)="navSelected.emit($event)"
+        ></app-toolbar-nav>
       </div>
 
-      <span class="toolbar-spacer"></span>
-
-      <!-- Action Buttons -->
-      <ng-content select="[toolbar-actions]"></ng-content>
-
-      <!-- Theme Toggle -->
-      <app-theme-toggle></app-theme-toggle>
+      <div class="toolbar-right">
+        <ng-content select="[toolbar-actions]"></ng-content>
+        <app-theme-toggle></app-theme-toggle>
+      </div>
     </mat-toolbar>
   `,
   styles: [`
@@ -87,29 +82,19 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       color: white !important;
     }
 
-    .toolbar-nav {
+    .toolbar-center {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0 12px;
+    }
+
+    .toolbar-right {
+      margin-left: auto;
       display: flex;
       align-items: center;
-      gap: 4px;
-    }
-
-    .toolbar-nav button {
-      color: rgba(255, 255, 255, 0.85);
-      text-transform: none;
-      font-weight: 600;
-      border-radius: 999px;
-      padding: 6px 16px;
-      transition: background-color 0.2s ease, color 0.2s ease;
-    }
-
-    .toolbar-nav button.active {
-      background-color: rgba(255, 255, 255, 0.18);
-      color: #fff;
-      border-radius: 999px;
-    }
-
-    .toolbar-spacer {
-      flex: 1;
+      gap: 8px;
     }
     @media (max-width: 768px) {
       .toolbar-title {
@@ -132,11 +117,8 @@ export class AppBarComponent {
 
   @Output() refresh = new EventEmitter<void>();
   @Output() breadcrumbSelected = new EventEmitter<BreadcrumbSelection>();
-}
-
-export interface ToolbarNavItem {
-  label: string;
-  active?: boolean;
+  @Output() navSelected = new EventEmitter<ToolbarNavItem>();
 }
 
 export type { Breadcrumb, BreadcrumbSelection } from './app-breadcrumbs.component';
+export type { ToolbarNavItem } from './app-toolbar-nav.component';
