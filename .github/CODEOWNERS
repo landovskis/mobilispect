@@ -1,0 +1,103 @@
+# Mobilispect Constitutional Code Ownership
+# Enforces constitutional review requirements per Constitution v1.3.0
+
+# Global ownership - constitutional compliance required
+* @technical-leads @engineering-managers
+
+# Constitutional enforcement files - MANDATORY approval
+/.specify/memory/constitution.md @cto @technical-leads @legal-team
+/.pre-commit-config.yaml @technical-leads @devops-team
+/.github/workflows/ @technical-leads @devops-team @security-team
+/scripts/ @technical-leads @devops-team
+
+# Backend architecture - senior review required
+/backend/ @backend-leads @technical-leads
+/backend/src/main/kotlin/ @kotlin-experts @backend-leads
+/backend/deploy/ @devops-team @technical-leads @security-team
+
+# Mobile architecture - cross-platform expertise required
+/frontend/mobile/ @mobile-leads @technical-leads
+/frontend/mobile/shared/ @kotlin-multiplatform-experts @mobile-leads
+/frontend/mobile/androidApp/ @android-experts @mobile-leads
+/frontend/mobile/iosApp/ @ios-experts @mobile-leads
+
+# Security-critical files - security team mandatory
+/scripts/security-scan.sh @security-team @technical-leads
+/scripts/validate-coverage.sh @quality-assurance-team @technical-leads
+**/*security* @security-team
+**/*auth* @security-team @backend-leads
+**/*.secret* @security-team
+**/*.key* @security-team
+
+# Documentation - technical writers and subject experts
+/docs/ @technical-writers @technical-leads
+/docs/adr/ @technical-leads @architecture-council
+README.md @technical-writers @product-team
+
+# Configuration files - devops and security review
+**/*.yaml @devops-team
+**/*.yml @devops-team
+**/*.properties @devops-team @security-team
+**/*.json @devops-team
+**/Dockerfile @devops-team @security-team
+**/docker-compose*.yml @devops-team @security-team
+
+# Deployment and infrastructure
+/deploy/ @devops-team @technical-leads @security-team
+**/*deploy* @devops-team @technical-leads
+**/*infra* @devops-team @technical-leads
+
+# Database and migrations
+**/*migration* @database-team @backend-leads
+**/*schema* @database-team @backend-leads
+**/*.sql @database-team @backend-leads
+
+# Build and CI/CD
+**/*.gradle* @build-team @technical-leads
+**/gradle/ @build-team @technical-leads
+**/*.kts @kotlin-experts @build-team
+/.github/ @devops-team @technical-leads
+
+# Performance critical code
+**/*performance* @performance-team @technical-leads
+**/*cache* @performance-team @backend-leads
+**/*optimize* @performance-team @technical-leads
+
+# Constitutional exception process
+/.github/ISSUE_TEMPLATE/constitutional-exception.yml @cto @technical-leads @legal-team
+
+# Quality assurance
+/scripts/pre-merge-gates.sh @quality-assurance-team @technical-leads
+/scripts/performance-check.sh @performance-team @technical-leads
+/scripts/adr-compliance.sh @architecture-council @technical-leads
+
+# Legal and compliance
+**/LICENSE* @legal-team
+**/NOTICE* @legal-team
+**/*privacy* @legal-team @security-team
+**/*gdpr* @legal-team @security-team
+**/*compliance* @legal-team @technical-leads
+
+# Team-specific ownership patterns
+/frontend/mobile/shared/src/commonMain/kotlin/com/mobilispect/mobile/agency/ @transit-domain-experts @mobile-leads
+/frontend/mobile/shared/src/commonMain/kotlin/com/mobilispect/mobile/route/ @transit-domain-experts @mobile-leads
+/backend/src/main/kotlin/com/mobilispect/backend/schedule/ @transit-domain-experts @backend-leads
+
+# Critical system files - maximum oversight
+/CLAUDE.md @cto @technical-leads @product-team
+/.gitignore @devops-team @technical-leads
+/.gitattributes @devops-team @technical-leads
+
+# Emergency contact overrides
+# For constitutional emergencies, contact:
+# - CTO: @cto
+# - Technical Leads: @technical-leads
+# - Engineering Managers: @engineering-managers
+# - Security Team: @security-team
+
+# Constitutional enforcement notes:
+# 1. ALL files require at least one approval from assigned owners
+# 2. Constitutional files require multiple approvals
+# 3. Security-critical files cannot be merged without security team approval
+# 4. Emergency exceptions follow constitutional emergency procedures
+# 5. Code owners must verify constitutional compliance in their reviews

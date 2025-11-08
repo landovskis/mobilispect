@@ -29,7 +29,7 @@ kotlin {
             implementation(libs.room.ktx)
         }
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),

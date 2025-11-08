@@ -17,4 +17,3 @@ fun NetworkAgency.asEntity(): Agency {
         id = id, name = name
     )
 }
-
