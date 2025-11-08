@@ -94,16 +94,18 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     }
 
     .toolbar-nav button {
-      color: white;
-      opacity: 0.7;
+      color: rgba(255, 255, 255, 0.85);
       text-transform: none;
-      font-weight: 500;
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 6px 16px;
+      transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     .toolbar-nav button.active {
-      opacity: 1;
-      border-bottom: 2px solid white;
-      border-radius: 0;
+      background-color: rgba(255, 255, 255, 0.18);
+      color: #fff;
+      border-radius: 999px;
     }
 
     .toolbar-spacer {
