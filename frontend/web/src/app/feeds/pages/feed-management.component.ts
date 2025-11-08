@@ -18,7 +18,7 @@ import { ImportService } from '../services/import.service';
 import { FeedAuthenticationService } from '../services/feed-authentication.service';
 import { ImportProgressDialogComponent } from '../components/import-progress-dialog.component';
 import { ImportConfirmationDialogComponent } from '../components/import-confirmation-dialog.component';
-import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from '../../shared/components/app-bar.component';
+import { AppBarComponent, Breadcrumb, BreadcrumbSelection, ToolbarNavItem } from '../../shared/components/app-bar.component';
 import { RegionSelectorComponent } from '../components/region-selector.component';
 import { AgencyFeedCardComponent } from '../components/agency-feed-card.component';
 import { FeedHistoryTabComponent } from '../components/feed-history-tab.component';
@@ -44,6 +44,7 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
       <!-- App Bar -->
       <app-bar
         [breadcrumbs]="breadcrumbs"
+        [navItems]="navItems"
         (refresh)="refreshData()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
       ></app-bar>
@@ -503,6 +504,9 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   selectedFeedForAuth: string | null = null;
   loadingFeeds = false;
   breadcrumbs: Breadcrumb[] = [];
+  navItems: ToolbarNavItem[] = [
+    { label: 'Feeds', active: true }
+  ];
 
   // Import history state
   importHistory: FeedImportSummary[] = [];

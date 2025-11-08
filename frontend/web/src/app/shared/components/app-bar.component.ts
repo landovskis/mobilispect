@@ -29,6 +29,17 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
         </div>
       </div>
 
+      <div class="toolbar-nav" *ngIf="navItems?.length">
+        <button
+          mat-button
+          *ngFor="let item of navItems"
+          [disabled]="item.active"
+          [class.active]="item.active"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+
       <span class="toolbar-spacer"></span>
 
       <!-- Action Buttons -->
@@ -76,6 +87,25 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       color: white !important;
     }
 
+    .toolbar-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .toolbar-nav button {
+      color: white;
+      opacity: 0.7;
+      text-transform: none;
+      font-weight: 500;
+    }
+
+    .toolbar-nav button.active {
+      opacity: 1;
+      border-bottom: 2px solid white;
+      border-radius: 0;
+    }
+
     .toolbar-spacer {
       flex: 1;
     }
@@ -96,9 +126,15 @@ export class AppBarComponent {
   @Input() appName = 'Mobilispect';
   @Input() logoUrl = '/logo.png';
   @Input() breadcrumbs: Breadcrumb[] = [];
+  @Input() navItems: ToolbarNavItem[] = [];
 
   @Output() refresh = new EventEmitter<void>();
   @Output() breadcrumbSelected = new EventEmitter<BreadcrumbSelection>();
+}
+
+export interface ToolbarNavItem {
+  label: string;
+  active?: boolean;
 }
 
 export type { Breadcrumb, BreadcrumbSelection } from './app-breadcrumbs.component';
