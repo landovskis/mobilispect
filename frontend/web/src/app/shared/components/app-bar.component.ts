@@ -25,29 +25,47 @@ import { ThemeToggleComponent } from '../../core/components/theme-toggle.compone
         <img [src]="logoUrl" [alt]="appName + ' Logo'" class="app-logo" />
         <div class="toolbar-heading">
           <span class="toolbar-title">{{ appName }}</span>
-          <div class="toolbar-breadcrumbs" *ngIf="breadcrumbRoot">
-            <a
-              class="breadcrumb-link"
-              [routerLink]="breadcrumbRootLink"
-              [queryParams]="breadcrumbRootQueryParams"
-              aria-label="Go to {{ breadcrumbRoot }}"
-            (click)="onBreadcrumbRootClick($event)"
-          >
-            <span class="breadcrumb-item">{{ breadcrumbRoot }}</span>
-          </a>
-          <ng-container *ngIf="breadcrumbRegion">
-            <mat-icon class="breadcrumb-icon" aria-hidden="true">chevron_right</mat-icon>
-            <a
-              class="breadcrumb-link"
-              [routerLink]="breadcrumbRegionLink || breadcrumbRootLink"
-              [queryParams]="breadcrumbRegionQueryParams"
-              aria-label="Go to {{ breadcrumbRegion }}"
-            >
-              <span class="breadcrumb-region">{{ breadcrumbRegion }}</span>
-            </a>
-          </ng-container>
+          <div class="toolbar-breadcrumbs" *ngIf="breadcrumbs?.length">
+            <ng-container *ngFor="let breadcrumb of breadcrumbs; let first = first; let last = last">
+              <mat-icon
+                *ngIf="!first"
+                class="breadcrumb-icon"
+                aria-hidden="true"
+              >
+                chevron_right
+              </mat-icon>
+
+              <ng-container *ngIf="breadcrumb.link; else breadcrumbLabel">
+                <a
+                  class="breadcrumb-link"
+                  [routerLink]="breadcrumb.link"
+                  [queryParams]="breadcrumb.queryParams || null"
+                  [attr.aria-label]="'Go to ' + breadcrumb.label"
+                  (click)="onBreadcrumbClick($event, breadcrumb)"
+                >
+                  <span
+                    [ngClass]="{
+                      'breadcrumb-item': !last,
+                      'breadcrumb-region': last
+                    }"
+                  >
+                    {{ breadcrumb.label }}
+                  </span>
+                </a>
+              </ng-container>
+
+              <ng-template #breadcrumbLabel>
+                <span
+                  class="breadcrumb-item"
+                  [ngClass]="{ 'breadcrumb-region': last }"
+                  (click)="onBreadcrumbClick($event, breadcrumb)"
+                >
+                  {{ breadcrumb.label }}
+                </span>
+              </ng-template>
+            </ng-container>
+          </div>
         </div>
-      </div>
       </div>
 
       <span class="toolbar-spacer"></span>
@@ -65,16 +83,6 @@ import { ThemeToggleComponent } from '../../core/components/theme-toggle.compone
       >
         <mat-icon>refresh</mat-icon>
       </button>
-
-      <!-- Quick Stats -->
-      <div class="quick-stats" *ngIf="activeImportsCount > 0">
-        <mat-chip-set>
-          <mat-chip class="active-imports">
-            <mat-icon>download</mat-icon>
-            {{ activeImportsCount }} importing
-          </mat-chip>
-        </mat-chip-set>
-      </div>
 
       <!-- Theme Toggle -->
       <app-theme-toggle></app-theme-toggle>
@@ -104,10 +112,6 @@ import { ThemeToggleComponent } from '../../core/components/theme-toggle.compone
 
     .toolbar-left .toolbar-title {
       color: white !important;
-    }
-
-    .toolbar-left .mat-icon {
-      color: #ffffff !important;
     }
 
     .app-logo {
@@ -163,17 +167,8 @@ import { ThemeToggleComponent } from '../../core/components/theme-toggle.compone
       margin-right: 8px;
     }
 
-    .quick-stats {
-      margin-right: 8px;
-    }
-
     .quick-stats mat-chip {
       margin-left: 8px;
-    }
-
-    .quick-stats .active-imports {
-      background-color: #ff9800;
-      color: white;
     }
 
     @media (max-width: 768px) {
@@ -184,10 +179,6 @@ import { ThemeToggleComponent } from '../../core/components/theme-toggle.compone
       .app-logo {
         height: 32px;
         width: 32px;
-      }
-
-      .quick-stats {
-        display: none;
       }
 
       .toolbar-breadcrumbs {
@@ -202,22 +193,28 @@ export class AppBarComponent {
   @Input() appName = 'Mobilispect';
   @Input() logoUrl = '/logo.png';
   @Input() showRefresh = true;
-  @Input() activeImportsCount = 0;
-  @Input() breadcrumbRoot = 'Feeds';
-  @Input() breadcrumbRegion: string | null = null;
-  @Input() breadcrumbRootLink: string | any[] = ['/feeds/regions'];
-  @Input() breadcrumbRootQueryParams: Params | null = null;
-  @Input() breadcrumbRegionLink: string | any[] | null = null;
-  @Input() breadcrumbRegionQueryParams: Params | null = null;
-  @Output() breadcrumbRootSelected = new EventEmitter<MouseEvent>();
+  @Input() breadcrumbs: Breadcrumb[] = [];
 
   @Output() refresh = new EventEmitter<void>();
+  @Output() breadcrumbSelected = new EventEmitter<BreadcrumbSelection>();
 
   onRefresh(): void {
     this.refresh.emit();
   }
 
-  onBreadcrumbRootClick(event: MouseEvent): void {
-    this.breadcrumbRootSelected.emit(event);
+  onBreadcrumbClick(event: MouseEvent, breadcrumb: Breadcrumb): void {
+    this.breadcrumbSelected.emit({ breadcrumb, originalEvent: event });
   }
+}
+
+export interface Breadcrumb {
+  id?: string;
+  label: string;
+  link?: string | any[];
+  queryParams?: Params | null;
+}
+
+export interface BreadcrumbSelection {
+  breadcrumb: Breadcrumb;
+  originalEvent: MouseEvent;
 }

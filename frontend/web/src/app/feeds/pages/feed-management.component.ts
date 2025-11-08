@@ -18,7 +18,7 @@ import { ImportService } from '../services/import.service';
 import { FeedAuthenticationService } from '../services/feed-authentication.service';
 import { ImportProgressDialogComponent } from '../components/import-progress-dialog.component';
 import { ImportConfirmationDialogComponent } from '../components/import-confirmation-dialog.component';
-import { AppBarComponent } from '../../shared/components/app-bar.component';
+import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from '../../shared/components/app-bar.component';
 import { RegionSelectorComponent } from '../components/region-selector.component';
 import { AgencyFeedCardComponent } from '../components/agency-feed-card.component';
 import { FeedHistoryTabComponent } from '../components/feed-history-tab.component';
@@ -44,12 +44,9 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
       <!-- App Bar -->
       <app-bar
         [activeImportsCount]="(quickStats$ | async)?.activeImports || 0"
-        [breadcrumbRegion]="selectedRegion?.name || null"
-        [breadcrumbRootLink]="['/feeds/regions']"
-        [breadcrumbRegionLink]="['/feeds/regions']"
-        [breadcrumbRegionQueryParams]="selectedRegionId ? { region: selectedRegionId } : null"
+        [breadcrumbs]="breadcrumbs"
         (refresh)="refreshData()"
-        (breadcrumbRootSelected)="onBreadcrumbRootSelected($event)"
+        (breadcrumbSelected)="onBreadcrumbSelected($event)"
       ></app-bar>
 
       <!-- Content Area -->
@@ -506,6 +503,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   allFeeds: Feed[] = [];
   selectedFeedForAuth: string | null = null;
   loadingFeeds = false;
+  breadcrumbs: Breadcrumb[] = [];
 
   // Import history state
   importHistory: FeedImportSummary[] = [];
@@ -573,6 +571,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     }
 
     this.selectedTabIndex = initialTabIndex;
+    this.updateBreadcrumbs();
 
     // Load regions first
     this.regionService.listRegions().pipe(
@@ -581,6 +580,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
       next: (regions) => {
         console.log('Loaded regions:', regions);
         this.regions = regions;
+        this.updateBreadcrumbs();
 
         // Check for region in URL query params
         const regionParam = this.route.snapshot.queryParamMap.get('region');
@@ -599,6 +599,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
         if (initialRegion) {
           this.selectedRegionId = initialRegion.regionOnestopId;
           this.selectedRegion = initialRegion;
+          this.updateBreadcrumbs();
           this.loadFeedsForRegion(this.selectedRegionId);
 
           // Update URL based on current tab
@@ -619,6 +620,8 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
               });
             }
           }
+        } else {
+          this.updateBreadcrumbs();
         }
 
         // Load data for the initial tab
@@ -675,31 +678,59 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  onBreadcrumbRootSelected(event: MouseEvent): void {
-    event.preventDefault();
-    event.stopPropagation();
-    this.setSelectedTab(0);
-    this.selectedRegionId = null;
-    this.selectedRegion = null;
-    this.regionFeeds = [];
-    this.agencyGroups = [];
-    this.router.navigate(['/feeds/regions'], {
-      replaceUrl: true
-    });
+  onBreadcrumbSelected(selection: BreadcrumbSelection): void {
+    if (selection.breadcrumb.id === 'feeds') {
+      selection.originalEvent.preventDefault();
+      selection.originalEvent.stopPropagation();
+      this.setSelectedTab(0);
+      this.selectedRegionId = null;
+      this.selectedRegion = null;
+      this.regionFeeds = [];
+      this.agencyGroups = [];
+      this.updateBreadcrumbs();
+      this.router.navigate(['/feeds/regions'], {
+        replaceUrl: true
+      });
+    }
+  }
+
+  private updateBreadcrumbs(): void {
+    const crumbs: Breadcrumb[] = [
+      {
+        id: 'feeds',
+        label: 'Feeds',
+        link: ['/feeds/regions']
+      }
+    ];
+
+    if (this.selectedRegionId) {
+      const regionName =
+        this.selectedRegion?.name ??
+        this.regions.find(r => r.regionOnestopId === this.selectedRegionId)?.name ??
+        this.selectedRegionId;
+
+      crumbs.push({
+        id: 'region',
+        label: regionName,
+        link: ['/feeds/regions'],
+        queryParams: { region: this.selectedRegionId }
+      });
+    }
+
+    this.breadcrumbs = crumbs;
   }
 
   onRegionChange(regionId: string): void {
     this.selectedRegionId = regionId;
     const region = this.regions.find(r => r.regionOnestopId === regionId);
-    if (region) {
-      this.selectedRegion = region;
-      this.loadFeedsForRegion(regionId);
-      this.updateUrlWithRegion(regionId);
+    this.selectedRegion = region ?? null;
+    this.updateBreadcrumbs();
+    this.loadFeedsForRegion(regionId);
+    this.updateUrlWithRegion(regionId);
 
-      // Reload import history if on the import history tab
-      if (this.selectedTabIndex === 1) {
-        this.loadImportHistory();
-      }
+    // Reload import history if on the import history tab
+    if (this.selectedTabIndex === 1) {
+      this.loadImportHistory();
     }
   }
 
@@ -873,6 +904,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (regions) => {
         this.regions = regions;
+        this.updateBreadcrumbs();
       },
       error: (error) => {
         console.error('Failed to load regions:', error);
@@ -897,6 +929,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
       const region = regions?.find(r => r.regionOnestopId === onestopId);
       if (region) {
         this.selectedRegion = region;
+        this.updateBreadcrumbs();
       }
     });
 
