@@ -24,8 +24,6 @@ src/test/
 
 # Deployment configs
 deploy/
-*.yaml
-*.yml
 
 # Environment files
 *.env

@@ -7,11 +7,8 @@ project_name = "mobilispect"
 # GitHub repository (format: "owner/repo")
 github_repo = "yourusername/mobilispect"
 
-# Git branch to deploy
-github_branch = "main"
-
 # MongoDB configuration
-mongodb_uri = "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+mongodb_uri = "mongodb+srv://u:p@host/db" # pragma: allowlist secret
 mongodb_database = "mobilispect"
 
 # Transit Land API key
@@ -23,3 +20,10 @@ log_level = "INFO"
 # Custom domains (optional - leave empty if not using)
 backend_custom_domain = "api.yourdomain.com"
 frontend_custom_domain = "yourdomain.com"
+
+# Service subdomains (optional - leave empty to auto-generate)
+backend_service_subdomain  = ""
+frontend_service_subdomain = ""
+
+# Railway domain suffix (optional - defaults to "up.railway.app")
+railway_domain_suffix = ""

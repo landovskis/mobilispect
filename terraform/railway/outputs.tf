@@ -10,7 +10,7 @@ output "backend_service_id" {
 
 output "backend_url" {
   description = "Backend service URL"
-  value       = "https://${railway_service.backend.domain}"
+  value       = var.backend_custom_domain != "" ? "https://${var.backend_custom_domain}" : "https://${local.backend_domain}"
 }
 
 output "frontend_service_id" {
@@ -20,7 +20,7 @@ output "frontend_service_id" {
 
 output "frontend_url" {
   description = "Frontend service URL"
-  value       = "https://${railway_service.frontend.domain}"
+  value       = var.frontend_custom_domain != "" ? "https://${var.frontend_custom_domain}" : "https://${local.frontend_domain}"
 }
 
 output "backend_custom_domain" {

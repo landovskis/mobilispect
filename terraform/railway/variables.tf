@@ -9,12 +9,6 @@ variable "github_repo" {
   type        = string
 }
 
-variable "github_branch" {
-  description = "Git branch to deploy from"
-  type        = string
-  default     = "main"
-}
-
 variable "mongodb_uri" {
   description = "MongoDB connection URI (e.g., mongodb+srv://...)"
   type        = string
@@ -46,6 +40,24 @@ variable "backend_custom_domain" {
 
 variable "frontend_custom_domain" {
   description = "Custom domain for the frontend web app (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "backend_service_subdomain" {
+  description = "Preferred subdomain for the backend service (leave empty for an auto-generated slug)"
+  type        = string
+  default     = ""
+}
+
+variable "frontend_service_subdomain" {
+  description = "Preferred subdomain for the frontend service (leave empty for an auto-generated slug)"
+  type        = string
+  default     = ""
+}
+
+variable "railway_domain_suffix" {
+  description = "Suffix to append to generated subdomains (defaults to Railway's '*.up.railway.app')"
   type        = string
   default     = ""
 }

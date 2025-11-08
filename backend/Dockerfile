@@ -1,21 +1,23 @@
 # Build stage
 FROM eclipse-temurin:21-jdk AS build
 
+ARG APP_PATH=backend
+
 WORKDIR /workspace
 
 # Copy gradle wrapper and build files
-COPY gradle gradle
-COPY gradlew .
-COPY gradle.properties .
-COPY settings.gradle.kts .
-COPY build.gradle.kts .
-COPY gradle/libs.versions.toml gradle/
+COPY ${APP_PATH}/gradle ./gradle
+COPY ${APP_PATH}/gradlew .
+COPY ${APP_PATH}/gradle.properties .
+COPY ${APP_PATH}/settings.gradle.kts .
+COPY ${APP_PATH}/build.gradle.kts .
+RUN chmod +x ./gradlew
 
 # Download dependencies
 RUN ./gradlew dependencies --no-daemon
 
-# Copy source code
-COPY src src
+# Copy source code and any supporting files
+COPY ${APP_PATH}/ ./
 
 # Build the application
 RUN ./gradlew assemble --no-daemon
