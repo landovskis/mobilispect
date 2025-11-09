@@ -38,12 +38,14 @@ class RegionControllerTest {
         feedRepository = mockk()
         feedAuthenticationRepository = mockk()
         feedDiscoveryBatchService = mockk()
+        val feedRegionMigrationService = mockk<com.mobilispect.backend.feed.service.FeedRegionMigrationService>()
 
         controller = RegionController(
             regionRepository = regionRepository,
             feedRepository = feedRepository,
             feedAuthenticationRepository = feedAuthenticationRepository,
-            feedDiscoveryBatchService = feedDiscoveryBatchService
+            feedDiscoveryBatchService = feedDiscoveryBatchService,
+            feedRegionMigrationService = feedRegionMigrationService
         )
     }
 

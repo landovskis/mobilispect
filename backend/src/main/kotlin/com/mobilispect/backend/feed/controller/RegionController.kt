@@ -34,7 +34,8 @@ class RegionController(
     private val regionRepository: MetropolitanRegionRepository,
     private val feedRepository: FeedRepository,
     private val feedAuthenticationRepository: FeedAuthenticationRepository,
-    private val feedDiscoveryBatchService: FeedDiscoveryBatchService
+    private val feedDiscoveryBatchService: FeedDiscoveryBatchService,
+    private val feedRegionMigrationService: com.mobilispect.backend.feed.service.FeedRegionMigrationService
 ) {
     private val logger = LoggerFactory.getLogger(RegionController::class.java)
 
@@ -126,6 +127,12 @@ class RegionController(
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Region not found: $regionOnestopId") }
 
         return feedDiscoveryBatchService.discover(regionOnestopId, region.name, spec.toEntity())
+    }
+
+    @PostMapping("/migrate-orphaned")
+    suspend fun migrateOrphanedFeeds(): com.mobilispect.backend.feed.service.FeedRegionMigrationService.MigrationResult {
+        logger.info("Starting migration of orphaned feeds...")
+        return feedRegionMigrationService.migrateOrphanedFeeds()
     }
 
     private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {
