@@ -3,12 +3,12 @@ import { Observable, Subject, BehaviorSubject, timer, combineLatest } from 'rxjs
 import { takeUntil, map, startWith, switchMap, catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { ImportProgress, ProgressDisplayData, ProgressStatus } from '../models/import-progress.model';
 import { ProgressWebSocketService } from '../services/progress-websocket.service';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 @Component({
   selector: 'app-progress-monitor',
@@ -16,23 +16,23 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
   imports: [
     CommonModule,
     MatProgressBarModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatChipsModule
+    MatChipsModule,
+    MobilispectCardComponent
   ],
   template: `
     <div class="progress-monitor" *ngIf="importId">
-      <mat-card class="progress-card" [ngClass]="'status-' + progressStatus">
-        <mat-card-header>
-          <mat-card-title>
+      <app-mobilispect-card class="progress-card" [ngClass]="'status-' + progressStatus">
+        <div card-header>
+          <div class="flex items-center gap-2 text-white font-semibold">
             <mat-icon [ngClass]="getIconClass()">{{ getStatusIcon() }}</mat-icon>
             Import Progress
-          </mat-card-title>
-          <mat-card-subtitle>Import ID: {{ importId }}</mat-card-subtitle>
-        </mat-card-header>
+          </div>
+          <div card-subtitle class="text-white/90">Import ID: {{ importId }}</div>
+        </div>
 
-        <mat-card-content>
+        <div card-content>
           <div class="progress-info" *ngIf="displayData$ | async as data">
             <!-- Progress Bar -->
             <div class="progress-section">
@@ -86,9 +86,9 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
             <mat-progress-bar mode="indeterminate"></mat-progress-bar>
             <span>Connecting to progress updates...</span>
           </div>
-        </mat-card-content>
+        </div>
 
-        <mat-card-actions *ngIf="showActions">
+        <div card-actions *ngIf="showActions">
           <button mat-button (click)="refreshProgress()" [disabled]="(isLoading$ | async)">
             <mat-icon>refresh</mat-icon>
             Refresh
@@ -98,8 +98,8 @@ import { ProgressWebSocketService } from '../services/progress-websocket.service
             <mat-icon>cancel</mat-icon>
             Cancel Import
           </button>
-        </mat-card-actions>
-      </mat-card>
+        </div>
+      </app-mobilispect-card>
 
       <!-- WebSocket Connection Status -->
       <div class="connection-status" *ngIf="showConnectionStatus">

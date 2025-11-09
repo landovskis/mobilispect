@@ -43,11 +43,11 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
 
       <!-- Status Overview -->
       <div class="status-overview">
-        <mat-card *ngIf="schedulerStatus$ | async as status">
-          <mat-card-header>
-            <mat-card-title>Scheduler Status</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
+        <app-mobilispect-card *ngIf="schedulerStatus$ | async as status">
+          <div card-header>
+            <div card-title>Scheduler Status</div>
+          </div>
+          <div card-content>
             <div class="status-grid">
               <div class="status-item">
                 <mat-icon [class]="status.enabled ? 'status-enabled' : 'status-disabled'">
@@ -85,17 +85,17 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
                 </div>
               </div>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </app-mobilispect-card>
       </div>
 
       <!-- Import Statistics -->
       <div class="import-stats">
-        <mat-card *ngIf="importStats$ | async as stats">
-          <mat-card-header>
-            <mat-card-title>Import Activity (Last 24 Hours)</mat-card-title>
-          </mat-card-header>
-          <mat-card-content>
+        <app-mobilispect-card *ngIf="importStats$ | async as stats">
+          <div card-header>
+            <div card-title>Import Activity (Last 24 Hours)</div>
+          </div>
+          <div card-content>
             <div class="stats-grid">
               <div class="stat-card success">
                 <div class="stat-number">{{ stats.successfulImportsLast24h }}</div>
@@ -126,18 +126,18 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
               <mat-icon>schedule</mat-icon>
               <span>Last automatic import: {{ stats.lastAutomaticImportTime | date:'medium' }}</span>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </app-mobilispect-card>
       </div>
 
       <!-- Feed Version Status -->
       <div class="feed-versions">
-        <mat-card>
-          <mat-card-header>
-            <mat-card-title>Feed Version Status</mat-card-title>
-            <mat-card-subtitle>Current version status for all monitored feeds</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
+        <app-mobilispect-card>
+          <div card-header>
+            <div card-title>Feed Version Status</div>
+            <div card-subtitle>Current version status for all monitored feeds</div>
+          </div>
+          <div card-content>
             <div class="table-container">
               <table mat-table [dataSource]="(feedVersions$ | async) || []" class="feed-versions-table">
                 <!-- Feed ID Column -->
@@ -150,9 +150,7 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
                 <ng-container matColumnDef="status">
                   <th mat-header-cell *matHeaderCellDef>Status</th>
                   <td mat-cell *matCellDef="let version">
-                    <mat-chip
-                      [color]="getStatusColor(version.status)"
-                      [disabled]="version.status === 'error'">
+                    <mat-chip [ngClass]="getStatusChipClass(version.status)">
                       {{ getStatusLabel(version.status) }}
                     </mat-chip>
                   </td>
@@ -223,18 +221,18 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
               [pageSizeOptions]="[5, 10, 20, 50]"
               showFirstLastButtons>
             </mat-paginator>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </app-mobilispect-card>
       </div>
 
       <!-- Recent Automatic Imports -->
       <div class="recent-imports">
-        <mat-card>
-          <mat-card-header>
-            <mat-card-title>Recent Automatic Imports</mat-card-title>
-            <mat-card-subtitle>Last 20 automatic import operations</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-content>
+        <app-mobilispect-card>
+          <div card-header>
+            <div card-title>Recent Automatic Imports</div>
+            <div card-subtitle>Last 20 automatic import operations</div>
+          </div>
+          <div card-content>
             <div class="table-container">
               <table mat-table [dataSource]="(recentImports$ | async) || []" class="imports-table">
                 <!-- Feed ID Column -->
@@ -247,7 +245,7 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
                 <ng-container matColumnDef="status">
                   <th mat-header-cell *matHeaderCellDef>Status</th>
                   <td mat-cell *matCellDef="let import">
-                    <mat-chip [color]="getImportStatusColor(import.status)">
+                    <mat-chip [ngClass]="getImportStatusChipClass(import.status)">
                       {{ import.status }}
                     </mat-chip>
                   </td>
@@ -287,8 +285,8 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
                 <tr mat-row *matRowDef="let row; columns: importColumns;"></tr>
               </table>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </app-mobilispect-card>
       </div>
     </div>
   `,
@@ -407,13 +405,13 @@ export class ScheduledJobsComponent implements OnInit, OnDestroy {
       });
   }
 
-  getStatusColor(status: string): string {
+  getStatusChipClass(status: string): string {
     switch (status) {
-      case 'available': return 'primary';
-      case 'api_unavailable': return 'warn';
-      case 'error': return 'warn';
-      case 'not_found': return 'warn';
-      default: return '';
+      case 'available': return 'chip-success';
+      case 'api_unavailable': return 'chip-error';
+      case 'error': return 'chip-error';
+      case 'not_found': return 'chip-warning';
+      default: return 'chip-neutral';
     }
   }
 
@@ -427,13 +425,14 @@ export class ScheduledJobsComponent implements OnInit, OnDestroy {
     }
   }
 
-  getImportStatusColor(status: ImportStatus): string {
+  getImportStatusChipClass(status: ImportStatus): string {
     switch (status) {
-      case ImportStatus.COMPLETED: return 'primary';
-      case ImportStatus.FAILED: return 'warn';
-      case ImportStatus.RUNNING: return 'accent';
-      case ImportStatus.CANCELLED: return 'warn';
-      default: return '';
+      case ImportStatus.COMPLETED: return 'chip-success';
+      case ImportStatus.FAILED: return 'chip-error';
+      case ImportStatus.RUNNING: return 'chip-warning';
+      case ImportStatus.CANCELLED: return 'chip-neutral';
+      case ImportStatus.PENDING:
+      default: return 'chip-neutral';
     }
   }
 

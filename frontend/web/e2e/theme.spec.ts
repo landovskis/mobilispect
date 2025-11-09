@@ -70,7 +70,7 @@ test.describe('Theme Support (Constitutional Requirement)', () => {
       await themeToggle.click();
 
       // Verify Material components have theme applied
-      const card = page.locator('mat-card').first();
+      const card = page.locator('app-mobilispect-card').first();
       const cardBg = await card.evaluate((el) =>
         window.getComputedStyle(el).backgroundColor
       );

@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 import { AgencyFeedGroup, FeedGroupingUtils } from '../models/agency-feed-group.model';
 import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
 
@@ -28,36 +28,39 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatChipsModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MobilispectCardComponent
   ],
   template: `
-    <mat-card class="app-card agency-card" *ngIf="agencyGroup" appearance="outlined">
-      <!-- Card Header with Agency Info -->
-      <mat-card-header class="app-card-header">
-        <div mat-card-avatar class="app-card-avatar">
-          <mat-icon class="app-avatar-icon">business</mat-icon>
+    <app-mobilispect-card *ngIf="agencyGroup">
+      <!-- Header -->
+      <div card-header class="flex items-center gap-4">
+        <div card-avatar class="w-12 h-12 flex items-center justify-center rounded-xl bg-white/20">
+          <mat-icon class="text-white !text-[28px] !w-7 !h-7">business</mat-icon>
         </div>
-        <mat-card-title class="app-card-title">
-          {{ agencyGroup.agencyName }}
-        </mat-card-title>
-        <mat-card-subtitle class="app-card-subtitle">
-          <mat-icon class="app-subtitle-icon">rss_feed</mat-icon>
-          {{ agencyGroup.feeds.length }} feed{{ agencyGroup.feeds.length !== 1 ? 's' : '' }} available
-        </mat-card-subtitle>
-      </mat-card-header>
+        <div class="flex-1 min-w-0">
+          <div card-title class="text-xl font-semibold text-white mb-1 font-['Red_Hat_Display']">
+            {{ agencyGroup.agencyName }}
+          </div>
+          <div card-subtitle class="flex items-center gap-1.5 text-sm text-white/90">
+            <mat-icon class="!text-[16px] !w-4 !h-4">rss_feed</mat-icon>
+            {{ agencyGroup.feeds.length }} feed{{ agencyGroup.feeds.length !== 1 ? 's' : '' }} available
+          </div>
+        </div>
+      </div>
 
-      <mat-card-content class="app-card-content">
+      <!-- Content -->
+      <div card-content>
         <!-- Feed Types Summary -->
-        <div class="section">
-          <div class="section-label">
-            <mat-icon class="label-icon">category</mat-icon>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#2980B9] dark:text-[#64b5f6]">
+            <mat-icon class="!text-[16px] !w-4 !h-4">category</mat-icon>
             <span>Feed Types</span>
           </div>
-          <div class="feed-types-summary">
+          <div class="flex gap-2 flex-wrap">
             <mat-chip-listbox aria-label="Feed types">
               <mat-chip
                 *ngIf="agencyGroup.feedsByType.gtfs > 0"
@@ -76,22 +79,21 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
             </mat-chip-listbox>
           </div>
         </div>
+      </div>
 
-      </mat-card-content>
-
-      <mat-card-actions class="app-card-actions">
-        <!-- Unified Import button -->
+      <!-- Actions -->
+      <div card-actions>
         <button
           mat-raised-button
           color="primary"
-          class="app-primary-action"
+          class="w-full !rounded-lg !font-semibold !h-12"
           (click)="onImport()"
           [disabled]="!agencyGroup.hasActiveFeeds">
           <mat-icon>download</mat-icon>
           <span>Import{{ getActiveFeedsCount() > 1 ? ' All' : '' }}</span>
         </button>
-      </mat-card-actions>
-    </mat-card>
+      </div>
+    </app-mobilispect-card>
   `,
   styleUrls: ['../styles/card.styles.css'],
   styles: [`
@@ -103,8 +105,6 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
       flex-direction: column;
       border-radius: 12px !important;
       overflow: hidden;
-      border: 2px solid transparent;
-      background: #2980B9 !important; /* Primary color background */
     }
 
     .agency-card:hover {

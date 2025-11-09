@@ -27,7 +27,7 @@ test.describe('Feed Management System', () => {
     await page.click('a:has-text("History")');
 
     // Wait for history view to load
-    await expect(page.locator('mat-card-title:has-text("Import History")')).toBeVisible();
+    await expect(page.locator('[card-title]:has-text("Import History")')).toBeVisible();
 
     // Verify table or empty state is displayed
     const table = page.locator('table');
@@ -42,7 +42,7 @@ test.describe('Feed Management System', () => {
     await page.click('a:has-text("Active Imports")');
 
     // Wait for active imports view to load
-    await expect(page.locator('mat-card-title:has-text("Active Imports")')).toBeVisible();
+    await expect(page.locator('[card-title]:has-text("Active Imports")')).toBeVisible();
 
     // Verify "No active imports" message or active import list
     const noImportsMessage = page.locator('text=/no active imports/i');
@@ -53,7 +53,7 @@ test.describe('Feed Management System', () => {
 
   test('should display regions list', async ({ page }) => {
     // Regions view should be default
-    await expect(page.locator('mat-card-title:has-text("Metropolitan Regions")')).toBeVisible();
+    await expect(page.locator('[card-title]:has-text("Metropolitan Regions")')).toBeVisible();
 
     // Verify regions are loaded
     const loadingSpinner = page.locator('mat-spinner');
@@ -112,7 +112,7 @@ test.describe('Feed Management System', () => {
     await page.click('a:has-text("History")');
 
     // Wait for history table to load
-    await expect(page.locator('mat-card-title:has-text("Import History")')).toBeVisible();
+    await expect(page.locator('[card-title]:has-text("Import History")')).toBeVisible();
 
     // If there are imports in history, verify table structure
     const historyTable = page.locator('table');
@@ -132,7 +132,7 @@ test.describe('Feed Management System', () => {
   test('should handle pagination in import history', async ({ page }) => {
     // Navigate to history
     await page.click('a:has-text("History")');
-    await expect(page.locator('mat-card-title:has-text("Import History")')).toBeVisible();
+    await expect(page.locator('[card-title]:has-text("Import History")')).toBeVisible();
 
     // Check if paginator exists (only if there are enough imports)
     const paginator = page.locator('mat-paginator');

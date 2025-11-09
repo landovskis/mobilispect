@@ -10,20 +10,20 @@ import { AutoUpdateConfig, SchedulerStatus } from '../models/scheduler.model';
   standalone: false,
   template: `
     <div class="auto-update-config">
-      <mat-card>
-        <mat-card-header>
-          <mat-card-title>Automatic Feed Updates Configuration</mat-card-title>
-          <mat-card-subtitle>Configure daily automatic feed update checks</mat-card-subtitle>
-        </mat-card-header>
+      <app-mobilispect-card>
+        <div card-header>
+          <div card-title>Automatic Feed Updates Configuration</div>
+          <div card-subtitle>Configure daily automatic feed update checks</div>
+        </div>
 
-        <mat-card-content>
+        <div card-content>
           <!-- Scheduler Status -->
           <div class="status-section" *ngIf="schedulerStatus$ | async as status">
             <h3>Scheduler Status</h3>
             <div class="status-grid">
               <div class="status-item">
                 <span class="label">Status:</span>
-                <mat-chip [color]="status.enabled ? 'primary' : 'warn'">
+                <mat-chip [class.chip-success]="status.enabled" [class.chip-error]="!status.enabled">
                   {{ status.enabled ? 'Enabled' : 'Disabled' }}
                 </mat-chip>
               </div>
@@ -138,15 +138,15 @@ import { AutoUpdateConfig, SchedulerStatus } from '../models/scheduler.model';
               </button>
             </div>
           </form>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </app-mobilispect-card>
 
       <!-- Recent Activity -->
-      <mat-card class="activity-card">
-        <mat-card-header>
-          <mat-card-title>Recent Automatic Import Activity</mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
+      <app-mobilispect-card class="activity-card">
+        <div card-header>
+          <div card-title>Recent Automatic Import Activity</div>
+        </div>
+        <div card-content>
           <div *ngIf="importStats$ | async as stats" class="stats-grid">
             <div class="stat-item success">
               <span class="number">{{ stats.successfulImportsLast24h }}</span>
@@ -170,8 +170,8 @@ import { AutoUpdateConfig, SchedulerStatus } from '../models/scheduler.model';
             <mat-icon>schedule</mat-icon>
             <span>Last automatic import: {{ (importStats$ | async)?.lastAutomaticImportTime | date:'medium' }}</span>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </app-mobilispect-card>
     </div>
   `,
   styleUrls: ['./auto-update-config.component.scss']

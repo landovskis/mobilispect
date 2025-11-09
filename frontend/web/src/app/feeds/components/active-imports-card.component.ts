@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
-import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -10,6 +9,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatChipsModule } from '@angular/material/chips';
 import { FeedImportSummary } from '../models/import.models';
 import { ProgressMonitorComponent } from './progress-monitor.component';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 /**
  * Active Imports Card Component
@@ -33,14 +33,14 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
     MatIconModule,
     MatButtonModule,
     MatCheckboxModule,
     MatTooltipModule,
     MatExpansionModule,
     MatChipsModule,
-    ProgressMonitorComponent
+    ProgressMonitorComponent,
+    MobilispectCardComponent
   ],
   template: `
     <mat-expansion-panel class="active-imports-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
@@ -67,25 +67,25 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
       <!-- Active imports list -->
       <div class="active-imports-list" *ngIf="(activeImports$ | async) as activeImports; else emptyState">
         <div *ngIf="activeImports.length > 0; else emptyState">
-          <mat-card *ngFor="let importItem of activeImports" class="import-item-card" appearance="outlined">
-            <mat-card-header class="import-card-header">
+          <app-mobilispect-card *ngFor="let importItem of activeImports" class="import-item-card">
+            <div card-header class="import-card-header">
               <mat-checkbox
                 [checked]="selectedImportIds.has(importItem.id)"
                 (change)="onSelectionChange(importItem.id, $event.checked)"
                 [attr.aria-label]="'Select ' + importItem.feedName"
               ></mat-checkbox>
 
-              <div mat-card-avatar class="import-avatar">
+              <div class="import-avatar">
                 <mat-icon>rss_feed</mat-icon>
               </div>
 
-              <mat-card-title class="import-title">
+              <div class="import-title" card-title>
                 {{ importItem.feedName }}
-              </mat-card-title>
+              </div>
 
-              <mat-card-subtitle class="import-subtitle">
+              <div class="import-subtitle" card-subtitle>
                 {{ importItem.regionName }}
-              </mat-card-subtitle>
+              </div>
 
               <button
                 mat-icon-button
@@ -96,9 +96,9 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
               >
                 <mat-icon>cancel</mat-icon>
               </button>
-            </mat-card-header>
+            </div>
 
-            <mat-card-content class="import-card-content">
+            <div card-content class="import-card-content">
               <div class="import-meta">
                 <mat-chip-set aria-label="Import status">
                   <mat-chip [ngClass]="{
@@ -117,8 +117,8 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
               <app-progress-monitor
                 [importId]="importItem.id"
               ></app-progress-monitor>
-            </mat-card-content>
-          </mat-card>
+            </div>
+          </app-mobilispect-card>
         </div>
       </div>
 

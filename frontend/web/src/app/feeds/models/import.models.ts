@@ -248,17 +248,17 @@ export class ImportUtils {
   static getStatusColorClass(status: ImportStatus): string {
     switch (status) {
       case ImportStatus.PENDING:
-        return 'text-blue-600';
+        return 'chip-neutral';
       case ImportStatus.RUNNING:
-        return 'text-yellow-600';
+        return 'chip-warning';
       case ImportStatus.COMPLETED:
-        return 'text-green-600';
+        return 'chip-success';
       case ImportStatus.FAILED:
-        return 'text-red-600';
+        return 'chip-error';
       case ImportStatus.CANCELLED:
-        return 'text-gray-600';
+        return 'chip-neutral';
       default:
-        return 'text-gray-500';
+        return 'chip-neutral';
     }
   }
 
@@ -368,13 +368,13 @@ export class ImportUtils {
   static getLogLevelColorClass(level: LogLevel): string {
     switch (level) {
       case LogLevel.INFO:
-        return 'text-blue-600';
+        return 'chip-neutral';
       case LogLevel.WARN:
-        return 'text-yellow-600';
+        return 'chip-warning';
       case LogLevel.ERROR:
-        return 'text-red-600';
+        return 'chip-error';
       default:
-        return 'text-gray-500';
+        return 'chip-neutral';
     }
   }
 

@@ -100,3 +100,53 @@ button:not([class*="mat-"]) {
 .avatar-rounded {
   border-radius: 12px;
 }
+
+/* Status chip helpers */
+.chip-success.mat-mdc-standard-chip,
+.chip-error.mat-mdc-standard-chip,
+.chip-warning.mat-mdc-standard-chip,
+.chip-neutral.mat-mdc-standard-chip,
+.chip-success.mat-mdc-chip-option,
+.chip-error.mat-mdc-chip-option,
+.chip-warning.mat-mdc-chip-option,
+.chip-neutral.mat-mdc-chip-option {
+  --mdc-chip-elevated-container-color: transparent;
+  --mdc-chip-focus-state-layer-color: transparent;
+  --mdc-chip-hover-state-layer-color: transparent;
+  --mdc-chip-pressed-state-layer-color: transparent;
+  --mdc-chip-outline-color: transparent;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+
+.chip-success.mat-mdc-standard-chip,
+.chip-success.mat-mdc-chip-option {
+  background-color: #2e7d32 !important;
+}
+
+.chip-error.mat-mdc-standard-chip,
+.chip-error.mat-mdc-chip-option {
+  background-color: #c62828 !important;
+}
+
+.chip-warning.mat-mdc-standard-chip,
+.chip-warning.mat-mdc-chip-option {
+  background-color: #ef6c00 !important;
+}
+
+.chip-neutral.mat-mdc-standard-chip,
+.chip-neutral.mat-mdc-chip-option {
+  background-color: #546e7a !important;
+}
+
+.chip-success.mat-mdc-standard-chip mat-icon,
+.chip-error.mat-mdc-standard-chip mat-icon,
+.chip-warning.mat-mdc-standard-chip mat-icon,
+.chip-neutral.mat-mdc-standard-chip mat-icon,
+.chip-success.mat-mdc-chip-option mat-icon,
+.chip-error.mat-mdc-chip-option mat-icon,
+.chip-warning.mat-mdc-chip-option mat-icon,
+.chip-neutral.mat-mdc-chip-option mat-icon {
+  color: #fff !important;
+}

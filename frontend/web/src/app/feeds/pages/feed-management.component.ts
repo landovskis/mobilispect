@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { Observable, Subject, combineLatest } from 'rxjs';
@@ -22,6 +21,7 @@ import { AppBarComponent, Breadcrumb, BreadcrumbSelection, ToolbarNavItem } from
 import { RegionSelectorComponent } from '../components/region-selector.component';
 import { AgencyFeedCardComponent } from '../components/agency-feed-card.component';
 import { FeedImportsTabComponent } from '../components/feed-imports-tab.component';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 @Component({
   selector: 'app-feeds',
@@ -29,11 +29,11 @@ import { FeedImportsTabComponent } from '../components/feed-imports-tab.componen
   imports: [
     CommonModule,
     MatTabsModule,
-    MatCardModule,
     MatProgressSpinnerModule,
     MatIconModule,
     MatSnackBarModule,
     MatDialogModule,
+    MobilispectCardComponent,
     AppBarComponent,
     RegionSelectorComponent,
     AgencyFeedCardComponent,
@@ -77,12 +77,12 @@ import { FeedImportsTabComponent } from '../components/feed-imports-tab.componen
                     ></app-region-selector>
 
                     <!-- Loading State -->
-                    <mat-card *ngIf="loadingFeeds" class="loading-card">
-                      <mat-card-content class="loading-content">
+                    <app-mobilispect-card *ngIf="loadingFeeds" class="loading-card">
+                      <div card-content class="loading-content">
                         <mat-spinner diameter="40"></mat-spinner>
                         <p>Loading feeds...</p>
-                      </mat-card-content>
-                    </mat-card>
+                      </div>
+                    </app-mobilispect-card>
 
                     <!-- Agency Feed Cards (Grouped) -->
                     <div *ngIf="!loadingFeeds && agencyGroups.length > 0" class="feeds-grid">
@@ -96,13 +96,13 @@ import { FeedImportsTabComponent } from '../components/feed-imports-tab.componen
                     </div>
 
                     <!-- Empty State -->
-                    <mat-card *ngIf="!loadingFeeds && regionFeeds.length === 0" class="empty-state">
-                      <mat-card-content class="empty-content">
+                    <app-mobilispect-card *ngIf="!loadingFeeds && regionFeeds.length === 0" class="empty-state">
+                      <div card-content class="empty-content">
                         <mat-icon class="empty-icon">inbox</mat-icon>
                         <h3>No feeds found</h3>
                         <p>Select a region to view available transit feeds.</p>
-                      </mat-card-content>
-                    </mat-card>
+                      </div>
+                    </app-mobilispect-card>
                   </div>
                 </mat-tab>
 

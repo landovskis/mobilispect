@@ -1,7 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -44,6 +43,7 @@ import { FeedActiveImportsTabComponent } from './components/feed-active-imports-
 import { FeedImportsTabComponent } from './components/feed-imports-tab.component';
 import { RegionSelectorComponent } from './components/region-selector.component';
 import { AgencyFeedCardComponent } from './components/agency-feed-card.component';
+import { MobilispectCardComponent } from '../core/components/mobilispect-card.component';
 
 @NgModule({
   declarations: [
@@ -71,9 +71,9 @@ import { AgencyFeedCardComponent } from './components/agency-feed-card.component
     FeedActiveImportsTabComponent,
     FeedImportsTabComponent,
     AgencyFeedCardComponent,
+    MobilispectCardComponent,
 
     // Angular Material modules
-    MatCardModule,
     MatButtonModule,
     MatTableModule,
     MatProgressSpinnerModule,

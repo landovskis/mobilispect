@@ -1,50 +1,54 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MetropolitanRegion } from '../models/region.models';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 @Component({
   selector: 'app-feed-regions-tab',
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
+    MobilispectCardComponent
   ],
   template: `
     <div class="tab-content">
-      <mat-card class="welcome-card">
-        <mat-card-content>
+      <app-mobilispect-card class="welcome-card">
+        <div card-content>
           <p>
             Choose from available metropolitan regions to view and import their transit feeds.
           </p>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </app-mobilispect-card>
 
       <div class="regions-grid" *ngIf="regions?.length; else noRegions">
-        <mat-card
+        <app-mobilispect-card
           *ngFor="let region of regions"
           class="region-card region-item"
         >
-          <mat-card-header>
-            <mat-card-title>{{ region.name }}</mat-card-title>
-            <mat-card-subtitle>{{ region.feedCount }} feeds</mat-card-subtitle>
-          </mat-card-header>
-          <mat-card-actions>
+          <div card-header class="flex items-center justify-between gap-3">
+            <div>
+              <div card-title class="text-lg font-semibold text-white">{{ region.name }}</div>
+              <div card-subtitle class="text-white/90">{{ region.feedCount }} feeds</div>
+            </div>
+            <mat-icon class="text-white !text-3xl">public</mat-icon>
+          </div>
+
+          <div card-actions>
             <button
               mat-raised-button
               color="primary"
+              class="w-full !rounded-lg"
               (click)="importRegion.emit(region)"
-              [attr.aria-label]="'Import feeds for ' + region.name"
             >
               <mat-icon>download</mat-icon>
               Import
             </button>
-          </mat-card-actions>
-        </mat-card>
+          </div>
+        </app-mobilispect-card>
       </div>
 
       <ng-template #noRegions>

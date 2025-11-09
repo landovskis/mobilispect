@@ -266,13 +266,13 @@ export class FeedUtils {
   static getStatusColorClass(status: FeedStatus): string {
     switch (status) {
       case FeedStatus.ACTIVE:
-        return 'text-green-600';
+        return 'chip-success';
       case FeedStatus.INACTIVE:
-        return 'text-gray-500';
+        return 'chip-neutral';
       case FeedStatus.ERROR:
-        return 'text-red-600';
+        return 'chip-error';
       default:
-        return 'text-gray-500';
+        return 'chip-neutral';
     }
   }
 

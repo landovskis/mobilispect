@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -20,6 +19,7 @@ import { RegionService } from '../services/region.service';
 import { ImportService } from '../services/import.service';
 import { SchedulerService } from '../services/scheduler.service';
 import { FeedImportSummary } from '../models/import.models';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 /**
  * Region List Component
@@ -39,7 +39,6 @@ import { FeedImportSummary } from '../models/import.models';
   imports: [
     CommonModule,
     FormsModule,
-    MatCardModule,
     MatButtonModule,
     MatIconModule,
     MatInputModule,
@@ -49,7 +48,8 @@ import { FeedImportSummary } from '../models/import.models';
     MatTooltipModule,
     MatBadgeModule,
     MatSlideToggleModule,
-    MatMenuModule
+    MatMenuModule,
+    MobilispectCardComponent
   ],
   template: `
     <div class="region-list-container">
@@ -108,7 +108,7 @@ import { FeedImportSummary } from '../models/import.models';
 
       <!-- Regions Grid -->
       <div *ngIf="!(isLoading$ | async) && !(error$ | async)" class="regions-grid">
-        <mat-card
+        <app-mobilispect-card
           *ngFor="let region of filteredRegions$ | async; trackBy: trackByRegionId"
           class="region-card"
           [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
@@ -118,8 +118,8 @@ import { FeedImportSummary } from '../models/import.models';
           (keydown.enter)="selectRegion(region)"
           (keydown.space)="selectRegion(region)"
         >
-          <mat-card-header>
-            <mat-card-title class="region-title">
+          <div card-header>
+            <div class="region-title">
               {{ region.name }}
               <mat-icon
                 *ngIf="hasActiveImport(region)"
@@ -133,11 +133,11 @@ import { FeedImportSummary } from '../models/import.models';
               >
                 sync
               </mat-icon>
-            </mat-card-title>
-            <mat-card-subtitle>{{ region.regionOnestopId }}</mat-card-subtitle>
-          </mat-card-header>
+            </div>
+            <div class="text-white/90" card-subtitle>{{ region.regionOnestopId }}</div>
+          </div>
 
-          <mat-card-content>
+          <div card-content>
             <div class="region-stats">
               <div class="stat-item">
                 <mat-icon>feed</mat-icon>
@@ -159,9 +159,9 @@ import { FeedImportSummary } from '../models/import.models';
                 <span>{{ formatLastCheck(region) }}</span>
               </div>
             </div>
-          </mat-card-content>
+          </div>
 
-          <mat-card-actions align="end">
+          <div card-actions class="justify-end">
             <button
               mat-button
               color="primary"
@@ -231,8 +231,8 @@ import { FeedImportSummary } from '../models/import.models';
               <mat-icon>play_arrow</mat-icon>
               Select
             </button>
-          </mat-card-actions>
-        </mat-card>
+          </div>
+        </app-mobilispect-card>
 
         <!-- Empty State -->
         <div *ngIf="(filteredRegions$ | async)?.length === 0" class="empty-state">
@@ -317,7 +317,6 @@ import { FeedImportSummary } from '../models/import.models';
     .region-card {
       cursor: pointer;
       transition: all 0.2s ease-in-out;
-      border: 2px solid transparent;
     }
 
     .region-card:hover {
@@ -326,8 +325,7 @@ import { FeedImportSummary } from '../models/import.models';
     }
 
     .region-card.selected {
-      border-color: var(--mdc-theme-primary);
-      background-color: var(--mdc-theme-primary-container);
+      --mobilispect-card-border-color: var(--mdc-theme-primary);
     }
 
     .region-card:focus {
@@ -339,6 +337,11 @@ import { FeedImportSummary } from '../models/import.models';
       display: flex;
       align-items: center;
       gap: 8px;
+      color: #ffffff;
+    }
+
+    :host-context(.dark-theme) .region-title {
+      color: #ffffff;
     }
 
     .active-import-icon {

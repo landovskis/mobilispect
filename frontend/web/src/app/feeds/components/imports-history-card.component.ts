@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,6 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatChipsModule } from '@angular/material/chips';
 import { FeedImportSummary } from '../models/import.models';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 /**
  * Imports History Card Component
@@ -32,13 +32,13 @@ import { FeedImportSummary } from '../models/import.models';
   standalone: true,
   imports: [
     CommonModule,
-    MatCardModule,
     MatTableModule,
     MatPaginatorModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatExpansionModule,
-    MatChipsModule
+    MatChipsModule,
+    MobilispectCardComponent
   ],
   template: `
     <mat-expansion-panel class="history-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
@@ -76,9 +76,9 @@ import { FeedImportSummary } from '../models/import.models';
       <!-- History Cards List -->
       <div *ngIf="!loading && history && history.length > 0" class="history-container">
         <div class="history-list">
-          <mat-card *ngFor="let importItem of history" class="history-item-card" appearance="outlined">
-            <mat-card-header class="history-card-header">
-              <div mat-card-avatar class="history-avatar" [ngClass]="{
+          <app-mobilispect-card *ngFor="let importItem of history" class="history-item-card">
+            <div card-header class="history-card-header">
+              <div class="history-avatar" [ngClass]="{
                 'avatar-completed': importItem.status === 'completed',
                 'avatar-failed': importItem.status === 'failed',
                 'avatar-cancelled': importItem.status === 'cancelled'
@@ -88,23 +88,21 @@ import { FeedImportSummary } from '../models/import.models';
                 <mat-icon *ngIf="importItem.status === 'cancelled'">cancel</mat-icon>
               </div>
 
-              <mat-card-title class="history-title">
+              <div class="card-title">
                 {{ importItem.feedName || importItem.feedOnestopId }}
-              </mat-card-title>
+              </div>
 
-              <mat-card-subtitle class="history-subtitle">
+              <div class="card-subtitle">
                 {{ importItem.regionName }}
-              </mat-card-subtitle>
-            </mat-card-header>
+              </div>
+            </div>
 
-            <mat-card-content class="history-card-content">
+            <div card-content class="history-card-content">
               <div class="history-meta">
                 <mat-chip-set aria-label="Import status">
-                  <mat-chip [ngClass]="{
-                    'status-completed': importItem.status === 'completed',
-                    'status-failed': importItem.status === 'failed',
-                    'status-cancelled': importItem.status === 'cancelled'
-                  }">
+                  <mat-chip [class.chip-success]="importItem.status === 'completed'"
+                            [class.chip-error]="importItem.status === 'failed'"
+                            [class.chip-warning]="importItem.status === 'cancelled'">
                     {{ importItem.status }}
                   </mat-chip>
                 </mat-chip-set>
@@ -124,8 +122,8 @@ import { FeedImportSummary } from '../models/import.models';
                   {{ formatFileSize(importItem.fileSizeBytes) }}
                 </span>
               </div>
-            </mat-card-content>
-          </mat-card>
+            </div>
+          </app-mobilispect-card>
         </div>
 
         <!-- Paginator -->
@@ -146,7 +144,7 @@ import { FeedImportSummary } from '../models/import.models';
     .history-panel {
       margin-bottom: 24px;
       border-radius: 12px !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
       border: 1px solid rgba(0, 0, 0, 0.12) !important;
     }
 
@@ -209,18 +207,8 @@ import { FeedImportSummary } from '../models/import.models';
       color: #aaa;
     }
 
-    .empty-title {
-      font-size: 18px;
-      margin-top: 20px;
-      color: #1A3A52;
-    }
-
     :host-context(.dark-theme) .empty-title {
       color: #e0e0e0;
-    }
-
-    .empty-subtitle {
-      color: #999;
     }
 
     :host-context(.dark-theme) .empty-subtitle {
@@ -253,7 +241,7 @@ import { FeedImportSummary } from '../models/import.models';
     }
 
     .history-item-card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
       transform: translateY(-2px);
     }
 
@@ -311,17 +299,6 @@ import { FeedImportSummary } from '../models/import.models';
       color: #aaa !important;
     }
 
-    .history-card-content {
-      padding: 0 16px 16px 16px !important;
-    }
-
-    .history-meta {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
     .meta-item {
       display: flex;
       align-items: center;
@@ -353,57 +330,9 @@ import { FeedImportSummary } from '../models/import.models';
       min-height: 28px !important;
     }
 
-    /* Green for success/completed */
-    mat-chip.status-completed {
-      background-color: #4CAF50 !important;
-      color: #ffffff !important;
-      border: none !important;
-    }
-
-    :host-context(.dark-theme) mat-chip.status-completed {
-      background-color: #388E3C !important;
-      color: #ffffff !important;
-    }
-
-    /* Red for error/failed */
-    mat-chip.status-failed {
-      background-color: #F44336 !important;
-      color: #ffffff !important;
-      border: none !important;
-    }
-
-    :host-context(.dark-theme) mat-chip.status-failed {
-      background-color: #D32F2F !important;
-      color: #ffffff !important;
-    }
-
-    /* Orange for cancelled */
-    mat-chip.status-cancelled {
-      background-color: #FF9800 !important;
-      color: #ffffff !important;
-      border: none !important;
-    }
-
-    :host-context(.dark-theme) mat-chip.status-cancelled {
-      background-color: #F57C00 !important;
-      color: #ffffff !important;
-    }
-
     /* Responsive */
     @media (max-width: 768px) {
-      .panel-title {
-        font-size: 1rem !important;
-      }
 
-      .history-meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-      }
-
-      .meta-item {
-        width: 100%;
-      }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush

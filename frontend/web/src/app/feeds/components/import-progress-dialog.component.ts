@@ -5,13 +5,13 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCardModule } from '@angular/material/card';
 import { MatDividerModule } from '@angular/material/divider';
 import { Observable, Subject, timer, of } from 'rxjs';
 import { takeUntil, switchMap, finalize, catchError } from 'rxjs/operators';
 import { ImportService } from '../services/import.service';
 import { WebSocketService } from '../services/websocket.service';
 import { FeedImport, ImportProgress, ImportStatus } from '../models/import.models';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 export interface ImportProgressDialogData {
   feedOnestopId: string;
@@ -29,8 +29,8 @@ export interface ImportProgressDialogData {
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatIconModule,
-    MatCardModule,
-    MatDividerModule
+    MatDividerModule,
+    MobilispectCardComponent
   ],
   template: `
     <div class="import-progress-dialog import-dialog">
@@ -41,8 +41,8 @@ export interface ImportProgressDialogData {
 
       <mat-dialog-content class="dialog-content">
         <!-- Import Status Card -->
-        <mat-card class="status-card">
-          <mat-card-content>
+        <app-mobilispect-card class="status-card">
+          <div card-header>
             <div class="status-header">
               <div class="status-info">
                 <h3>{{ getStatusText() }}</h3>
@@ -61,7 +61,9 @@ export interface ImportProgressDialogData {
                 </mat-icon>
               </div>
             </div>
+          </div>
 
+          <div card-content>
             <!-- Progress Bar (shown during active import) -->
             <div *ngIf="currentProgress && isInProgress" class="progress-section">
               <mat-progress-bar
@@ -99,17 +101,17 @@ export interface ImportProgressDialogData {
             </div>
 
             <!-- Current Step Details -->
-            <div *ngIf="currentProgress && isInProgress" class="step-details">
-              <h4>Current Activity</h4>
-              <div class="activity-log" #activityLog>
+              <div *ngIf="currentProgress && isInProgress" class="step-details">
+                <h4>Current Activity</h4>
+                <div class="activity-log" #activityLog>
                 <div *ngFor="let log of activityLogs" class="log-entry">
                   <span class="log-timestamp">{{ log.timestamp | date:'HH:mm:ss' }}</span>
                   <span class="log-message">{{ log.message }}</span>
                 </div>
               </div>
             </div>
-          </mat-card-content>
-        </mat-card>
+          </div>
+        </app-mobilispect-card>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
