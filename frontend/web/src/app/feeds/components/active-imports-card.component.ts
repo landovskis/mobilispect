@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { FeedImportSummary } from '../models/import.models';
 import { ProgressMonitorComponent } from './progress-monitor.component';
 
@@ -36,108 +37,140 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     MatButtonModule,
     MatCheckboxModule,
     MatTooltipModule,
+    MatExpansionModule,
     ProgressMonitorComponent
   ],
   template: `
-    <mat-card class="app-card active-imports-card">
-      <mat-card-header class="app-card-header">
-        <mat-card-title class="app-card-title">
+    <mat-expansion-panel class="active-imports-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
+      <mat-expansion-panel-header class="panel-header">
+        <mat-panel-title class="panel-title">
           <mat-icon>downloading</mat-icon>
-          Active <span *ngIf="(activeImports$ | async) as activeImports">({{ activeImports.length }})</span>
-        </mat-card-title>
-        <div class="header-actions" *ngIf="selectedImportIds.size > 0">
+          <span>Active Imports</span>
+          <span class="count-badge" *ngIf="(activeImports$ | async) as activeImports">{{ activeImports.length }}</span>
+        </mat-panel-title>
+        <mat-panel-description class="panel-description" *ngIf="selectedImportIds.size > 0">
           <span class="selection-count">{{ selectedImportIds.size }} selected</span>
           <button
-            mat-raised-button
+            mat-icon-button
             color="warn"
-            (click)="onBulkCancel()"
+            (click)="onBulkCancel(); $event.stopPropagation()"
             [disabled]="selectedImportIds.size === 0"
+            matTooltip="Cancel selected imports"
           >
             <mat-icon>cancel</mat-icon>
-            Cancel Selected
           </button>
-        </div>
-      </mat-card-header>
-      <mat-card-content class="app-card-content">
-        <!-- Active imports list -->
-        <div class="active-imports-list" *ngIf="(activeImports$ | async) as activeImports; else emptyState">
-          <div *ngIf="activeImports.length > 0; else emptyState">
-            <div *ngFor="let importItem of activeImports" class="active-import-item">
-              <div class="import-item-header">
-                <mat-checkbox
-                  [checked]="selectedImportIds.has(importItem.id)"
-                  (change)="onSelectionChange(importItem.id, $event.checked)"
-                  [attr.aria-label]="'Select ' + importItem.feedName"
-                ></mat-checkbox>
+        </mat-panel-description>
+      </mat-expansion-panel-header>
 
-                <div class="import-info">
-                  <div class="feed-name">{{ importItem.feedName }}</div>
-                  <div class="region-name">{{ importItem.regionName }}</div>
-                </div>
+      <!-- Active imports list -->
+      <div class="active-imports-list" *ngIf="(activeImports$ | async) as activeImports; else emptyState">
+        <div *ngIf="activeImports.length > 0; else emptyState">
+          <mat-card *ngFor="let importItem of activeImports" class="import-item-card" appearance="outlined">
+            <mat-card-header class="import-card-header">
+              <mat-checkbox
+                [checked]="selectedImportIds.has(importItem.id)"
+                (change)="onSelectionChange(importItem.id, $event.checked)"
+                [attr.aria-label]="'Select ' + importItem.feedName"
+              ></mat-checkbox>
 
-                <div class="import-meta">
-                  <span class="status-badge status-{{ importItem.status.toLowerCase() }}">
-                    {{ importItem.status }}
-                  </span>
-                  <span class="started-time">
-                    Started: {{ importItem.startedAt | date:'short' }}
-                  </span>
-                </div>
+              <div mat-card-avatar class="import-avatar">
+                <mat-icon>rss_feed</mat-icon>
+              </div>
 
-                <button
-                  mat-icon-button
-                  color="warn"
-                  (click)="onCancelImport(importItem.id)"
-                  matTooltip="Cancel import"
-                >
-                  <mat-icon>cancel</mat-icon>
-                </button>
+              <mat-card-title class="import-title">
+                {{ importItem.feedName }}
+              </mat-card-title>
+
+              <mat-card-subtitle class="import-subtitle">
+                {{ importItem.regionName }}
+              </mat-card-subtitle>
+
+              <button
+                mat-icon-button
+                color="warn"
+                (click)="onCancelImport(importItem.id)"
+                matTooltip="Cancel import"
+                class="cancel-button"
+              >
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-card-header>
+
+            <mat-card-content class="import-card-content">
+              <div class="import-meta">
+                <span class="status-badge status-{{ importItem.status.toLowerCase() }}">
+                  {{ importItem.status }}
+                </span>
+                <span class="started-time">
+                  Started: {{ importItem.startedAt | date:'short' }}
+                </span>
               </div>
 
               <!-- Progress monitor -->
               <app-progress-monitor
                 [importId]="importItem.id"
               ></app-progress-monitor>
-            </div>
-          </div>
+            </mat-card-content>
+          </mat-card>
         </div>
+      </div>
 
-        <!-- Empty State -->
-        <ng-template #emptyState>
-          <div class="empty-state">
-            <mat-icon class="empty-icon">cloud_done</mat-icon>
-            <p class="empty-title">No active imports</p>
-            <p class="empty-subtitle">
-              Import feeds from the discovery tab to see them here.
-            </p>
-          </div>
-        </ng-template>
-      </mat-card-content>
-    </mat-card>
+      <!-- Empty State -->
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <mat-icon class="empty-icon">cloud_done</mat-icon>
+          <p class="empty-title">No active imports</p>
+          <p class="empty-subtitle">
+            Import feeds from the discovery tab to see them here.
+          </p>
+        </div>
+      </ng-template>
+    </mat-expansion-panel>
   `,
   styleUrls: ['../styles/card.styles.css'],
   styles: [`
-    /* Component-specific styles */
-    .active-imports-card {
+    /* Expansion Panel Styles */
+    .active-imports-panel {
       margin-bottom: 24px;
+      border-radius: 12px !important;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
     }
 
-    .app-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .panel-header {
+      background: #2980B9 !important;
+      color: white !important;
+      border-radius: 12px 12px 0 0 !important;
     }
 
-    .app-card-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    :host-context(.dark-theme) .panel-header {
+      background: #1e5f8c !important;
     }
 
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .panel-title {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      font-weight: 600 !important;
+      font-size: 1.1rem !important;
+    }
+
+    .panel-title mat-icon {
+      color: white !important;
+    }
+
+    .count-badge {
+      background: rgba(255, 255, 255, 0.25);
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .panel-description {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      justify-content: flex-end !important;
     }
 
     .selection-count {
@@ -145,67 +178,90 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
       color: rgba(255, 255, 255, 0.9);
     }
 
-    :host-context(.dark-theme) .selection-count {
-      color: rgba(255, 255, 255, 0.9);
-    }
-
+    /* Active Imports List */
     .active-imports-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-    }
-
-    .active-import-item {
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      border-radius: 8px;
+      gap: 16px;
       padding: 16px;
-      background: rgba(255, 255, 255, 0.98);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
-    :host-context(.dark-theme) .active-import-item {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(255, 255, 255, 0.12);
+    /* Individual Import Item Cards */
+    .import-item-card {
+      border-radius: 8px !important;
+      transition: all 0.2s ease;
     }
 
-    .import-item-header {
+    .import-item-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+      transform: translateY(-2px);
+    }
+
+    .import-card-header {
+      position: relative;
+      padding: 16px !important;
+    }
+
+    .import-card-header mat-checkbox {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .import-avatar {
+      background-color: #2980B9 !important;
+      color: white !important;
+      margin-left: 40px !important;
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      justify-content: center;
     }
 
-    .import-info {
-      flex: 1;
+    :host-context(.dark-theme) .import-avatar {
+      background-color: #1e5f8c !important;
     }
 
-    .feed-name {
-      font-weight: 500;
-      font-size: 16px;
-      color: #1A3A52;
+    .import-title {
+      font-size: 1rem !important;
+      font-weight: 600 !important;
+      color: #1A3A52 !important;
     }
 
-    :host-context(.dark-theme) .feed-name {
-      color: #e0e0e0;
+    :host-context(.dark-theme) .import-title {
+      color: #e0e0e0 !important;
     }
 
-    .region-name {
-      font-size: 13px;
-      color: #666;
+    .import-subtitle {
+      font-size: 0.875rem !important;
+      color: #666 !important;
     }
 
-    :host-context(.dark-theme) .region-name {
-      color: #aaa;
+    :host-context(.dark-theme) .import-subtitle {
+      color: #aaa !important;
+    }
+
+    .cancel-button {
+      position: absolute !important;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .import-card-content {
+      padding: 0 16px 16px 16px !important;
     }
 
     .import-meta {
       display: flex;
       align-items: center;
       gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
     }
 
     .started-time {
-      font-size: 12px;
+      font-size: 0.8125rem;
       color: #666;
     }
 
@@ -289,15 +345,25 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
       color: #666;
     }
 
+    /* Responsive */
     @media (max-width: 768px) {
-      .import-item-header {
-        flex-wrap: wrap;
+      .panel-title {
+        font-size: 1rem !important;
       }
 
       .import-meta {
         flex-direction: column;
         align-items: flex-start;
-        width: 100%;
+      }
+
+      .import-card-header {
+        padding-bottom: 60px !important;
+      }
+
+      .cancel-button {
+        top: auto;
+        bottom: 16px;
+        transform: none;
       }
     }
   `],
@@ -310,6 +376,8 @@ export class ActiveImportsCardComponent {
   @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
   @Output() bulkCancel = new EventEmitter<void>();
   @Output() cancelImport = new EventEmitter<string>();
+
+  isExpanded = true;
 
   onSelectionChange(id: string, selected: boolean): void {
     this.selectionChange.emit({ id, selected });
