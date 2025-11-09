@@ -24,34 +24,35 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         </div>
       </app-mobilispect-card>
 
-      <div class="regions-grid" *ngIf="regions?.length; else noRegions">
-        <app-mobilispect-card
-          *ngFor="let region of regions"
-          class="region-card region-item"
-        >
-          <div card-header class="flex items-center justify-between gap-3">
-            <div>
-              <div card-title class="text-lg font-semibold text-white">{{ region.name }}</div>
-              <div card-subtitle class="text-white/90">{{ region.feedCount }} feeds</div>
-            </div>
-            <mat-icon class="text-white !text-3xl">public</mat-icon>
-          </div>
-
-          <div card-actions>
-            <button
-              mat-raised-button
-              color="primary"
-              class="w-full !rounded-lg"
-              (click)="importRegion.emit(region)"
+      @if (regions?.length) {
+        <div class="regions-grid">
+          @for (region of regions!; track region.regionOnestopId) {
+            <app-mobilispect-card
+              class="region-card region-item"
             >
-              <mat-icon>download</mat-icon>
-              Import
-            </button>
-          </div>
-        </app-mobilispect-card>
-      </div>
+              <div card-header class="flex items-center justify-between gap-3">
+                <div>
+                  <div card-title class="text-lg font-semibold text-white">{{ region.name }}</div>
+                  <div card-subtitle class="text-white/90">{{ region.feedCount }} feeds</div>
+                </div>
+                <mat-icon class="text-white !text-3xl">public</mat-icon>
+              </div>
 
-      <ng-template #noRegions>
+              <div card-actions>
+                <button
+                  mat-raised-button
+                  color="primary"
+                  class="w-full !rounded-lg"
+                  (click)="importRegion.emit(region)"
+                >
+                  <mat-icon>download</mat-icon>
+                  Import
+                </button>
+              </div>
+            </app-mobilispect-card>
+          }
+        </div>
+      } @else {
         <div class="empty-state">
           <div class="empty-content">
             <mat-icon class="empty-icon">location_off</mat-icon>
@@ -59,7 +60,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
             <p>Try refreshing data or check your connection.</p>
           </div>
         </div>
-      </ng-template>
+      }
     </div>
   `,
   styles: [`

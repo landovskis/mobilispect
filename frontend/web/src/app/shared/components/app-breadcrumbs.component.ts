@@ -8,16 +8,17 @@ import { RouterModule, Params } from '@angular/router';
   standalone: true,
   imports: [CommonModule, MatIconModule, RouterModule],
   template: `
-    <ng-container *ngFor="let breadcrumb of breadcrumbs; let first = first; let last = last">
-      <mat-icon
-        *ngIf="!first"
-        class="breadcrumb-icon"
-        aria-hidden="true"
-      >
-        chevron_right
-      </mat-icon>
+    @for (breadcrumb of breadcrumbs; let first = $first; let last = $last) {
+      @if (!first) {
+        <mat-icon
+          class="breadcrumb-icon"
+          aria-hidden="true"
+        >
+          chevron_right
+        </mat-icon>
+      }
 
-      <ng-container *ngIf="breadcrumb.link; else breadcrumbLabel">
+      @if (breadcrumb.link) {
         <a
           class="breadcrumb-link"
           [routerLink]="breadcrumb.link"
@@ -34,9 +35,7 @@ import { RouterModule, Params } from '@angular/router';
             {{ breadcrumb.label }}
           </span>
         </a>
-      </ng-container>
-
-      <ng-template #breadcrumbLabel>
+      } @else {
         <span
           class="breadcrumb-item"
           [ngClass]="{ 'breadcrumb-region': last }"
@@ -44,8 +43,8 @@ import { RouterModule, Params } from '@angular/router';
         >
           {{ breadcrumb.label }}
         </span>
-      </ng-template>
-    </ng-container>
+      }
+    }
   `,
   styles: [`
     :host {

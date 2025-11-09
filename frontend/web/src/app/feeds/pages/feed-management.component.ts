@@ -63,9 +63,11 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                   <ng-template mat-tab-label>
                     <mat-icon class="tab-icon">rss_feed</mat-icon>
                     Discover
-                    <span class="tab-badge" *ngIf="regionFeeds.length > 0">
-                      {{ regionFeeds.length }}
-                    </span>
+                    @if (regionFeeds.length > 0) {
+                      <span class="tab-badge">
+                        {{ regionFeeds.length }}
+                      </span>
+                    }
                   </ng-template>
 
                   <div class="tab-content">
@@ -77,32 +79,39 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                     ></app-region-selector>
 
                     <!-- Loading State -->
-                    <app-mobilispect-card *ngIf="loadingFeeds" class="loading-card">
-                      <div card-content class="loading-content">
-                        <mat-spinner diameter="40"></mat-spinner>
-                        <p>Loading feeds...</p>
-                      </div>
-                    </app-mobilispect-card>
+                    @if (loadingFeeds) {
+                      <app-mobilispect-card class="loading-card">
+                        <div card-content class="loading-content">
+                          <mat-spinner diameter="40"></mat-spinner>
+                          <p>Loading feeds...</p>
+                        </div>
+                      </app-mobilispect-card>
+                    }
 
                     <!-- Agency Feed Cards (Grouped) -->
-                    <div *ngIf="!loadingFeeds && agencyGroups.length > 0" class="feeds-grid">
-                      <app-agency-feed-card
-                        *ngFor="let agencyGroup of agencyGroups"
-                        [agencyGroup]="agencyGroup"
-                        (importFeed)="importFeed($event)"
-                        (importAllFeeds)="importMultipleFeeds($event)"
-                        (viewDetails)="viewFeedDetails($event)">
-                      </app-agency-feed-card>
-                    </div>
+                    @if (!loadingFeeds && agencyGroups.length > 0) {
+                      <div class="feeds-grid">
+                        @for (agencyGroup of agencyGroups; track agencyGroup.agencyName) {
+                          <app-agency-feed-card
+                            [agencyGroup]="agencyGroup"
+                            (importFeed)="importFeed($event)"
+                            (importAllFeeds)="importMultipleFeeds($event)"
+                            (viewDetails)="viewFeedDetails($event)">
+                          </app-agency-feed-card>
+                        }
+                      </div>
+                    }
 
                     <!-- Empty State -->
-                    <app-mobilispect-card *ngIf="!loadingFeeds && regionFeeds.length === 0" class="empty-state">
-                      <div card-content class="empty-content">
-                        <mat-icon class="empty-icon">inbox</mat-icon>
-                        <h3>No feeds found</h3>
-                        <p>Select a region to view available transit feeds.</p>
-                      </div>
-                    </app-mobilispect-card>
+                    @if (!loadingFeeds && regionFeeds.length === 0) {
+                      <app-mobilispect-card class="empty-state">
+                        <div card-content class="empty-content">
+                          <mat-icon class="empty-icon">inbox</mat-icon>
+                          <h3>No feeds found</h3>
+                          <p>Select a region to view available transit feeds.</p>
+                        </div>
+                      </app-mobilispect-card>
+                    }
                   </div>
                 </mat-tab>
 
@@ -111,12 +120,16 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                   <ng-template mat-tab-label>
                     <mat-icon class="tab-icon">history</mat-icon>
                     Imports
-                    <span class="tab-badge" *ngIf="totalImportElements > 0">
-                      {{ totalImportElements }}
-                    </span>
-                    <span class="tab-badge active" *ngIf="(activeImports$ | async)?.length">
-                      {{ (activeImports$ | async)?.length }} active
-                    </span>
+                    @if (totalImportElements > 0) {
+                      <span class="tab-badge">
+                        {{ totalImportElements }}
+                      </span>
+                    }
+                    @if ((activeImports$ | async)?.length) {
+                      <span class="tab-badge active">
+                        {{ (activeImports$ | async)?.length }} active
+                      </span>
+                    }
                   </ng-template>
 
                   <div class="tab-content">

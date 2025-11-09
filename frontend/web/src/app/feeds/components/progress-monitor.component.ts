@@ -22,93 +22,110 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MobilispectCardComponent
   ],
   template: `
-    <div class="progress-monitor" *ngIf="importId">
-      <app-mobilispect-card class="progress-card" [ngClass]="'status-' + progressStatus">
-        <div card-header>
-          <div class="flex items-center gap-2 text-white font-semibold">
-            <mat-icon [ngClass]="getIconClass()">{{ getStatusIcon() }}</mat-icon>
-            Import Progress
+    @if (importId) {
+      <div class="progress-monitor">
+        <app-mobilispect-card class="progress-card" [ngClass]="'status-' + progressStatus">
+          <div card-header>
+            <div class="flex items-center gap-2 text-white font-semibold">
+              <mat-icon [ngClass]="getIconClass()">{{ getStatusIcon() }}</mat-icon>
+              Import Progress
+            </div>
+            <div card-subtitle class="text-white/90">Import ID: {{ importId }}</div>
           </div>
-          <div card-subtitle class="text-white/90">Import ID: {{ importId }}</div>
-        </div>
 
-        <div card-content>
-          <div class="progress-info" *ngIf="displayData$ | async as data">
-            <!-- Progress Bar -->
-            <div class="progress-section">
-              <div class="progress-percentage">
-                {{ data.progress.progressPercentage }}%
+          <div card-content>
+            @if (displayData$ | async; as data) {
+              <div class="progress-info">
+                <!-- Progress Bar -->
+                <div class="progress-section">
+                  <div class="progress-percentage">
+                    {{ data.progress.progressPercentage }}%
+                  </div>
+                  <mat-progress-bar
+                    mode="determinate"
+                    [value]="data.progress.progressPercentage"
+                    [color]="data.progressBarColor">
+                  </mat-progress-bar>
+                </div>
+
+                <!-- Current Step -->
+                <div class="current-step">
+                  <strong>Current Step:</strong> {{ data.progress.currentStep }}
+                </div>
+
+                <!-- Step Progress -->
+                <div class="step-progress">
+                  <mat-chip-listbox>
+                    @for (step of getStepArray(data.progress.totalSteps); let i = $index) {
+                      <mat-chip [color]="getStepColor(i, data.progress)">
+                        {{ i + 1 }}
+                      </mat-chip>
+                    }
+                  </mat-chip-listbox>
+                </div>
+
+                <!-- Timing Information -->
+                <div class="timing-info">
+                  <div class="duration">
+                    <mat-icon>schedule</mat-icon>
+                    <span>Duration: {{ formatDuration(data.duration) }}</span>
+                  </div>
+
+                  @if (data.estimatedCompletion) {
+                    <div class="estimated-completion">
+                      <mat-icon>event</mat-icon>
+                      <span>Est. Completion: {{ data.estimatedCompletion | date:'short' }}</span>
+                    </div>
+                  }
+                </div>
               </div>
-              <mat-progress-bar
-                mode="determinate"
-                [value]="data.progress.progressPercentage"
-                [color]="data.progressBarColor">
-              </mat-progress-bar>
-            </div>
+            }
 
-            <!-- Current Step -->
-            <div class="current-step">
-              <strong>Current Step:</strong> {{ data.progress.currentStep }}
-            </div>
-
-            <!-- Step Progress -->
-            <div class="step-progress">
-              <mat-chip-listbox>
-                <mat-chip *ngFor="let step of getStepArray(data.progress.totalSteps); let i = index"
-                         [color]="getStepColor(i, data.progress)">
-                  {{ i + 1 }}
-                </mat-chip>
-              </mat-chip-listbox>
-            </div>
-
-            <!-- Timing Information -->
-            <div class="timing-info">
-              <div class="duration">
-                <mat-icon>schedule</mat-icon>
-                <span>Duration: {{ formatDuration(data.duration) }}</span>
+            <!-- Error State -->
+            @if (error$ | async; as error) {
+              <div class="error-state">
+                <mat-icon color="warn">error</mat-icon>
+                <span>{{ error }}</span>
               </div>
+            }
 
-              <div class="estimated-completion" *ngIf="data.estimatedCompletion">
-                <mat-icon>event</mat-icon>
-                <span>Est. Completion: {{ data.estimatedCompletion | date:'short' }}</span>
+            <!-- Loading State -->
+            @if (isLoading$ | async) {
+              <div class="loading-state">
+                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                <span>Connecting to progress updates...</span>
               </div>
+            }
+          </div>
+
+          @if (showActions) {
+            <div card-actions>
+              <button mat-button (click)="refreshProgress()" [disabled]="(isLoading$ | async)">
+                <mat-icon>refresh</mat-icon>
+                Refresh
+              </button>
+              @if (progressStatus === 'active') {
+                <button mat-button color="warn" (click)="onCancel()"
+                        [disabled]="(isLoading$ | async)">
+                  <mat-icon>cancel</mat-icon>
+                  Cancel Import
+                </button>
+              }
             </div>
+          }
+        </app-mobilispect-card>
+
+        <!-- WebSocket Connection Status -->
+        @if (showConnectionStatus) {
+          <div class="connection-status">
+            <mat-chip [color]="getConnectionColor()" highlighted>
+              <mat-icon>{{ getConnectionIcon() }}</mat-icon>
+              {{ connectionStatus$ | async }}
+            </mat-chip>
           </div>
-
-          <!-- Error State -->
-          <div class="error-state" *ngIf="error$ | async as error">
-            <mat-icon color="warn">error</mat-icon>
-            <span>{{ error }}</span>
-          </div>
-
-          <!-- Loading State -->
-          <div class="loading-state" *ngIf="isLoading$ | async">
-            <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-            <span>Connecting to progress updates...</span>
-          </div>
-        </div>
-
-        <div card-actions *ngIf="showActions">
-          <button mat-button (click)="refreshProgress()" [disabled]="(isLoading$ | async)">
-            <mat-icon>refresh</mat-icon>
-            Refresh
-          </button>
-          <button mat-button color="warn" (click)="onCancel()"
-                  *ngIf="progressStatus === 'active'" [disabled]="(isLoading$ | async)">
-            <mat-icon>cancel</mat-icon>
-            Cancel Import
-          </button>
-        </div>
-      </app-mobilispect-card>
-
-      <!-- WebSocket Connection Status -->
-      <div class="connection-status" *ngIf="showConnectionStatus">
-        <mat-chip [color]="getConnectionColor()" highlighted>
-          <mat-icon>{{ getConnectionIcon() }}</mat-icon>
-          {{ connectionStatus$ | async }}
-        </mat-chip>
+        }
       </div>
-    </div>
+    }
   `,
   styles: [`
     .progress-monitor {

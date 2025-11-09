@@ -37,7 +37,8 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MatIconModule,
     MatProgressSpinnerModule,
     MatExpansionModule,
-    MatChipsModule
+    MatChipsModule,
+    MobilispectCardComponent
   ],
   template: `
     <mat-expansion-panel class="history-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
@@ -45,96 +46,110 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         <mat-panel-title class="panel-title">
           <mat-icon>history</mat-icon>
           <span>Import History</span>
-          <span class="count-badge" *ngIf="history && history.length > 0">{{ totalItems }}</span>
+          @if (history && history.length > 0) {
+            <span class="count-badge">{{ totalItems }}</span>
+          }
         </mat-panel-title>
       </mat-expansion-panel-header>
 
       <!-- Loading State -->
-      <div
-        *ngIf="loading"
-        class="loading-container"
-        role="status"
-        aria-live="polite"
-      >
-        <mat-spinner diameter="40"></mat-spinner>
-        <p>Loading import history...</p>
-      </div>
+      @if (loading) {
+        <div
+          class="loading-container"
+          role="status"
+          aria-live="polite"
+        >
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Loading import history...</p>
+        </div>
+      }
 
       <!-- Empty State -->
-      <div
-        *ngIf="!loading && (!history || history.length === 0)"
-        class="empty-state"
-      >
-        <mat-icon class="empty-icon">history</mat-icon>
-        <p class="empty-title">No import history available yet.</p>
-        <p class="empty-subtitle">
-          Start an import to see it appear here.
-        </p>
-      </div>
+      @if (!loading && (!history || history.length === 0)) {
+        <div class="empty-state">
+          <mat-icon class="empty-icon">history</mat-icon>
+          <p class="empty-title">No import history available yet.</p>
+          <p class="empty-subtitle">
+            Start an import to see it appear here.
+          </p>
+        </div>
+      }
 
       <!-- History Cards List -->
-      <div *ngIf="!loading && history && history.length > 0" class="history-container">
-        <div class="history-list">
-          <app-mobilispect-card *ngFor="let importItem of history" class="history-item-card">
-            <div card-header class="history-card-header">
-              <div class="history-avatar" [ngClass]="{
-                'avatar-completed': importItem.status === 'completed',
-                'avatar-failed': importItem.status === 'failed',
-                'avatar-cancelled': importItem.status === 'cancelled'
-              }">
-                <mat-icon *ngIf="importItem.status === 'completed'">check_circle</mat-icon>
-                <mat-icon *ngIf="importItem.status === 'failed'">error</mat-icon>
-                <mat-icon *ngIf="importItem.status === 'cancelled'">cancel</mat-icon>
-              </div>
+      @if (!loading && history && history.length > 0) {
+        <div class="history-container">
+          <div class="history-list">
+            @for (importItem of history; track importItem.id) {
+              <app-mobilispect-card class="history-item-card">
+                <div card-header class="history-card-header">
+                  <div class="history-avatar" [ngClass]="{
+                    'avatar-completed': importItem.status === 'completed',
+                    'avatar-failed': importItem.status === 'failed',
+                    'avatar-cancelled': importItem.status === 'cancelled'
+                  }">
+                    @if (importItem.status === 'completed') {
+                      <mat-icon>check_circle</mat-icon>
+                    } @else if (importItem.status === 'failed') {
+                      <mat-icon>error</mat-icon>
+                    } @else if (importItem.status === 'cancelled') {
+                      <mat-icon>cancel</mat-icon>
+                    }
+                  </div>
 
-              <div class="card-title">
-                {{ importItem.feedName || importItem.feedOnestopId }}
-              </div>
+                  <div class="card-title">
+                    {{ importItem.feedName || importItem.feedOnestopId }}
+                  </div>
 
-              <div class="card-subtitle">
-                {{ importItem.regionName }}
-              </div>
-            </div>
+                  <div class="card-subtitle">
+                    {{ importItem.regionName }}
+                  </div>
+                </div>
 
-            <div card-content class="history-card-content">
-              <div class="history-meta">
-                <mat-chip-set aria-label="Import status">
-                  <mat-chip [class.chip-success]="importItem.status === 'completed'"
-                            [class.chip-error]="importItem.status === 'failed'"
-                            [class.chip-warning]="importItem.status === 'cancelled'">
-                    {{ importItem.status }}
-                  </mat-chip>
-                </mat-chip-set>
+                <div card-content class="history-card-content">
+                  <div class="history-meta">
+                    <mat-chip-set aria-label="Import status">
+                      <mat-chip [class.chip-success]="importItem.status === 'completed'"
+                                [class.chip-error]="importItem.status === 'failed'"
+                                [class.chip-warning]="importItem.status === 'cancelled'">
+                        {{ importItem.status }}
+                      </mat-chip>
+                    </mat-chip-set>
 
-                <span class="meta-item">
-                  <mat-icon>schedule</mat-icon>
-                  Started: {{ importItem.startedAt | date:'short' }}
-                </span>
+                    <span class="meta-item">
+                      <mat-icon>schedule</mat-icon>
+                      Started: {{ importItem.startedAt | date:'short' }}
+                    </span>
 
-                <span class="meta-item" *ngIf="importItem.completedAt">
-                  <mat-icon>event_available</mat-icon>
-                  Completed: {{ importItem.completedAt | date:'short' }}
-                </span>
+                    @if (importItem.completedAt) {
+                      <span class="meta-item">
+                        <mat-icon>event_available</mat-icon>
+                        Completed: {{ importItem.completedAt | date:'short' }}
+                      </span>
+                    }
 
-                <span class="meta-item" *ngIf="importItem.fileSizeBytes">
-                  <mat-icon>storage</mat-icon>
-                  {{ formatFileSize(importItem.fileSizeBytes) }}
-                </span>
-              </div>
-            </div>
-          </app-mobilispect-card>
+                    @if (importItem.fileSizeBytes) {
+                      <span class="meta-item">
+                        <mat-icon>storage</mat-icon>
+                        {{ formatFileSize(importItem.fileSizeBytes) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </app-mobilispect-card>
+            }
+          </div>
+
+          <!-- Paginator -->
+          <mat-paginator
+            [length]="totalItems"
+            [pageSize]="pageSize"
+            [pageIndex]="pageIndex"
+            [pageSizeOptions]="pageSizeOptions"
+            (page)="onPageChange($event)"
+            showFirstLastButtons
+          ></mat-paginator>
         </div>
-
-        <!-- Paginator -->
-        <mat-paginator
-          [length]="totalItems"
-          [pageSize]="pageSize"
-          [pageIndex]="pageIndex"
-          [pageSizeOptions]="pageSizeOptions"
-          (page)="onPageChange($event)"
-          showFirstLastButtons
-        ></mat-paginator>
-      </div>
+      }
     </mat-expansion-panel>
   `,
   styleUrls: ['../styles/card.styles.css'],

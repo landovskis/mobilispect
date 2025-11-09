@@ -47,38 +47,47 @@ export interface ImportProgressDialogData {
               <div class="status-info">
                 <h3>{{ getStatusText() }}</h3>
                 <p class="import-id">Import ID: {{ data.importResult.id }}</p>
-                <div class="connection-status" *ngIf="connectionStatus$ | async as status">
-                  <mat-icon [class]="'connection-icon ' + status.toLowerCase()">
-                    {{ getConnectionIcon(status) }}
-                  </mat-icon>
-                  <span class="connection-text">{{ getConnectionText(status) }}</span>
-                </div>
+                @if (connectionStatus$ | async; as status) {
+                  <div class="connection-status">
+                    <mat-icon [class]="'connection-icon ' + status.toLowerCase()">
+                      {{ getConnectionIcon(status) }}
+                    </mat-icon>
+                    <span class="connection-text">{{ getConnectionText(status) }}</span>
+                  </div>
+                }
               </div>
               <div class="status-indicator">
-                <mat-spinner *ngIf="isInProgress" diameter="40"></mat-spinner>
-                <mat-icon *ngIf="!isInProgress" [class]="getStatusClass()">
-                  {{ getStatusIcon() }}
-                </mat-icon>
+                @if (isInProgress) {
+                  <mat-spinner diameter="40"></mat-spinner>
+                } @else {
+                  <mat-icon [class]="getStatusClass()">
+                    {{ getStatusIcon() }}
+                  </mat-icon>
+                }
               </div>
             </div>
           </div>
 
           <div card-content>
             <!-- Progress Bar (shown during active import) -->
-            <div *ngIf="currentProgress && isInProgress" class="progress-section">
-              <mat-progress-bar
-                mode="determinate"
-                [value]="currentProgress.progressPercentage">
-              </mat-progress-bar>
-              <div class="progress-details">
-                <span class="progress-text">
-                  {{ currentProgress.progressPercentage }}% - {{ currentProgress.currentStep }}
-                </span>
-                <span class="progress-eta" *ngIf="currentProgress.estimatedTimeRemainingSeconds">
-                  ETA: {{ formatDuration(currentProgress.estimatedTimeRemainingSeconds) }}
-                </span>
+            @if (currentProgress && isInProgress) {
+              <div class="progress-section">
+                <mat-progress-bar
+                  mode="determinate"
+                  [value]="currentProgress.progressPercentage">
+                </mat-progress-bar>
+                <div class="progress-details">
+                  <span class="progress-text">
+                    {{ currentProgress.progressPercentage }}% - {{ currentProgress.currentStep }}
+                  </span>
+                  @if (currentProgress.estimatedTimeRemainingSeconds) {
+                    <span class="progress-eta">
+                      ETA: {{ formatDuration(currentProgress.estimatedTimeRemainingSeconds) }}
+                    </span>
+                  }
+                </div>
               </div>
-            </div>
+            }
 
             <!-- Import Details -->
             <div class="import-details">
@@ -86,51 +95,63 @@ export interface ImportProgressDialogData {
                 <mat-icon>schedule</mat-icon>
                 <span>Started: {{ data.importResult.startedAt | date:'medium' }}</span>
               </div>
-              <div class="detail-row" *ngIf="data.importResult.completedAt">
-                <mat-icon>check_circle</mat-icon>
-                <span>Completed: {{ data.importResult.completedAt | date:'medium' }}</span>
-              </div>
-              <div class="detail-row" *ngIf="data.importResult.fileSizeBytes">
-                <mat-icon>storage</mat-icon>
-                <span>File Size: {{ formatFileSize(data.importResult.fileSizeBytes) }}</span>
-              </div>
-              <div class="detail-row" *ngIf="data.importResult.errorMessage">
-                <mat-icon class="error-icon">error</mat-icon>
-                <span class="error-text">{{ data.importResult.errorMessage }}</span>
-              </div>
+              @if (data.importResult.completedAt) {
+                <div class="detail-row">
+                  <mat-icon>check_circle</mat-icon>
+                  <span>Completed: {{ data.importResult.completedAt | date:'medium' }}</span>
+                </div>
+              }
+              @if (data.importResult.fileSizeBytes) {
+                <div class="detail-row">
+                  <mat-icon>storage</mat-icon>
+                  <span>File Size: {{ formatFileSize(data.importResult.fileSizeBytes) }}</span>
+                </div>
+              }
+              @if (data.importResult.errorMessage) {
+                <div class="detail-row">
+                  <mat-icon class="error-icon">error</mat-icon>
+                  <span class="error-text">{{ data.importResult.errorMessage }}</span>
+                </div>
+              }
             </div>
 
             <!-- Current Step Details -->
-              <div *ngIf="currentProgress && isInProgress" class="step-details">
+            @if (currentProgress && isInProgress) {
+              <div class="step-details">
                 <h4>Current Activity</h4>
                 <div class="activity-log" #activityLog>
-                <div *ngFor="let log of activityLogs" class="log-entry">
-                  <span class="log-timestamp">{{ log.timestamp | date:'HH:mm:ss' }}</span>
-                  <span class="log-message">{{ log.message }}</span>
+                  @for (log of activityLogs; track log.timestamp) {
+                    <div class="log-entry">
+                      <span class="log-timestamp">{{ log.timestamp | date:'HH:mm:ss' }}</span>
+                      <span class="log-message">{{ log.message }}</span>
+                    </div>
+                  }
                 </div>
               </div>
-            </div>
+            }
           </div>
         </app-mobilispect-card>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button
-          mat-button
-          *ngIf="canCancel()"
-          (click)="cancelImport()"
-          [disabled]="cancelling">
-          <mat-icon>cancel</mat-icon>
-          {{ cancelling ? 'Cancelling...' : 'Cancel Import' }}
-        </button>
-        <button
-          mat-button
-          *ngIf="canRetry()"
-          (click)="retryImport()"
-          [disabled]="retrying">
-          <mat-icon>refresh</mat-icon>
-          {{ retrying ? 'Starting...' : 'Retry' }}
-        </button>
+        @if (canCancel()) {
+          <button
+            mat-button
+            (click)="cancelImport()"
+            [disabled]="cancelling">
+            <mat-icon>cancel</mat-icon>
+            {{ cancelling ? 'Cancelling...' : 'Cancel Import' }}
+          </button>
+        }
+        @if (canRetry()) {
+          <button
+            mat-button
+            (click)="retryImport()"
+            [disabled]="retrying">
+            <mat-icon>refresh</mat-icon>
+            {{ retrying ? 'Starting...' : 'Retry' }}
+          </button>
+        }
         <button
           mat-raised-button
           color="primary"

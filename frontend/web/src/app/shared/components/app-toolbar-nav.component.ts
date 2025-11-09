@@ -7,17 +7,20 @@ import { MatButtonModule } from '@angular/material/button';
   standalone: true,
   imports: [CommonModule, MatButtonModule],
   template: `
-    <div class="nav-links" *ngIf="navItems?.length">
-      <button
-        mat-button
-        *ngFor="let item of navItems"
-        [disabled]="item.active"
-        [class.active]="item.active"
-        (click)="onNavClick(item)"
-      >
-        {{ item.label }}
-      </button>
-    </div>
+    @if (navItems?.length) {
+      <div class="nav-links">
+        @for (item of navItems; track item.label) {
+          <button
+            mat-button
+            [disabled]="item.active"
+            [class.active]="item.active"
+            (click)="onNavClick(item)"
+          >
+            {{ item.label }}
+          </button>
+        }
+      </div>
+    }
   `,
   styles: [`
     :host {

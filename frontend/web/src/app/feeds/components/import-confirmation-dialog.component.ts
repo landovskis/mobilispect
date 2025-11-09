@@ -27,7 +27,9 @@ export interface ImportConfirmationData {
 
       <mat-dialog-content>
         <p>You are about to start importing feeds from <strong>{{ data.regionName }}</strong>.</p>
-        <p *ngIf="data.feedCount > 0">This region has <strong>{{ data.feedCount }} feeds</strong> available.</p>
+        @if (data.feedCount > 0) {
+          <p>This region has <strong>{{ data.feedCount }} feeds</strong> available.</p>
+        }
         <p>The import will run in the background and you can monitor its progress in the Active Imports view.</p>
       </mat-dialog-content>
 

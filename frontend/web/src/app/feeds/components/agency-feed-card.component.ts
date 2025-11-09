@@ -35,65 +35,69 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
     MobilispectCardComponent
   ],
   template: `
-    <app-mobilispect-card *ngIf="agencyGroup">
-      <!-- Header -->
-      <div card-header class="flex items-center gap-4">
-        <div card-avatar class="w-12 h-12 flex items-center justify-center rounded-xl bg-white/20">
-          <mat-icon class="text-white !text-[28px] !w-7 !h-7">business</mat-icon>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div card-title class="text-xl font-semibold text-white mb-1 font-['Red_Hat_Display']">
-            {{ agencyGroup.agencyName }}
+    @if (agencyGroup) {
+      <app-mobilispect-card>
+        <!-- Header -->
+        <div card-header class="flex items-center gap-4">
+          <div card-avatar class="w-12 h-12 flex items-center justify-center rounded-xl bg-white/20">
+            <mat-icon class="text-white !text-[28px] !w-7 !h-7">business</mat-icon>
           </div>
-          <div card-subtitle class="flex items-center gap-1.5 text-sm text-white/90">
-            <mat-icon class="!text-[16px] !w-4 !h-4">rss_feed</mat-icon>
-            {{ agencyGroup.feeds.length }} feed{{ agencyGroup.feeds.length !== 1 ? 's' : '' }} available
+          <div class="flex-1 min-w-0">
+            <div card-title class="text-xl font-semibold text-white mb-1 font-['Red_Hat_Display']">
+              {{ agencyGroup.agencyName }}
+            </div>
+            <div card-subtitle class="flex items-center gap-1.5 text-sm text-white/90">
+              <mat-icon class="!text-[16px] !w-4 !h-4">rss_feed</mat-icon>
+              {{ agencyGroup.feeds.length }} feed{{ agencyGroup.feeds.length !== 1 ? 's' : '' }} available
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Content -->
-      <div card-content>
-        <!-- Feed Types Summary -->
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#2980B9] dark:text-[#64b5f6]">
-            <mat-icon class="!text-[16px] !w-4 !h-4">category</mat-icon>
-            <span>Feed Types</span>
-          </div>
-          <div class="flex gap-2 flex-wrap">
-            <mat-chip-listbox aria-label="Feed types">
-              <mat-chip
-                *ngIf="agencyGroup.feedsByType.gtfs > 0"
-                class="feed-type-chip feed-type-gtfs"
-                [highlighted]="true">
-                <mat-icon>directions_bus</mat-icon>
-                {{ agencyGroup.feedsByType.gtfs }} Static
-              </mat-chip>
-              <mat-chip
-                *ngIf="agencyGroup.feedsByType.gtfsRt > 0"
-                class="feed-type-chip feed-type-gtfs-rt"
-                [highlighted]="true">
-                <mat-icon>update</mat-icon>
-                {{ agencyGroup.feedsByType.gtfsRt }} Realtime
-              </mat-chip>
-            </mat-chip-listbox>
+        <!-- Content -->
+        <div card-content>
+          <!-- Feed Types Summary -->
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#2980B9] dark:text-[#64b5f6]">
+              <mat-icon class="!text-[16px] !w-4 !h-4">category</mat-icon>
+              <span>Feed Types</span>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <mat-chip-listbox aria-label="Feed types">
+                @if (agencyGroup.feedsByType.gtfs > 0) {
+                  <mat-chip
+                    class="feed-type-chip feed-type-gtfs"
+                    [highlighted]="true">
+                    <mat-icon>directions_bus</mat-icon>
+                    {{ agencyGroup.feedsByType.gtfs }} Static
+                  </mat-chip>
+                }
+                @if (agencyGroup.feedsByType.gtfsRt > 0) {
+                  <mat-chip
+                    class="feed-type-chip feed-type-gtfs-rt"
+                    [highlighted]="true">
+                    <mat-icon>update</mat-icon>
+                    {{ agencyGroup.feedsByType.gtfsRt }} Realtime
+                  </mat-chip>
+                }
+              </mat-chip-listbox>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Actions -->
-      <div card-actions>
-        <button
-          mat-raised-button
-          color="primary"
-          class="w-full !rounded-lg !font-semibold !h-12"
-          (click)="onImport()"
-          [disabled]="!agencyGroup.hasActiveFeeds">
-          <mat-icon>download</mat-icon>
-          <span>Import{{ getActiveFeedsCount() > 1 ? ' All' : '' }}</span>
-        </button>
-      </div>
-    </app-mobilispect-card>
+        <!-- Actions -->
+        <div card-actions>
+          <button
+            mat-raised-button
+            color="primary"
+            class="w-full !rounded-lg !font-semibold !h-12"
+            (click)="onImport()"
+            [disabled]="!agencyGroup.hasActiveFeeds">
+            <mat-icon>download</mat-icon>
+            <span>Import{{ getActiveFeedsCount() > 1 ? ' All' : '' }}</span>
+          </button>
+        </div>
+      </app-mobilispect-card>
+    }
   `,
   styleUrls: ['../styles/card.styles.css'],
   styles: [`

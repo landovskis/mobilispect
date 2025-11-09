@@ -34,29 +34,38 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
           [matAutocomplete]="auto"
           placeholder="Type to search regions..."
           [disabled]="disabled">
-        <button
-          *ngIf="searchControl.value"
-          matSuffix
-          mat-icon-button
-          aria-label="Clear"
-          (click)="clearSearch()">
-          <mat-icon>close</mat-icon>
-        </button>
+        @if (searchControl.value) {
+          <button
+            matSuffix
+            mat-icon-button
+            aria-label="Clear"
+            (click)="clearSearch()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
         <mat-autocomplete
           #auto="matAutocomplete"
           (optionSelected)="onRegionSelected($event.option.value)"
           [displayWith]="displayRegion">
-          <mat-option *ngFor="let region of filteredRegions$ | async" [value]="region">
-            <div class="region-option">
-              <mat-icon class="region-icon">place</mat-icon>
-              <span class="region-name">{{ region.name }}</span>
-              <span class="region-feed-count" *ngIf="region.feedCount > 0">
-                {{ region.feedCount }} feed{{ region.feedCount !== 1 ? 's' : '' }}
-              </span>
-            </div>
-          </mat-option>
+          @if (filteredRegions$ | async; as regions) {
+            @for (region of regions; track region.regionOnestopId) {
+              <mat-option [value]="region">
+                <div class="region-option">
+                  <mat-icon class="region-icon">place</mat-icon>
+                  <span class="region-name">{{ region.name }}</span>
+                  @if (region.feedCount > 0) {
+                    <span class="region-feed-count">
+                      {{ region.feedCount }} feed{{ region.feedCount !== 1 ? 's' : '' }}
+                    </span>
+                  }
+                </div>
+              </mat-option>
+            }
+          }
         </mat-autocomplete>
-        <mat-hint *ngIf="regions.length > 0">{{ regions.length }} region{{ regions.length !== 1 ? 's' : '' }} available</mat-hint>
+        @if (regions.length > 0) {
+          <mat-hint>{{ regions.length }} region{{ regions.length !== 1 ? 's' : '' }} available</mat-hint>
+        }
       </mat-form-field>
     </div>
   `,

@@ -19,62 +19,64 @@ import { FeedImportSummary } from '../models/import.models';
   ],
   template: `
     <div class="tab-content">
-      <ng-container *ngIf="activeImports$ | async as activeImports">
-        <div
-          class="bulk-actions"
-          *ngIf="activeImports.length > 0"
-        >
-          <mat-checkbox
-            [checked]="allImportsSelected"
-            [indeterminate]="someImportsSelected && !allImportsSelected"
-            (change)="selectAllChange.emit($event.checked)"
-          >
-            Select All
-          </mat-checkbox>
-          <button
-            mat-button
-            color="warn"
-            [disabled]="!selectedImportIds || selectedImportIds.size === 0"
-            (click)="bulkCancel.emit()"
-          >
-            <mat-icon>cancel</mat-icon>
-            Cancel Selected ({{ selectedImportIds?.size || 0 }})
-          </button>
-        </div>
-
-        <div *ngIf="activeImports.length === 0" class="no-imports">
-          <mat-icon class="no-imports-icon">hourglass_empty</mat-icon>
-          <p>No active imports at this time.</p>
-          <p class="hint">Start an import from the regions view to see real-time progress here.</p>
-        </div>
-
-        <div
-          *ngFor="let activeImport of activeImports"
-          class="active-import-card active-import-item"
-        >
-          <div class="import-header">
+      @if (activeImports$ | async; as activeImports) {
+        @if (activeImports.length > 0) {
+          <div class="bulk-actions">
             <mat-checkbox
-              [checked]="selectedImportIds?.has(activeImport.id)"
-              (change)="selectionChange.emit({ id: activeImport.id, selected: $event.checked })"
-              class="import-checkbox"
-            ></mat-checkbox>
-            <h3>
-              <mat-icon class="import-icon">download</mat-icon>
-              {{ activeImport.feedName }}
-            </h3>
-            <p class="import-subtitle">
-              {{ activeImport.regionName }} • Started: {{ activeImport.startedAt | date:'short' }}
-            </p>
+              [checked]="allImportsSelected"
+              [indeterminate]="someImportsSelected && !allImportsSelected"
+              (change)="selectAllChange.emit($event.checked)"
+            >
+              Select All
+            </mat-checkbox>
+            <button
+              mat-button
+              color="warn"
+              [disabled]="!selectedImportIds || selectedImportIds.size === 0"
+              (click)="bulkCancel.emit()"
+            >
+              <mat-icon>cancel</mat-icon>
+              Cancel Selected ({{ selectedImportIds?.size || 0 }})
+            </button>
           </div>
+        }
 
-          <app-progress-monitor
-            [importId]="activeImport.id"
-            [showActions]="true"
-            [showConnectionStatus]="false"
-            (cancelRequested)="cancelImport.emit($event)"
-          ></app-progress-monitor>
-        </div>
-      </ng-container>
+        @if (activeImports.length === 0) {
+          <div class="no-imports">
+            <mat-icon class="no-imports-icon">hourglass_empty</mat-icon>
+            <p>No active imports at this time.</p>
+            <p class="hint">Start an import from the regions view to see real-time progress here.</p>
+          </div>
+        }
+
+        @for (activeImport of activeImports; track activeImport.id) {
+          <div
+            class="active-import-card active-import-item"
+          >
+            <div class="import-header">
+              <mat-checkbox
+                [checked]="selectedImportIds?.has(activeImport.id)"
+                (change)="selectionChange.emit({ id: activeImport.id, selected: $event.checked })"
+                class="import-checkbox"
+              ></mat-checkbox>
+              <h3>
+                <mat-icon class="import-icon">download</mat-icon>
+                {{ activeImport.feedName }}
+              </h3>
+              <p class="import-subtitle">
+                {{ activeImport.regionName }} • Started: {{ activeImport.startedAt | date:'short' }}
+              </p>
+            </div>
+
+            <app-progress-monitor
+              [importId]="activeImport.id"
+              [showActions]="true"
+              [showConnectionStatus]="false"
+              (cancelRequested)="cancelImport.emit($event)"
+            ></app-progress-monitor>
+          </div>
+        }
+      }
     </div>
   `,
   styles: [`

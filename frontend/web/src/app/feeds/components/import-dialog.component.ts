@@ -72,30 +72,37 @@ export interface ImportDialogData {
 
       <mat-dialog-content class="dialog-content">
         <!-- Loading State -->
-        <div *ngIf="isLoadingFeeds$ | async" class="loading-section">
-          <mat-spinner diameter="32"></mat-spinner>
-          <p>Loading available feeds...</p>
-        </div>
+        @if (isLoadingFeeds$ | async) {
+          <div class="loading-section">
+            <mat-spinner diameter="32"></mat-spinner>
+            <p>Loading available feeds...</p>
+          </div>
+        }
 
         <!-- Error State -->
-        <div *ngIf="feedLoadError$ | async as error" class="error-section">
-          <mat-icon color="warn">error</mat-icon>
-          <p>{{ error }}</p>
-          <button mat-button color="primary" (click)="loadFeeds()">
-            <mat-icon>refresh</mat-icon>
-            Retry
-          </button>
-        </div>
+        @if (feedLoadError$ | async; as error) {
+          <div class="error-section">
+            <mat-icon color="warn">error</mat-icon>
+            <p>{{ error }}</p>
+            <button mat-button color="primary" (click)="loadFeeds()">
+              <mat-icon>refresh</mat-icon>
+              Retry
+            </button>
+          </div>
+        }
 
         <!-- Feed Selection -->
-        <div *ngIf="!(isLoadingFeeds$ | async) && !(feedLoadError$ | async)" class="feed-selection-section">
+        @if (!(isLoadingFeeds$ | async) && !(feedLoadError$ | async)) {
+          <div class="feed-selection-section">
           <div class="section-header">
             <h3>Select Feeds to Import</h3>
             <div class="feed-stats">
               {{ availableFeeds.length }} feeds available
-              <span *ngIf="getSelectedFeedCount() > 0">
-                • {{ getSelectedFeedCount() }} selected
-              </span>
+              @if (getSelectedFeedCount() > 0) {
+                <span>
+                  • {{ getSelectedFeedCount() }} selected
+                </span>
+              }
             </div>
           </div>
 
@@ -129,55 +136,62 @@ export interface ImportDialogData {
           </div>
 
           <!-- Feed List -->
-          <div class="feed-list" *ngIf="filteredFeeds.length > 0">
-            <div
-              *ngFor="let feed of filteredFeeds; trackBy: trackByFeedId"
-              class="feed-item"
-              [class.feed-item-selected]="isSelectedFeed(feed)"
-            >
-              <mat-checkbox
-                [checked]="isSelectedFeed(feed)"
-                [disabled]="!FeedUtils.isAvailableForImport(feed) || isImportRunning(feed)"
-                (change)="toggleFeedSelection(feed, $event.checked)"
-                [attr.aria-label]="'Select ' + feed.name + ' for import'"
-              >
-              </mat-checkbox>
+          @if (filteredFeeds.length > 0) {
+            <div class="feed-list">
+              @for (feed of filteredFeeds; track trackByFeedId($index, feed)) {
+                <div
+                  class="feed-item"
+                  [class.feed-item-selected]="isSelectedFeed(feed)"
+                >
+                  <mat-checkbox
+                    [checked]="isSelectedFeed(feed)"
+                    [disabled]="!FeedUtils.isAvailableForImport(feed) || isImportRunning(feed)"
+                    (change)="toggleFeedSelection(feed, $event.checked)"
+                    [attr.aria-label]="'Select ' + feed.name + ' for import'"
+                  >
+                  </mat-checkbox>
 
-              <div class="feed-info">
-                <div class="feed-header">
-                  <span class="feed-name">{{ feed.name }}</span>
-                  <div class="feed-badges">
-                    <mat-chip-set>
-                      <mat-chip [color]="getSpecTypeColor(feed.specType)">
-                        {{ FeedUtils.getSpecTypeDisplayName(feed.specType) }}
-                      </mat-chip>
-                      <mat-chip [ngClass]="FeedUtils.getStatusColorClass(feed.status)">
-                        {{ FeedUtils.getStatusDisplayName(feed.status) }}
-                      </mat-chip>
-                      <mat-chip *ngIf="isImportRunning(feed)" color="accent">
-                        <mat-icon>sync</mat-icon>
-                        Importing
-                      </mat-chip>
-                    </mat-chip-set>
+                  <div class="feed-info">
+                    <div class="feed-header">
+                      <span class="feed-name">{{ feed.name }}</span>
+                      <div class="feed-badges">
+                        <mat-chip-set>
+                          <mat-chip [color]="getSpecTypeColor(feed.specType)">
+                            {{ FeedUtils.getSpecTypeDisplayName(feed.specType) }}
+                          </mat-chip>
+                          <mat-chip [ngClass]="FeedUtils.getStatusColorClass(feed.status)">
+                            {{ FeedUtils.getStatusDisplayName(feed.status) }}
+                          </mat-chip>
+                          @if (isImportRunning(feed)) {
+                            <mat-chip color="accent">
+                              <mat-icon>sync</mat-icon>
+                              Importing
+                            </mat-chip>
+                          }
+                        </mat-chip-set>
+                      </div>
+                    </div>
+
+                    <div class="feed-details">
+                      <span class="feed-id">{{ feed.feedOnestopId }}</span>
+                      @if (feed.lastUpdatedAt) {
+                        <span class="feed-updated">
+                          Updated: {{ FeedUtils.formatLastUpdated(feed) }}
+                        </span>
+                      }
+                    </div>
                   </div>
                 </div>
-
-                <div class="feed-details">
-                  <span class="feed-id">{{ feed.feedOnestopId }}</span>
-                  <span *ngIf="feed.lastUpdatedAt" class="feed-updated">
-                    Updated: {{ FeedUtils.formatLastUpdated(feed) }}
-                  </span>
-                </div>
-              </div>
+              }
             </div>
-          </div>
-
-          <!-- No Feeds Available -->
-          <div *ngIf="filteredFeeds.length === 0" class="no-feeds">
-            <mat-icon>info</mat-icon>
-            <p>No feeds available for import with the current filter.</p>
-          </div>
+          } @else {
+            <div class="no-feeds">
+              <mat-icon>info</mat-icon>
+              <p>No feeds available for import with the current filter.</p>
+            </div>
+          }
         </div>
+        }
 
         <mat-divider></mat-divider>
 
@@ -214,9 +228,11 @@ export interface ImportDialogData {
 
       <mat-dialog-actions class="dialog-actions">
         <div class="actions-left">
-          <span *ngIf="getSelectedFeedCount() > 0" class="selection-count">
-            {{ getSelectedFeedCount() }} feed{{ getSelectedFeedCount() === 1 ? '' : 's' }} selected
-          </span>
+          @if (getSelectedFeedCount() > 0) {
+            <span class="selection-count">
+              {{ getSelectedFeedCount() }} feed{{ getSelectedFeedCount() === 1 ? '' : 's' }} selected
+            </span>
+          }
         </div>
 
         <div class="actions-right">
@@ -228,8 +244,11 @@ export interface ImportDialogData {
             (click)="startImports()"
             [attr.aria-label]="'Start import for ' + getSelectedFeedCount() + ' feeds'"
           >
-            <mat-icon *ngIf="!(isImporting$ | async)">play_arrow</mat-icon>
-            <mat-spinner *ngIf="isImporting$ | async" diameter="16"></mat-spinner>
+            @if (!(isImporting$ | async)) {
+              <mat-icon>play_arrow</mat-icon>
+            } @else {
+              <mat-spinner diameter="16"></mat-spinner>
+            }
             {{ (isImporting$ | async) ? 'Starting...' : 'Start Import' }}
           </button>
         </div>

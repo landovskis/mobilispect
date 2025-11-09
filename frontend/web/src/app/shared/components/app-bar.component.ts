@@ -37,31 +37,37 @@ import { AppToolbarNavComponent, ToolbarNavItem } from './app-toolbar-nav.compon
         <img [src]="logoUrl" [alt]="appName + ' Logo'" class="app-logo" />
         <div class="toolbar-heading">
           <span class="toolbar-title">{{ appName }}</span>
-          <app-toolbar-breadcrumbs
-            *ngIf="breadcrumbs?.length"
-            [breadcrumbs]="breadcrumbs"
-            (breadcrumbSelected)="breadcrumbSelected.emit($event)"
-          ></app-toolbar-breadcrumbs>
+          @if (breadcrumbs?.length) {
+            <app-toolbar-breadcrumbs
+              [breadcrumbs]="breadcrumbs"
+              (breadcrumbSelected)="breadcrumbSelected.emit($event)"
+            ></app-toolbar-breadcrumbs>
+          }
         </div>
-        <div class="mobile-dropdown" *ngIf="isMobileNavOpen && navItems?.length">
-          <button
-            mat-button
-            *ngFor="let item of navItems"
-            [disabled]="item.active"
-            [class.active]="item.active"
-            (click)="handleNavSelected(item)"
-          >
-            {{ item.label }}
-          </button>
-        </div>
+        @if (isMobileNavOpen && navItems?.length) {
+          <div class="mobile-dropdown">
+            @for (item of navItems; track item.label) {
+              <button
+                mat-button
+                [disabled]="item.active"
+                [class.active]="item.active"
+                (click)="handleNavSelected(item)"
+              >
+                {{ item.label }}
+              </button>
+            }
+          </div>
+        }
       </div>
 
-      <div class="toolbar-center" *ngIf="navItems?.length">
-        <app-toolbar-nav
-          [navItems]="navItems"
-          (navSelected)="handleNavSelected($event)"
-        ></app-toolbar-nav>
-      </div>
+      @if (navItems?.length) {
+        <div class="toolbar-center">
+          <app-toolbar-nav
+            [navItems]="navItems"
+            (navSelected)="handleNavSelected($event)"
+          ></app-toolbar-nav>
+        </div>
+      }
 
       <div class="toolbar-right">
         <ng-content select="[toolbar-actions]"></ng-content>

@@ -43,91 +43,97 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
 
       <!-- Status Overview -->
       <div class="status-overview">
-        <app-mobilispect-card *ngIf="schedulerStatus$ | async as status">
-          <div card-header>
-            <div card-title>Scheduler Status</div>
-          </div>
-          <div card-content>
-            <div class="status-grid">
-              <div class="status-item">
-                <mat-icon [class]="status.enabled ? 'status-enabled' : 'status-disabled'">
-                  {{ status.enabled ? 'check_circle' : 'cancel' }}
-                </mat-icon>
-                <div class="status-info">
-                  <span class="label">Scheduler</span>
-                  <span class="value" [class]="status.enabled ? 'enabled' : 'disabled'">
-                    {{ status.enabled ? 'Enabled' : 'Disabled' }}
-                  </span>
+        @if (schedulerStatus$ | async; as status) {
+          <app-mobilispect-card>
+            <div card-header>
+              <div card-title>Scheduler Status</div>
+            </div>
+            <div card-content>
+              <div class="status-grid">
+                <div class="status-item">
+                  <mat-icon [class]="status.enabled ? 'status-enabled' : 'status-disabled'">
+                    {{ status.enabled ? 'check_circle' : 'cancel' }}
+                  </mat-icon>
+                  <div class="status-info">
+                    <span class="label">Scheduler</span>
+                    <span class="value" [class]="status.enabled ? 'enabled' : 'disabled'">
+                      {{ status.enabled ? 'Enabled' : 'Disabled' }}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <div class="status-item">
-                <mat-icon class="info">schedule</mat-icon>
-                <div class="status-info">
-                  <span class="label">Next Run</span>
-                  <span class="value">{{ status.nextScheduledRun }}</span>
+                <div class="status-item">
+                  <mat-icon class="info">schedule</mat-icon>
+                  <div class="status-info">
+                    <span class="label">Next Run</span>
+                    <span class="value">{{ status.nextScheduledRun }}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div class="status-item">
-                <mat-icon class="info">feed</mat-icon>
-                <div class="status-info">
-                  <span class="label">Active Feeds</span>
-                  <span class="value">{{ status.totalActiveFeeds }}</span>
+                <div class="status-item">
+                  <mat-icon class="info">feed</mat-icon>
+                  <div class="status-info">
+                    <span class="label">Active Feeds</span>
+                    <span class="value">{{ status.totalActiveFeeds }}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div class="status-item">
-                <mat-icon class="info">update</mat-icon>
-                <div class="status-info">
-                  <span class="label">Checked (24h)</span>
-                  <span class="value">{{ status.feedsCheckedInLast24Hours }}</span>
+                <div class="status-item">
+                  <mat-icon class="info">update</mat-icon>
+                  <div class="status-info">
+                    <span class="label">Checked (24h)</span>
+                    <span class="value">{{ status.feedsCheckedInLast24Hours }}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </app-mobilispect-card>
+          </app-mobilispect-card>
+        }
       </div>
 
       <!-- Import Statistics -->
       <div class="import-stats">
-        <app-mobilispect-card *ngIf="importStats$ | async as stats">
-          <div card-header>
-            <div card-title>Import Activity (Last 24 Hours)</div>
-          </div>
-          <div card-content>
-            <div class="stats-grid">
-              <div class="stat-card success">
-                <div class="stat-number">{{ stats.successfulImportsLast24h }}</div>
-                <div class="stat-label">Successful</div>
-                <mat-icon>check_circle</mat-icon>
-              </div>
-
-              <div class="stat-card failed">
-                <div class="stat-number">{{ stats.failedImportsLast24h }}</div>
-                <div class="stat-label">Failed</div>
-                <mat-icon>error</mat-icon>
-              </div>
-
-              <div class="stat-card running">
-                <div class="stat-number">{{ stats.currentlyRunningAutoImports }}</div>
-                <div class="stat-label">Running</div>
-                <mat-icon>sync</mat-icon>
-              </div>
-
-              <div class="stat-card total">
-                <div class="stat-number">{{ stats.totalAutomaticImportsLast24h }}</div>
-                <div class="stat-label">Total</div>
-                <mat-icon>analytics</mat-icon>
-              </div>
+        @if (importStats$ | async; as stats) {
+          <app-mobilispect-card>
+            <div card-header>
+              <div card-title>Import Activity (Last 24 Hours)</div>
             </div>
+            <div card-content>
+              <div class="stats-grid">
+                <div class="stat-card success">
+                  <div class="stat-number">{{ stats.successfulImportsLast24h }}</div>
+                  <div class="stat-label">Successful</div>
+                  <mat-icon>check_circle</mat-icon>
+                </div>
 
-            <div *ngIf="stats.lastAutomaticImportTime" class="last-import">
-              <mat-icon>schedule</mat-icon>
-              <span>Last automatic import: {{ stats.lastAutomaticImportTime | date:'medium' }}</span>
+                <div class="stat-card failed">
+                  <div class="stat-number">{{ stats.failedImportsLast24h }}</div>
+                  <div class="stat-label">Failed</div>
+                  <mat-icon>error</mat-icon>
+                </div>
+
+                <div class="stat-card running">
+                  <div class="stat-number">{{ stats.currentlyRunningAutoImports }}</div>
+                  <div class="stat-label">Running</div>
+                  <mat-icon>sync</mat-icon>
+                </div>
+
+                <div class="stat-card total">
+                  <div class="stat-number">{{ stats.totalAutomaticImportsLast24h }}</div>
+                  <div class="stat-label">Total</div>
+                  <mat-icon>analytics</mat-icon>
+                </div>
+              </div>
+
+              @if (stats.lastAutomaticImportTime) {
+                <div class="last-import">
+                  <mat-icon>schedule</mat-icon>
+                  <span>Last automatic import: {{ stats.lastAutomaticImportTime | date:'medium' }}</span>
+                </div>
+              }
             </div>
-          </div>
-        </app-mobilispect-card>
+          </app-mobilispect-card>
+        }
       </div>
 
       <!-- Feed Version Status -->
@@ -271,13 +277,15 @@ import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
                 <ng-container matColumnDef="error">
                   <th mat-header-cell *matHeaderCellDef>Error</th>
                   <td mat-cell *matCellDef="let import">
-                    <span
-                      *ngIf="import.errorMessage"
-                      class="error-message"
-                      [matTooltip]="import.errorMessage">
-                      {{ import.errorMessage | slice:0:50 }}{{ import.errorMessage.length > 50 ? '...' : '' }}
-                    </span>
-                    <span *ngIf="!import.errorMessage">-</span>
+                    @if (import.errorMessage) {
+                      <span
+                        class="error-message"
+                        [matTooltip]="import.errorMessage">
+                        {{ import.errorMessage | slice:0:50 }}{{ import.errorMessage.length > 50 ? '...' : '' }}
+                      </span>
+                    } @else {
+                      <span>-</span>
+                    }
                   </td>
                 </ng-container>
 

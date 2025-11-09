@@ -91,175 +91,199 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
       </div>
 
       <!-- Loading State -->
-      <div *ngIf="isLoading$ | async" class="loading-container">
-        <mat-spinner diameter="40"></mat-spinner>
-        <p>Loading regions...</p>
-      </div>
+      @if (isLoading$ | async) {
+        <div class="loading-container">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Loading regions...</p>
+        </div>
+      }
 
       <!-- Error State -->
-      <div *ngIf="error$ | async as error" class="error-container">
-        <mat-icon color="warn">error</mat-icon>
-        <p>{{ error }}</p>
-        <button mat-raised-button color="primary" (click)="refreshRegions()">
-          <mat-icon>refresh</mat-icon>
-          Retry
-        </button>
-      </div>
+      @if (error$ | async; as error) {
+        <div class="error-container">
+          <mat-icon color="warn">error</mat-icon>
+          <p>{{ error }}</p>
+          <button mat-raised-button color="primary" (click)="refreshRegions()">
+            <mat-icon>refresh</mat-icon>
+            Retry
+          </button>
+        </div>
+      }
 
       <!-- Regions Grid -->
-      <div *ngIf="!(isLoading$ | async) && !(error$ | async)" class="regions-grid">
-        <app-mobilispect-card
-          *ngFor="let region of filteredRegions$ | async; trackBy: trackByRegionId"
-          class="region-card"
-          [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
-          (click)="selectRegion(region)"
-          [attr.aria-label]="'Select ' + region.name + ' region'"
-          tabindex="0"
-          (keydown.enter)="selectRegion(region)"
-          (keydown.space)="selectRegion(region)"
-        >
-          <div card-header>
-            <div class="region-title">
-              {{ region.name }}
-              <mat-icon
-                *ngIf="hasActiveImport(region)"
-                class="active-import-icon"
-                [matTooltip]="'Import in progress'"
-                [matBadge]="getActiveImportCount(region)"
-                matBadgeColor="accent"
-                matBadgeSize="small"
-                aria-hidden="false"
-                [attr.aria-label]="'Active imports in ' + region.name + ': ' + getActiveImportCount(region)"
+      @if (!(isLoading$ | async) && !(error$ | async)) {
+        @if (filteredRegions$ | async; as regions) {
+          <div class="regions-grid">
+            @for (region of regions; track region.regionOnestopId) {
+              <app-mobilispect-card
+                class="region-card"
+                [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
+                (click)="selectRegion(region)"
+                [attr.aria-label]="'Select ' + region.name + ' region'"
+                tabindex="0"
+                (keydown.enter)="selectRegion(region)"
+                (keydown.space)="selectRegion(region)"
               >
-                sync
-              </mat-icon>
-            </div>
-            <div class="text-white/90" card-subtitle>{{ region.regionOnestopId }}</div>
-          </div>
-
-          <div card-content>
-            <div class="region-stats">
-              <div class="stat-item">
-                <mat-icon>feed</mat-icon>
-                <span>{{ region.feedCount }} feeds</span>
-              </div>
-
-              <div class="stat-item">
-                <mat-icon [ngClass]="{
-                  'auto-update-enabled': region.autoUpdateEnabled,
-                  'auto-update-disabled': !region.autoUpdateEnabled
-                }">
-                  {{ region.autoUpdateEnabled ? 'sync' : 'sync_disabled' }}
-                </mat-icon>
-                <span>{{ region.autoUpdateEnabled ? 'Auto-update' : 'Manual only' }}</span>
-              </div>
-
-              <div class="stat-item" *ngIf="region.lastCheckAt">
-                <mat-icon>schedule</mat-icon>
-                <span>{{ formatLastCheck(region) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div card-actions class="justify-end">
-            <button
-              mat-button
-              color="primary"
-              (click)="$event.stopPropagation(); viewRegionDetails(region)"
-              [attr.aria-label]="'View details for ' + region.name"
-            >
-              <mat-icon>info</mat-icon>
-              Details
-            </button>
-
-            <!-- Auto-Update Controls Menu -->
-            <button
-              mat-icon-button
-              [matMenuTriggerFor]="autoUpdateMenu"
-              (click)="$event.stopPropagation()"
-              [attr.aria-label]="'Auto-update settings for ' + region.name"
-              matTooltip="Auto-update settings">
-              <mat-icon>settings</mat-icon>
-            </button>
-            <mat-menu #autoUpdateMenu="matMenu">
-              <div class="auto-update-controls" (click)="$event.stopPropagation()">
-                <div class="control-header">
-                  <mat-icon>sync</mat-icon>
-                  <span>Automatic Updates</span>
+                <div card-header>
+                  <div class="region-title">
+                    {{ region.name }}
+                    @if (hasActiveImport(region)) {
+                      <mat-icon
+                        class="active-import-icon"
+                        [matTooltip]="'Import in progress'"
+                        [matBadge]="getActiveImportCount(region)"
+                        matBadgeColor="accent"
+                        matBadgeSize="small"
+                        aria-hidden="false"
+                        [attr.aria-label]="'Active imports in ' + region.name + ': ' + getActiveImportCount(region)"
+                      >
+                        sync
+                      </mat-icon>
+                    }
+                  </div>
+                  <div class="text-white/90" card-subtitle>{{ region.regionOnestopId }}</div>
                 </div>
 
-                <div class="control-item">
-                  <span>Enable auto-update</span>
-                  <mat-slide-toggle
-                    [checked]="region.autoUpdateEnabled"
-                    (change)="toggleAutoUpdate(region, $event.checked)"
-                    [disabled]="isUpdatingAutoUpdate.has(region.regionOnestopId)">
-                  </mat-slide-toggle>
+                <div card-content>
+                  <div class="region-stats">
+                    <div class="stat-item">
+                      <mat-icon>feed</mat-icon>
+                      <span>{{ region.feedCount }} feeds</span>
+                    </div>
+
+                    <div class="stat-item">
+                      <mat-icon [ngClass]="{
+                        'auto-update-enabled': region.autoUpdateEnabled,
+                        'auto-update-disabled': !region.autoUpdateEnabled
+                      }">
+                        {{ region.autoUpdateEnabled ? 'sync' : 'sync_disabled' }}
+                      </mat-icon>
+                      <span>{{ region.autoUpdateEnabled ? 'Auto-update' : 'Manual only' }}</span>
+                    </div>
+
+                    @if (region.lastCheckAt) {
+                      <div class="stat-item">
+                        <mat-icon>schedule</mat-icon>
+                        <span>{{ formatLastCheck(region) }}</span>
+                      </div>
+                    }
+                  </div>
                 </div>
 
-                <div class="control-item" *ngIf="region.autoUpdateEnabled">
-                  <span>Check for updates now</span>
+                <div card-actions class="justify-end">
+                  <button
+                    mat-button
+                    color="primary"
+                    (click)="$event.stopPropagation(); viewRegionDetails(region)"
+                    [attr.aria-label]="'View details for ' + region.name"
+                  >
+                    <mat-icon>info</mat-icon>
+                    Details
+                  </button>
+
+                  <!-- Auto-Update Controls Menu -->
                   <button
                     mat-icon-button
-                    (click)="checkForUpdates(region)"
-                    [disabled]="isCheckingUpdates.has(region.regionOnestopId)"
-                    matTooltip="Check for feed updates">
-                    <mat-icon>update</mat-icon>
+                    [matMenuTriggerFor]="autoUpdateMenu"
+                    (click)="$event.stopPropagation()"
+                    [attr.aria-label]="'Auto-update settings for ' + region.name"
+                    matTooltip="Auto-update settings">
+                    <mat-icon>settings</mat-icon>
+                  </button>
+                  <mat-menu #autoUpdateMenu="matMenu">
+                    <div class="auto-update-controls" (click)="$event.stopPropagation()">
+                      <div class="control-header">
+                        <mat-icon>sync</mat-icon>
+                        <span>Automatic Updates</span>
+                      </div>
+
+                      <div class="control-item">
+                        <span>Enable auto-update</span>
+                        <mat-slide-toggle
+                          [checked]="region.autoUpdateEnabled"
+                          (change)="toggleAutoUpdate(region, $event.checked)"
+                          [disabled]="isUpdatingAutoUpdate.has(region.regionOnestopId)">
+                        </mat-slide-toggle>
+                      </div>
+
+                      @if (region.autoUpdateEnabled) {
+                        <div class="control-item">
+                          <span>Check for updates now</span>
+                          <button
+                            mat-icon-button
+                            (click)="checkForUpdates(region)"
+                            [disabled]="isCheckingUpdates.has(region.regionOnestopId)"
+                            matTooltip="Check for feed updates">
+                            <mat-icon>update</mat-icon>
+                          </button>
+                        </div>
+                      }
+
+                      @if (getVersionStatus(region); as versionStatus) {
+                        <div class="control-item version-info">
+                          <div class="version-item">
+                            <span class="version-label">Last checked:</span>
+                            <span class="version-value">{{ versionStatus.lastChecked ? (versionStatus.lastChecked | date:'short') : 'Never' }}</span>
+                          </div>
+                          @if (versionStatus.hasUpdate) {
+                            <div class="version-item">
+                              <mat-icon class="update-available">new_releases</mat-icon>
+                              <span class="update-text">Update available</span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </mat-menu>
+
+                  <button
+                    mat-raised-button
+                    color="primary"
+                    (click)="$event.stopPropagation(); selectRegion(region)"
+                    [disabled]="region.feedCount === 0"
+                    [attr.aria-label]="'Select ' + region.name + ' for import'"
+                  >
+                    <mat-icon>play_arrow</mat-icon>
+                    Select
                   </button>
                 </div>
+              </app-mobilispect-card>
+            }
 
-                <div class="control-item version-info" *ngIf="getVersionStatus(region) as versionStatus">
-                  <div class="version-item">
-                    <span class="version-label">Last checked:</span>
-                    <span class="version-value">{{ versionStatus.lastChecked ? (versionStatus.lastChecked | date:'short') : 'Never' }}</span>
-                  </div>
-                  <div class="version-item" *ngIf="versionStatus.hasUpdate">
-                    <mat-icon class="update-available">new_releases</mat-icon>
-                    <span class="update-text">Update available</span>
-                  </div>
-                </div>
+            @if (regions.length === 0) {
+              <div class="empty-state">
+                <mat-icon>location_off</mat-icon>
+                <h3>No regions found</h3>
+                @if (searchTerm) {
+                  <p>Try adjusting your search criteria.</p>
+                } @else {
+                  <p>No regions are available for feed management.</p>
+                }
               </div>
-            </mat-menu>
-
-            <button
-              mat-raised-button
-              color="primary"
-              (click)="$event.stopPropagation(); selectRegion(region)"
-              [disabled]="region.feedCount === 0"
-              [attr.aria-label]="'Select ' + region.name + ' for import'"
-            >
-              <mat-icon>play_arrow</mat-icon>
-              Select
-            </button>
+            }
           </div>
-        </app-mobilispect-card>
-
-        <!-- Empty State -->
-        <div *ngIf="(filteredRegions$ | async)?.length === 0" class="empty-state">
-          <mat-icon>location_off</mat-icon>
-          <h3>No regions found</h3>
-          <p *ngIf="searchTerm">Try adjusting your search criteria.</p>
-          <p *ngIf="!searchTerm">No regions are available for feed management.</p>
-        </div>
-      </div>
+        }
+      }
 
       <!-- Quick Stats -->
-      <div *ngIf="!(isLoading$ | async) && !(error$ | async)" class="quick-stats">
-        <div class="stat-card">
-          <span class="stat-number">{{ (filteredRegions$ | async)?.length || 0 }}</span>
-          <span class="stat-label">Regions</span>
-        </div>
+      @if (!(isLoading$ | async) && !(error$ | async)) {
+        <div class="quick-stats">
+          <div class="stat-card">
+            <span class="stat-number">{{ (filteredRegions$ | async)?.length || 0 }}</span>
+            <span class="stat-label">Regions</span>
+          </div>
 
-        <div class="stat-card">
-          <span class="stat-number">{{ getTotalFeeds() | async }}</span>
-          <span class="stat-label">Total Feeds</span>
-        </div>
+          <div class="stat-card">
+            <span class="stat-number">{{ getTotalFeeds() | async }}</span>
+            <span class="stat-label">Total Feeds</span>
+          </div>
 
-        <div class="stat-card">
-          <span class="stat-number">{{ (activeImports$ | async)?.length || 0 }}</span>
-          <span class="stat-label">Active Imports</span>
+          <div class="stat-card">
+            <span class="stat-number">{{ (activeImports$ | async)?.length || 0 }}</span>
+            <span class="stat-label">Active Imports</span>
+          </div>
         </div>
-      </div>
+      }
     </div>
   `,
   styles: [`

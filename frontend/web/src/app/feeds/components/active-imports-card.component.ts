@@ -48,82 +48,95 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         <mat-panel-title class="panel-title">
           <mat-icon>downloading</mat-icon>
           <span>Active Imports</span>
-          <span class="count-badge" *ngIf="(activeImports$ | async) as activeImports">{{ activeImports.length }}</span>
+          @if (activeImports$ | async; as activeImports) {
+            <span class="count-badge">{{ activeImports.length }}</span>
+          }
         </mat-panel-title>
-        <mat-panel-description class="panel-description" *ngIf="selectedImportIds.size > 0">
-          <span class="selection-count">{{ selectedImportIds.size }} selected</span>
-          <button
-            mat-icon-button
-            color="warn"
-            (click)="onBulkCancel(); $event.stopPropagation()"
-            [disabled]="selectedImportIds.size === 0"
-            matTooltip="Cancel selected imports"
-          >
-            <mat-icon>cancel</mat-icon>
-          </button>
-        </mat-panel-description>
+        @if (selectedImportIds.size > 0) {
+          <mat-panel-description class="panel-description">
+            <span class="selection-count">{{ selectedImportIds.size }} selected</span>
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="onBulkCancel(); $event.stopPropagation()"
+              [disabled]="selectedImportIds.size === 0"
+              matTooltip="Cancel selected imports"
+            >
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-panel-description>
+        }
       </mat-expansion-panel-header>
 
       <!-- Active imports list -->
-      <div class="active-imports-list" *ngIf="(activeImports$ | async) as activeImports; else emptyState">
-        <div *ngIf="activeImports.length > 0; else emptyState">
-          <app-mobilispect-card *ngFor="let importItem of activeImports" class="import-item-card">
-            <div card-header class="import-card-header">
-              <mat-checkbox
-                [checked]="selectedImportIds.has(importItem.id)"
-                (change)="onSelectionChange(importItem.id, $event.checked)"
-                [attr.aria-label]="'Select ' + importItem.feedName"
-              ></mat-checkbox>
+      @if (activeImports$ | async; as activeImports) {
+        @if (activeImports.length > 0) {
+          <div class="active-imports-list">
+            @for (importItem of activeImports; track importItem.id) {
+              <app-mobilispect-card class="import-item-card">
+                <div card-header class="import-card-header">
+                  <mat-checkbox
+                    [checked]="selectedImportIds.has(importItem.id)"
+                    (change)="onSelectionChange(importItem.id, $event.checked)"
+                    [attr.aria-label]="'Select ' + importItem.feedName"
+                  ></mat-checkbox>
 
-              <div class="import-avatar">
-                <mat-icon>rss_feed</mat-icon>
-              </div>
+                  <div class="import-avatar">
+                    <mat-icon>rss_feed</mat-icon>
+                  </div>
 
-              <div class="import-title" card-title>
-                {{ importItem.feedName }}
-              </div>
+                  <div class="import-title" card-title>
+                    {{ importItem.feedName }}
+                  </div>
 
-              <div class="import-subtitle" card-subtitle>
-                {{ importItem.regionName }}
-              </div>
+                  <div class="import-subtitle" card-subtitle>
+                    {{ importItem.regionName }}
+                  </div>
 
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="onCancelImport(importItem.id)"
-                matTooltip="Cancel import"
-                class="cancel-button"
-              >
-                <mat-icon>cancel</mat-icon>
-              </button>
-            </div>
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    (click)="onCancelImport(importItem.id)"
+                    matTooltip="Cancel import"
+                    class="cancel-button"
+                  >
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                </div>
 
-            <div card-content class="import-card-content">
-              <div class="import-meta">
-                <mat-chip-set aria-label="Import status">
-                  <mat-chip [ngClass]="{
-                    'status-pending': importItem.status === 'pending',
-                    'status-running': importItem.status === 'running'
-                  }">
-                    {{ importItem.status }}
-                  </mat-chip>
-                </mat-chip-set>
-                <span class="started-time">
-                  Started: {{ importItem.startedAt | date:'short' }}
-                </span>
-              </div>
+                <div card-content class="import-card-content">
+                  <div class="import-meta">
+                    <mat-chip-set aria-label="Import status">
+                      <mat-chip [ngClass]="{
+                        'status-pending': importItem.status === 'pending',
+                        'status-running': importItem.status === 'running'
+                      }">
+                        {{ importItem.status }}
+                      </mat-chip>
+                    </mat-chip-set>
+                    <span class="started-time">
+                      Started: {{ importItem.startedAt | date:'short' }}
+                    </span>
+                  </div>
 
-              <!-- Progress monitor -->
-              <app-progress-monitor
-                [importId]="importItem.id"
-              ></app-progress-monitor>
-            </div>
-          </app-mobilispect-card>
-        </div>
-      </div>
-
-      <!-- Empty State -->
-      <ng-template #emptyState>
+                  <!-- Progress monitor -->
+                  <app-progress-monitor
+                    [importId]="importItem.id"
+                  ></app-progress-monitor>
+                </div>
+              </app-mobilispect-card>
+            }
+          </div>
+        } @else {
+          <div class="empty-state">
+            <mat-icon class="empty-icon">cloud_done</mat-icon>
+            <p class="empty-title">No active imports</p>
+            <p class="empty-subtitle">
+              Import feeds from the discovery tab to see them here.
+            </p>
+          </div>
+        }
+      } @else {
         <div class="empty-state">
           <mat-icon class="empty-icon">cloud_done</mat-icon>
           <p class="empty-title">No active imports</p>
@@ -131,7 +144,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
             Import feeds from the discovery tab to see them here.
           </p>
         </div>
-      </ng-template>
+      }
     </mat-expansion-panel>
   `,
   styleUrls: ['../styles/card.styles.css'],
