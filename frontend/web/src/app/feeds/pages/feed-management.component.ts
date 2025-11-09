@@ -811,7 +811,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
 
   importMultipleFeeds(feeds: Feed[]): void {
     const feedNames = feeds.map(f => f.name).join(', ');
-    this.snackBar.open(`Starting imports for ${feeds.length} feeds...`, 'Close', { duration: 2000 });
+    this.snackBar.open('Starting imports...', 'Close', { duration: 2000 });
 
     // Import all feeds sequentially
     feeds.forEach(feed => this.importFeed(feed));
