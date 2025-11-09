@@ -39,11 +39,11 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     ProgressMonitorComponent
   ],
   template: `
-    <mat-card class="app-card active-imports-card" *ngIf="(activeImports$ | async) as activeImports">
-      <mat-card-header class="app-card-header" *ngIf="activeImports.length > 0">
+    <mat-card class="app-card active-imports-card">
+      <mat-card-header class="app-card-header">
         <mat-card-title class="app-card-title">
           <mat-icon>downloading</mat-icon>
-          Active ({{ activeImports.length }})
+          Active <span *ngIf="(activeImports$ | async) as activeImports">({{ activeImports.length }})</span>
         </mat-card-title>
         <div class="header-actions" *ngIf="selectedImportIds.size > 0">
           <span class="selection-count">{{ selectedImportIds.size }} selected</span>
@@ -60,45 +60,58 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
       </mat-card-header>
       <mat-card-content class="app-card-content">
         <!-- Active imports list -->
-        <div class="active-imports-list" *ngIf="activeImports.length > 0">
-          <div *ngFor="let importItem of activeImports" class="active-import-item">
-            <div class="import-item-header">
-              <mat-checkbox
-                [checked]="selectedImportIds.has(importItem.id)"
-                (change)="onSelectionChange(importItem.id, $event.checked)"
-                [attr.aria-label]="'Select ' + importItem.feedName"
-              ></mat-checkbox>
+        <div class="active-imports-list" *ngIf="(activeImports$ | async) as activeImports; else emptyState">
+          <div *ngIf="activeImports.length > 0; else emptyState">
+            <div *ngFor="let importItem of activeImports" class="active-import-item">
+              <div class="import-item-header">
+                <mat-checkbox
+                  [checked]="selectedImportIds.has(importItem.id)"
+                  (change)="onSelectionChange(importItem.id, $event.checked)"
+                  [attr.aria-label]="'Select ' + importItem.feedName"
+                ></mat-checkbox>
 
-              <div class="import-info">
-                <div class="feed-name">{{ importItem.feedName }}</div>
-                <div class="region-name">{{ importItem.regionName }}</div>
+                <div class="import-info">
+                  <div class="feed-name">{{ importItem.feedName }}</div>
+                  <div class="region-name">{{ importItem.regionName }}</div>
+                </div>
+
+                <div class="import-meta">
+                  <span class="status-badge status-{{ importItem.status.toLowerCase() }}">
+                    {{ importItem.status }}
+                  </span>
+                  <span class="started-time">
+                    Started: {{ importItem.startedAt | date:'short' }}
+                  </span>
+                </div>
+
+                <button
+                  mat-icon-button
+                  color="warn"
+                  (click)="onCancelImport(importItem.id)"
+                  matTooltip="Cancel import"
+                >
+                  <mat-icon>cancel</mat-icon>
+                </button>
               </div>
 
-              <div class="import-meta">
-                <span class="status-badge status-{{ importItem.status.toLowerCase() }}">
-                  {{ importItem.status }}
-                </span>
-                <span class="started-time">
-                  Started: {{ importItem.startedAt | date:'short' }}
-                </span>
-              </div>
-
-              <button
-                mat-icon-button
-                color="warn"
-                (click)="onCancelImport(importItem.id)"
-                matTooltip="Cancel import"
-              >
-                <mat-icon>cancel</mat-icon>
-              </button>
+              <!-- Progress monitor -->
+              <app-progress-monitor
+                [importId]="importItem.id"
+              ></app-progress-monitor>
             </div>
-
-            <!-- Progress monitor -->
-            <app-progress-monitor
-              [importId]="importItem.id"
-            ></app-progress-monitor>
           </div>
         </div>
+
+        <!-- Empty State -->
+        <ng-template #emptyState>
+          <div class="empty-state">
+            <mat-icon class="empty-icon">cloud_done</mat-icon>
+            <p class="empty-title">No active imports</p>
+            <p class="empty-subtitle">
+              Import feeds from the discovery tab to see them here.
+            </p>
+          </div>
+        </ng-template>
       </mat-card-content>
     </mat-card>
   `,
@@ -234,6 +247,46 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
       background-color: rgba(243, 156, 18, 0.25);
       color: #ffb74d;
       border-color: rgba(243, 156, 18, 0.5);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+
+    :host-context(.dark-theme) .empty-state {
+      color: #aaa;
+    }
+
+    .empty-title {
+      font-size: 18px;
+      margin-top: 20px;
+      color: #1A3A52;
+    }
+
+    :host-context(.dark-theme) .empty-title {
+      color: #e0e0e0;
+    }
+
+    .empty-subtitle {
+      color: #999;
+    }
+
+    :host-context(.dark-theme) .empty-subtitle {
+      color: #888;
+    }
+
+    .empty-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: #999;
+    }
+
+    :host-context(.dark-theme) .empty-icon {
+      color: #666;
     }
 
     @media (max-width: 768px) {
