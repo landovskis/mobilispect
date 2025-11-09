@@ -7,8 +7,8 @@ import com.mobilispect.backend.feed.model.MetropolitanRegion
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
+import com.mobilispect.backend.feed.batch.FeedDiscoveryBatchService
 import com.mobilispect.backend.feed.service.FeedDiscoveryResult
-import com.mobilispect.backend.feed.service.FeedDiscoveryService
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -25,7 +25,7 @@ class RegionControllerTest {
     private lateinit var regionRepository: MetropolitanRegionRepository
     private lateinit var feedRepository: FeedRepository
     private lateinit var feedAuthenticationRepository: FeedAuthenticationRepository
-    private lateinit var feedDiscoveryService: FeedDiscoveryService
+    private lateinit var feedDiscoveryBatchService: FeedDiscoveryBatchService
     private lateinit var controller: RegionController
 
     private val testRegionId = "r-san-francisco-bay-area"
@@ -37,13 +37,13 @@ class RegionControllerTest {
         regionRepository = mockk()
         feedRepository = mockk()
         feedAuthenticationRepository = mockk()
-        feedDiscoveryService = mockk()
+        feedDiscoveryBatchService = mockk()
 
         controller = RegionController(
             regionRepository = regionRepository,
             feedRepository = feedRepository,
             feedAuthenticationRepository = feedAuthenticationRepository,
-            feedDiscoveryService = feedDiscoveryService
+            feedDiscoveryBatchService = feedDiscoveryBatchService
         )
     }
 
@@ -238,8 +238,9 @@ class RegionControllerTest {
             errors = emptyList()
         )
 
+        every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
-            feedDiscoveryService.discover(testRegionId, FeedSpecType.GTFS)
+            feedDiscoveryBatchService.discover(testRegionId, testRegionName, FeedSpecType.GTFS)
         } returns expectedResult
 
         // When
@@ -267,8 +268,9 @@ class RegionControllerTest {
             errors = emptyList()
         )
 
+        every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
-            feedDiscoveryService.discover(testRegionId, FeedSpecType.GTFS)
+            feedDiscoveryBatchService.discover(testRegionId, testRegionName, FeedSpecType.GTFS)
         } returns expectedResult
 
         // When - providing GTFS as spec parameter
@@ -280,7 +282,7 @@ class RegionControllerTest {
         // Then
         verify {
             runBlocking {
-                feedDiscoveryService.discover(testRegionId, FeedSpecType.GTFS)
+                feedDiscoveryBatchService.discover(testRegionId, testRegionName, FeedSpecType.GTFS)
             }
         }
         assertThat(result.feedsDiscovered).isEqualTo(1)
@@ -297,8 +299,9 @@ class RegionControllerTest {
             errors = listOf("Failed to upsert f-feed-3: Database error")
         )
 
+        every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
-            feedDiscoveryService.discover(testRegionId, FeedSpecType.GTFS)
+            feedDiscoveryBatchService.discover(testRegionId, testRegionName, FeedSpecType.GTFS)
         } returns expectedResult
 
         // When

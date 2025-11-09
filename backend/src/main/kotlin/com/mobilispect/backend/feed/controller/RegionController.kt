@@ -13,8 +13,8 @@ import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
+import com.mobilispect.backend.feed.batch.FeedDiscoveryBatchService
 import com.mobilispect.backend.feed.service.FeedDiscoveryResult
-import com.mobilispect.backend.feed.service.FeedDiscoveryService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -34,7 +34,7 @@ class RegionController(
     private val regionRepository: MetropolitanRegionRepository,
     private val feedRepository: FeedRepository,
     private val feedAuthenticationRepository: FeedAuthenticationRepository,
-    private val feedDiscoveryService: FeedDiscoveryService
+    private val feedDiscoveryBatchService: FeedDiscoveryBatchService
 ) {
     private val logger = LoggerFactory.getLogger(RegionController::class.java)
 
@@ -120,7 +120,12 @@ class RegionController(
         @RequestParam(required = false, defaultValue = "GTFS") spec: FeedSpecTypeDto
     ): FeedDiscoveryResult {
         logger.info("Discovering feeds for region {} using spec {}", regionOnestopId, spec)
-        return feedDiscoveryService.discover(regionOnestopId, spec.toEntity())
+
+        // Get region name for Transit.land API query
+        val region = regionRepository.findById(regionOnestopId)
+            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Region not found: $regionOnestopId") }
+
+        return feedDiscoveryBatchService.discover(regionOnestopId, region.name, spec.toEntity())
     }
 
     private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {
