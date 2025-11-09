@@ -357,7 +357,7 @@ alert:
 - **Alert Threshold**: < 1 (no connections)
 
 ### 6. API Response Time (Stat)
-- **Query**: `avg(api_request_duration_ms{endpoint="/api/feed-management"})`
+- **Query**: `avg(api_request_duration_ms{endpoint="/api/feeds"})`
 - **Description**: Average API response time
 - **Alert Threshold**: > 200ms (constitutional requirement)
 

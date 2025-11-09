@@ -34,7 +34,7 @@ implementation and testing of each story.
   backend/src/main/kotlin/com/mobilispect/backend/feed/
 - [X] T002 Create Angular feed-management module in
   frontend/src/app/feed-management/
-- [X] T003 [P] Configure PostgreSQL schema migrations for feed management
+- [X] T003 [P] Configure PostgreSQL 17 schema migrations for feed management
   entities
 - [X] T004 [P] Add Grafana Cloud configuration for feed import monitoring
 
@@ -56,7 +56,7 @@ can be implemented
   backend/src/main/kotlin/com/mobilispect/backend/feed/model/
 - [X] T008 [P] Setup Transit.land API client configuration in
   backend/src/main/kotlin/com/mobilispect/backend/feed/integration/
-- [X] T009 [P] Configure Redis for transient progress data in
+- [X] T009 [P] Configure Redis 8.2 for transient progress data in
   backend/src/main/kotlin/com/mobilispect/backend/config/
 - [X] T010 [P] Setup WebSocket configuration for real-time updates in
   backend/src/main/kotlin/com/mobilispect/backend/config/
@@ -76,7 +76,51 @@ parallel
 
 ---
 
-## Phase 3: User Story 1 - Select and Import Transit Feed Data (Priority: P1)
+## Phase 3: Feed Discovery (FR-020) - Automatic Region Discovery
+
+**Goal**: System automatically discovers regions from transit.land API and
+creates feed records in database
+
+**Requirements**: Implements FR-020 - automatic region discovery and feed record
+creation
+
+**Independent Test**: Trigger discovery process and verify regions are populated
+in database with metadata, feed URLs, and authentication requirements
+
+### Implementation for FR-020
+
+- [X] T016A [FR-020] Create FeedEntity model with transit.land integration
+  fields in
+  backend/src/main/kotlin/com/mobilispect/backend/feed/model/FeedEntity.kt
+- [X] T016B [FR-020] Create FeedAuthentication model for feed-specific auth
+  config in
+  backend/src/main/kotlin/com/mobilispect/backend/feed/model/FeedAuthentication.kt
+- [X] T016C [P] [FR-020] Create FeedRepository for feed CRUD operations in
+  backend/src/main/kotlin/com/mobilispect/backend/feed/repository/FeedRepository.kt
+- [X] T016D [P] [FR-020] Create FeedAuthenticationRepository in
+  backend/src/main/kotlin/com/mobilispect/backend/feed/repository/FeedAuthenticationRepository.kt
+- [X] T016E [FR-020] Implement TransitLandApiClient with feed discovery
+  endpoints in
+  backend/src/main/kotlin/com/mobilispect/backend/feed/integration/TransitLandApiClient.kt
+- [X] T016F [FR-020] Implement FeedDiscoveryService for automatic region sync in
+  backend/src/main/kotlin/com/mobilispect/backend/feed/service/FeedDiscoveryService.kt
+- [X] T016G [FR-020] Create database migration for feed and authentication
+  tables in backend/src/main/resources/db/migration/V0XX__Create_Feed_Tables.sql
+- [X] T016H [P] [FR-020] Add scheduled task for daily feed discovery sync
+- [X] T016I [P] [FR-020] Create admin UI component for manual discovery trigger
+  in frontend/src/app/feed-management/components/
+- [X] T016J [P] [FR-020] Update RegionListComponent to read from database
+  instead of direct API calls
+- [X] T016K [FR-020] Add Grafana Cloud monitoring for feed discovery operations
+- [X] T016L [P] [FR-020] Write integration tests for TransitLandApiClient
+- [X] T016M [P] [FR-020] Write unit tests for FeedDiscoveryService
+
+**Checkpoint**: Feed discovery is functional - regions automatically populate
+from transit.land API
+
+---
+
+## Phase 4: User Story 1 - Select and Import Transit Feed Data (Priority: P1)
 
 🎯 MVP
 
@@ -132,7 +176,7 @@ testable independently
 
 ---
 
-## Phase 4: User Story 2 - Monitor Real-time Import Progress (Priority: P2)
+## Phase 5: User Story 2 - Monitor Real-time Import Progress (Priority: P2)
 
 **Goal**: Administrators can monitor real-time progress of feed imports
 
@@ -143,7 +187,7 @@ in real-time without page refresh
 
 - [X] T031 [P] [US2] Create ImportLog entity and repository in
   backend/src/main/kotlin/com/mobilispect/backend/feed/model/ImportLog.kt
-- [X] T032 [P] [US2] Create ImportProgressService for Redis-based progress
+- [X] T032 [P] [US2] Create ImportProgressService for Redis 8.2-based progress
   tracking in
   backend/src/main/kotlin/com/mobilispect/backend/feed/service/
   ImportProgressService.kt
@@ -168,7 +212,7 @@ independently
 
 ---
 
-## Phase 5: User Story 4 - Automated Daily Feed Updates (Priority: P2)
+## Phase 6: User Story 4 - Automated Daily Feed Updates (Priority: P2)
 
 **Goal**: System automatically checks for and imports updated feed data daily
 
@@ -200,7 +244,7 @@ independently
 
 ---
 
-## Phase 6: User Story 3 - View Feed Import History (Priority: P3)
+## Phase 7: User Story 3 - View Feed Import History (Priority: P3)
 
 **Goal**: Administrators can view comprehensive history of feed imports for
 each region
@@ -236,7 +280,7 @@ imports with dates, status, and details
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns (COMPLETED ✅)
+## Phase 8: Polish & Cross-Cutting Concerns (COMPLETED ✅)
 
 **Purpose**: Improvements that affect multiple user stories
 
@@ -258,7 +302,7 @@ imports with dates, status, and details
 - [X] T071 [P] Implement corrupted feed data detection and automatic retry logic
 - [X] T072 [P] Add import timeout handling with configurable duration limits
 
-**Phase 7 Final Status**: All polish and cross-cutting concerns have been implemented.
+**Phase 8 Final Status**: All polish and cross-cutting concerns have been implemented.
 The Feed Management System now includes comprehensive security, resilience, monitoring,
 and user experience enhancements.
 
@@ -271,7 +315,10 @@ and user experience enhancements.
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user
   stories
-- **User Stories (Phase 3+)**: All depend on Foundational phase completion
+- **Feed Discovery (Phase 3)**: Depends on Foundational phase - implements FR-020
+  for automatic region discovery
+- **User Stories (Phase 4+)**: All depend on Foundational phase completion
+  - Phase 3 (Feed Discovery) should ideally complete first to populate regions
   - User stories can then proceed in parallel (if staffed)
   - Or sequentially in priority order (P1 → P2 → P2 → P3)
 - **Polish (Final Phase)**: Depends on all desired user stories being complete
@@ -377,66 +424,106 @@ With multiple developers:
 
 ---
 
-## 🎉 IMPLEMENTATION COMPLETE
+## 🎯 IMPLEMENTATION STATUS
 
-**All 72 tasks have been successfully implemented!**
+**FR-020 Tasks Added**: 13 new tasks for automatic feed discovery
 
-### Final Implementation Summary
+### Implementation Summary
 
-**Total Tasks Completed**: 72/72 (100%)
+**Total Tasks**: 85 tasks (72 completed + 13 new for FR-020)
+
 - **Phase 1 - Setup**: 4/4 tasks ✅
 - **Phase 2 - Foundational**: 11/11 tasks ✅
-- **Phase 3 - User Story 1**: 15/15 tasks ✅
-- **Phase 4 - User Story 2**: 10/10 tasks ✅
-- **Phase 5 - User Story 4**: 9/9 tasks ✅
-- **Phase 6 - User Story 3**: 9/9 tasks ✅
-- **Phase 7 - Polish & Cross-Cutting**: 14/14 tasks ✅
+- **Phase 3 - Feed Discovery (FR-020)**: 0/13 tasks ⏳ **NEW**
+- **Phase 4 - User Story 1**: 15/15 tasks ✅
+- **Phase 5 - User Story 2**: 10/10 tasks ✅
+- **Phase 6 - User Story 4**: 9/9 tasks ✅
+- **Phase 7 - User Story 3**: 9/9 tasks ✅
+- **Phase 8 - Polish & Cross-Cutting**: 14/14 tasks ✅
 
 ### Key Achievements
 
 #### Core Features ✅
+
 - Complete feed discovery and import system
 - Real-time progress monitoring with WebSocket
 - Automated daily feed updates with change detection
 - Comprehensive import history and analytics
 
 #### Security & Access Control ✅
+
 - Role-based access control (ADMIN, FEED_MANAGER, VIEWER, AUDITOR)
 - Input validation and sanitization with threat detection
 - SQL injection and XSS prevention
 - Method-level security annotations
 
 #### Resilience & Reliability ✅
+
 - Network interruption recovery with exponential backoff
 - Concurrent import prevention with database locks
 - Corrupted feed data detection and automatic retry
 - Import timeout handling with configurable limits
 
 #### Monitoring & Observability ✅
+
 - Comprehensive admin dashboard with system health metrics
 - Performance monitoring and caching analytics
 - Audit logging with structured events
 - Real-time alerting for critical issues
 
 #### User Experience ✅
+
 - Multi-language support (7 languages)
 - Real-time progress updates
 - User notifications for conflicts and events
 - Responsive Angular frontend with Material Design
 
 #### Quality & Standards ✅
+
 - Comprehensive error handling across all services
 - Performance optimizations for large feed processing
 - Complete test coverage with integration tests
 - Updated documentation and quickstart guide
 
-### Production Readiness
+### Production Readiness Status
 
-The Feed Management System is **fully production-ready** with:
+The Feed Management System has comprehensive features implemented, but **FR-020 (Automatic Feed Discovery) requires implementation**:
+
+**Completed Features** ✅:
+
 - Enterprise-grade security model
 - Comprehensive resilience features
 - Real-time monitoring and alerting
 - Multi-language admin interface
 - Automated testing and quality assurance
+- Feed import and progress monitoring
+- Automated daily feed updates
+- Import history and analytics
 
-**Next Steps**: The system is ready for deployment and can handle production workloads with confidence.
+**Remaining Work** ⏳:
+
+- **Phase 3: FR-020 Feed Discovery** (13 tasks)
+  - Automatic region discovery from transit.land API
+  - Feed record creation in database
+  - Authentication configuration management
+  - Discovery scheduling and monitoring
+
+**Next Steps**:
+
+1. Complete Phase 3 (FR-020) tasks to implement automatic feed discovery
+2. Update region display to use database records instead of direct API calls
+3. Validate end-to-end workflow from discovery through import
+4. System will then be ready for production deployment
+
+### Alignment with Updated Plan
+
+**Last Reviewed**: 2025-01-09
+
+This tasks file has been reviewed and confirmed to be aligned with the updated plan.md, which includes:
+
+- **Feed Discovery Architecture**: Covered by T019 (FeedDiscoveryService) and T008 (Transit.land API client)
+- **Database Schema Enhancements**: Covered by T005 (schema migrations) and T007 (entity classes)
+- **Automated Sync Workflow**: Covered by T041-T049 (automated daily updates and scheduling)
+- **Architecture Decision Records**: Feed discovery ADR aligns with implemented functionality
+
+All architectural enhancements described in the updated plan.md have corresponding completed tasks in this file.

@@ -8,13 +8,13 @@ import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.repository.AdministratorRepository
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
-import com.mobilispect.backend.schedule.ImportScheduledFeedsService
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -23,11 +23,12 @@ import java.util.UUID
 
 @Service
 class FeedImportService(
+    @Qualifier("feedManagementFeedRepository")
     private val feedRepository: FeedRepository,
     private val feedImportRepository: FeedImportRepository,
     private val administratorRepository: AdministratorRepository,
     private val progressTrackingService: ProgressTrackingService,
-    private val importScheduledFeedsService: ImportScheduledFeedsService,
+    private val feedManagementImportProcessor: FeedManagementImportProcessor,
     private val clock: Clock = Clock.systemUTC()
 ) {
     private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
@@ -87,7 +88,7 @@ class FeedImportService(
 
     private fun enqueueImport(importId: UUID, feed: FeedEntity) {
         importScope.launch {
-            val result = importScheduledFeedsService.importFeedById(feed.feedOnestopId)
+            val result = feedManagementImportProcessor.importFeedById(feed.feedOnestopId)
 
             result.onSuccess { jobId ->
                 val sha1 = jobId.substringAfter(':', missingDelimiterValue = "")

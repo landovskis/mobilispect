@@ -219,7 +219,7 @@ class RegionDiscoveryIntegrationTest {
         val region = regionRepository.findById(testRegionId).get()
         val existingFeed = com.mobilispect.backend.feed.model.FeedEntity(
             feedOnestopId = "f-sf~bay~area~bart",
-            region = region,
+            regions = mutableSetOf(region),
             name = "BART Old Name",
             specType = FeedSpecType.GTFS,
             downloadUrl = "https://old.example.com/bart.zip",

@@ -6,7 +6,8 @@ import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
+import jakarta.persistence.JoinTable
+import jakarta.persistence.ManyToMany
 import jakarta.persistence.OneToOne
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
@@ -21,9 +22,13 @@ class FeedEntity(
     @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 255)
     val feedOnestopId: String = "",
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_onestop_id", nullable = false)
-    var region: MetropolitanRegion? = null,
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "feed_regions",
+        joinColumns = [JoinColumn(name = "feed_onestop_id")],
+        inverseJoinColumns = [JoinColumn(name = "region_onestop_id")]
+    )
+    var regions: MutableSet<MetropolitanRegion> = mutableSetOf(),
 
     @Column(nullable = false, length = 255)
     var name: String = "",

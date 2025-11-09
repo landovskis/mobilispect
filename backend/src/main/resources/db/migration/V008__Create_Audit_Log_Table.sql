@@ -1,5 +1,4 @@
--- Create audit log table for comprehensive audit trails
-CREATE TABLE audit_log (
+CREATE TABLE IF NOT EXISTS audit_log (
     audit_log_id VARCHAR(100) NOT NULL,
     timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     level VARCHAR(20) NOT NULL CHECK (level IN ('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL')),
@@ -33,36 +32,36 @@ CREATE TABLE audit_log (
 );
 
 -- Create indexes for optimal query performance
-CREATE INDEX idx_audit_log_timestamp ON audit_log(timestamp);
-CREATE INDEX idx_audit_log_category ON audit_log(category);
-CREATE INDEX idx_audit_log_level ON audit_log(level);
-CREATE INDEX idx_audit_log_administrator ON audit_log(administrator_id);
-CREATE INDEX idx_audit_log_resource ON audit_log(resource_type, resource_id);
-CREATE INDEX idx_audit_log_session ON audit_log(session_id);
-CREATE INDEX idx_audit_log_ip ON audit_log(ip_address);
-CREATE INDEX idx_audit_log_action ON audit_log(action);
-CREATE INDEX idx_audit_log_success ON audit_log(success);
-CREATE INDEX idx_audit_log_source ON audit_log(source_component);
+CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_log_category ON audit_log(category);
+CREATE INDEX IF NOT EXISTS idx_audit_log_level ON audit_log(level);
+CREATE INDEX IF NOT EXISTS idx_audit_log_administrator ON audit_log(administrator_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_resource ON audit_log(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_session ON audit_log(session_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_ip ON audit_log(ip_address);
+CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_audit_log_success ON audit_log(success);
+CREATE INDEX IF NOT EXISTS idx_audit_log_source ON audit_log(source_component);
 
 -- Composite indexes for common query patterns
-CREATE INDEX idx_audit_log_category_timestamp ON audit_log(category, timestamp DESC);
-CREATE INDEX idx_audit_log_level_timestamp ON audit_log(level, timestamp DESC);
-CREATE INDEX idx_audit_log_user_timestamp ON audit_log(administrator_id, timestamp DESC);
-CREATE INDEX idx_audit_log_resource_timestamp ON audit_log(resource_type, resource_id, timestamp DESC);
-CREATE INDEX idx_audit_log_security_events ON audit_log(category, level, timestamp DESC)
+CREATE INDEX IF NOT EXISTS idx_audit_log_category_timestamp ON audit_log(category, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_level_timestamp ON audit_log(level, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_user_timestamp ON audit_log(administrator_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_resource_timestamp ON audit_log(resource_type, resource_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_security_events ON audit_log(category, level, timestamp DESC)
     WHERE category IN ('AUTHENTICATION', 'AUTHORIZATION', 'SECURITY') OR level = 'CRITICAL';
-CREATE INDEX idx_audit_log_data_modifications ON audit_log(category, timestamp DESC)
+CREATE INDEX IF NOT EXISTS idx_audit_log_data_modifications ON audit_log(category, timestamp DESC)
     WHERE category = 'DATA_MODIFICATION' OR old_values IS NOT NULL;
-CREATE INDEX idx_audit_log_failed_operations ON audit_log(success, timestamp DESC) WHERE success = false;
+CREATE INDEX IF NOT EXISTS idx_audit_log_failed_operations ON audit_log(success, timestamp DESC) WHERE success = false;
 
 -- Partial indexes for performance on filtered queries
-CREATE INDEX idx_audit_log_failed_auth ON audit_log(timestamp DESC)
+CREATE INDEX IF NOT EXISTS idx_audit_log_failed_auth ON audit_log(timestamp DESC)
     WHERE category = 'AUTHENTICATION' AND success = false;
-CREATE INDEX idx_audit_log_high_duration ON audit_log(duration_ms DESC, timestamp DESC)
+CREATE INDEX IF NOT EXISTS idx_audit_log_high_duration ON audit_log(duration_ms DESC, timestamp DESC)
     WHERE duration_ms > 10000;
 
 -- Full-text search index for description and action (PostgreSQL specific)
-CREATE INDEX idx_audit_log_fulltext ON audit_log USING gin(to_tsvector('english', description || ' ' || action));
+CREATE INDEX IF NOT EXISTS idx_audit_log_fulltext ON audit_log USING gin(to_tsvector('english', description || ' ' || action));
 
 -- Add comments for documentation
 COMMENT ON TABLE audit_log IS 'Comprehensive audit trail for all system activities and user actions';
@@ -91,7 +90,7 @@ COMMENT ON COLUMN audit_log.stack_trace IS 'Stack trace for debugging failed ope
 COMMENT ON COLUMN audit_log.tags IS 'Comma-separated tags for categorization and searching';
 
 -- Create a view for security-sensitive events
-CREATE VIEW security_audit_events AS
+CREATE OR REPLACE VIEW security_audit_events AS
 SELECT
     audit_log_id,
     timestamp,
@@ -118,7 +117,7 @@ ORDER BY timestamp DESC;
 COMMENT ON VIEW security_audit_events IS 'View of security-sensitive audit events for monitoring and analysis';
 
 -- Create a view for data modification events
-CREATE VIEW data_modification_events AS
+CREATE OR REPLACE VIEW data_modification_events AS
 SELECT
     audit_log_id,
     timestamp,

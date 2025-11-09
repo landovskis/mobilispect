@@ -11,6 +11,7 @@ This guide provides developers with everything needed to implement the Feed Mana
 ### Required Dependencies
 
 **Backend (build.gradle.kts)**:
+
 ```kotlin
 dependencies {
     // Core Spring Boot
@@ -40,6 +41,7 @@ dependencies {
 ```
 
 **Frontend (package.json)**:
+
 ```json
 {
   "dependencies": {
@@ -56,6 +58,7 @@ dependencies {
 ### Environment Configuration
 
 **application.yml**:
+
 ```yaml
 spring:
   datasource:
@@ -64,6 +67,7 @@ spring:
     password: ${DB_PASSWORD:password}
 
   redis:
+    # Redis 8.2 is required per constitution
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
 
@@ -233,6 +237,7 @@ INSERT INTO feeds (feed_onestop_id, region_onestop_id, name, spec_type, download
 ### 1. Transit.land API Client
 
 **TransitLandApiClient.kt**:
+
 ```kotlin
 @Component
 class TransitLandApiClient(
@@ -291,6 +296,7 @@ data class TransitLandFeedVersion(
 ### 2. Feed Discovery Service
 
 **FeedDiscoveryService.kt**:
+
 ```kotlin
 @Service
 class FeedDiscoveryService(
@@ -334,6 +340,7 @@ class FeedDiscoveryService(
 ### 3. Import Progress Tracking
 
 **ImportProgressService.kt**:
+
 ```kotlin
 @Service
 class ImportProgressService(
@@ -372,6 +379,7 @@ data class ImportProgress(
 ### 4. Daily Update Scheduler
 
 **FeedUpdateScheduler.kt**:
+
 ```kotlin
 @Component
 class FeedUpdateScheduler(
@@ -434,6 +442,7 @@ The feed management system implements comprehensive role-based security with fou
 - **AUDITOR**: Access to audit logs, monitoring dashboards, and security events
 
 **FeedManagementSecurityConfig.kt**:
+
 ```kotlin
 @Configuration
 @EnableWebSecurity
@@ -475,12 +484,14 @@ class FeedManagementSecurityConfig {
 All user inputs are automatically validated and sanitized using AOP-based validation:
 
 **InputValidationService.kt** features:
+
 - SQL injection detection and prevention
 - XSS attack detection and sanitization
 - Comprehensive format validation for all input types
 - Automatic logging of security threats
 
 **ValidationAspect.kt** annotations:
+
 - `@ValidateFeedOnestopId` - Validates feed identifiers
 - `@ValidateString` - General string validation with length limits
 - `@ValidateAdministratorId` - UUID format validation
@@ -491,6 +502,7 @@ All user inputs are automatically validated and sanitized using AOP-based valida
 The system includes a comprehensive admin dashboard for monitoring system health and performance:
 
 **AdminDashboardController.kt** endpoints:
+
 - `/api/v1/admin/dashboard/health` - System health overview with metrics
 - `/api/v1/admin/dashboard/performance` - Detailed performance metrics and history
 - `/api/v1/admin/dashboard/cache` - Cache performance and recommendations
@@ -500,6 +512,7 @@ The system includes a comprehensive admin dashboard for monitoring system health
 - `/api/v1/admin/dashboard/configuration` - System configuration status
 
 **Dashboard Features**:
+
 - Real-time system health scoring
 - Memory usage and CPU monitoring
 - Cache hit rates and performance metrics
@@ -513,6 +526,7 @@ The system includes a comprehensive admin dashboard for monitoring system health
 The admin interface supports multiple languages through Spring's MessageSource:
 
 **Supported Languages**:
+
 - English (default)
 - French
 - German
@@ -522,12 +536,14 @@ The admin interface supports multiple languages through Spring's MessageSource:
 - Chinese
 
 **InternationalizationConfig.kt** features:
+
 - Automatic locale detection from Accept-Language header
 - Locale switching via `?lang=` parameter
 - Fallback to English for missing translations
 - UTF-8 encoding for all message bundles
 
 **Message Bundle**: `messages/feed-management.properties` contains:
+
 - Navigation labels
 - Common actions (Save, Cancel, Delete, etc.)
 - Feed management terminology
@@ -538,6 +554,7 @@ The admin interface supports multiple languages through Spring's MessageSource:
 ## Frontend Integration
 
 **Angular Service (feed-management.service.ts)**:
+
 ```typescript
 @Injectable({ providedIn: 'root' })
 export class FeedManagementService {
@@ -579,6 +596,7 @@ export class FeedManagementService {
 ```
 
 **WebSocket Service (socket.service.ts)**:
+
 ```typescript
 @Injectable({ providedIn: 'root' })
 export class SocketService {
@@ -604,13 +622,14 @@ export class SocketService {
 ### 1. Integration Tests
 
 **FeedManagementIntegrationTest.kt**:
+
 ```kotlin
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class FeedManagementIntegrationTest {
 
     @Container
-    static val postgres = PostgreSQLContainer("postgres:15")
+    static val postgres = PostgreSQLContainer("postgres:17-alpine")
         .withDatabaseName("test")
         .withUsername("test")
         .withPassword("test")
@@ -692,6 +711,7 @@ class FeedManagementIntegrationTest {
 ### 2. Unit Tests
 
 **FeedUpdateServiceTest.kt**:
+
 ```kotlin
 @ExtendWith(MockitoExtension::class)
 class FeedUpdateServiceTest {
@@ -743,8 +763,9 @@ class FeedUpdateServiceTest {
 ## Deployment Checklist
 
 ### Development Environment
-- [ ] PostgreSQL database running with migrations applied
-- [ ] Redis instance running for progress tracking
+
+- [ ] PostgreSQL 17 database running with migrations applied
+- [ ] Redis 8.2 instance running for progress tracking
 - [ ] Transit.land API key configured
 - [ ] JWT authentication configured with role mapping
 - [ ] Sample data loaded with all role types
@@ -753,8 +774,9 @@ class FeedUpdateServiceTest {
 - [ ] Internationalization configured with default locale
 
 ### Production Environment
+
 - [ ] Database migrations applied with updated role types
-- [ ] Redis cluster configured with persistence
+- [ ] Redis 8.2 cluster configured with persistence
 - [ ] Transit.land API key with appropriate limits
 - [ ] Security configuration validated with role-based access
 - [ ] Input validation and SQL injection protection active
@@ -768,6 +790,7 @@ class FeedUpdateServiceTest {
 ## Monitoring and Observability
 
 ### Key Metrics
+
 - Feed import success/failure rates
 - Average import duration by feed size
 - Transit.land API request rates and errors
@@ -775,6 +798,7 @@ class FeedUpdateServiceTest {
 - Redis memory usage for progress data
 
 ### Log Structured Events
+
 ```kotlin
 logger.info("Feed import started",
     structuredArguments(
@@ -786,6 +810,7 @@ logger.info("Feed import started",
 ```
 
 ### Health Checks
+
 - Database connectivity
 - Redis connectivity
 - Transit.land API accessibility
@@ -794,6 +819,7 @@ logger.info("Feed import started",
 ## Implementation Status
 
 ### ✅ Completed Features
+
 1. **Core Services**: `TransitLandApiClient`, `FeedDiscoveryService`, `FeedImportService`
 2. **Database Setup**: Migrations and seed data with role-based structure
 3. **REST Controllers**: All endpoints with role-based security
@@ -806,13 +832,16 @@ logger.info("Feed import started",
 10. **Testing**: Integration and unit tests with security validation
 
 ### 🚧 Remaining Tasks (Optional Enhancements)
+
 1. **Network Resilience**: Implement exponential backoff for network interruptions
 2. **Concurrency Control**: Add database locks for concurrent import prevention
 3. **Data Integrity**: Corrupted feed data detection and retry logic
 4. **Timeout Handling**: Configurable duration limits for import operations
 
 ### 🚀 Deployment Ready
+
 The Feed Management System is fully functional and production-ready with:
+
 - Complete security model with role-based access
 - Comprehensive input validation and threat protection
 - Real-time monitoring and alerting
@@ -820,4 +849,5 @@ The Feed Management System is fully functional and production-ready with:
 - Automated testing coverage
 
 ### Next Phase: Optional Hardening
+
 Consider implementing the remaining optional tasks (T069-T072) for enhanced resilience in high-volume production environments.

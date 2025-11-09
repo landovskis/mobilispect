@@ -64,7 +64,7 @@ test.describe('Theme Support (Constitutional Requirement)', () => {
 
     if (hasThemeToggle) {
       // Navigate to feed management to see Material components
-      await page.goto('/feed-management');
+      await page.goto('/feeds');
 
       // Toggle theme
       await themeToggle.click();
@@ -117,15 +117,15 @@ test.describe('Theme Support (Constitutional Requirement)', () => {
       const darkModeClass = await body.getAttribute('class');
 
       // Navigate to different pages
-      await page.goto('/feed-management');
+      await page.goto('/feeds');
       const feedMgmtClass = await body.getAttribute('class');
       expect(feedMgmtClass).toBe(darkModeClass);
 
-      await page.goto('/feed-management/history');
+      await page.goto('/feeds/history');
       const historyClass = await body.getAttribute('class');
       expect(historyClass).toBe(darkModeClass);
 
-      await page.goto('/feed-management/imports');
+      await page.goto('/feeds/imports');
       const importsClass = await body.getAttribute('class');
       expect(importsClass).toBe(darkModeClass);
     } else {

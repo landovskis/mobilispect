@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
 
 @RestController
-@RequestMapping("/api/feed-management/regions")
+@RequestMapping("/api/feeds/regions")
 class RegionController(
     private val regionRepository: MetropolitanRegionRepository,
     private val feedRepository: FeedRepository,
@@ -149,6 +149,8 @@ class RegionController(
         return MetropolitanRegionDTO(
             regionOnestopId = regionOnestopId,
             name = name,
+            adm0Name = adm0Name,
+            adm1Name = adm1Name,
             autoUpdateEnabled = autoUpdateEnabled,
             feedCount = feedCount,
             lastCheckAt = lastCheckedAt,

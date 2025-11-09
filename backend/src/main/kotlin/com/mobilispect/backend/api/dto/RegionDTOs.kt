@@ -10,6 +10,8 @@ import java.time.Instant
 data class MetropolitanRegionDTO(
     val regionOnestopId: String,
     val name: String,
+    val adm0Name: String?,
+    val adm1Name: String?,
     val autoUpdateEnabled: Boolean,
     val feedCount: Int,
     val lastCheckAt: Instant?,

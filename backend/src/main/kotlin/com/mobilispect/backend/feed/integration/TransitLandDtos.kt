@@ -17,7 +17,7 @@ data class TransitLandFeedSummary(
     val latestVersionFetchedAt: Instant?,
     val operatorName: String?,
     val authorization: TransitLandAuthorizationSummary?,
-    val places: List<PlaceSummary>
+    val places: List<PlaceSummary> = emptyList()
 )
 
 /**

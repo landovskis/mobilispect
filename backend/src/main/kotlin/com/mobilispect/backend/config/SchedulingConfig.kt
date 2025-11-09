@@ -14,7 +14,7 @@ import java.util.concurrent.Executor
 @Configuration
 @EnableScheduling
 @ConditionalOnProperty(
-    value = ["feed-management.scheduler.enabled"],
+    value = ["feeds.scheduler.enabled"],
     havingValue = "true",
     matchIfMissing = true
 )

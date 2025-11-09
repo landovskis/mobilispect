@@ -73,6 +73,7 @@ class FeedDiscoveryServiceTest {
         )
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(region)
+        every { regionRepository.existsById(testRegionId) } returns true
         every { regionRepository.getReferenceById(testRegionId) } returns region
         coEvery { transitLandApiClient.discoverRegionalFeeds(testRegionName, FeedSpecType.GTFS) } returns listOf(feedSummary)
         every { feedRepository.findById(feedSummary.feedOnestopId) } returns Optional.empty()
@@ -114,6 +115,7 @@ class FeedDiscoveryServiceTest {
         )
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(region)
+        every { regionRepository.existsById(testRegionId) } returns true
         every { regionRepository.getReferenceById(testRegionId) } returns region
         coEvery { transitLandApiClient.discoverRegionalFeeds(testRegionName, FeedSpecType.GTFS) } returns listOf(feedSummary)
         every { feedRepository.findById(existingFeed.feedOnestopId) } returns Optional.of(existingFeed)
@@ -152,6 +154,7 @@ class FeedDiscoveryServiceTest {
         )
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(region)
+        every { regionRepository.existsById(testRegionId) } returns true
         every { regionRepository.getReferenceById(testRegionId) } returns region
         coEvery { transitLandApiClient.discoverRegionalFeeds(testRegionName, FeedSpecType.GTFS) } returns listOf(feedSummary)
         every { feedRepository.findById(any()) } returns Optional.empty()
@@ -214,6 +217,7 @@ class FeedDiscoveryServiceTest {
         val feed2 = createFeedSummary(onestopId = "f-feed-2", name = "Feed 2")
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(region)
+        every { regionRepository.existsById(testRegionId) } returns true
         every { regionRepository.getReferenceById(testRegionId) } returns region
         coEvery { transitLandApiClient.discoverRegionalFeeds(testRegionName, FeedSpecType.GTFS) } returns listOf(feed1, feed2)
         every { feedRepository.findById("f-feed-1") } returns Optional.empty()
@@ -243,6 +247,7 @@ class FeedDiscoveryServiceTest {
         )
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(region)
+        every { regionRepository.existsById(testRegionId) } returns true
         every { regionRepository.getReferenceById(testRegionId) } returns region
         coEvery { transitLandApiClient.discoverRegionalFeeds(testRegionName, FeedSpecType.GTFS) } returns listOf(feedSummary)
         every { feedRepository.findById(any()) } returns Optional.empty()
@@ -266,6 +271,7 @@ class FeedDiscoveryServiceTest {
         val feedSummary = createFeedSummary(onestopId = "f-test", name = "Test")
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(region)
+        every { regionRepository.existsById(testRegionId) } returns true
         every { regionRepository.getReferenceById(testRegionId) } returns region
         coEvery { transitLandApiClient.discoverRegionalFeeds(testRegionName, FeedSpecType.GTFS) } returns listOf(feedSummary)
         every { feedRepository.findById(any()) } returns Optional.empty()
@@ -316,7 +322,8 @@ class FeedDiscoveryServiceTest {
             latestVersionSha1 = sha1,
             latestVersionFetchedAt = if (sha1 != null) fixedInstant else null,
             operatorName = null,
-            authorization = authorization
+            authorization = authorization,
+            places = emptyList()
         )
     }
 
@@ -324,7 +331,7 @@ class FeedDiscoveryServiceTest {
         val region = createTestRegion()
         return FeedEntity(
             feedOnestopId = "f-sf~bay~area~bart",
-            region = region,
+            regions = mutableSetOf(region),
             name = "BART",
             specType = FeedSpecType.GTFS,
             downloadUrl = "https://example.com/bart.zip",

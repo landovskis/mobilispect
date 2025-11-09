@@ -30,14 +30,14 @@ import java.util.UUID
  * Per User Story 3: Administrators can view comprehensive history of feed imports
  *
  * Endpoints:
- * - GET /api/feed-management/history - Get paginated import history
- * - GET /api/feed-management/history/{importId} - Get detailed import information
- * - GET /api/feed-management/history/feeds/{feedOnestopId} - Get feed-specific history
- * - GET /api/feed-management/history/regions/{regionOnestopId} - Get region-specific history
- * - GET /api/feed-management/history/statistics - Get import statistics
+ * - GET /api/feeds/history - Get paginated import history
+ * - GET /api/feeds/history/{importId} - Get detailed import information
+ * - GET /api/feeds/history/feeds/{feedOnestopId} - Get feed-specific history
+ * - GET /api/feeds/history/regions/{regionOnestopId} - Get region-specific history
+ * - GET /api/feeds/history/statistics - Get import statistics
  */
 @RestController
-@RequestMapping("/api/feed-management/history")
+@RequestMapping("/api/feeds/history")
 class HistoryController(
     private val importHistoryService: ImportHistoryService,
     private val importLogRepository: ImportLogRepository
@@ -121,7 +121,7 @@ class HistoryController(
             createdAt = import.createdAt,
             updatedAt = import.updatedAt,
             feedName = feed.name,
-            regionName = feed.region?.name,
+            regionName = feed.regions.firstOrNull()?.name,
             progress = null,
             recentLogs = logs
         )

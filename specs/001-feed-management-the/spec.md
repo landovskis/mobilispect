@@ -194,6 +194,11 @@ updated feeds are detected and imported automatically.
   authentication via HTTP headers (X-API-Key), secure credential storage
   using encrypted database fields, and per-region authentication configuration
   in admin interface
+- **FR-020**: System MUST automatically discover regions from transit.land API
+  and create feed records in the database for each discovered region,
+  including region metadata, feed URLs, and authentication requirements. The
+  region feeds page MUST use these database records to display available
+  feeds that serve each region
 
 ### Key Entities
 

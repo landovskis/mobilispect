@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Feed Management System', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/feed-management');
+    await page.goto('/feeds');
   });
 
   test('should display feed management page', async ({ page }) => {
@@ -96,7 +96,7 @@ test.describe('Feed Management System', () => {
     await page.locator('button:has-text("Start Import")').click();
 
     // Should redirect to active imports automatically
-    await expect(page).toHaveURL(/\/feed-management\/imports/);
+    await expect(page).toHaveURL(/\/feeds\/imports/);
 
     // Verify import appears in active imports or completes quickly
     // (imports may complete very fast in test environment)

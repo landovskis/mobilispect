@@ -42,7 +42,7 @@ import java.time.Instant
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/feed-management")
+@RequestMapping("/api/feeds")
 class ImportController(
     private val feedImportService: FeedImportService,
     private val feedImportRepository: FeedImportRepository,
@@ -128,7 +128,7 @@ class ImportController(
             .orElseThrow { notFound("Import", importId) }
 
         val feed = import.feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${import.id}")
-        val regionName = feed.region?.name
+        val regionName = feed.regions.firstOrNull()?.name
 
         val progress = progressTrackingService.getProgress(importId)?.toDto()
         val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(uuid)
@@ -262,7 +262,7 @@ class ImportController(
 
     private fun FeedImport.toSummary(progress: ImportProgressDTO?): FeedImportSummaryDTO {
         val feed = feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${id}")
-        val region = feed.region
+        val region = feed.regions.firstOrNull()
         return FeedImportSummaryDTO(
             id = requireIdAsString(),
             feedOnestopId = feed.feedOnestopId,

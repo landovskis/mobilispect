@@ -332,7 +332,7 @@ class RegionControllerTest {
     ): FeedEntity {
         return FeedEntity(
             feedOnestopId = id,
-            region = region,
+            regions = mutableSetOf(region),
             name = id.substringAfterLast("-").uppercase(),
             specType = specType,
             downloadUrl = "https://example.com/$id.zip",

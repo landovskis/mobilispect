@@ -11,14 +11,14 @@ import org.springframework.context.annotation.Configuration
  * based on the role-based access control model specified in FR-014.
  *
  * Access Control Matrix:
- * - /api/feed-management/regions (GET): VIEWER, OPERATOR, MANAGER, ADMIN
- * - /api/feed-management/regions/{id} (GET): VIEWER, OPERATOR, MANAGER, ADMIN
- * - /api/feed-management/regions/{id} (PATCH): MANAGER, ADMIN
- * - /api/feed-management/regions/{id}/discover (POST): OPERATOR, MANAGER, ADMIN
- * - /api/feed-management/feeds/{id}/import (POST): OPERATOR, MANAGER, ADMIN
- * - /api/feed-management/imports (GET): VIEWER, OPERATOR, MANAGER, ADMIN, AUDITOR
- * - /api/feed-management/imports/{id} (DELETE): OPERATOR, MANAGER, ADMIN
- * - /api/feed-management/imports/{id}/logs (GET): VIEWER, OPERATOR, MANAGER, ADMIN, AUDITOR
+ * - /api/feeds/regions (GET): VIEWER, OPERATOR, MANAGER, ADMIN
+ * - /api/feeds/regions/{id} (GET): VIEWER, OPERATOR, MANAGER, ADMIN
+ * - /api/feeds/regions/{id} (PATCH): MANAGER, ADMIN
+ * - /api/feeds/regions/{id}/discover (POST): OPERATOR, MANAGER, ADMIN
+ * - /api/feeds/feeds/{id}/import (POST): OPERATOR, MANAGER, ADMIN
+ * - /api/feeds/imports (GET): VIEWER, OPERATOR, MANAGER, ADMIN, AUDITOR
+ * - /api/feeds/imports/{id} (DELETE): OPERATOR, MANAGER, ADMIN
+ * - /api/feeds/imports/{id}/logs (GET): VIEWER, OPERATOR, MANAGER, ADMIN, AUDITOR
  *
  * Note: This is a placeholder configuration. Full Spring Security integration requires:
  * 1. SecurityFilterChain bean configuration

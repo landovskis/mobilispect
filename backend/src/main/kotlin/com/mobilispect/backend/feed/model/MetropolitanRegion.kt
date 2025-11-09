@@ -4,7 +4,7 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
-import jakarta.persistence.OneToMany
+import jakarta.persistence.ManyToMany
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
@@ -20,6 +20,12 @@ class MetropolitanRegion(
     @Column(nullable = false, length = 255)
     var name: String = "",
 
+    @Column(name = "adm0_name", nullable = true, length = 255)
+    var adm0Name: String? = null,
+
+    @Column(name = "adm1_name", nullable = true, length = 255)
+    var adm1Name: String? = null,
+
     @Column(name = "auto_update_enabled", nullable = false)
     var autoUpdateEnabled: Boolean = true,
 
@@ -29,7 +35,7 @@ class MetropolitanRegion(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
-    @OneToMany(mappedBy = "region", fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "regions", fetch = FetchType.LAZY)
     val feeds: MutableSet<FeedEntity> = mutableSetOf()
 
     @PrePersist
