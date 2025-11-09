@@ -6,6 +6,7 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatChipsModule } from '@angular/material/chips';
 import { FeedImportSummary } from '../models/import.models';
 
 /**
@@ -36,7 +37,8 @@ import { FeedImportSummary } from '../models/import.models';
     MatPaginatorModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatExpansionModule
+    MatExpansionModule,
+    MatChipsModule
   ],
   template: `
     <mat-expansion-panel class="history-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
@@ -72,55 +74,59 @@ import { FeedImportSummary } from '../models/import.models';
       </div>
 
       <!-- History Cards List -->
-      <div *ngIf="!loading && history && history.length > 0" class="history-list">
-        <mat-card *ngFor="let importItem of history" class="history-item-card" appearance="outlined">
-          <mat-card-header class="history-card-header">
-            <div mat-card-avatar class="history-avatar" [ngClass]="{
-              'avatar-completed': importItem.status === 'completed',
-              'avatar-failed': importItem.status === 'failed',
-              'avatar-cancelled': importItem.status === 'cancelled'
-            }">
-              <mat-icon *ngIf="importItem.status === 'completed'">check_circle</mat-icon>
-              <mat-icon *ngIf="importItem.status === 'failed'">error</mat-icon>
-              <mat-icon *ngIf="importItem.status === 'cancelled'">cancel</mat-icon>
-            </div>
-
-            <mat-card-title class="history-title">
-              {{ importItem.feedName || importItem.feedOnestopId }}
-            </mat-card-title>
-
-            <mat-card-subtitle class="history-subtitle">
-              {{ importItem.regionName }}
-            </mat-card-subtitle>
-          </mat-card-header>
-
-          <mat-card-content class="history-card-content">
-            <div class="history-meta">
-              <span class="status-badge" [ngClass]="{
-                'status-completed': importItem.status === 'completed',
-                'status-failed': importItem.status === 'failed',
-                'status-cancelled': importItem.status === 'cancelled'
+      <div *ngIf="!loading && history && history.length > 0" class="history-container">
+        <div class="history-list">
+          <mat-card *ngFor="let importItem of history" class="history-item-card" appearance="outlined">
+            <mat-card-header class="history-card-header">
+              <div mat-card-avatar class="history-avatar" [ngClass]="{
+                'avatar-completed': importItem.status === 'completed',
+                'avatar-failed': importItem.status === 'failed',
+                'avatar-cancelled': importItem.status === 'cancelled'
               }">
-                {{ importItem.status }}
-              </span>
+                <mat-icon *ngIf="importItem.status === 'completed'">check_circle</mat-icon>
+                <mat-icon *ngIf="importItem.status === 'failed'">error</mat-icon>
+                <mat-icon *ngIf="importItem.status === 'cancelled'">cancel</mat-icon>
+              </div>
 
-              <span class="meta-item">
-                <mat-icon>schedule</mat-icon>
-                Started: {{ importItem.startedAt | date:'short' }}
-              </span>
+              <mat-card-title class="history-title">
+                {{ importItem.feedName || importItem.feedOnestopId }}
+              </mat-card-title>
 
-              <span class="meta-item" *ngIf="importItem.completedAt">
-                <mat-icon>event_available</mat-icon>
-                Completed: {{ importItem.completedAt | date:'short' }}
-              </span>
+              <mat-card-subtitle class="history-subtitle">
+                {{ importItem.regionName }}
+              </mat-card-subtitle>
+            </mat-card-header>
 
-              <span class="meta-item" *ngIf="importItem.fileSizeBytes">
-                <mat-icon>storage</mat-icon>
-                {{ formatFileSize(importItem.fileSizeBytes) }}
-              </span>
-            </div>
-          </mat-card-content>
-        </mat-card>
+            <mat-card-content class="history-card-content">
+              <div class="history-meta">
+                <mat-chip-set aria-label="Import status">
+                  <mat-chip [ngClass]="{
+                    'status-completed': importItem.status === 'completed',
+                    'status-failed': importItem.status === 'failed',
+                    'status-cancelled': importItem.status === 'cancelled'
+                  }">
+                    {{ importItem.status }}
+                  </mat-chip>
+                </mat-chip-set>
+
+                <span class="meta-item">
+                  <mat-icon>schedule</mat-icon>
+                  Started: {{ importItem.startedAt | date:'short' }}
+                </span>
+
+                <span class="meta-item" *ngIf="importItem.completedAt">
+                  <mat-icon>event_available</mat-icon>
+                  Completed: {{ importItem.completedAt | date:'short' }}
+                </span>
+
+                <span class="meta-item" *ngIf="importItem.fileSizeBytes">
+                  <mat-icon>storage</mat-icon>
+                  {{ formatFileSize(importItem.fileSizeBytes) }}
+                </span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
 
         <!-- Paginator -->
         <mat-paginator
@@ -141,6 +147,11 @@ import { FeedImportSummary } from '../models/import.models';
       margin-bottom: 24px;
       border-radius: 12px !important;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+      border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    }
+
+    :host-context(.dark-theme) .history-panel {
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
     }
 
     .panel-header {
@@ -229,8 +240,8 @@ import { FeedImportSummary } from '../models/import.models';
 
     /* History List */
     .history-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
       gap: 16px;
       padding: 16px;
     }
@@ -334,52 +345,48 @@ import { FeedImportSummary } from '../models/import.models';
       color: #64b5f6;
     }
 
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    mat-chip {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      min-height: 28px !important;
     }
 
-    .status-completed {
-      background-color: rgba(76, 175, 80, 0.15);
-      color: #1B5E20;
-      border: 1px solid rgba(76, 175, 80, 0.4);
+    mat-chip.status-completed {
+      background-color: rgba(76, 175, 80, 0.15) !important;
+      color: #1B5E20 !important;
+      border: 1px solid rgba(76, 175, 80, 0.4) !important;
     }
 
-    :host-context(.dark-theme) .status-completed {
-      background-color: rgba(76, 175, 80, 0.25);
-      color: #81c784;
-      border-color: rgba(76, 175, 80, 0.5);
+    :host-context(.dark-theme) mat-chip.status-completed {
+      background-color: rgba(76, 175, 80, 0.25) !important;
+      color: #81c784 !important;
+      border-color: rgba(76, 175, 80, 0.5) !important;
     }
 
-    .status-failed {
-      background-color: rgba(244, 67, 54, 0.15);
-      color: #B71C1C;
-      border: 1px solid rgba(244, 67, 54, 0.4);
+    mat-chip.status-failed {
+      background-color: rgba(244, 67, 54, 0.15) !important;
+      color: #B71C1C !important;
+      border: 1px solid rgba(244, 67, 54, 0.4) !important;
     }
 
-    :host-context(.dark-theme) .status-failed {
-      background-color: rgba(244, 67, 54, 0.25);
-      color: #ef5350;
-      border-color: rgba(244, 67, 54, 0.5);
+    :host-context(.dark-theme) mat-chip.status-failed {
+      background-color: rgba(244, 67, 54, 0.25) !important;
+      color: #ef5350 !important;
+      border-color: rgba(244, 67, 54, 0.5) !important;
     }
 
-    .status-cancelled {
-      background-color: rgba(243, 156, 18, 0.15);
-      color: #8B5A00;
-      border: 1px solid rgba(243, 156, 18, 0.3);
+    mat-chip.status-cancelled {
+      background-color: rgba(243, 156, 18, 0.15) !important;
+      color: #8B5A00 !important;
+      border: 1px solid rgba(243, 156, 18, 0.3) !important;
     }
 
-    :host-context(.dark-theme) .status-cancelled {
-      background-color: rgba(243, 156, 18, 0.25);
-      color: #ffb74d;
-      border-color: rgba(243, 156, 18, 0.5);
+    :host-context(.dark-theme) mat-chip.status-cancelled {
+      background-color: rgba(243, 156, 18, 0.25) !important;
+      color: #ffb74d !important;
+      border-color: rgba(243, 156, 18, 0.5) !important;
     }
 
     /* Responsive */

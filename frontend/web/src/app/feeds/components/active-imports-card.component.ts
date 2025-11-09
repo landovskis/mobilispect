@@ -7,6 +7,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatChipsModule } from '@angular/material/chips';
 import { FeedImportSummary } from '../models/import.models';
 import { ProgressMonitorComponent } from './progress-monitor.component';
 
@@ -38,6 +39,7 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     MatCheckboxModule,
     MatTooltipModule,
     MatExpansionModule,
+    MatChipsModule,
     ProgressMonitorComponent
   ],
   template: `
@@ -98,9 +100,14 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
 
             <mat-card-content class="import-card-content">
               <div class="import-meta">
-                <span class="status-badge status-{{ importItem.status.toLowerCase() }}">
-                  {{ importItem.status }}
-                </span>
+                <mat-chip-set aria-label="Import status">
+                  <mat-chip [ngClass]="{
+                    'status-pending': importItem.status === 'pending',
+                    'status-running': importItem.status === 'running'
+                  }">
+                    {{ importItem.status }}
+                  </mat-chip>
+                </mat-chip-set>
                 <span class="started-time">
                   Started: {{ importItem.startedAt | date:'short' }}
                 </span>
@@ -134,6 +141,11 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
       margin-bottom: 24px;
       border-radius: 12px !important;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+      border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    }
+
+    :host-context(.dark-theme) .active-imports-panel {
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
     }
 
     .panel-header {
@@ -269,40 +281,36 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
       color: #aaa;
     }
 
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    mat-chip {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      min-height: 28px !important;
     }
 
-    .status-pending {
-      background-color: rgba(33, 150, 243, 0.15);
-      color: #1565C0;
-      border: 1px solid rgba(33, 150, 243, 0.3);
+    mat-chip.status-pending {
+      background-color: rgba(33, 150, 243, 0.15) !important;
+      color: #1565C0 !important;
+      border: 1px solid rgba(33, 150, 243, 0.3) !important;
     }
 
-    :host-context(.dark-theme) .status-pending {
-      background-color: rgba(33, 150, 243, 0.25);
-      color: #64b5f6;
-      border-color: rgba(33, 150, 243, 0.5);
+    :host-context(.dark-theme) mat-chip.status-pending {
+      background-color: rgba(33, 150, 243, 0.25) !important;
+      color: #64b5f6 !important;
+      border-color: rgba(33, 150, 243, 0.5) !important;
     }
 
-    .status-running {
-      background-color: rgba(243, 156, 18, 0.15);
-      color: #8B5A00;
-      border: 1px solid rgba(243, 156, 18, 0.3);
+    mat-chip.status-running {
+      background-color: rgba(243, 156, 18, 0.15) !important;
+      color: #8B5A00 !important;
+      border: 1px solid rgba(243, 156, 18, 0.3) !important;
     }
 
-    :host-context(.dark-theme) .status-running {
-      background-color: rgba(243, 156, 18, 0.25);
-      color: #ffb74d;
-      border-color: rgba(243, 156, 18, 0.5);
+    :host-context(.dark-theme) mat-chip.status-running {
+      background-color: rgba(243, 156, 18, 0.25) !important;
+      color: #ffb74d !important;
+      border-color: rgba(243, 156, 18, 0.5) !important;
     }
 
     /* Empty State */

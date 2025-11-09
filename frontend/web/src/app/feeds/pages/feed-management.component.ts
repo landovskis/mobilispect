@@ -62,7 +62,7 @@ import { FeedImportsTabComponent } from '../components/feed-imports-tab.componen
                 <mat-tab>
                   <ng-template mat-tab-label>
                     <mat-icon class="tab-icon">rss_feed</mat-icon>
-                    Feeds
+                    Discover
                     <span class="tab-badge" *ngIf="regionFeeds.length > 0">
                       {{ regionFeeds.length }}
                     </span>
@@ -110,7 +110,7 @@ import { FeedImportsTabComponent } from '../components/feed-imports-tab.componen
                 <mat-tab>
                   <ng-template mat-tab-label>
                     <mat-icon class="tab-icon">history</mat-icon>
-                    Import History
+                    Imports
                     <span class="tab-badge" *ngIf="totalImportElements > 0">
                       {{ totalImportElements }}
                     </span>
