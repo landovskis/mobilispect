@@ -302,15 +302,15 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     }
 
     mat-chip.status-running {
-      background-color: rgba(243, 156, 18, 0.15) !important;
-      color: #8B5A00 !important;
-      border: 1px solid rgba(243, 156, 18, 0.3) !important;
+      background-color: rgba(33, 150, 243, 0.15) !important;
+      color: #1565C0 !important;
+      border: 1px solid rgba(33, 150, 243, 0.3) !important;
     }
 
     :host-context(.dark-theme) mat-chip.status-running {
-      background-color: rgba(243, 156, 18, 0.25) !important;
-      color: #ffb74d !important;
-      border-color: rgba(243, 156, 18, 0.5) !important;
+      background-color: rgba(33, 150, 243, 0.25) !important;
+      color: #64b5f6 !important;
+      border-color: rgba(33, 150, 243, 0.5) !important;
     }
 
     /* Empty State */
