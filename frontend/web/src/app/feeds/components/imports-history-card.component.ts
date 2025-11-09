@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,35 +8,44 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { FeedImportSummary } from '../models/import.models';
 
 /**
- * Import History Table Component
+ * Imports History Card Component
  *
- * Displays completed feed imports in a paginated table format with
+ * Displays completed feed imports in a card with paginated table format,
  * status indicators and metadata.
  *
  * @example
  * ```html
- * <app-import-history-table
+ * <app-imports-history-card
  *   [loading]="isLoading"
  *   [history]="imports"
  *   [totalItems]="total"
  *   [pageIndex]="0"
  *   [pageSize]="20"
  *   (pageChange)="loadPage($event)">
- * </app-import-history-table>
+ * </app-imports-history-card>
  * ```
  */
 @Component({
-  selector: 'app-import-history-table',
+  selector: 'app-imports-history-card',
   standalone: true,
   imports: [
     CommonModule,
+    MatCardModule,
     MatTableModule,
     MatPaginatorModule,
     MatIconModule,
     MatProgressSpinnerModule
   ],
   template: `
-    <div class="history-container">
+    <mat-card class="history-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>history</mat-icon>
+          History
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="history-container">
       <!-- Loading State -->
       <div
         *ngIf="loading"
@@ -142,8 +152,20 @@ import { FeedImportSummary } from '../models/import.models';
         ></mat-paginator>
       </div>
     </div>
+      </mat-card-content>
+    </mat-card>
   `,
   styles: [`
+    .history-card {
+      margin-bottom: 24px;
+    }
+
+    .history-card mat-card-header mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .history-container {
       width: 100%;
     }
@@ -247,7 +269,7 @@ import { FeedImportSummary } from '../models/import.models';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ImportHistoryTableComponent {
+export class ImportsHistoryCardComponent {
   @Input() loading = false;
   @Input() history: FeedImportSummary[] | null = [];
   @Input() totalItems = 0;

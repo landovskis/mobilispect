@@ -21,7 +21,7 @@ import { ImportConfirmationDialogComponent } from '../components/import-confirma
 import { AppBarComponent, Breadcrumb, BreadcrumbSelection, ToolbarNavItem } from '../../shared/components/app-bar.component';
 import { RegionSelectorComponent } from '../components/region-selector.component';
 import { AgencyFeedCardComponent } from '../components/agency-feed-card.component';
-import { FeedHistoryTabComponent } from '../components/feed-history-tab.component';
+import { FeedImportsTabComponent } from '../components/feed-imports-tab.component';
 
 @Component({
   selector: 'app-feeds',
@@ -37,7 +37,7 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
     AppBarComponent,
     RegionSelectorComponent,
     AgencyFeedCardComponent,
-    FeedHistoryTabComponent
+    FeedImportsTabComponent
   ],
   template: `
     <div class="feeds-container">
@@ -127,7 +127,7 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
                       (regionChange)="onRegionChange($event)"
                     ></app-region-selector>
 
-                    <app-feed-history-tab
+                    <app-feed-imports-tab
                     [loading]="loadingHistory"
                     [history]="importHistory"
                     [totalItems]="totalImportElements"
@@ -142,7 +142,7 @@ import { FeedHistoryTabComponent } from '../components/feed-history-tab.componen
                     (bulkCancel)="bulkCancelImports()"
                     (cancelImport)="cancelImport($event)"
                     (pageChange)="loadImportHistory($event)"
-                  ></app-feed-history-tab>
+                  ></app-feed-imports-tab>
                   </div>
                 </mat-tab>
               </mat-tab-group>

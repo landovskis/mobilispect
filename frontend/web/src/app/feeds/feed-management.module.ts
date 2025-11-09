@@ -41,7 +41,7 @@ import { ImportService } from './services/import.service';
 import { FeedAuthenticationService } from './services/feed-authentication.service';
 import { FeedRegionsTabComponent } from './components/feed-regions-tab.component';
 import { FeedActiveImportsTabComponent } from './components/feed-active-imports-tab.component';
-import { FeedHistoryTabComponent } from './components/feed-history-tab.component';
+import { FeedImportsTabComponent } from './components/feed-imports-tab.component';
 import { RegionSelectorComponent } from './components/region-selector.component';
 import { AgencyFeedCardComponent } from './components/agency-feed-card.component';
 
@@ -69,7 +69,7 @@ import { AgencyFeedCardComponent } from './components/agency-feed-card.component
     AppBarComponent,
     FeedRegionsTabComponent,
     FeedActiveImportsTabComponent,
-    FeedHistoryTabComponent,
+    FeedImportsTabComponent,
     AgencyFeedCardComponent,
 
     // Angular Material modules

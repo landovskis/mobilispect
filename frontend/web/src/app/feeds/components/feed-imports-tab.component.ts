@@ -2,49 +2,49 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { FeedImportSummary } from '../models/import.models';
-import { ActiveImportsListComponent } from './active-imports-list.component';
-import { ImportHistoryTableComponent } from './import-history-table.component';
+import { ActiveImportsCardComponent } from './active-imports-card.component';
+import { ImportsHistoryCardComponent } from './imports-history-card.component';
 
 /**
- * Feed History Tab Component
+ * Feed Imports Tab Component
  *
- * Orchestrates the display of active imports and import history.
- * Composed of two main sub-components:
- * - ActiveImportsListComponent: Displays running imports
- * - ImportHistoryTableComponent: Displays completed imports
+ * Orchestrates the display of active imports and imports history.
+ * Composed of two main card components:
+ * - ActiveImportsCardComponent: Displays running imports
+ * - ImportsHistoryCardComponent: Displays completed imports
  *
  * @example
  * ```html
- * <app-feed-history-tab
+ * <app-feed-imports-tab
  *   [loading]="isLoading"
  *   [history]="imports"
  *   [activeImports$]="activeImports$"
  *   (pageChange)="loadPage($event)"
  *   (cancelImport)="cancel($event)">
- * </app-feed-history-tab>
+ * </app-feed-imports-tab>
  * ```
  */
 @Component({
-  selector: 'app-feed-history-tab',
+  selector: 'app-feed-imports-tab',
   standalone: true,
   imports: [
     CommonModule,
-    ActiveImportsListComponent,
-    ImportHistoryTableComponent
+    ActiveImportsCardComponent,
+    ImportsHistoryCardComponent
   ],
   template: `
     <div class="tab-content">
-      <!-- Active Imports Section -->
-      <app-active-imports-list
+      <!-- Active Imports Card -->
+      <app-active-imports-card
         [activeImports$]="activeImports$"
         [selectedImportIds]="selectedImportIds"
         (selectionChange)="onSelectionChange($event.id, $event.selected)"
         (bulkCancel)="onBulkCancel()"
         (cancelImport)="onCancelImport($event)"
-      ></app-active-imports-list>
+      ></app-active-imports-card>
 
-      <!-- Import History Table -->
-      <app-import-history-table
+      <!-- Imports History Card -->
+      <app-imports-history-card
         [loading]="loading"
         [history]="history"
         [totalItems]="totalItems"
@@ -54,7 +54,7 @@ import { ImportHistoryTableComponent } from './import-history-table.component';
         [displayedColumns]="displayedColumns"
         [showHeader]="hasActiveImports"
         (pageChange)="onPageChange($event)"
-      ></app-import-history-table>
+      ></app-imports-history-card>
     </div>
   `,
   styles: [`
@@ -70,7 +70,7 @@ import { ImportHistoryTableComponent } from './import-history-table.component';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class FeedHistoryTabComponent {
+export class FeedImportsTabComponent {
   // History table inputs
   @Input() loading = false;
   @Input() history: FeedImportSummary[] | null = [];

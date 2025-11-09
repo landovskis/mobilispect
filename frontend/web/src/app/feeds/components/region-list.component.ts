@@ -20,7 +20,6 @@ import { RegionService } from '../services/region.service';
 import { ImportService } from '../services/import.service';
 import { SchedulerService } from '../services/scheduler.service';
 import { FeedImportSummary } from '../models/import.models';
-import { FeedDiscoveryTriggerComponent } from './feed-discovery-trigger.component';
 
 /**
  * Region List Component
@@ -50,8 +49,7 @@ import { FeedDiscoveryTriggerComponent } from './feed-discovery-trigger.componen
     MatTooltipModule,
     MatBadgeModule,
     MatSlideToggleModule,
-    MatMenuModule,
-    FeedDiscoveryTriggerComponent
+    MatMenuModule
   ],
   template: `
     <div class="region-list-container">
@@ -164,12 +162,6 @@ import { FeedDiscoveryTriggerComponent } from './feed-discovery-trigger.componen
           </mat-card-content>
 
           <mat-card-actions align="end">
-            <app-feed-discovery-trigger
-              class="discovery-trigger"
-              [region]="region"
-              (completed)="handleDiscoveryCompleted(region, $event)"
-            ></app-feed-discovery-trigger>
-
             <button
               mat-button
               color="primary"

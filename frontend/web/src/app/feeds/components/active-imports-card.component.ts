@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
+import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -9,27 +10,28 @@ import { FeedImportSummary } from '../models/import.models';
 import { ProgressMonitorComponent } from './progress-monitor.component';
 
 /**
- * Active Imports List Component
+ * Active Imports Card Component
  *
- * Displays currently running imports with real-time progress monitoring,
+ * Displays currently running imports in a card with real-time progress monitoring,
  * bulk selection, and cancellation capabilities.
  *
  * @example
  * ```html
- * <app-active-imports-list
+ * <app-active-imports-card
  *   [activeImports$]="activeImports$"
  *   [selectedImportIds]="selectedIds"
  *   (selectionChange)="handleSelection($event)"
  *   (bulkCancel)="cancelSelected()"
  *   (cancelImport)="cancelOne($event)">
- * </app-active-imports-list>
+ * </app-active-imports-card>
  * ```
  */
 @Component({
-  selector: 'app-active-imports-list',
+  selector: 'app-active-imports-card',
   standalone: true,
   imports: [
     CommonModule,
+    MatCardModule,
     MatIconModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -37,30 +39,28 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     ProgressMonitorComponent
   ],
   template: `
-    <div class="active-imports-section" *ngIf="(activeImports$ | async) as activeImports">
-      <div *ngIf="activeImports.length > 0" class="active-imports-container">
-        <!-- Header with bulk actions -->
-        <div class="section-header">
-          <h3>
-            <mat-icon>download</mat-icon>
-            Active Imports ({{ activeImports.length }})
-          </h3>
-          <div class="bulk-actions" *ngIf="selectedImportIds.size > 0">
-            <span class="selection-count">{{ selectedImportIds.size }} selected</span>
-            <button
-              mat-raised-button
-              color="warn"
-              (click)="onBulkCancel()"
-              [disabled]="selectedImportIds.size === 0"
-            >
-              <mat-icon>cancel</mat-icon>
-              Cancel Selected
-            </button>
-          </div>
+    <mat-card class="active-imports-card" *ngIf="(activeImports$ | async) as activeImports">
+      <mat-card-header *ngIf="activeImports.length > 0">
+        <mat-card-title>
+          <mat-icon>downloading</mat-icon>
+          Active ({{ activeImports.length }})
+        </mat-card-title>
+        <div class="card-actions" *ngIf="selectedImportIds.size > 0">
+          <span class="selection-count">{{ selectedImportIds.size }} selected</span>
+          <button
+            mat-raised-button
+            color="warn"
+            (click)="onBulkCancel()"
+            [disabled]="selectedImportIds.size === 0"
+          >
+            <mat-icon>cancel</mat-icon>
+            Cancel Selected
+          </button>
         </div>
-
-        <!-- Active imports cards -->
-        <div class="active-imports-list">
+      </mat-card-header>
+      <mat-card-content>
+        <!-- Active imports list -->
+        <div class="active-imports-list" *ngIf="activeImports.length > 0">
           <div *ngFor="let importItem of activeImports" class="active-import-card">
             <div class="card-header">
               <mat-checkbox
@@ -99,12 +99,35 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
             ></app-progress-monitor>
           </div>
         </div>
-      </div>
-    </div>
+      </mat-card-content>
+    </mat-card>
   `,
   styles: [`
-    .active-imports-section {
-      margin-bottom: 32px;
+    .active-imports-card {
+      margin-bottom: 24px;
+    }
+
+    .active-imports-card mat-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .active-imports-card mat-card-header mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .selection-count {
+      font-size: 14px;
+      color: #666;
     }
 
     .section-header {
@@ -218,7 +241,7 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ActiveImportsListComponent {
+export class ActiveImportsCardComponent {
   @Input() activeImports$: Observable<FeedImportSummary[]> | null = null;
   @Input() selectedImportIds: Set<string> = new Set();
 
