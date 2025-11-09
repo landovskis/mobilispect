@@ -30,9 +30,6 @@ import { FeedManagementComponent } from './pages/feed-management.component';
 import { RegionListComponent } from './components/region-list.component';
 import { ImportDialogComponent } from './components/import-dialog.component';
 import { ImportProgressDialogComponent } from './components/import-progress-dialog.component';
-import { FeedAuthenticationComponent } from './components/feed-authentication.component';
-import { AutoUpdateConfigComponent } from './components/auto-update-config.component';
-import { ProgressBarComponent } from './components/progress-bar.component';
 import { ProgressMonitorComponent } from './components/progress-monitor.component';
 import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
 import { RegionService } from './services/region.service';
@@ -47,8 +44,6 @@ import { MobilispectCardComponent } from '../core/components/mobilispect-card.co
 
 @NgModule({
   declarations: [
-    FeedAuthenticationComponent,
-    AutoUpdateConfigComponent,
     ScheduledJobsComponent
   ],
   imports: [
@@ -63,7 +58,6 @@ import { MobilispectCardComponent } from '../core/components/mobilispect-card.co
     RegionSelectorComponent,
     ImportDialogComponent,
     ImportProgressDialogComponent,
-    ProgressBarComponent,
     ProgressMonitorComponent,
     ThemeToggleComponent,
     AppBarComponent,

@@ -37,8 +37,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MatIconModule,
     MatProgressSpinnerModule,
     MatExpansionModule,
-    MatChipsModule,
-    MobilispectCardComponent
+    MatChipsModule
   ],
   template: `
     <mat-expansion-panel class="history-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
@@ -174,19 +173,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
       color: white !important;
     }
 
-    .count-badge {
-      background: rgba(255, 255, 255, 0.25);
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-
     /* Loading & Empty States */
-    .loading-container {
-      text-align: center;
-      padding: 40px;
-    }
 
     .loading-container p {
       margin-top: 20px;
@@ -256,18 +243,6 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
       justify-content: center;
     }
 
-    .avatar-completed {
-      background-color: #4CAF50 !important;
-    }
-
-    .avatar-failed {
-      background-color: #F44336 !important;
-    }
-
-    .avatar-cancelled {
-      background-color: #FF9800 !important;
-    }
-
     :host-context(.dark-theme) .avatar-completed {
       background-color: #388E3C !important;
     }
@@ -280,31 +255,12 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
       background-color: #F57C00 !important;
     }
 
-    .history-title {
-      font-size: 1rem !important;
-      font-weight: 600 !important;
-      color: #1A3A52 !important;
-    }
-
     :host-context(.dark-theme) .history-title {
       color: #e0e0e0 !important;
     }
 
-    .history-subtitle {
-      font-size: 0.875rem !important;
-      color: #666 !important;
-    }
-
     :host-context(.dark-theme) .history-subtitle {
       color: #aaa !important;
-    }
-
-    .meta-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.8125rem;
-      color: #666;
     }
 
     .meta-item mat-icon {
@@ -328,11 +284,6 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
       text-transform: uppercase !important;
       letter-spacing: 0.5px !important;
       min-height: 28px !important;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
