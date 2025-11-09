@@ -35,22 +35,22 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
     MatTooltipModule
   ],
   template: `
-    <mat-card class="agency-card" *ngIf="agencyGroup" appearance="outlined">
+    <mat-card class="app-card agency-card" *ngIf="agencyGroup" appearance="outlined">
       <!-- Card Header with Agency Info -->
-      <mat-card-header class="card-header">
-        <div mat-card-avatar class="agency-avatar">
-          <mat-icon class="avatar-icon">business</mat-icon>
+      <mat-card-header class="app-card-header">
+        <div mat-card-avatar class="app-card-avatar">
+          <mat-icon class="app-avatar-icon">business</mat-icon>
         </div>
-        <mat-card-title class="agency-title">
+        <mat-card-title class="app-card-title">
           {{ agencyGroup.agencyName }}
         </mat-card-title>
-        <mat-card-subtitle class="agency-subtitle">
-          <mat-icon class="subtitle-icon">rss_feed</mat-icon>
+        <mat-card-subtitle class="app-card-subtitle">
+          <mat-icon class="app-subtitle-icon">rss_feed</mat-icon>
           {{ agencyGroup.feeds.length }} feed{{ agencyGroup.feeds.length !== 1 ? 's' : '' }} available
         </mat-card-subtitle>
       </mat-card-header>
 
-      <mat-card-content class="card-content">
+      <mat-card-content class="app-card-content">
         <!-- Feed Types Summary -->
         <div class="section">
           <div class="section-label">
@@ -79,12 +79,12 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
 
       </mat-card-content>
 
-      <mat-card-actions class="card-actions">
+      <mat-card-actions class="app-card-actions">
         <!-- Unified Import button -->
         <button
           mat-raised-button
           color="primary"
-          class="primary-action"
+          class="app-primary-action"
           (click)="onImport()"
           [disabled]="!agencyGroup.hasActiveFeeds">
           <mat-icon>download</mat-icon>
@@ -93,6 +93,7 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
       </mat-card-actions>
     </mat-card>
   `,
+  styleUrls: ['../styles/card.styles.css'],
   styles: [`
     /* Card Container */
     .agency-card {

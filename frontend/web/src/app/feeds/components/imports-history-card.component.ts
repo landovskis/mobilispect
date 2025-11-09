@@ -37,14 +37,14 @@ import { FeedImportSummary } from '../models/import.models';
     MatProgressSpinnerModule
   ],
   template: `
-    <mat-card class="history-card">
-      <mat-card-header>
-        <mat-card-title>
+    <mat-card class="app-card history-card">
+      <mat-card-header class="app-card-header">
+        <mat-card-title class="app-card-title">
           <mat-icon>history</mat-icon>
           History
         </mat-card-title>
       </mat-card-header>
-      <mat-card-content>
+      <mat-card-content class="app-card-content">
         <div class="history-container">
       <!-- Loading State -->
       <div
@@ -155,12 +155,14 @@ import { FeedImportSummary } from '../models/import.models';
       </mat-card-content>
     </mat-card>
   `,
+  styleUrls: ['../styles/card.styles.css'],
   styles: [`
+    /* Component-specific styles */
     .history-card {
       margin-bottom: 24px;
     }
 
-    .history-card mat-card-header mat-card-title {
+    .app-card-title {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -175,7 +177,6 @@ import { FeedImportSummary } from '../models/import.models';
       justify-content: space-between;
       align-items: center;
       margin-bottom: 16px;
-      padding: 0 16px;
     }
 
     .section-header h3 {
@@ -185,6 +186,11 @@ import { FeedImportSummary } from '../models/import.models';
       margin: 0;
       font-size: 18px;
       font-weight: 500;
+      color: #2980B9;
+    }
+
+    :host-context(.dark-theme) .section-header h3 {
+      color: #64b5f6;
     }
 
     .loading-container {
@@ -195,6 +201,10 @@ import { FeedImportSummary } from '../models/import.models';
     .loading-container p {
       margin-top: 20px;
       color: #666;
+    }
+
+    :host-context(.dark-theme) .loading-container p {
+      color: #aaa;
     }
 
     .history-section {
@@ -212,13 +222,26 @@ import { FeedImportSummary } from '../models/import.models';
       color: #666;
     }
 
+    :host-context(.dark-theme) .empty-state {
+      color: #aaa;
+    }
+
     .empty-title {
       font-size: 18px;
       margin-top: 20px;
+      color: #1A3A52;
+    }
+
+    :host-context(.dark-theme) .empty-title {
+      color: #e0e0e0;
     }
 
     .empty-subtitle {
       color: #999;
+    }
+
+    :host-context(.dark-theme) .empty-subtitle {
+      color: #888;
     }
 
     .empty-icon {
@@ -226,6 +249,10 @@ import { FeedImportSummary } from '../models/import.models';
       width: 64px;
       height: 64px;
       color: #999;
+    }
+
+    :host-context(.dark-theme) .empty-icon {
+      color: #666;
     }
 
     .status-badge {
@@ -247,18 +274,39 @@ import { FeedImportSummary } from '../models/import.models';
     }
 
     .status-completed {
-      background-color: rgba(76, 175, 80, 0.1);
-      color: #2e7d32;
+      background-color: rgba(76, 175, 80, 0.15);
+      color: #1B5E20;
+      border: 1px solid rgba(76, 175, 80, 0.4);
+    }
+
+    :host-context(.dark-theme) .status-completed {
+      background-color: rgba(76, 175, 80, 0.25);
+      color: #81c784;
+      border-color: rgba(76, 175, 80, 0.5);
     }
 
     .status-failed {
-      background-color: rgba(244, 67, 54, 0.1);
-      color: #c62828;
+      background-color: rgba(244, 67, 54, 0.15);
+      color: #B71C1C;
+      border: 1px solid rgba(244, 67, 54, 0.4);
+    }
+
+    :host-context(.dark-theme) .status-failed {
+      background-color: rgba(244, 67, 54, 0.25);
+      color: #ef5350;
+      border-color: rgba(244, 67, 54, 0.5);
     }
 
     .status-cancelled {
-      background-color: rgba(255, 152, 0, 0.1);
-      color: #e65100;
+      background-color: rgba(243, 156, 18, 0.15);
+      color: #8B5A00;
+      border: 1px solid rgba(243, 156, 18, 0.3);
+    }
+
+    :host-context(.dark-theme) .status-cancelled {
+      background-color: rgba(243, 156, 18, 0.25);
+      color: #ffb74d;
+      border-color: rgba(243, 156, 18, 0.5);
     }
 
     @media (max-width: 768px) {

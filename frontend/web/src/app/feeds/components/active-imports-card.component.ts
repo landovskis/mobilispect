@@ -39,13 +39,13 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     ProgressMonitorComponent
   ],
   template: `
-    <mat-card class="active-imports-card" *ngIf="(activeImports$ | async) as activeImports">
-      <mat-card-header *ngIf="activeImports.length > 0">
-        <mat-card-title>
+    <mat-card class="app-card active-imports-card" *ngIf="(activeImports$ | async) as activeImports">
+      <mat-card-header class="app-card-header" *ngIf="activeImports.length > 0">
+        <mat-card-title class="app-card-title">
           <mat-icon>downloading</mat-icon>
           Active ({{ activeImports.length }})
         </mat-card-title>
-        <div class="card-actions" *ngIf="selectedImportIds.size > 0">
+        <div class="header-actions" *ngIf="selectedImportIds.size > 0">
           <span class="selection-count">{{ selectedImportIds.size }} selected</span>
           <button
             mat-raised-button
@@ -58,11 +58,11 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
           </button>
         </div>
       </mat-card-header>
-      <mat-card-content>
+      <mat-card-content class="app-card-content">
         <!-- Active imports list -->
         <div class="active-imports-list" *ngIf="activeImports.length > 0">
-          <div *ngFor="let importItem of activeImports" class="active-import-card">
-            <div class="card-header">
+          <div *ngFor="let importItem of activeImports" class="active-import-item">
+            <div class="import-item-header">
               <mat-checkbox
                 [checked]="selectedImportIds.has(importItem.id)"
                 (change)="onSelectionChange(importItem.id, $event.checked)"
@@ -102,24 +102,26 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
       </mat-card-content>
     </mat-card>
   `,
+  styleUrls: ['../styles/card.styles.css'],
   styles: [`
+    /* Component-specific styles */
     .active-imports-card {
       margin-bottom: 24px;
     }
 
-    .active-imports-card mat-card-header {
+    .app-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .active-imports-card mat-card-header mat-card-title {
+    .app-card-title {
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
-    .card-actions {
+    .header-actions {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -127,53 +129,33 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
 
     .selection-count {
       font-size: 14px;
-      color: #666;
+      color: rgba(255, 255, 255, 0.9);
     }
 
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding: 0 16px;
-    }
-
-    .section-header h3 {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 0;
-      font-size: 18px;
-      font-weight: 500;
-    }
-
-    .bulk-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .selection-count {
-      font-size: 14px;
-      color: #666;
+    :host-context(.dark-theme) .selection-count {
+      color: rgba(255, 255, 255, 0.9);
     }
 
     .active-imports-list {
       display: flex;
       flex-direction: column;
       gap: 12px;
-      padding: 0 16px;
     }
 
-    .active-import-card {
-      border: 1px solid #e0e0e0;
+    .active-import-item {
+      border: 1px solid rgba(0, 0, 0, 0.12);
       border-radius: 8px;
       padding: 16px;
-      background: white;
+      background: rgba(255, 255, 255, 0.98);
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
-    .card-header {
+    :host-context(.dark-theme) .active-import-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .import-item-header {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -187,11 +169,20 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     .feed-name {
       font-weight: 500;
       font-size: 16px;
+      color: #1A3A52;
+    }
+
+    :host-context(.dark-theme) .feed-name {
+      color: #e0e0e0;
     }
 
     .region-name {
       font-size: 13px;
       color: #666;
+    }
+
+    :host-context(.dark-theme) .region-name {
+      color: #aaa;
     }
 
     .import-meta {
@@ -203,6 +194,10 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     .started-time {
       font-size: 12px;
       color: #666;
+    }
+
+    :host-context(.dark-theme) .started-time {
+      color: #aaa;
     }
 
     .status-badge {
@@ -218,17 +213,31 @@ import { ProgressMonitorComponent } from './progress-monitor.component';
     }
 
     .status-pending {
-      background-color: rgba(33, 150, 243, 0.1);
-      color: #1976d2;
+      background-color: rgba(33, 150, 243, 0.15);
+      color: #1565C0;
+      border: 1px solid rgba(33, 150, 243, 0.3);
+    }
+
+    :host-context(.dark-theme) .status-pending {
+      background-color: rgba(33, 150, 243, 0.25);
+      color: #64b5f6;
+      border-color: rgba(33, 150, 243, 0.5);
     }
 
     .status-running {
-      background-color: rgba(255, 193, 7, 0.1);
-      color: #f57c00;
+      background-color: rgba(243, 156, 18, 0.15);
+      color: #8B5A00;
+      border: 1px solid rgba(243, 156, 18, 0.3);
+    }
+
+    :host-context(.dark-theme) .status-running {
+      background-color: rgba(243, 156, 18, 0.25);
+      color: #ffb74d;
+      border-color: rgba(243, 156, 18, 0.5);
     }
 
     @media (max-width: 768px) {
-      .card-header {
+      .import-item-header {
         flex-wrap: wrap;
       }
 
