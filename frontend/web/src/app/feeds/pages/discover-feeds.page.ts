@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
-import { MetropolitanRegion, Feed } from '../models/region.models';
+import { MetropolitanRegion, Feed, RegionUtils } from '../models/region.models';
 import { AgencyFeedGroup, FeedGroupingUtils } from '../models/agency-feed-group.model';
 import { RegionService } from '../services/region.service';
 import { ImportService } from '../services/import.service';
@@ -71,7 +71,7 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
 
     this.selectedRegionId = regionId;
     this.selectedRegion = this.regions.find(r => r.regionOnestopId === regionId) ?? null;
-    this.metrics.setSelectedRegion(this.selectedRegionId, this.selectedRegion?.name ?? null);
+    this.metrics.setSelectedRegion(this.selectedRegionId, this.getRegionDisplayName(this.selectedRegion));
     this.updateUrlWithRegion(regionId);
     this.loadFeedsForRegion(regionId);
   }
@@ -112,7 +112,7 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: (regions) => {
         this.regions = [...regions].sort((a, b) => a.name.localeCompare(b.name));
-        this.metrics.setSelectedRegion(this.selectedRegionId, this.selectedRegion?.name ?? null);
+        this.metrics.setSelectedRegion(this.selectedRegionId, this.getRegionDisplayName(this.selectedRegion));
         this.bootstrapRegionFromQuery();
       },
       error: (error) => {
@@ -127,7 +127,7 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
     if (initialRegion) {
       this.selectedRegionId = initialRegion;
       this.selectedRegion = this.regions.find(r => r.regionOnestopId === initialRegion) ?? null;
-      this.metrics.setSelectedRegion(this.selectedRegionId, this.selectedRegion?.name ?? null);
+      this.metrics.setSelectedRegion(this.selectedRegionId, this.getRegionDisplayName(this.selectedRegion));
       this.loadFeedsForRegion(initialRegion);
     } else {
       this.clearSelection();
@@ -157,7 +157,7 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
       const region = regions?.find(r => r.regionOnestopId === onestopId);
       if (region) {
         this.selectedRegion = region;
-        this.metrics.setSelectedRegion(region.regionOnestopId, region.name);
+        this.metrics.setSelectedRegion(region.regionOnestopId, this.getRegionDisplayName(region));
       }
     });
 
@@ -171,7 +171,7 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
         );
         this.metrics.setDiscoverFeedCount(feeds.length);
         this.loadingFeeds = false;
-        const regionName = this.selectedRegion?.name || onestopId;
+        const regionName = this.getRegionDisplayName(this.selectedRegion) || onestopId;
         this.snackBar.open(
           `Viewing ${feeds.length} feeds from ${this.agencyGroups.length} agencies for ${regionName}`,
           'Close',
@@ -181,7 +181,7 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Failed to load feeds:', error);
         this.loadingFeeds = false;
-        const regionName = this.selectedRegion?.name || onestopId;
+        const regionName = this.getRegionDisplayName(this.selectedRegion) || onestopId;
         this.snackBar.open(`Failed to load feeds for ${regionName}`, 'Retry', {
           duration: 5000
         }).onAction().subscribe(() => this.loadFeedsForRegion(onestopId));
@@ -220,5 +220,12 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
           this.loadFeedsForRegion(this.selectedRegionId);
         }
       });
+  }
+
+  private getRegionDisplayName(region: MetropolitanRegion | null | undefined): string | null {
+    if (!region) {
+      return null;
+    }
+    return RegionUtils.getDisplayName(region);
   }
 }

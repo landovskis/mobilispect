@@ -11,6 +11,8 @@
 export interface MetropolitanRegion {
   regionOnestopId: string;
   name: string;
+  adm0Name?: string | null;
+  adm1Name?: string | null;
   autoUpdateEnabled: boolean;
   feedCount: number;
   lastCheckAt: string | null;
@@ -165,7 +167,14 @@ export class RegionUtils {
    * Gets display name for a region
    */
   static getDisplayName(region: MetropolitanRegion): string {
-    return region.name;
+    const parts = [region.name];
+    if (region.adm1Name) {
+      parts.push(region.adm1Name);
+    }
+    if (region.adm0Name) {
+      parts.push(region.adm0Name);
+    }
+    return parts.filter(part => part && part.trim().length > 0).join(', ');
   }
 
   /**

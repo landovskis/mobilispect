@@ -12,7 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { MetropolitanRegion } from '../models/region.models';
+import { MetropolitanRegion, RegionUtils } from '../models/region.models';
 import { Observable, Subject, of } from 'rxjs';
 import { map, startWith, takeUntil } from 'rxjs/operators';
 
@@ -62,7 +62,7 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
                   [disabled]="disabled">
                   <mat-icon class="region-icon">place</mat-icon>
                   <div class="region-details">
-                    <span class="region-name">{{ region.name }}</span>
+                    <span class="region-name">{{ getDisplayName(region) }}</span>
                     @if (region.feedCount > 0) {
                       <span class="region-feed-count">
                         {{ region.feedCount }} feed{{ region.feedCount !== 1 ? 's' : '' }}
@@ -329,14 +329,19 @@ export class RegionSelectorComponent implements OnInit, OnDestroy, OnChanges {
       return this.regions;
     }
 
-    return this.regions.filter(region =>
-      region.name.toLowerCase().includes(term) ||
-      region.regionOnestopId.toLowerCase().includes(term)
-    );
+    return this.regions.filter(region => {
+      const haystack = [
+        region.name,
+        region.regionOnestopId,
+        region.adm1Name ?? '',
+        region.adm0Name ?? ''
+      ].join(' ').toLowerCase();
+      return haystack.includes(term);
+    });
   }
 
   onRegionSelected(region: MetropolitanRegion): void {
-    this.searchControl.setValue(region.name, { emitEvent: false });
+    this.searchControl.setValue(this.getDisplayName(region), { emitEvent: false });
     this.regionChange.emit(region.regionOnestopId);
   }
 
@@ -352,7 +357,7 @@ export class RegionSelectorComponent implements OnInit, OnDestroy, OnChanges {
 
     const selectedRegion = this.regions.find(r => r.regionOnestopId === this.selectedRegionId);
     if (selectedRegion) {
-      this.searchControl.setValue(selectedRegion.name, { emitEvent: false });
+      this.searchControl.setValue(this.getDisplayName(selectedRegion), { emitEvent: false });
     }
   }
 
@@ -362,5 +367,8 @@ export class RegionSelectorComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       this.searchControl.enable({ emitEvent: false });
     }
+  }
+  getDisplayName(region: MetropolitanRegion): string {
+    return RegionUtils.getDisplayName(region);
   }
 }

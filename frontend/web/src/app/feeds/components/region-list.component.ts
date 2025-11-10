@@ -119,14 +119,14 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                 class="region-card"
                 [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
                 (click)="selectRegion(region)"
-                [attr.aria-label]="'Select ' + region.name + ' region'"
+                [attr.aria-label]="'Select ' + getDisplayName(region) + ' region'"
                 tabindex="0"
                 (keydown.enter)="selectRegion(region)"
                 (keydown.space)="selectRegion(region)"
               >
                 <div card-header>
                   <div class="region-title">
-                    {{ region.name }}
+                    {{ getDisplayName(region) }}
                     @if (hasActiveImport(region)) {
                       <mat-icon
                         class="active-import-icon"
@@ -135,7 +135,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                         matBadgeColor="accent"
                         matBadgeSize="small"
                         aria-hidden="false"
-                        [attr.aria-label]="'Active imports in ' + region.name + ': ' + getActiveImportCount(region)"
+                        [attr.aria-label]="'Active imports in ' + getDisplayName(region) + ': ' + getActiveImportCount(region)"
                       >
                         sync
                       </mat-icon>
@@ -175,7 +175,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                     mat-button
                     color="primary"
                     (click)="$event.stopPropagation(); viewRegionDetails(region)"
-                    [attr.aria-label]="'View details for ' + region.name"
+                    [attr.aria-label]="'View details for ' + getDisplayName(region)"
                   >
                     <mat-icon>info</mat-icon>
                     Details
@@ -186,7 +186,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                     mat-icon-button
                     [matMenuTriggerFor]="autoUpdateMenu"
                     (click)="$event.stopPropagation()"
-                    [attr.aria-label]="'Auto-update settings for ' + region.name"
+                    [attr.aria-label]="'Auto-update settings for ' + getDisplayName(region)"
                     matTooltip="Auto-update settings">
                     <mat-icon>settings</mat-icon>
                   </button>
@@ -241,7 +241,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                     color="primary"
                     (click)="$event.stopPropagation(); selectRegion(region)"
                     [disabled]="region.feedCount === 0"
-                    [attr.aria-label]="'Select ' + region.name + ' for import'"
+                    [attr.aria-label]="'Select ' + getDisplayName(region) + ' for import'"
                   >
                     <mat-icon>play_arrow</mat-icon>
                     Select
@@ -668,10 +668,15 @@ export class RegionListComponent implements OnInit, OnDestroy {
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(region =>
-        region.name.toLowerCase().includes(term) ||
-        region.regionOnestopId.toLowerCase().includes(term)
-      );
+      filtered = filtered.filter(region => {
+        const haystack = [
+          region.name,
+          region.regionOnestopId,
+          region.adm1Name ?? '',
+          region.adm0Name ?? ''
+        ].join(' ').toLowerCase();
+        return haystack.includes(term);
+      });
     }
 
     // Apply auto-update filter
@@ -763,9 +768,10 @@ export class RegionListComponent implements OnInit, OnDestroy {
         this.isUpdatingAutoUpdate.delete(regionId);
         region.autoUpdateEnabled = enabled;
 
+        const name = this.getDisplayName(region);
         const message = enabled
-          ? `Automatic updates enabled for ${region.name}`
-          : `Automatic updates disabled for ${region.name}`;
+          ? `Automatic updates enabled for ${name}`
+          : `Automatic updates disabled for ${name}`;
 
         this.snackBar.open(message, 'Close', { duration: 3000 });
 
@@ -797,9 +803,10 @@ export class RegionListComponent implements OnInit, OnDestroy {
         next: (hasUpdate) => {
           this.isCheckingUpdates.delete(regionId);
 
+          const name = this.getDisplayName(region);
           const message = hasUpdate
-            ? `Updates available for ${region.name}`
-            : `${region.name} is up to date`;
+            ? `Updates available for ${name}`
+            : `${name} is up to date`;
 
           this.snackBar.open(message, 'Close', { duration: 3000 });
 
@@ -851,5 +858,9 @@ export class RegionListComponent implements OnInit, OnDestroy {
           console.error('Error loading feed versions:', error);
         }
       });
+  }
+
+  getDisplayName(region: MetropolitanRegion): string {
+    return RegionUtils.getDisplayName(region);
   }
 }
