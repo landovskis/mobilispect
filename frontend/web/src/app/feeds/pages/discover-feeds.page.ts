@@ -111,7 +111,7 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (regions) => {
-        this.regions = regions;
+        this.regions = [...regions].sort((a, b) => a.name.localeCompare(b.name));
         this.metrics.setSelectedRegion(this.selectedRegionId, this.selectedRegion?.name ?? null);
         this.bootstrapRegionFromQuery();
       },
