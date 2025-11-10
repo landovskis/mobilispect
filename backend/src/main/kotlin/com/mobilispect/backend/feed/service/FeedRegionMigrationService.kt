@@ -151,24 +151,28 @@ class FeedRegionMigrationService(
 
         if (parts.size < 2) {
             val cleanName = slugify(feedName)
-            return if (cleanName.isNotBlank()) {
-                ensureRegionExists("r-$cleanName-auto", feedName)
-            } else {
-                "r-global-auto"
+            if (cleanName.isNotBlank()) {
+                val candidateId = "r-$cleanName-auto"
+                if (regionRepository.existsById(candidateId)) {
+                    return candidateId
+                }
             }
+            return ensureGlobalRegionExists()
         }
 
         val geohash = parts[1].split("~").first().take(30)
 
         if (geohash.isBlank()) {
-            return "r-global-auto"
+            return ensureGlobalRegionExists()
         }
 
         val normalizedGeohash = normalizeGeohashToMetroArea(geohash)
         val regionId = "r-$normalizedGeohash-auto"
-        val regionName = getRegionNameFromGeohash(normalizedGeohash) ?: "Auto-region: $normalizedGeohash"
+        if (regionRepository.existsById(regionId)) {
+            return regionId
+        }
 
-        return ensureRegionExists(regionId, regionName)
+        return ensureGlobalRegionExists()
     }
 
     private fun normalizeGeohashToMetroArea(geohash: String): String {
@@ -209,6 +213,19 @@ class FeedRegionMigrationService(
             logger.info("Created new region: {} ({})", regionId, regionName)
             region
         }.regionOnestopId
+    }
+
+    private fun ensureGlobalRegionExists(): String {
+        val globalId = "r-global-worldwide"
+        if (!regionRepository.existsById(globalId)) {
+            val region = MetropolitanRegion(
+                regionOnestopId = globalId,
+                name = "Worldwide"
+            )
+            regionRepository.save(region)
+            logger.info("Created global region placeholder: {}", globalId)
+        }
+        return globalId
     }
 
     private fun slugify(name: String): String {
