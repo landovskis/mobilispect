@@ -127,9 +127,9 @@ import { RegionService } from '../services/region.service';
       width: 100%;
       padding: 12px 16px;
       border-radius: 12px;
-      border: 1px solid rgba(30, 58, 138, 0.25);
+      border: 1px solid rgba(41, 128, 185, 0.25);
       background: #fff;
-      color: #1e3a8a;
+      color: #2980B9;
       font-weight: 600;
       text-align: left;
       transition: all 0.2s ease;
@@ -145,8 +145,8 @@ import { RegionService } from '../services/region.service';
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
-      background: rgba(30, 58, 138, 0.08);
-      color: #1e3a8a;
+      background: rgba(41, 128, 185, 0.08);
+      color: #2980B9;
     }
 
     .sidebar-link .nav-count.active {
@@ -155,9 +155,9 @@ import { RegionService } from '../services/region.service';
     }
 
     .sidebar-link.active {
-      background: #1e3a8a;
+      background: #2980B9;
       color: #fff;
-      box-shadow: 0 10px 25px rgba(30, 58, 138, 0.25);
+      box-shadow: 0 10px 25px rgba(41, 128, 185, 0.25);
       border-color: transparent;
     }
 

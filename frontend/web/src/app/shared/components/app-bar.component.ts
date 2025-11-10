@@ -44,7 +44,7 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       position: sticky;
       top: 0;
       z-index: 10;
-      background-color: #1e3a8a !important;
+      background-color: #2980B9 !important;
       color: white !important;
       position: sticky;
     }
