@@ -17,7 +17,6 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
@@ -84,7 +83,6 @@ import { MobilispectCardComponent } from '../core/components/mobilispect-card.co
     MatBadgeModule,
     MatToolbarModule,
     MatTooltipModule,
-    MatTabsModule,
     MatCheckboxModule,
     MatExpansionModule,
     MatDividerModule,

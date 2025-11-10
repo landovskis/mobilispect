@@ -3,7 +3,6 @@ import { Router, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { Observable, Subject, combineLatest } from 'rxjs';
@@ -28,7 +27,6 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
   standalone: true,
   imports: [
     CommonModule,
-    MatTabsModule,
     MatProgressSpinnerModule,
     MatIconModule,
     MatSnackBarModule,
@@ -47,100 +45,96 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         [navItems]="navItems"
         (refresh)="refreshData()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
+        (navSelected)="onNavSelected($event)"
       ></app-bar>
 
       <!-- Content Area -->
       <div class="content-area">
-            <!-- Consolidated Tab View -->
-            <div class="view-container">
-              <mat-tab-group
-                animationDuration="200ms"
-                [(selectedIndex)]="selectedTabIndex"
-                (selectedIndexChange)="onTabChange($event)">
+        <div class="view-container">
+          <div class="view-layout">
+            <nav class="sidebar-nav" aria-label="Feed navigation">
+              <button
+                type="button"
+                class="sidebar-link"
+                [class.active]="currentView === 'discover'"
+                (click)="navigateToView('discover')">
+                <mat-icon>rss_feed</mat-icon>
+                <span>Discover Feeds</span>
+                @if (currentView === 'discover' && regionFeeds.length > 0) {
+                  <span class="nav-count">{{ regionFeeds.length }}</span>
+                }
+              </button>
+              <button
+                type="button"
+                class="sidebar-link"
+                [class.active]="currentView === 'imports'"
+                (click)="navigateToView('imports')">
+                <mat-icon>history</mat-icon>
+                <span>Imports</span>
+                @if (totalImportElements > 0) {
+                  <span class="nav-count">{{ totalImportElements }}</span>
+                }
+                @if ((activeImports$ | async)?.length) {
+                  <span class="nav-count active">{{ (activeImports$ | async)?.length }} active</span>
+                }
+              </button>
+            </nav>
 
-                <!-- Feeds Tab -->
-                <mat-tab>
-                  <ng-template mat-tab-label>
-                    <mat-icon class="tab-icon">rss_feed</mat-icon>
-                    Discover
-                    @if (regionFeeds.length > 0) {
-                      <span class="tab-badge">
-                        {{ regionFeeds.length }}
-                      </span>
-                    }
-                  </ng-template>
+            <section class="view-content">
+              @if (currentView === 'discover') {
+                <div class="tab-content">
+                  <!-- Region Selector -->
+                  <app-region-selector
+                    [regions]="regions"
+                    [selectedRegionId]="selectedRegionId"
+                    (regionChange)="onRegionChange($event)"
+                  ></app-region-selector>
 
-                  <div class="tab-content">
-                    <!-- Region Selector -->
-                    <app-region-selector
-                      [regions]="regions"
-                      [selectedRegionId]="selectedRegionId"
-                      (regionChange)="onRegionChange($event)"
-                    ></app-region-selector>
-
-                    <!-- Loading State -->
-                    @if (loadingFeeds) {
-                      <app-mobilispect-card class="loading-card">
-                        <div card-content class="loading-content">
-                          <mat-spinner diameter="40"></mat-spinner>
-                          <p>Loading feeds...</p>
-                        </div>
-                      </app-mobilispect-card>
-                    }
-
-                    <!-- Agency Feed Cards (Grouped) -->
-                    @if (!loadingFeeds && agencyGroups.length > 0) {
-                      <div class="feeds-grid">
-                        @for (agencyGroup of agencyGroups; track agencyGroup.agencyName) {
-                          <app-agency-feed-card
-                            [agencyGroup]="agencyGroup"
-                            (importFeed)="importFeed($event)"
-                            (importAllFeeds)="importMultipleFeeds($event)"
-                            (viewDetails)="viewFeedDetails($event)">
-                          </app-agency-feed-card>
-                        }
+                  <!-- Loading State -->
+                  @if (loadingFeeds) {
+                    <app-mobilispect-card class="loading-card">
+                      <div card-content class="loading-content">
+                        <mat-spinner diameter="40"></mat-spinner>
+                        <p>Loading feeds...</p>
                       </div>
-                    }
+                    </app-mobilispect-card>
+                  }
 
-                    <!-- Empty State -->
-                    @if (!loadingFeeds && regionFeeds.length === 0) {
-                      <app-mobilispect-card class="empty-state">
-                        <div card-content class="empty-content">
-                          <mat-icon class="empty-icon">inbox</mat-icon>
-                          <h3>No feeds found</h3>
-                          <p>Select a region to view available transit feeds.</p>
-                        </div>
-                      </app-mobilispect-card>
-                    }
-                  </div>
-                </mat-tab>
+                  <!-- Agency Feed Cards (Grouped) -->
+                  @if (!loadingFeeds && agencyGroups.length > 0) {
+                    <div class="feeds-grid">
+                      @for (agencyGroup of agencyGroups; track agencyGroup.agencyName) {
+                        <app-agency-feed-card
+                          [agencyGroup]="agencyGroup"
+                          (importFeed)="importFeed($event)"
+                          (importAllFeeds)="importMultipleFeeds($event)"
+                          (viewDetails)="viewFeedDetails($event)">
+                        </app-agency-feed-card>
+                      }
+                    </div>
+                  }
 
-                <!-- Import History Tab (includes active imports) -->
-                <mat-tab>
-                  <ng-template mat-tab-label>
-                    <mat-icon class="tab-icon">history</mat-icon>
-                    Imports
-                    @if (totalImportElements > 0) {
-                      <span class="tab-badge">
-                        {{ totalImportElements }}
-                      </span>
-                    }
-                    @if ((activeImports$ | async)?.length) {
-                      <span class="tab-badge active">
-                        {{ (activeImports$ | async)?.length }} active
-                      </span>
-                    }
-                  </ng-template>
+                  <!-- Empty State -->
+                  @if (!loadingFeeds && regionFeeds.length === 0) {
+                    <app-mobilispect-card class="empty-state">
+                      <div card-content class="empty-content">
+                        <mat-icon class="empty-icon">inbox</mat-icon>
+                        <h3>No feeds found</h3>
+                        <p>Select a region to view available transit feeds.</p>
+                      </div>
+                    </app-mobilispect-card>
+                  }
+                </div>
+              } @else {
+                <div class="tab-content">
+                  <!-- Region Selector -->
+                  <app-region-selector
+                    [regions]="regions"
+                    [selectedRegionId]="selectedRegionId"
+                    (regionChange)="onRegionChange($event)"
+                  ></app-region-selector>
 
-                  <div class="tab-content">
-                    <!-- Region Selector -->
-                    <app-region-selector
-                      [regions]="regions"
-                      [selectedRegionId]="selectedRegionId"
-                      (regionChange)="onRegionChange($event)"
-                    ></app-region-selector>
-
-                    <app-feed-imports-tab
+                  <app-feed-imports-tab
                     [loading]="loadingHistory"
                     [history]="importHistory"
                     [totalItems]="totalImportElements"
@@ -156,11 +150,12 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                     (cancelImport)="cancelImport($event)"
                     (pageChange)="loadImportHistory($event)"
                   ></app-feed-imports-tab>
-                  </div>
-                </mat-tab>
-              </mat-tab-group>
-            </div>
+                </div>
+              }
+            </section>
           </div>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
@@ -179,6 +174,74 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     .view-container {
       max-width: 1200px;
       margin: 0 auto;
+    }
+
+    .view-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: sticky;
+      top: 96px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(30, 58, 138, 0.25);
+      background: #fff;
+      color: #1e3a8a;
+      font-weight: 600;
+      text-align: left;
+      transition: all 0.2s ease;
+    }
+
+    .sidebar-link mat-icon {
+      font-size: 20px;
+    }
+
+    .sidebar-link .nav-count {
+      margin-left: auto;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(30, 58, 138, 0.08);
+      color: #1e3a8a;
+    }
+
+    .sidebar-link .nav-count.active {
+      background: rgba(33, 150, 243, 0.15);
+      color: #0c4a6e;
+    }
+
+    .sidebar-link.active {
+      background: #1e3a8a;
+      color: #fff;
+      box-shadow: 0 10px 25px rgba(30, 58, 138, 0.25);
+      border-color: transparent;
+    }
+
+    .sidebar-link.active .nav-count {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .view-content {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      padding: 24px;
     }
 
     .welcome-card {
@@ -347,6 +410,24 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         padding: 16px;
       }
 
+      .view-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar-nav {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      .sidebar-link {
+        flex: 1 1 calc(50% - 8px);
+      }
+
+      .view-content {
+        padding: 16px;
+      }
+
       .regions-grid {
         grid-template-columns: 1fr;
       }
@@ -431,20 +512,6 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
       font-style: italic;
     }
 
-    /* Tab Styles */
-    .tab-icon {
-      margin-right: 8px;
-    }
-
-    .tab-badge {
-      margin-left: 8px;
-      padding: 2px 8px;
-      background-color: rgba(33, 150, 243, 0.1);
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
     .tab-content {
       padding: 24px 0;
     }
@@ -506,8 +573,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   authStats$: Observable<AuthenticationStatistics>;
 
   // Component state
-  selectedTabIndex = 0; // Track which tab is selected (0=Feeds, 1=Active Imports, 2=History)
-  private isProgrammaticTabChange = false;
+  currentView: 'discover' | 'imports' = 'discover';
   regions: MetropolitanRegion[] = [];
   selectedRegion: MetropolitanRegion | null = null;
   selectedRegionId: string | null = null;
@@ -517,9 +583,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
   selectedFeedForAuth: string | null = null;
   loadingFeeds = false;
   breadcrumbs: Breadcrumb[] = [];
-  navItems: ToolbarNavItem[] = [
-    { label: 'Feeds', active: true }
-  ];
+  navItems: ToolbarNavItem[] = [];
 
   // Import history state
   importHistory: FeedImportSummary[] = [];
@@ -576,18 +640,16 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     // Check current route path to determine initial tab
     const currentPath = this.router.url;
     const isImportsRoute = currentPath.includes('/imports');
-    const isRegionsRoute = currentPath.includes('/regions');
-
-    // Determine initial tab based on route
-    let initialTabIndex = 0; // Default to Feeds tab
-    if (isImportsRoute) {
-      initialTabIndex = 1; // Import History tab
-    } else if (isRegionsRoute) {
-      initialTabIndex = 0; // Feeds tab
-    }
-
-    this.selectedTabIndex = initialTabIndex;
+    this.currentView = isImportsRoute ? 'imports' : 'discover';
+    this.updateNavItems();
     this.updateBreadcrumbs();
+
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => this.syncViewFromUrl());
 
     // Load regions first
     this.regionService.listRegions().pipe(
@@ -619,29 +681,24 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
           this.loadFeedsForRegion(this.selectedRegionId);
 
           // Update URL based on current tab
-          if (initialTabIndex === 1) {
+          if (this.currentView === 'imports') {
             // Import History tab - use /feeds/imports route
-            if (!isImportsRoute || !regionParam || regionParam !== initialRegion.regionOnestopId) {
-              this.router.navigate(['/feeds/imports'], {
-                queryParams: { region: initialRegion.regionOnestopId },
-                replaceUrl: true
-              });
-            }
+            this.router.navigate(['/feeds/imports'], {
+              queryParams: { region: initialRegion.regionOnestopId },
+              replaceUrl: true
+            });
           } else {
-            // Feeds tab - use /feeds/regions route
-            if (!isRegionsRoute || !regionParam || regionParam !== initialRegion.regionOnestopId) {
-              this.router.navigate(['/feeds/regions'], {
-                queryParams: { region: initialRegion.regionOnestopId },
-                replaceUrl: true
-              });
-            }
+            this.router.navigate(['/feeds/regions'], {
+              queryParams: { region: initialRegion.regionOnestopId },
+              replaceUrl: true
+            });
           }
         } else {
           this.updateBreadcrumbs();
         }
 
         // Load data for the initial tab
-        if (initialTabIndex === 1) {
+        if (this.currentView === 'imports') {
           this.loadImportHistory();
         }
       },
@@ -671,43 +728,22 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  onTabChange(index: number): void {
-    if (this.isProgrammaticTabChange) {
-      this.isProgrammaticTabChange = false;
-      return;
-    }
-
-    // Update URL with tab name
-    this.updateUrlWithTab(index);
-
-    switch (index) {
-      case 0:
-        // Feeds tab - no action needed, feeds already loaded
-        break;
-      case 1:
-        // Import History tab
-        this.importService.refreshActiveImports();
-        this.loadImportHistory();
-        break;
-      default:
-        break;
-    }
-  }
-
   onBreadcrumbSelected(selection: BreadcrumbSelection): void {
     if (selection.breadcrumb.id === 'feeds') {
       selection.originalEvent.preventDefault();
       selection.originalEvent.stopPropagation();
-      this.setSelectedTab(0);
       this.selectedRegionId = null;
       this.selectedRegion = null;
       this.regionFeeds = [];
       this.agencyGroups = [];
       this.updateBreadcrumbs();
-      this.router.navigate(['/feeds/regions'], {
-        replaceUrl: true
-      });
+      this.navigateToView('discover', true);
     }
+  }
+
+  onNavSelected(item: ToolbarNavItem): void {
+    const label = item.label.toLowerCase();
+    this.navigateToView(label.includes('import') ? 'imports' : 'discover');
   }
 
   private updateBreadcrumbs(): void {
@@ -736,6 +772,49 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     this.breadcrumbs = crumbs;
   }
 
+  navigateToView(view: 'discover' | 'imports', replaceUrl = false): void {
+    if (this.currentView === view && !replaceUrl) {
+      if (view === 'imports') {
+        this.importService.refreshActiveImports();
+        this.loadImportHistory();
+      }
+      return;
+    }
+
+    this.currentView = view;
+    this.updateNavItems();
+    const target = view === 'imports' ? '/feeds/imports' : '/feeds/regions';
+    this.router.navigate([target], {
+      queryParams: this.selectedRegionId ? { region: this.selectedRegionId } : undefined,
+      replaceUrl
+    });
+
+    if (view === 'imports') {
+      this.importService.refreshActiveImports();
+      this.loadImportHistory();
+    }
+  }
+
+  private syncViewFromUrl(): void {
+    const path = this.router.url;
+    const nextView: 'discover' | 'imports' = path.includes('/imports') ? 'imports' : 'discover';
+    if (this.currentView !== nextView) {
+      this.currentView = nextView;
+      this.updateNavItems();
+      if (nextView === 'imports') {
+        this.importService.refreshActiveImports();
+        this.loadImportHistory();
+      }
+    }
+  }
+
+  private updateNavItems(): void {
+    this.navItems = [
+      { label: 'Discover', active: this.currentView === 'discover' },
+      { label: 'Imports', active: this.currentView === 'imports' }
+    ];
+  }
+
   onRegionChange(regionId: string): void {
     this.selectedRegionId = regionId;
     const region = this.regions.find(r => r.regionOnestopId === regionId);
@@ -744,77 +823,18 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
     this.loadFeedsForRegion(regionId);
     this.updateUrlWithRegion(regionId);
 
-    // Reload import history if on the import history tab
-    if (this.selectedTabIndex === 1) {
+    // Reload import history if on the import history view
+    if (this.currentView === 'imports') {
       this.loadImportHistory();
     }
   }
 
-  getCurrentTabName(): string {
-    switch (this.selectedTabIndex) {
-      case 0: return 'Feeds';
-      case 1: return 'Import History';
-      default: return '';
-    }
-  }
-
-  private getTabSlug(index: number): string {
-    switch (index) {
-      case 0: return 'regions';
-      case 1: return 'imports';
-      default: return 'regions';
-    }
-  }
-
-  private getTabIndexFromSlug(slug: string | null): number {
-    switch (slug) {
-      case 'imports': return 1;
-      case 'regions':
-      default: return 0;
-    }
-  }
-
   private updateUrlWithRegion(regionId: string): void {
-    // Navigate to appropriate route based on current tab
-    if (this.selectedTabIndex === 1) {
-      // Import History tab - navigate to /feeds/imports with region param
-      this.router.navigate(['/feeds/imports'], {
-        queryParams: { region: regionId },
-        replaceUrl: true
-      });
-    } else {
-      // Feeds tab - navigate to /feeds/regions with region param
-      this.router.navigate(['/feeds/regions'], {
-        queryParams: { region: regionId },
-        replaceUrl: true
-      });
-    }
-  }
-
-  private updateUrlWithTab(tabIndex: number): void {
-    const slug = this.getTabSlug(tabIndex);
-    if (slug === 'imports') {
-      // Import History tab - navigate to /feeds/imports with region query param
-      this.router.navigate(['/feeds/imports'], {
-        queryParams: { region: this.selectedRegionId },
-        replaceUrl: true
-      });
-    } else {
-      // Feeds tab - navigate to /feeds/regions with region query param
-      this.router.navigate(['/feeds/regions'], {
-        queryParams: { region: this.selectedRegionId },
-        replaceUrl: true
-      });
-    }
-  }
-
-  private setSelectedTab(index: number): void {
-    if (this.selectedTabIndex !== index) {
-      this.isProgrammaticTabChange = true;
-      this.selectedTabIndex = index;
-    } else {
-      this.isProgrammaticTabChange = false;
-    }
+    const target = this.currentView === 'imports' ? '/feeds/imports' : '/feeds/regions';
+    this.router.navigate([target], {
+      queryParams: { region: regionId },
+      replaceUrl: true
+    });
   }
 
   viewFeedDetails(feed: Feed): void {
@@ -836,8 +856,8 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (result) => {
-        // Automatically switch to active imports tab
-        this.selectedTabIndex = 1;
+        // Automatically switch to imports view
+        this.navigateToView('imports');
 
         // Show success notification
         this.snackBar.open(
@@ -1013,8 +1033,7 @@ export class FeedManagementComponent implements OnInit, OnDestroy {
         );
         // Refresh the active imports list
         this.importService.refreshActiveImports();
-        // Refresh history if on history tab (tab index 2)
-        if (this.selectedTabIndex === 2) {
+        if (this.currentView === 'imports') {
           this.loadImportHistory();
         }
       },
