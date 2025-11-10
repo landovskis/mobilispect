@@ -63,9 +63,6 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
             }
           }
         </mat-autocomplete>
-        @if (regions.length > 0) {
-          <mat-hint>{{ regions.length }} region{{ regions.length !== 1 ? 's' : '' }} available</mat-hint>
-        }
       </mat-form-field>
     </div>
   `,
