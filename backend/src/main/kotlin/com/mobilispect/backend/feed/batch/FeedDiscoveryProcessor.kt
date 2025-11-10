@@ -48,6 +48,12 @@ class FeedDiscoveryProcessor(
                 extractRegionsFromPlaces(item.feedOnestopId, item.name, item.places)
             }
 
+            // Skip feeds with no valid regions
+            if (regionIds.isEmpty()) {
+                logger.warn("No valid regions for feed {}, skipping", item.feedOnestopId)
+                return null
+            }
+
             // Validate all regions exist
             regionIds.forEach { regionId ->
                 if (!regionRepository.existsById(regionId)) {
@@ -117,7 +123,7 @@ class FeedDiscoveryProcessor(
     /**
      * Extract region onestop IDs from operator geographic places.
      * Creates one region per unique (adm0_name, adm1_name, city_name) triple.
-     * Falls back to feed onestop ID parsing if no places data is available.
+     * Returns empty list if no valid regions can be extracted.
      */
     private fun extractRegionsFromPlaces(
         feedOnestopId: String,
@@ -125,8 +131,8 @@ class FeedDiscoveryProcessor(
         places: List<PlaceSummary>
     ): List<String> {
         if (places.isEmpty()) {
-            logger.debug("No places data for feed {}, using feed onestop ID fallback", feedOnestopId)
-            return listOf(extractRegionFromFeedOnestopId(feedOnestopId))
+            logger.warn("No places data for feed {}, cannot determine region", feedOnestopId)
+            return emptyList()
         }
 
         val regionIds = places.mapNotNull { place ->
@@ -134,8 +140,8 @@ class FeedDiscoveryProcessor(
         }.distinct()
 
         if (regionIds.isEmpty()) {
-            logger.warn("Could not extract regions from places for feed {}, using fallback", feedOnestopId)
-            return listOf(extractRegionFromFeedOnestopId(feedOnestopId))
+            logger.warn("Could not extract valid regions from places for feed {}", feedOnestopId)
+            return emptyList()
         }
 
         logger.debug("Extracted {} regions for feed {}: {}", regionIds.size, feedOnestopId, regionIds)
@@ -156,19 +162,6 @@ class FeedDiscoveryProcessor(
         }
 
         return "r-${components.joinToString("-")}"
-    }
-
-    /**
-     * Extract region from feed onestop ID as fallback.
-     * Feed IDs like "f-9q9-caltrain" → "r-9q9-auto"
-     */
-    private fun extractRegionFromFeedOnestopId(feedOnestopId: String): String {
-        val parts = feedOnestopId.split("-")
-        return if (parts.size >= 2) {
-            "r-${parts[1]}-auto"
-        } else {
-            "r-unknown-auto"
-        }
     }
 
     /**
