@@ -98,6 +98,9 @@ class RegionController(
 
         var feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
 
+        // Filter out GTFS-RT feeds (currently disabled)
+        feeds = feeds.filter { it.specType != FeedSpecType.GTFS_RT }
+
         specType?.let { dto ->
             val spec = dto.toEntity()
             feeds = feeds.filter { it.specType == spec }
@@ -120,6 +123,12 @@ class RegionController(
         @PathVariable regionOnestopId: String,
         @RequestParam(required = false, defaultValue = "GTFS") spec: FeedSpecTypeDto
     ): FeedDiscoveryResult {
+        // GTFS-RT feeds are currently disabled
+        if (spec == FeedSpecTypeDto.GTFS_RT) {
+            logger.warn("GTFS-RT feed discovery is currently disabled")
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "GTFS-RT feed discovery is currently disabled")
+        }
+
         logger.info("Discovering feeds for region {} using spec {}", regionOnestopId, spec)
 
         // Get region name for Transit.land API query

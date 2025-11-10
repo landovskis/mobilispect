@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.controller
 
+import com.mobilispect.backend.api.dto.FeedSpecType as FeedSpecTypeDto
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -175,8 +176,10 @@ class RegionControllerTest {
         val response = controller.listFeedsForRegion(testRegionId, specType = null, status = null)
 
         // Then
-        assertThat(response.feeds).hasSize(2)
-        assertThat(response.total).isEqualTo(2)
+        // GTFS-RT feeds are filtered out (currently disabled)
+        assertThat(response.feeds).hasSize(1)
+        assertThat(response.total).isEqualTo(1)
+        assertThat(response.feeds[0].specType).isEqualTo(FeedSpecTypeDto.GTFS)
     }
 
     @Test
