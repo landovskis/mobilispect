@@ -1,53 +1,57 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { FeedManagementComponent } from './pages/feed-management.component';
-import { FeedManagementGuard } from './feed-management.guard';
+import { FeedsShellComponent } from './pages/feeds-shell.component';
+import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
+import { FeedImportsPageComponent } from './pages/feed-imports.page';
 
 const routes: Routes = [
   {
     path: '',
-    redirectTo: 'regions',
+    redirectTo: 'discover',
     pathMatch: 'full'
   },
   {
-    path: 'regions',
-    component: FeedManagementComponent,
-    canActivate: [FeedManagementGuard],
-    data: {
-      title: 'Feed Management',
-      breadcrumb: 'Feed Management',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
-  },
-  {
-    path: 'imports',
-    component: FeedManagementComponent,
-    canActivate: [FeedManagementGuard],
-    data: {
-      title: 'Import History',
-      breadcrumb: 'Import History',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
-  },
-  {
-    path: 'history',
-    component: FeedManagementComponent,
-    canActivate: [FeedManagementGuard],
-    data: {
-      title: 'Import History',
-      breadcrumb: 'Import History',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
-  },
-  {
-    path: 'import/:importId',
-    component: FeedManagementComponent,
-    canActivate: [FeedManagementGuard],
-    data: {
-      title: 'Import Details',
-      breadcrumb: 'Import Details',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
+    path: '',
+    component: FeedsShellComponent,
+    children: [
+      {
+        path: 'discover',
+        component: DiscoverFeedsPageComponent,
+        data: {
+          title: 'Discover Feeds',
+          breadcrumb: 'Discover',
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+        }
+      },
+      {
+        path: 'regions',
+        redirectTo: 'discover',
+        pathMatch: 'full'
+      },
+      {
+        path: 'imports',
+        component: FeedImportsPageComponent,
+        data: {
+          title: 'Imports',
+          breadcrumb: 'Imports',
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+        }
+      },
+      {
+        path: 'history',
+        redirectTo: 'imports',
+        pathMatch: 'full'
+      },
+      {
+        path: 'import/:importId',
+        component: FeedImportsPageComponent,
+        data: {
+          title: 'Import Details',
+          breadcrumb: 'Import Details',
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+        }
+      }
+    ]
   }
 ];
 

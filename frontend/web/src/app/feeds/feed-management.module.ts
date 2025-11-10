@@ -26,12 +26,9 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { FeedManagementRoutingModule } from './feed-management-routing.module';
 import { ThemeToggleComponent } from '../core/components/theme-toggle.component';
 import { AppBarComponent } from '../shared/components/app-bar.component';
-import { FeedManagementComponent } from './pages/feed-management.component';
 import { RegionListComponent } from './components/region-list.component';
-import { ImportDialogComponent } from './components/import-dialog.component';
 import { ImportProgressDialogComponent } from './components/import-progress-dialog.component';
 import { ProgressMonitorComponent } from './components/progress-monitor.component';
-import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
 import { RegionService } from './services/region.service';
 import { ImportService } from './services/import.service';
 import { FeedAuthenticationService } from './services/feed-authentication.service';
@@ -41,11 +38,13 @@ import { FeedImportsTabComponent } from './components/feed-imports-tab.component
 import { RegionSelectorComponent } from './components/region-selector.component';
 import { AgencyFeedCardComponent } from './components/agency-feed-card.component';
 import { MobilispectCardComponent } from '../core/components/mobilispect-card.component';
+import { FeedsShellComponent } from './pages/feeds-shell.component';
+import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
+import { FeedImportsPageComponent } from './pages/feed-imports.page';
+import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
 
 @NgModule({
-  declarations: [
-    ScheduledJobsComponent
-  ],
+  declarations: [],
   imports: [
     CommonModule,
     FormsModule,
@@ -53,10 +52,11 @@ import { MobilispectCardComponent } from '../core/components/mobilispect-card.co
     FeedManagementRoutingModule,
 
     // Standalone components
-    FeedManagementComponent,
+    FeedsShellComponent,
+    DiscoverFeedsPageComponent,
+    FeedImportsPageComponent,
     RegionListComponent,
     RegionSelectorComponent,
-    ImportDialogComponent,
     ImportProgressDialogComponent,
     ProgressMonitorComponent,
     ThemeToggleComponent,
@@ -66,6 +66,7 @@ import { MobilispectCardComponent } from '../core/components/mobilispect-card.co
     FeedImportsTabComponent,
     AgencyFeedCardComponent,
     MobilispectCardComponent,
+    ScheduledJobsComponent,
 
     // Angular Material modules
     MatButtonModule,

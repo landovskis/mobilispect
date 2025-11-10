@@ -1,6 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTableModule } from '@angular/material/table';
+import { MatPaginatorModule } from '@angular/material/paginator';
 import { Observable, Subject, timer, combineLatest } from 'rxjs';
 import { takeUntil, switchMap, startWith, share, map } from 'rxjs/operators';
 import { SchedulerService } from '../services/scheduler.service';
@@ -12,10 +19,21 @@ import {
   ManualCheckResult
 } from '../models/scheduler.model';
 import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
+import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 @Component({
   selector: 'app-scheduled-jobs',
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    MatChipsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MobilispectCardComponent
+  ],
   template: `
     <div class="scheduled-jobs-page">
       <div class="page-header">
