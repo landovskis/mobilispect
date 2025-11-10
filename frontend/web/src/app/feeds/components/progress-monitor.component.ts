@@ -56,7 +56,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                 <!-- Step Progress -->
                 <div class="step-progress">
                   <mat-chip-listbox>
-                    @for (step of getStepArray(data.progress.totalSteps); let i = $index) {
+                    @for (step of getStepArray(data.progress.totalSteps); track step; let i = $index) {
                       <mat-chip [color]="getStepColor(i, data.progress)">
                         {{ i + 1 }}
                       </mat-chip>

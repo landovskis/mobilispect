@@ -8,7 +8,7 @@ import { RouterModule, Params } from '@angular/router';
   standalone: true,
   imports: [CommonModule, MatIconModule, RouterModule],
   template: `
-    @for (breadcrumb of breadcrumbs; let first = $first; let last = $last) {
+    @for (breadcrumb of breadcrumbs; track breadcrumb.id ?? breadcrumb.label; let first = $first; let last = $last) {
       @if (!first) {
         <mat-icon
           class="breadcrumb-icon"

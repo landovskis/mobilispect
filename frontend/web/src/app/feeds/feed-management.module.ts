@@ -21,6 +21,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatSidenavModule } from '@angular/material/sidenav';
 
 import { FeedManagementRoutingModule } from './feed-management-routing.module';
 import { ThemeToggleComponent } from '../core/components/theme-toggle.component';
@@ -86,7 +87,8 @@ import { MobilispectCardComponent } from '../core/components/mobilispect-card.co
     MatCheckboxModule,
     MatExpansionModule,
     MatDividerModule,
-    MatMenuModule
+    MatMenuModule,
+    MatSidenavModule
   ],
   providers: [
     RegionService,

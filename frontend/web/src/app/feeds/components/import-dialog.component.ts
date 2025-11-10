@@ -138,7 +138,7 @@ export interface ImportDialogData {
           <!-- Feed List -->
           @if (filteredFeeds.length > 0) {
             <div class="feed-list">
-              @for (feed of filteredFeeds; track trackByFeedId($index, feed)) {
+              @for (feed of filteredFeeds; track feed.feedOnestopId) {
                 <div
                   class="feed-item"
                   [class.feed-item-selected]="isSelectedFeed(feed)"
