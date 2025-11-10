@@ -1,6 +1,5 @@
 package com.mobilispect.backend.feed.service
 
-import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
@@ -9,11 +8,10 @@ import com.mobilispect.backend.feed.repository.AdministratorRepository
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.websocket.ProgressTrackingService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
+import org.springframework.batch.core.Job
+import org.springframework.batch.core.JobParametersBuilder
+import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,11 +26,12 @@ class FeedImportService(
     private val feedImportRepository: FeedImportRepository,
     private val administratorRepository: AdministratorRepository,
     private val progressTrackingService: ProgressTrackingService,
-    private val feedManagementImportProcessor: FeedManagementImportProcessor,
+    private val jobLauncher: JobLauncher,
+    @Qualifier("feedImportJob")
+    private val feedImportJob: Job,
     private val clock: Clock = Clock.systemUTC()
 ) {
     private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
-    private val importScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Transactional
     fun startImport(
@@ -70,7 +69,7 @@ class FeedImportService(
             startedAt = now
         )
 
-        enqueueImport(feedImport.requireId(), feed)
+        launchImportJob(feedImport.requireId(), feed.feedOnestopId)
 
         return feedImport
     }
@@ -86,21 +85,18 @@ class FeedImportService(
         progressTrackingService.markFailed(importId.toString(), "Import cancelled by user")
     }
 
-    private fun enqueueImport(importId: UUID, feed: FeedEntity) {
-        importScope.launch {
-            val result = feedManagementImportProcessor.importFeedById(feed.feedOnestopId)
+    private fun launchImportJob(importId: UUID, feedOnestopId: String) {
+        val params = JobParametersBuilder()
+            .addString("feedOnestopId", feedOnestopId)
+            .addString("importId", importId.toString())
+            .addLong("timestamp", System.currentTimeMillis())
+            .toJobParameters()
 
-            result.onSuccess { jobId ->
-                val sha1 = jobId.substringAfter(':', missingDelimiterValue = "")
-                completeImport(importId, sha1)
-            }.onFailure { throwable ->
-                failImport(importId, throwable.message ?: "Import failed")
-            }
-        }.invokeOnCompletion { throwable ->
-            if (throwable != null) {
-                logger.error("Import coroutine failed for {}", feed.feedOnestopId, throwable)
-                failImport(importId, throwable.message ?: "Import failed")
-            }
+        runCatching {
+            jobLauncher.run(feedImportJob, params)
+        }.onFailure { throwable ->
+            logger.error("Failed to launch feed import job for {}", feedOnestopId, throwable)
+            failImport(importId, throwable.message ?: "Failed to start import job")
         }
     }
 
