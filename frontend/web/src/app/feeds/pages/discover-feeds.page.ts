@@ -2,14 +2,12 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { MetropolitanRegion, Feed } from '../models/region.models';
 import { AgencyFeedGroup, FeedGroupingUtils } from '../models/agency-feed-group.model';
 import { RegionService } from '../services/region.service';
 import { ImportService } from '../services/import.service';
-import { ImportProgressDialogComponent } from '../components/import-progress-dialog.component';
 import { RegionFeedsCardComponent } from '../components/region-feeds-card.component';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
@@ -20,7 +18,6 @@ import { FeedsEventsService } from '../services/feeds-events.service';
   imports: [
     CommonModule,
     MatSnackBarModule,
-    MatDialogModule,
     RegionFeedsCardComponent
   ],
   template: `
@@ -49,7 +46,6 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
   constructor(
     private readonly regionService: RegionService,
     private readonly importService: ImportService,
-    private readonly dialog: MatDialog,
     private readonly snackBar: MatSnackBar,
     private readonly router: Router,
     private readonly route: ActivatedRoute,
@@ -94,19 +90,6 @@ export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
         this.snackBar.open(`Import started for ${feed.name}`, 'Close', { duration: 3000 });
         this.importService.refreshActiveImports();
         this.router.navigate(['/feeds/imports']);
-
-        const dialogRef = this.dialog.open(ImportProgressDialogComponent, {
-          width: '600px',
-          maxWidth: '90vw',
-          disableClose: false,
-          data: {
-            feedOnestopId: feed.feedOnestopId,
-            feedName: feed.name,
-            importResult: result
-          }
-        });
-
-        dialogRef.afterClosed().pipe(takeUntil(this.destroy$)).subscribe();
       },
       error: (error) => {
         console.error('Failed to start import:', error);

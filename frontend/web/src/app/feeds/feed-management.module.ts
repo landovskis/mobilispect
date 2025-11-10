@@ -27,7 +27,6 @@ import { FeedManagementRoutingModule } from './feed-management-routing.module';
 import { ThemeToggleComponent } from '../core/components/theme-toggle.component';
 import { AppBarComponent } from '../shared/components/app-bar.component';
 import { RegionListComponent } from './components/region-list.component';
-import { ImportProgressDialogComponent } from './components/import-progress-dialog.component';
 import { ProgressMonitorComponent } from './components/progress-monitor.component';
 import { RegionService } from './services/region.service';
 import { ImportService } from './services/import.service';
@@ -57,7 +56,6 @@ import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
     FeedImportsPageComponent,
     RegionListComponent,
     RegionSelectorComponent,
-    ImportProgressDialogComponent,
     ProgressMonitorComponent,
     ThemeToggleComponent,
     AppBarComponent,
