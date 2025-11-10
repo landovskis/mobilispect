@@ -18,10 +18,8 @@ import { FeedAuthenticationService } from '../services/feed-authentication.servi
 import { ImportProgressDialogComponent } from '../components/import-progress-dialog.component';
 import { ImportConfirmationDialogComponent } from '../components/import-confirmation-dialog.component';
 import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from '../../shared/components/app-bar.component';
-import { RegionSelectorComponent } from '../components/region-selector.component';
-import { AgencyFeedCardComponent } from '../components/agency-feed-card.component';
+import { RegionFeedsCardComponent } from '../components/region-feeds-card.component';
 import { FeedImportsTabComponent } from '../components/feed-imports-tab.component';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
 
 @Component({
   selector: 'app-feeds',
@@ -33,10 +31,8 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MatSidenavModule,
     MatSnackBarModule,
     MatDialogModule,
-    MobilispectCardComponent,
     AppBarComponent,
-    RegionSelectorComponent,
-    AgencyFeedCardComponent,
+    RegionFeedsCardComponent,
     FeedImportsTabComponent
   ],
   template: `
@@ -86,58 +82,19 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
             <div class="view-container">
               <section class="view-content">
                 @if (currentView === 'discover') {
-                  <div class="tab-content">
-                    <!-- Region Selector -->
-                    <app-region-selector
-                      [regions]="regions"
-                      [selectedRegionId]="selectedRegionId"
-                      (regionChange)="onRegionChange($event)"
-                    ></app-region-selector>
-
-                    <!-- Loading State -->
-                    @if (loadingFeeds) {
-                      <app-mobilispect-card class="loading-card">
-                        <div card-content class="loading-content">
-                          <mat-spinner diameter="40"></mat-spinner>
-                          <p>Loading feeds...</p>
-                        </div>
-                      </app-mobilispect-card>
-                    }
-
-                    <!-- Agency Feed Cards (Grouped) -->
-                    @if (!loadingFeeds && agencyGroups.length > 0) {
-                      <div class="feeds-grid">
-                        @for (agencyGroup of agencyGroups; track agencyGroup.agencyName) {
-                          <app-agency-feed-card
-                            [agencyGroup]="agencyGroup"
-                            (importFeed)="importFeed($event)"
-                            (importAllFeeds)="importMultipleFeeds($event)"
-                            (viewDetails)="viewFeedDetails($event)">
-                          </app-agency-feed-card>
-                        }
-                      </div>
-                    }
-
-                    <!-- Empty State -->
-                    @if (!loadingFeeds && regionFeeds.length === 0) {
-                      <app-mobilispect-card class="empty-state">
-                        <div card-content class="empty-content">
-                          <mat-icon class="empty-icon">inbox</mat-icon>
-                          <h3>No feeds found</h3>
-                          <p>Select a region to view available transit feeds.</p>
-                        </div>
-                      </app-mobilispect-card>
-                    }
-                  </div>
+                  <app-region-feeds-card
+                    class="tab-content"
+                    [regions]="regions"
+                    [selectedRegionId]="selectedRegionId"
+                    [agencyGroups]="agencyGroups"
+                    [loadingFeeds]="loadingFeeds"
+                    (regionChange)="onRegionChange($event)"
+                    (importFeed)="importFeed($event)"
+                    (importAllFeeds)="importMultipleFeeds($event)"
+                    (viewDetails)="viewFeedDetails($event)"
+                  ></app-region-feeds-card>
                 } @else {
                   <div class="tab-content">
-                    <!-- Region Selector -->
-                    <app-region-selector
-                      [regions]="regions"
-                      [selectedRegionId]="selectedRegionId"
-                      (regionChange)="onRegionChange($event)"
-                    ></app-region-selector>
-
                     <app-feed-imports-tab
                       [loading]="loadingHistory"
                       [history]="importHistory"
@@ -264,167 +221,6 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
       padding: 24px;
     }
 
-    .welcome-card {
-      margin-bottom: 24px;
-    }
-
-    .regions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-
-    .region-card {
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .region-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.12);
-    }
-
-    /* Feeds View Styles */
-    .feeds-header-card {
-      margin-bottom: 24px;
-    }
-
-    .back-button {
-      margin-right: 8px;
-    }
-
-    .loading-card {
-      margin-bottom: 24px;
-    }
-
-    .loading-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-    }
-
-    .loading-content mat-spinner {
-      margin-bottom: 16px;
-    }
-
-    .feeds-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 16px;
-    }
-
-    .feed-card {
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .feed-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.12);
-    }
-
-    .feed-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .feed-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
-    .feed-icon.gtfs {
-      color: #2196f3;
-    }
-
-    .feed-icon.gtfs-rt {
-      color: #ff9800;
-    }
-
-    .feed-icon.gbfs {
-      color: #4caf50;
-    }
-
-    .feed-details {
-      margin-top: 16px;
-    }
-
-    .feed-status {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .status-chip {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .status-chip.active {
-      background-color: #e8f5e8;
-      color: #4caf50;
-    }
-
-    .status-chip.inactive {
-      background-color: #fce4ec;
-      color: #f44336;
-    }
-
-    .spec-chip {
-      background-color: #e3f2fd;
-      color: #1976d2;
-      font-weight: 500;
-    }
-
-    .feed-meta p {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 8px 0;
-      font-size: 0.875rem;
-      color: #666;
-    }
-
-    .feed-meta mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
-
-    .empty-state {
-      margin-top: 24px;
-    }
-
-    .empty-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-      text-align: center;
-    }
-
-    .empty-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: #ccc;
-      margin-bottom: 16px;
-    }
-
-    .empty-content h3 {
-      margin: 0 0 8px 0;
-      color: #666;
-    }
-
-    .empty-content p {
-      margin: 0;
-      color: #999;
-    }
-
     @media (max-width: 768px) {
       .content-area {
         padding: 16px;
@@ -453,17 +249,8 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         padding: 16px;
       }
 
-      .regions-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .feeds-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .feed-status {
-        flex-direction: column;
-        gap: 4px;
+      .tab-content {
+        padding: 16px 0;
       }
     }
 
