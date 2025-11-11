@@ -24,14 +24,12 @@ $dark-theme: mat.m2-define-dark-theme((
 ));
 
 // Apply dark theme when dark-theme class is present
-.dark-theme,
-html.dark-theme,
-body.dark-theme {
+.dark-theme {
   // Apply Material dark theme
   @include mat.all-component-colors($dark-theme);
 
   // Custom dark theme variables
-  --background-color: #0f172a;
+  --background-color: #121212;
   --surface-color: #1e1e1e;
   --surface-hover: #2d2d2d;
   --text-primary: rgba(255, 255, 255, 0.87);
@@ -89,13 +87,8 @@ body.dark-theme {
   }
 
   // Custom component overrides
-  app-root,
-  .mat-app-background,
-  .content-area,
-  .feeds-container,
-  .mat-drawer-container,
-  .main-background {
-    background-color: var(--background-color) !important;
+  .content-area {
+    background-color: var(--background-color);
   }
 
   .region-card,
