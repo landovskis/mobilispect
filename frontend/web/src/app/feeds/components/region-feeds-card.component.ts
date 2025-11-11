@@ -22,8 +22,7 @@ import { MetropolitanRegion, Feed } from '../models/region.models';
   template: `
     <app-mobilispect-card
       class="region-feeds-card"
-      [style.--mobilispect-card-header-bg]="'#1e3a8a'"
-      [style.--mobilispect-card-border-color]="'#1e3a8a'">
+    >
       <div card-header class="card-header-content">
         <div class="header-icon">
           <mat-icon>travel_explore</mat-icon>
@@ -78,75 +77,11 @@ import { MetropolitanRegion, Feed } from '../models/region.models';
     </app-mobilispect-card>
   `,
   styles: [`
-    .card-header-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 1rem 1.25rem;
-      background: transparent;
-    }
-
-    .header-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
 
     .header-icon mat-icon {
       color: #fff;
     }
 
-    .header-text {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .header-title {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .header-subtitle {
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .loading-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 16px;
-      color: #666;
-      gap: 16px;
-    }
-
-    .feeds-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 16px;
-      margin-top: 24px;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: #666;
-    }
-
-    .empty-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: #ccc;
-      margin-bottom: 16px;
-    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
