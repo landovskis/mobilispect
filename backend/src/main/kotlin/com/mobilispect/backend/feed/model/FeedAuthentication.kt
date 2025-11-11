@@ -11,6 +11,7 @@ import jakarta.persistence.OneToOne
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import org.hibernate.annotations.ColumnTransformer
 import java.time.Instant
 
@@ -63,7 +64,11 @@ class FeedAuthentication(
     var createdAt: Instant = Instant.now(),
 
     @Column(name = "updated_at", nullable = false)
-    var updatedAt: Instant = Instant.now()
+    var updatedAt: Instant = Instant.now(),
+
+    @Version
+    @Column(name = "version", nullable = false)
+    var version: Long = 0
 ) {
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId

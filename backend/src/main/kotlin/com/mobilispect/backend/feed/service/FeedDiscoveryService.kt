@@ -16,6 +16,7 @@ import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import org.slf4j.LoggerFactory
+import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Clock
@@ -85,8 +86,8 @@ class FeedDiscoveryService(
 
         feeds.forEach { summary ->
             runCatching {
-                // Extract ALL regions from operator places, using feed onestop ID as fallback
-                val regionIds = extractRegionsFromPlaces(summary.feedOnestopId, summary.name, operatorPlacesMap)
+                // Extract ALL regions from operator places
+                val regionIds = extractRegionsFromPlaces(summary.feedOnestopId, operatorPlacesMap)
 
                 val (result, entity) = upsertFeed(regionIds, summary, now)
                 when (result) {
@@ -314,26 +315,51 @@ class FeedDiscoveryService(
             return
         }
 
-        val existing = feedAuthenticationRepository.findById(feed.feedOnestopId)
-        val entity = existing.orElseGet {
-            FeedAuthentication(feedOnestopId = feed.feedOnestopId).apply {
-                this.feed = feed
+        // Retry logic to handle optimistic locking conflicts
+        // This can occur when multiple feeds share the same authentication credentials
+        var retries = 3
+        while (retries > 0) {
+            try {
+                val existing = feedAuthenticationRepository.findById(feed.feedOnestopId)
+                val entity = existing.orElseGet {
+                    FeedAuthentication(feedOnestopId = feed.feedOnestopId).apply {
+                        this.feed = feed
+                    }
+                }
+
+                entity.feed = feed
+                entity.authType = authType
+                entity.headerName = authorization.parameterName?.takeIf { it.isNotBlank() }
+                entity.isActive = true
+
+                authorization.infoUrl?.takeIf { it.isNotBlank() }?.let { infoUrl ->
+                    val note = "Transit.land auth info: $infoUrl"
+                    if (entity.notes.isNullOrBlank() || entity.notes != note) {
+                        entity.notes = note
+                    }
+                }
+
+                feedAuthenticationRepository.save(entity)
+                return // Success, exit the retry loop
+            } catch (ex: OptimisticLockingFailureException) {
+                retries--
+                if (retries == 0) {
+                    logger.warn(
+                        "Failed to update authentication for feed {} after retries due to concurrent modification",
+                        feed.feedOnestopId,
+                        ex
+                    )
+                    throw ex
+                }
+                // Brief delay before retry to reduce contention
+                Thread.sleep(50)
+                logger.debug(
+                    "Retrying authentication update for feed {} due to concurrent modification (retries left: {})",
+                    feed.feedOnestopId,
+                    retries
+                )
             }
         }
-
-        entity.feed = feed
-        entity.authType = authType
-        entity.headerName = authorization.parameterName?.takeIf { it.isNotBlank() }
-        entity.isActive = true
-
-        authorization.infoUrl?.takeIf { it.isNotBlank() }?.let { infoUrl ->
-            val note = "Transit.land auth info: $infoUrl"
-            if (entity.notes.isNullOrBlank() || entity.notes != note) {
-                entity.notes = note
-            }
-        }
-
-        feedAuthenticationRepository.save(entity)
     }
 
     private fun recordDiscoveryDuration(
@@ -430,19 +456,21 @@ class FeedDiscoveryService(
     /**
      * Extract ALL region onestop IDs from operator geographic places.
      * Creates one region per unique (adm0_name, adm1_name, city_name) triple.
-     * Falls back to feed onestop ID parsing if no places data is available.
      *
      * This allows feeds to belong to multiple regions (e.g., Caltrain serves
      * San Francisco, San Jose, Palo Alto, etc.)
      *
+     * When multiple regions exist in the same geographic hierarchy (e.g., Canada/Québec
+     * and Canada/Québec/Montréal), only the most specific region is kept.
+     *
      * Examples:
      * - Places: [USA/CA/SF, USA/CA/SJ] → [r-usa-california-sanfrancisco, r-usa-california-sanjose]
      * - Places: [Japan/Tokyo] → [r-japan-tokyo]
-     * - No places, f-9q5-translink → [r-9q5-auto]
+     * - Places: [Canada/Québec, Canada/Québec/Montréal] → [r-canada-quebec-montreal]
+     * - No places → empty list (feed will be skipped)
      */
     private fun extractRegionsFromPlaces(
         feedOnestopId: String,
-        feedName: String,
         operatorPlacesMap: Map<String, List<com.mobilispect.backend.feed.integration.PlaceSummary>>
     ): List<String> {
         // Derive operator ID from feed ID
@@ -452,16 +480,11 @@ class FeedDiscoveryService(
         // Look up places for this operator
         val places = operatorPlacesMap[operatorId]
 
-        if (places.isNullOrEmpty()) {
-            logger.debug("No places found for operator {}, using feed ID fallback for feed {}", operatorId, feedOnestopId)
-            return listOf(extractRegionFromFeedIdFallback(feedOnestopId, feedName))
-        }
-
         // Create a region for EACH unique place the operator serves
-        val regionIds = mutableListOf<String>()
-        val seenRegions = mutableSetOf<String>() // Track duplicates
+        val regionCandidates = mutableMapOf<String, Int>() // regionId -> specificity level (1=country, 2=state, 3=city)
+        val regionData = mutableMapOf<String, Triple<String, String?, String?>>() // regionId -> (name, adm0, adm1)
 
-        places.forEach { place ->
+        places?.forEach { place ->
             // Build region ID and name from geographic data
             val regionParts = mutableListOf<String>()
 
@@ -479,25 +502,39 @@ class FeedDiscoveryService(
 
             if (regionParts.isNotEmpty()) {
                 val regionId = "r-${regionParts.joinToString("-")}"
+                val specificity = regionParts.size // 1=country, 2=state, 3=city
 
-                // Only add if we haven't seen this region yet (avoid duplicates)
-                if (seenRegions.add(regionId)) {
+                // Track this region and its specificity
+                val currentSpecificity = regionCandidates[regionId]
+                if (currentSpecificity == null || specificity > currentSpecificity) {
+                    regionCandidates[regionId] = specificity
+
                     // Use city name as the primary region name, fall back to state, then country
                     val regionName = place.cityName
                         ?: place.adm1Name
                         ?: place.adm0Name
                         ?: "Unknown"
 
-                    val createdRegionId = ensureRegionExists(regionId, regionName, place.adm0Name, place.adm1Name)
-                    regionIds.add(createdRegionId)
+                    regionData[regionId] = Triple(regionName, place.adm0Name, place.adm1Name)
                 }
             }
         }
 
-        // If no valid regions were created from places, use fallback
-        if (regionIds.isEmpty()) {
-            logger.warn("No valid places data for operator {}, using feed ID fallback", operatorId)
-            return listOf(extractRegionFromFeedIdFallback(feedOnestopId, feedName))
+        // Filter out less specific regions that are prefixes of more specific ones
+        // e.g., if we have both "r-canada-quebec" and "r-canada-quebec-montreal", keep only the latter
+        val filteredRegions = regionCandidates.keys.filter { regionId ->
+            val moreSpecificExists = regionCandidates.keys.any { otherRegion ->
+                otherRegion != regionId &&
+                    otherRegion.startsWith("$regionId-") &&
+                    regionCandidates[otherRegion]!! > regionCandidates[regionId]!!
+            }
+            !moreSpecificExists
+        }
+
+        // Create the filtered regions
+        val regionIds = filteredRegions.map { regionId ->
+            val (regionName, adm0Name, adm1Name) = regionData[regionId]!!
+            ensureRegionExists(regionId, regionName, adm0Name, adm1Name)
         }
 
         logger.info("Feed {} assigned to {} regions: {}", feedOnestopId, regionIds.size, regionIds.joinToString(", "))
@@ -538,82 +575,6 @@ class FeedDiscoveryService(
             .take(30) // Limit length
     }
 
-    /**
-     * Fallback to extract region from feed onestop ID when no places data is available.
-     */
-    private fun extractRegionFromFeedIdFallback(feedOnestopId: String, feedName: String): String {
-        val parts = feedOnestopId.split("-", limit = 3)
-
-        if (parts.size < 2) {
-            logger.warn("Feed onestop ID '{}' has no region component, using feed name fallback", feedOnestopId)
-            val cleanName = slugify(feedName)
-            return if (cleanName.isNotBlank()) {
-                ensureRegionExists("r-$cleanName-auto", feedName)
-            } else {
-                ensureGlobalRegionExists()
-            }
-        }
-
-        val geohash = parts[1].split("~").first().take(30)
-
-        if (geohash.isBlank()) {
-            logger.warn("Feed onestop ID '{}' has blank identifier, using global region", feedOnestopId)
-            return ensureGlobalRegionExists()
-        }
-
-        // Normalize geohash to recognize metropolitan areas
-        // Many cities span multiple precise geohashes, so we normalize to the primary region
-        val normalizedGeohash = normalizeGeohashToMetroArea(geohash)
-        val regionId = "r-$normalizedGeohash-auto"
-
-        // Try to find a more specific region name from known geohash patterns
-        val regionName = getRegionNameFromGeohash(normalizedGeohash)
-            ?: "Auto-region: $normalizedGeohash"
-
-        return ensureRegionExists(regionId, regionName)
-    }
-
-    /**
-     * Normalize geohash to group feeds from the same metropolitan area.
-     *
-     * Examples:
-     * - f25d, f25e, f25f, f25g, f253, f256, etc. → f25d (Greater Montreal)
-     * - 9q8y, 9q8z, 9q8v, 9q8w → 9q8 (San Francisco Bay Area)
-     */
-    private fun normalizeGeohashToMetroArea(geohash: String): String {
-        return when {
-            // Greater Montreal: All f25* geohashes map to f25d (Montreal core)
-            geohash.startsWith("f25") -> "f25d"
-
-            // San Francisco Bay Area: All 9q8* and 9q9* geohashes
-            geohash.startsWith("9q8") || geohash.startsWith("9q9") -> "9q9"
-
-            // Toronto area: 9q5* geohashes
-            geohash.startsWith("9q5") -> "9q5"
-
-            // Ottawa area: f244* geohashes
-            geohash.startsWith("f244") -> "f244"
-
-            // For other areas, use the first 3 characters as the metro area identifier
-            // This groups nearby locations without being too broad
-            geohash.length >= 3 -> geohash.substring(0, 3)
-
-            else -> geohash
-        }
-    }
-
-    /**
-     * Get a human-readable region name from a normalized geohash.
-     */
-    private fun getRegionNameFromGeohash(normalizedGeohash: String): String? {
-        return when (normalizedGeohash) {
-            "f25d" -> "Greater Montreal"
-            "9q9" -> "San Francisco Bay Area"
-            "9q5" -> "Vancouver"
-            "f244" -> "Ottawa"
-            else -> null
-        }
-    }
 
     /**
      * Ensure a region exists with the given ID and name, creating it if necessary.
