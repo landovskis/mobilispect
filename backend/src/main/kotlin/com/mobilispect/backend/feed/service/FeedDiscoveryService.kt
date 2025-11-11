@@ -662,6 +662,10 @@ class FeedDiscoveryService(
                 logger.info("Updated region geographic data: {} ({}, {}, {})", regionId, regionName, adm1Name, adm0Name)
             }
         } else {
+            if (regionId.endsWith("-auto")) {
+                logger.info("Auto region {} prevented; using global fallback", regionId)
+                return ensureGlobalRegionExists()
+            }
             val region = MetropolitanRegion(
                 regionOnestopId = regionId,
                 name = regionName,
