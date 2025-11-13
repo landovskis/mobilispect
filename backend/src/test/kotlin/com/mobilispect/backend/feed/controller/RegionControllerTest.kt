@@ -9,7 +9,7 @@ import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.feed.batch.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.service.FeedDiscoveryResult
+import com.mobilispect.backend.feed.batch.FeedDiscoveryResult
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -39,14 +39,12 @@ class RegionControllerTest {
         feedRepository = mockk()
         feedAuthenticationRepository = mockk()
         feedDiscoveryBatchService = mockk()
-        val feedRegionMigrationService = mockk<com.mobilispect.backend.feed.service.FeedRegionMigrationService>()
 
         controller = RegionController(
             regionRepository = regionRepository,
             feedRepository = feedRepository,
             feedAuthenticationRepository = feedAuthenticationRepository,
-            feedDiscoveryBatchService = feedDiscoveryBatchService,
-            feedRegionMigrationService = feedRegionMigrationService
+            feedDiscoveryBatchService = feedDiscoveryBatchService
         )
     }
 

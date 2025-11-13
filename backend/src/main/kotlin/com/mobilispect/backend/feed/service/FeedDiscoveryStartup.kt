@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.service
 
+import com.mobilispect.backend.feed.batch.FeedDiscoveryBatchService
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Component
 class FeedDiscoveryStartup(
     private val regionRepository: MetropolitanRegionRepository,
     private val feedRepository: FeedRepository,
-    private val feedDiscoveryService: FeedDiscoveryService
+    private val feedDiscoveryBatchService: FeedDiscoveryBatchService
 ) {
     private val logger = LoggerFactory.getLogger(FeedDiscoveryStartup::class.java)
 
@@ -38,36 +39,34 @@ class FeedDiscoveryStartup(
 
             logger.info("Feed database is empty. Starting global feed discovery from Transit.land...")
 
-            // Discover both GTFS and GTFS-RT feeds globally
-            listOf(FeedSpecType.GTFS, FeedSpecType.GTFS_RT).forEach { specType ->
-                runCatching {
-                    feedDiscoveryService.discoverAll(specType)
-                }.onSuccess { result ->
-                    logger.info(
-                        "Global {} discovery completed: discovered={}, created={}, updated={}, errors={}",
-                        specType,
-                        result.feedsDiscovered,
-                        result.feedsCreated,
-                        result.feedsUpdated,
-                        result.errors.size
-                    )
+            // Discover GTFS feeds globally (GTFS-RT currently disabled)
+            runCatching {
+                feedDiscoveryBatchService.discoverAll(FeedSpecType.GTFS)
+            }.onSuccess { result ->
+                logger.info(
+                    "Global {} discovery completed: discovered={}, created={}, updated={}, errors={}",
+                    FeedSpecType.GTFS,
+                    result.feedsDiscovered,
+                    result.feedsCreated,
+                    result.feedsUpdated,
+                    result.errors.size
+                )
 
-                    if (result.errors.isNotEmpty()) {
-                        logger.warn("Discovery encountered {} errors:", result.errors.size)
-                        result.errors.take(10).forEach { error ->
-                            logger.warn("  - {}", error)
-                        }
-                        if (result.errors.size > 10) {
-                            logger.warn("  ... and {} more errors", result.errors.size - 10)
-                        }
+                if (result.errors.isNotEmpty()) {
+                    logger.warn("Discovery encountered {} errors:", result.errors.size)
+                    result.errors.take(10).forEach { error ->
+                        logger.warn("  - {}", error)
                     }
-                }.onFailure { throwable ->
-                    logger.error(
-                        "Global {} discovery failed",
-                        specType,
-                        throwable
-                    )
+                    if (result.errors.size > 10) {
+                        logger.warn("  ... and {} more errors", result.errors.size - 10)
+                    }
                 }
+            }.onFailure { throwable ->
+                logger.error(
+                    "Global {} discovery failed",
+                    FeedSpecType.GTFS,
+                    throwable
+                )
             }
 
             val finalCount = feedRepository.count()

@@ -14,7 +14,7 @@ import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.feed.batch.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.service.FeedDiscoveryResult
+import com.mobilispect.backend.feed.batch.FeedDiscoveryResult
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -35,7 +35,6 @@ class RegionController(
     private val feedRepository: FeedRepository,
     private val feedAuthenticationRepository: FeedAuthenticationRepository,
     private val feedDiscoveryBatchService: FeedDiscoveryBatchService,
-    private val feedRegionMigrationService: com.mobilispect.backend.feed.service.FeedRegionMigrationService
 ) {
     private val logger = LoggerFactory.getLogger(RegionController::class.java)
 
@@ -136,12 +135,6 @@ class RegionController(
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Region not found: $regionOnestopId") }
 
         return feedDiscoveryBatchService.discover(regionOnestopId, region.name, spec.toEntity())
-    }
-
-    @PostMapping("/migrate-orphaned")
-    suspend fun migrateOrphanedFeeds(): com.mobilispect.backend.feed.service.FeedRegionMigrationService.MigrationResult {
-        logger.info("Starting migration of orphaned feeds...")
-        return feedRegionMigrationService.migrateOrphanedFeeds()
     }
 
     private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {

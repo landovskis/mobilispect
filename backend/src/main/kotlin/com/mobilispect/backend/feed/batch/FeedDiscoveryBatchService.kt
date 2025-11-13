@@ -1,7 +1,6 @@
 package com.mobilispect.backend.feed.batch
 
 import com.mobilispect.backend.feed.model.FeedSpecType
-import com.mobilispect.backend.feed.service.FeedDiscoveryResult
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.Job
 import org.springframework.batch.core.JobParametersBuilder
@@ -141,3 +140,14 @@ class FeedDiscoveryBatchService(
         }
     }
 }
+
+/**
+ * Result of a feed discovery operation.
+ */
+data class FeedDiscoveryResult(
+    val regionOnestopId: String,
+    val feedsDiscovered: Int,
+    val feedsCreated: Int,
+    val feedsUpdated: Int,
+    val errors: List<String>
+)
