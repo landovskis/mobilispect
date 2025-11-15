@@ -1,12 +1,15 @@
 package com.mobilispect.backend.feed.batch.discovery
 
+import com.mobilispect.backend.TransitLandFeedResponse
 import com.mobilispect.backend.TransitLandOperator
 import com.mobilispect.backend.TransitLandOperatorResponse
 import com.mobilispect.backend.feed.model.FeedId
+import com.mobilispect.backend.feed.model.FeedSpecType
 import org.slf4j.LoggerFactory
 import org.springframework.batch.item.ItemReader
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
+import java.time.LocalDate
 
 /**
  * Custom ItemReader that combines operator reading and metadata fetching.
@@ -23,7 +26,6 @@ import org.springframework.web.reactive.function.client.WebClient
  */
 class FeedDiscoveryReader(
     private val webClientBuilder: WebClient.Builder,
-    private val transitLandMetadataService: TransitLandMetadataService,
     private val apiKey: TransitLandAPIKey?,
     private val defaultApiKey: TransitLandAPIKey?,
     private val specType: String = "gtfs",
@@ -40,7 +42,7 @@ class FeedDiscoveryReader(
         )
     }
 
-    private val operatorClient: WebClient by lazy {
+    private val transitLandClient: WebClient by lazy {
         webClientBuilder.baseUrl("https://transit.land/api/v2/rest")
             .defaultHeader("apikey", operatorApiKey.value)
             .build()
@@ -172,7 +174,7 @@ class FeedDiscoveryReader(
 
             logger.debug("Fetching operators from Transit.land: uri={}", uri)
 
-            val response = operatorClient.get()
+            val response = transitLandClient.get()
                 .uri(uri)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
@@ -245,13 +247,13 @@ class FeedDiscoveryReader(
             }
 
             val firstAgency = operator.agencies?.firstOrNull()
-            val firstPlace = firstAgency?.places?.firstOrNull { it.city_name != null }
+            val place = firstAgency?.places?.firstOrNull { it.city_name != null } ?: firstAgency?.places?.firstOrNull()
 
-            val regionParts = if (firstPlace != null) {
+            val regionParts = if (place != null) {
                 listOfNotNull(
-                    firstPlace.city_name,
-                    firstPlace.adm1_name,
-                    firstPlace.adm0_name
+                    place.city_name,
+                    place.adm1_name,
+                    place.adm0_name
                 )
             } else {
                 logger.warn(
@@ -272,13 +274,13 @@ class FeedDiscoveryReader(
                 continue
             }
 
-            if (firstPlace != null) {
+            if (place != null) {
                 logger.info(
                     "Operator {} location: city='{}', state='{}', country='{}'",
                     operator.onestop_id,
-                    firstPlace.city_name ?: "(none)",
-                    firstPlace.adm1_name ?: "(none)",
-                    firstPlace.adm0_name ?: "(none)"
+                    place.city_name ?: "(none)",
+                    place.adm1_name ?: "(none)",
+                    place.adm0_name ?: "(none)"
                 )
             } else {
                 logger.info(
@@ -322,9 +324,9 @@ class FeedDiscoveryReader(
             val regionMetadata = RegionMetadata(
                 regionOnestopId = regionId,
                 regionName = regionName,
-                cityName = firstPlace?.city_name,
-                adm1Name = firstPlace?.adm1_name,
-                adm0Name = firstPlace?.adm0_name
+                cityName = place?.city_name,
+                adm1Name = place?.adm1_name,
+                adm0Name = place?.adm0_name
             )
 
             for (feedId in validFeedIds) {
@@ -393,7 +395,81 @@ class FeedDiscoveryReader(
      */
     private fun fetchSingleFeedMetadata(feedId: FeedId): FeedMetadata? {
         val metadataApiKey = apiKey ?: defaultApiKey
-        return transitLandMetadataService.fetchFeedMetadata(feedId, metadataApiKey)
+        return fetchFeedMetadata(feedId, metadataApiKey)
+    }
+
+    private fun fetchFeedMetadata(feedId: FeedId, apiKey: TransitLandAPIKey?): FeedMetadata? {
+        if (!isValidFeedOnestopId(feedId.value)) {
+            logger.warn("Skipping metadata fetch for invalid feed onestop ID: {}", feedId.value)
+            return null
+        }
+
+        val key = apiKey ?: operatorApiKey
+
+        return try {
+            val uri = "/feeds.json?onestop_id=${feedId.value}&include_alerts=false"
+
+            logger.debug("Fetching feed metadata from Transit.land: feedId={}", feedId.value)
+
+            val response = transitLandClient.get()
+                .uri(uri)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(TransitLandFeedResponse::class.java)
+                .block()
+
+            if (response == null) {
+                logger.warn("Received null response for feed: {}", feedId.value)
+                return null
+            }
+
+            val feed = response.feeds.firstOrNull()
+            if (feed == null) {
+                logger.warn("No feed data found for feed ID: {}", feedId.value)
+                return null
+            }
+
+            val latestVersion = feed.feed_versions.firstOrNull()
+                ?: run {
+                    logger.warn("No version information available for feed: {}", feedId.value)
+                    return null
+                }
+
+            val specType = when (feed.spec.lowercase()) {
+                "gtfs" -> FeedSpecType.GTFS
+                "gtfs-rt" -> FeedSpecType.GTFS_RT
+                else -> {
+                    logger.warn("Unknown spec type '{}' for feed: {}, defaulting to GTFS",
+                        feed.spec, feedId.value)
+                    FeedSpecType.GTFS
+                }
+            }
+
+            val metadata = FeedMetadata(
+                feedOnestopId = FeedId.from(feed.onestop_id) ?: feedId,
+                name = feed.name ?: "Unknown",
+                downloadUrl = latestVersion.url,
+                specType = specType,
+                versionSha1 = latestVersion.sha1,
+                earliestCalendarDate = LocalDate.parse(latestVersion.earliest_calendar_date),
+                latestCalendarDate = LocalDate.parse(latestVersion.latest_calendar_date),
+                staticFeedUrl = feed.urls?.static_current,
+                realtimeFeedUrl = feed.urls?.realtime_trip_updates,
+                authorizationType = feed.authorization?.type,
+                authorizationInfoUrl = feed.authorization?.info_url
+            )
+
+            logger.debug(
+                "Successfully fetched metadata for feed: {} (version: {})",
+                feedId.value,
+                latestVersion.sha1
+            )
+
+            metadata
+        } catch (e: Exception) {
+            logger.error("Failed to fetch metadata for feed: {}", feedId.value, e)
+            null
+        }
     }
 }
 

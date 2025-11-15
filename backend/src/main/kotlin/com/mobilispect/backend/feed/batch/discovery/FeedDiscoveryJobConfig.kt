@@ -83,7 +83,6 @@ class SimplifiedFeedDiscoveryJobConfig(
     @Bean
     @StepScope
     fun combinedFeedDiscoveryReader(
-        transitLandMetadataService: TransitLandMetadataService,
         webClientBuilder: WebClient.Builder,
         @Value("#{jobParameters['apiKey']}") apiKeyString: String?,
         @Value("#{jobParameters['specType'] ?: 'gtfs'}") specType: String,
@@ -94,7 +93,6 @@ class SimplifiedFeedDiscoveryJobConfig(
         val defaultApiKey = TransitLandAPIKey.fromNullable(defaultApiKeyString)
         return FeedDiscoveryReader(
             webClientBuilder = webClientBuilder,
-            transitLandMetadataService = transitLandMetadataService,
             apiKey = apiKey,
             defaultApiKey = defaultApiKey,
             specType = specType,

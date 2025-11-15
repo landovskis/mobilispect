@@ -21,7 +21,7 @@ class TransitLandOperator(
 class TransitLandAgency(
     val agency_id: String? = null,
     val agency_name: String? = null,
-    val places: Collection<TransitLandPlace>? = null,
+    val places: Collection<TransitLandPlace> = emptyList(),
     val geometry: JsonElement? = null  // GeoJSON geometry, not used but needed for deserialization
 )
 

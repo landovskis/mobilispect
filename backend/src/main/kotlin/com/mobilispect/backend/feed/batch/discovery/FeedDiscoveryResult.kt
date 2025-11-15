@@ -8,7 +8,7 @@ import java.time.LocalDate
  * Represents a complete feed discovery result combining feed metadata with region information.
  *
  * This data class aggregates information from both the operator parsing stage (region data)
- * and TransitLandMetadataService (feed details) to provide a comprehensive view of a discovered feed.
+ * and Transit.land metadata fetches (feed details) to provide a comprehensive view of a discovered feed.
  *
  * @property feedOnestopId The Transit.land onestop ID for the feed
  * @property name Human-readable name of the feed/operator
@@ -101,7 +101,7 @@ data class FeedDiscoveryBatch(
 /**
  * Input data for the FeedDiscoveryProcessor.
  *
- * Combines the outputs from operator parsing and TransitLandMetadataService
+ * Combines the outputs from operator parsing and Transit.land metadata fetching
  * to enable joining feed metadata with region information.
  *
  * @property feedRegionMap Map of feed IDs to region metadata
