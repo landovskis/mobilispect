@@ -9,8 +9,9 @@ import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryResult
+import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -233,8 +234,11 @@ class RegionControllerTest {
     @Test
     fun `discoverFeeds calls service and returns result`() = runBlocking {
         // Given
-        val expectedResult = FeedDiscoveryResult(
-            regionOnestopId = testRegionId,
+        val expectedResult = FeedDiscoveryJobResult(
+            jobExecutionId = 1L,
+            status = "COMPLETED",
+            startTime = fixedInstant,
+            endTime = fixedInstant,
             feedsDiscovered = 5,
             feedsCreated = 3,
             feedsUpdated = 2,
@@ -243,7 +247,7 @@ class RegionControllerTest {
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
-            feedDiscoveryBatchService.discover(testRegionId, testRegionName, FeedSpecType.GTFS)
+            feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS)
         } returns expectedResult
 
         // When
@@ -263,8 +267,11 @@ class RegionControllerTest {
     @Test
     fun `discoverFeeds uses GTFS as default spec`() = runBlocking {
         // Given
-        val expectedResult = FeedDiscoveryResult(
-            regionOnestopId = testRegionId,
+        val expectedResult = FeedDiscoveryJobResult(
+            jobExecutionId = 2L,
+            status = "COMPLETED",
+            startTime = fixedInstant,
+            endTime = fixedInstant,
             feedsDiscovered = 1,
             feedsCreated = 1,
             feedsUpdated = 0,
@@ -273,7 +280,7 @@ class RegionControllerTest {
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
-            feedDiscoveryBatchService.discover(testRegionId, testRegionName, FeedSpecType.GTFS)
+            feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS)
         } returns expectedResult
 
         // When - providing GTFS as spec parameter
@@ -283,10 +290,8 @@ class RegionControllerTest {
         )
 
         // Then
-        verify {
-            runBlocking {
-                feedDiscoveryBatchService.discover(testRegionId, testRegionName, FeedSpecType.GTFS)
-            }
+        coVerify {
+            feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS)
         }
         assertThat(result.feedsDiscovered).isEqualTo(1)
     }
@@ -294,8 +299,11 @@ class RegionControllerTest {
     @Test
     fun `discoverFeeds returns errors when discovery fails partially`() = runBlocking {
         // Given
-        val expectedResult = FeedDiscoveryResult(
-            regionOnestopId = testRegionId,
+        val expectedResult = FeedDiscoveryJobResult(
+            jobExecutionId = 3L,
+            status = "COMPLETED",
+            startTime = fixedInstant,
+            endTime = fixedInstant,
             feedsDiscovered = 3,
             feedsCreated = 2,
             feedsUpdated = 0,
@@ -304,7 +312,7 @@ class RegionControllerTest {
 
         every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
-            feedDiscoveryBatchService.discover(testRegionId, testRegionName, FeedSpecType.GTFS)
+            feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS)
         } returns expectedResult
 
         // When

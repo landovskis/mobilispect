@@ -8,11 +8,13 @@ import org.springframework.batch.core.job.builder.JobBuilder
 import org.springframework.batch.core.repository.JobRepository
 import org.springframework.batch.core.step.builder.StepBuilder
 import org.springframework.batch.item.ItemReader
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.web.reactive.function.client.WebClient
 
 /**
  * Feed discovery job configuration for single-step execution.
@@ -30,10 +32,8 @@ import org.springframework.transaction.PlatformTransactionManager
 class SimplifiedFeedDiscoveryJobConfig(
     private val jobRepository: JobRepository,
     private val transactionManager: PlatformTransactionManager,
-    private val operatorFeedReader: OperatorFeedReader,
     private val feedDiscoveryProcessor: FeedDiscoveryProcessor,
-    private val feedDiscoveryWriter: FeedDiscoveryWriter,
-    private val transitLandMetadataService: TransitLandMetadataService
+    private val feedDiscoveryWriter: FeedDiscoveryWriter
 ) {
 
     /**
@@ -43,8 +43,11 @@ class SimplifiedFeedDiscoveryJobConfig(
      * writing to the database all in one step for simplicity.
      */
     @Bean
-    fun simplifiedFeedDiscoveryJob(): Job = JobBuilder("simplifiedFeedDiscoveryJob", jobRepository)
-        .start(simplifiedDiscoveryStep())
+    fun simplifiedFeedDiscoveryJob(
+        @Qualifier("simplifiedDiscoveryStep")
+        simplifiedDiscoveryStep: Step
+    ): Job = JobBuilder("simplifiedFeedDiscoveryJob", jobRepository)
+        .start(simplifiedDiscoveryStep)
         .build()
 
     /**
@@ -58,9 +61,12 @@ class SimplifiedFeedDiscoveryJobConfig(
      * Then processes and writes in a single transaction.
      */
     @Bean
-    fun simplifiedDiscoveryStep(): Step = StepBuilder("simplifiedDiscoveryStep", jobRepository)
+    fun simplifiedDiscoveryStep(
+        @Qualifier("combinedFeedDiscoveryReader")
+        reader: ItemReader<FeedDiscoveryInput>
+    ): Step = StepBuilder("simplifiedDiscoveryStep", jobRepository)
         .chunk<FeedDiscoveryInput, FeedDiscoveryBatch>(10, transactionManager)
-        .reader(combinedFeedDiscoveryReader(transitLandMetadataService, null))
+        .reader(reader)
         .processor(feedDiscoveryProcessor)
         .writer(feedDiscoveryWriter)
         .build()
@@ -69,7 +75,7 @@ class SimplifiedFeedDiscoveryJobConfig(
      * Combined reader that integrates operator reading and metadata fetching.
      *
      * This reader internally orchestrates:
-     * 1. Reading batches of operators via OperatorFeedReader
+     * 1. Reading batches of operators from Transit.land
      * 2. Extracting feed IDs from the operator data
      * 3. Fetching metadata for those feeds via transit land service
      * 4. Combining both into FeedDiscoveryInput for processing
@@ -78,13 +84,21 @@ class SimplifiedFeedDiscoveryJobConfig(
     @StepScope
     fun combinedFeedDiscoveryReader(
         transitLandMetadataService: TransitLandMetadataService,
-        @Value("#{jobParameters['apiKey']}") apiKeyString: String?
+        webClientBuilder: WebClient.Builder,
+        @Value("#{jobParameters['apiKey']}") apiKeyString: String?,
+        @Value("#{jobParameters['specType'] ?: 'gtfs'}") specType: String,
+        @Value("#{jobParameters['batchSize'] ?: 100}") batchSize: Int,
+        @Value("\${app.transit-land.api-key:}") defaultApiKeyString: String?
     ): ItemReader<FeedDiscoveryInput> {
         val apiKey = TransitLandAPIKey.fromNullable(apiKeyString)
+        val defaultApiKey = TransitLandAPIKey.fromNullable(defaultApiKeyString)
         return FeedDiscoveryReader(
-            operatorFeedReader = operatorFeedReader,
+            webClientBuilder = webClientBuilder,
             transitLandMetadataService = transitLandMetadataService,
-            apiKey = apiKey
+            apiKey = apiKey,
+            defaultApiKey = defaultApiKey,
+            specType = specType,
+            operatorBatchSize = batchSize
         )
     }
 }

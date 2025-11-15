@@ -23,8 +23,9 @@ data class RegionMetadata(
 /**
  * Represents a mapping of feed onestop IDs to their region metadata.
  *
- * This is the output type for the OperatorFeedReader, providing a map of
- * feeds to their associated geographic regions for batch processing.
+ * This is the intermediate output from processing Transit.land operators,
+ * providing a map of feeds to their associated geographic regions for
+ * downstream batch processing.
  *
  * @property feedToRegionMap Map of feed onestop ID to RegionMetadata
  */
