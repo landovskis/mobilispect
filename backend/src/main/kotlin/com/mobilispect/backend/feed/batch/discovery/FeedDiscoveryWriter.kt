@@ -1,6 +1,7 @@
 package com.mobilispect.backend.feed.batch.discovery
 
 import com.mobilispect.backend.feed.model.FeedEntity
+import com.mobilispect.backend.feed.model.FeedId
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.MetropolitanRegion
 import com.mobilispect.backend.feed.repository.FeedRepository
@@ -99,14 +100,15 @@ class FeedDiscoveryWriter(
 
             // Step 3: Create or update feeds
             for (result in batch.results) {
-                val existingFeed = feedRepository.findById(result.feedOnestopId)
+                val feedId = result.feedOnestopId
+                val existingFeed = feedRepository.findById(feedId.value)
                     .orElse(null)
 
                 val now = Instant.now()
 
                 val feedEntity = if (existingFeed != null) {
                     // Update existing feed
-                    logger.debug("Updating existing feed: {}", result.feedOnestopId)
+                    logger.debug("Updating existing feed: {}", feedId.value)
                     feedsUpdated++
                     existingFeed.apply {
                         name = result.name
@@ -126,13 +128,13 @@ class FeedDiscoveryWriter(
                     }
                 } else {
                     // Create new feed
-                    logger.debug("Creating new feed: {}", result.feedOnestopId)
+                    logger.debug("Creating new feed: {}", feedId.value)
                     feedsCreated++
                     val regionEntity = regionEntities[result.region.regionOnestopId]
                         ?: error("Region entity not found for ${result.region.regionOnestopId}")
 
                     FeedEntity(
-                        feedOnestopId = result.feedOnestopId,
+                        feedOnestopId = feedId.value,
                         name = result.name,
                         specType = result.specType,
                         downloadUrl = result.downloadUrl,

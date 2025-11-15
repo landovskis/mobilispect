@@ -1,6 +1,7 @@
 package com.mobilispect.backend.feed.batch.discovery
 
 import com.mobilispect.backend.TransitLandFeedResponse
+import com.mobilispect.backend.feed.model.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -45,10 +46,10 @@ class TransitLandMetadataService(
      * @param apiKey Optional API key (uses default if not provided)
      * @return FeedMetadata if found, null otherwise
      */
-    fun fetchFeedMetadata(feedId: String, apiKey: TransitLandAPIKey? = null): FeedMetadata? {
+    fun fetchFeedMetadata(feedId: FeedId, apiKey: TransitLandAPIKey? = null): FeedMetadata? {
         // Validate feed ID format first
-        if (!isValidFeedOnestopId(feedId)) {
-            logger.warn("Skipping metadata fetch for invalid feed onestop ID: {}", feedId)
+        if (!isValidFeedOnestopId(feedId.value)) {
+            logger.warn("Skipping metadata fetch for invalid feed onestop ID: {}", feedId.value)
             return null
         }
 
@@ -62,9 +63,9 @@ class TransitLandMetadataService(
             .build()
 
         return try {
-            val uri = "/feeds.json?onestop_id=$feedId&include_alerts=false"
+            val uri = "/feeds.json?onestop_id=${feedId.value}&include_alerts=false"
 
-            logger.debug("Fetching feed metadata from Transit.land: feedId={}", feedId)
+            logger.debug("Fetching feed metadata from Transit.land: feedId={}", feedId.value)
 
             val response = client.get()
                 .uri(uri)
@@ -74,20 +75,20 @@ class TransitLandMetadataService(
                 .block()
 
             if (response == null) {
-                logger.warn("Received null response for feed: {}", feedId)
+                logger.warn("Received null response for feed: {}", feedId.value)
                 return null
             }
 
             val feed = response.feeds.firstOrNull()
             if (feed == null) {
-                logger.warn("No feed data found for feed ID: {}", feedId)
+                logger.warn("No feed data found for feed ID: {}", feedId.value)
                 return null
             }
 
             // Extract latest version information
             val latestVersion = feed.feed_versions.firstOrNull()
             if (latestVersion == null) {
-                logger.warn("No version information available for feed: {}", feedId)
+                logger.warn("No version information available for feed: {}", feedId.value)
                 return null
             }
 
@@ -97,14 +98,14 @@ class TransitLandMetadataService(
                 "gtfs-rt" -> FeedSpecType.GTFS_RT
                 else -> {
                     logger.warn("Unknown spec type '{}' for feed: {}, defaulting to GTFS",
-                        feed.spec, feedId)
+                        feed.spec, feedId.value)
                     FeedSpecType.GTFS
                 }
             }
 
             // Create metadata object
             val metadata = FeedMetadata(
-                feedOnestopId = feed.onestop_id ?: feedId,
+                feedOnestopId = FeedId.from(feed.onestop_id) ?: feedId,
                 name = feed.name ?: "Unknown",
                 downloadUrl = latestVersion.url,
                 specType = specType,
@@ -119,14 +120,14 @@ class TransitLandMetadataService(
 
             logger.debug(
                 "Successfully fetched metadata for feed: {} (version: {})",
-                feedId,
+                feedId.value,
                 latestVersion.sha1
             )
 
             metadata
 
         } catch (e: Exception) {
-            logger.error("Failed to fetch metadata for feed: {}", feedId, e)
+            logger.error("Failed to fetch metadata for feed: {}", feedId.value, e)
             null
         }
     }
@@ -139,13 +140,13 @@ class TransitLandMetadataService(
      * @return Map of feed ID to metadata (only includes feeds where metadata was found)
      */
     fun fetchFeedMetadataBatch(
-        feedIds: Collection<String>,
+        feedIds: Collection<FeedId>,
         apiKey: TransitLandAPIKey? = null
-    ): Map<String, FeedMetadata> {
-        val results = mutableMapOf<String, FeedMetadata>()
+    ): Map<FeedId, FeedMetadata> {
+        val results = mutableMapOf<FeedId, FeedMetadata>()
 
         // Filter out invalid feed IDs first
-        val validFeedIds = feedIds.filter { isValidFeedOnestopId(it) }
+        val validFeedIds = feedIds.filter { isValidFeedOnestopId(it.value) }
         val invalidCount = feedIds.size - validFeedIds.size
 
         if (invalidCount > 0) {

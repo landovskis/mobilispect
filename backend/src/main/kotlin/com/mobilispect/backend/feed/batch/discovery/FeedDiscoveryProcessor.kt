@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.batch.discovery
 
+import com.mobilispect.backend.feed.model.FeedId
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.item.ItemProcessor
@@ -38,7 +39,7 @@ class FeedDiscoveryProcessor : ItemProcessor<FeedDiscoveryInput, FeedDiscoveryBa
         )
 
         // Get all feed IDs from both maps
-        val allFeedIds = (feedRegionMap.feedIds() + feedMetadataMap.feedIds()).distinct()
+        val allFeedIds: List<FeedId> = (feedRegionMap.feedIds() + feedMetadataMap.feedIds()).distinct()
 
         val results = mutableListOf<FeedDiscoveryResult>()
         var missingMetadataCount = 0
@@ -52,21 +53,21 @@ class FeedDiscoveryProcessor : ItemProcessor<FeedDiscoveryInput, FeedDiscoveryBa
             when {
                 regionMetadata == null && feedMetadata == null -> {
                     // Should not happen, but log it
-                    logger.error("Feed {} found in join but missing from both maps", feedId)
+                    logger.error("Feed {} found in join but missing from both maps", feedId.value)
                 }
                 regionMetadata == null -> {
-                    logger.warn("Feed {} has metadata but no region information", feedId)
+                    logger.warn("Feed {} has metadata but no region information", feedId.value)
                     missingRegionCount++
                 }
                 feedMetadata == null -> {
-                    logger.warn("Feed {} has region information but no metadata", feedId)
+                    logger.warn("Feed {} has region information but no metadata", feedId.value)
                     missingMetadataCount++
                 }
                 feedMetadata.downloadUrl.isBlank() || !isValidDownloadUrl(feedMetadata.downloadUrl) -> {
                     // Filter out feeds without a valid HTTP(S) download URL - they can't be imported
                     logger.warn(
                         "Feed {} has invalid download URL '{}', skipping",
-                        feedId,
+                        feedId.value,
                         feedMetadata.downloadUrl
                     )
                     missingDownloadUrlCount++

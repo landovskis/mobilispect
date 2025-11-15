@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.batch.discovery
 
+import com.mobilispect.backend.feed.model.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import java.time.LocalDate
 
@@ -23,7 +24,7 @@ import java.time.LocalDate
  * @property authorizationInfoUrl URL with authorization instructions (if required)
  */
 data class FeedDiscoveryResult(
-    val feedOnestopId: String,
+    val feedOnestopId: FeedId,
     val name: String,
     val downloadUrl: String,
     val specType: FeedSpecType,
@@ -82,7 +83,7 @@ data class FeedDiscoveryBatch(
     /**
      * Gets all feed IDs in this batch.
      */
-    fun feedIds(): List<String> {
+    fun feedIds(): List<FeedId> {
         return results.map { it.feedOnestopId }
     }
 

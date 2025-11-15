@@ -2,6 +2,7 @@ package com.mobilispect.backend.feed.batch.discovery
 
 import com.mobilispect.backend.TransitLandOperator
 import com.mobilispect.backend.TransitLandOperatorResponse
+import com.mobilispect.backend.feed.model.FeedId
 import org.slf4j.LoggerFactory
 import org.springframework.batch.item.ItemReader
 import org.springframework.http.MediaType
@@ -26,7 +27,7 @@ class FeedDiscoveryReader(
     private val apiKey: TransitLandAPIKey?,
     private val defaultApiKey: TransitLandAPIKey?,
     private val specType: String = "gtfs",
-    private val operatorBatchSize: Int = 100
+    operatorBatchSize: Int = 100
 ) : ItemReader<FeedDiscoveryInput> {
 
     private val logger = LoggerFactory.getLogger(FeedDiscoveryReader::class.java)
@@ -51,7 +52,7 @@ class FeedDiscoveryReader(
     private var completeFeedMetadataMap: FeedMetadataMap? = null
 
     // For batch-wise output
-    private val feedIdBatches = mutableListOf<List<String>>()
+    private val feedIdBatches = mutableListOf<List<FeedId>>()
     private var currentBatchIndex = 0
     private val outputBatchSize = 100
 
@@ -109,7 +110,7 @@ class FeedDiscoveryReader(
      * Phase 1: Read all operators and build complete feed-region map.
      */
     private fun readAllOperators(): FeedRegionMap {
-        val allMappings = mutableMapOf<String, RegionMetadata>()
+        val allMappings = mutableMapOf<FeedId, RegionMetadata>()
         var batchCount = 0
         var currentCursor: Int? = null
         var hasMorePages = true
@@ -201,7 +202,7 @@ class FeedDiscoveryReader(
     }
 
     private fun transformOperatorsToFeedRegionMap(operators: List<TransitLandOperator>): FeedRegionMap {
-        val feedToRegionMap = mutableMapOf<String, RegionMetadata>()
+        val feedToRegionMap = mutableMapOf<FeedId, RegionMetadata>()
 
         for (operator in operators) {
             val allFeedIds = operator.feeds
@@ -219,12 +220,12 @@ class FeedDiscoveryReader(
                 )
             }
 
-            val validFeedIds = mutableListOf<String>()
+            val validFeedIds = mutableListOf<FeedId>()
             val invalidFeedIds = mutableListOf<String>()
 
             for (feedId in allFeedIds) {
                 if (isValidFeedOnestopId(feedId)) {
-                    validFeedIds.add(feedId)
+                    validFeedIds.add(FeedId(feedId))
                 } else {
                     invalidFeedIds.add(feedId)
                 }
@@ -326,13 +327,13 @@ class FeedDiscoveryReader(
     /**
      * Phase 2: Fetch metadata for all discovered feed IDs.
      */
-    private fun fetchAllMetadata(feedIds: Collection<String>): FeedMetadataMap {
+    private fun fetchAllMetadata(feedIds: Collection<FeedId>): FeedMetadataMap {
         if (feedIds.isEmpty()) {
             logger.warn("No feed IDs to fetch metadata for")
             return FeedMetadataMap(emptyMap())
         }
 
-        val allMetadata = mutableMapOf<String, FeedMetadata>()
+        val allMetadata = mutableMapOf<FeedId, FeedMetadata>()
 
         // Fetch metadata in batches to avoid overwhelming the API
         val metadataBatchSize = 50
@@ -354,7 +355,7 @@ class FeedDiscoveryReader(
                             allMetadata[feedId] = metadata
                         }
                     } catch (e: Exception) {
-                        logger.error("Failed to fetch metadata for feed {}: {}", feedId, e.message)
+                        logger.error("Failed to fetch metadata for feed {}: {}", feedId.value, e.message)
                     }
                 }
 
@@ -375,8 +376,9 @@ class FeedDiscoveryReader(
     /**
      * Fetches metadata for a single feed from Transit.land API.
      */
-    private fun fetchSingleFeedMetadata(feedId: String): FeedMetadata? {
-        return transitLandMetadataService.fetchFeedMetadata(feedId, apiKey)
+    private fun fetchSingleFeedMetadata(feedId: FeedId): FeedMetadata? {
+        val metadataApiKey = apiKey ?: defaultApiKey
+        return transitLandMetadataService.fetchFeedMetadata(feedId, metadataApiKey)
     }
 }
 

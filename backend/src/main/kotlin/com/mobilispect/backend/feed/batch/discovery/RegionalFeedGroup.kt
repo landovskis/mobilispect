@@ -1,5 +1,7 @@
 package com.mobilispect.backend.feed.batch.discovery
 
+import com.mobilispect.backend.feed.model.FeedId
+
 /**
  * Represents metadata about a geographic region from Transit.land.
  *
@@ -30,7 +32,7 @@ data class RegionMetadata(
  * @property feedToRegionMap Map of feed onestop ID to RegionMetadata
  */
 data class FeedRegionMap(
-    val feedToRegionMap: Map<String, RegionMetadata>
+    val feedToRegionMap: Map<FeedId, RegionMetadata>
 ) {
     /**
      * Number of feeds in this map.
@@ -51,17 +53,17 @@ data class FeedRegionMap(
     /**
      * Gets region metadata for a specific feed ID.
      */
-    operator fun get(feedId: String): RegionMetadata? = feedToRegionMap[feedId]
+    operator fun get(feedId: FeedId): RegionMetadata? = feedToRegionMap[feedId]
 
     /**
      * Returns all feed IDs in this map.
      */
-    fun feedIds(): Set<String> = feedToRegionMap.keys
+    fun feedIds(): Set<FeedId> = feedToRegionMap.keys
 
     /**
      * Groups feeds by region, returning a map of region ID to feed IDs.
      */
-    fun groupByRegion(): Map<String, Set<String>> {
+    fun groupByRegion(): Map<String, Set<FeedId>> {
         return feedToRegionMap.entries
             .groupBy({ it.value.regionOnestopId }, { it.key })
             .mapValues { it.value.toSet() }
@@ -75,7 +77,7 @@ data class FeedRegionMap(
     /**
      * Filters this map to include only the specified feed IDs.
      */
-    fun filterKeys(feedIds: Set<String>): FeedRegionMap {
+    fun filterKeys(feedIds: Set<FeedId>): FeedRegionMap {
         return FeedRegionMap(feedToRegionMap.filterKeys { it in feedIds })
     }
 }

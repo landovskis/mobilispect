@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.batch.discovery
 
+import com.mobilispect.backend.feed.model.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import java.time.LocalDate
 
@@ -22,7 +23,7 @@ import java.time.LocalDate
  * @property authorizationInfoUrl URL with authorization instructions (if required)
  */
 data class FeedMetadata(
-    val feedOnestopId: String,
+    val feedOnestopId: FeedId,
     val name: String,
     val downloadUrl: String,
     val specType: FeedSpecType,
@@ -44,7 +45,7 @@ data class FeedMetadata(
  * @property feeds Map of feed onestop ID to FeedMetadata
  */
 data class FeedMetadataMap(
-    val feeds: Map<String, FeedMetadata>
+    val feeds: Map<FeedId, FeedMetadata>
 ) {
     /**
      * Number of feeds in this map.
@@ -65,17 +66,17 @@ data class FeedMetadataMap(
     /**
      * Gets metadata for a specific feed ID.
      */
-    operator fun get(feedId: String): FeedMetadata? = feeds[feedId]
+    operator fun get(feedId: FeedId): FeedMetadata? = feeds[feedId]
 
     /**
      * Returns all feed IDs in this map.
      */
-    fun feedIds(): Set<String> = feeds.keys
+    fun feedIds(): Set<FeedId> = feeds.keys
 
     /**
      * Filters this map to include only the specified feed IDs.
      */
-    fun filterKeys(feedIds: Set<String>): FeedMetadataMap {
+    fun filterKeys(feedIds: Set<FeedId>): FeedMetadataMap {
         return FeedMetadataMap(feeds.filterKeys { it in feedIds })
     }
 }
