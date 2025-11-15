@@ -245,7 +245,7 @@ class FeedDiscoveryReader(
             }
 
             val firstAgency = operator.agencies?.firstOrNull()
-            val firstPlace = firstAgency?.places?.firstOrNull()
+            val firstPlace = firstAgency?.places?.firstOrNull { it.city_name != null }
 
             val regionParts = if (firstPlace != null) {
                 listOfNotNull(
@@ -289,12 +289,27 @@ class FeedDiscoveryReader(
             }
 
             val regionName = regionParts.joinToString(", ")
-            val regionIdParts = regionParts.map {
+            val sanitizedParts = regionParts.map {
                 it.lowercase()
                     .replace(Regex("[^a-z0-9-]"), "-")
                     .replace(Regex("-+"), "-")
                     .trim('-')
+            }.filter { it.isNotBlank() }
+
+            if (sanitizedParts.isEmpty()) {
+                logger.warn(
+                    "Operator {} produced no sanitized region parts after filtering - skipping",
+                    operator.onestop_id ?: "unknown"
+                )
+                continue
             }
+
+            val regionIdParts = if (sanitizedParts.size >= 2) {
+                sanitizedParts
+            } else {
+                sanitizedParts + listOf("global")
+            }
+
             val regionId = "r-${regionIdParts.joinToString("-")}"
 
             logger.debug(
