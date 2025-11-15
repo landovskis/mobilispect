@@ -8,6 +8,8 @@ import org.springframework.batch.core.JobParametersBuilder
 import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 /**
  * Service for executing feed discovery batch jobs.
@@ -32,7 +34,7 @@ class FeedDiscoveryBatchService(
      */
     suspend fun discoverAll(
         specType: FeedSpecType,
-        apiKey: String? = null
+        apiKey: TransitLandAPIKey? = null
     ): FeedDiscoveryJobResult {
         logger.info("Starting feed discovery for spec type: {}", specType)
 
@@ -47,8 +49,8 @@ class FeedDiscoveryBatchService(
             val result = FeedDiscoveryJobResult(
                 jobExecutionId = jobExecution.id,
                 status = jobExecution.status.name,
-                startTime = jobExecution.startTime?.toInstant(java.time.ZoneOffset.UTC) ?: Instant.now(),
-                endTime = jobExecution.endTime?.toInstant(java.time.ZoneOffset.UTC),
+                startTime = (jobExecution.startTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC) ?: Instant.now(),
+                endTime = (jobExecution.endTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC),
                 feedsDiscovered = extractFeedsDiscoveredCount(jobExecution),
                 feedsCreated = extractFeedsCreatedCount(jobExecution),
                 feedsUpdated = extractFeedsUpdatedCount(jobExecution),
@@ -94,7 +96,7 @@ class FeedDiscoveryBatchService(
 
         val jobParameters = buildJobParameters(
             specType = specType.dbValue,
-            apiKey = apiKey,
+            apiKey = TransitLandAPIKey.fromNullable(apiKey),
             regionId = regionOnestopId
         )
 
@@ -104,8 +106,8 @@ class FeedDiscoveryBatchService(
             FeedDiscoveryJobResult(
                 jobExecutionId = jobExecution.id,
                 status = jobExecution.status.name,
-                startTime = jobExecution.startTime?.toInstant(java.time.ZoneOffset.UTC) ?: Instant.now(),
-                endTime = jobExecution.endTime?.toInstant(java.time.ZoneOffset.UTC),
+                startTime = (jobExecution.startTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC) ?: Instant.now(),
+                endTime = (jobExecution.endTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC),
                 feedsDiscovered = extractFeedsDiscoveredCount(jobExecution),
                 feedsCreated = extractFeedsCreatedCount(jobExecution),
                 feedsUpdated = extractFeedsUpdatedCount(jobExecution),
@@ -128,14 +130,14 @@ class FeedDiscoveryBatchService(
 
     private fun buildJobParameters(
         specType: String,
-        apiKey: String? = null,
+        apiKey: TransitLandAPIKey?,
         regionId: String? = null
     ): JobParameters {
         val builder = JobParametersBuilder()
             .addString("specType", specType)
             .addLong("timestamp", System.currentTimeMillis()) // Make each run unique
 
-        apiKey?.let { builder.addString("apiKey", it) }
+        apiKey?.let { builder.addString("apiKey", it.value) }
         regionId?.let { builder.addString("regionId", it) }
 
         return builder.toJobParameters()

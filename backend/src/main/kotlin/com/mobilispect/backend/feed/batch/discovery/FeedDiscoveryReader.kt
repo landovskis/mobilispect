@@ -26,7 +26,7 @@ class FeedDiscoveryReader(
 
     // Phase tracking
     private var allOperatorsRead = false
-    private var completeFeedRegionMap: FeedRegionMap? = null
+    private var completeFeedRegionMap: FeedRegionMap = FeedRegionMap(emptyMap())
     private var completeFeedMetadataMap: FeedMetadataMap? = null
 
     // For batch-wise output
@@ -41,7 +41,7 @@ class FeedDiscoveryReader(
             completeFeedRegionMap = readAllOperators()
             allOperatorsRead = true
 
-            val feedIds = completeFeedRegionMap!!.feedIds()
+            val feedIds = completeFeedRegionMap.feedIds()
             logger.info("Phase 1 complete: Discovered {} feeds across all operators", feedIds.size)
 
             // Split feed IDs into batches for metadata fetching

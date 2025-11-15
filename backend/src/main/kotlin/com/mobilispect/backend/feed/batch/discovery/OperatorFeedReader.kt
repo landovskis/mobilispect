@@ -301,9 +301,9 @@ class OperatorFeedReader(
             val regionMetadata = RegionMetadata(
                 regionOnestopId = regionId,
                 regionName = regionName,
-                cityName = firstPlace.city_name,
-                adm1Name = firstPlace.adm1_name,
-                adm0Name = firstPlace.adm0_name
+                cityName = firstPlace?.city_name,
+                adm1Name = firstPlace?.adm1_name,
+                adm0Name = firstPlace?.adm0_name
             )
 
             // Map all feeds from this operator to the same region

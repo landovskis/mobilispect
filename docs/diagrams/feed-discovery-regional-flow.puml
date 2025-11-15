@@ -1,0 +1,90 @@
+@startuml
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+title Regional Feed Discovery Batch Processing Flow
+
+participant "REST Client" as Client
+participant "RegionController" as Controller
+participant "FeedDiscoveryBatchService" as BatchService
+participant "JobLauncher" as JobLauncher
+participant "regionalFeedDiscoveryJob" as Job
+participant "RegionalFeedDiscoveryReader" as Reader
+participant "Transit.land API" as TransitLand
+participant "FeedDiscoveryProcessor" as Processor
+participant "FeedDiscoveryWriter" as Writer
+
+Client -> Controller: POST /api/feeds/regions/{regionId}/discover
+note over Client,Controller: Query param: spec=GTFS
+
+Controller -> Controller: Validate region exists
+
+Controller -> BatchService: discover(regionId, regionName, GTFS)
+
+BatchService -> JobLauncher: run(regionalFeedDiscoveryJob, jobParameters)
+note over JobLauncher
+  jobParameters: {
+    regionOnestopId: "r-usa-ca-sf"
+    regionName: "San Francisco"
+    specType: "GTFS"
+    timestamp: epochMillis
+  }
+end note
+
+JobLauncher -> Job: start()
+
+loop For each chunk (size: 10)
+    group Read Phase
+        loop 10 times
+            Job -> Reader: read()
+
+            alt First read
+                Reader -> TransitLand: discoverRegionalFeeds(regionName, GTFS)
+                TransitLand --> Reader: List<TransitLandFeedSummary>
+                note over Reader: Cache in queue
+            end
+
+            Reader --> Job: TransitLandFeedSummary
+        end
+    end
+
+    group Process Phase
+        loop For each feed
+            Job -> Processor: process(feedSummary)
+            note over Processor
+              Same processing logic
+              as global discovery:
+              - Extract regions
+              - Upsert feed
+              - Prepare authentication
+            end note
+            Processor --> Job: ProcessedFeed
+        end
+    end
+
+    group Write Phase
+        Job -> Writer: write(chunk)
+        note over Writer
+          Same write logic
+          as global discovery:
+          - Update authentication
+          - Record metrics
+        end note
+    end
+end
+
+Job --> JobLauncher: JobExecution
+JobLauncher --> BatchService: JobExecution
+BatchService --> Controller: FeedDiscoveryResult
+Controller --> Client: 200 OK + FeedDiscoveryResult
+note right
+  regionOnestopId: "r-usa-ca-sf"
+  feedsDiscovered: 25
+  feedsCreated: 20
+  feedsUpdated: 5
+  errors: []
+end note
+
+@enduml

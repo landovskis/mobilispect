@@ -1,0 +1,153 @@
+@startuml
+!theme plain
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+title Global Feed Discovery Batch Processing Flow
+
+participant "FeedDiscoveryScheduler" as Scheduler
+participant "FeedDiscoveryBatchService" as BatchService
+participant "JobLauncher" as JobLauncher
+participant "feedDiscoveryJob" as Job
+participant "FeedDiscoveryReader" as Reader
+participant "Transit.land API" as TransitLand
+participant "FeedDiscoveryProcessor" as Processor
+participant "MetropolitanRegionRepository" as RegionRepo
+participant "FeedRepository" as FeedRepo
+participant "FeedDiscoveryWriter" as Writer
+participant "FeedAuthenticationRepository" as AuthRepo
+participant "MeterRegistry" as Metrics
+
+note over Scheduler: Scheduled Job (01:15 AM)
+Scheduler -> BatchService: discoverAll(GTFS)
+
+BatchService -> JobLauncher: run(feedDiscoveryJob, jobParameters)
+note over JobLauncher
+  jobParameters: {
+    specType: "GTFS",
+    maxFeeds: Int.MAX_VALUE,
+    timestamp: epochMillis
+  }
+end note
+
+JobLauncher -> Job: start()
+note over Job: Spring Batch Job Execution
+
+loop For each chunk (size: 10)
+    note over Job,Reader: **Chunk Processing Begins**
+
+    group Read Phase (10 items)
+        loop 10 times
+            Job -> Reader: read()
+
+            alt First read
+                Reader -> TransitLand: discoverAllFeeds(GTFS, maxFeeds)
+                note over TransitLand: Paginated API calls
+                TransitLand --> Reader: List<TransitLandFeedSummary>
+                note over Reader: Cache in ConcurrentLinkedQueue
+            end
+
+            Reader --> Job: TransitLandFeedSummary (or null)
+        end
+    end
+
+    group Process Phase (10 items)
+        loop For each feed
+            Job -> Processor: process(feedSummary)
+
+            Processor -> Processor: extractRegionsFromPlaces(feedSummary)
+            note over Processor
+              - Derive operator ID from feed ID
+              - Look up operator's geographic places
+              - Create region IDs from geography
+            end note
+
+            loop For each region
+                Processor -> RegionRepo: existsById(regionId)
+                RegionRepo --> Processor: boolean
+
+                alt Region doesn't exist
+                    Processor -> RegionRepo: save(newRegion)
+                    note over RegionRepo: Auto-create region\nfrom geography
+                end
+            end
+
+            Processor -> FeedRepo: findById(feedOnestopId)
+            FeedRepo --> Processor: Optional<FeedEntity>
+
+            Processor -> Processor: upsertFeed(regions, summary)
+            note over Processor: Determine: CREATED,\nUPDATED, or NO_CHANGE
+
+            Processor -> FeedRepo: save(feedEntity)
+            FeedRepo --> Processor: FeedEntity
+
+            Processor --> Job: ProcessedFeed{entity, upsertResult, authorization}
+        end
+    end
+
+    note over Job: **Transaction Boundary**
+
+    group Write Phase (10 items)
+        Job -> Writer: write(chunk)
+
+        loop For each ProcessedFeed
+            alt Has authorization
+                Writer -> AuthRepo: findById(feedOnestopId)
+                AuthRepo --> Writer: Optional<FeedAuthentication>
+
+                loop Retry (up to 3 attempts)
+                    Writer -> AuthRepo: save(authentication)
+
+                    alt OptimisticLockingFailure
+                        note over Writer: Sleep 50ms and retry
+                    else Success
+                        AuthRepo --> Writer: FeedAuthentication
+                    end
+                end
+            end
+
+            Writer -> Metrics: increment(feed.discovery.feeds)
+            note over Metrics
+              Tags:
+                region=global
+                outcome=created|updated|unchanged
+            end note
+        end
+    end
+
+    note over Job: **Commit Transaction**
+end
+
+alt Job fails
+    note over Job
+      - Rollback last chunk
+      - Record failure
+      - Can resume later
+    end note
+end
+
+Job --> JobLauncher: JobExecution{status, stepExecutions, errors}
+JobLauncher --> BatchService: JobExecution
+
+BatchService -> BatchService: buildResult(execution)
+note over BatchService
+  Extract:
+    - readCount
+    - writeCount
+    - skipCount
+    - errors
+end note
+
+BatchService --> Scheduler: FeedDiscoveryResult
+note right
+  regionOnestopId: "global"
+  feedsDiscovered: 100
+  feedsCreated: 95
+  feedsUpdated: 0
+  errors: []
+end note
+
+Scheduler -> Scheduler: Log results
+
+@enduml
