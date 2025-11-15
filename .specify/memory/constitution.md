@@ -1,21 +1,13 @@
 <!--
 Sync Impact Report:
-Version: 1.7.0 → 1.8.0 (Redis 8.2 Standardization)
-Modified sections: Technology Stack → Cache version pinned; Testing Standards → Cache compatibility enforcement; Governance version line updated
+Version: 1.8.0 → 1.9.0 (WCAG 2.1 AA enforcement)
+Modified sections: Cross-Platform UX Consistency (explicit accessibility rules); Cross-Platform Standards (accessibility clause); Governance metadata
 Added sections: None
 Removed sections: None
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md (remains version-agnostic)
-  ✅ .specify/templates/spec-template.md (no cache version assumptions)
-  ✅ .specify/templates/tasks-template.md (no cache version assumptions)
+  ✅ .specify/templates/plan-template.md (Constitution Check references WCAG validation)
+  ✅ .specify/templates/spec-template.md (Requirements remind teams to capture WCAG criteria)
 Supporting artifacts updated:
-  ✅ specs/001-feed-management-the/plan.md
-  ✅ specs/001-feed-management-the/research.md
-  ✅ specs/001-feed-management-the/data-model.md
-  ✅ specs/001-feed-management-the/tasks.md
-  ✅ specs/001-feed-management-the/quickstart.md
-  ✅ backend/src/main/kotlin/com/mobilispect/backend/config/RedisConfiguration.kt
-  ✅ docs/architecture/feed-management-system.puml
   ✅ CLAUDE.md
 Follow-up TODOs: None
 -->
@@ -35,9 +27,9 @@ Tests MUST be written before implementation. Every feature requires unit tests, 
 **Rationale**: With Spring backend, Angular frontend, and Android/iOS apps, untested changes create cascading failures across the entire system.
 
 ### III. Cross-Platform UX Consistency
-User experience MUST be consistent across all platforms while respecting platform conventions. Design systems MUST define shared components, typography, and interaction patterns. Platform-specific implementations MUST maintain functional parity. Light/dark mode support is mandatory across all platforms.
+User experience MUST be consistent across all platforms while respecting platform conventions. Design systems MUST define shared components, typography, and interaction patterns. Platform-specific implementations MUST maintain functional parity. Light/dark mode support is mandatory across all platforms. All user-facing experiences MUST comply with WCAG 2.1 AA accessibility guidelines; each feature plan MUST document accessibility acceptance criteria, and releases MUST include automated (e.g., axe, Lighthouse) and manual assistive-technology checks for critical flows. Accessibility regressions block deployment.
 
-**Rationale**: Users expect consistent behavior across platforms. Divergent experiences create confusion and support burden.
+**Rationale**: Users expect consistent behavior across platforms. Divergent experiences create confusion and support burden. Accessibility parity is foundational to product trust and is legally mandated in several jurisdictions.
 
 ### IV. Performance Standards
 Backend APIs MUST respond within 200ms p95. Mobile apps MUST maintain 60fps during interactions. Database queries MUST use indexes and avoid N+1 patterns. Performance regressions block deployment.
@@ -65,6 +57,8 @@ All significant technical decisions MUST be documented as Architecture Decision 
 - **CI/CD**: GitHub Actions for all automation, testing, and deployment pipelines
 - **Observability**: Grafana Cloud for monitoring, alerting, and visualization
 - **E2E Testing**: Playwright for cross-browser end-to-end testing
+- **Accessibility**: Every feature MUST define WCAG 2.1 AA acceptance criteria, include automated
+  accessibility scans in CI, and record manual assistive technology walkthroughs for high-impact flows.
 
 ### Testing Standards
 All features MUST include comprehensive test coverage across unit, integration, and end-to-end levels. Database-dependent tests MUST execute against PostgreSQL 17 locally and in CI to guarantee compatibility with production storage. Cache-dependent tests MUST execute against Redis 8.2 in development and CI environments.
@@ -148,4 +142,4 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 
 **ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
 
-**Version**: 1.8.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-11-02
+**Version**: 1.9.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-11-10

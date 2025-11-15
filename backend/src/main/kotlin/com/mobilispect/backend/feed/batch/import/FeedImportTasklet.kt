@@ -1,4 +1,4 @@
-package com.mobilispect.backend.feed.batch
+package com.mobilispect.backend.feed.batch.import
 
 import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.feed.service.FeedManagementImportProcessor

@@ -2,7 +2,6 @@ import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from 
 import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
-import { ThemeToggleComponent } from '../../core/components/theme-toggle.component';
 import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-breadcrumbs.component';
 
 @Component({
@@ -12,8 +11,7 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     CommonModule,
     MatToolbarModule,
     MatIconModule,
-    AppBreadcrumbsComponent,
-    ThemeToggleComponent
+    AppBreadcrumbsComponent
   ],
   template: `
     <mat-toolbar
@@ -35,7 +33,6 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
 
       <div class="toolbar-right">
         <ng-content select="[toolbar-actions]"></ng-content>
-        <app-theme-toggle></app-theme-toggle>
       </div>
     </mat-toolbar>
   `,

@@ -24,7 +24,6 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSidenavModule } from '@angular/material/sidenav';
 
 import { FeedManagementRoutingModule } from './feed-management-routing.module';
-import { ThemeToggleComponent } from '../core/components/theme-toggle.component';
 import { AppBarComponent } from '../shared/components/app-bar.component';
 import { RegionListComponent } from './components/region-list.component';
 import { ProgressMonitorComponent } from './components/progress-monitor.component';
@@ -57,7 +56,6 @@ import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
     RegionListComponent,
     RegionSelectorComponent,
     ProgressMonitorComponent,
-    ThemeToggleComponent,
     AppBarComponent,
     FeedRegionsTabComponent,
     FeedActiveImportsTabComponent,

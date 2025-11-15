@@ -1,5 +1,6 @@
-package com.mobilispect.backend.feed.batch
+package com.mobilispect.backend.feed.batch.import
 
+import com.mobilispect.backend.feed.batch.import.FeedImportTasklet
 import org.springframework.batch.core.Job
 import org.springframework.batch.core.Step
 import org.springframework.batch.core.job.builder.JobBuilder

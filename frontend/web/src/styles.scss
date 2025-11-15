@@ -15,13 +15,6 @@ body {
   background-color: #ffffff;
 }
 
-/* Dark mode support - applied to both html and body */
-html.dark-theme,
-body.dark-theme {
-  background-color: #121212 !important;
-  color: rgba(255, 255, 255, 0.87) !important;
-}
-
 /* Material Icons fallback */
 .material-icons {
   font-family: 'Material Icons';

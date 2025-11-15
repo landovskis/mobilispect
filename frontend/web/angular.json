@@ -25,8 +25,7 @@
               }
             ],
             "styles": [
-              "src/styles.scss",
-              "src/styles-dark.scss"
+              "src/styles.scss"
             ],
             "allowedCommonJsDependencies": [
               "sockjs-client"
@@ -86,8 +85,7 @@
               }
             ],
             "styles": [
-              "src/styles.scss",
-              "src/styles-dark.scss"
+              "src/styles.scss"
             ]
           }
         }

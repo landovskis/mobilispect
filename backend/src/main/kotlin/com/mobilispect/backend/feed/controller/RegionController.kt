@@ -13,8 +13,8 @@ import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
-import com.mobilispect.backend.feed.batch.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.batch.FeedDiscoveryResult
+import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
+import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -121,7 +121,7 @@ class RegionController(
     suspend fun discoverFeeds(
         @PathVariable regionOnestopId: String,
         @RequestParam(required = false, defaultValue = "GTFS") spec: FeedSpecTypeDto
-    ): FeedDiscoveryResult {
+    ): FeedDiscoveryJobResult {
         // GTFS-RT feeds are currently disabled
         if (spec == FeedSpecTypeDto.GTFS_RT) {
             logger.warn("GTFS-RT feed discovery is currently disabled")
@@ -134,7 +134,7 @@ class RegionController(
         val region = regionRepository.findById(regionOnestopId)
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Region not found: $regionOnestopId") }
 
-        return feedDiscoveryBatchService.discover(regionOnestopId, region.name, spec.toEntity())
+        return feedDiscoveryBatchService.discoverForRegion(regionOnestopId, spec.toEntity())
     }
 
     private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {

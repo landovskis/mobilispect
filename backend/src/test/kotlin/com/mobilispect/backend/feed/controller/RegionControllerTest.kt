@@ -8,8 +8,8 @@ import com.mobilispect.backend.feed.model.MetropolitanRegion
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
-import com.mobilispect.backend.feed.batch.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.batch.FeedDiscoveryResult
+import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
+import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryResult
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

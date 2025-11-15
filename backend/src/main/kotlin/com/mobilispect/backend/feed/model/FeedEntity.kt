@@ -19,7 +19,7 @@ import java.time.Instant
 @Table(name = "feeds")
 class FeedEntity(
     @Id
-    @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 255)
+    @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512)
     val feedOnestopId: String = "",
 
     @ManyToMany(fetch = FetchType.LAZY)

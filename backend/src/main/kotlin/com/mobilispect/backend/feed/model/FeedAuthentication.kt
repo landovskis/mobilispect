@@ -19,7 +19,7 @@ import java.time.Instant
 @Table(name = "feed_authentication")
 class FeedAuthentication(
     @Id
-    @Column(name = "feed_onestop_id", length = 255)
+    @Column(name = "feed_onestop_id", length = 512)
     val feedOnestopId: String = "",
 
     @Convert(converter = AuthTypeConverter::class)

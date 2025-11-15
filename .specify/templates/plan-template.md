@@ -31,7 +31,11 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- Document how the feature's test strategy will satisfy TDD + ≥80% coverage mandates.
+- Confirm UX parity across platforms, including dark/light mode coverage.
+- Provide WCAG 2.1 AA acceptance plan (automated + manual audits) for every user-facing change.
+- Capture performance budgets (200ms API p95, 60fps UI) and observability hooks (logs/metrics/traces).
+- List ADRs or constitutional exceptions if any rule cannot be met (must include remediation path).
 
 ## Project Structure
 

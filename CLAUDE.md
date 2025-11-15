@@ -19,6 +19,9 @@ full constitution. Key principles include:
 5. **Observability & Monitoring** - Structured logging, metrics, traces required
 6. **Architecture Decision Records** - NON-NEGOTIABLE for all significant
    technical decisions
+7. **Accessibility & WCAG** - Every user-facing change MUST satisfy WCAG 2.1 AA
+   (automated scans + manual assistive-technology walkthroughs) with evidence in
+   feature plans and release notes
 
 ### Technology Stack (Constitutional)
 

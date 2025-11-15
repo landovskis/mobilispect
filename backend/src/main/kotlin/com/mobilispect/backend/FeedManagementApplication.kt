@@ -1,5 +1,6 @@
 package com.mobilispect.backend
 
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.context.annotation.ComponentScan
@@ -33,6 +34,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @EnableJpaRepositories(basePackages = ["com.mobilispect.backend.feed.repository"])
 @EnableScheduling
 @EnableAsync
+@EnableBatchProcessing
 class FeedManagementApplication
 
 fun main(args: Array<String>) {

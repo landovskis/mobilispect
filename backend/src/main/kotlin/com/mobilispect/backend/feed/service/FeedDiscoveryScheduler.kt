@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.service
 
-import com.mobilispect.backend.feed.batch.FeedDiscoveryBatchService
+import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
 import com.mobilispect.backend.feed.model.FeedSpecType
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
