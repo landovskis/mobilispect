@@ -404,8 +404,6 @@ class FeedDiscoveryReader(
             return null
         }
 
-        val key = apiKey ?: operatorApiKey
-
         return try {
             val uri = "/feeds.json?onestop_id=${feedId.value}&include_alerts=false"
 
@@ -414,6 +412,7 @@ class FeedDiscoveryReader(
             val response = transitLandClient.get()
                 .uri(uri)
                 .accept(MediaType.APPLICATION_JSON)
+                .header("apikey", apiKey!!.value)
                 .retrieve()
                 .bodyToMono(TransitLandFeedResponse::class.java)
                 .block()

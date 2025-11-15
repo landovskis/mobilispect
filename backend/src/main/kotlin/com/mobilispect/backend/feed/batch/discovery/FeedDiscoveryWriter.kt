@@ -7,6 +7,8 @@ import com.mobilispect.backend.feed.model.MetropolitanRegion
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import org.slf4j.LoggerFactory
+import org.springframework.batch.core.StepExecution
+import org.springframework.batch.core.annotation.BeforeStep
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.item.Chunk
 import org.springframework.batch.item.ItemWriter
@@ -38,6 +40,9 @@ class FeedDiscoveryWriter(
 ) : ItemWriter<FeedDiscoveryBatch> {
 
     private val logger = LoggerFactory.getLogger(FeedDiscoveryWriter::class.java)
+    private var stepExecution: StepExecution? = null
+    private var cumulativeFeedsProcessed = 0
+    private val cumulativeRegionIds = mutableSetOf<String>()
 
     @Transactional
     override fun write(chunk: Chunk<out FeedDiscoveryBatch>) {
@@ -51,6 +56,8 @@ class FeedDiscoveryWriter(
         var feedsUpdated = 0
         var regionsCreated = 0
         var regionsUpdated = 0
+
+        val chunkRegionIds = mutableSetOf<String>()
 
         for (batch in batches) {
             logger.debug("Processing batch with {} feed results", batch.results.size)
@@ -152,6 +159,7 @@ class FeedDiscoveryWriter(
 
                 val savedFeed = feedRepository.save(feedEntity)
                 totalFeedsProcessed++
+                chunkRegionIds.add(result.region.regionOnestopId)
             }
         }
 
@@ -164,6 +172,27 @@ class FeedDiscoveryWriter(
             regionsCreated,
             regionsUpdated
         )
+
+        recordMetrics(totalFeedsProcessed, chunkRegionIds)
+    }
+
+    @BeforeStep
+    fun beforeStep(stepExecution: StepExecution) {
+        this.stepExecution = stepExecution
+    }
+
+    private fun recordMetrics(feedsProcessed: Int, regionIds: Set<String>) {
+        if (feedsProcessed == 0 && regionIds.isEmpty()) {
+            return
+        }
+        cumulativeFeedsProcessed += feedsProcessed
+        cumulativeRegionIds.addAll(regionIds)
+        val regionsFound = cumulativeRegionIds.size
+        val context = stepExecution?.executionContext
+        context?.putInt("feedsFound", cumulativeFeedsProcessed)
+        context?.putInt("regionsFound", regionsFound)
+        stepExecution?.jobExecution?.executionContext?.putInt("feedsFound", cumulativeFeedsProcessed)
+        stepExecution?.jobExecution?.executionContext?.putInt("regionsFound", regionsFound)
     }
 }
 

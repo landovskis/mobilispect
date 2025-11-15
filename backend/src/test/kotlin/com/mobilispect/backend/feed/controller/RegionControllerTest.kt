@@ -242,6 +242,9 @@ class RegionControllerTest {
             feedsDiscovered = 5,
             feedsCreated = 3,
             feedsUpdated = 2,
+            feedsFound = 5,
+            regionsFound = 2,
+            timeTakenMillis = 0,
             errors = emptyList()
         )
 
@@ -275,6 +278,9 @@ class RegionControllerTest {
             feedsDiscovered = 1,
             feedsCreated = 1,
             feedsUpdated = 0,
+            feedsFound = 1,
+            regionsFound = 1,
+            timeTakenMillis = 0,
             errors = emptyList()
         )
 
@@ -307,6 +313,9 @@ class RegionControllerTest {
             feedsDiscovered = 3,
             feedsCreated = 2,
             feedsUpdated = 0,
+            feedsFound = 3,
+            regionsFound = 2,
+            timeTakenMillis = 0,
             errors = listOf("Failed to upsert f-feed-3: Database error")
         )
 

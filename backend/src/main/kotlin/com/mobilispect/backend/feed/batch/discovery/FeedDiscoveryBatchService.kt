@@ -46,14 +46,21 @@ class FeedDiscoveryBatchService(
         return try {
             val jobExecution = jobLauncher.run(simplifiedFeedDiscoveryJob, jobParameters)
 
+            val feedsFound = extractFeedsFound(jobExecution)
+            val regionsFound = extractRegionsFound(jobExecution)
+            val timeTaken = computeDuration(jobExecution)
+
             val result = FeedDiscoveryJobResult(
                 jobExecutionId = jobExecution.id,
                 status = jobExecution.status.name,
                 startTime = (jobExecution.startTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC) ?: Instant.now(),
                 endTime = (jobExecution.endTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC),
-                feedsDiscovered = extractFeedsDiscoveredCount(jobExecution),
+                feedsDiscovered = feedsFound,
                 feedsCreated = extractFeedsCreatedCount(jobExecution),
                 feedsUpdated = extractFeedsUpdatedCount(jobExecution),
+                feedsFound = feedsFound,
+                regionsFound = regionsFound,
+                timeTakenMillis = timeTaken,
                 errors = jobExecution.allFailureExceptions.map { it.message ?: "Unknown error" }
             )
 
@@ -75,6 +82,9 @@ class FeedDiscoveryBatchService(
                 feedsDiscovered = 0,
                 feedsCreated = 0,
                 feedsUpdated = 0,
+                feedsFound = 0,
+                regionsFound = 0,
+                timeTakenMillis = null,
                 errors = listOf(e.message ?: "Unknown error")
             )
         }
@@ -103,14 +113,21 @@ class FeedDiscoveryBatchService(
         return try {
             val jobExecution = jobLauncher.run(simplifiedFeedDiscoveryJob, jobParameters)
 
+            val feedsFound = extractFeedsFound(jobExecution)
+            val regionsFound = extractRegionsFound(jobExecution)
+            val timeTaken = computeDuration(jobExecution)
+
             FeedDiscoveryJobResult(
                 jobExecutionId = jobExecution.id,
                 status = jobExecution.status.name,
                 startTime = (jobExecution.startTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC) ?: Instant.now(),
                 endTime = (jobExecution.endTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC),
-                feedsDiscovered = extractFeedsDiscoveredCount(jobExecution),
+                feedsDiscovered = feedsFound,
                 feedsCreated = extractFeedsCreatedCount(jobExecution),
                 feedsUpdated = extractFeedsUpdatedCount(jobExecution),
+                feedsFound = feedsFound,
+                regionsFound = regionsFound,
+                timeTakenMillis = timeTaken,
                 errors = jobExecution.allFailureExceptions.map { it.message ?: "Unknown error" }
             )
         } catch (e: Exception) {
@@ -123,6 +140,9 @@ class FeedDiscoveryBatchService(
                 feedsDiscovered = 0,
                 feedsCreated = 0,
                 feedsUpdated = 0,
+                feedsFound = 0,
+                regionsFound = 0,
+                timeTakenMillis = null,
                 errors = listOf(e.message ?: "Unknown error")
             )
         }
@@ -144,7 +164,10 @@ class FeedDiscoveryBatchService(
     }
 
     private fun extractFeedsDiscoveredCount(jobExecution: org.springframework.batch.core.JobExecution): Int {
-        // Extract from step execution context or metrics
+        val contextFeeds = jobExecution.executionContext.getInt("feedsFound", -1)
+        if (contextFeeds >= 0) {
+            return contextFeeds
+        }
         return jobExecution.stepExecutions
             .flatMap { it.writeCount.toInt().let { count -> listOf(count) } }
             .sum()
@@ -158,6 +181,24 @@ class FeedDiscoveryBatchService(
     private fun extractFeedsUpdatedCount(jobExecution: org.springframework.batch.core.JobExecution): Int {
         // Extract from execution context if stored
         return jobExecution.executionContext.getInt("feedsUpdated", 0)
+    }
+
+    private fun extractFeedsFound(jobExecution: org.springframework.batch.core.JobExecution): Int {
+        return jobExecution.executionContext.getInt("feedsFound", extractFeedsDiscoveredCount(jobExecution))
+    }
+
+    private fun extractRegionsFound(jobExecution: org.springframework.batch.core.JobExecution): Int {
+        return jobExecution.executionContext.getInt("regionsFound", 0)
+    }
+
+    private fun computeDuration(jobExecution: org.springframework.batch.core.JobExecution): Long? {
+        val startInstant = (jobExecution.startTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC)
+        val endInstant = (jobExecution.endTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC)
+        return if (startInstant != null && endInstant != null) {
+            endInstant.toEpochMilli() - startInstant.toEpochMilli()
+        } else {
+            null
+        }
     }
 }
 
@@ -181,6 +222,9 @@ data class FeedDiscoveryJobResult(
     val feedsDiscovered: Int,
     val feedsCreated: Int,
     val feedsUpdated: Int,
+    val feedsFound: Int,
+    val regionsFound: Int,
+    val timeTakenMillis: Long?,
     val errors: List<String>
 ) {
     val duration: Long?
