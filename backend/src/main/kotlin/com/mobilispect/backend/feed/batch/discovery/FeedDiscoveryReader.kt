@@ -10,6 +10,7 @@ import org.springframework.batch.item.ItemReader
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 import java.time.LocalDate
+import java.util.concurrent.CompletableFuture
 
 /**
  * Custom ItemReader that combines operator reading and metadata fetching.
@@ -115,15 +116,28 @@ class FeedDiscoveryReader(
         val allMappings = mutableMapOf<FeedId, RegionMetadata>()
         var batchCount = 0
         var currentCursor: Int? = null
-        var hasMorePages = true
 
-        while (hasMorePages) {
-            val page = fetchOperators(currentCursor)
+        var currentFuture: CompletableFuture<OperatorPage>? = fetchOperatorsAsync(null)
+
+        while (currentFuture != null) {
+            val page = currentFuture.join()
             val operators = page.operators
 
             if (operators.isEmpty()) {
                 logger.warn("Received empty operator page from Transit.land (cursor={})", currentCursor)
-                break
+                if (page.hasMorePages) {
+                    currentCursor = page.nextCursor
+                    currentFuture = fetchOperatorsAsync(currentCursor)
+                    continue
+                } else {
+                    break
+                }
+            }
+
+            val nextFuture = if (page.hasMorePages) {
+                fetchOperatorsAsync(page.nextCursor)
+            } else {
+                null
             }
 
             batchCount++
@@ -149,10 +163,10 @@ class FeedDiscoveryReader(
             }
 
             currentCursor = page.nextCursor
-            hasMorePages = page.hasMorePages
+            currentFuture = nextFuture
 
-            if (!hasMorePages) {
-                logger.info("No additional operator pages available after cursor={}", page.nextCursor)
+            if (currentFuture == null) {
+                logger.info("No additional operator pages available after cursor={}", currentCursor)
             }
         }
 
@@ -201,6 +215,10 @@ class FeedDiscoveryReader(
             logger.error("Failed to fetch operators from Transit.land", e)
             OperatorPage(emptyList(), null, false)
         }
+    }
+
+    private fun fetchOperatorsAsync(afterCursor: Int?): CompletableFuture<OperatorPage> {
+        return CompletableFuture.supplyAsync { fetchOperators(afterCursor) }
     }
 
     private fun transformOperatorsToFeedRegionMap(operators: List<TransitLandOperator>): FeedRegionMap {
@@ -364,15 +382,22 @@ class FeedDiscoveryReader(
                 logger.debug("Fetching metadata batch {}/{} ({} feeds)",
                     index + 1, feedIdChunks.size, chunk.size)
 
-                // Fetch metadata for each feed in the chunk
-                for (feedId in chunk) {
-                    try {
-                        val metadata = fetchSingleFeedMetadata(feedId)
-                        if (metadata != null) {
-                            allMetadata[feedId] = metadata
+                val futures = chunk.map { feedId ->
+                    CompletableFuture.supplyAsync {
+                        try {
+                            val metadata = fetchSingleFeedMetadata(feedId)
+                            feedId to metadata
+                        } catch (e: Exception) {
+                            logger.error("Failed to fetch metadata for feed {}: {}", feedId.value, e.message)
+                            feedId to null
                         }
-                    } catch (e: Exception) {
-                        logger.error("Failed to fetch metadata for feed {}: {}", feedId.value, e.message)
+                    }
+                }
+
+                futures.forEach { future ->
+                    val (feedId, metadata) = future.join()
+                    if (metadata != null) {
+                        allMetadata[feedId] = metadata
                     }
                 }
 
