@@ -15,6 +15,9 @@ import com.mobilispect.backend.transit_land.agency.TransitLandAgencyResponse
 import com.mobilispect.backend.util.NetworkError
 import com.mobilispect.backend.util.TooManyRequests
 import com.mobilispect.backend.util.Unauthorized
+import io.github.resilience4j.ratelimiter.RateLimiter
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry
+import io.github.resilience4j.ratelimiter.RequestNotPermitted
 import io.netty.channel.ChannelOption
 import io.netty.handler.timeout.ReadTimeoutHandler
 import io.netty.handler.timeout.WriteTimeoutHandler
@@ -33,15 +36,19 @@ import java.time.LocalDate
 private const val CONNECT_TIMEOUT_ms = 5_000
 
 /**
- * A client to access the transitland API.
+ * A client to access the transitland API with rate limiting.
+ * Rate limited to 6 requests per second per Transit.land API documentation.
  */
 @OptIn(ExperimentalSerializationApi::class)
 @Component
-class TransitLandClient(builder: WebClient.Builder) :
-    TransitLandAPI {
+class TransitLandClient(
+    builder: WebClient.Builder,
+    rateLimiterRegistry: RateLimiterRegistry
+) : TransitLandAPI {
     private val logger = LoggerFactory.getLogger(TransitLandClient::class.java)
 
     private var webClient: WebClient
+    private val rateLimiter: RateLimiter = rateLimiterRegistry.rateLimiter("transitland")
 
     init {
         val httpClient = HttpClient.create().option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_ms)
@@ -228,12 +235,18 @@ class TransitLandClient(builder: WebClient.Builder) :
     ): Result<T> {
         return try {
             block()
+        } catch (e: RequestNotPermitted) {
+            logger.warn("Transit.land API rate limit exceeded - request blocked by local rate limiter")
+            Result.failure(TooManyRequests)
         } catch (e: WebClientRequestException) {
             Result.failure(NetworkError(e))
         } catch (e: WebClientResponseException) {
             when (e) {
                 is WebClientResponseException.Unauthorized -> Result.failure(Unauthorized)
-                is WebClientResponseException.TooManyRequests -> Result.failure(TooManyRequests)
+                is WebClientResponseException.TooManyRequests -> {
+                    logger.warn("Transit.land API returned 429 Too Many Requests")
+                    Result.failure(TooManyRequests)
+                }
                 else -> Result.failure(GenericError(e.cause.toString()))
             }
         }
@@ -250,7 +263,16 @@ class TransitLandClient(builder: WebClient.Builder) :
     private fun <T> get(
         uri: String, apiKey: String, clazz: Class<T>
     ): T? {
-        return webClient.get().uri(uri).header("apikey", apiKey).accept(MediaType.APPLICATION_JSON).retrieve()
-            .bodyToMono(clazz).block()
+        // Acquire permission from rate limiter before making the request
+        // This will block if rate limit is exceeded, up to timeout-duration (30s)
+        RateLimiter.waitForPermission(rateLimiter)
+
+        return webClient.get()
+            .uri(uri)
+            .header("apikey", apiKey)
+            .accept(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .bodyToMono(clazz)
+            .block()
     }
 }
