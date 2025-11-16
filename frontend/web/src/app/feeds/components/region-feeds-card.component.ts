@@ -77,11 +77,97 @@ import { MetropolitanRegion, Feed } from '../models/region.models';
     </app-mobilispect-card>
   `,
   styles: [`
+    .feeds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+      margin-top: 24px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .feeds-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .feeds-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      }
+    }
+
+    @media (min-width: 1025px) {
+      .feeds-grid {
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      }
+    }
 
     .header-icon mat-icon {
       color: #fff;
     }
 
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      gap: 16px;
+    }
+
+    .loading-state p {
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 0.875rem;
+    }
+
+    :host-context(.dark-theme) .loading-state p {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 64px 24px;
+      text-align: center;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      color: rgba(0, 0, 0, 0.3);
+      margin-bottom: 16px;
+    }
+
+    :host-context(.dark-theme) .empty-state .empty-icon {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .empty-state h3 {
+      margin: 0 0 8px 0;
+      color: rgba(0, 0, 0, 0.7);
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    :host-context(.dark-theme) .empty-state h3 {
+      color: rgba(255, 255, 255, 0.87);
+    }
+
+    .empty-state p {
+      margin: 0;
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 0.875rem;
+      max-width: 400px;
+    }
+
+    :host-context(.dark-theme) .empty-state p {
+      color: rgba(255, 255, 255, 0.7);
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

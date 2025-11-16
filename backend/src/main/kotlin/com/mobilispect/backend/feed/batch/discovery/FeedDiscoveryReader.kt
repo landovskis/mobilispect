@@ -78,7 +78,7 @@ class FeedDiscoveryReader(
         if (completeFeedMetadataMap == null) {
             logger.info("Phase 2: Fetching metadata for all {} discovered feeds...",
                 completeFeedRegionMap.size)
-            completeFeedMetadataMap = fetchAllMetadata(completeFeedRegionMap.feedIds())
+            completeFeedMetadataMap = fetchAllMetadata(completeFeedRegionMap)
             logger.info("Phase 2 complete: Fetched metadata for {} feeds",
                 completeFeedMetadataMap!!.size)
         }
@@ -339,12 +339,16 @@ class FeedDiscoveryReader(
                 validFeedIds.size
             )
 
+            // Use operator short_name if available, otherwise full name
+            val operatorDisplayName = operator.short_name ?: operator.name
+
             val regionMetadata = RegionMetadata(
                 regionOnestopId = regionId,
                 regionName = regionName,
                 cityName = place?.city_name,
                 adm1Name = place?.adm1_name,
-                adm0Name = place?.adm0_name
+                adm0Name = place?.adm0_name,
+                operatorName = operatorDisplayName
             )
 
             for (feedId in validFeedIds) {
@@ -362,7 +366,9 @@ class FeedDiscoveryReader(
     /**
      * Phase 2: Fetch metadata for all discovered feed IDs.
      */
-    private fun fetchAllMetadata(feedIds: Collection<FeedId>): FeedMetadataMap {
+    private fun fetchAllMetadata(feedRegionMap: FeedRegionMap): FeedMetadataMap {
+        val feedIds = feedRegionMap.feedIds()
+
         if (feedIds.isEmpty()) {
             logger.warn("No feed IDs to fetch metadata for")
             return FeedMetadataMap(emptyMap())
@@ -385,7 +391,8 @@ class FeedDiscoveryReader(
                 val futures = chunk.map { feedId ->
                     CompletableFuture.supplyAsync {
                         try {
-                            val metadata = fetchSingleFeedMetadata(feedId)
+                            val regionMetadata = feedRegionMap[feedId]
+                            val metadata = fetchSingleFeedMetadata(feedId, regionMetadata?.operatorName)
                             feedId to metadata
                         } catch (e: Exception) {
                             logger.error("Failed to fetch metadata for feed {}: {}", feedId.value, e.message)
@@ -417,13 +424,14 @@ class FeedDiscoveryReader(
 
     /**
      * Fetches metadata for a single feed from Transit.land API.
+     * Uses operator name as fallback when feed name is not available from API.
      */
-    private fun fetchSingleFeedMetadata(feedId: FeedId): FeedMetadata? {
+    private fun fetchSingleFeedMetadata(feedId: FeedId, operatorName: String?): FeedMetadata? {
         val metadataApiKey = apiKey ?: defaultApiKey
-        return fetchFeedMetadata(feedId, metadataApiKey)
+        return fetchFeedMetadata(feedId, metadataApiKey, operatorName)
     }
 
-    private fun fetchFeedMetadata(feedId: FeedId, apiKey: TransitLandAPIKey?): FeedMetadata? {
+    private fun fetchFeedMetadata(feedId: FeedId, apiKey: TransitLandAPIKey?, operatorName: String?): FeedMetadata? {
         if (!isValidFeedOnestopId(feedId.value)) {
             logger.warn("Skipping metadata fetch for invalid feed onestop ID: {}", feedId.value)
             return null
@@ -469,9 +477,19 @@ class FeedDiscoveryReader(
                 }
             }
 
+            // Use Transit.land feed name if available, otherwise fallback to operator name
+            val feedName = feed.name ?: operatorName ?: "Unknown"
+            if (feed.name == null && operatorName != null) {
+                logger.debug(
+                    "Feed {} has no name from Transit.land API, using operator name: '{}'",
+                    feedId.value,
+                    operatorName
+                )
+            }
+
             val metadata = FeedMetadata(
                 feedOnestopId = FeedId.from(feed.onestop_id) ?: feedId,
-                name = feed.name ?: "Unknown",
+                name = feedName,
                 downloadUrl = latestVersion.url,
                 specType = specType,
                 versionSha1 = latestVersion.sha1,
@@ -484,8 +502,9 @@ class FeedDiscoveryReader(
             )
 
             logger.debug(
-                "Successfully fetched metadata for feed: {} (version: {})",
+                "Successfully fetched metadata for feed: {} (name: '{}', version: {})",
                 feedId.value,
+                feedName,
                 latestVersion.sha1
             )
 

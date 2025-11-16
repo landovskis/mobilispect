@@ -13,13 +13,15 @@ import com.mobilispect.backend.feed.model.FeedId
  * @property cityName City name from place information
  * @property adm1Name Administrative division level 1 (state/province)
  * @property adm0Name Administrative division level 0 (country)
+ * @property operatorName Name of the transit operator providing this feed
  */
 data class RegionMetadata(
     val regionOnestopId: String,
     val regionName: String,
     val cityName: String? = null,
     val adm1Name: String? = null,
-    val adm0Name: String? = null
+    val adm0Name: String? = null,
+    val operatorName: String? = null
 )
 
 /**

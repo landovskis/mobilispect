@@ -13,6 +13,7 @@ class TransitLandOperatorResponse(
 class TransitLandOperator(
     val onestop_id: String? = null,
     val name: String? = null,
+    val short_name: String? = null,
     val agencies: Collection<TransitLandAgency>? = null,
     val feeds: Collection<TransitLandOperatorFeed>? = null
 )
