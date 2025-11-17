@@ -65,8 +65,8 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     }
 
     .app-logo {
-      height: 40px;
-      width: 40px;
+      height: 80px;
+      width: auto;
       object-fit: contain;
     }
 
@@ -88,8 +88,8 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       }
 
       .app-logo {
-        height: 32px;
-        width: 32px;
+        height: 64px;
+        width: auto;
       }
 
       .toolbar-heading {
