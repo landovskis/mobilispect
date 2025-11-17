@@ -65,7 +65,7 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     }
 
     .app-logo {
-      height: 80px;
+      height: 60px;
       width: auto;
       object-fit: contain;
     }
@@ -88,7 +88,7 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       }
 
       .app-logo {
-        height: 64px;
+        height: 48px;
         width: auto;
       }
 
