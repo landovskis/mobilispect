@@ -23,6 +23,7 @@ export type {
   Feed,
   FeedDetail,
   FeedAuthentication,
+  RegionId,
   RegionsResponse,
   FeedsResponse,
   RegionConfigForm,

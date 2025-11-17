@@ -6,10 +6,15 @@
  */
 
 /**
+ * Region identifier (Transit.land Onestop ID)
+ */
+export type RegionId = string;
+
+/**
  * Metropolitan Region model
  */
 export interface MetropolitanRegion {
-  regionOnestopId: string;
+  regionOnestopId: RegionId;
   name: string;
   adm0Name?: string | null;
   adm1Name?: string | null;
@@ -32,7 +37,7 @@ export interface MetropolitanRegionDetail extends MetropolitanRegion {
  */
 export interface Feed {
   feedOnestopId: string;
-  regionOnestopId: string;
+  regionOnestopId: RegionId;
   name: string;
   specType: FeedSpecType;
   downloadUrl: string;
@@ -167,14 +172,22 @@ export class RegionUtils {
    * Gets display name for a region
    */
   static getDisplayName(region: MetropolitanRegion): string {
-    const parts = [region.name];
-    if (region.adm1Name) {
-      parts.push(region.adm1Name);
+    const rawParts = [region.name, region.adm1Name, region.adm0Name]
+      .filter((part): part is string => !!part && part.trim().length > 0)
+      // Split composite names like "Montréal, Québec, Canada" so we can de-duplicate pieces
+      .flatMap(part => part.split(',').map(piece => piece.trim()).filter(piece => piece.length > 0));
+
+    const seen = new Set<string>();
+    const uniqueParts: string[] = [];
+
+    for (const part of rawParts) {
+      const key = part.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      uniqueParts.push(part);
     }
-    if (region.adm0Name) {
-      parts.push(region.adm0Name);
-    }
-    return parts.filter(part => part && part.trim().length > 0).join(', ');
+
+    return uniqueParts.join(', ');
   }
 
   /**
