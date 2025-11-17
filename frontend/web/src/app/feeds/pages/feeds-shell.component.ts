@@ -1,12 +1,13 @@
 import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule } from '@angular/router';
+import { BreakpointObserver, LayoutModule } from '@angular/cdk/layout';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Observable, Subject, combineLatest } from 'rxjs';
-import { filter, map, startWith, takeUntil } from 'rxjs/operators';
+import { Observable, Subject, combineLatest, firstValueFrom } from 'rxjs';
+import { filter, map, shareReplay, startWith, takeUntil } from 'rxjs/operators';
 import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from '../../shared/components/app-bar.component';
 import { ImportService } from '../services/import.service';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
@@ -19,6 +20,7 @@ import { RegionService } from '../services/region.service';
   imports: [
     CommonModule,
     RouterModule,
+    LayoutModule,
     MatSidenavModule,
     MatIconModule,
     MatButtonModule,
@@ -31,10 +33,25 @@ import { RegionService } from '../services/region.service';
         [breadcrumbs]="breadcrumbs"
         (refresh)="onRefresh()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
-      ></app-bar>
+      >
+        <div toolbar-actions>
+          <button
+            *ngIf="isHandset$ | async"
+            mat-icon-button
+            type="button"
+            aria-label="Toggle navigation"
+            (click)="toggleSidenav()">
+            <mat-icon>menu</mat-icon>
+          </button>
+        </div>
+      </app-bar>
 
       <mat-sidenav-container class="drawer-container">
-        <mat-sidenav class="app-sidenav" mode="side" [opened]="true">
+        <mat-sidenav
+          class="app-sidenav"
+          [mode]="(isHandset$ | async) ? 'over' : 'side'"
+          [opened]="(isHandset$ | async) ? sidebarOpened : true"
+          (openedChange)="onSidenavOpenedChange($event)">
           <nav class="sidebar-nav" aria-label="Feed navigation">
             <div class="sidebar-heading">Feeds</div>
 
@@ -202,12 +219,12 @@ import { RegionService } from '../services/region.service';
 
       .sidebar-nav {
         position: static;
-        flex-direction: row;
-        flex-wrap: wrap;
+        flex-direction: column;
       }
 
       .sidebar-link {
-        flex: 1 1 calc(50% - 8px);
+        flex: none;
+        width: 100%;
       }
 
       .view-content {
@@ -220,7 +237,9 @@ export class FeedsShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   breadcrumbs: Breadcrumb[] = [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
+  sidebarOpened = false;
 
+  readonly isHandset$: Observable<boolean>;
   readonly discoverFeedCount$: Observable<number>;
   readonly totalImportElements$: Observable<number>;
   readonly activeImportCount$: Observable<number>;
@@ -228,11 +247,16 @@ export class FeedsShellComponent implements OnDestroy {
   constructor(
     private readonly router: Router,
     private readonly snackBar: MatSnackBar,
+    breakpointObserver: BreakpointObserver,
     private readonly importService: ImportService,
     private readonly metrics: FeedsMetricsService,
     private readonly events: FeedsEventsService,
     private readonly regionService: RegionService
   ) {
+    this.isHandset$ = breakpointObserver.observe('(max-width: 768px)').pipe(
+      map(result => result.matches),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
     this.discoverFeedCount$ = this.metrics.discoverFeedCount$;
     this.totalImportElements$ = this.metrics.totalImportElements$;
     this.activeImportCount$ = this.importService.getActiveImportsObservable().pipe(
@@ -272,6 +296,16 @@ export class FeedsShellComponent implements OnDestroy {
       this.metrics.resetSelectedRegion();
       this.router.navigate(['/feeds/discover']);
     }
+  }
+
+  async toggleSidenav(): Promise<void> {
+    const isHandset = await firstValueFrom(this.isHandset$);
+    if (!isHandset) return;
+    this.sidebarOpened = !this.sidebarOpened;
+  }
+
+  onSidenavOpenedChange(opened: boolean): void {
+    this.sidebarOpened = opened;
   }
 
   private buildBreadcrumbs(region: { id: string | null; name: string | null } | null): Breadcrumb[] {
