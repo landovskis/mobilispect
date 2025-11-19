@@ -10,12 +10,14 @@ import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import java.time.Instant
 
+import com.mobilispect.backend.feed.model.ids.RegionId
+
 @Entity
 @Table(name = "metropolitan_regions")
 class MetropolitanRegion(
     @Id
     @Column(name = "region_onestop_id", nullable = false, updatable = false, length = 255)
-    val regionOnestopId: String = "",
+    val regionOnestopId: RegionId = RegionId(""),
 
     @Column(nullable = false, length = 255)
     var name: String = "",

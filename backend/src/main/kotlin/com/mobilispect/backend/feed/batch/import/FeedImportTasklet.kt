@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.batch.import
 
+import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.feed.service.FeedManagementImportProcessor
 import kotlinx.coroutines.runBlocking
@@ -31,10 +32,10 @@ class FeedImportTasklet(
         runBlocking {
             feedManagementImportProcessor.importFeedById(feedOnestopId)
         }.onSuccess { versionSha1 ->
-            feedImportService.completeImport(importId, versionSha1)
+            feedImportService.completeImport(ImportId(importId), versionSha1)
         }.onFailure { throwable ->
             logger.error("Feed import failed for $feedOnestopId", throwable)
-            feedImportService.failImport(importId, throwable.message ?: "Import failed")
+            feedImportService.failImport(ImportId(importId), throwable.message ?: "Import failed")
         }
 
         return RepeatStatus.FINISHED

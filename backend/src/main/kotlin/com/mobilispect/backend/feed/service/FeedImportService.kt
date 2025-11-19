@@ -4,6 +4,8 @@ import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
+import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.AdministratorRepository
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
@@ -40,7 +42,7 @@ class FeedImportService(
         triggerType: ImportTriggerType,
         force: Boolean
     ): FeedImport {
-        val feed = feedRepository.findById(feedOnestopId)
+        val feed = feedRepository.findById(FeedId(feedOnestopId))
             .orElseThrow { IllegalArgumentException("Feed not found: $feedOnestopId") }
 
         val administrator = administratorUsername?.let { adminUsername ->
@@ -61,7 +63,7 @@ class FeedImportService(
 
         progressTrackingService.updateProgress(
             importId = feedImport.requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
+            feedOnestopId = feed.feedOnestopId.value,
             progressPercentage = 0,
             currentStep = "Starting import",
             currentStepNumber = 0,
@@ -69,26 +71,26 @@ class FeedImportService(
             startedAt = now
         )
 
-        launchImportJob(feedImport.requireId(), feed.feedOnestopId)
+        launchImportJob(feedImport.requireId(), feed.feedOnestopId.value)
 
         return feedImport
     }
 
     @Transactional
-    fun cancelImport(importId: UUID) {
+    fun cancelImport(importId: ImportId) {
         val feedImport = feedImportRepository.findById(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
         feedImport.status = ImportStatus.CANCELLED
         feedImport.completedAt = clock.instant()
         feedImportRepository.save(feedImport)
-        progressTrackingService.markFailed(importId.toString(), "Import cancelled by user")
+        progressTrackingService.markFailed(importId.value.toString(), "Import cancelled by user")
     }
 
-    private fun launchImportJob(importId: UUID, feedOnestopId: String) {
+    private fun launchImportJob(importId: ImportId, feedOnestopId: String) {
         val params = JobParametersBuilder()
             .addString("feedOnestopId", feedOnestopId)
-            .addString("importId", importId.toString())
+            .addString("importId", importId.value.toString())
             .addLong("timestamp", System.currentTimeMillis())
             .toJobParameters()
 
@@ -101,7 +103,7 @@ class FeedImportService(
     }
 
     @Transactional
-    fun completeImport(importId: UUID, versionSha1: String?) {
+    fun completeImport(importId: ImportId, versionSha1: String?) {
         val feedImport = feedImportRepository.findById(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
@@ -118,11 +120,11 @@ class FeedImportService(
             feedRepository.save(feed)
         }
 
-        progressTrackingService.markCompleted(importId.toString())
+        progressTrackingService.markCompleted(importId.value.toString())
     }
 
     @Transactional
-    fun failImport(importId: UUID, message: String) {
+    fun failImport(importId: ImportId, message: String) {
         val feedImport = feedImportRepository.findById(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
@@ -131,11 +133,11 @@ class FeedImportService(
         feedImport.errorMessage = message
         feedImportRepository.save(feedImport)
 
-        progressTrackingService.markFailed(importId.toString(), message)
+        progressTrackingService.markFailed(importId.value.toString(), message)
     }
 
-    private fun FeedImport.requireId(): UUID =
+    private fun FeedImport.requireId(): ImportId =
         id ?: throw IllegalStateException("Import must have an identifier before use")
 
-    private fun FeedImport.requireIdAsString(): String = requireId().toString()
+    private fun FeedImport.requireIdAsString(): String = requireId().value.toString()
 }

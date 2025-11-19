@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.batch.discovery
 
-import com.mobilispect.backend.feed.model.FeedId
+import com.mobilispect.backend.feed.model.ids.FeedId
 
 /**
  * Represents metadata about a geographic region from Transit.land.

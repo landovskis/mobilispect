@@ -3,6 +3,8 @@ package com.mobilispect.backend.feed.service
 import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
+import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -70,6 +72,14 @@ class ImportHistoryService(
      * @param pageable Pagination parameters
      * @return Page of import records for the feed
      */
+    /**
+     * Get import history for a specific feed.
+     *
+     * @param feedOnestopId The Onestop ID of the feed
+     * @param status Filter by status (optional)
+     * @param pageable Pagination parameters
+     * @return Page of import records for the feed
+     */
     fun getFeedImportHistory(
         feedOnestopId: String,
         status: ImportStatus? = null,
@@ -77,13 +87,13 @@ class ImportHistoryService(
     ): Page<FeedImport> {
         return if (status != null) {
             feedImportRepository.findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(
-                feedOnestopId,
+                FeedId(feedOnestopId),
                 listOf(status),
                 pageable
             )
         } else {
             feedImportRepository.findAllByFeedFeedOnestopIdOrderByStartedAtDesc(
-                feedOnestopId,
+                FeedId(feedOnestopId),
                 pageable
             )
         }
@@ -115,7 +125,7 @@ class ImportHistoryService(
      * @return The import record or null if not found
      */
     fun getImportDetail(importId: UUID): FeedImport? {
-        return feedImportRepository.findById(importId).orElse(null)
+        return feedImportRepository.findById(ImportId(importId)).orElse(null)
     }
 
     /**
@@ -157,7 +167,7 @@ class ImportHistoryService(
      */
     fun getLastImportForFeed(feedOnestopId: String): FeedImport? {
         return feedImportRepository.findAllByFeedFeedOnestopIdOrderByStartedAtDesc(
-            feedOnestopId,
+            FeedId(feedOnestopId),
             org.springframework.data.domain.PageRequest.of(0, 1)
         ).content.firstOrNull()
     }

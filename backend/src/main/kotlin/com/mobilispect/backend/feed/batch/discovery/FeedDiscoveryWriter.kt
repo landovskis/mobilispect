@@ -1,10 +1,11 @@
 package com.mobilispect.backend.feed.batch.discovery
 
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.FeedId
+import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.MetropolitanRegion
 import com.mobilispect.backend.feed.repository.FeedRepository
+import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.StepExecution
@@ -74,7 +75,7 @@ class FeedDiscoveryWriter(
             val regionEntities = mutableMapOf<String, MetropolitanRegion>()
 
             for (regionMetadata in uniqueRegions) {
-                val existingRegion = regionRepository.findById(regionMetadata.regionOnestopId)
+                val existingRegion = regionRepository.findById(RegionId(regionMetadata.regionOnestopId))
                     .orElse(null)
 
                 val regionEntity = if (existingRegion != null) {
@@ -91,7 +92,7 @@ class FeedDiscoveryWriter(
                     logger.info("      ✓ Creating region: {}", regionMetadata.regionName)
                     regionsCreated++
                     MetropolitanRegion(
-                        regionOnestopId = regionMetadata.regionOnestopId,
+                        regionOnestopId = RegionId(regionMetadata.regionOnestopId),
                         name = regionMetadata.regionName,
                         adm0Name = regionMetadata.adm0Name,
                         adm1Name = regionMetadata.adm1Name,
@@ -108,7 +109,7 @@ class FeedDiscoveryWriter(
             // Step 3: Create or update feeds
             for (result in batch.results) {
                 val feedId = result.feedOnestopId
-                val existingFeed = feedRepository.findById(feedId.value)
+                val existingFeed = feedRepository.findById(feedId)
                     .orElse(null)
 
                 val now = Instant.now()
@@ -141,7 +142,7 @@ class FeedDiscoveryWriter(
                         ?: error("Region entity not found for ${result.region.regionOnestopId}")
 
                     FeedEntity(
-                        feedOnestopId = feedId.value,
+                        feedOnestopId = feedId,
                         name = result.name,
                         specType = result.specType,
                         downloadUrl = result.downloadUrl,

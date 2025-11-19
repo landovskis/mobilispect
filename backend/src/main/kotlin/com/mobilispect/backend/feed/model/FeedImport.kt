@@ -18,6 +18,8 @@ import org.hibernate.annotations.UuidGenerator
 import java.time.Instant
 import java.util.UUID
 
+import com.mobilispect.backend.feed.model.ids.ImportId
+
 @Entity
 @Table(name = "feed_imports")
 class FeedImport(
@@ -25,7 +27,7 @@ class FeedImport(
     @GeneratedValue
     @UuidGenerator
     @Column(columnDefinition = "uuid")
-    var id: UUID? = null,
+    var id: ImportId? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "feed_onestop_id", nullable = false)

@@ -13,4 +13,8 @@ value class FeedId(val value: String) {
     }
 
     override fun toString(): String = value
+
+    companion object {
+        fun from(value: String?): FeedId? = value?.takeIf { it.isNotBlank() }?.let { FeedId(it) }
+    }
 }

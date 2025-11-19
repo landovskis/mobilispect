@@ -9,6 +9,7 @@ import com.mobilispect.backend.api.dto.TriggerType as TriggerTypeDto
 import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
+import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.ImportLogRepository
 import com.mobilispect.backend.feed.service.ImportHistoryService
 import org.springframework.data.domain.PageRequest
@@ -93,7 +94,7 @@ class HistoryController(
         val feed = import.feed
             ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import")
 
-        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(uuid)
+        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(ImportId(uuid))
             .map { log ->
                 ImportLogDTO(
                     id = log.id?.toString() ?: "",
@@ -108,7 +109,7 @@ class HistoryController(
 
         return FeedImportDetailDTO(
             id = import.requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
+            feedOnestopId = feed.feedOnestopId.value,
             administratorId = import.administrator?.id?.toString(),
             administratorUsername = import.administrator?.username,
             triggerType = import.triggerType.toDto(),
@@ -215,7 +216,7 @@ class HistoryController(
     // Helper methods
     private fun FeedImport.toDTO(): FeedImportDTO = FeedImportDTO(
         id = requireIdAsString(),
-        feedOnestopId = feed?.feedOnestopId ?: "",
+        feedOnestopId = feed?.feedOnestopId?.value ?: "",
         administratorId = administrator?.id?.toString(),
         administratorUsername = administrator?.username,
         triggerType = triggerType.toDto(),
@@ -267,9 +268,9 @@ class HistoryController(
     private fun notFound(entity: String, identifier: String) =
         ResponseStatusException(HttpStatus.NOT_FOUND, "$entity not found: $identifier")
 
-    private fun FeedImport.requireIdAsString(): String = requireId().toString()
+    private fun FeedImport.requireIdAsString(): String = requireId().value.toString()
 
-    private fun FeedImport.requireId(): UUID = id
+    private fun FeedImport.requireId(): ImportId = id
         ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Import identifier is not set")
 }
 

@@ -5,9 +5,12 @@ import com.mobilispect.backend.Agency
 import com.mobilispect.backend.AgencyDataSource
 import com.mobilispect.backend.AgencyRepository
 import com.mobilispect.backend.FeedDataSource
-import com.mobilispect.backend.FeedRepository
+import com.mobilispect.backend.feed.model.FeedEntity
+import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.repository.FeedRepository
+import com.mobilispect.backend.FeedVersion
 import com.mobilispect.backend.FeedVersionRepository
-import com.mobilispect.backend.RegionRepository
+import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.infastructure.Stop
 import com.mobilispect.backend.infastructure.StopRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
@@ -39,7 +42,7 @@ class ImportScheduledFeedsService(
     private val feedVersionRepository: FeedVersionRepository,
     private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
-    private val regionRepository: RegionRepository,
+    private val regionRepository: MetropolitanRegionRepository,
     private val agencyRepository: AgencyRepository,
     private val routeRepository: RouteRepository,
     private val stopRepository: StopRepository,
@@ -89,12 +92,12 @@ class ImportScheduledFeedsService(
                 .filter { it.isSuccess }
                 .mapNotNull { it.getOrNull() }
 
-            val scheduledFeed = allFeeds.firstOrNull { it.feed.uid == feedOnestopId }
+            val scheduledFeed = allFeeds.firstOrNull { it.feed.feedOnestopId.value == feedOnestopId }
                 ?: return@withContext Result.failure(
                     IllegalArgumentException("Feed not found: $feedOnestopId")
                 )
 
-            val importId = "${scheduledFeed.feed.uid}:${scheduledFeed.version.uid}"
+            val importId = "${scheduledFeed.feed.feedOnestopId.value}:${scheduledFeed.version.uid}"
 
             // Import the feed
             importFeed(scheduledFeed)
@@ -115,16 +118,16 @@ class ImportScheduledFeedsService(
 
     @Suppress("TooGenericExceptionCaught")
     private fun importFeed(cloudFeed: ScheduledFeed): Result<Unit> {
-        logger.debug("Import started: {} version {}", cloudFeed.feed.url, cloudFeed.version.uid)
+        logger.debug("Import started: {} version {}", cloudFeed.feed.downloadUrl, cloudFeed.version.uid)
 
-        val importId = "${cloudFeed.feed.uid}:${cloudFeed.version.uid}"
+        val importId = "${cloudFeed.feed.feedOnestopId.value}:${cloudFeed.version.uid}"
         val startedAt = clock.instant()
         val totalSteps = 8
 
         fun progress(stepNumber: Int, stepName: String, percentage: Int = (stepNumber * 100) / totalSteps) {
             progressTrackingService.updateProgress(
                 importId = importId,
-                feedOnestopId = cloudFeed.feed.uid,
+                feedOnestopId = cloudFeed.feed.feedOnestopId.value,
                 progressPercentage = percentage.coerceAtMost(100),
                 currentStep = stepName,
                 currentStepNumber = stepNumber,
@@ -146,43 +149,43 @@ class ImportScheduledFeedsService(
             importAgencies(
                 version = cloudFeed.version.uid,
                 extractedDir = extractedDir,
-                feedID = cloudFeed.feed.uid
+                feedID = cloudFeed.feed.feedOnestopId.value
             ).getOrThrow()
 
             progress(stepNumber = 4, stepName = "Importing routes")
             importRoutes(
                 version = cloudFeed.version.uid,
                 extractedDir = extractedDir,
-                feedID = cloudFeed.feed.uid
+                feedID = cloudFeed.feed.feedOnestopId.value
             ).getOrThrow()
 
             progress(stepNumber = 5, stepName = "Importing stops")
             importStops(
                 version = cloudFeed.version.uid,
                 extractedDir = extractedDir,
-                feedID = cloudFeed.feed.uid
+                feedID = cloudFeed.feed.feedOnestopId.value
             )
 
             progress(stepNumber = 6, stepName = "Importing trips")
             importTrips(
                 version = cloudFeed.version.uid,
                 extractedDir = extractedDir,
-                feedID = cloudFeed.feed.uid
+                feedID = cloudFeed.feed.feedOnestopId.value
             ).getOrThrow()
 
             progress(stepNumber = 7, stepName = "Importing stop times")
             importStopTimes(cloudFeed.version.uid, extractedDir).getOrThrow()
 
             progress(stepNumber = 8, stepName = "Finalizing import", percentage = 100)
-            save(cloudFeed.feed, feedRepository)
-            save(cloudFeed.version, feedVersionRepository)
+            save<FeedEntity, FeedId>(cloudFeed.feed, feedRepository)
+            save<FeedVersion, String>(cloudFeed.version, feedVersionRepository)
             Unit
         }
 
         return result
             .onSuccess {
                 progressTrackingService.markCompleted(importId)
-                logger.debug("Import completed: {}", cloudFeed.feed.uid)
+                logger.debug("Import completed: {}", cloudFeed.feed.feedOnestopId.value)
             }
             .onFailure { exception ->
                 progressTrackingService.markFailed(importId, exception.message ?: "Import failed")
@@ -192,12 +195,12 @@ class ImportScheduledFeedsService(
 
     private fun downloadFeed(cloudFeed: ScheduledFeed): Result<Path> {
         val start = Instant.now(clock)
-        return downloader.download(DownloadRequest(url = cloudFeed.feed.url))
+        return downloader.download(DownloadRequest(url = cloudFeed.feed.downloadUrl))
             .onSuccess { _ ->
                 val elapsed = Duration.between(start, Instant.now(clock))
-                logger.debug("Downloaded feed from {} in {}", cloudFeed.feed.url, elapsed)
+                logger.debug("Downloaded feed from {} in {}", cloudFeed.feed.downloadUrl, elapsed)
             }
-            .onFailure { exception -> logger.error("Error downloading feed from ${cloudFeed.feed.url}: $exception") }
+            .onFailure { exception -> logger.error("Error downloading feed from ${cloudFeed.feed.downloadUrl}: $exception") }
     }
 
     private fun extractFeed(archive: Path): Result<Path> {
@@ -287,7 +290,7 @@ class ImportScheduledFeedsService(
     }
 
     @Retry(name = "save")
-    private fun <T : Any> save(element: T, repository: CrudRepository<T, String>): T {
+    private fun <T : Any, ID : Any> save(element: T, repository: CrudRepository<T, ID>): T {
         return repository.save(element)
     }
 }

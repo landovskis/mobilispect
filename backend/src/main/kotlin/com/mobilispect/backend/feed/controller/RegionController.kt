@@ -10,6 +10,7 @@ import com.mobilispect.backend.api.dto.RegionsResponse
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
+import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
@@ -62,7 +63,7 @@ class RegionController(
     @GetMapping("/{regionOnestopId}")
     @Transactional(readOnly = true)
     fun getRegion(@PathVariable regionOnestopId: String): MetropolitanRegionDTO {
-        val region = regionRepository.findById(regionOnestopId)
+        val region = regionRepository.findById(RegionId(regionOnestopId))
             .orElseThrow { notFound("Region", regionOnestopId) }
         val feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
         return region.toDto(feeds)
@@ -74,14 +75,14 @@ class RegionController(
         @PathVariable regionOnestopId: String,
         @RequestBody request: RegionUpdateRequest
     ): MetropolitanRegionDTO {
-        val region = regionRepository.findById(regionOnestopId)
+        val region = regionRepository.findById(RegionId(regionOnestopId))
             .orElseThrow { notFound("Region", regionOnestopId) }
 
         request.autoUpdateEnabled?.let { auto ->
             region.autoUpdateEnabled = auto
         }
         val updated = regionRepository.save(region)
-        val feeds = feedRepository.findAllByRegionRegionOnestopId(regionOnestopId)
+        val feeds = feedRepository.findAllByRegionRegionOnestopId(RegionId(regionOnestopId))
         return updated.toDto(feeds)
     }
 
@@ -92,7 +93,7 @@ class RegionController(
         @RequestParam(required = false) specType: FeedSpecTypeDto?,
         @RequestParam(required = false) status: FeedStatusDto?
     ): FeedsResponse {
-        val region = regionRepository.findById(regionOnestopId)
+        val region = regionRepository.findById(RegionId(regionOnestopId))
             .orElseThrow { notFound("Region", regionOnestopId) }
 
         var feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
@@ -109,7 +110,7 @@ class RegionController(
             feeds = feeds.filter { it.status == statusEntity }
         }
 
-        val feedDtos = feeds.map { toFeedDto(region.regionOnestopId, it) }
+        val feedDtos = feeds.map { toFeedDto(region.regionOnestopId.value, it) }
 
         return FeedsResponse(
             feeds = feedDtos,
@@ -131,16 +132,16 @@ class RegionController(
         logger.info("Discovering feeds for region {} using spec {}", regionOnestopId, spec)
 
         // Get region name for Transit.land API query
-        val region = regionRepository.findById(regionOnestopId)
+        val region = regionRepository.findById(RegionId(regionOnestopId))
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Region not found: $regionOnestopId") }
 
         return feedDiscoveryBatchService.discoverForRegion(regionOnestopId, spec.toEntity())
     }
 
     private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {
-        val hasAuthentication = feedAuthenticationRepository.findById(feed.feedOnestopId).isPresent
+        val hasAuthentication = feedAuthenticationRepository.findById(feed.feedOnestopId.value).isPresent
         return FeedDTO(
-            feedOnestopId = feed.feedOnestopId,
+            feedOnestopId = feed.feedOnestopId.value,
             regionOnestopId = regionOnestopId,
             name = feed.name,
             specType = feed.specType.toDto(),
@@ -161,7 +162,7 @@ class RegionController(
         val feedCount = feeds.size
         val lastCheckedAt = feeds.mapNotNull { it.lastCheckedAt }.maxOrNull()
         return MetropolitanRegionDTO(
-            regionOnestopId = regionOnestopId,
+            regionOnestopId = regionOnestopId.value,
             name = name,
             adm0Name = adm0Name,
             adm1Name = adm1Name,

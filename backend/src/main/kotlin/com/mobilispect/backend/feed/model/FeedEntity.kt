@@ -15,12 +15,14 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.ColumnTransformer
 import java.time.Instant
 
+import com.mobilispect.backend.feed.model.ids.FeedId
+
 @Entity
 @Table(name = "feeds")
 class FeedEntity(
     @Id
     @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512)
-    val feedOnestopId: String = "",
+    val feedOnestopId: FeedId = FeedId(""),
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

@@ -20,6 +20,8 @@ import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.LogLevel
+import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.ImportLogRepository
 import com.mobilispect.backend.feed.service.FeedImportService
@@ -93,7 +95,7 @@ class ImportController(
         val uuid = runCatching { UUID.fromString(importId) }
             .getOrElse { throw ResponseStatusException(HttpStatus.NOT_FOUND, "Import not found: $importId") }
 
-        val import = feedImportRepository.findById(uuid)
+        val import = feedImportRepository.findById(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
 
         val progressPercentage = when (import.status) {
@@ -104,7 +106,7 @@ class ImportController(
 
         return ImportProgressDTO(
             importId = importId,
-            feedOnestopId = import.feed?.feedOnestopId ?: "",
+            feedOnestopId = import.feed?.feedOnestopId?.value ?: "",
             progressPercentage = progressPercentage,
             currentStep = when (import.status) {
                 ImportStatus.COMPLETED -> "Completed"
@@ -124,20 +126,20 @@ class ImportController(
     @Transactional(readOnly = true)
     fun getImport(@PathVariable importId: String): FeedImportDetailDTO {
         val uuid = parseImportId(importId)
-        val import = feedImportRepository.findById(uuid)
+        val import = feedImportRepository.findById(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
 
         val feed = import.feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${import.id}")
         val regionName = feed.regions.firstOrNull()?.name
 
         val progress = progressTrackingService.getProgress(importId)?.toDto()
-        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(uuid)
+        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(ImportId(uuid))
             .map { log -> log.toDto(importId) }
 
         return FeedImportDetailDTO(
             id = import.requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
-            administratorId = import.administrator?.id?.toString(),
+            feedOnestopId = feed.feedOnestopId.value,
+            administratorId = import.administrator?.id?.value?.toString(),
             administratorUsername = import.administrator?.username,
             triggerType = import.triggerType.toDto(),
             status = import.status.toDto(),
@@ -158,8 +160,8 @@ class ImportController(
     @DeleteMapping("/imports/{importId}")
     fun cancelImport(@PathVariable importId: String): FeedImportDTO {
         val uuid = parseImportId(importId)
-        feedImportService.cancelImport(uuid)
-        val updated = feedImportRepository.findById(uuid)
+        feedImportService.cancelImport(ImportId(uuid))
+        val updated = feedImportRepository.findById(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
         return updated.toFeedImportDTO()
     }
@@ -212,9 +214,9 @@ class ImportController(
         val statuses = status?.let { listOf(it.toEntity()) }
 
         val pageResult = if (statuses != null) {
-            feedImportRepository.findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(feedOnestopId, statuses, pageable)
+            feedImportRepository.findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(FeedId(feedOnestopId), statuses, pageable)
         } else {
-            feedImportRepository.findAllByFeedFeedOnestopIdOrderByStartedAtDesc(feedOnestopId, pageable)
+            feedImportRepository.findAllByFeedFeedOnestopIdOrderByStartedAtDesc(FeedId(feedOnestopId), pageable)
         }
 
         return ImportsResponse(
@@ -234,7 +236,7 @@ class ImportController(
     @Transactional(readOnly = true)
     fun getImportLogs(@PathVariable importId: String): ImportLogsResponse {
         val uuid = parseImportId(importId)
-        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(uuid)
+        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(ImportId(uuid))
             .map { it.toDto(importId) }
         return ImportLogsResponse(logs)
     }
@@ -244,8 +246,8 @@ class ImportController(
         return ImportResponse(
             id = requireIdAsString(),
             importId = requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
-            administratorId = administrator?.id?.toString(),
+            feedOnestopId = feed.feedOnestopId.value,
+            administratorId = administrator?.id?.value?.toString(),
             administratorUsername = administrator?.username,
             triggerType = triggerType.toDto(),
             status = status.toDto(),
@@ -265,9 +267,9 @@ class ImportController(
         val region = feed.regions.firstOrNull()
         return FeedImportSummaryDTO(
             id = requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
+            feedOnestopId = feed.feedOnestopId.value,
             feedName = feed.name,
-            regionOnestopId = region?.regionOnestopId,
+            regionOnestopId = region?.regionOnestopId?.value,
             regionName = region?.name ?: "",
             status = status.toDto(),
             triggerType = triggerType.toDto(),
@@ -279,8 +281,8 @@ class ImportController(
 
     private fun FeedImport.toFeedImportDTO(): FeedImportDTO = FeedImportDTO(
         id = requireIdAsString(),
-        feedOnestopId = feed?.feedOnestopId ?: "",
-        administratorId = administrator?.id?.toString(),
+        feedOnestopId = feed?.feedOnestopId?.value ?: "",
+        administratorId = administrator?.id?.value?.toString(),
         administratorUsername = administrator?.username,
         triggerType = triggerType.toDto(),
         status = status.toDto(),
@@ -363,8 +365,8 @@ class ImportController(
     private fun notFound(entity: String, identifier: String) =
         ResponseStatusException(HttpStatus.NOT_FOUND, "$entity not found: $identifier")
 
-    private fun FeedImport.requireIdAsString(): String = requireId().toString()
+    private fun FeedImport.requireIdAsString(): String = requireId().value.toString()
 
-    private fun FeedImport.requireId(): UUID = id
+    private fun FeedImport.requireId(): ImportId = id
         ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Import identifier is not set")
 }

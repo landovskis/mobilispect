@@ -2,7 +2,9 @@ package com.mobilispect.backend.schedule.transit_land
 
 import com.mobilispect.backend.AgencyResult
 import com.mobilispect.backend.AgencyResultItem
-import com.mobilispect.backend.Feed
+
+import com.mobilispect.backend.feed.model.FeedEntity
+import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.FeedVersion
 import com.mobilispect.backend.uti.GenericError
 import com.mobilispect.backend.TransitLandFeedResponse
@@ -12,6 +14,7 @@ import com.mobilispect.backend.schedule.ScheduledFeed
 import com.mobilispect.backend.schedule.transit_land.api.*
 import com.mobilispect.backend.transit_land.PagingParameters
 import com.mobilispect.backend.transit_land.agency.TransitLandAgencyResponse
+
 import com.mobilispect.backend.util.NetworkError
 import com.mobilispect.backend.util.TooManyRequests
 import com.mobilispect.backend.util.Unauthorized
@@ -87,12 +90,12 @@ class TransitLandClient(
             val feeds = response?.feeds?.mapNotNull { remote ->
                 val latestVersion = remote.feed_versions.firstOrNull() ?: return@mapNotNull null
                 ScheduledFeed(
-                    feed = Feed(
-                        uid = feedID, url = latestVersion.url
+                    feed = FeedEntity(
+                        feedOnestopId = FeedId(feedID), downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(
                         uid = latestVersion.sha1,
-                        feedID = feedID,
+                        feedID = FeedId(feedID),
                         startsOn = LocalDate.parse(latestVersion.earliest_calendar_date),
                         endsOn = LocalDate.parse(latestVersion.latest_calendar_date)
                     ),
@@ -114,13 +117,13 @@ class TransitLandClient(
                 val latestVersion = remote.feed_versions.firstOrNull() ?: return@mapNotNull null
 
                 ScheduledFeed(
-                    feed = Feed(
-                        uid = feedOnestopId,
-                        url = latestVersion.url
+                    feed = FeedEntity(
+                        feedOnestopId = FeedId(feedOnestopId),
+                        downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(
                         uid = latestVersion.sha1,
-                        feedID = feedOnestopId,
+                        feedID = FeedId(feedOnestopId),
                         startsOn = LocalDate.parse(latestVersion.earliest_calendar_date),
                         endsOn = LocalDate.parse(latestVersion.latest_calendar_date)
                     ),
@@ -134,6 +137,11 @@ class TransitLandClient(
     /**
      * Retrieve all feeds within a geographic area.
      */
+
+
+    /**
+     * Retrieve all feeds within a geographic area.
+     */
     override fun feedsByCoordinates(apiKey: String, lat: Double, lon: Double, radius: Int, spec: String): Result<Collection<ScheduledFeed>> {
         return handleError {
             val uri = "/feeds.json?lat=$lat&lon=$lon&radius=$radius&spec=$spec&limit=100"
@@ -143,13 +151,13 @@ class TransitLandClient(
                 val latestVersion = remote.feed_versions.firstOrNull() ?: return@mapNotNull null
 
                 ScheduledFeed(
-                    feed = Feed(
-                        uid = feedOnestopId,
-                        url = latestVersion.url
+                    feed = FeedEntity(
+                        feedOnestopId = FeedId(feedOnestopId),
+                        downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(
                         uid = latestVersion.sha1,
-                        feedID = feedOnestopId,
+                        feedID = FeedId(feedOnestopId),
                         startsOn = LocalDate.parse(latestVersion.earliest_calendar_date),
                         endsOn = LocalDate.parse(latestVersion.latest_calendar_date)
                     ),

@@ -1,10 +1,8 @@
 package com.mobilispect.backend
 
-import org.springframework.data.mongodb.core.mapping.Document
 
 val AGENCY_ONESTOP_ID_REGEX = Regex("o(-[a-z0-9]+)?-[a-z0-9~çéâêîôûàèùëïü]+")
 
-@Document(value = "agencies")
 data class Agency(
     /**
      * ID that is unique globally (in OneStop ID format ex: o-geohash-name)

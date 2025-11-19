@@ -5,6 +5,8 @@ import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.MetropolitanRegion
+import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
@@ -56,8 +58,8 @@ class RegionControllerTest {
         val region2 = createRegion("r-region-2", "Region 2", autoUpdate = false)
 
         every { regionRepository.findAll() } returns listOf(region1, region2)
-        every { feedRepository.findAllByRegionRegionOnestopId("r-region-1") } returns emptyList()
-        every { feedRepository.findAllByRegionRegionOnestopId("r-region-2") } returns emptyList()
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId("r-region-1")) } returns emptyList()
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId("r-region-2")) } returns emptyList()
 
         // When
         val response = controller.listRegions(autoUpdateEnabled = null)
@@ -95,7 +97,7 @@ class RegionControllerTest {
         )
 
         every { regionRepository.findAll() } returns listOf(region)
-        every { feedRepository.findAllByRegionRegionOnestopId(testRegionId) } returns feeds
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId(testRegionId)) } returns feeds
 
         // When
         val response = controller.listRegions(autoUpdateEnabled = null)
@@ -111,8 +113,8 @@ class RegionControllerTest {
         val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
         val feeds = listOf(createFeed("f-bart", region))
 
-        every { regionRepository.findById(testRegionId) } returns Optional.of(region)
-        every { feedRepository.findAllByRegionRegionOnestopId(testRegionId) } returns feeds
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.of(region)
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId(testRegionId)) } returns feeds
 
         // When
         val dto = controller.getRegion(testRegionId)
@@ -126,7 +128,7 @@ class RegionControllerTest {
     @Test
     fun `getRegion throws not found when region does not exist`() {
         // Given
-        every { regionRepository.findById(testRegionId) } returns Optional.empty()
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.empty()
 
         // When/Then
         try {
@@ -144,9 +146,9 @@ class RegionControllerTest {
         val region = createRegion(testRegionId, testRegionName, autoUpdate = false)
         val updateRequest = com.mobilispect.backend.api.dto.RegionUpdateRequest(autoUpdateEnabled = true)
 
-        every { regionRepository.findById(testRegionId) } returns Optional.of(region)
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.of(region)
         every { regionRepository.save(any()) } answers { firstArg() }
-        every { feedRepository.findAllByRegionRegionOnestopId(testRegionId) } returns emptyList()
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId(testRegionId)) } returns emptyList()
 
         // When
         val result = controller.updateRegion(testRegionId, updateRequest)
@@ -167,8 +169,8 @@ class RegionControllerTest {
             createFeed("f-muni", region, specType = FeedSpecType.GTFS_RT, status = FeedStatus.ACTIVE)
         )
 
-        every { regionRepository.findById(testRegionId) } returns Optional.of(region)
-        every { feedRepository.findAllByRegionRegionOnestopId(testRegionId) } returns feeds
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.of(region)
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId(testRegionId)) } returns feeds
         every { feedAuthenticationRepository.findById(any()) } returns Optional.empty()
 
         // When
@@ -190,8 +192,8 @@ class RegionControllerTest {
             createFeed("f-muni", region, specType = FeedSpecType.GTFS_RT, status = FeedStatus.ACTIVE)
         )
 
-        every { regionRepository.findById(testRegionId) } returns Optional.of(region)
-        every { feedRepository.findAllByRegionRegionOnestopId(testRegionId) } returns feeds
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.of(region)
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId(testRegionId)) } returns feeds
         every { feedAuthenticationRepository.findById(any()) } returns Optional.empty()
 
         // When
@@ -215,8 +217,8 @@ class RegionControllerTest {
             createFeed("f-inactive", region, specType = FeedSpecType.GTFS, status = FeedStatus.INACTIVE)
         )
 
-        every { regionRepository.findById(testRegionId) } returns Optional.of(region)
-        every { feedRepository.findAllByRegionRegionOnestopId(testRegionId) } returns feeds
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.of(region)
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId(testRegionId)) } returns feeds
         every { feedAuthenticationRepository.findById(any()) } returns Optional.empty()
 
         // When
@@ -248,7 +250,7 @@ class RegionControllerTest {
             errors = emptyList()
         )
 
-        every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
             feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS)
         } returns expectedResult
@@ -284,7 +286,7 @@ class RegionControllerTest {
             errors = emptyList()
         )
 
-        every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
             feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS)
         } returns expectedResult
@@ -319,7 +321,7 @@ class RegionControllerTest {
             errors = listOf("Failed to upsert f-feed-3: Database error")
         )
 
-        every { regionRepository.findById(testRegionId) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
+        every { regionRepository.findById(RegionId(testRegionId)) } returns Optional.of(createRegion(testRegionId, testRegionName, true))
         coEvery {
             feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS)
         } returns expectedResult
@@ -338,7 +340,7 @@ class RegionControllerTest {
 
     private fun createRegion(id: String, name: String, autoUpdate: Boolean): MetropolitanRegion {
         return MetropolitanRegion(
-            regionOnestopId = id,
+            regionOnestopId = RegionId(id),
             name = name,
             autoUpdateEnabled = autoUpdate
         ).apply {
@@ -354,7 +356,7 @@ class RegionControllerTest {
         status: FeedStatus = FeedStatus.ACTIVE
     ): FeedEntity {
         return FeedEntity(
-            feedOnestopId = id,
+            feedOnestopId = FeedId(id),
             regions = mutableSetOf(region),
             name = id.substringAfterLast("-").uppercase(),
             specType = specType,

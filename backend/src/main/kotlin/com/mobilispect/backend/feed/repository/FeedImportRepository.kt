@@ -9,10 +9,13 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 import java.util.UUID
 
+import com.mobilispect.backend.feed.model.ids.ImportId
+import com.mobilispect.backend.feed.model.ids.FeedId
+
 @Repository
-interface FeedImportRepository : JpaRepository<FeedImport, UUID> {
+interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
     fun findAllByFeedFeedOnestopIdOrderByStartedAtDesc(
-        feedOnestopId: String,
+        feedOnestopId: FeedId,
         pageable: Pageable
     ): Page<FeedImport>
 
@@ -27,7 +30,7 @@ interface FeedImportRepository : JpaRepository<FeedImport, UUID> {
     ): Page<FeedImport>
 
     fun findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(
-        feedOnestopId: String,
+        feedOnestopId: FeedId,
         statuses: Collection<ImportStatus>,
         pageable: Pageable
     ): Page<FeedImport>

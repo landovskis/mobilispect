@@ -4,13 +4,13 @@ import arrow.core.Ior
 import com.mobilispect.backend.Agency
 import com.mobilispect.backend.AgencyDataSource
 import com.mobilispect.backend.AgencyRepository
-import com.mobilispect.backend.Feed
+import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.FeedDataSource
-import com.mobilispect.backend.FeedRepository
+import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.FeedVersion
 import com.mobilispect.backend.FeedVersionRepository
-import com.mobilispect.backend.Region
-import com.mobilispect.backend.RegionRepository
+import com.mobilispect.backend.feed.model.MetropolitanRegion
+import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.infastructure.Stop
 import com.mobilispect.backend.infastructure.StopRepository
 import com.mobilispect.backend.schedule.Route
@@ -27,6 +27,8 @@ import com.mobilispect.backend.schedule.stop.StopDataSource
 import com.mobilispect.backend.util.ArchiveExtractor
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import com.mobilispect.backend.websocket.ProgressUpdate
+import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.RegionId
 import kotlinx.coroutines.test.runTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -50,10 +52,10 @@ class ImportScheduledFeedsProgressTest {
         val messagingTemplate = Mockito.mock(SimpMessagingTemplate::class.java)
         val progressTrackingService = ProgressTrackingService(messagingTemplate)
 
-        val testFeed = Feed(uid = "f-f25d-socitdetransportdemontral", url = "http://example.com/feed.zip")
+        val testFeed = FeedEntity(feedOnestopId = FeedId("f-f25d-socitdetransportdemontral"), downloadUrl = "http://example.com/feed.zip")
         val testVersion = FeedVersion(
             uid = "2024-01-01",
-            feedID = testFeed.uid,
+            feedID = testFeed.feedOnestopId,
             startsOn = LocalDate.of(2024, 1, 1),
             endsOn = LocalDate.of(2024, 12, 31)
         )
@@ -65,8 +67,8 @@ class ImportScheduledFeedsProgressTest {
 
         val feedRepository = mockRepository<FeedRepository> { invocation ->
             when (invocation.method.name) {
-                "save" -> invocation.getArgument<Feed>(0)
-                "findAll" -> emptyList<Feed>()
+                "save" -> invocation.getArgument<FeedEntity>(0)
+                "findAll" -> emptyList<FeedEntity>()
                 else -> null
             }
         }
@@ -119,8 +121,8 @@ class ImportScheduledFeedsProgressTest {
             }
         }
 
-        val regionRepository = Mockito.mock(RegionRepository::class.java)
-        Mockito.`when`(regionRepository.findAll()).thenReturn(listOf(Region(uid = "reg-test", name = "Test Region")))
+        val regionRepository = Mockito.mock(MetropolitanRegionRepository::class.java)
+        Mockito.`when`(regionRepository.findAll()).thenReturn(listOf(MetropolitanRegion(regionOnestopId = RegionId("reg-test"), name = "Test Region")))
 
         val downloader = object : Downloader {
             override fun download(request: DownloadRequest): Result<Path> {
@@ -227,7 +229,7 @@ class ImportScheduledFeedsProgressTest {
         val importResult = service()
         assertThat(importResult).isTrue()
 
-        val importId = "${testFeed.uid}:${testVersion.uid}"
+        val importId = "${testFeed.feedOnestopId.value}:${testVersion.uid}"
         val payloadCaptor = ArgumentCaptor.forClass(ProgressUpdate::class.java)
 
         Mockito.verify(

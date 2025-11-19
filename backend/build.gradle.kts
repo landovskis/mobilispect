@@ -24,7 +24,6 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-data-rest")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
@@ -49,7 +48,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:junit-jupiter")
-    testImplementation("org.testcontainers:mongodb")
+    testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation(libs.kotlinx.coroutines.test)
 

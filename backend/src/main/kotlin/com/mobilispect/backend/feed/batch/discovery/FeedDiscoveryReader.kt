@@ -3,7 +3,7 @@ package com.mobilispect.backend.feed.batch.discovery
 import com.mobilispect.backend.TransitLandFeedResponse
 import com.mobilispect.backend.TransitLandOperator
 import com.mobilispect.backend.TransitLandOperatorResponse
-import com.mobilispect.backend.feed.model.FeedId
+import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import org.slf4j.LoggerFactory
 import org.springframework.batch.item.ItemReader
@@ -387,12 +387,29 @@ class FeedDiscoveryReader(
 
                 val futures = chunk.map { feedId ->
                     CompletableFuture.supplyAsync {
+                        var regionMetadata: RegionMetadata? = null
                         try {
-                            val regionMetadata = feedRegionMap[feedId]
+                            regionMetadata = feedRegionMap[feedId]
                             val metadata = fetchSingleFeedMetadata(feedId, regionMetadata?.operatorName)
                             feedId to metadata
                         } catch (e: Exception) {
-                            logger.debug("    ✗ Failed: {} - {}", feedId.value, e.message)
+                            // Highlight Montreal feed failures
+                            val isMontreal = feedId.value.startsWith("f-f25") ||
+                                            regionMetadata?.regionName?.contains("Montreal", ignoreCase = true) == true ||
+                                            regionMetadata?.regionName?.contains("Montréal", ignoreCase = true) == true ||
+                                            regionMetadata?.operatorName?.contains("STM") == true ||
+                                            regionMetadata?.operatorName?.contains("STL") == true ||
+                                            regionMetadata?.operatorName?.contains("RTL") == true ||
+                                            regionMetadata?.operatorName?.contains("EXO") == true
+
+                            if (isMontreal) {
+                                logger.warn("    ✗ 🍁 FAILED Montreal feed: {} ({}) - {}",
+                                    feedId.value,
+                                    regionMetadata?.operatorName ?: "unknown",
+                                    e.message)
+                            } else {
+                                logger.debug("    ✗ Failed: {} - {}", feedId.value, e.message)
+                            }
                             feedId to null
                         }
                     }

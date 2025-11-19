@@ -3,11 +3,10 @@
 package com.mobilispect.backend.schedule
 
 import com.mobilispect.backend.AGENCY_ONESTOP_ID_REGEX
-import org.springframework.data.mongodb.core.mapping.Document
+
 
 val ROUTE_ONESTOP_ID_REGEX = Regex("r-[a-z0-9]+-[a-z0-9~çéâêîôûàèùëïü]+")
 
-@Document(value = "routes")
 data class Route(
     /**
      * ID that is globally unique.

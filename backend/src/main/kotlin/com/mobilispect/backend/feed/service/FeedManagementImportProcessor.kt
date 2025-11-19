@@ -1,6 +1,7 @@
 package com.mobilispect.backend.feed.service
 
 import com.mobilispect.backend.feed.model.FeedEntity
+import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
@@ -45,7 +46,7 @@ class FeedManagementImportProcessor(
             logger.info("Starting PostgreSQL-based import for feed: $feedOnestopId")
 
             // Find the feed in PostgreSQL
-            val feed = feedRepository.findById(feedOnestopId).orElse(null)
+            val feed = feedRepository.findById(FeedId(feedOnestopId)).orElse(null)
                 ?: return@withContext Result.failure(
                     IllegalArgumentException("Feed not found: $feedOnestopId")
                 )
@@ -57,14 +58,14 @@ class FeedManagementImportProcessor(
                 )
             }
 
-            val importId = "${feed.feedOnestopId}:${feed.currentVersionSha1 ?: "latest"}"
+            val importId = "${feed.feedOnestopId.value}:${feed.currentVersionSha1 ?: "latest"}"
             val startedAt = clock.instant()
             val totalSteps = 8
 
             fun progress(stepNumber: Int, stepName: String, percentage: Int = (stepNumber * 100) / totalSteps) {
                 progressTrackingService.updateProgress(
                     importId = importId,
-                    feedOnestopId = feed.feedOnestopId,
+                    feedOnestopId = feed.feedOnestopId.value,
                     progressPercentage = percentage.coerceAtMost(100),
                     currentStep = stepName,
                     currentStepNumber = stepNumber,

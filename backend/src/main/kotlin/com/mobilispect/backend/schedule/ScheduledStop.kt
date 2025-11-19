@@ -1,9 +1,7 @@
 package com.mobilispect.backend.schedule
 
 import com.mobilispect.backend.util.DateTimeOffset
-import org.springframework.data.mongodb.core.mapping.Document
 
-@Document(value = "scheduled_stops")
 data class ScheduledStop(
     /**
      * A globally unique trip ID.

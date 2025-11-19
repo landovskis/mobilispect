@@ -14,13 +14,15 @@ import org.hibernate.annotations.UuidGenerator
 import java.time.Instant
 import java.util.UUID
 
+import com.mobilispect.backend.feed.model.ids.AdministratorId
+
 @Entity
 @Table(name = "administrators")
 class Administrator(
     @Id
     @UuidGenerator
     @Column(columnDefinition = "uuid")
-    var id: UUID? = null,
+    var id: AdministratorId? = null,
 
     @Column(nullable = false, length = 255, unique = true)
     var username: String = "",
