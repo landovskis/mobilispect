@@ -13,6 +13,7 @@ import { ImportService } from '../services/import.service';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
 import { RegionService } from '../services/region.service';
+import { ThemeToggleComponent } from '../../shared/components/theme-toggle.component';
 
 @Component({
   selector: 'app-feeds-shell',
@@ -25,7 +26,8 @@ import { RegionService } from '../services/region.service';
     MatIconModule,
     MatButtonModule,
     MatSnackBarModule,
-    AppBarComponent
+    AppBarComponent,
+    ThemeToggleComponent
   ],
   template: `
     <div class="feeds-container">
@@ -43,6 +45,7 @@ import { RegionService } from '../services/region.service';
             (click)="toggleSidenav()">
             <mat-icon>menu</mat-icon>
           </button>
+          <app-theme-toggle></app-theme-toggle>
         </div>
       </app-bar>
 
@@ -118,6 +121,7 @@ import { RegionService } from '../services/region.service';
       border-right: 1px solid rgba(15, 23, 42, 0.08);
       padding: 24px 16px;
       background: #fff;
+      color: #0f172a;
     }
 
     .sidebar-nav {
@@ -200,6 +204,66 @@ import { RegionService } from '../services/region.service';
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
       padding: 24px;
       min-height: calc(100vh - 160px);
+    }
+
+    :host-context(.dark-theme) .drawer-container {
+      background: #0b1220;
+    }
+
+    :host-context(.dark-theme) .app-sidenav {
+      background: #0f172a;
+      border-color: rgba(148, 163, 184, 0.24);
+      color: #e2e8f0;
+    }
+
+    :host-context(.dark-theme) .sidebar-heading {
+      color: rgba(226, 232, 240, 0.8);
+    }
+
+    :host-context(.dark-theme) .sidebar-link {
+      background: #111827;
+      color: #e2e8f0;
+      border-color: rgba(148, 163, 184, 0.24);
+    }
+
+    :host-context(.dark-theme) .sidebar-link mat-icon {
+      color: #cbd5e1;
+    }
+
+    :host-context(.dark-theme) .sidebar-link .nav-count {
+      background: rgba(14, 165, 233, 0.15);
+      color: #7dd3fc;
+    }
+
+    :host-context(.dark-theme) .sidebar-link .nav-count.active {
+      background: rgba(14, 165, 233, 0.25);
+      color: #e0f2fe;
+    }
+
+    :host-context(.dark-theme) .sidebar-link.active {
+      background: #0ea5e9;
+      border-color: transparent;
+      color: #0b1220;
+      box-shadow: 0 10px 25px rgba(14, 165, 233, 0.35);
+    }
+
+    :host-context(.dark-theme) .sidebar-link.active mat-icon {
+      color: #0b1220;
+    }
+
+    :host-context(.dark-theme) .sidebar-link.active .nav-count {
+      background: rgba(11, 18, 32, 0.1);
+      color: #0b1220;
+    }
+
+    :host-context(.dark-theme) .content-area {
+      background-color: #0b1220;
+    }
+
+    :host-context(.dark-theme) .view-content {
+      background: #0f172a;
+      color: #e2e8f0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     }
 
     @media (max-width: 768px) {
