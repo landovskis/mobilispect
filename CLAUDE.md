@@ -19,13 +19,15 @@ full constitution. Key principles include:
 5. **Observability & Monitoring** - Structured logging, metrics, traces required
 6. **Architecture Decision Records** - NON-NEGOTIABLE for all significant
    technical decisions
-7. **Accessibility & WCAG** - Every user-facing change MUST satisfy WCAG 2.1 AA
+7. **Modular Monolith Architecture** - NON-NEGOTIABLE, Spring Modulith enforces
+   module boundaries, no cross-module database access, event-driven communication
+8. **Accessibility & WCAG** - Every user-facing change MUST satisfy WCAG 2.1 AA
    (automated scans + manual assistive-technology walkthroughs) with evidence in
    feature plans and release notes
 
 ### Technology Stack (Constitutional)
 
-- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 17, Redis 8.2
+- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 17, Redis 8.2, Spring Modulith
 - **Frontend**: Angular 19 LTS with TypeScript, RxJS for state management
 - **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
 - **Android**: Compose UI with Material Design 3

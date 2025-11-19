@@ -1,14 +1,15 @@
 <!--
 Sync Impact Report:
-Version: 1.8.0 → 1.9.0 (WCAG 2.1 AA enforcement)
-Modified sections: Cross-Platform UX Consistency (explicit accessibility rules); Cross-Platform Standards (accessibility clause); Governance metadata
-Added sections: None
+Version: 1.9.0 → 1.10.0 (Spring Modulith modular monolith architecture)
+Modified sections: Technology Stack (added Spring Modulith)
+Added sections: Principle VII - Modular Monolith Architecture (Spring Modulith)
 Removed sections: None
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md (Constitution Check references WCAG validation)
-  ✅ .specify/templates/spec-template.md (Requirements remind teams to capture WCAG criteria)
+  ⚠ .specify/templates/plan-template.md (Constitution Check should reference module boundaries)
+  ⚠ .specify/templates/spec-template.md (Requirements should consider module ownership)
+  ✅ .specify/templates/tasks-template.md (No changes needed - tasks are feature-driven)
 Supporting artifacts updated:
-  ✅ CLAUDE.md
+  ⚠ README.md (Already mentions modular monolith; verify consistency)
 Follow-up TODOs: None
 -->
 
@@ -46,10 +47,29 @@ All significant technical decisions MUST be documented as Architecture Decision 
 
 **Rationale**: Complex multi-platform systems require documented decision history to prevent repeated debates, ensure knowledge transfer, and provide context for future changes.
 
+### VII. Modular Monolith Architecture (NON-NEGOTIABLE)
+The backend MUST be structured as a modular monolith using Spring Modulith. Domain modules MUST own their data, business logic, and public interfaces. Cross-module communication MUST occur only through well-defined module APIs (events, application services, or explicit dependencies). Direct database access across module boundaries is PROHIBITED. Module boundaries MUST be verified through Spring Modulith's runtime verification. Service extraction from the monolith requires an ADR documenting the extraction rationale, migration plan, and impact analysis.
+
+**Module Ownership Rules**:
+- Each module MUST have a clearly defined bounded context
+- Modules MUST expose only public APIs (services, events, DTOs)
+- Internal implementation details (entities, repositories, domain logic) MUST remain private
+- Module dependencies MUST be acyclic and explicitly declared
+- Shared kernel concepts MUST be minimal and documented
+
+**Spring Modulith Requirements**:
+- Module structure MUST follow Spring Modulith conventions (package-based modules)
+- Module boundaries MUST be documented using `@Modulith` annotations
+- Integration tests MUST use `@ModuleTest` to verify module isolation
+- Application events MUST be used for asynchronous cross-module communication
+- Module documentation MUST be auto-generated using Spring Modulith's documentation features
+
+**Rationale**: Modular monoliths provide the development velocity and operational simplicity of monoliths while enforcing architectural boundaries that prevent the "big ball of mud" anti-pattern. Spring Modulith provides runtime verification of module boundaries, event-driven communication patterns, and tooling for eventual service extraction. This architecture supports the team's current size while maintaining a clear path to microservices if needed.
+
 ## Cross-Platform Standards
 
 ### Technology Stack
-- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 17, Redis 8.2
+- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 17, Redis 8.2, Spring Modulith for modular architecture
 - **Frontend**: Angular 19 LTS with TypeScript, RxJS for state management
 - **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
 - **Android**: Compose UI with Material Design 3
@@ -62,6 +82,12 @@ All significant technical decisions MUST be documented as Architecture Decision 
 
 ### Testing Standards
 All features MUST include comprehensive test coverage across unit, integration, and end-to-end levels. Database-dependent tests MUST execute against PostgreSQL 17 locally and in CI to guarantee compatibility with production storage. Cache-dependent tests MUST execute against Redis 8.2 in development and CI environments.
+
+**Module Testing**:
+- Each module MUST have its own test suite using `@ModuleTest`
+- Module integration tests MUST verify module boundaries and contracts
+- Cross-module integration tests MUST use published events and public APIs only
+- Module tests MUST be independently executable without requiring the full application context
 
 **End-to-End Testing with Playwright**:
 - Playwright MUST be used for all cross-browser E2E tests
@@ -83,21 +109,31 @@ Authentication via OAuth 2.0/OIDC. All data transmission MUST use TLS 1.3+. Clie
 ### Architecture Decision Records
 ADRs MUST be stored in `docs/adr/` directory using numbered format (e.g., `0001-use-kotlin-for-backend.md`). Template MUST include: Title, Status, Context, Decision, Consequences, Alternatives. All ADRs require team review before acceptance.
 
+**Modular Monolith ADRs**:
+- Module boundary decisions MUST be documented with ADRs
+- Cross-module dependency introductions MUST be documented with ADRs
+- Service extraction decisions MUST include migration plans and impact analysis
+
 ### Documentation Standards
 All architectural diagrams MUST use PlantUML with C4 model notation for consistency and version control compatibility. Diagrams MUST be stored as `.puml` files alongside their rendered outputs in `docs/architecture/`.
 
 **C4 Model Requirements**:
 - **Context Diagrams** (Level 1): Show system boundaries and external actors/systems
 - **Container Diagrams** (Level 2): Show high-level technology choices and communication patterns
-- **Component Diagrams** (Level 3): Show internal structure of containers
+- **Component Diagrams** (Level 3): Show internal structure of containers and module boundaries
 - **Code Diagrams** (Level 4): Use when critical implementation details need visualization
 
-All major features MUST include at minimum a Container diagram (C4 Level 2). Complex features MUST include Component diagrams (C4 Level 3) for critical subsystems. Sequence diagrams and entity relationship diagrams are required for data flows and persistence layers respectively.
+All major features MUST include at minimum a Container diagram (C4 Level 2). Complex features MUST include Component diagrams (C4 Level 3) for critical subsystems. Sequence diagrams and entity relationship diagrams are required for data flows and persistence layers respectively. Module interaction diagrams are required for cross-module features.
 
 **Rationale**: C4 model provides a standardized hierarchy for architectural documentation, ensuring consistent abstraction levels across all documentation. PlantUML enables version control, diff tracking, and automated diagram generation in CI/CD pipelines.
 
 ### CI/CD Standards
 All automation MUST use GitHub Actions workflows. Separate workflows are required for each platform (backend, frontend, mobile). Matrix builds MUST cover all supported platform versions. Deployment pipelines MUST include staging validation before production. All workflows MUST integrate with Grafana Cloud for build and deployment metrics.
+
+**Module Verification in CI**:
+- CI pipelines MUST execute Spring Modulith's module structure verification
+- Module dependency violations MUST fail the build
+- Module documentation MUST be generated and published as part of the build
 
 ## Quality Gates
 
@@ -106,18 +142,21 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 - [ ] Code formatting applied (Prettier, ktlint, SwiftFormat)
 - [ ] Linting violations resolved (ESLint, ktlint, SwiftLint)
 - [ ] Security scan passes (SonarQube, OWASP)
+- [ ] Module structure verification passes (Spring Modulith)
 
 ### Pre-Merge Gates
 - [ ] Code review approved by platform expert
 - [ ] GitHub Actions CI/CD pipeline passes completely
 - [ ] Performance tests show no regressions
 - [ ] Contract tests verify API compatibility
+- [ ] Module boundaries verified (no circular dependencies, proper encapsulation)
 
 ### Pre-Deploy Gates
 - [ ] End-to-end tests pass in staging (Playwright multi-browser)
 - [ ] Load testing confirms performance targets
 - [ ] Security scan shows no critical issues
 - [ ] Database migration validated
+- [ ] Module integration tests pass
 
 ## Governance
 
@@ -142,4 +181,4 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 
 **ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
 
-**Version**: 1.9.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-11-10
+**Version**: 1.10.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-11-19
