@@ -62,30 +62,28 @@ class FeedDiscoveryReader(
     override fun read(): FeedDiscoveryInput? {
         // Phase 1: Read ALL operators if not already done
         if (!allOperatorsRead) {
-            logger.info("Phase 1: Reading all operators to build complete feed-region map...")
+            logger.info("═══ Phase 1: Operator Discovery ═══")
             completeFeedRegionMap = readAllOperators()
             allOperatorsRead = true
 
             val feedIds = completeFeedRegionMap.feedIds()
-            logger.info("Phase 1 complete: Discovered {} feeds across all operators", feedIds.size)
 
             // Split feed IDs into batches for metadata fetching
             feedIdBatches.addAll(feedIds.chunked(outputBatchSize))
-            logger.info("Prepared {} batches for metadata fetching", feedIdBatches.size)
+            logger.info("  → Prepared {} batches for metadata fetching\n", feedIdBatches.size)
         }
 
         // Phase 2: Fetch metadata for ALL discovered feeds if not already done
         if (completeFeedMetadataMap == null) {
-            logger.info("Phase 2: Fetching metadata for all {} discovered feeds...",
-                completeFeedRegionMap.size)
+            logger.info("═══ Phase 2: Metadata Fetch ═══")
             completeFeedMetadataMap = fetchAllMetadata(completeFeedRegionMap)
-            logger.info("Phase 2 complete: Fetched metadata for {} feeds",
-                completeFeedMetadataMap!!.size)
+            logger.info("")
         }
 
         // Phase 3: Return batches of combined data for processing
         if (currentBatchIndex >= feedIdBatches.size) {
-            logger.info("Phase 3 complete: All batches returned for processing")
+            logger.info("═══ Phase 3: Processing Complete ═══")
+            logger.info("  → All {} batches sent for processing\n", feedIdBatches.size)
             return null
         }
 
@@ -96,8 +94,10 @@ class FeedDiscoveryReader(
         val batchRegionMap = completeFeedRegionMap.filterKeys(batchFeedIds.toSet())
         val batchMetadataMap = completeFeedMetadataMap!!.filterKeys(batchFeedIds.toSet())
 
-        logger.info(
-            "Phase 3: Returning batch {}/{} with {} feeds for processing",
+        if (currentBatchIndex == 1) {
+            logger.info("═══ Phase 3: Batch Processing ═══")
+        }
+        logger.debug("  → Sending batch {}/{} ({} feeds) for processing",
             currentBatchIndex,
             feedIdBatches.size,
             batchFeedIds.size
@@ -141,40 +141,36 @@ class FeedDiscoveryReader(
             }
 
             batchCount++
-            logger.info(
-                "Processing operator page {} with {} operators (hasMore={})",
-                batchCount,
-                operators.size,
-                page.hasMorePages
-            )
+            logger.info("  Page {}: Processing {} operators", batchCount, operators.size)
 
             val chunks = operators.chunked(operatorProcessingBatchSize)
+            val pageFeedsBeforeCount = allMappings.size
             for ((chunkIndex, chunk) in chunks.withIndex()) {
                 val feedRegionMap = transformOperatorsToFeedRegionMap(chunk)
                 allMappings.putAll(feedRegionMap.feedToRegionMap)
                 logger.debug(
-                    "Transformed operator chunk {}/{} in page {} -> {} feed mappings (total mappings: {})",
+                    "    → Chunk {}/{}: {} feed mappings (page total: {})",
                     chunkIndex + 1,
                     chunks.size,
-                    batchCount,
                     feedRegionMap.size,
-                    allMappings.size
+                    allMappings.size - pageFeedsBeforeCount
                 )
+            }
+
+            val pageFeedsAdded = allMappings.size - pageFeedsBeforeCount
+            if (pageFeedsAdded > 0) {
+                logger.info("    ✓ Page {}: Discovered {} feeds (total: {})", batchCount, pageFeedsAdded, allMappings.size)
             }
 
             currentCursor = page.nextCursor
             currentFuture = nextFuture
 
             if (currentFuture == null) {
-                logger.info("No additional operator pages available after cursor={}", currentCursor)
+                logger.info("  → No more pages (final cursor: {})", currentCursor ?: "none")
             }
         }
 
-        logger.info(
-            "Completed reading {} operator pages, total feeds discovered: {}",
-            batchCount,
-            allMappings.size
-        )
+        logger.info("✓ Phase 1 complete: Discovered {} feeds across {} operator pages", allMappings.size, batchCount)
 
         return FeedRegionMap(allMappings)
     }
@@ -292,23 +288,25 @@ class FeedDiscoveryReader(
                 continue
             }
 
-            if (place != null) {
+            val regionName = regionParts.joinToString(", ")
+
+            // Log Montreal-area operators prominently for debugging
+            val isMontreal = regionParts.any { it.contains("Montréal", ignoreCase = true) || it.contains("Montreal", ignoreCase = true) }
+            if (isMontreal) {
                 logger.info(
-                    "Operator {} location: city='{}', state='{}', country='{}'",
-                    operator.onestop_id,
-                    place.city_name ?: "(none)",
-                    place.adm1_name ?: "(none)",
-                    place.adm0_name ?: "(none)"
+                    "      🍁 MONTREAL: {} → {} ({} feeds)",
+                    operator.short_name ?: operator.name ?: "Unknown",
+                    regionName,
+                    validFeedIds.size
                 )
             } else {
-                logger.info(
-                    "Operator {} using fallback region name: '{}'",
-                    operator.onestop_id,
-                    regionParts.joinToString(", ")
+                logger.debug(
+                    "      → {}: {} ({} feeds)",
+                    regionName,
+                    operator.short_name ?: operator.name ?: "Unknown",
+                    validFeedIds.size
                 )
             }
-
-            val regionName = regionParts.joinToString(", ")
             val sanitizedParts = regionParts.map {
                 it.lowercase()
                     .replace(Regex("[^a-z0-9-]"), "-")
@@ -380,13 +378,12 @@ class FeedDiscoveryReader(
         val metadataBatchSize = 50
         val feedIdChunks = feedIds.chunked(metadataBatchSize)
 
-        logger.info("Fetching metadata in {} batches of up to {} feeds each",
-            feedIdChunks.size, metadataBatchSize)
+        logger.info("Phase 2: Fetching metadata for {} feeds in {} batches", feedIds.size, feedIdChunks.size)
 
         for ((index, chunk) in feedIdChunks.withIndex()) {
             try {
-                logger.debug("Fetching metadata batch {}/{} ({} feeds)",
-                    index + 1, feedIdChunks.size, chunk.size)
+                val batchStartCount = allMetadata.size
+                logger.info("  Batch {}/{}: Fetching {} feeds", index + 1, feedIdChunks.size, chunk.size)
 
                 val futures = chunk.map { feedId ->
                     CompletableFuture.supplyAsync {
@@ -395,7 +392,7 @@ class FeedDiscoveryReader(
                             val metadata = fetchSingleFeedMetadata(feedId, regionMetadata?.operatorName)
                             feedId to metadata
                         } catch (e: Exception) {
-                            logger.error("Failed to fetch metadata for feed {}: {}", feedId.value, e.message)
+                            logger.debug("    ✗ Failed: {} - {}", feedId.value, e.message)
                             feedId to null
                         }
                     }
@@ -408,16 +405,28 @@ class FeedDiscoveryReader(
                     }
                 }
 
-                logger.debug("Metadata batch {}/{} complete, fetched {} feeds so far",
-                    index + 1, feedIdChunks.size, allMetadata.size)
+                val batchSuccessCount = allMetadata.size - batchStartCount
+                val batchFailCount = chunk.size - batchSuccessCount
+                if (batchFailCount > 0) {
+                    logger.info("    ✓ Batch {}/{}: {} succeeded, {} failed (total: {})",
+                        index + 1, feedIdChunks.size, batchSuccessCount, batchFailCount, allMetadata.size)
+                } else {
+                    logger.info("    ✓ Batch {}/{}: {} succeeded (total: {})",
+                        index + 1, feedIdChunks.size, batchSuccessCount, allMetadata.size)
+                }
 
             } catch (e: Exception) {
-                logger.error("Error processing metadata batch {}/{}", index + 1, feedIdChunks.size, e)
+                logger.error("  ✗ Batch {}/{} error: {}", index + 1, feedIdChunks.size, e.message)
             }
         }
 
-        logger.info("Metadata fetching complete: {}/{} feeds have metadata",
-            allMetadata.size, feedIds.size)
+        val failedCount = feedIds.size - allMetadata.size
+        if (failedCount > 0) {
+            logger.info("✓ Phase 2 complete: Fetched metadata for {}/{} feeds ({} failed)",
+                allMetadata.size, feedIds.size, failedCount)
+        } else {
+            logger.info("✓ Phase 2 complete: Fetched metadata for all {} feeds", allMetadata.size)
+        }
 
         return FeedMetadataMap(allMetadata)
     }
@@ -501,12 +510,20 @@ class FeedDiscoveryReader(
                 authorizationInfoUrl = feed.authorization?.info_url
             )
 
-            logger.debug(
-                "Successfully fetched metadata for feed: {} (name: '{}', version: {})",
-                feedId.value,
-                feedName,
-                latestVersion.sha1
-            )
+            // Highlight Montreal feeds
+            val isMontreal = feedId.value.startsWith("f-f25") ||
+                            feedName.contains("Montreal", ignoreCase = true) ||
+                            feedName.contains("Montréal", ignoreCase = true) ||
+                            operatorName?.contains("Montreal", ignoreCase = true) == true ||
+                            operatorName?.contains("Montréal", ignoreCase = true) == true ||
+                            operatorName?.contains("STM") == true ||
+                            operatorName?.contains("STL") == true ||
+                            operatorName?.contains("RTL") == true ||
+                            operatorName?.contains("EXO") == true
+
+            if (isMontreal) {
+                logger.info("        🍁 Fetched: {} ({})", feedName, operatorName ?: "unknown")
+            }
 
             metadata
         } catch (e: Exception) {

@@ -32,8 +32,8 @@ class FeedDiscoveryProcessor : ItemProcessor<FeedDiscoveryInput, FeedDiscoveryBa
         val feedRegionMap = item.feedRegionMap
         val feedMetadataMap = item.feedMetadataMap
 
-        logger.info(
-            "Processing feed discovery batch: {} feeds with regions, {} feeds with metadata",
+        logger.debug(
+            "  Processing batch: {} feeds with regions, {} with metadata",
             feedRegionMap.size,
             feedMetadataMap.size
         )
@@ -53,20 +53,20 @@ class FeedDiscoveryProcessor : ItemProcessor<FeedDiscoveryInput, FeedDiscoveryBa
             when {
                 regionMetadata == null && feedMetadata == null -> {
                     // Should not happen, but log it
-                    logger.error("Feed {} found in join but missing from both maps", feedId.value)
+                    logger.error("    ✗ Feed {} missing from both maps", feedId.value)
                 }
                 regionMetadata == null -> {
-                    logger.warn("Feed {} has metadata but no region information", feedId.value)
+                    logger.debug("    ⚠ Feed {} has metadata but no region", feedId.value)
                     missingRegionCount++
                 }
                 feedMetadata == null -> {
-                    logger.warn("Feed {} has region information but no metadata", feedId.value)
+                    logger.debug("    ⚠ Feed {} has region but no metadata", feedId.value)
                     missingMetadataCount++
                 }
                 feedMetadata.downloadUrl.isBlank() || !isValidDownloadUrl(feedMetadata.downloadUrl) -> {
                     // Filter out feeds without a valid HTTP(S) download URL - they can't be imported
-                    logger.warn(
-                        "Feed {} has invalid download URL '{}', skipping",
+                    logger.debug(
+                        "    ⚠ Feed {} has invalid download URL: '{}'",
                         feedId.value,
                         feedMetadata.downloadUrl
                     )
@@ -88,27 +88,40 @@ class FeedDiscoveryProcessor : ItemProcessor<FeedDiscoveryInput, FeedDiscoveryBa
                         authorizationType = feedMetadata.authorizationType,
                         authorizationInfoUrl = feedMetadata.authorizationInfoUrl
                     )
+
+                    // Highlight Montreal feeds
+                    val isMontreal = feedId.value.startsWith("f-f25") ||
+                                    regionMetadata.regionName.contains("Montréal", ignoreCase = true) ||
+                                    regionMetadata.regionName.contains("Montreal", ignoreCase = true) ||
+                                    regionMetadata.operatorName?.contains("STM") == true ||
+                                    regionMetadata.operatorName?.contains("STL") == true ||
+                                    regionMetadata.operatorName?.contains("RTL") == true ||
+                                    regionMetadata.operatorName?.contains("EXO") == true
+
+                    if (isMontreal) {
+                        logger.info("      🍁 Matched: {} → {}", feedMetadata.name, regionMetadata.regionName)
+                    }
+
                     results.add(result)
                 }
             }
         }
 
-        logger.info(
-            "Feed discovery processing complete: {} successful matches, {} missing metadata, {} missing region, {} missing download URL",
-            results.size,
-            missingMetadataCount,
-            missingRegionCount,
-            missingDownloadUrlCount
-        )
-
         val totalSkipped = missingMetadataCount + missingRegionCount + missingDownloadUrlCount
         if (totalSkipped > 0) {
-            logger.warn(
-                "Data quality issue: {}/{} feeds had incomplete information ({}% success rate)",
-                totalSkipped,
+            val successRate = if (allFeedIds.isNotEmpty()) (results.size * 100) / allFeedIds.size else 0
+            logger.info(
+                "    ✓ Matched {}/{} feeds ({}% success, {} skipped: {} no-metadata, {} no-region, {} invalid-url)",
+                results.size,
                 allFeedIds.size,
-                if (allFeedIds.isNotEmpty()) (results.size * 100) / allFeedIds.size else 0
+                successRate,
+                totalSkipped,
+                missingMetadataCount,
+                missingRegionCount,
+                missingDownloadUrlCount
             )
+        } else {
+            logger.info("    ✓ Matched all {} feeds successfully", results.size)
         }
 
         return FeedDiscoveryBatch(results)

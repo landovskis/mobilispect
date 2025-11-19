@@ -82,11 +82,6 @@
   Fill them out with the right functional requirements.
 -->
 
-> **Accessibility Reminder (Constitution §III)**: Every user-facing feature MUST
-> include explicit requirements describing how WCAG 2.1 AA compliance will be
-> achieved (automated scans + manual assistive-technology journeys). Capture
-> these as functional requirements (e.g., FR-00X).
-
 ### Functional Requirements
 
 - **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]

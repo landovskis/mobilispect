@@ -59,15 +59,16 @@ class FeedDiscoveryWriter(
 
         val chunkRegionIds = mutableSetOf<String>()
 
-        for (batch in batches) {
-            logger.debug("Processing batch with {} feed results", batch.results.size)
+        for ((batchIndex, batch) in batches.withIndex()) {
+            logger.info("  Batch {}/{}: Processing {} feeds", batchIndex + 1, batches.size, batch.results.size)
+            val feedsCreatedBeforeBatch = feedsCreated
 
             // Step 1: Collect all unique regions from the batch
             val uniqueRegions = batch.results
                 .map { it.region }
                 .distinctBy { it.regionOnestopId }
 
-            logger.debug("Found {} unique regions in batch", uniqueRegions.size)
+            logger.info("    → Found {} unique regions", uniqueRegions.size)
 
             // Step 2: Create or update regions
             val regionEntities = mutableMapOf<String, MetropolitanRegion>()
@@ -78,7 +79,6 @@ class FeedDiscoveryWriter(
 
                 val regionEntity = if (existingRegion != null) {
                     // Update existing region
-                    logger.debug("Updating existing region: {}", regionMetadata.regionOnestopId)
                     regionsUpdated++
                     existingRegion.apply {
                         name = regionMetadata.regionName
@@ -88,7 +88,7 @@ class FeedDiscoveryWriter(
                     }
                 } else {
                     // Create new region
-                    logger.debug("Creating new region: {}", regionMetadata.regionOnestopId)
+                    logger.info("      ✓ Creating region: {}", regionMetadata.regionName)
                     regionsCreated++
                     MetropolitanRegion(
                         regionOnestopId = regionMetadata.regionOnestopId,
@@ -115,7 +115,6 @@ class FeedDiscoveryWriter(
 
                 val feedEntity = if (existingFeed != null) {
                     // Update existing feed
-                    logger.debug("Updating existing feed: {}", feedId.value)
                     feedsUpdated++
                     existingFeed.apply {
                         name = result.name
@@ -124,6 +123,7 @@ class FeedDiscoveryWriter(
                         staticFeedUrl = result.staticFeedUrl
                         realtimeFeedUrl = result.realtimeFeedUrl
                         currentVersionSha1 = result.versionSha1
+                        operatorName = result.region.operatorName
                         lastDiscoveredAt = now
                         updatedAt = now
 
@@ -135,7 +135,7 @@ class FeedDiscoveryWriter(
                     }
                 } else {
                     // Create new feed
-                    logger.debug("Creating new feed: {}", feedId.value)
+                    logger.info("      ✓ Creating feed: {} ({})", result.name, result.region.operatorName ?: "unknown operator")
                     feedsCreated++
                     val regionEntity = regionEntities[result.region.regionOnestopId]
                         ?: error("Region entity not found for ${result.region.regionOnestopId}")
@@ -147,6 +147,7 @@ class FeedDiscoveryWriter(
                         downloadUrl = result.downloadUrl,
                         staticFeedUrl = result.staticFeedUrl,
                         realtimeFeedUrl = result.realtimeFeedUrl,
+                        operatorName = result.region.operatorName,
                         currentVersionSha1 = result.versionSha1,
                         status = FeedStatus.ACTIVE,
                         lastDiscoveredAt = now,
@@ -157,14 +158,20 @@ class FeedDiscoveryWriter(
                     }
                 }
 
-                val savedFeed = feedRepository.save(feedEntity)
+                feedRepository.save(feedEntity)
                 totalFeedsProcessed++
                 chunkRegionIds.add(result.region.regionOnestopId)
             }
+
+            val batchNewFeeds = feedsCreated - feedsCreatedBeforeBatch
+            logger.info("    ✓ Batch complete: {} feeds saved ({} new)", batch.results.size, batchNewFeeds)
         }
 
-        logger.info(
-            "Successfully wrote to database: {} feeds ({} created, {} updated), {} regions ({} created, {} updated)",
+        logger.info("""
+            ✓ Write complete:
+              • Feeds: {} total ({} created, {} updated)
+              • Regions: {} total ({} created, {} updated)
+        """.trimIndent(),
             totalFeedsProcessed,
             feedsCreated,
             feedsUpdated,

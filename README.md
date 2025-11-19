@@ -30,7 +30,9 @@ ios: iOS App + UI
 
 ### Backend
 
-The backend is powered by Spring Boot.
+The backend is powered by Spring Boot and follows a modular monolith
+architecture: domain modules own their data and interfaces, and service
+extraction requires an ADR and migration plan.
 
 ## Development Containers
 
