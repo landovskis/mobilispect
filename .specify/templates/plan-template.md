@@ -33,6 +33,13 @@
 
 [Gates determined based on constitution file]
 
+**Modular Monolith Considerations** (for backend features):
+- [ ] Does this feature cross module boundaries? If yes, document which modules are involved
+- [ ] Are module APIs well-defined? (events, application services, or explicit dependencies)
+- [ ] Is direct database access across modules avoided?
+- [ ] Are module boundaries verified with @ModuleTest?
+- [ ] If extracting/adding modules, is there an ADR documenting the decision?
+
 ## Project Structure
 
 ### Documentation (this feature)
