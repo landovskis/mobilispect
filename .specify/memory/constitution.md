@@ -5,12 +5,15 @@ Modified sections: Technology Stack (added Spring Modulith)
 Added sections: Principle VII - Modular Monolith Architecture (Spring Modulith)
 Removed sections: None
 Templates requiring updates:
-  ⚠ .specify/templates/plan-template.md (Constitution Check should reference module boundaries)
-  ⚠ .specify/templates/spec-template.md (Requirements should consider module ownership)
+  ✅ .specify/templates/plan-template.md (Added Modular Monolith Considerations checklist)
+  ✅ .specify/templates/spec-template.md (Added Module Ownership section)
   ✅ .specify/templates/tasks-template.md (No changes needed - tasks are feature-driven)
 Supporting artifacts updated:
+  ✅ CLAUDE.md (Added Principle #7 and updated tech stack)
   ⚠ README.md (Already mentions modular monolith; verify consistency)
-Follow-up TODOs: None
+Follow-up TODOs:
+  - Consider creating ADR for Spring Modulith adoption decision
+  - Add Spring Modulith module verification to pre-commit hooks
 -->
 
 # Mobilispect Constitution
