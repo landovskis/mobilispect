@@ -13,7 +13,7 @@ Supporting artifacts updated:
   ⚠ README.md (Already mentions modular monolith; verify consistency)
 Follow-up TODOs:
   - Consider creating ADR for Spring Modulith adoption decision
-  - Add Spring Modulith module verification to pre-commit hooks
+  - ✅ Add Spring Modulith module verification to pre-commit hooks (9dc0a545)
 -->
 
 # Mobilispect Constitution
