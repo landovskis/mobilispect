@@ -9,6 +9,7 @@ protobuf = "4.27.2"
 resilience4j = "2.2.0"
 springBoot = "3.4.7"
 springDependency = "1.1.7"
+springModulith = "1.3.0"
 springDoc = "2.6.0"
 springDocPlugin = "1.9.0"
 squareSortDependency = "0.14"
@@ -39,6 +40,12 @@ spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-
 # Background Jobs
 spring-boot-batch =  { module = "org.springframework.boot:spring-boot-starter-batch" }
 spring-batch-test =  { module = "org.springframework.batch:spring-batch-test" }
+
+# Modular Monolith Architecture
+spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "springModulith" }
+spring-modulith-api = { module = "org.springframework.modulith:spring-modulith-api" }
+spring-modulith-runtime = { module = "org.springframework.modulith:spring-modulith-runtime" }
+spring-modulith-starter-test = { module = "org.springframework.modulith:spring-modulith-starter-test" }
 
 # View OpenAPI
 springdoc-openapi-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springDoc" }

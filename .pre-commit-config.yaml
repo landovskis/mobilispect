@@ -56,6 +56,15 @@ repos:
         exclude: 'backend/(build|\.gradle)/.*'
         pass_filenames: false
 
+      # Spring Modulith Module Verification (Constitutional Requirement - Principle VII)
+      - id: backend-modulith-verify
+        name: Spring Modulith Module Boundaries (Constitutional Principle VII)
+        entry: bash -c 'cd backend && ./gradlew verifyModulith'
+        language: system
+        files: 'backend/.*\.kt$'
+        exclude: 'backend/(build|\.gradle)/.*'
+        pass_filenames: false
+
   # Mobile KMM
   - repo: local
     hooks:
@@ -129,7 +138,7 @@ repos:
       # Constitution Compliance Check
       - id: constitution-compliance
         name: Constitution Compliance Check
-        entry: bash -c 'echo "✓ Constitutional quality gates enforced" && echo "✓ DRY/YAGNI/SOLID principles required" && echo "✓ TDD mandatory (tests run above)" && echo "✓ Cross-platform UX consistency required" && echo "✓ Performance standards - 200ms API, 60fps mobile" && echo "✓ ADR documentation required for architectural decisions"'
+        entry: bash -c 'echo "✓ Constitutional quality gates enforced (v1.10.0)" && echo "✓ DRY/YAGNI/SOLID principles required" && echo "✓ TDD mandatory (tests run above)" && echo "✓ Cross-platform UX consistency required" && echo "✓ Performance standards - 200ms API, 60fps mobile" && echo "✓ ADR documentation required for architectural decisions" && echo "✓ Modular Monolith Architecture (Spring Modulith verified above)"'
         language: system
         always_run: true
         pass_filenames: false

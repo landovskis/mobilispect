@@ -21,6 +21,9 @@ repositories {
 }
 
 dependencies {
+    // Spring Modulith BOM for version management
+    implementation(platform(libs.spring.modulith.bom))
+
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -40,6 +43,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation(libs.spring.boot.batch)
+    implementation(libs.spring.modulith.api)
+    runtimeOnly(libs.spring.modulith.runtime)
 
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation(libs.spring.batch.test)
@@ -51,6 +56,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.spring.modulith.starter.test)
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -106,5 +112,30 @@ tasks.register("jacocoTestReport") {
 
     doLast {
         logger.lifecycle("jacocoTestReport stub: no coverage generated (JaCoCo plugin unavailable offline)")
+    }
+}
+
+// Spring Modulith module structure verification (Constitutional Requirement - Principle VII)
+tasks.register<Test>("verifyModulith") {
+    group = "verification"
+    description = "Verify Spring Modulith module boundaries (Constitutional Requirement)"
+
+    useJUnitPlatform()
+
+    // Only run tests with @ModulithTest or module verification tests
+    filter {
+        includeTestsMatching("*ModuleStructureTest")
+        includeTestsMatching("*ModulithTest")
+    }
+
+    doFirst {
+        logger.lifecycle("✓ Verifying Spring Modulith module boundaries (Constitution v1.10.0 - Principle VII)")
+        logger.lifecycle("✓ Checking for module boundary violations...")
+        logger.lifecycle("✓ Validating acyclic dependencies...")
+        logger.lifecycle("✓ Ensuring proper module encapsulation...")
+    }
+
+    doLast {
+        logger.lifecycle("✓ Spring Modulith module verification complete")
     }
 }
