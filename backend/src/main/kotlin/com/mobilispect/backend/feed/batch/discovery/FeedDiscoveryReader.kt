@@ -188,6 +188,13 @@ class FeedDiscoveryReader(
                 .uri(uri)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
+                .onStatus({ status -> status.is4xxClientError || status.is5xxServerError }) { clientResponse ->
+                    clientResponse.bodyToMono(String::class.java).map { body ->
+                        val errorMsg = "Transit.land API returned ${clientResponse.statusCode()}: $body"
+                        logger.error(errorMsg)
+                        RuntimeException(errorMsg)
+                    }
+                }
                 .bodyToMono(TransitLandOperatorResponse::class.java)
                 .block()
 
