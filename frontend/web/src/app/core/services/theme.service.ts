@@ -27,7 +27,7 @@ export class ThemeService {
     const storedPreference = this.readStoredPreference();
     this.hasStoredPreference = storedPreference !== null;
 
-    const initialPreference = storedPreference ?: this.resolveSystemTheme();
+    const initialPreference = storedPreference ?? this.resolveSystemTheme();
     this.preferenceSubject.next(initialPreference);
     this.applyTheme(initialPreference);
     this.listenForSystemChanges();
