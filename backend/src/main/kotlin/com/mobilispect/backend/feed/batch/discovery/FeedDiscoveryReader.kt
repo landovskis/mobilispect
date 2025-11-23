@@ -1,21 +1,73 @@
 package com.mobilispect.backend.feed.batch.discovery
 
-import com.mobilispect.backend.TransitLandFeedResponse
 import com.mobilispect.backend.TransitLandOperator
-import com.mobilispect.backend.TransitLandOperatorResponse
 import com.mobilispect.backend.feed.model.ids.FeedId
-import com.mobilispect.backend.feed.model.FeedSpecType
+import com.mobilispect.backend.infastructure.transit_land.FeedMetadataResult
+import com.mobilispect.backend.infastructure.transit_land.OperatorsResult
+import com.mobilispect.backend.infastructure.transit_land.TransitLandAPI
+import com.mobilispect.backend.transit_land.PagingParameters
 import org.slf4j.LoggerFactory
 import org.springframework.batch.item.ItemReader
-import org.springframework.http.MediaType
-import org.springframework.web.reactive.function.client.WebClient
-import java.time.LocalDate
 import java.util.concurrent.CompletableFuture
+
+/**
+ * Type-safe state machine for FeedDiscoveryReader.
+ *
+ * Uses sealed classes to encode the reader's phase in the type system,
+ * ensuring compile-time safety for state transitions and data availability.
+ *
+ * State transitions:
+ * - Initial → OperatorsRead: After reading all operators from Transit.land
+ * - OperatorsRead → MetadataFetched: After fetching metadata for all feeds
+ * - MetadataFetched → Yielding: While returning batches to Spring Batch
+ * - Yielding → Complete: After all batches have been returned
+ */
+sealed class ReaderState {
+    /**
+     * Initial state before any processing has begun.
+     */
+    data object Initial : ReaderState()
+
+    /**
+     * State after all operators have been read.
+     * Contains the complete feed-region mapping and prepared batches.
+     */
+    data class OperatorsRead(
+        val feedRegionMap: FeedRegionMap,
+        val batches: List<List<FeedId>>
+    ) : ReaderState()
+
+    /**
+     * State after metadata has been fetched for all feeds.
+     * Ready to begin yielding batches to Spring Batch.
+     */
+    data class MetadataFetched(
+        val feedRegionMap: FeedRegionMap,
+        val feedMetadataMap: FeedMetadataMap,
+        val batches: List<List<FeedId>>
+    ) : ReaderState()
+
+    /**
+     * State while yielding batches to Spring Batch.
+     * Tracks current position in the batch list.
+     */
+    data class Yielding(
+        val feedRegionMap: FeedRegionMap,
+        val feedMetadataMap: FeedMetadataMap,
+        val batches: List<List<FeedId>>,
+        val nextBatchIndex: Int
+    ) : ReaderState()
+
+    /**
+     * Terminal state after all batches have been yielded.
+     */
+    data object Complete : ReaderState()
+}
 
 /**
  * Custom ItemReader that combines operator reading and metadata fetching.
  *
- * This reader orchestrates a two-phase read process ensuring all operators
+ * This reader orchestrates a multi-phase read process ensuring all operators
  * are read before metadata fetching begins:
  *
  * Phase 1 (Read): Read ALL operators and build complete FeedRegionMap
@@ -24,9 +76,14 @@ import java.util.concurrent.CompletableFuture
  *
  * This ensures the reading phase completes entirely before processing begins,
  * which is critical for efficient API usage and data consistency.
+ *
+ * Rate limiting and concurrency control are centralized in TransitLandClient.
+ *
+ * Uses a type-safe state machine (sealed classes) to track progress through
+ * phases, ensuring compile-time safety for state transitions.
  */
 class FeedDiscoveryReader(
-    private val webClientBuilder: WebClient.Builder,
+    private val transitLandClient: TransitLandAPI,
     private val apiKey: TransitLandAPIKey?,
     private val defaultApiKey: TransitLandAPIKey?,
     private val specType: String = "gtfs",
@@ -34,79 +91,105 @@ class FeedDiscoveryReader(
 ) : ItemReader<FeedDiscoveryInput> {
 
     private val logger = LoggerFactory.getLogger(FeedDiscoveryReader::class.java)
-    private val feedOnestopIdPattern = Regex("^f-.+\$")
+    private val feedOnestopIdPattern = Regex("^f-.+$")
     private val operatorProcessingBatchSize = operatorBatchSize.coerceAtLeast(1)
+    private val outputBatchSize = 100
 
-    private val operatorApiKey: TransitLandAPIKey by lazy {
-        apiKey ?: defaultApiKey ?: throw IllegalStateException(
+    private val operatorApiKey: String by lazy {
+        (apiKey ?: defaultApiKey)?.value ?: throw IllegalStateException(
             "Transit.land API key not configured. Set app.transit-land.api-key property or pass apiKey job parameter"
         )
     }
 
-    private val transitLandClient: WebClient by lazy {
-        webClientBuilder.baseUrl("https://transit.land/api/v2/rest")
-            .defaultHeader("apikey", operatorApiKey.value)
-            .build()
-    }
-
-    // Phase tracking
-    private var allOperatorsRead = false
-    private var completeFeedRegionMap: FeedRegionMap = FeedRegionMap(emptyMap())
-    private var completeFeedMetadataMap: FeedMetadataMap? = null
-
-    // For batch-wise output
-    private val feedIdBatches = mutableListOf<List<FeedId>>()
-    private var currentBatchIndex = 0
-    private val outputBatchSize = 100
+    // Type-safe state machine - current state encodes what data is available
+    private var state: ReaderState = ReaderState.Initial
 
     override fun read(): FeedDiscoveryInput? {
-        // Phase 1: Read ALL operators if not already done
-        if (!allOperatorsRead) {
-            logger.info("═══ Phase 1: Operator Discovery ═══")
-            completeFeedRegionMap = readAllOperators()
-            allOperatorsRead = true
+        return when (val currentState = state) {
+            is ReaderState.Initial -> {
+                // Phase 1: Read ALL operators
+                logger.info("═══ Phase 1: Operator Discovery ═══")
+                val feedRegionMap = readAllOperators()
+                val feedIds = feedRegionMap.feedIds()
+                val batches = feedIds.chunked(outputBatchSize)
+                logger.info("  → Prepared {} batches for metadata fetching\n", batches.size)
 
-            val feedIds = completeFeedRegionMap.feedIds()
+                // Transition to OperatorsRead state
+                state = ReaderState.OperatorsRead(feedRegionMap, batches)
+                read() // Recurse to process next state
+            }
 
-            // Split feed IDs into batches for metadata fetching
-            feedIdBatches.addAll(feedIds.chunked(outputBatchSize))
-            logger.info("  → Prepared {} batches for metadata fetching\n", feedIdBatches.size)
+            is ReaderState.OperatorsRead -> {
+                // Phase 2: Fetch metadata for ALL discovered feeds
+                logger.info("═══ Phase 2: Metadata Fetch ═══")
+                val feedMetadataMap = fetchAllMetadata(currentState.feedRegionMap)
+                logger.info("")
+
+                // Transition to MetadataFetched state
+                state = ReaderState.MetadataFetched(
+                    feedRegionMap = currentState.feedRegionMap,
+                    feedMetadataMap = feedMetadataMap,
+                    batches = currentState.batches
+                )
+                read() // Recurse to process next state
+            }
+
+            is ReaderState.MetadataFetched -> {
+                // Transition to Yielding state (starting at batch 0)
+                if (currentState.batches.isEmpty()) {
+                    logger.info("═══ Phase 3: Processing Complete ═══")
+                    logger.info("  → No batches to process\n")
+                    state = ReaderState.Complete
+                    null
+                } else {
+                    logger.info("═══ Phase 3: Batch Processing ═══")
+                    state = ReaderState.Yielding(
+                        feedRegionMap = currentState.feedRegionMap,
+                        feedMetadataMap = currentState.feedMetadataMap,
+                        batches = currentState.batches,
+                        nextBatchIndex = 0
+                    )
+                    read() // Recurse to yield first batch
+                }
+            }
+
+            is ReaderState.Yielding -> {
+                // Phase 3: Return batches of combined data for processing
+                if (currentState.nextBatchIndex >= currentState.batches.size) {
+                    logger.info("═══ Phase 3: Processing Complete ═══")
+                    logger.info("  → All {} batches sent for processing\n", currentState.batches.size)
+                    state = ReaderState.Complete
+                    null
+                } else {
+                    val batchFeedIds = currentState.batches[currentState.nextBatchIndex]
+                    val batchIndex = currentState.nextBatchIndex + 1
+
+                    // Advance to next batch for next call
+                    state = currentState.copy(nextBatchIndex = currentState.nextBatchIndex + 1)
+
+                    // Filter the complete maps to just this batch's feed IDs
+                    val batchRegionMap = currentState.feedRegionMap.filterKeys(batchFeedIds.toSet())
+                    val batchMetadataMap = currentState.feedMetadataMap.filterKeys(batchFeedIds.toSet())
+
+                    logger.debug(
+                        "  → Sending batch {}/{} ({} feeds) for processing",
+                        batchIndex,
+                        currentState.batches.size,
+                        batchFeedIds.size
+                    )
+
+                    FeedDiscoveryInput(
+                        feedRegionMap = batchRegionMap,
+                        feedMetadataMap = batchMetadataMap
+                    )
+                }
+            }
+
+            is ReaderState.Complete -> {
+                // Terminal state - no more items to read
+                null
+            }
         }
-
-        // Phase 2: Fetch metadata for ALL discovered feeds if not already done
-        if (completeFeedMetadataMap == null) {
-            logger.info("═══ Phase 2: Metadata Fetch ═══")
-            completeFeedMetadataMap = fetchAllMetadata(completeFeedRegionMap)
-            logger.info("")
-        }
-
-        // Phase 3: Return batches of combined data for processing
-        if (currentBatchIndex >= feedIdBatches.size) {
-            logger.info("═══ Phase 3: Processing Complete ═══")
-            logger.info("  → All {} batches sent for processing\n", feedIdBatches.size)
-            return null
-        }
-
-        val batchFeedIds = feedIdBatches[currentBatchIndex]
-        currentBatchIndex++
-
-        // Filter the complete maps to just this batch's feed IDs
-        val batchRegionMap = completeFeedRegionMap.filterKeys(batchFeedIds.toSet())
-        val batchMetadataMap = completeFeedMetadataMap!!.filterKeys(batchFeedIds.toSet())
-
-        if (currentBatchIndex == 1) {
-            logger.info("═══ Phase 3: Batch Processing ═══")
-        }
-        logger.debug("  → Sending batch {}/{} ({} feeds) for processing",
-            currentBatchIndex,
-            feedIdBatches.size,
-            batchFeedIds.size
-        )
-
-        return FeedDiscoveryInput(
-            feedRegionMap = batchRegionMap,
-            feedMetadataMap = batchMetadataMap
-        )
     }
 
     /**
@@ -177,43 +260,27 @@ class FeedDiscoveryReader(
 
     private fun fetchOperators(afterCursor: Int?): OperatorPage {
         return try {
-            var uri = "/operators.json?limit=100"
-            if (afterCursor != null) {
-                uri += "&after=$afterCursor"
-            }
+            logger.debug("Fetching operators from Transit.land: cursor={}", afterCursor)
 
-            logger.debug("Fetching operators from Transit.land: uri={}", uri)
+            val paging = PagingParameters(limit = 100, after = afterCursor)
+            val result = transitLandClient.operators(operatorApiKey, paging)
 
-            val response = transitLandClient.get()
-                .uri(uri)
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .onStatus({ status -> status.is4xxClientError || status.is5xxServerError }) { clientResponse ->
-                    clientResponse.bodyToMono(String::class.java).map { body ->
-                        val errorMsg = "Transit.land API returned ${clientResponse.statusCode()}: $body"
-                        logger.error(errorMsg)
-                        RuntimeException(errorMsg)
-                    }
+            result.fold(
+                onSuccess = { operatorsResult: OperatorsResult ->
+                    val hasMore = operatorsResult.after != null
+                    logger.info(
+                        "Fetched {} operators from Transit.land (hasMore={}, cursor={})",
+                        operatorsResult.operators.size,
+                        hasMore,
+                        operatorsResult.after
+                    )
+                    OperatorPage(operatorsResult.operators.toList(), operatorsResult.after, hasMore)
+                },
+                onFailure = { error ->
+                    logger.error("Failed to fetch operators from Transit.land: {}", error.message)
+                    OperatorPage(emptyList(), null, false)
                 }
-                .bodyToMono(TransitLandOperatorResponse::class.java)
-                .block()
-
-            if (response == null) {
-                logger.warn("Received null response from Transit.land operators API")
-                OperatorPage(emptyList(), null, false)
-            } else {
-                val nextCursor = response.meta?.after
-                val hasMore = nextCursor != null
-
-                logger.info(
-                    "Fetched {} operators from Transit.land (hasMore={}, cursor={})",
-                    response.operators.size,
-                    hasMore,
-                    nextCursor
-                )
-
-                OperatorPage(response.operators.toList(), nextCursor, hasMore)
-            }
+            )
         } catch (e: Exception) {
             logger.error("Failed to fetch operators from Transit.land", e)
             OperatorPage(emptyList(), null, false)
@@ -370,6 +437,7 @@ class FeedDiscoveryReader(
 
     /**
      * Phase 2: Fetch metadata for all discovered feed IDs.
+     * Uses the centralized TransitLandClient which handles rate limiting and concurrency.
      */
     private fun fetchAllMetadata(feedRegionMap: FeedRegionMap): FeedMetadataMap {
         val feedIds = feedRegionMap.feedIds()
@@ -390,7 +458,6 @@ class FeedDiscoveryReader(
         for ((index, chunk) in feedIdChunks.withIndex()) {
             try {
                 val batchStartCount = allMetadata.size
-                logger.info("  Batch {}/{}: Fetching {} feeds", index + 1, feedIdChunks.size, chunk.size)
 
                 val futures = chunk.map { feedId ->
                     CompletableFuture.supplyAsync {
@@ -456,104 +523,67 @@ class FeedDiscoveryReader(
     }
 
     /**
-     * Fetches metadata for a single feed from Transit.land API.
-     * Uses operator name as fallback when feed name is not available from API.
+     * Fetches metadata for a single feed using the centralized TransitLandClient.
+     * Rate limiting and concurrency control are handled by the client.
      */
     private fun fetchSingleFeedMetadata(feedId: FeedId, operatorName: String?): FeedMetadata? {
-        val metadataApiKey = apiKey ?: defaultApiKey
-        return fetchFeedMetadata(feedId, metadataApiKey, operatorName)
-    }
-
-    private fun fetchFeedMetadata(feedId: FeedId, apiKey: TransitLandAPIKey?, operatorName: String?): FeedMetadata? {
         if (!isValidFeedOnestopId(feedId.value)) {
             logger.warn("Skipping metadata fetch for invalid feed onestop ID: {}", feedId.value)
             return null
         }
 
-        return try {
-            val uri = "/feeds.json?onestop_id=${feedId.value}&include_alerts=false"
+        logger.debug("Fetching feed metadata from Transit.land: feedId={}", feedId.value)
 
-            logger.debug("Fetching feed metadata from Transit.land: feedId={}", feedId.value)
+        val result = transitLandClient.feedMetadata(operatorApiKey, feedId.value)
 
-            val response = transitLandClient.get()
-                .uri(uri)
-                .accept(MediaType.APPLICATION_JSON)
-                .header("apikey", apiKey!!.value)
-                .retrieve()
-                .bodyToMono(TransitLandFeedResponse::class.java)
-                .block()
-
-            if (response == null) {
-                logger.warn("Received null response for feed: {}", feedId.value)
-                return null
-            }
-
-            val feed = response.feeds.firstOrNull()
-            if (feed == null) {
-                logger.warn("No feed data found for feed ID: {}", feedId.value)
-                return null
-            }
-
-            val latestVersion = feed.feed_versions.firstOrNull()
-                ?: run {
-                    logger.warn("No version information available for feed: {}", feedId.value)
-                    return null
+        return result.fold(
+            onSuccess = { apiResult: FeedMetadataResult ->
+                // Use Transit.land feed name if available, otherwise fallback to operator name
+                val feedName = apiResult.name ?: operatorName ?: "Unknown"
+                if (apiResult.name == null && operatorName != null) {
+                    logger.debug(
+                        "Feed {} has no name from Transit.land API, using operator name: '{}'",
+                        feedId.value,
+                        operatorName
+                    )
                 }
 
-            val specType = when (feed.spec.lowercase()) {
-                "gtfs" -> FeedSpecType.GTFS
-                "gtfs-rt" -> FeedSpecType.GTFS_RT
-                else -> {
-                    logger.warn("Unknown spec type '{}' for feed: {}, defaulting to GTFS",
-                        feed.spec, feedId.value)
-                    FeedSpecType.GTFS
-                }
-            }
-
-            // Use Transit.land feed name if available, otherwise fallback to operator name
-            val feedName = feed.name ?: operatorName ?: "Unknown"
-            if (feed.name == null && operatorName != null) {
-                logger.debug(
-                    "Feed {} has no name from Transit.land API, using operator name: '{}'",
-                    feedId.value,
-                    operatorName
+                val metadata = FeedMetadata(
+                    feedOnestopId = FeedId.from(apiResult.feedOnestopId) ?: feedId,
+                    name = feedName,
+                    downloadUrl = apiResult.downloadUrl,
+                    specType = apiResult.spec,
+                    versionSha1 = apiResult.versionSha1,
+                    earliestCalendarDate = apiResult.earliestCalendarDate,
+                    latestCalendarDate = apiResult.latestCalendarDate,
+                    staticFeedUrl = apiResult.staticFeedUrl,
+                    realtimeFeedUrl = apiResult.realtimeFeedUrl,
+                    authorizationType = apiResult.authorizationType,
+                    authorizationInfoUrl = apiResult.authorizationInfoUrl
                 )
+
+                // Highlight Montreal feeds
+                val isMontreal = feedId.value.startsWith("f-f25") ||
+                                feedName.contains("Montreal", ignoreCase = true) ||
+                                feedName.contains("Montréal", ignoreCase = true) ||
+                                operatorName?.contains("Montreal", ignoreCase = true) == true ||
+                                operatorName?.contains("Montréal", ignoreCase = true) == true ||
+                                operatorName?.contains("STM") == true ||
+                                operatorName?.contains("STL") == true ||
+                                operatorName?.contains("RTL") == true ||
+                                operatorName?.contains("EXO") == true
+
+                if (isMontreal) {
+                    logger.info("        🍁 Fetched: {} ({})", feedName, operatorName ?: "unknown")
+                }
+
+                metadata
+            },
+            onFailure = { error ->
+                logger.error("Failed to fetch metadata for feed: {} - {}", feedId.value, error.message)
+                null
             }
-
-            val metadata = FeedMetadata(
-                feedOnestopId = FeedId.from(feed.onestop_id) ?: feedId,
-                name = feedName,
-                downloadUrl = latestVersion.url,
-                specType = specType,
-                versionSha1 = latestVersion.sha1,
-                earliestCalendarDate = LocalDate.parse(latestVersion.earliest_calendar_date),
-                latestCalendarDate = LocalDate.parse(latestVersion.latest_calendar_date),
-                staticFeedUrl = feed.urls?.static_current,
-                realtimeFeedUrl = feed.urls?.realtime_trip_updates,
-                authorizationType = feed.authorization?.type,
-                authorizationInfoUrl = feed.authorization?.info_url
-            )
-
-            // Highlight Montreal feeds
-            val isMontreal = feedId.value.startsWith("f-f25") ||
-                            feedName.contains("Montreal", ignoreCase = true) ||
-                            feedName.contains("Montréal", ignoreCase = true) ||
-                            operatorName?.contains("Montreal", ignoreCase = true) == true ||
-                            operatorName?.contains("Montréal", ignoreCase = true) == true ||
-                            operatorName?.contains("STM") == true ||
-                            operatorName?.contains("STL") == true ||
-                            operatorName?.contains("RTL") == true ||
-                            operatorName?.contains("EXO") == true
-
-            if (isMontreal) {
-                logger.info("        🍁 Fetched: {} ({})", feedName, operatorName ?: "unknown")
-            }
-
-            metadata
-        } catch (e: Exception) {
-            logger.error("Failed to fetch metadata for feed: {}", feedId.value, e)
-            null
-        }
+        )
     }
 }
 

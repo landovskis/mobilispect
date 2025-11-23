@@ -1,5 +1,6 @@
 package com.mobilispect.backend.schedule.transit_land
 
+import com.mobilispect.backend.infastructure.transit_land.RouteResultItem
 import com.mobilispect.backend.transit_land.PagingParameters
 import com.mobilispect.backend.schedule.route.RouteIDDataSource
 import com.mobilispect.backend.schedule.transit_land.api.TransitLandCredentialsRepository
@@ -26,25 +27,24 @@ internal class TransitLandRouteIDDataSource(
         val apiKey = transitLandCredentialsRepository.get() ?: return Result.failure(Exception("Missing API key"))
         val allRoutes = mutableListOf<RouteResultItem>()
         var after: Int? = null
+        var lastRoutes: Collection<RouteResultItem> = emptyList()
         do {
             val routesRes = transitLandAPI.routes(
                 apiKey = apiKey,
                 feedID = feedID,
                 paging = PagingParameters(limit = 100, after = after)
             )
-                .map {
-                    after = it.after
-                    return@map it.routes
-                }
             if (routesRes.isFailure) {
-                return routesRes
+                return Result.failure(routesRes.exceptionOrNull()!!)
             }
 
-            val routes = routesRes.getOrNull()!!
-            allRoutes += routes
+            val routeResult = routesRes.getOrNull()!!
+            after = routeResult.after
+            lastRoutes = routeResult.routes
+            allRoutes += lastRoutes
             Thread.sleep(2000 + (Math.random() * 2000).toLong())
 
-        } while (routes.isNotEmpty() && after != null)
+        } while (lastRoutes.isNotEmpty() && after != null)
         return Result.success(allRoutes)
     }
 }

@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.batch.discovery
 
+import com.mobilispect.backend.infastructure.transit_land.TransitLandAPI
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.Job
 import org.springframework.batch.core.Step
@@ -14,7 +15,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.stereotype.Component
 import org.springframework.transaction.PlatformTransactionManager
-import org.springframework.web.reactive.function.client.WebClient
 
 /**
  * Feed discovery job configuration for single-step execution.
@@ -79,11 +79,13 @@ class SimplifiedFeedDiscoveryJobConfig(
      * 2. Extracting feed IDs from the operator data
      * 3. Fetching metadata for those feeds via transit land service
      * 4. Combining both into FeedDiscoveryInput for processing
+     *
+     * Rate limiting and concurrency control are centralized in TransitLandClient.
      */
     @Bean
     @StepScope
     fun combinedFeedDiscoveryReader(
-        webClientBuilder: WebClient.Builder,
+        transitLandClient: TransitLandAPI,
         @Value("#{jobParameters['apiKey']}") apiKeyString: String?,
         @Value("#{jobParameters['specType'] ?: 'gtfs'}") specType: String,
         @Value("#{jobParameters['batchSize'] ?: 100}") batchSize: Int,
@@ -92,7 +94,7 @@ class SimplifiedFeedDiscoveryJobConfig(
         val apiKey = TransitLandAPIKey.fromNullable(apiKeyString)
         val defaultApiKey = TransitLandAPIKey.fromNullable(defaultApiKeyString)
         return FeedDiscoveryReader(
-            webClientBuilder = webClientBuilder,
+            transitLandClient = transitLandClient,
             apiKey = apiKey,
             defaultApiKey = defaultApiKey,
             specType = specType,

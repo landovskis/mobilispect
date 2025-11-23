@@ -8,10 +8,16 @@ import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.FeedVersion
 import com.mobilispect.backend.uti.GenericError
 import com.mobilispect.backend.TransitLandFeedResponse
+import com.mobilispect.backend.TransitLandOperatorResponse
+import com.mobilispect.backend.feed.model.FeedSpecType
+import com.mobilispect.backend.infastructure.transit_land.FeedMetadataResult
+import com.mobilispect.backend.infastructure.transit_land.OperatorsResult
+import com.mobilispect.backend.infastructure.transit_land.RouteResult
+import com.mobilispect.backend.infastructure.transit_land.RouteResultItem
 import com.mobilispect.backend.infastructure.transit_land.StopResultItem
+import com.mobilispect.backend.infastructure.transit_land.TransitLandAPI
 import com.mobilispect.backend.infastructure.transit_land.TransitLandStopResponse
 import com.mobilispect.backend.schedule.ScheduledFeed
-import com.mobilispect.backend.schedule.transit_land.api.*
 import com.mobilispect.backend.transit_land.PagingParameters
 import com.mobilispect.backend.transit_land.agency.TransitLandAgencyResponse
 
@@ -35,8 +41,10 @@ import org.springframework.web.reactive.function.client.WebClientRequestExceptio
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import reactor.netty.http.client.HttpClient
 import java.time.LocalDate
+import java.util.concurrent.Semaphore
 
 private const val CONNECT_TIMEOUT_ms = 5_000
+private const val CONCURRENCY_LIMIT = 6
 
 /**
  * A client to access the transitland API with rate limiting.
@@ -52,6 +60,9 @@ class TransitLandClient(
 
     private var webClient: WebClient
     private val rateLimiter: RateLimiter = rateLimiterRegistry.rateLimiter("transitland")
+
+    // Semaphore to limit concurrent API requests (prevents bursting past rate limit)
+    private val concurrencyLimit = Semaphore(CONCURRENCY_LIMIT)
 
     init {
         val httpClient = HttpClient.create().option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_ms)
@@ -238,6 +249,87 @@ class TransitLandClient(
         }
     }
 
+    /**
+     * Retrieve all operators with pagination support.
+     */
+    override fun operators(apiKey: String, paging: PagingParameters): Result<OperatorsResult> {
+        return handleError {
+            var uri = "/operators.json?limit=${paging.limit}"
+            if (paging.after != null) {
+                uri += "&after=${paging.after}"
+            }
+
+            val response = get(uri, apiKey, TransitLandOperatorResponse::class.java)
+            if (response == null) {
+                logger.warn("Received null response from Transit.land operators API")
+                return@handleError Result.success(OperatorsResult(emptyList(), null))
+            }
+
+            logger.debug("Fetched {} operators from Transit.land (hasMore={}, cursor={})",
+                response.operators.size,
+                response.meta?.after != null,
+                response.meta?.after
+            )
+
+            return@handleError Result.success(
+                OperatorsResult(response.operators.toList(), response.meta?.after)
+            )
+        }
+    }
+
+    /**
+     * Retrieve metadata for a specific feed.
+     * Uses concurrency control to prevent overwhelming the API when called in parallel.
+     */
+    override fun feedMetadata(apiKey: String, feedId: String): Result<FeedMetadataResult> {
+        return handleError {
+            val uri = "/feeds.json?onestop_id=$feedId&include_alerts=false"
+            val response = getConcurrent(uri, apiKey, TransitLandFeedResponse::class.java)
+
+            if (response == null) {
+                logger.warn("Received null response for feed: {}", feedId)
+                return@handleError Result.failure(Exception("No response for feed: $feedId"))
+            }
+
+            val feed = response.feeds.firstOrNull()
+            if (feed == null) {
+                logger.warn("No feed data found for feed ID: {}", feedId)
+                return@handleError Result.failure(Exception("No feed data found for: $feedId"))
+            }
+
+            val latestVersion = feed.feed_versions.firstOrNull()
+            if (latestVersion == null) {
+                logger.warn("No version information available for feed: {}", feedId)
+                return@handleError Result.failure(Exception("No version information for: $feedId"))
+            }
+
+            val specType = when (feed.spec.lowercase()) {
+                "gtfs" -> FeedSpecType.GTFS
+                "gtfs-rt" -> FeedSpecType.GTFS_RT
+                else -> {
+                    logger.warn("Unknown spec type '{}' for feed: {}, defaulting to GTFS", feed.spec, feedId)
+                    FeedSpecType.GTFS
+                }
+            }
+
+            return@handleError Result.success(
+                FeedMetadataResult(
+                    feedOnestopId = feed.onestop_id ?: feedId,
+                    name = feed.name,
+                    spec = specType,
+                    downloadUrl = latestVersion.url,
+                    versionSha1 = latestVersion.sha1,
+                    earliestCalendarDate = LocalDate.parse(latestVersion.earliest_calendar_date),
+                    latestCalendarDate = LocalDate.parse(latestVersion.latest_calendar_date),
+                    staticFeedUrl = feed.urls?.static_current,
+                    realtimeFeedUrl = feed.urls?.realtime_trip_updates,
+                    authorizationType = feed.authorization?.type,
+                    authorizationInfoUrl = feed.authorization?.info_url
+                )
+            )
+        }
+    }
+
     private fun <T> handleError(
         block: () -> Result<T>
     ): Result<T> {
@@ -282,5 +374,31 @@ class TransitLandClient(
             .retrieve()
             .bodyToMono(clazz)
             .block()
+    }
+
+    /**
+     * Makes a GET request with concurrency control.
+     * Uses both a semaphore to limit concurrent requests and a rate limiter
+     * to control request rate. This is suitable for parallel batch operations.
+     */
+    private fun <T> getConcurrent(
+        uri: String, apiKey: String, clazz: Class<T>
+    ): T? {
+        // Acquire concurrency permit to limit parallel requests
+        concurrencyLimit.acquire()
+        return try {
+            // Acquire permission from rate limiter before making the request
+            RateLimiter.waitForPermission(rateLimiter)
+
+            webClient.get()
+                .uri(uri)
+                .header("apikey", apiKey)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(clazz)
+                .block()
+        } finally {
+            concurrencyLimit.release()
+        }
     }
 }

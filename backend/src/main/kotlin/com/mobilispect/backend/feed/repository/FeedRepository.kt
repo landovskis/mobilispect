@@ -10,9 +10,19 @@ import org.springframework.stereotype.Repository
 
 import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.RegionId
+import java.util.Optional
 
 @Repository("feedManagementFeedRepository")
 interface FeedRepository : JpaRepository<FeedEntity, FeedId> {
+
+    /**
+     * Find a feed by its Onestop ID.
+     *
+     * This method is needed because Hibernate's findById doesn't properly convert
+     * the FeedId value class for ID lookups. Use this instead of findById(FeedId).
+     */
+    @Query("SELECT f FROM FeedEntity f WHERE f.feedOnestopId = :feedId")
+    fun findByFeedOnestopId(@Param("feedId") feedId: FeedId): Optional<FeedEntity>
 
     @Query("SELECT f FROM FeedEntity f JOIN f.regions r WHERE r.regionOnestopId = :regionOnestopId")
     fun findAllByRegionRegionOnestopId(@Param("regionOnestopId") regionOnestopId: RegionId): List<FeedEntity>

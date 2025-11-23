@@ -109,7 +109,7 @@ class FeedDiscoveryWriter(
             // Step 3: Create or update feeds
             for (result in batch.results) {
                 val feedId = result.feedOnestopId
-                val existingFeed = feedRepository.findById(feedId)
+                val existingFeed = feedRepository.findByFeedOnestopId(feedId)
                     .orElse(null)
 
                 val now = Instant.now()

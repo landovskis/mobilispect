@@ -40,8 +40,19 @@ class MetropolitanRegion(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
+
     @ManyToMany(mappedBy = "regions", fetch = FetchType.LAZY)
     val feeds: MutableSet<FeedEntity> = mutableSetOf()
+
+    constructor() : this(
+        regionOnestopId = RegionId("placeholder"),
+        name = "",
+        adm0Name = null,
+        adm1Name = null,
+        autoUpdateEnabled = false,
+        updatedAt = Instant.EPOCH,
+        createdAt = Instant.EPOCH
+    )
 
     @PrePersist
     fun onCreate() {
