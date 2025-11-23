@@ -1,7 +1,6 @@
 package com.mobilispect.backend.schedule.gtfs
 
 import com.mobilispect.backend.AgencyIDDataSource
-import com.mobilispect.backend.schedule.ImportScheduledFeedsService
 import com.mobilispect.backend.schedule.Route
 import com.mobilispect.backend.schedule.route.RouteDataSource
 import com.mobilispect.backend.schedule.route.RouteIDDataSource
@@ -25,7 +24,7 @@ class GTFSRouteDataSource(
     private val agencyIDDataSource: AgencyIDDataSource,
     private val routeIDDataSource: RouteIDDataSource,
 ) : RouteDataSource {
-    private val logger: Logger = LoggerFactory.getLogger(ImportScheduledFeedsService::class.java)
+    private val logger: Logger = LoggerFactory.getLogger(GTFSRouteDataSource::class.java)
 
     override fun routes(root: Path, version: String, feedID: String): Result<Collection<Route>> {
         return try {
