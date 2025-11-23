@@ -75,7 +75,7 @@ class FeedDiscoveryWriter(
             val regionEntities = mutableMapOf<String, MetropolitanRegion>()
 
             for (regionMetadata in uniqueRegions) {
-                val existingRegion = regionRepository.findById(RegionId(regionMetadata.regionOnestopId))
+                val existingRegion = regionRepository.findByRegionOnestopId(RegionId(regionMetadata.regionOnestopId))
                     .orElse(null)
 
                 val regionEntity = if (existingRegion != null) {

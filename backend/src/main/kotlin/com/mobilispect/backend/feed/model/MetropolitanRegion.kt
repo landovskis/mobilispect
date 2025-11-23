@@ -1,6 +1,7 @@
 package com.mobilispect.backend.feed.model
 
 import jakarta.persistence.Column
+import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
@@ -11,11 +12,13 @@ import jakarta.persistence.Table
 import java.time.Instant
 
 import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.feed.model.ids.RegionIdConverter
 
 @Entity
 @Table(name = "metropolitan_regions")
 class MetropolitanRegion(
     @Id
+    @Convert(converter = RegionIdConverter::class)
     @Column(name = "region_onestop_id", nullable = false, updatable = false, length = 255)
     val regionOnestopId: RegionId = RegionId(""),
 

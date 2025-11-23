@@ -63,7 +63,7 @@ class RegionController(
     @GetMapping("/{regionOnestopId}")
     @Transactional(readOnly = true)
     fun getRegion(@PathVariable regionOnestopId: String): MetropolitanRegionDTO {
-        val region = regionRepository.findById(RegionId(regionOnestopId))
+        val region = regionRepository.findByRegionOnestopId(RegionId(regionOnestopId))
             .orElseThrow { notFound("Region", regionOnestopId) }
         val feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
         return region.toDto(feeds)
@@ -75,7 +75,7 @@ class RegionController(
         @PathVariable regionOnestopId: String,
         @RequestBody request: RegionUpdateRequest
     ): MetropolitanRegionDTO {
-        val region = regionRepository.findById(RegionId(regionOnestopId))
+        val region = regionRepository.findByRegionOnestopId(RegionId(regionOnestopId))
             .orElseThrow { notFound("Region", regionOnestopId) }
 
         request.autoUpdateEnabled?.let { auto ->
@@ -93,7 +93,7 @@ class RegionController(
         @RequestParam(required = false) specType: FeedSpecTypeDto?,
         @RequestParam(required = false) status: FeedStatusDto?
     ): FeedsResponse {
-        val region = regionRepository.findById(RegionId(regionOnestopId))
+        val region = regionRepository.findByRegionOnestopId(RegionId(regionOnestopId))
             .orElseThrow { notFound("Region", regionOnestopId) }
 
         var feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
@@ -132,7 +132,7 @@ class RegionController(
         logger.info("Discovering feeds for region {} using spec {}", regionOnestopId, spec)
 
         // Get region name for Transit.land API query
-        val region = regionRepository.findById(RegionId(regionOnestopId))
+        val region = regionRepository.findByRegionOnestopId(RegionId(regionOnestopId))
             .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND, "Region not found: $regionOnestopId") }
 
         return feedDiscoveryBatchService.discoverForRegion(regionOnestopId, spec.toEntity())
