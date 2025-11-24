@@ -121,3 +121,12 @@ This project includes Spec-Kit commands for structured development:
 consistency with project standards and architectural decisions. Always
 reference the full constitution at `.specify/memory/constitution.md` for
 complete guidance.
+
+## Active Technologies
+
+- Kotlin 2.0.21 with Spring Boot 3.5.3 + Spring Modulith, Spring Data JPA, Spring Batch, PostgreSQL 17, Redis 8.2 (002-stop-spacing-tracking)
+- PostgreSQL 17 for persistence, Redis for caching aggregated statistics (002-stop-spacing-tracking)
+
+## Recent Changes
+
+- 002-stop-spacing-tracking: Added Kotlin 2.0.21 with Spring Boot 3.5.3 + Spring Modulith, Spring Data JPA, Spring Batch, PostgreSQL 17, Redis 8.2

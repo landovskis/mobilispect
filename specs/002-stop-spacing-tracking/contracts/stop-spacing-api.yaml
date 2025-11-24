@@ -1,0 +1,552 @@
+openapi: 3.0.3
+info:
+  title: Stop Spacing Statistics API
+  description: API for retrieving stop spacing statistics, service type classifications, and comparisons
+  version: 1.0.0
+  contact:
+    name: Mobilispect Team
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: Route Statistics
+    description: Per-route stop spacing statistics
+  - name: Agency Comparison
+    description: Agency-level service type comparisons
+  - name: Regional Comparison
+    description: Metropolitan region cross-agency comparisons
+  - name: Thresholds
+    description: Classification threshold management
+
+paths:
+  /routes/{routeId}/stop-spacing:
+    get:
+      tags:
+        - Route Statistics
+      summary: Get stop spacing statistics for a route
+      description: Returns calculated stop spacing metrics including average, min, max, standard deviation, and service type classification
+      operationId: getRouteStopSpacing
+      parameters:
+        - name: routeId
+          in: path
+          required: true
+          description: OneStop route ID (e.g., r-dpz8-1)
+          schema:
+            type: string
+            pattern: '^r-[a-z0-9]+-.*$'
+          example: r-dpz8-1
+      responses:
+        '200':
+          description: Stop spacing statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StopSpacingResponse'
+        '404':
+          description: Route not found or statistics not yet calculated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /feeds/{feedId}/routes/stop-spacing:
+    get:
+      tags:
+        - Route Statistics
+      summary: Get stop spacing statistics for all routes in a feed
+      description: Returns stop spacing statistics for all routes belonging to a GTFS feed
+      operationId: getFeedRoutesStopSpacing
+      parameters:
+        - name: feedId
+          in: path
+          required: true
+          description: OneStop feed ID (e.g., f-dpz8-ttc)
+          schema:
+            type: string
+            pattern: '^f-[a-z0-9]+-.*$'
+          example: f-dpz8-ttc
+        - name: serviceType
+          in: query
+          required: false
+          description: Filter by service type
+          schema:
+            $ref: '#/components/schemas/ServiceType'
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Route statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedStopSpacingResponse'
+        '404':
+          description: Feed not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /agencies/{agencyId}/stop-spacing/comparison:
+    get:
+      tags:
+        - Agency Comparison
+      summary: Get agency-level stop spacing comparison
+      description: Returns aggregated stop spacing statistics by service type for all routes operated by an agency
+      operationId: getAgencyStopSpacingComparison
+      parameters:
+        - name: agencyId
+          in: path
+          required: true
+          description: OneStop agency ID (e.g., o-dpz8-ttc)
+          schema:
+            type: string
+            pattern: '^o-[a-z0-9]+-.*$'
+          example: o-dpz8-ttc
+      responses:
+        '200':
+          description: Agency comparison retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgencyComparisonResponse'
+        '404':
+          description: Agency not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /regions/{regionId}/stop-spacing/comparison:
+    get:
+      tags:
+        - Regional Comparison
+      summary: Get regional cross-agency stop spacing comparison
+      description: Returns stop spacing statistics for all agencies within a metropolitan region, organized by service type with regional averages
+      operationId: getRegionalStopSpacingComparison
+      parameters:
+        - name: regionId
+          in: path
+          required: true
+          description: Metropolitan region ID
+          schema:
+            type: string
+          example: montreal
+      responses:
+        '200':
+          description: Regional comparison retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionalComparisonResponse'
+        '404':
+          description: Region not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /regions/{regionId}/thresholds:
+    get:
+      tags:
+        - Thresholds
+      summary: Get classification thresholds for a region
+      description: Returns the service type classification thresholds applicable to a region (region-specific or global default)
+      operationId: getRegionThresholds
+      parameters:
+        - name: regionId
+          in: path
+          required: true
+          description: Metropolitan region ID
+          schema:
+            type: string
+          example: montreal
+      responses:
+        '200':
+          description: Thresholds retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThresholdsResponse'
+        '404':
+          description: Region not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Thresholds
+      summary: Update classification thresholds for a region
+      description: Sets region-specific classification thresholds (requires admin privileges)
+      operationId: updateRegionThresholds
+      parameters:
+        - name: regionId
+          in: path
+          required: true
+          description: Metropolitan region ID
+          schema:
+            type: string
+          example: montreal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThresholdsUpdateRequest'
+      responses:
+        '200':
+          description: Thresholds updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThresholdsResponse'
+        '400':
+          description: Invalid threshold values
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Region not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /thresholds/default:
+    get:
+      tags:
+        - Thresholds
+      summary: Get global default classification thresholds
+      description: Returns the default thresholds used when no region-specific thresholds are configured
+      operationId: getDefaultThresholds
+      responses:
+        '200':
+          description: Default thresholds retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThresholdsResponse'
+
+components:
+  schemas:
+    ServiceType:
+      type: string
+      enum:
+        - LOCAL
+        - RAPID
+        - EXPRESS
+        - INSUFFICIENT_DATA
+      description: |
+        Service type classification based on average stop spacing:
+        - LOCAL: Dense stop spacing (< 500m default)
+        - RAPID: Medium stop spacing (500m - 1500m default)
+        - EXPRESS: Sparse stop spacing (> 1500m default)
+        - INSUFFICIENT_DATA: Route has fewer than 2 stops
+
+    DistanceValue:
+      type: object
+      description: Distance in multiple units
+      required:
+        - meters
+        - kilometers
+        - miles
+      properties:
+        meters:
+          type: number
+          format: double
+          description: Distance in meters
+          example: 450.5
+        kilometers:
+          type: number
+          format: double
+          description: Distance in kilometers
+          example: 0.4505
+        miles:
+          type: number
+          format: double
+          description: Distance in miles
+          example: 0.28
+
+    RouteVariantSpacing:
+      type: object
+      description: Stop spacing details for a specific route variant
+      required:
+        - variantHash
+        - tripCount
+        - averageSpacing
+        - stopCount
+      properties:
+        variantHash:
+          type: string
+          description: Unique identifier for this stop sequence pattern
+          example: "a1b2c3d4"
+        tripCount:
+          type: integer
+          description: Number of trips using this pattern
+          example: 42
+        averageSpacing:
+          $ref: '#/components/schemas/DistanceValue'
+        stopCount:
+          type: integer
+          description: Number of stops in this variant
+          example: 25
+
+    StopSpacingResponse:
+      type: object
+      description: Stop spacing statistics for a single route
+      required:
+        - routeId
+        - feedId
+        - averageSpacing
+        - minSpacing
+        - maxSpacing
+        - standardDeviation
+        - serviceType
+        - stopCount
+        - variantCount
+        - calculatedAt
+      properties:
+        routeId:
+          type: string
+          description: OneStop route ID
+          example: "r-dpz8-1"
+        feedId:
+          type: string
+          description: OneStop feed ID
+          example: "f-dpz8-ttc"
+        averageSpacing:
+          $ref: '#/components/schemas/DistanceValue'
+        minSpacing:
+          $ref: '#/components/schemas/DistanceValue'
+        maxSpacing:
+          $ref: '#/components/schemas/DistanceValue'
+        standardDeviation:
+          $ref: '#/components/schemas/DistanceValue'
+        serviceType:
+          $ref: '#/components/schemas/ServiceType'
+        stopCount:
+          type: integer
+          description: Total unique stops on route
+          example: 45
+        variantCount:
+          type: integer
+          description: Number of distinct trip patterns
+          example: 3
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/RouteVariantSpacing'
+        calculatedAt:
+          type: string
+          format: date-time
+          description: When statistics were calculated
+          example: "2025-11-23T10:30:00Z"
+
+    PagedStopSpacingResponse:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/StopSpacingResponse'
+        page:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+        totalElements:
+          type: integer
+          example: 150
+        totalPages:
+          type: integer
+          example: 8
+
+    ServiceTypeAggregation:
+      type: object
+      description: Aggregated statistics for a service type
+      required:
+        - serviceType
+        - routeCount
+        - averageSpacing
+        - minSpacing
+        - maxSpacing
+      properties:
+        serviceType:
+          $ref: '#/components/schemas/ServiceType'
+        routeCount:
+          type: integer
+          description: Number of routes of this service type
+          example: 25
+        averageSpacing:
+          $ref: '#/components/schemas/DistanceValue'
+        minSpacing:
+          $ref: '#/components/schemas/DistanceValue'
+        maxSpacing:
+          $ref: '#/components/schemas/DistanceValue'
+
+    AgencyComparisonResponse:
+      type: object
+      description: Agency-level stop spacing comparison
+      required:
+        - agencyId
+        - agencyName
+        - byServiceType
+        - totalRoutes
+        - routesWithInsufficientData
+      properties:
+        agencyId:
+          type: string
+          description: OneStop agency ID
+          example: "o-dpz8-ttc"
+        agencyName:
+          type: string
+          description: Agency display name
+          example: "Toronto Transit Commission"
+        byServiceType:
+          type: object
+          description: Statistics grouped by service type
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceTypeAggregation'
+          example:
+            LOCAL:
+              serviceType: LOCAL
+              routeCount: 120
+              averageSpacing:
+                meters: 350
+                kilometers: 0.35
+                miles: 0.22
+              minSpacing:
+                meters: 150
+                kilometers: 0.15
+                miles: 0.09
+              maxSpacing:
+                meters: 490
+                kilometers: 0.49
+                miles: 0.30
+        totalRoutes:
+          type: integer
+          description: Total number of routes analyzed
+          example: 150
+        routesWithInsufficientData:
+          type: integer
+          description: Routes excluded due to insufficient stops
+          example: 5
+
+    RegionalComparisonResponse:
+      type: object
+      description: Regional cross-agency stop spacing comparison
+      required:
+        - regionId
+        - regionName
+        - agencies
+        - regionalAverages
+        - thresholds
+      properties:
+        regionId:
+          type: string
+          description: Metropolitan region ID
+          example: "montreal"
+        regionName:
+          type: string
+          description: Region display name
+          example: "Greater Montreal Area"
+        agencies:
+          type: array
+          description: Per-agency comparisons
+          items:
+            $ref: '#/components/schemas/AgencyComparisonResponse'
+        regionalAverages:
+          type: object
+          description: Regional averages by service type
+          additionalProperties:
+            $ref: '#/components/schemas/ServiceTypeAggregation'
+        thresholds:
+          $ref: '#/components/schemas/ThresholdsResponse'
+
+    ThresholdsResponse:
+      type: object
+      description: Classification threshold configuration
+      required:
+        - localUpperBound
+        - rapidUpperBound
+        - isRegionSpecific
+      properties:
+        regionId:
+          type: string
+          description: Region ID if region-specific, null for global default
+          example: "montreal"
+        localUpperBound:
+          $ref: '#/components/schemas/DistanceValue'
+        rapidUpperBound:
+          $ref: '#/components/schemas/DistanceValue'
+        isRegionSpecific:
+          type: boolean
+          description: Whether these are region-specific thresholds
+          example: true
+
+    ThresholdsUpdateRequest:
+      type: object
+      description: Request to update classification thresholds
+      required:
+        - localUpperBoundMeters
+        - rapidUpperBoundMeters
+      properties:
+        localUpperBoundMeters:
+          type: integer
+          description: Upper bound for local classification (meters)
+          minimum: 1
+          example: 500
+        rapidUpperBoundMeters:
+          type: integer
+          description: Upper bound for rapid classification (meters)
+          minimum: 2
+          example: 1500
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: "NOT_FOUND"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Route r-dpz8-999 not found"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-23T10:30:00Z"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
