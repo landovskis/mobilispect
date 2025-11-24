@@ -95,17 +95,6 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
-### Module Ownership *(for backend features)*
-
-<!--
-  For backend features using Spring Modulith, specify which module(s) own this feature's
-  data and business logic. This ensures clear bounded contexts and prevents module boundary violations.
--->
-
-- **Owning Module**: [e.g., "feed" module, "user" module, or NEEDS CLARIFICATION]
-- **Cross-Module Dependencies**: [List any other modules this feature interacts with, or "None"]
-- **Communication Pattern**: [e.g., "Application events", "Direct service calls", "REST API", or N/A]
-
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
