@@ -97,7 +97,9 @@
 - [ ] T028 [P] [US1] Create StopSpacingDTO response in backend/src/main/kotlin/com/mobilispect/backend/api/dto/stopspacing/StopSpacingDTO.kt
 - [ ] T029 [US1] Create RouteStopSpacingController GET /routes/{routeId}/stop-spacing in backend/src/main/kotlin/com/mobilispect/backend/stopspacing/controller/RouteStopSpacingController.kt
 - [ ] T030 [US1] Create FeedImportCompletedListener to trigger calculation on feed import in backend/src/main/kotlin/com/mobilispect/backend/stopspacing/event/FeedImportCompletedListener.kt
-- [ ] T031 [US1] Add FeedImportCompletedEvent to feed module (if not exists) in backend/src/main/kotlin/com/mobilispect/backend/feed/event/FeedImportCompletedEvent.kt
+- [ ] T031a [US1] **RESEARCH**: Check if FeedImportCompletedEvent exists in feed module (`grep -r "FeedImportCompletedEvent" backend/`)
+- [ ] T031b [US1] If not exists: Create FeedImportCompletedEvent in backend/src/main/kotlin/com/mobilispect/backend/feed/event/FeedImportCompletedEvent.kt
+- [ ] T031c [US1] If exists: Verify event contains feedId and is published at end of feed import process
 
 ### Frontend Implementation for User Story 1
 
@@ -241,12 +243,25 @@
 - [ ] T092 [P] Ensure unit-toggle.component keyboard accessible
 - [ ] T093 Run axe accessibility scan on all stop-spacing pages
 
+### End-to-End Testing (Playwright - Constitutional Requirement)
+
+- [ ] T098 [P] Create Playwright E2E test for route stop spacing view in frontend/web/e2e/stop-spacing/route-details.spec.ts
+- [ ] T099 [P] Create Playwright E2E test for agency comparison view in frontend/web/e2e/stop-spacing/agency-comparison.spec.ts
+- [ ] T100 [P] Create Playwright E2E test for regional comparison view in frontend/web/e2e/stop-spacing/regional-comparison.spec.ts
+- [ ] T101 Run Playwright tests across Chrome, Firefox, Safari (`npx playwright test`)
+
+### Architecture Documentation (Constitutional Requirement)
+
+- [ ] T102 [P] Create C4 Container diagram for stop-spacing module in docs/architecture/stop-spacing-container.puml
+- [ ] T103 [P] Create C4 Component diagram showing stopspacing module internals in docs/architecture/stop-spacing-component.puml
+
 ### Documentation & Cleanup
 
-- [ ] T094 [P] Update API documentation with new endpoints
-- [ ] T095 Run quickstart.md validation steps
-- [ ] T096 Verify all tests pass (`./gradlew test --tests "*StopSpacing*"`)
-- [ ] T097 Verify module boundaries (`./gradlew verifyModulith`)
+- [ ] T104 [P] Update API documentation with new endpoints
+- [ ] T105 Run quickstart.md validation steps
+- [ ] T106 Verify all tests pass (`./gradlew test --tests "*StopSpacing*"`)
+- [ ] T107 Verify module boundaries (`./gradlew verifyModulith`)
+- [ ] T108 Generate Spring Modulith module documentation (`./gradlew generateModulithDocs`)
 
 ---
 
