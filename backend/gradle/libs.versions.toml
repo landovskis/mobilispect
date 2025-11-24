@@ -1,5 +1,6 @@
 [versions]
 arrow = "2.1.0"
+geographiclib = "2.0"
 kotlin = "2.0.21"
 kotlinxCoroutines = "1.8.1"
 kotlinxSerializationCSV = "2.0.0"
@@ -33,6 +34,9 @@ protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin", version.ref 
 
 # Fault Tolerance
 resilience4j-spring = { module = "io.github.resilience4j:resilience4j-spring-boot2", version.ref = "resilience4j" }
+
+# Geodesic Distance Calculation
+geographiclib = { module = "net.sf.geographiclib:GeographicLib-Java", version.ref = "geographiclib" }
 
 # Monitoring
 spring-boot-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }

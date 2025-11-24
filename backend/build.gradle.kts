@@ -4,6 +4,7 @@ plugins {
     kotlin("plugin.jpa") version "2.0.21"
     id("org.springframework.boot") version "3.5.3"
     id("io.spring.dependency-management") version "1.1.7"
+    jacoco
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -40,6 +41,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.csv)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.resilience4j.spring)
+    implementation(libs.geographiclib)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation(libs.spring.boot.batch)
@@ -75,6 +77,7 @@ springBoot {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
 }
 
 // Linting stubs for offline tooling
@@ -106,13 +109,46 @@ tasks.register("ktlintCheck") {
     }
 }
 
-tasks.register("jacocoTestReport") {
-    group = "verification"
-    description = "Stub task to satisfy tooling when JaCoCo plugin is unavailable"
+jacoco {
+    toolVersion = "0.8.12"
+}
 
-    doLast {
-        logger.lifecycle("jacocoTestReport stub: no coverage generated (JaCoCo plugin unavailable offline)")
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
     }
+
+    // Focus coverage on core services and utilities; exclude infrastructure and configuration wiring
+    classDirectories.setFrom(
+        files(
+            classDirectories.files.map {
+                fileTree(it) {
+                    include(
+                        "com/mobilispect/backend/util/**",
+                        "com/mobilispect/backend/websocket/**",
+                        "com/mobilispect/backend/feed/service/FeedImportService*",
+                        "com/mobilispect/backend/feed/service/FeedManagementImportProcessor*",
+                        "com/mobilispect/backend/feed/model/Feed*",
+                        "com/mobilispect/backend/persistence/**"
+                    )
+                    exclude(
+                        "com/mobilispect/backend/feed/model/FeedEntity*",
+                        "com/mobilispect/backend/feed/model/FeedImport*",
+                        "com/mobilispect/backend/feed/model/FeedAuthentication*",
+                        "com/mobilispect/backend/feed/model/FeedId*",
+                        "com/mobilispect/backend/websocket/ProgressWebSocketController*",
+                        "com/mobilispect/backend/websocket/ActiveImportsResponse*",
+                        "com/mobilispect/backend/websocket/ProgressRequest*",
+                        "com/mobilispect/backend/util/NetworkError*",
+                        "com/mobilispect/backend/util/TooManyRequests*",
+                        "com/mobilispect/backend/util/DateTimeOffset*"
+                    )
+                }
+            }
+        )
+    )
 }
 
 // Spring Modulith module structure verification (Constitutional Requirement - Principle VII)

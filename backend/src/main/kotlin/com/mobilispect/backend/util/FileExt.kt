@@ -7,6 +7,6 @@ import java.io.File
  */
 fun File.readTextAndNormalize(): String = readText()
     .replace("\r\n", "\n")
-    .trim()
-    .replace("\u00a0", "")
     .replace("\ufeff", "")
+    .replace("\u00a0", "")
+    .trim()
