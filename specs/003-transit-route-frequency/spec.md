@@ -12,6 +12,7 @@
 - Q: How should route variants be uniquely identified in the system? → A: Generate a deterministic hash from the ordered stop sequence (content-based identifier stable across feed updates)
 - Q: How will the system discover and locate GTFS feeds for agencies in a region? → A: Use Transitland API to discover feeds by region
 - Q: What platform(s) should provide the user interface for this feature? → A: Web application with responsive design (works on desktop and mobile browsers)
+- Q: What observability signals should be emitted for monitoring feed import and frequency calculation operations? → A: Structured logs, metrics (processing time, feed size, variant count, error rates), and distributed traces for feed import workflows
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -123,6 +124,9 @@ System administrators need to import and process transit feed data for regions t
 - **FR-020**: System MUST persist imported feed data and calculated frequencies for historical analysis and comparison
 - **FR-021**: System MUST provide a responsive web interface that adapts to desktop and mobile browser viewports
 - **FR-022**: Web interface MUST support common desktop browsers (Chrome, Firefox, Safari, Edge) and mobile browsers (iOS Safari, Chrome Mobile)
+- **FR-023**: System MUST emit structured logs for all feed import and processing operations including feed URL, agency ID, processing stages, and error details
+- **FR-024**: System MUST collect metrics for feed processing duration, feed file size, number of routes processed, number of variants identified, and error rates
+- **FR-025**: System MUST generate distributed traces for feed import workflows to enable debugging and performance analysis across processing stages
 
 ### Key Entities
 
@@ -157,6 +161,7 @@ System administrators need to import and process transit feed data for regions t
 
 - **GTFS Feed Sources**: System depends on availability and quality of standard GTFS (General Transit Feed Specification) feeds from transit agencies; feeds must be accessible via public URLs or APIs
 - **Transitland API**: System uses Transitland API to discover GTFS feed URLs for agencies within specified regions; provides curated feed catalog with metadata and quality indicators
+- **Grafana Cloud**: System exports structured logs, metrics, and distributed traces to Grafana Cloud for centralized observability, monitoring, and alerting in compliance with constitutional requirements
 - **Geographic Data**: Requires geographic boundary definitions for regions (metropolitan areas, counties) to group agencies appropriately
 - **Timezone Data**: Depends on standard timezone databases to correctly convert schedule times for display
 
@@ -180,6 +185,7 @@ System administrators need to import and process transit feed data for regions t
 - **Historical Data**: System will retain imported feed data and frequency calculations for up to 2 years for historical comparison and trend analysis
 - **User Authentication**: Access to frequency analysis features does not require user authentication; all data is considered public information from publicly available GTFS feeds
 - **User Interface Platform**: Feature will be delivered as a responsive web application accessible through desktop and mobile browsers; native mobile apps are not included in this scope
+- **Observability Implementation**: System will emit structured logs, metrics, and distributed traces for all feed import and processing operations; all observability signals will be sent to Grafana Cloud per constitutional requirements
 
 ## Module Ownership *(Spring Modulith)*
 
