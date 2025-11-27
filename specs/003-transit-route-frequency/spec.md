@@ -13,6 +13,7 @@
 - Q: How will the system discover and locate GTFS feeds for agencies in a region? → A: Use Transitland API to discover feeds by region
 - Q: What platform(s) should provide the user interface for this feature? → A: Web application with responsive design (works on desktop and mobile browsers)
 - Q: What observability signals should be emitted for monitoring feed import and frequency calculation operations? → A: Structured logs, metrics (processing time, feed size, variant count, error rates), and distributed traces for feed import workflows
+- Q: How are regions defined and where does the region data come from? → A: Import region definitions from Transitland API metro areas (automatic synchronization)
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -102,6 +103,7 @@ System administrators need to import and process transit feed data for regions t
 
 - **FR-001**: System MUST import transit feed data for specified geographic regions from standard GTFS feed sources
 - **FR-001a**: System MUST query Transitland API to discover GTFS feed URLs for agencies operating within a specified region
+- **FR-001b**: System MUST import region definitions from Transitland API metro areas and synchronize them periodically
 - **FR-002**: System MUST parse and extract route, trip, stop, and schedule information from imported feeds
 - **FR-003**: System MUST organize and display transit agencies grouped by their operating region
 - **FR-004**: System MUST display all routes grouped under their respective transit agencies
@@ -130,7 +132,7 @@ System administrators need to import and process transit feed data for regions t
 
 ### Key Entities
 
-- **Region**: Geographic area containing one or more transit agencies; defined by administrative boundaries (metropolitan areas, counties, states); serves as the top-level organizational unit for transit analysis
+- **Region**: Geographic area containing one or more transit agencies; defined by Transitland API metro area boundaries; imported and synchronized automatically from Transitland; serves as the top-level organizational unit for transit analysis
 - **Agency**: Transit operator providing public transportation service; has unique identifier, name, and operates within one or more regions; owns multiple routes
 - **Route**: Named transit line operated by an agency (e.g., "Route 5 Downtown Express"); identified by route number/name and has one or more variants based on service patterns
 - **Route Variant**: Specific service pattern for a route defined by its unique sequence of stops; uniquely identified by a deterministic hash of the ordered stop sequence; represents different directional paths (inbound/outbound) or branching patterns; has distinct frequency calculations; identifier remains stable across feed updates when stop pattern is unchanged
@@ -160,7 +162,7 @@ System administrators need to import and process transit feed data for regions t
 ### External Systems
 
 - **GTFS Feed Sources**: System depends on availability and quality of standard GTFS (General Transit Feed Specification) feeds from transit agencies; feeds must be accessible via public URLs or APIs
-- **Transitland API**: System uses Transitland API to discover GTFS feed URLs for agencies within specified regions; provides curated feed catalog with metadata and quality indicators
+- **Transitland API**: System uses Transitland API to discover GTFS feed URLs for agencies within specified regions and to import metro area region definitions; provides curated feed catalog with metadata and quality indicators
 - **Grafana Cloud**: System exports structured logs, metrics, and distributed traces to Grafana Cloud for centralized observability, monitoring, and alerting in compliance with constitutional requirements
 - **Geographic Data**: Requires geographic boundary definitions for regions (metropolitan areas, counties) to group agencies appropriately
 - **Timezone Data**: Depends on standard timezone databases to correctly convert schedule times for display
@@ -176,7 +178,7 @@ System administrators need to import and process transit feed data for regions t
 
 - **Frequency Calculation Method**: Frequency will be calculated as the average headway during defined time periods (weekday peak, off-peak, weekend) using scheduled departure times from GTFS stop_times data
 - **Common Section Definition**: Common sections are defined as 3 or more consecutive stops shared between routes in the same sequence and direction; shorter overlaps are not considered significant
-- **Region Definitions**: Regions are predefined based on standard metropolitan statistical areas, counties, or state boundaries; custom user-defined regions are not supported in the initial implementation
+- **Region Definitions**: Regions are imported from Transitland API metro areas and synchronized automatically; custom user-defined regions are not supported in the initial implementation
 - **Feed Update Frequency**: Transit feeds will be updated on-demand or daily, depending on agency publication schedules; real-time updates are not included in this feature scope
 - **Time Period Definitions**: Standard time periods are defined as: Weekday AM Peak (6:00-9:00 AM), Weekday PM Peak (4:00-7:00 PM), Weekday Off-Peak (all other weekday hours), Weekend (Saturday-Sunday all day), Holiday (based on calendar_dates.txt)
 - **Route Variant Identification**: Route variants are identified algorithmically by comparing stop patterns; agency-provided variant names or descriptions are not relied upon
