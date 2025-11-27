@@ -1,0 +1,321 @@
+openapi: 3.0.3
+info:
+  title: Transit Frequency Analysis - Region API
+  description: API for managing and querying geographic regions containing transit agencies
+  version: 1.0.0
+  contact:
+    name: Mobilispect Development Team
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://api.mobilispect.com/v1
+    description: Production
+
+tags:
+  - name: Regions
+    description: Regional transit data operations
+
+paths:
+  /regions:
+    get:
+      summary: List all regions
+      description: Retrieve a list of all metropolitan regions with transit data
+      operationId: listRegions
+      tags:
+        - Regions
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination (0-indexed)
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          description: Sort field and direction (e.g., "name,asc")
+          required: false
+          schema:
+            type: string
+            default: "name,asc"
+      responses:
+        '200':
+          description: List of regions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionListResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /regions/{regionId}:
+    get:
+      summary: Get region by ID
+      description: Retrieve detailed information about a specific region
+      operationId: getRegionById
+      tags:
+        - Regions
+      parameters:
+        - name: regionId
+          in: path
+          description: Unique region identifier
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Region details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegionDetailResponse'
+        '404':
+          description: Region not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /regions/{regionId}/agencies:
+    get:
+      summary: List agencies in region
+      description: Retrieve all transit agencies operating within a specific region
+      operationId: getAgenciesByRegion
+      tags:
+        - Regions
+      parameters:
+        - name: regionId
+          in: path
+          description: Unique region identifier
+          required: true
+          schema:
+            type: string
+        - name: active
+          in: query
+          description: Filter by active status
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of agencies in the region
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AgencySummary'
+        '404':
+          description: Region not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    RegionListResponse:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegionSummary'
+        page:
+          type: integer
+          description: Current page number (0-indexed)
+        size:
+          type: integer
+          description: Number of items per page
+        totalElements:
+          type: integer
+          description: Total number of regions
+        totalPages:
+          type: integer
+          description: Total number of pages
+
+    RegionSummary:
+      type: object
+      required:
+        - id
+        - name
+        - agencyCount
+        - timezone
+      properties:
+        id:
+          type: string
+          description: Unique region identifier
+          example: "sf-bay-area"
+        name:
+          type: string
+          description: Human-readable region name
+          example: "San Francisco Bay Area"
+        transitlandId:
+          type: string
+          description: External Transitland API identifier
+          example: "o-9q9p-sfbayarea"
+        agencyCount:
+          type: integer
+          description: Number of agencies in this region
+          example: 23
+        timezone:
+          type: string
+          description: IANA timezone identifier
+          example: "America/Los_Angeles"
+
+    RegionDetailResponse:
+      type: object
+      required:
+        - id
+        - name
+        - boundingBox
+        - timezone
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique region identifier
+        name:
+          type: string
+          description: Human-readable region name
+        transitlandId:
+          type: string
+          description: External Transitland API identifier
+        boundingBox:
+          $ref: '#/components/schemas/BoundingBox'
+        timezone:
+          type: string
+          description: IANA timezone identifier
+        agencyCount:
+          type: integer
+          description: Number of agencies in this region
+        routeCount:
+          type: integer
+          description: Total number of routes across all agencies
+        createdAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of creation
+        updatedAt:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last update
+
+    BoundingBox:
+      type: object
+      required:
+        - north
+        - south
+        - east
+        - west
+      properties:
+        north:
+          type: number
+          format: double
+          description: Northern latitude boundary
+          example: 38.0
+        south:
+          type: number
+          format: double
+          description: Southern latitude boundary
+          example: 37.0
+        east:
+          type: number
+          format: double
+          description: Eastern longitude boundary
+          example: -121.5
+        west:
+          type: number
+          format: double
+          description: Western longitude boundary
+          example: -122.5
+
+    AgencySummary:
+      type: object
+      required:
+        - id
+        - name
+        - active
+      properties:
+        id:
+          type: string
+          description: Unique agency identifier
+        name:
+          type: string
+          description: Agency name
+        routeCount:
+          type: integer
+          description: Number of routes operated by this agency
+        lastFeedImport:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last feed import
+        active:
+          type: boolean
+          description: Whether the agency is actively tracked
+
+    ErrorResponse:
+      type: object
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of error
+        status:
+          type: integer
+          description: HTTP status code
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Human-readable error message
+        path:
+          type: string
+          description: Request path that generated the error
