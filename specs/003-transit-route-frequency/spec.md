@@ -5,6 +5,12 @@
 **Status**: Draft
 **Input**: User description: "Transit frequency . You will import all the feeds for a region. You will group routes by agency. You will split routes into route variants.  You will show the frequency for each route variant and for the common section if there is one. You will group agencies by region"
 
+## Clarifications
+
+### Session 2025-11-27
+
+- Q: How should route variants be uniquely identified in the system? → A: Generate a deterministic hash from the ordered stop sequence (content-based identifier stable across feed updates)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - View Regional Transit Frequency Overview (Priority: P1)
@@ -96,6 +102,7 @@ System administrators need to import and process transit feed data for regions t
 - **FR-003**: System MUST organize and display transit agencies grouped by their operating region
 - **FR-004**: System MUST display all routes grouped under their respective transit agencies
 - **FR-005**: System MUST identify route variants by analyzing stop patterns and trip sequences for each route
+- **FR-005a**: System MUST generate deterministic identifiers for route variants by hashing the ordered stop sequence to ensure stable identification across feed updates
 - **FR-006**: System MUST calculate service frequency (headway) for each route variant based on scheduled trip times
 - **FR-007**: System MUST calculate frequency separately for different time periods: weekday peak hours (6-9 AM, 4-7 PM), weekday off-peak hours, and weekend/holiday schedules
 - **FR-008**: System MUST identify common sections where multiple routes or variants share 3 or more consecutive stops in the same sequence
@@ -117,7 +124,7 @@ System administrators need to import and process transit feed data for regions t
 - **Region**: Geographic area containing one or more transit agencies; defined by administrative boundaries (metropolitan areas, counties, states); serves as the top-level organizational unit for transit analysis
 - **Agency**: Transit operator providing public transportation service; has unique identifier, name, and operates within one or more regions; owns multiple routes
 - **Route**: Named transit line operated by an agency (e.g., "Route 5 Downtown Express"); identified by route number/name and has one or more variants based on service patterns
-- **Route Variant**: Specific service pattern for a route defined by its unique sequence of stops; represents different directional paths (inbound/outbound) or branching patterns; has distinct frequency calculations
+- **Route Variant**: Specific service pattern for a route defined by its unique sequence of stops; uniquely identified by a deterministic hash of the ordered stop sequence; represents different directional paths (inbound/outbound) or branching patterns; has distinct frequency calculations; identifier remains stable across feed updates when stop pattern is unchanged
 - **Common Section**: Geographic segment where multiple routes or variants overlap; defined by 3 or more consecutive shared stops in the same sequence; has combined frequency calculated from all contributing routes
 - **Frequency**: Service headway representing average time between vehicle departures; calculated separately for different time periods (peak, off-peak, weekend); measured in minutes and may vary throughout the day
 - **Stop Pattern**: Ordered sequence of stops served by a route variant; used to identify variants and detect common sections; includes stop identifiers and geographic coordinates
