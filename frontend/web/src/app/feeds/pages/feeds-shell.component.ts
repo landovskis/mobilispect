@@ -118,27 +118,28 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
 
     .app-sidenav {
       width: 240px;
-      border-right: 1px solid rgba(15, 23, 42, 0.08);
-      padding: 24px 16px;
-      background: #fff;
-      color: #0f172a;
+      border-right: 1px solid #E1F3FF;
+      padding: 28px 18px 32px;
+      background: #ffffff;
+      color: #0B3558;
     }
 
     .sidebar-nav {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 16px;
       position: sticky;
       top: 96px;
     }
 
     .sidebar-heading {
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      color: rgba(15, 23, 42, 0.6);
+      color: #6B7280;
       margin-bottom: 4px;
+      padding: 0 6px;
     }
 
     .sidebar-link {
@@ -148,16 +149,18 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
       width: 100%;
       padding: 12px 16px;
       border-radius: 12px;
-      border: 1px solid rgba(41, 128, 185, 0.25);
+      border: 1px solid #D1D5DB;
       background: #fff;
-      color: #2980B9;
+      color: #0B4F8A;
       font-weight: 600;
       text-align: left;
       transition: all 0.2s ease;
+      box-shadow: 0 6px 14px rgba(11, 79, 138, 0.05);
     }
 
     .sidebar-link mat-icon {
       font-size: 20px;
+      color: #0B4F8A;
     }
 
     .sidebar-link .nav-count {
@@ -166,25 +169,40 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
-      background: rgba(41, 128, 185, 0.08);
-      color: #2980B9;
+      background: #E1F3FF;
+      color: #0B4F8A;
     }
 
     .sidebar-link .nav-count.active {
-      background: rgba(33, 150, 243, 0.15);
-      color: #0c4a6e;
+      background: rgba(0, 167, 196, 0.15);
+      color: #0B3558;
+    }
+
+    .sidebar-link:hover {
+      border-color: #00A7C4;
+      color: #0B3558;
+      box-shadow: 0 10px 24px rgba(0, 167, 196, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .sidebar-link:hover mat-icon {
+      color: #0B3558;
     }
 
     .sidebar-link.active {
-      background: #2980B9;
-      color: #fff;
-      box-shadow: 0 10px 25px rgba(41, 128, 185, 0.25);
+      background: linear-gradient(90deg, #0B4F8A 0%, #0B4F8A 60%, #00A7C4 100%);
+      color: #E5F1FF;
+      box-shadow: 0 12px 28px rgba(11, 79, 138, 0.28);
       border-color: transparent;
+    }
+
+    .sidebar-link.active mat-icon {
+      color: #E5F1FF;
     }
 
     .sidebar-link.active .nav-count {
       background: rgba(255, 255, 255, 0.2);
-      color: #fff;
+      color: #E5F1FF;
     }
 
     .content-area {
@@ -213,7 +231,7 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
     :host-context(.dark-theme) .app-sidenav {
       background: #0f172a;
       border-color: rgba(148, 163, 184, 0.24);
-      color: #e2e8f0;
+      color: #e5f1ff;
     }
 
     :host-context(.dark-theme) .sidebar-heading {
@@ -222,8 +240,9 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
 
     :host-context(.dark-theme) .sidebar-link {
       background: #111827;
-      color: #e2e8f0;
+      color: #e5f1ff;
       border-color: rgba(148, 163, 184, 0.24);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
     }
 
     :host-context(.dark-theme) .sidebar-link mat-icon {
@@ -231,24 +250,24 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
     }
 
     :host-context(.dark-theme) .sidebar-link .nav-count {
-      background: rgba(14, 165, 233, 0.15);
-      color: #7dd3fc;
+      background: rgba(0, 167, 196, 0.18);
+      color: #e5f1ff;
     }
 
     :host-context(.dark-theme) .sidebar-link .nav-count.active {
-      background: rgba(14, 165, 233, 0.25);
-      color: #e0f2fe;
+      background: rgba(0, 167, 196, 0.3);
+      color: #e5f1ff;
     }
 
     :host-context(.dark-theme) .sidebar-link.active {
-      background: #0ea5e9;
+      background: linear-gradient(90deg, #0B4F8A 0%, #0B4F8A 60%, #00A7C4 100%);
       border-color: transparent;
-      color: #0b1220;
-      box-shadow: 0 10px 25px rgba(14, 165, 233, 0.35);
+      color: #E5F1FF;
+      box-shadow: 0 12px 28px rgba(11, 79, 138, 0.5);
     }
 
     :host-context(.dark-theme) .sidebar-link.active mat-icon {
-      color: #0b1220;
+      color: #E5F1FF;
     }
 
     :host-context(.dark-theme) .sidebar-link.active .nav-count {
