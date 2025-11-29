@@ -1,19 +1,14 @@
 <!--
 Sync Impact Report:
-Version: 1.9.0 → 1.10.0 (Spring Modulith modular monolith architecture)
-Modified sections: Technology Stack (added Spring Modulith)
-Added sections: Principle VII - Modular Monolith Architecture (Spring Modulith)
+Version: 1.10.0 → 1.11.0 (Testcontainers enforced for integration testing)
+Modified sections: Testing Standards (stateful integration tests via Testcontainers), Quality Gates (integration environment parity)
+Added sections: None
 Removed sections: None
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md (Added Modular Monolith Considerations checklist)
-  ✅ .specify/templates/spec-template.md (Added Module Ownership section)
-  ✅ .specify/templates/tasks-template.md (No changes needed - tasks are feature-driven)
-Supporting artifacts updated:
-  ✅ CLAUDE.md (Added Principle #7 and updated tech stack)
-  ⚠ README.md (Already mentions modular monolith; verify consistency)
+  ✅ .specify/templates/plan-template.md (Constitution Check gate for Testcontainers integration tests)
+  ✅ README.md (Backend integration tests note on Testcontainers)
 Follow-up TODOs:
-  - Consider creating ADR for Spring Modulith adoption decision
-  - ✅ Add Spring Modulith module verification to pre-commit hooks (9dc0a545)
+  - None
 -->
 
 # Mobilispect Constitution
@@ -86,6 +81,11 @@ The backend MUST be structured as a modular monolith using Spring Modulith. Doma
 ### Testing Standards
 All features MUST include comprehensive test coverage across unit, integration, and end-to-end levels. Database-dependent tests MUST execute against PostgreSQL 17 locally and in CI to guarantee compatibility with production storage. Cache-dependent tests MUST execute against Redis 8.2 in development and CI environments.
 
+**Integration Testing with Testcontainers**:
+- Stateful integration tests (PostgreSQL, Redis, and any future stateful dependencies) MUST run via Testcontainers with images pinned to production versions.
+- Local development and CI MUST share the same container definitions to prevent environment drift.
+- Spring Boot integration tests MUST use `spring-boot-testcontainers`/`@Testcontainers` with per-suite lifecycle to avoid shared state between test classes.
+
 **Module Testing**:
 - Each module MUST have its own test suite using `@ModuleTest`
 - Module integration tests MUST verify module boundaries and contracts
@@ -146,6 +146,7 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 - [ ] Linting violations resolved (ESLint, ktlint, SwiftLint)
 - [ ] Security scan passes (SonarQube, OWASP)
 - [ ] Module structure verification passes (Spring Modulith)
+- [ ] Stateful integration tests use Testcontainers (PostgreSQL 17, Redis 8.2) with no reliance on host services
 
 ### Pre-Merge Gates
 - [ ] Code review approved by platform expert
@@ -153,6 +154,7 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 - [ ] Performance tests show no regressions
 - [ ] Contract tests verify API compatibility
 - [ ] Module boundaries verified (no circular dependencies, proper encapsulation)
+- [ ] CI executes Testcontainers-backed integration suites for all stateful components
 
 ### Pre-Deploy Gates
 - [ ] End-to-end tests pass in staging (Playwright multi-browser)
@@ -184,4 +186,4 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 
 **ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
 
-**Version**: 1.10.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-11-19
+**Version**: 1.11.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-11-29
