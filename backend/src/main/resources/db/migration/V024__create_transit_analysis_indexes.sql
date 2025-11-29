@@ -29,7 +29,7 @@ COMMENT ON INDEX idx_agencies_active IS 'Partial index for active agencies (excl
 -- ============================================================================
 
 -- Index for finding routes by agency (most common query pattern)
-CREATE INDEX idx_routes_agency_id ON routes(agency_id);
+CREATE INDEX idx_routes_agency_onestop_id ON routes(agency_onestop_id);
 
 -- Index for finding routes by GTFS route ID (used during import)
 CREATE INDEX idx_routes_gtfs_route_id ON routes(gtfs_route_id);
@@ -38,9 +38,9 @@ CREATE INDEX idx_routes_gtfs_route_id ON routes(gtfs_route_id);
 CREATE INDEX idx_routes_active ON routes(active) WHERE active = true;
 
 -- Composite index for agency + route type queries (e.g., "all bus routes for agency X")
-CREATE INDEX idx_routes_agency_route_type ON routes(agency_id, route_type);
+CREATE INDEX idx_routes_agency_route_type ON routes(agency_onestop_id, route_type);
 
-COMMENT ON INDEX idx_routes_agency_id IS 'Efficient lookup of routes by agency';
+COMMENT ON INDEX idx_routes_agency_onestop_id IS 'Efficient lookup of routes by agency using Transitland onestop ID';
 COMMENT ON INDEX idx_routes_gtfs_route_id IS 'Fast lookup during GTFS import and reconciliation';
 COMMENT ON INDEX idx_routes_active IS 'Partial index for active routes (excludes inactive to save space)';
 COMMENT ON INDEX idx_routes_agency_route_type IS 'Composite index for filtering routes by agency and service mode';
@@ -144,7 +144,7 @@ COMMENT ON INDEX idx_common_section_variants_section_sequence IS 'Sequence-based
 -- ============================================================================
 
 -- Index for finding imports by agency
-CREATE INDEX idx_imported_feeds_agency_id ON imported_feeds(agency_id);
+CREATE INDEX idx_imported_feeds_agency_onestop_id ON imported_feeds(agency_onestop_id);
 
 -- Index for filtering by import status
 CREATE INDEX idx_imported_feeds_status ON imported_feeds(status);
@@ -153,13 +153,13 @@ CREATE INDEX idx_imported_feeds_status ON imported_feeds(status);
 CREATE INDEX idx_imported_feeds_started_at ON imported_feeds(import_started_at DESC);
 
 -- Composite index for agency + status queries
-CREATE INDEX idx_imported_feeds_agency_status ON imported_feeds(agency_id, status);
+CREATE INDEX idx_imported_feeds_agency_status ON imported_feeds(agency_onestop_id, status);
 
 -- Composite index for agency + date range queries
 CREATE INDEX idx_imported_feeds_agency_date_range
-    ON imported_feeds(agency_id, import_started_at DESC);
+    ON imported_feeds(agency_onestop_id, import_started_at DESC);
 
-COMMENT ON INDEX idx_imported_feeds_agency_id IS 'Find all imports for a specific agency';
+COMMENT ON INDEX idx_imported_feeds_agency_onestop_id IS 'Find all imports for a specific agency using Transitland onestop ID';
 COMMENT ON INDEX idx_imported_feeds_status IS 'Filter imports by status (STARTED, IN_PROGRESS, COMPLETED, FAILED)';
 COMMENT ON INDEX idx_imported_feeds_started_at IS 'Find most recent imports (descending order)';
 COMMENT ON INDEX idx_imported_feeds_agency_status IS 'Filter imports by agency and status';

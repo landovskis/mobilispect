@@ -24,7 +24,7 @@ import java.time.Instant
  *
  * Relationship chain: Agency -> Feed (via feed_onestop_id) -> Regions (via feed_regions table)
  *
- * @property id Unique agency identifier using Onestop ID format (o-geohash-name)
+ * @property agencyOnestopId Unique agency identifier using Transitland Onestop ID format (o-geohash-name)
  * @property feed Feed entity this agency belongs to
  * @property gtfsAgencyId Agency ID from GTFS agency.txt file
  * @property name Agency display name
@@ -40,8 +40,8 @@ import java.time.Instant
 class Agency(
     @Id
     @Convert(converter = AgencyIdConverter::class)
-    @Column(name = "id", nullable = false, updatable = false, columnDefinition = "VARCHAR(255)")
-    val id: AgencyId = AgencyId(""),
+    @Column(name = "agency_onestop_id", nullable = false, updatable = false, length = 255)
+    val agencyOnestopId: AgencyId = AgencyId(""),
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "feed_onestop_id", nullable = false)
@@ -75,7 +75,7 @@ class Agency(
     val routes: MutableSet<Route> = mutableSetOf()
 
     constructor() : this(
-        id = AgencyId("placeholder"),
+        agencyOnestopId = AgencyId("placeholder"),
         feed = FeedEntity(),
         gtfsAgencyId = "",
         name = "",
@@ -98,11 +98,11 @@ class Agency(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Agency) return false
-        return id == other.id
+        return agencyOnestopId == other.agencyOnestopId
     }
 
-    override fun hashCode(): Int = id.hashCode()
+    override fun hashCode(): Int = agencyOnestopId.hashCode()
 
     override fun toString(): String =
-        "Agency(id=$id, gtfsAgencyId='$gtfsAgencyId', name='$name', active=$active)"
+        "Agency(agencyOnestopId=$agencyOnestopId, gtfsAgencyId='$gtfsAgencyId', name='$name', active=$active)"
 }

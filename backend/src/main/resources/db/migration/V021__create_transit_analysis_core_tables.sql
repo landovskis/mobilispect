@@ -34,7 +34,7 @@ COMMENT ON TYPE route_type IS 'GTFS route_type enumeration for transit service m
 -- Relationship: Many agencies per feed (one feed may contain multiple agencies)
 -- Region Access: Agencies inherit region membership through their feed reference
 CREATE TABLE agencies (
-    id VARCHAR(255) PRIMARY KEY,  -- AgencyId value class (Onestop ID format: o-geohash-name)
+    agency_onestop_id VARCHAR(255) PRIMARY KEY,  -- AgencyId value class (Transitland Onestop ID format: o-geohash-name)
     feed_onestop_id VARCHAR(255) NOT NULL REFERENCES feeds(feed_onestop_id) ON DELETE CASCADE,
     gtfs_agency_id VARCHAR(255) NOT NULL,  -- ID from GTFS agency.txt
     name VARCHAR(255) NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE agencies (
 );
 
 COMMENT ON TABLE agencies IS 'Transit operators providing public transportation services';
-COMMENT ON COLUMN agencies.id IS 'Onestop ID (o-geohash-name format) - AgencyId value class';
+COMMENT ON COLUMN agencies.agency_onestop_id IS 'Transitland Onestop ID (o-geohash-name format) - AgencyId value class - PRIMARY KEY';
 COMMENT ON COLUMN agencies.feed_onestop_id IS 'Foreign key to feeds table - agencies inherit region membership through feed';
 COMMENT ON COLUMN agencies.gtfs_agency_id IS 'Agency ID from GTFS agency.txt file';
 COMMENT ON COLUMN agencies.last_feed_import IS 'Timestamp of last successful GTFS import for this agency';
@@ -60,7 +60,7 @@ COMMENT ON COLUMN agencies.last_feed_import IS 'Timestamp of last successful GTF
 -- Validation: Either short_name or long_name must be present
 CREATE TABLE routes (
     id VARCHAR(50) PRIMARY KEY,  -- RouteId value class
-    agency_id VARCHAR(255) NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    agency_onestop_id VARCHAR(255) NOT NULL REFERENCES agencies(agency_onestop_id) ON DELETE CASCADE,
     gtfs_route_id VARCHAR(255) NOT NULL,  -- ID from GTFS routes.txt
     short_name VARCHAR(255),  -- e.g., "5", "Red Line"
     long_name VARCHAR(255) NOT NULL,  -- e.g., "Downtown Express"
@@ -81,6 +81,7 @@ CREATE TABLE routes (
 
 COMMENT ON TABLE routes IS 'Named transit lines operated by agencies';
 COMMENT ON COLUMN routes.id IS 'RouteId value class - unique identifier across system';
+COMMENT ON COLUMN routes.agency_onestop_id IS 'Foreign key to agencies table using Transitland agency onestop ID';
 COMMENT ON COLUMN routes.gtfs_route_id IS 'Route ID from GTFS routes.txt file';
 COMMENT ON COLUMN routes.route_type IS 'GTFS route_type enumeration (bus, rail, ferry, etc.)';
 COMMENT ON COLUMN routes.color IS 'Route brand color in hex format (without # prefix)';

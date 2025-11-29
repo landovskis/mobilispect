@@ -67,7 +67,7 @@ COMMENT ON COLUMN common_section_variants.end_sequence IS 'Zero-based position i
 -- Use Case: Version control for frequency calculations and historical analysis
 CREATE TABLE imported_feeds (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    agency_id VARCHAR(255) NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    agency_onestop_id VARCHAR(255) NOT NULL REFERENCES agencies(agency_onestop_id) ON DELETE CASCADE,
     feed_url TEXT NOT NULL,
     feed_version VARCHAR(255),  -- Version identifier from GTFS (if provided)
     file_size_bytes BIGINT,
@@ -90,7 +90,7 @@ CREATE TABLE imported_feeds (
 -- This maintains consistency with existing feed import tracking
 
 COMMENT ON TABLE imported_feeds IS 'Historical tracking of GTFS feed imports for transit analysis';
-COMMENT ON COLUMN imported_feeds.agency_id IS 'Foreign key to agencies - which agency this import is for';
+COMMENT ON COLUMN imported_feeds.agency_onestop_id IS 'Foreign key to agencies using Transitland onestop ID - which agency this import is for';
 COMMENT ON COLUMN imported_feeds.feed_url IS 'URL of the GTFS feed that was imported';
 COMMENT ON COLUMN imported_feeds.feed_version IS 'Version identifier from GTFS feed_info.txt (if provided)';
 COMMENT ON COLUMN imported_feeds.file_size_bytes IS 'Size of the GTFS ZIP file in bytes';

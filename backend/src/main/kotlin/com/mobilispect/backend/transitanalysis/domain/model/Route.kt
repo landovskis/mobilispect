@@ -41,7 +41,7 @@ class Route(
     val id: RouteId = RouteId(""),
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "agency_id", nullable = false)
+    @JoinColumn(name = "agency_onestop_id", nullable = false)
     val agency: Agency,
 
     @Column(name = "gtfs_route_id", nullable = false, length = 255)

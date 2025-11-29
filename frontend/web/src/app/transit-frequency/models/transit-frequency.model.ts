@@ -38,8 +38,8 @@ export interface Region {
  * Reference: Backend Agency entity at com.mobilispect.backend.transitanalysis.domain.model.Agency
  */
 export interface Agency {
-  /** Unique agency identifier using Onestop ID format (o-geohash-name) */
-  readonly id: string;
+  /** Unique agency identifier using Transitland Onestop ID format (o-geohash-name) */
+  readonly agencyOnestopId: string;
 
   /** Agency ID from GTFS agency.txt file */
   readonly gtfsAgencyId: string;
@@ -82,8 +82,8 @@ export interface Route {
   /** Unique route identifier */
   readonly id: string;
 
-  /** Agency ID that operates this route */
-  readonly agencyId: string;
+  /** Agency Onestop ID that operates this route (Transitland format: o-geohash-name) */
+  readonly agencyOnestopId: string;
 
   /** Route ID from GTFS routes.txt file */
   readonly gtfsRouteId: string;
@@ -292,8 +292,8 @@ export interface FrequencyQueryRequest {
   /** Filter by route ID */
   readonly routeId?: string;
 
-  /** Filter by agency ID */
-  readonly agencyId?: string;
+  /** Filter by agency Onestop ID (Transitland format: o-geohash-name) */
+  readonly agencyOnestopId?: string;
 
   /** Filter by region ID */
   readonly regionId?: string;
