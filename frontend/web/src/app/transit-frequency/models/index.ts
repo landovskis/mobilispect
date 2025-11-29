@@ -31,7 +31,7 @@ export {
 } from './route-type.model';
 
 // Transit Frequency interfaces and types
-export {
+export type {
   Region,
   Agency,
   Route,
