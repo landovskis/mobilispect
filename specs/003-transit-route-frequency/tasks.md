@@ -73,18 +73,18 @@ The following components **already exist** in the codebase and should be **reuse
 
 **Purpose**: Project initialization, dependencies, and module structure
 
-- [ ] T001 Add OneBusAway GTFS library dependency to backend/gradle/libs.versions.toml (`onebusaway-gtfs = { module = "org.onebusaway:onebusaway-gtfs", version = "1.4.15" }`)
-- [ ] T002 Add OneBusAway GTFS library to backend/build.gradle.kts (`implementation(libs.onebusaway.gtfs)`)
-- [ ] T003 Add Spring WebFlux dependency for reactive HTTP client to backend/build.gradle.kts (`implementation("org.springframework.boot:spring-boot-starter-webflux")`)
-- [ ] T004 Add Kotlin coroutines reactor for WebClient suspend support to backend/build.gradle.kts (`implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")`)
-- [ ] T005 Create ADR for GTFS library choice (OneBusAway vs custom parser vs alternatives) in docs/adr/NNNN-gtfs-library-selection.md
-- [ ] T006 Create ADR for hash-based variant identification in docs/adr/NNNN-route-variant-identification.md
-- [ ] T007 Create ADR for Transitland API integration (Spring WebClient vs Retrofit vs alternatives) in docs/adr/NNNN-transitland-api-integration.md
-- [ ] T008 Create ADR for common section detection algorithm (LCS with 3-stop minimum) in docs/adr/NNNN-common-section-detection.md
-- [ ] T009 Create ADR for frequency calculation methodology in docs/adr/NNNN-frequency-calculation-method.md
-- [ ] T010 [P] Create transitanalysis module package structure at backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/
-- [ ] T011 [P] Create TransitAnalysisModule.kt module marker with @ApplicationModule annotation in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/TransitAnalysisModule.kt
-- [ ] T012 [P] Create Angular transit-frequency feature module structure at frontend/web/src/app/transit-frequency/
+- [X] T001 Add OneBusAway GTFS library dependency to backend/gradle/libs.versions.toml (`onebusaway-gtfs = { module = "org.onebusaway:onebusaway-gtfs", version = "1.4.15" }`)
+- [X] T002 Add OneBusAway GTFS library to backend/build.gradle.kts (`implementation(libs.onebusaway.gtfs)`)
+- [X] T003 Add Spring WebFlux dependency for reactive HTTP client to backend/build.gradle.kts (`implementation("org.springframework.boot:spring-boot-starter-webflux")`)
+- [X] T004 Add Kotlin coroutines reactor for WebClient suspend support to backend/build.gradle.kts (`implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")`)
+- [X] T005 Create ADR for GTFS library choice (OneBusAway vs custom parser vs alternatives) in docs/adr/NNNN-gtfs-library-selection.md
+- [X] T006 Create ADR for hash-based variant identification in docs/adr/NNNN-route-variant-identification.md
+- [X] T007 Create ADR for Transitland API integration (Spring WebClient vs Retrofit vs alternatives) in docs/adr/NNNN-transitland-api-integration.md
+- [X] T008 Create ADR for common section detection algorithm (LCS with 3-stop minimum) in docs/adr/NNNN-common-section-detection.md
+- [X] T009 Create ADR for frequency calculation methodology in docs/adr/NNNN-frequency-calculation-method.md
+- [X] T010 [P] Create transitanalysis module package structure at backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/
+- [X] T011 [P] Create TransitAnalysisModule.kt module marker with @ApplicationModule annotation in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/TransitAnalysisModule.kt
+- [X] T012 [P] Create Angular transit-frequency feature module structure at frontend/web/src/app/transit-frequency/
 
 ---
 
@@ -96,47 +96,47 @@ The following components **already exist** in the codebase and should be **reuse
 
 ### Database Schema
 
-- [ ] T013 Create database migration V021__create_transit_analysis_core_tables.sql (agencies with feed_onestop_id FK to existing feeds table, routes, route_variants) in backend/src/main/resources/db/migration/
-- [ ] T014 Create database migration V022__create_transit_analysis_frequency_tables.sql (frequencies table) in backend/src/main/resources/db/migration/
-- [ ] T015 Create database migration V023__create_transit_analysis_supporting_tables.sql (common_sections, common_section_variants) in backend/src/main/resources/db/migration/
-- [ ] T016 Create database migration V024__create_transit_analysis_indexes.sql (all indexes from data-model.md) in backend/src/main/resources/db/migration/
-- [ ] T017 Run migrations and verify tables created (`./gradlew flywayMigrate`)
+- [X] T013 Create database migration V021__create_transit_analysis_core_tables.sql (agencies with feed_onestop_id FK to existing feeds table, routes, route_variants) in backend/src/main/resources/db/migration/
+- [X] T014 Create database migration V022__create_transit_analysis_frequency_tables.sql (frequencies table) in backend/src/main/resources/db/migration/
+- [X] T015 Create database migration V023__create_transit_analysis_supporting_tables.sql (common_sections, common_section_variants) in backend/src/main/resources/db/migration/
+- [X] T016 Create database migration V024__create_transit_analysis_indexes.sql (all indexes from data-model.md) in backend/src/main/resources/db/migration/
+- [X] T017 Run migrations and verify tables created (`./gradlew flywayMigrate`)
 
 ### Value Classes & Enums (Shared across all stories)
 
-- [ ] T018 **SKIP** - RegionId already exists in feed module at backend/src/main/kotlin/com/mobilispect/backend/feed/model/ids/RegionId.kt (reuse via module public API)
-- [ ] T019 [P] Create AgencyId value class in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/valueobjects/AgencyId.kt
-- [ ] T020 [P] Create RouteId value class in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/valueobjects/RouteId.kt
-- [ ] T021 [P] Create VariantHash value class in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/valueobjects/VariantHash.kt
-- [ ] T022 [P] Create TimePeriod enum in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/TimePeriod.kt
-- [ ] T023 [P] Create RouteType enum in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/RouteType.kt
-- [ ] T024 [P] Create ImportStatus enum in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/ImportStatus.kt
+- [X] T018 **SKIP** - RegionId already exists in feed module at backend/src/main/kotlin/com/mobilispect/backend/feed/model/ids/RegionId.kt (reuse via module public API)
+- [X] T019 [P] Create AgencyId value class in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/valueobjects/AgencyId.kt
+- [X] T020 [P] Create RouteId value class in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/valueobjects/RouteId.kt
+- [X] T021 [P] Create VariantHash value class in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/valueobjects/VariantHash.kt
+- [X] T022 [P] Create TimePeriod enum in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/TimePeriod.kt
+- [X] T023 [P] Create RouteType enum in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/RouteType.kt
+- [X] T024 [P] Create ImportStatus enum in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/ImportStatus.kt
 
 ### Core Domain Models (Required by all stories)
 
-- [ ] T025 **NOTE** - MetropolitanRegion already exists in feed module (reuse via foreign key reference to region_onestop_id)
-- [ ] T026 [P] Create Agency entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/Agency.kt (ManyToOne with FeedEntity via feed_onestop_id FK - inherits region membership through Feed's existing feed_regions relationship)
-- [ ] T027 [P] Create Route entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/Route.kt
-- [ ] T028 [P] Create RouteVariant entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/RouteVariant.kt
-- [ ] T029 [P] Create Frequency entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/Frequency.kt
-- [ ] T030 [P] Create CommonSection entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/CommonSection.kt
-- [ ] T031 [P] Create CommonSectionVariant entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/CommonSectionVariant.kt
-- [ ] T032 **NOTE** - Feed import tracking handled by existing FeedImport entity in feed module (reuse via published events)
+- [X] T025 **NOTE** - MetropolitanRegion already exists in feed module (reuse via foreign key reference to region_onestop_id)
+- [X] T026 [P] Create Agency entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/Agency.kt (ManyToOne with FeedEntity via feed_onestop_id FK - inherits region membership through Feed's existing feed_regions relationship)
+- [X] T027 [P] Create Route entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/Route.kt
+- [X] T028 [P] Create RouteVariant entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/RouteVariant.kt
+- [X] T029 [P] Create Frequency entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/Frequency.kt
+- [X] T030 [P] Create CommonSection entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/CommonSection.kt
+- [X] T031 [P] Create CommonSectionVariant entity in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/model/CommonSectionVariant.kt
+- [X] T032 **NOTE** - Feed import tracking handled by existing FeedImport entity in feed module (reuse via published events)
 
 ### Repositories (Shared Infrastructure)
 
-- [ ] T033 **NOTE** - Region data queried via feed module's public API or direct reference to metropolitan_regions table via foreign key
-- [ ] T034 [P] Create AgencyRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/AgencyRepository.kt
-- [ ] T035 [P] Create RouteRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/RouteRepository.kt
-- [ ] T036 [P] Create RouteVariantRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/RouteVariantRepository.kt
-- [ ] T037 [P] Create FrequencyRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/FrequencyRepository.kt
-- [ ] T038 [P] Create CommonSectionRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/CommonSectionRepository.kt
+- [X] T033 **NOTE** - Region data queried via feed module's public API or direct reference to metropolitan_regions table via foreign key
+- [X] T034 [P] Create AgencyRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/AgencyRepository.kt
+- [X] T035 [P] Create RouteRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/RouteRepository.kt
+- [X] T036 [P] Create RouteVariantRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/RouteVariantRepository.kt
+- [X] T037 [P] Create FrequencyRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/FrequencyRepository.kt
+- [X] T038 [P] Create CommonSectionRepository interface in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/repository/CommonSectionRepository.kt
 
 ### Frontend Shared Components & Models
 
-- [ ] T041 [P] Create transit-frequency.model.ts TypeScript interfaces in frontend/web/src/app/transit-frequency/models/transit-frequency.model.ts
-- [ ] T042 [P] Create time-period.model.ts TypeScript enum in frontend/web/src/app/transit-frequency/models/time-period.model.ts
-- [ ] T043 [P] Create route-type.model.ts TypeScript enum in frontend/web/src/app/transit-frequency/models/route-type.model.ts
+- [X] T041 [P] Create transit-frequency.model.ts TypeScript interfaces in frontend/web/src/app/transit-frequency/models/transit-frequency.model.ts
+- [X] T042 [P] Create time-period.model.ts TypeScript enum in frontend/web/src/app/transit-frequency/models/time-period.model.ts
+- [X] T043 [P] Create route-type.model.ts TypeScript enum in frontend/web/src/app/transit-frequency/models/route-type.model.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
