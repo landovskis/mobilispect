@@ -15,6 +15,7 @@ This document consolidates research findings for implementing transit route freq
 **Decision**: Use OneBusAway GTFS library for Java/Kotlin
 
 **Rationale**:
+
 - **Mature & Maintained**: Active development since 2008, widely used in transit industry
 - **Complete GTFS Support**: Handles all GTFS specification files (agency, routes, trips, stops, stop_times, calendar, calendar_dates, shapes)
 - **Kotlin Compatibility**: Java library works seamlessly with Kotlin on JVM
@@ -23,11 +24,13 @@ This document consolidates research findings for implementing transit route freq
 - **Type Safety**: Strong typing aligns with constitutional requirement for value classes
 
 **Alternatives Considered**:
+
 - **Custom Parser**: Rejected due to complexity of GTFS spec (14+ file types, complex relationships)
 - **Python GTFS-kit**: Rejected due to language mismatch (requires separate service)
 - **CSV Parser + Manual Mapping**: Rejected due to lack of validation and relationship handling
 
 **Implementation Notes**:
+
 ```kotlin
 // Dependency
 implementation("org.onebusaway:onebusaway-gtfs:1.4.15")
@@ -46,6 +49,7 @@ val stopTimes = dao.getStopTimesForTrip(trip)
 **Decision**: Hash-based identification using ordered stop sequence with SHA-256
 
 **Rationale**:
+
 - **Stability**: Hash remains constant when stop pattern unchanged across feed updates
 - **Uniqueness**: SHA-256 provides collision resistance for variant identification
 - **Deterministic**: Same stop sequence always produces same hash
@@ -53,6 +57,7 @@ val stopTimes = dao.getStopTimesForTrip(trip)
 - **Alignment**: Supports clarification decision to use content-based identifiers
 
 **Algorithm Design**:
+
 ```kotlin
 fun generateVariantHash(stopIds: List<StopId>): VariantHash {
     val concatenated = stopIds.joinToString(separator = "|") { it.value }
@@ -64,11 +69,13 @@ fun generateVariantHash(stopIds: List<StopId>): VariantHash {
 ```
 
 **Alternatives Considered**:
+
 - **Agency-Provided Trip IDs**: Rejected due to inconsistency across feed versions
 - **Sequential Integer IDs**: Rejected due to instability when new variants inserted
 - **Stop Pattern Comparison**: Rejected due to O(n²) complexity for variant matching
 
 **Edge Cases Handled**:
+
 - Variants with minimal differences (1-2 stops): Still create separate hashes, flag as similar
 - Circular routes with different starting points: Normalize to canonical starting point
 - Bi-directional routes: Include direction indicator in hash input
@@ -78,12 +85,14 @@ fun generateVariantHash(stopIds: List<StopId>): VariantHash {
 **Decision**: Average headway by time period using scheduled departure times
 
 **Rationale**:
+
 - **Industry Standard**: Average headway is standard transit metric (matches agency publications)
 - **Time Period Granularity**: Weekday peak/off-peak/weekend aligns with service planning practices
 - **Accurate Representation**: Uses actual schedule data from stop_times.txt
 - **User Expectation**: Matches how transit planners think about service levels
 
 **Calculation Formula**:
+
 ```kotlin
 fun calculateFrequency(departures: List<LocalTime>, period: TimePeriod): Frequency {
     val periodDepartures = departures.filter { it in period.timeRange }
@@ -107,6 +116,7 @@ fun calculateFrequency(departures: List<LocalTime>, period: TimePeriod): Frequen
 ```
 
 **Time Period Definitions** (from spec clarifications):
+
 - Weekday AM Peak: 6:00-9:00 AM
 - Weekday PM Peak: 4:00-7:00 PM
 - Weekday Off-Peak: All other weekday hours (9:00 AM-4:00 PM, 7:00 PM-6:00 AM)
@@ -114,6 +124,7 @@ fun calculateFrequency(departures: List<LocalTime>, period: TimePeriod): Frequen
 - Holiday: Based on calendar_dates.txt exception types
 
 **Alternatives Considered**:
+
 - **Median Headway**: Rejected as less intuitive for users than average
 - **Peak Frequency Only**: Rejected as doesn't show service variability
 - **Real-time Vehicle Positions**: Rejected as out of scope (scheduled data only)
@@ -123,12 +134,14 @@ fun calculateFrequency(departures: List<LocalTime>, period: TimePeriod): Frequen
 **Decision**: Longest Common Subsequence (LCS) with minimum threshold of 3 consecutive stops
 
 **Rationale**:
+
 - **Robust**: LCS algorithm handles stop pattern variations gracefully
 - **Configurable Threshold**: 3-stop minimum balances noise vs meaningful overlaps
 - **Direction-Aware**: Requires same direction/sequence (not just common stops)
 - **Efficient**: Dynamic programming implementation O(m*n) for two routes
 
 **Algorithm Design**:
+
 ```kotlin
 fun detectCommonSections(
     variant1: RouteVariant,
@@ -153,27 +166,34 @@ fun detectCommonSections(
 ```
 
 **Alternatives Considered**:
+
 - **Simple Set Intersection**: Rejected as doesn't preserve sequence/direction
 - **Spatial Distance Clustering**: Rejected as too complex and error-prone with GPS coordinates
 - **2-Stop Minimum**: Rejected as creates too many trivial common sections
 
 **Performance Optimization**:
+
 - Pre-filter route pairs by geographic bounding box before LCS computation
 - Cache common sections to avoid recomputation on each frequency query
 - Batch process common section detection during feed import (not real-time)
 
 ### 5. Transitland API Integration
 
-**Decision**: Use Transitland v2 REST API with HTTP client (OkHttp + Retrofit)
+**Decision**: Use Transitland v2 REST API with Spring WebClient (reactive HTTP client)
 
 **Rationale**:
+
 - **Official Catalog**: Transitland maintains curated GTFS feed registry with quality metadata
 - **Region Support**: Provides metro area definitions matching spec requirements
 - **Feed Metadata**: Includes feed URLs, update schedules, bounding boxes
 - **Well-Documented**: Comprehensive API documentation with examples
 - **Rate Limits**: Reasonable limits (1000 requests/hour) sufficient for batch operations
+- **Spring Integration**: WebClient is native to Spring Boot, provides better integration with Spring's observability, configuration, and dependency injection
+- **Reactive & Coroutines**: Native Kotlin coroutines support via `awaitBody()` for non-blocking I/O
+- **Constitutional Alignment**: Matches Spring Boot stack requirement, automatic Micrometer/Grafana integration
 
 **API Endpoints Used**:
+
 - `GET /api/v2/rest/feeds`: List feeds by geographic region
 - `GET /api/v2/rest/feeds/{id}`: Get specific feed details
 - `GET /api/v2/rest/metro_areas`: List metropolitan areas
@@ -181,25 +201,40 @@ fun detectCommonSections(
 **Authentication**: API key required (free tier available, stored in application secrets)
 
 **Implementation Pattern**:
-```kotlin
-interface TransitlandClient {
-    @GET("/api/v2/rest/feeds")
-    suspend fun getFeedsByRegion(
-        @Query("bbox") boundingBox: String,
-        @Query("spec") spec: String = "gtfs"
-    ): List<FeedResponse>
 
-    @GET("/api/v2/rest/metro_areas")
-    suspend fun getMetroAreas(): List<MetroAreaResponse>
+```kotlin
+@Service
+class TransitlandClient(private val webClient: WebClient) {
+    suspend fun getFeedsByRegion(boundingBox: String): List<FeedResponse> {
+        return webClient.get()
+            .uri { it.path("/api/v2/rest/feeds")
+                .queryParam("bbox", boundingBox)
+                .queryParam("spec", "gtfs")
+                .build()
+            }
+            .retrieve()
+            .awaitBody()
+    }
+
+    suspend fun getMetroAreas(): List<MetroAreaResponse> {
+        return webClient.get()
+            .uri("/api/v2/rest/metro_areas")
+            .retrieve()
+            .awaitBody()
+    }
 }
 ```
 
 **Alternatives Considered**:
+
+- **Retrofit + OkHttp**: Rejected as not native to Spring ecosystem, requires additional dependencies, less integrated with Spring observability
+- **RestTemplate**: Rejected as deprecated in favor of WebClient for new projects
 - **Manual Feed URL Configuration**: Rejected as requires ongoing maintenance
 - **MobilityData Catalog API**: Considered but Transitland has better region metadata
 - **Direct Agency Websites**: Rejected as inconsistent formats and availability
 
 **Error Handling**:
+
 - Retry logic with exponential backoff for transient failures
 - Fallback to cached feed URLs if Transitland API unavailable
 - Alert operators when feeds haven't updated in expected timeframe
@@ -209,12 +244,14 @@ interface TransitlandClient {
 **Decision**: Redis for computed frequencies and feed metadata with TTL-based invalidation
 
 **Rationale**:
+
 - **Performance**: Avoid recomputing frequencies on every query (computationally expensive)
 - **Constitutional Alignment**: Redis 8.2 specified in tech stack
 - **TTL Support**: Automatic cache invalidation after feed update periods
 - **Structured Data**: Redis supports complex data types (hashes, sets) for frequency data
 
 **Cache Keys**:
+
 ```kotlin
 // Frequency cache (TTL: 24 hours)
 frequency:{variantHash}:{timePeriod}:{date}
@@ -227,11 +264,13 @@ region:metro:{regionId}
 ```
 
 **Invalidation Strategy**:
+
 - Time-based: TTL set based on feed update frequency (daily feeds = 24h TTL)
 - Event-based: Invalidate on `FeedImportCompleted` event
 - Manual: Admin endpoint to force cache clear for specific region/agency
 
 **Alternatives Considered**:
+
 - **In-Memory Cache (Caffeine)**: Rejected as doesn't persist across application restarts
 - **No Caching**: Rejected due to performance impact (recompute on every query)
 - **Database Materialized Views**: Rejected as less flexible than Redis
@@ -241,12 +280,14 @@ region:metro:{regionId}
 **Decision**: Micrometer + OpenTelemetry for metrics/traces, Logback for structured logs
 
 **Rationale**:
+
 - **Spring Boot Integration**: Micrometer natively integrated with Spring Boot Actuator
 - **Grafana Cloud Compatible**: Micrometer exports to Prometheus format (Grafana Cloud ingests)
 - **OpenTelemetry Standard**: Industry standard for distributed tracing
 - **Structured Logging**: Logback with JSON encoder for machine-parseable logs
 
 **Metrics to Collect** (FR-024):
+
 ```kotlin
 // Feed processing metrics
 "feed.processing.duration" (Timer)
@@ -262,6 +303,7 @@ region:metro:{regionId}
 ```
 
 **Trace Spans** (FR-025):
+
 ```kotlin
 @Traced // OpenTelemetry annotation
 fun importFeed(feedUrl: String): FeedImportResult {
@@ -274,6 +316,7 @@ fun importFeed(feedUrl: String): FeedImportResult {
 ```
 
 **Log Structure** (FR-023):
+
 ```json
 {
   "timestamp": "2025-11-27T10:15:30.456Z",
@@ -293,6 +336,7 @@ fun importFeed(feedUrl: String): FeedImportResult {
 ```
 
 **Alternatives Considered**:
+
 - **Direct Grafana Cloud SDK**: Rejected as less portable than OpenTelemetry standard
 - **Custom Metrics**: Rejected as Micrometer provides better tooling and dashboards
 

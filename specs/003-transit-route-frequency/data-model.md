@@ -11,13 +11,25 @@ This document defines the data model for transit route frequency analysis. The m
 ## Entity Relationship Diagram
 
 ```
-┌────────────┐         ┌────────────┐         ┌────────────┐
-│   Region   │1      * │   Agency   │1      * │   Route    │
-│            ├─────────│            ├─────────│            │
-│ - id       │         │ - id       │         │ - id       │
-│ - name     │         │ - name     │         │ - number   │
-│ - bounds   │         │ - feedUrl  │         │ - name     │
-└────────────┘         └────────────┘         └────────────┘
+┌─────────────────────┐         ┌────────────┐         ┌────────────┐         ┌────────────┐
+│ MetropolitanRegion  │*      * │    Feed    │1      * │   Agency   │1      * │   Route    │
+│  (existing table)   │◇────────│ (existing) ├─────────│            ├─────────│            │
+│ - region_onestop_id │         │ - id       │         │ - id       │         │ - id       │
+│ - name              │         │ - name     │         │ - name     │         │ - number   │
+│ - adm0_name         │         │ - url      │         │ - gtfsId   │         │ - name     │
+└─────────────────────┘         └────────────┘         └────────────┘         └────────────┘
+         │                             │
+         │                             │
+         └─────────────────────────────┘
+                      │
+                ┌─────────────┐
+                │ feed_regions │ (existing junction table)
+                │              │
+                │ - feed_id    │
+                │ - region_id  │
+                └─────────────┘
+
+Note: Agency inherits region membership through Feed relationship
                                                      │1
                                                      │
                                                      │*
@@ -55,96 +67,85 @@ This document defines the data model for transit route frequency analysis. The m
 
 ## Core Entities
 
-### Region
+### MetropolitanRegion (Existing Table)
 
 **Purpose**: Geographic area containing one or more transit agencies (metro area)
 
-**Attributes**:
+**Note**: This entity **already exists** in the `feed` module and should be **referenced**, not duplicated.
+
+**Existing Attributes** (from `backend/src/main/kotlin/com/mobilispect/backend/feed/model/MetropolitanRegion.kt`):
+
 ```kotlin
 @Entity
-@Table(name = "regions")
-data class Region(
+@Table(name = "metropolitan_regions")
+class MetropolitanRegion(
     @Id
-    @Column(name = "id", columnDefinition = "VARCHAR(50)")
-    val id: RegionId, // Value class
+    @Convert(converter = RegionIdConverter::class)
+    @Column(name = "region_onestop_id", nullable = false, updatable = false, length = 255)
+    val regionOnestopId: RegionId, // Value class (existing: feed.model.ids.RegionId)
 
-    @Column(name = "name", nullable = false)
-    val name: String,
+    @Column(nullable = false, length = 255)
+    var name: String,
 
-    @Column(name = "transitland_id")
-    val transitlandId: String?, // External ID from Transitland API
+    @Column(name = "adm0_name", nullable = true, length = 255)
+    var adm0Name: String?, // Country name
 
-    @Column(name = "bounding_box", columnDefinition = "JSONB")
-    val boundingBox: BoundingBox, // Geographic bounds (north, south, east, west)
+    @Column(name = "adm1_name", nullable = true, length = 255)
+    var adm1Name: String?, // State/province name
 
-    @Column(name = "timezone")
-    val timezone: String, // IANA timezone (e.g., "America/New_York")
+    @Column(name = "auto_update_enabled", nullable = false)
+    var autoUpdateEnabled: Boolean = true,
 
-    @Column(name = "created_at", nullable = false)
-    val createdAt: Instant,
+    @Column(name = "created_at", nullable = false, updatable = false)
+    val createdAt: LocalDateTime,
 
     @Column(name = "updated_at", nullable = false)
-    val updatedAt: Instant
-)
-
-@JvmInline
-value class RegionId(val value: String)
-
-data class BoundingBox(
-    val north: Double,
-    val south: Double,
-    val east: Double,
-    val west: Double
+    var updatedAt: LocalDateTime
 )
 ```
 
-**Validation Rules**:
-- `name` must be non-empty
-- `boundingBox` coordinates must be valid latitude/longitude
-- `timezone` must be valid IANA timezone identifier
+**Integration**:
 
-**Indexes**:
-```sql
-CREATE INDEX idx_regions_transitland_id ON regions(transitland_id);
-```
+- `transitanalysis` module references `metropolitan_regions` table via foreign key in `agency_regions` junction table
+- No duplication of region data
+- RegionId value class from `feed.model.ids` is reused
 
 ### Agency
 
 **Purpose**: Transit operator providing public transportation service
 
+**Note**: An agency may belong to **multiple regions** via its associated feed. The feed-region many-to-many relationship (`feed_regions` junction table) already exists, so agencies inherit region membership through their feed reference.
+
+**Relationship Chain**: `Agency -> Feed (via feed_onestop_id) -> Regions (via feed_regions table)`
+
 **Attributes**:
+
 ```kotlin
 @Entity
 @Table(name = "agencies")
 data class Agency(
     @Id
-    @Column(name = "id", columnDefinition = "VARCHAR(50)")
-    val id: AgencyId, // Value class
+    @Column(name = "id", columnDefinition = "VARCHAR(255)")
+    val id: AgencyId, // Value class (Onestop ID format: o-geohash-name)
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id", nullable = false)
-    val region: Region,
+    @JoinColumn(name = "feed_onestop_id", nullable = false)
+    val feed: FeedEntity, // Foreign key to existing feeds table - feed already has many-to-many with regions
 
-    @Column(name = "gtfs_agency_id", nullable = false)
-    val gtfsAgencyId: String, // ID from agency.txt
+    @Column(name = "gtfs_agency_id", nullable = false, length = 255)
+    val gtfsAgencyId: String, // ID from GTFS agency.txt
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", nullable = false, length = 255)
     val name: String,
 
-    @Column(name = "feed_url")
-    val feedUrl: String?, // GTFS feed download URL
-
-    @Column(name = "website")
+    @Column(name = "website", length = 512)
     val website: String?,
 
-    @Column(name = "phone")
+    @Column(name = "phone", length = 50)
     val phone: String?,
 
     @Column(name = "last_feed_import")
     val lastFeedImport: Instant?,
-
-    @Column(name = "feed_version")
-    val feedVersion: String?, // Feed version identifier
 
     @Column(name = "active", nullable = false)
     val active: Boolean = true,
@@ -161,15 +162,28 @@ value class AgencyId(val value: String)
 ```
 
 **Validation Rules**:
+
 - `name` must be non-empty
 - `feedUrl` must be valid HTTP(S) URL if provided
 - `gtfsAgencyId` must match agency.txt format
 
 **Indexes**:
+
 ```sql
-CREATE INDEX idx_agencies_region_id ON agencies(region_id);
+CREATE INDEX idx_agencies_feed_onestop_id ON agencies(feed_onestop_id);
 CREATE INDEX idx_agencies_gtfs_agency_id ON agencies(gtfs_agency_id);
 CREATE INDEX idx_agencies_active ON agencies(active) WHERE active = true;
+```
+
+**Region Membership Query**:
+To get all regions for an agency, join through feed:
+
+```sql
+SELECT mr.*
+FROM metropolitan_regions mr
+JOIN feed_regions fr ON mr.region_onestop_id = fr.region_onestop_id
+JOIN agencies a ON fr.feed_onestop_id = a.feed_onestop_id
+WHERE a.id = ?;
 ```
 
 ### Route
@@ -177,6 +191,7 @@ CREATE INDEX idx_agencies_active ON agencies(active) WHERE active = true;
 **Purpose**: Named transit line operated by an agency
 
 **Attributes**:
+
 ```kotlin
 @Entity
 @Table(name = "routes")
@@ -226,11 +241,13 @@ enum class RouteType {
 ```
 
 **Validation Rules**:
+
 - Either `shortName` or `longName` must be present
 - `color` must be valid hex color if provided
 - `routeType` must match GTFS route_type values
 
 **Indexes**:
+
 ```sql
 CREATE INDEX idx_routes_agency_id ON routes(agency_id);
 CREATE INDEX idx_routes_gtfs_route_id ON routes(gtfs_route_id);
@@ -242,6 +259,7 @@ CREATE INDEX idx_routes_active ON routes(active) WHERE active = true;
 **Purpose**: Specific service pattern for a route defined by unique stop sequence
 
 **Attributes**:
+
 ```kotlin
 @Entity
 @Table(name = "route_variants")
@@ -293,12 +311,14 @@ value class VariantHash(val value: String) // SHA-256 hash (64 hex characters)
 ```
 
 **Validation Rules**:
+
 - `id` must be 64-character hex string (SHA-256 output)
 - `stopPattern` must contain at least 2 stops
 - `stopCount` must match actual count in `stopPattern`
 - `directionId` must be 0 or 1 if provided
 
 **Indexes**:
+
 ```sql
 CREATE INDEX idx_route_variants_route_id ON route_variants(route_id);
 CREATE INDEX idx_route_variants_first_stop ON route_variants(first_stop_id);
@@ -311,6 +331,7 @@ CREATE INDEX idx_route_variants_active ON route_variants(active) WHERE active = 
 **Purpose**: Service headway for a route variant during specific time period
 
 **Attributes**:
+
 ```kotlin
 @Entity
 @Table(name = "frequencies")
@@ -362,11 +383,13 @@ enum class TimePeriod {
 ```
 
 **Validation Rules**:
+
 - If `isIrregular` is false, `averageHeadway` must be present
 - `tripCount` must be >= 0
 - `averageHeadway`, `minHeadway`, `maxHeadway` must be positive if present
 
 **Indexes**:
+
 ```sql
 CREATE UNIQUE INDEX idx_frequencies_variant_date_period
     ON frequencies(variant_id, service_date, time_period);
@@ -379,6 +402,7 @@ CREATE INDEX idx_frequencies_time_period ON frequencies(time_period);
 **Purpose**: Geographic segment where multiple routes/variants overlap
 
 **Attributes**:
+
 ```kotlin
 @Entity
 @Table(name = "common_sections")
@@ -433,11 +457,13 @@ data class CommonSectionVariant(
 ```
 
 **Validation Rules**:
+
 - `stopCount` must be >= 3 (constitutional requirement from spec)
 - `stopPattern` must contain at least 3 stops
 - `startSequence` < `endSequence` in CommonSectionVariant
 
 **Indexes**:
+
 ```sql
 CREATE INDEX idx_common_sections_first_stop ON common_sections(first_stop_id);
 CREATE INDEX idx_common_sections_last_stop ON common_sections(last_stop_id);
@@ -454,6 +480,7 @@ CREATE INDEX idx_common_section_variants_variant
 **Purpose**: Track imported GTFS feed files for historical analysis
 
 **Attributes**:
+
 ```kotlin
 @Entity
 @Table(name = "imported_feeds")
@@ -507,6 +534,7 @@ enum class ImportStatus {
 ```
 
 **Indexes**:
+
 ```sql
 CREATE INDEX idx_imported_feeds_agency_id ON imported_feeds(agency_id);
 CREATE INDEX idx_imported_feeds_status ON imported_feeds(status);
@@ -516,10 +544,12 @@ CREATE INDEX idx_imported_feeds_started_at ON imported_feeds(import_started_at);
 ## Database Schema Summary
 
 **Total Tables**: 8
+
 - Core Entities: Region, Agency, Route, RouteVariant, Frequency, CommonSection
 - Supporting: CommonSectionVariant, ImportedFeed
 
 **Storage Estimates** (for 50 regions, 1000 agencies, 50K routes, 150K variants):
+
 - Regions: ~50 rows × 500 bytes = 25 KB
 - Agencies: ~1K rows × 1 KB = 1 MB
 - Routes: ~50K rows × 500 bytes = 25 MB
@@ -542,6 +572,7 @@ All entity IDs use Kotlin inline value classes for type safety:
 ```
 
 **Benefits**:
+
 - Compile-time type safety (prevents mixing AgencyId with RouteId)
 - Zero runtime overhead (inline classes compile to primitives)
 - Explicit domain concepts in code
@@ -555,11 +586,14 @@ All entity IDs use Kotlin inline value classes for type safety:
 **Phase 4**: Add indexes and constraints
 **Phase 5**: Add PostGIS extension for geographic queries (optional, future enhancement)
 
+**Note**: Existing migrations in the project go up to V020, so transit-analysis module migrations start at V021.
+
 **Flyway Migration Files**:
-- `V001__create_core_tables.sql`
-- `V002__create_frequency_tables.sql`
-- `V003__create_supporting_tables.sql`
-- `V004__create_indexes.sql`
+
+- `V021__create_transit_analysis_core_tables.sql`
+- `V022__create_transit_analysis_frequency_tables.sql`
+- `V023__create_transit_analysis_supporting_tables.sql`
+- `V024__create_transit_analysis_indexes.sql`
 
 ## Next Steps
 

@@ -14,36 +14,43 @@ This feature enables transit planners to analyze service frequency patterns acro
 ## Technical Context
 
 **Language/Version**:
+
 - Backend: Kotlin 2.0+ with Spring Boot 3.x
 - Frontend: TypeScript 5.x with Angular 19 LTS
 
 **Primary Dependencies**:
-- Backend: Spring Boot, Spring Modulith, Spring Data JPA, OneBusAway GTFS library, HTTP client for Transitland API
+
+- Backend: Spring Boot, Spring Modulith, Spring Data JPA, Spring WebFlux (WebClient), OneBusAway GTFS library
 - Frontend: Angular 19, RxJS 7+, Angular Material for UI components
 - Testing: JUnit 5, MockK, Playwright for E2E
 
 **Storage**:
+
 - PostgreSQL 17 for persistent data (regions, agencies, routes, variants, frequencies, imported feeds)
 - Redis 8.2 for caching feed data and frequency calculations
 
 **Testing**:
+
 - Backend: JUnit 5 with `@ModuleTest` for module isolation, Testcontainers for PostgreSQL/Redis
 - Frontend: Jasmine/Karma for unit tests, Playwright for cross-browser E2E tests
 - Contract tests for REST API endpoints using Spring REST Docs
 
 **Target Platform**:
+
 - Backend: Linux server (containerized deployment)
 - Frontend: Modern web browsers (Chrome, Firefox, Safari, Edge) - desktop and mobile viewports
 
 **Project Type**: Web application (backend + frontend)
 
 **Performance Goals**:
+
 - Backend API response time: <200ms p95 (constitutional requirement)
 - Feed processing: Complete 20-agency region within 5 minutes (SC-005)
 - UI response: Load region/agency/route data within 2 seconds (SC-001)
 - Frequency calculation accuracy: Within 1 minute of source data (SC-002)
 
 **Constraints**:
+
 - Backend APIs MUST respond within 200ms p95
 - System MUST process up to 20 agencies per region within 5 minutes
 - UI MUST display up to 100 routes simultaneously without degradation
@@ -51,6 +58,7 @@ This feature enables transit planners to analyze service frequency patterns acro
 - All schedule times stored in UTC, displayed in regional timezone
 
 **Scale/Scope**:
+
 - Support multiple metropolitan regions (10-50 regions initially)
 - Process feeds from 20+ transit agencies per region
 - Handle 1000+ routes across all agencies
@@ -62,30 +70,35 @@ This feature enables transit planners to analyze service frequency patterns acro
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 ### Principle I: Code Quality First ✅
+
 - **DRY/YAGNI/SOLID**: Module design follows Single Responsibility (frequency analysis), value classes for all entity IDs (RegionId, AgencyId, RouteId, VariantId)
 - **Linting/Formatting**: ktlint for Kotlin, ESLint/Prettier for TypeScript/Angular
 - **Static Analysis**: SonarQube integration in CI/CD
 - **Code Reviews**: Required for all changes with platform expert approval
 
 ### Principle II: Test-Driven Development ✅
+
 - **TDD Approach**: Tests written before implementation for all business logic
 - **Coverage Target**: 80%+ coverage required (constitutional mandate)
 - **Test Types**: Unit tests (services, domain logic), integration tests (module boundaries, database), contract tests (REST APIs), E2E tests (Playwright)
 - **Module Tests**: `@ModuleTest` for transit-analysis module isolation
 
 ### Principle III: Cross-Platform UX Consistency ✅
+
 - **Platform**: Responsive web UI only (desktop + mobile browsers)
 - **Design System**: Angular Material components for consistent UI
 - **Light/Dark Mode**: Required across all views
 - **WCAG 2.1 AA**: Accessibility criteria documented in acceptance tests; automated scans (axe) + manual testing for critical flows
 
 ### Principle IV: Performance Standards ✅
+
 - **API Response Time**: <200ms p95 enforced via load testing
 - **Database Optimization**: Indexes on foreign keys, composite indexes for query patterns, no N+1 queries
 - **Caching Strategy**: Redis for computed frequencies and feed metadata
 - **Performance Tests**: JMeter/Gatling tests in CI/CD pipeline
 
 ### Principle V: Observability & Monitoring ✅
+
 - **Structured Logs**: All feed import/processing operations (FR-023)
 - **Metrics**: Processing duration, feed size, variant count, error rates (FR-024)
 - **Distributed Traces**: Feed import workflow spans (FR-025)
@@ -93,6 +106,7 @@ This feature enables transit planners to analyze service frequency patterns acro
 - **Dashboards**: Feed processing health, frequency calculation performance, API latency
 
 ### Principle VI: Architecture Decision Records ✅
+
 - **Required ADRs**:
   - ADR-001: Use Transitland API for feed discovery (vs manual configuration)
   - ADR-002: Hash-based route variant identification (vs agency-provided IDs)
@@ -101,6 +115,7 @@ This feature enables transit planners to analyze service frequency patterns acro
   - ADR-005: Frequency calculation methodology (average headway by time period)
 
 ### Principle VII: Modular Monolith Architecture ✅
+
 - **Module Name**: `transit-analysis`
 - **Bounded Context**: Transit feed import, route variant analysis, frequency calculation
 - **Public API**: REST endpoints for region/agency/route/frequency queries, feed import operations
@@ -208,4 +223,3 @@ e2e/transit-frequency.spec.ts                     # Playwright E2E tests
 > **No violations - this section intentionally left empty**
 
 All constitutional requirements are satisfied without exceptions. Module design aligns with Spring Modulith patterns, test coverage meets 80%+ threshold, observability is comprehensive, and performance targets are achievable within stated constraints.
-
