@@ -205,10 +205,11 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
 
     /* Active Imports List */
     .active-imports-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 16px;
       padding: 16px;
+      align-items: stretch;
     }
 
     /* Individual Import Item Cards */

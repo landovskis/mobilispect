@@ -79,10 +79,6 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
               routerLinkActive="active">
               <mat-icon>history</mat-icon>
               <span>Imports</span>
-              @let totalImports = totalImportElements$ | async;
-              @if ((totalImports ?? 0) > 0) {
-                <span class="nav-count">{{ totalImports }}</span>
-              }
               @let activeImports = activeImportCount$ | async;
               @if ((activeImports ?? 0) > 0) {
                 <span class="nav-count active">{{ activeImports }} active</span>
@@ -166,6 +162,7 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
       border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
+      white-space: nowrap;
       background: rgba(41, 128, 185, 0.08);
       color: #2980B9;
     }
@@ -305,7 +302,6 @@ export class FeedsShellComponent implements OnDestroy {
 
   readonly isHandset$: Observable<boolean>;
   readonly discoverFeedCount$: Observable<number>;
-  readonly totalImportElements$: Observable<number>;
   readonly activeImportCount$: Observable<number>;
 
   constructor(
@@ -322,7 +318,6 @@ export class FeedsShellComponent implements OnDestroy {
       shareReplay({ bufferSize: 1, refCount: true })
     );
     this.discoverFeedCount$ = this.metrics.discoverFeedCount$;
-    this.totalImportElements$ = this.metrics.totalImportElements$;
     this.activeImportCount$ = this.importService.getActiveImportsObservable().pipe(
       map(imports => imports?.length || 0)
     );
