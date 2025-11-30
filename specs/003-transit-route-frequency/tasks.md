@@ -299,7 +299,7 @@ The following components **already exist** in the codebase and should be **reuse
 
 ### Integration for User Story 2
 
-- [ ] T135 [US2] Create contract test for frequency API endpoints in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/contract/FrequencyApiContractTest.kt
+- [X] T135 [US2] Create contract test for frequency API endpoints in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/contract/FrequencyApiContractTest.kt
 - [ ] T136 [US2] Verify API responses match OpenAPI spec from contracts/frequency-api.yaml
 
 **Checkpoint**: User Story 2 complete - route variant analysis functional with frequency display
