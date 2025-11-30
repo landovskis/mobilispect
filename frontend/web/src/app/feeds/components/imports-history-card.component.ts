@@ -153,152 +153,17 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
     </mat-expansion-panel>
   `,
     styles: [`
-    /* Expansion Panel Styles */
-    .history-panel {
-      margin-bottom: 24px;
-      border-radius: 12px !important;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-      border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    }
-
-    :host-context(.dark-theme) .history-panel {
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    }
-
-    .panel-header {
-      background: #2980B9 !important;
-      color: white !important;
-      border-radius: 12px 12px 0 0 !important;
-    }
-
-    :host-context(.dark-theme) .panel-header {
-      background: #1e5f8c !important;
-    }
-
-    .panel-title {
-      display: flex !important;
-      align-items: center !important;
-      gap: 12px !important;
-      font-weight: 600 !important;
-      font-size: 1.1rem !important;
-    }
-
-    .panel-title mat-icon {
-      color: white !important;
-    }
-
-    /* Loading & Empty States */
-
-    .loading-container p {
-      margin-top: 20px;
-      color: #666;
-    }
-
-    :host-context(.dark-theme) .loading-container p {
-      color: #aaa;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #666;
-    }
-
-    :host-context(.dark-theme) .empty-state {
-      color: #aaa;
-    }
-
-    :host-context(.dark-theme) .empty-title {
-      color: #e0e0e0;
-    }
-
-    :host-context(.dark-theme) .empty-subtitle {
-      color: #888;
-    }
-
-    .empty-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      color: #999;
-    }
-
-    :host-context(.dark-theme) .empty-icon {
-      color: #666;
-    }
-
-    /* History List */
-    .history-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 16px;
-      padding: 16px;
-    }
-
-    /* Individual History Item Cards */
-    .history-item-card {
-      border-radius: 8px !important;
-      transition: all 0.2s ease;
-    }
-
-    .history-item-card:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-      transform: translateY(-2px);
-    }
-
-    .history-card-header {
-      padding: 16px !important;
-    }
-
-    .history-avatar {
-      color: white !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    :host-context(.dark-theme) .avatar-completed {
-      background-color: #388E3C !important;
-    }
-
-    :host-context(.dark-theme) .avatar-failed {
-      background-color: #D32F2F !important;
-    }
-
-    :host-context(.dark-theme) .avatar-cancelled {
-      background-color: #F57C00 !important;
-    }
-
-    :host-context(.dark-theme) .history-title {
-      color: #e0e0e0 !important;
-    }
-
-    :host-context(.dark-theme) .history-subtitle {
-      color: #aaa !important;
-    }
-
-    .meta-item mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: #2980B9;
-    }
-
-    :host-context(.dark-theme) .meta-item {
-      color: #aaa;
-    }
-
-    :host-context(.dark-theme) .meta-item mat-icon {
-      color: #64b5f6;
-    }
-
-    mat-chip {
-      font-size: 12px !important;
-      font-weight: 600 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.5px !important;
-      min-height: 28px !important;
-    }
+    .history-panel { margin-bottom: 24px; }
+    .history-container { display: flex; flex-direction: column; gap: 16px; }
+    .history-list { display: grid; gap: 12px; }
+    .history-card-header { display: flex; align-items: center; gap: 12px; }
+    .history-avatar { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: var(--mat-sys-primary, #0b4f8a); color: var(--mat-sys-on-primary, #fff); }
+    .history-card-content { display: flex; flex-direction: column; gap: 8px; }
+    .history-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .empty-state { text-align: center; padding: 24px; color: var(--mat-sys-on-surface-variant, #475569); display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .empty-icon { font-size: 48px; width: 48px; height: 48px; color: #94a3b8; }
+    .empty-title { margin: 0; font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
+    .empty-subtitle { margin: 0; color: var(--mat-sys-on-surface-variant, #475569); max-width: 340px; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
