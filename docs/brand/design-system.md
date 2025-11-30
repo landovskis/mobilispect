@@ -71,6 +71,12 @@ Usage:
 - **Cards/Surfaces**: White on light mode with subtle shadow
   (`0 12px 30px rgba(15, 23, 42, 0.08)`), 16–24 px padding, 12–16 px radius.
   Dark mode uses `#0F172A` with reduced shadow.
+- **Brand components** (Angular standalone):
+  - `app-brand-button`: Variants `primary` | `accent` | `ghost`; sizes `sm` |
+    `md`; uses CSS variables from `src/styles/_tokens.scss`.
+  - `app-brand-card`: Title, subtitle, badge props; optional footer slot via
+    `<div card-footer>`. Uses card shadow/radius tokens and adapts to dark
+    theme.
 
 ## Implementation Notes
 
