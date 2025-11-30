@@ -1,0 +1,80 @@
+package com.mobilispect.backend.transitanalysis.application
+
+import com.mobilispect.backend.feed.model.FeedEntity
+import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.transitanalysis.domain.model.Agency
+import com.mobilispect.backend.transitanalysis.domain.model.Route
+import com.mobilispect.backend.transitanalysis.domain.model.RouteType
+import com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId
+import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
+import com.mobilispect.backend.transitanalysis.domain.repository.AgencyRepository
+import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
+import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
+import java.time.Instant
+
+@ExtendWith(MockitoExtension::class)
+class AgencyQueryServiceTest {
+    private val agencyRepository: AgencyRepository = mock(AgencyRepository::class.java)
+    private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
+    private val service = AgencyQueryService(agencyRepository, routeRepository)
+
+    @Test
+    fun `getAgencies maps agency and routes into DTO`() {
+        val feed = FeedEntity(feedOnestopId = FeedId("f-abc"), downloadUrl = "")
+        val agency = Agency(
+            agencyOnestopId = AgencyId("o-123"),
+            feed = feed,
+            gtfsAgencyId = "gtfs-agency",
+            name = "Test Agency",
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        val routes = listOf(
+            Route(
+                id = RouteId("r-1"),
+                agency = agency,
+                gtfsRouteId = "R1",
+                shortName = "1",
+                longName = "Route 1",
+                routeType = RouteType.BUS,
+                active = true
+            ),
+            Route(
+                id = RouteId("r-2"),
+                agency = agency,
+                gtfsRouteId = "R2",
+                shortName = "2",
+                longName = "Route 2",
+                routeType = RouteType.BUS,
+                active = false
+            )
+        )
+
+        `when`(agencyRepository.findAll(PageRequest.of(0, 20))).thenReturn(PageImpl(listOf(agency)))
+        `when`(routeRepository.findByAgency(agency, Pageable.unpaged())).thenReturn(PageImpl(routes))
+
+        val page: Page<*> = service.getAgencies(PageRequest.of(0, 20))
+        val dto = page.content.first() as com.mobilispect.backend.transitanalysis.api.dto.AgencyDTO
+
+        assertThat(dto.id).isEqualTo("o-123")
+        assertThat(dto.routeCount).isEqualTo(2)
+        assertThat(dto.activeRouteCount).isEqualTo(1)
+        assertThat(dto.routesByType[RouteType.BUS]).isEqualTo(2)
+    }
+
+    @Test
+    fun `getAgencySummary returns null when agency missing`() {
+        `when`(agencyRepository.findById(AgencyId("missing"))).thenReturn(java.util.Optional.empty())
+        val result = service.getAgencySummary(AgencyId("missing"))
+        assertThat(result).isNull()
+    }
+}
