@@ -77,6 +77,10 @@ Usage:
   - `app-brand-card`: Title, subtitle, badge props; optional footer slot via
     `<div card-footer>`. Uses card shadow/radius tokens and adapts to dark
     theme.
+  - `app-brand-accordion`: Accepts `items` (id/title/subtitle/badge/content),
+    optional `itemTemplate` for custom bodies, and `allowMultiple` to control
+    multi-open behavior. Chevron/badge styling uses brand gradients and token
+    colors.
 
 ## Implementation Notes
 
