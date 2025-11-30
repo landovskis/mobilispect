@@ -9,13 +9,13 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
   standalone: true,
   imports: [CommonModule, BrandCardComponent, BrandBadgeComponent],
   template: `
-    <app-brand-card [title]="agency?.name" [badge]="agency?.routeCount + ' routes'">
+    <app-brand-card [title]="agency.name" [badge]="agency.routeCount + ' routes'">
       <div class="meta" aria-label="agency summary" role="list">
-        @if (agency?.averageHeadwayMinutes !== null && agency?.averageHeadwayMinutes !== undefined) {
+        @if (agency.averageHeadwayMinutes !== null && agency.averageHeadwayMinutes !== undefined) {
           <app-brand-badge
             role="listitem"
             variant="neutral"
-            [label]="agency?.averageHeadwayMinutes + ' min avg headway'"></app-brand-badge>
+            [label]="agency.averageHeadwayMinutes + ' min avg headway'"></app-brand-badge>
         } @else {
           <app-brand-badge role="listitem" variant="neutral" label="Headway TBD"></app-brand-badge>
         }

@@ -6,7 +6,6 @@ import { RegionSelectorComponent } from './region-selector.component';
 import { AgencyFeedCardComponent } from './agency-feed-card.component';
 import { AgencyFeedGroup } from '../models/agency-feed-group.model';
 import { MetropolitanRegion, Feed } from '../models/region.models';
-import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 @Component({
@@ -16,7 +15,6 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     CommonModule,
     MatProgressSpinnerModule,
     MatIconModule,
-    BrandCardComponent,
     BrandSectionComponent,
     RegionSelectorComponent,
     AgencyFeedCardComponent,
