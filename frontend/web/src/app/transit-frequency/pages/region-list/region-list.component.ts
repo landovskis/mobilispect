@@ -12,9 +12,9 @@ import { AgencySummaryCardComponent } from '../../components/agency-summary-card
   imports: [CommonModule, BrandCardComponent, AgencySummaryCardComponent],
   template: `
     <app-brand-card title="Agencies" subtitle="Overview of agencies with route counts">
-      <div class="grid">
+      <div class="grid" role="list">
         @for (agency of agencies; track agency.id) {
-          <app-agency-summary-card [agency]="agency"></app-agency-summary-card>
+          <app-agency-summary-card role="listitem" [agency]="agency"></app-agency-summary-card>
         }
       </div>
     </app-brand-card>
@@ -24,6 +24,11 @@ import { AgencySummaryCardComponent } from '../../components/agency-summary-card
       display: grid;
       gap: 16px;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      color: var(--mat-sys-on-surface, #0f172a);
+    }
+
+    :host-context(.dark-theme) .grid {
+      color: var(--mat-sys-on-surface, #e5e7eb);
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush

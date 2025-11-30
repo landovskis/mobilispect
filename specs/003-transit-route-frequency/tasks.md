@@ -242,10 +242,10 @@ The following components **already exist** in the codebase and should be **reuse
 - [X] T102 [P] [US1] Create region-list component template in frontend/web/src/app/transit-frequency/pages/region-list/region-list.component.html
 - [X] T103 [P] [US1] Create agency-summary-card component in frontend/web/src/app/transit-frequency/components/agency-summary-card/agency-summary-card.component.ts
 - [X] T104 [US1] Add routing for /regions in frontend/web/src/app/transit-frequency/transit-frequency-routing.module.ts
-- [ ] T105 [US1] Add routing for /regions/:regionId in transit-frequency-routing.module.ts
-- [ ] T106 [US1] Implement agency sorting by route count in region-list component
-- [ ] T107 [US1] Add light/dark mode support for all US1 components (constitutional requirement)
-- [ ] T108 [US1] Add ARIA labels for accessibility (WCAG 2.1 AA) to region-list and agency-summary-card
+- [X] T105 [US1] Add routing for /regions/:regionId in transit-frequency-routing.module.ts
+- [X] T106 [US1] Implement agency sorting by route count in region-list component
+- [X] T107 [US1] Add light/dark mode support for all US1 components (constitutional requirement)
+- [X] T108 [US1] Add ARIA labels for accessibility (WCAG 2.1 AA) to region-list and agency-summary-card
 
 ### Integration for User Story 1
 

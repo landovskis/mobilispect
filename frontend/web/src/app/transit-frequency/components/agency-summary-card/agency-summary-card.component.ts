@@ -10,11 +10,14 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
   imports: [CommonModule, BrandCardComponent, BrandBadgeComponent],
   template: `
     <app-brand-card [title]="agency?.name" [badge]="agency?.routeCount + ' routes'">
-      <div class="meta" aria-label="agency summary">
+      <div class="meta" aria-label="agency summary" role="list">
         @if (agency?.averageHeadwayMinutes !== null && agency?.averageHeadwayMinutes !== undefined) {
-          <app-brand-badge variant="neutral" [label]="agency?.averageHeadwayMinutes + ' min avg headway'"></app-brand-badge>
+          <app-brand-badge
+            role="listitem"
+            variant="neutral"
+            [label]="agency?.averageHeadwayMinutes + ' min avg headway'"></app-brand-badge>
         } @else {
-          <app-brand-badge variant="neutral" label="Headway TBD"></app-brand-badge>
+          <app-brand-badge role="listitem" variant="neutral" label="Headway TBD"></app-brand-badge>
         }
       </div>
     </app-brand-card>
@@ -25,6 +28,11 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       gap: 8px;
       flex-wrap: wrap;
     }
+
+    :host-context(.dark-theme) app-brand-card {
+      color: var(--mat-sys-on-surface, #e5e7eb);
+    }
+  `],
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
