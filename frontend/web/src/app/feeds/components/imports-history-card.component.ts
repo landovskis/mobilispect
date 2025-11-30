@@ -152,8 +152,7 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
       }
     </mat-expansion-panel>
   `,
-  styleUrls: ['../styles/card.styles.css'],
-  styles: [`
+    styles: [`
     /* Expansion Panel Styles */
     .history-panel {
       margin-bottom: 24px;

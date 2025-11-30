@@ -26,12 +26,12 @@ import { CommonModule } from '@angular/common';
   `,
   styles: [`
     .brand-card {
-      background: #ffffff;
-      color: var(--ms-color-ink, #111827);
+      background: var(--mat-sys-surface, var(--ms-color-background, #ffffff));
+      color: var(--mat-sys-on-surface, var(--ms-color-ink, #111827));
       border-radius: 16px;
       padding: var(--ms-space-5, 24px);
       box-shadow: var(--ms-surface-card-shadow, 0 12px 30px rgba(15, 23, 42, 0.08));
-      border: 1px solid transparent;
+      border: 1px solid var(--mat-sys-outline, var(--ms-color-border, #d1d5db));
       display: block;
     }
 
@@ -56,14 +56,14 @@ import { CommonModule } from '@angular/common';
       margin: 0;
       font-size: 1.1rem;
       font-weight: 700;
-      color: var(--ms-color-primary, #0b4f8a);
+      color: var(--mat-sys-primary, var(--ms-color-primary, #0b4f8a));
       letter-spacing: 0.01em;
     }
 
     .card-subtitle {
       margin: 0;
       font-size: 0.95rem;
-      color: var(--ms-color-muted, #6b7280);
+      color: var(--mat-sys-on-surface-variant, var(--ms-color-muted, #6b7280));
     }
 
     .card-badge {
@@ -71,7 +71,7 @@ import { CommonModule } from '@angular/common';
       padding: 4px 12px;
       border-radius: 999px;
       background: var(--ms-color-info-blue-light, #e1f3ff);
-      color: var(--ms-color-primary, #0b4f8a);
+      color: var(--mat-sys-primary, var(--ms-color-primary, #0b4f8a));
       font-weight: 700;
       font-size: 0.85rem;
     }
@@ -91,23 +91,23 @@ import { CommonModule } from '@angular/common';
     }
 
     :host-context(.dark-theme) .brand-card {
-      background: var(--ms-color-surface-elevated, #0f172a);
-      color: var(--ms-color-text-primary, #e5f1ff);
-      border-color: rgba(148, 163, 184, 0.24);
+      background: var(--mat-sys-surface, var(--ms-color-surface-elevated, #0f172a));
+      color: var(--mat-sys-on-surface, var(--ms-color-text-primary, #e5f1ff));
+      border-color: var(--mat-sys-outline, rgba(148, 163, 184, 0.24));
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     }
 
     :host-context(.dark-theme) .card-title {
-      color: var(--ms-color-text-primary, #e5f1ff);
+      color: var(--mat-sys-on-surface, var(--ms-color-text-primary, #e5f1ff));
     }
 
     :host-context(.dark-theme) .card-subtitle {
-      color: var(--ms-color-text-secondary, #94a3b8);
+      color: var(--mat-sys-on-surface-variant, var(--ms-color-text-secondary, #94a3b8));
     }
 
     :host-context(.dark-theme) .card-badge {
       background: rgba(0, 167, 196, 0.18);
-      color: var(--ms-color-text-primary, #e5f1ff);
+      color: var(--mat-sys-on-surface, var(--ms-color-text-primary, #e5f1ff));
     }
 
     :host-context(.dark-theme) .card-footer {

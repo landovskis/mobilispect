@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -34,7 +33,7 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
   imports: [
     CommonModule,
     MatIconModule,
-    MatButtonModule,
+
     MatCheckboxModule,
     MatTooltipModule,
     MatExpansionModule,
@@ -147,8 +146,7 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
       }
     </mat-expansion-panel>
   `,
-  styleUrls: ['../styles/card.styles.css'],
-  styles: [`
+    styles: [`
     /* Expansion Panel Styles */
     .active-imports-panel {
       margin-bottom: 24px;
