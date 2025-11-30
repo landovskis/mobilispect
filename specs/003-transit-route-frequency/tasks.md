@@ -266,31 +266,31 @@ The following components **already exist** in the codebase and should be **reuse
 
 > **TDD: Write tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T111 [P] [US2] Create FrequencyQueryServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/application/FrequencyQueryServiceTest.kt
-- [ ] T112 [P] [US2] Create FrequencyControllerTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyControllerTest.kt
+- [X] T111 [P] [US2] Create FrequencyQueryServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/application/FrequencyQueryServiceTest.kt
+- [X] T112 [P] [US2] Create FrequencyControllerTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyControllerTest.kt
 
 ### Backend Implementation for User Story 2
 
-- [ ] T113 [P] [US2] Create RouteDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/RouteDTO.kt
-- [ ] T114 [P] [US2] Create RouteVariantDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/RouteVariantDTO.kt
-- [ ] T115 [P] [US2] Create FrequencyDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/FrequencyDTO.kt
-- [ ] T116 [US2] Create FrequencyQueryService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/application/FrequencyQueryService.kt
-- [ ] T117 [US2] Implement getRouteById(routeId) method
-- [ ] T118 [US2] Implement getVariantsByRoute(routeId) method
-- [ ] T119 [US2] Implement getFrequenciesForVariant(variantId, date) method filtering by time period
-- [ ] T120 [US2] Create FrequencyController GET /api/v1/routes/{routeId} in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyController.kt
-- [ ] T121 [US2] Create FrequencyController GET /api/v1/routes/{routeId}/variants endpoint
-- [ ] T122 [US2] Create FrequencyController GET /api/v1/variants/{variantId}/frequencies endpoint with date parameter
+- [X] T113 [P] [US2] Create RouteDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/RouteDTO.kt
+- [X] T114 [P] [US2] Create RouteVariantDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/RouteVariantDTO.kt
+- [X] T115 [P] [US2] Create FrequencyDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/FrequencyDTO.kt
+- [X] T116 [US2] Create FrequencyQueryService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/application/FrequencyQueryService.kt
+- [X] T117 [US2] Implement getRouteById(routeId) method
+- [X] T118 [US2] Implement getVariantsByRoute(routeId) method
+- [X] T119 [US2] Implement getFrequenciesForVariant(variantId, date) method filtering by time period
+- [X] T120 [US2] Create FrequencyController GET /api/v1/routes/{routeId} in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyController.kt
+- [X] T121 [US2] Create FrequencyController GET /api/v1/routes/{routeId}/variants endpoint
+- [X] T122 [US2] Create FrequencyController GET /api/v1/variants/{variantId}/frequencies endpoint with date parameter
 - [ ] T123 [US2] Add Redis caching for frequency queries with 1-hour TTL
 - [ ] T124 [US2] Implement cache invalidation on FeedImportCompleted event
 
 ### Frontend Implementation for User Story 2
 
-- [ ] T125 [P] [US2] Create frequency.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/frequency.service.ts
-- [ ] T126 [P] [US2] Create route-frequency component in frontend/web/src/app/transit-frequency/pages/route-frequency/route-frequency.component.ts
-- [ ] T127 [P] [US2] Create variant-list component in frontend/web/src/app/transit-frequency/components/variant-list/variant-list.component.ts
-- [ ] T128 [P] [US2] Create frequency-chart component (headway by time period) in frontend/web/src/app/transit-frequency/components/frequency-chart/frequency-chart.component.ts
-- [ ] T129 [US2] Add routing for /routes/:routeId in transit-frequency-routing.module.ts
+- [X] T125 [P] [US2] Create frequency.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/frequency.service.ts
+- [X] T126 [P] [US2] Create route-frequency component in frontend/web/src/app/transit-frequency/pages/route-frequency/route-frequency.component.ts
+- [X] T127 [P] [US2] Create variant-list component in frontend/web/src/app/transit-frequency/components/variant-list/variant-list.component.ts
+- [X] T128 [P] [US2] Create frequency-chart component (headway by time period) in frontend/web/src/app/transit-frequency/components/frequency-chart/frequency-chart.component.ts
+- [X] T129 [US2] Add routing for /routes/:routeId in transit-frequency-routing.module.ts
 - [ ] T130 [US2] Display stop pattern for each variant in variant-list component
 - [ ] T131 [US2] Add date picker for frequency queries in route-frequency component
 - [ ] T132 [US2] Display "Variable Schedule" indicator for irregular frequencies
