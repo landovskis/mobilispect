@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy, Output, EventEmitter, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -19,7 +18,8 @@ import { RegionService } from '../services/region.service';
 import { ImportService } from '../services/import.service';
 import { SchedulerService } from '../services/scheduler.service';
 import { FeedImportSummary } from '../models/import.models';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
 /**
  * Region List Component
@@ -39,7 +39,6 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
   imports: [
     CommonModule,
     FormsModule,
-    MatButtonModule,
     MatIconModule,
     MatInputModule,
     MatFormFieldModule,
@@ -49,7 +48,8 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MatBadgeModule,
     MatSlideToggleModule,
     MatMenuModule,
-    MobilispectCardComponent
+    BrandCardComponent,
+    BrandButtonComponent
   ],
   template: `
     <div class="region-list-container">
@@ -103,10 +103,10 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         <div class="error-container">
           <mat-icon color="warn">error</mat-icon>
           <p>{{ error }}</p>
-          <button mat-raised-button color="primary" (click)="refreshRegions()">
+          <app-brand-button variant="primary" size="sm" (click)="refreshRegions()">
             <mat-icon>refresh</mat-icon>
-            Retry
-          </button>
+            <span>Retry</span>
+          </app-brand-button>
         </div>
       }
 
@@ -115,36 +115,20 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         @if (filteredRegions$ | async; as regions) {
           <div class="regions-grid">
             @for (region of regions; track region.regionOnestopId) {
-              <app-mobilispect-card
+              <app-brand-card
                 class="region-card"
                 [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
+                [title]="getDisplayName(region)"
+                [subtitle]="region.regionOnestopId"
+                [badge]="getActiveImportCount(region) > 0 ? getActiveImportCount(region) + ' active' : undefined"
+                [hasFooter]="true"
                 (click)="selectRegion(region)"
                 [attr.aria-label]="'Select ' + getDisplayName(region) + ' region'"
                 tabindex="0"
                 (keydown.enter)="selectRegion(region)"
                 (keydown.space)="selectRegion(region)"
               >
-                <div card-header>
-                  <div class="region-title">
-                    {{ getDisplayName(region) }}
-                    @if (hasActiveImport(region)) {
-                      <mat-icon
-                        class="active-import-icon"
-                        [matTooltip]="'Import in progress'"
-                        [matBadge]="getActiveImportCount(region)"
-                        matBadgeColor="accent"
-                        matBadgeSize="small"
-                        aria-hidden="false"
-                        [attr.aria-label]="'Active imports in ' + getDisplayName(region) + ': ' + getActiveImportCount(region)"
-                      >
-                        sync
-                      </mat-icon>
-                    }
-                  </div>
-                  <div class="text-white/90" card-subtitle>{{ region.regionOnestopId }}</div>
-                </div>
-
-                <div card-content>
+                <div class="card-body">
                   <div class="region-stats">
                     <div class="stat-item">
                       <mat-icon>feed</mat-icon>
@@ -170,16 +154,16 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                   </div>
                 </div>
 
-                <div card-actions class="justify-end">
-                  <button
-                    mat-button
-                    color="primary"
+                <div card-footer class="justify-end flex gap-2">
+                  <app-brand-button
+                    variant="accent"
+                    size="sm"
                     (click)="$event.stopPropagation(); viewRegionDetails(region)"
                     [attr.aria-label]="'View details for ' + getDisplayName(region)"
                   >
                     <mat-icon>info</mat-icon>
-                    Details
-                  </button>
+                    <span>Details</span>
+                  </app-brand-button>
 
                   <!-- Auto-Update Controls Menu -->
                   <button
@@ -341,36 +325,27 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     .region-card {
       cursor: pointer;
       transition: all 0.2s ease-in-out;
+      border: 1px solid var(--ms-color-border, #d1d5db);
     }
 
     .region-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 8px 18px rgba(11, 79, 138, 0.16);
     }
 
     .region-card.selected {
-      --mobilispect-card-border-color: var(--mdc-theme-primary);
+      border-color: var(--ms-color-primary, #0b4f8a);
+      box-shadow: 0 12px 24px rgba(11, 79, 138, 0.22);
     }
 
     .region-card:focus {
-      outline: 2px solid var(--mdc-theme-primary);
+      outline: 2px solid var(--ms-color-primary, #0b4f8a);
       outline-offset: 2px;
-    }
-
-    .region-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #ffffff;
-    }
-
-    :host-context(.dark-theme) .region-title {
-      color: #ffffff;
     }
 
     .active-import-icon {
       animation: spin 2s linear infinite;
-      color: var(--mdc-theme-secondary);
+      color: var(--ms-color-primary-cyan, #00a7c4);
     }
 
     @keyframes spin {
