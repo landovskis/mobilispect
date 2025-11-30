@@ -17,86 +17,21 @@ repos:
         args: ['--maxkb=1000']
       - id: detect-private-key
 
-  # Kotlin Backend
+  # Router hooks to delegate to project configs
   - repo: local
     hooks:
-      # Backend Kotlin Tests (Constitutional Requirement)
-      - id: backend-kotlin-tests
-        name: Backend Kotlin Tests (Constitutional TDD Requirement)
-        entry: bash -c 'cd backend && ./gradlew test'
+      - id: backend-hooks
+        name: Backend Hooks (delegated)
+        entry: bash -c 'cd backend && pre-commit run --config .pre-commit-config.yaml'
         language: system
-        files: 'backend/.*\.(kt|kts)$'
-        exclude: 'backend/(build|\.gradle)/.*'
+        files: '^backend/'
         pass_filenames: false
-
-      # Backend Kotlin Formatting
-      - id: backend-kotlin-format
-        name: Backend Kotlin Format (ktfmt)
-        entry: bash -c 'cd backend && ./gradlew ktfmtFormat'
+      - id: mobile-hooks
+        name: Mobile Hooks (delegated)
+        entry: bash -c 'cd frontend/mobile && pre-commit run --config .pre-commit-config.yaml'
         language: system
-        files: 'backend/.*\.kt$'
-        exclude: 'backend/(build|\.gradle)/.*'
+        files: '^frontend/mobile/'
         pass_filenames: false
-
-      # Backend Kotlin Linting
-      - id: backend-kotlin-lint
-        name: Backend Kotlin Lint (ktlint)
-        entry: bash -c 'cd backend && ./gradlew ktlintCheck'
-        language: system
-        files: 'backend/.*\.kt$'
-        exclude: 'backend/(build|\.gradle)/.*'
-        pass_filenames: false
-
-      # Backend Kotlin Static Analysis
-      - id: backend-kotlin-detekt
-        name: Backend Kotlin Static Analysis (detekt)
-        entry: bash -c 'cd backend && ./gradlew detekt'
-        language: system
-        files: 'backend/.*\.kt$'
-        exclude: 'backend/(build|\.gradle)/.*'
-        pass_filenames: false
-
-      # Spring Modulith Module Verification (Constitutional Requirement - Principle VII)
-      - id: backend-modulith-verify
-        name: Spring Modulith Module Boundaries (Constitutional Principle VII)
-        entry: bash -c 'cd backend && ./gradlew verifyModulith'
-        language: system
-        files: 'backend/.*\.kt$'
-        exclude: 'backend/(build|\.gradle)/.*'
-        pass_filenames: false
-
-  # Mobile KMM
-  - repo: local
-    hooks:
-      # Mobile KMM Tests (Constitutional Requirement)
-      - id: mobile-kotlin-tests
-        name: Mobile KMM Tests (Constitutional TDD Requirement)
-        entry: bash -c 'cd frontend/mobile && ./gradlew shared:testDebugUnitTest'
-        language: system
-        files: 'frontend/mobile/.*\.(kt|swift)$'
-        exclude: 'frontend/mobile/(build|\.gradle)/.*'
-        pass_filenames: false
-        stages: [manual]
-
-      # Mobile KMM Formatting
-      - id: mobile-kotlin-format
-        name: Mobile KMM Format (ktfmt)
-        entry: bash -c 'cd frontend/mobile && ./gradlew ktfmtFormat'
-        language: system
-        files: 'frontend/mobile/.*\.kt$'
-        exclude: 'frontend/mobile/(build|\.gradle)/.*'
-        pass_filenames: false
-        stages: [manual]
-
-      # Mobile KMM Linting
-      - id: mobile-kotlin-lint
-        name: Mobile KMM Lint (ktlint)
-        entry: bash -c 'cd frontend/mobile && ./gradlew ktlintCheck'
-        language: system
-        files: 'frontend/mobile/.*\.kt$'
-        exclude: 'frontend/mobile/(build|\.gradle)/.*'
-        pass_filenames: false
-        stages: [manual]
 
   # Security Scans (Constitutional Requirement)
   - repo: https://github.com/Yelp/detect-secrets
