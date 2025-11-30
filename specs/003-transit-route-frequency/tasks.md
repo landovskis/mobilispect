@@ -316,27 +316,27 @@ The following components **already exist** in the codebase and should be **reuse
 
 > **TDD: Write tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T137 [P] [US3] Create CommonSectionServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/application/CommonSectionServiceTest.kt
+- [X] T137 [P] [US3] Create CommonSectionServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/application/CommonSectionServiceTest.kt
 - [ ] T138 [P] [US3] Create CommonSectionControllerTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/api/CommonSectionControllerTest.kt
 
 ### Backend Implementation for User Story 3
 
-- [ ] T139 [P] [US3] Create CommonSectionDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/CommonSectionDTO.kt
-- [ ] T140 [P] [US3] Create CombinedFrequencyDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/CombinedFrequencyDTO.kt
-- [ ] T141 [US3] Create CommonSectionService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/application/CommonSectionService.kt
-- [ ] T142 [US3] Implement getCommonSectionsForRoute(routeId) method
-- [ ] T143 [US3] Implement getCombinedFrequency(commonSectionId, timePeriod) method summing frequencies from all contributing variants
+- [X] T139 [P] [US3] Create CommonSectionDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/CommonSectionDTO.kt
+- [X] T140 [P] [US3] Create CombinedFrequencyDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/CombinedFrequencyDTO.kt
+- [X] T141 [US3] Create CommonSectionService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/application/CommonSectionService.kt
+- [X] T142 [US3] Implement getCommonSectionsForRoute(routeId) method
+- [X] T143 [US3] Implement getCombinedFrequency(commonSectionId, timePeriod) method summing frequencies from all contributing variants
 - [ ] T144 [US3] Implement getContributingRoutes(commonSectionId) method
-- [ ] T145 [US3] Create CommonSectionController GET /api/v1/routes/{routeId}/common-sections in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/CommonSectionController.kt
-- [ ] T146 [US3] Create CommonSectionController GET /api/v1/common-sections/{sectionId}/frequency endpoint
+- [X] T145 [US3] Create CommonSectionController GET /api/v1/routes/{routeId}/common-sections in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/CommonSectionController.kt
+- [X] T146 [US3] Create CommonSectionController GET /api/v1/common-sections/{sectionId}/frequency endpoint
 - [ ] T147 [US3] Create CommonSectionController GET /api/v1/common-sections/{sectionId}/contributing-routes endpoint
 - [ ] T148 [US3] Add Redis caching for common section queries with 6-hour TTL
 
 ### Frontend Implementation for User Story 3
 
-- [ ] T149 [P] [US3] Create common-section.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/common-section.service.ts
-- [ ] T150 [P] [US3] Create common-section-display component in frontend/web/src/app/transit-frequency/components/common-section-display/common-section-display.component.ts
-- [ ] T151 [US3] Display common sections on route-frequency page
+- [X] T149 [P] [US3] Create common-section.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/common-section.service.ts
+- [X] T150 [P] [US3] Create common-section-display component in frontend/web/src/app/transit-frequency/components/common-section-display/common-section-display.component.ts
+- [X] T151 [US3] Display common sections on route-frequency page
 - [ ] T152 [US3] Show combined frequency with individual route contributions
 - [ ] T153 [US3] Highlight common section geographic extent on map (if map integration exists)
 - [ ] T154 [US3] Add visual indicator for which variants participate in common sections

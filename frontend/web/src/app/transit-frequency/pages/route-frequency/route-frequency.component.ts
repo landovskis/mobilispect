@@ -6,11 +6,13 @@ import { VariantListComponent } from '../../components/variant-list/variant-list
 import { FrequencyChartComponent } from '../../components/frequency-chart/frequency-chart.component';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 import { FormsModule } from '@angular/forms';
+import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
+import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
 
 @Component({
   selector: 'app-route-frequency',
   standalone: true,
-  imports: [CommonModule, FormsModule, BrandCardComponent, VariantListComponent, FrequencyChartComponent],
+  imports: [CommonModule, FormsModule, BrandCardComponent, VariantListComponent, FrequencyChartComponent, CommonSectionDisplayComponent],
   template: `
     <app-brand-card [title]="route?.longName" [subtitle]="route?.shortName">
       <label class="date-picker" aria-label="Select service date">
@@ -25,6 +27,11 @@ import { FormsModule } from '@angular/forms';
       <app-frequency-chart
         [frequencies]="frequencies">
       </app-frequency-chart>
+
+      <app-common-section-display
+        [sections]="commonSections"
+        [combined]="combinedBySection">
+      </app-common-section-display>
     </app-brand-card>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -34,11 +41,14 @@ export class RouteFrequencyComponent implements OnInit {
   route?: RouteDto;
   variants: RouteVariantDto[] = [];
   frequencies: FrequencyDto[] = [];
+  commonSections: CommonSectionDto[] = [];
+  combinedBySection: Record<string, CombinedFrequencyDto> = {};
   selectedDate?: string;
 
   constructor(
     private readonly routeParams: ActivatedRoute,
-    private readonly frequencyService: FrequencyService
+    private readonly frequencyService: FrequencyService,
+    private readonly commonSectionService: CommonSectionService
   ) {}
 
   ngOnInit(): void {
@@ -55,6 +65,14 @@ export class RouteFrequencyComponent implements OnInit {
     });
     this.frequencyService.getVariants(this.routeId).subscribe(variants => {
       this.variants = variants;
+    });
+    this.commonSectionService.getCommonSectionsForRoute(this.routeId).subscribe(sections => {
+      this.commonSections = sections;
+      sections.forEach(section => {
+        this.commonSectionService.getCombinedFrequency(section.id, 'WEEKDAY_AM_PEAK').subscribe(freq => {
+          if (freq) this.combinedBySection[section.id] = freq;
+        });
+      });
     });
   }
 
