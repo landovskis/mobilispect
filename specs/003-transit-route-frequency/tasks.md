@@ -217,31 +217,31 @@ The following components **already exist** in the codebase and should be **reuse
 > **TDD: Write tests FIRST, ensure they FAIL before implementation**
 
 - [ ] T083 **SKIP** - Region queries handled by existing feed module (no RegionService needed in transitanalysis module)
-- [ ] T084 [P] [US1] Create AgencyQueryServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/application/AgencyQueryServiceTest.kt
-- [ ] T085 [P] [US1] Create FrequencyAnalysisControllerTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyAnalysisControllerTest.kt
+- [X] T084 [P] [US1] Create AgencyQueryServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/application/AgencyQueryServiceTest.kt
+- [X] T085 [P] [US1] Create FrequencyAnalysisControllerTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyAnalysisControllerTest.kt
 
 ### Backend Implementation for User Story 1
 
 - [ ] T086 **NOTE** - MetropolitanRegionDTO already exists in feed module (`backend/src/main/kotlin/com/mobilispect/backend/api/dto/MetropolitanRegionDTO.kt`) - reuse or extend for frequency-specific fields
-- [ ] T087 [P] [US1] Create AgencyDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/AgencyDTO.kt (with regions: Set<RegionId>, feedOnestopId, route count)
-- [ ] T088 [P] [US1] Create AgencySummaryDTO with route count and aggregate frequency metrics in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/AgencySummaryDTO.kt
-- [ ] T089 [US1] Create AgencyQueryService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/application/AgencyQueryService.kt (frequency-focused queries, NOT general agency management)
+- [X] T087 [P] [US1] Create AgencyDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/AgencyDTO.kt (with regions: Set<RegionId>, feedOnestopId, route count)
+- [X] T088 [P] [US1] Create AgencySummaryDTO with route count and aggregate frequency metrics in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/AgencySummaryDTO.kt
+- [X] T089 [US1] Create AgencyQueryService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/application/AgencyQueryService.kt (frequency-focused queries, NOT general agency management)
 - [ ] T090 [US1] Implement getAgenciesByRegion(regionId) method with sorting by route count and frequency aggregates
 - [ ] T091 [US1] Implement getAgencyById(agencyId) method with route/frequency summary
 - [ ] T092 **SKIP** - Region listing already handled by existing feed.controller.RegionController at /api/feeds/regions (reuse for region selection in UI)
-- [ ] T093 [US1] Create FrequencyAnalysisController in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyAnalysisController.kt
+- [X] T093 [US1] Create FrequencyAnalysisController in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyAnalysisController.kt
 - [ ] T094 [US1] Create FrequencyAnalysisController GET /api/v1/frequency/regions/{regionId}/agencies endpoint (agencies with frequency summary)
-- [ ] T095 [US1] Create FrequencyAnalysisController GET /api/v1/frequency/agencies/{agencyId} endpoint (agency details with routes)
+- [X] T095 [US1] Create FrequencyAnalysisController GET /api/v1/frequency/agencies/{agencyId} endpoint (agency details with routes)
 - [ ] T096 [US1] Add caching for agency and frequency queries using Redis with 24-hour TTL
 
 ### Frontend Implementation for User Story 1
 
-- [ ] T099 [P] [US1] Create region.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/region.service.ts
-- [ ] T100 [P] [US1] Create agency.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/agency.service.ts
-- [ ] T101 [P] [US1] Create region-list component in frontend/web/src/app/transit-frequency/pages/region-list/region-list.component.ts
-- [ ] T102 [P] [US1] Create region-list component template in frontend/web/src/app/transit-frequency/pages/region-list/region-list.component.html
-- [ ] T103 [P] [US1] Create agency-summary-card component in frontend/web/src/app/transit-frequency/components/agency-summary-card/agency-summary-card.component.ts
-- [ ] T104 [US1] Add routing for /regions in frontend/web/src/app/transit-frequency/transit-frequency-routing.module.ts
+- [X] T099 [P] [US1] Create region.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/region.service.ts
+- [X] T100 [P] [US1] Create agency.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/agency.service.ts
+- [X] T101 [P] [US1] Create region-list component in frontend/web/src/app/transit-frequency/pages/region-list/region-list.component.ts
+- [X] T102 [P] [US1] Create region-list component template in frontend/web/src/app/transit-frequency/pages/region-list/region-list.component.html
+- [X] T103 [P] [US1] Create agency-summary-card component in frontend/web/src/app/transit-frequency/components/agency-summary-card/agency-summary-card.component.ts
+- [X] T104 [US1] Add routing for /regions in frontend/web/src/app/transit-frequency/transit-frequency-routing.module.ts
 - [ ] T105 [US1] Add routing for /regions/:regionId in transit-frequency-routing.module.ts
 - [ ] T106 [US1] Implement agency sorting by route count in region-list component
 - [ ] T107 [US1] Add light/dark mode support for all US1 components (constitutional requirement)
