@@ -7,6 +7,10 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
   {
+    path: 'transit-frequency',
+    loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule)
+  },
+  {
     path: 'feeds',
     loadChildren: () => import('./feeds/feed-management.module').then(m => m.FeedManagementModule),
     data: {

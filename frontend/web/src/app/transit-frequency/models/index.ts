@@ -42,3 +42,5 @@ export type {
   FrequencyQueryRequest,
   FrequencyQueryResponse
 } from './transit-frequency.model';
+
+export type { AgencySummary } from './agency-summary.model';
