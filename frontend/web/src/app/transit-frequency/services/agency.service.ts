@@ -17,9 +17,11 @@ export class AgencyService {
 
   constructor(private readonly http: HttpClient) {}
 
-  listAgencies(page: number = 0, size: number = 20): Observable<AgencyListResponse> {
+  listAgencies(page: number = 0, size: number = 20, regionId?: string): Observable<AgencyListResponse> {
+    const params: Record<string, any> = { page, size };
+    if (regionId) params.regionId = regionId;
     return this.http.get<AgencyListResponse>(`${this.baseUrl}/agencies`, {
-      params: { page, size }
+      params
     });
   }
 

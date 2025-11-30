@@ -10,7 +10,7 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
   imports: [CommonModule, BrandCardComponent, BrandBadgeComponent],
   template: `
     <app-brand-card [title]="agency?.name" [badge]="agency?.routeCount + ' routes'">
-      <div class="meta">
+      <div class="meta" aria-label="agency summary">
         @if (agency?.averageHeadwayMinutes !== null && agency?.averageHeadwayMinutes !== undefined) {
           <app-brand-badge variant="neutral" [label]="agency?.averageHeadwayMinutes + ' min avg headway'"></app-brand-badge>
         } @else {

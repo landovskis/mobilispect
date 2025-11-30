@@ -2,6 +2,8 @@ package com.mobilispect.backend.transitanalysis.application
 
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.transitanalysis.domain.model.Agency
 import com.mobilispect.backend.transitanalysis.domain.model.Route
 import com.mobilispect.backend.transitanalysis.domain.model.RouteType
@@ -25,11 +27,23 @@ import java.time.Instant
 class AgencyQueryServiceTest {
     private val agencyRepository: AgencyRepository = mock(AgencyRepository::class.java)
     private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
-    private val service = AgencyQueryService(agencyRepository, routeRepository)
+    private val feedRepository: FeedRepository = mock(FeedRepository::class.java)
+    private val service = AgencyQueryService(agencyRepository, routeRepository, feedRepository)
 
     @Test
     fun `getAgencies maps agency and routes into DTO`() {
         val feed = FeedEntity(feedOnestopId = FeedId("f-abc"), downloadUrl = "")
+        feed.regions = mutableSetOf(
+            com.mobilispect.backend.feed.model.MetropolitanRegion(
+                regionOnestopId = RegionId("r-1"),
+                name = "Region",
+                adm0Name = "Country",
+                adm1Name = "State",
+                autoUpdateEnabled = true,
+                createdAt = java.time.LocalDateTime.now(),
+                updatedAt = java.time.LocalDateTime.now()
+            )
+        )
         val agency = Agency(
             agencyOnestopId = AgencyId("o-123"),
             feed = feed,
@@ -69,6 +83,7 @@ class AgencyQueryServiceTest {
         assertThat(dto.routeCount).isEqualTo(2)
         assertThat(dto.activeRouteCount).isEqualTo(1)
         assertThat(dto.routesByType[RouteType.BUS]).isEqualTo(2)
+        assertThat(dto.regionIds).contains("r-1")
     }
 
     @Test
@@ -76,5 +91,23 @@ class AgencyQueryServiceTest {
         `when`(agencyRepository.findById(AgencyId("missing"))).thenReturn(java.util.Optional.empty())
         val result = service.getAgencySummary(AgencyId("missing"))
         assertThat(result).isNull()
+    }
+
+    @Test
+    fun `getAgenciesByRegion aggregates agencies from feeds`() {
+        val feed = FeedEntity(feedOnestopId = FeedId("f-abc"), downloadUrl = "")
+        val agency = Agency(
+            agencyOnestopId = AgencyId("o-1"),
+            feed = feed,
+            gtfsAgencyId = "a1",
+            name = "A1",
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        `when`(feedRepository.findAllByRegionRegionOnestopId(RegionId("r-1"))).thenReturn(listOf(feed))
+        `when`(agencyRepository.findByFeed(feed, Pageable.unpaged())).thenReturn(PageImpl(listOf(agency)))
+        `when`(routeRepository.findByAgency(agency, Pageable.unpaged())).thenReturn(PageImpl(emptyList()))
+        val page = service.getAgenciesByRegion(RegionId("r-1"), PageRequest.of(0, 20))
+        assertThat(page.totalElements).isEqualTo(1)
     }
 }

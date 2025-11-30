@@ -6,6 +6,10 @@ const routes: Routes = [
   {
     path: 'regions',
     component: RegionListComponent
+  },
+  {
+    path: 'regions/:regionId',
+    component: RegionListComponent
   }
 ];
 

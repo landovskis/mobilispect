@@ -58,4 +58,26 @@ class FrequencyAnalysisControllerTest {
 
         assertThat(mvcResult.response.status).isEqualTo(200)
     }
+
+    @Test
+    fun `listAgenciesByRegion returns paged agencies`() {
+        val dto = AgencyDTO(
+            id = "o-123",
+            name = "Agency",
+            feedOnestopId = "f-abc",
+            regionIds = setOf("r-1"),
+            routeCount = 2,
+            activeRouteCount = 1,
+            routesByType = emptyMap()
+        )
+        `when`(agencyQueryService.getAgenciesByRegion(org.mockito.kotlin.eq(com.mobilispect.backend.feed.model.ids.RegionId("r-1")), org.mockito.kotlin.any())).thenReturn(
+            PageImpl(listOf(dto))
+        )
+
+        val mvcResult = mockMvc.get("/api/v1/frequency/regions/r-1/agencies?page=0&size=20") {
+            accept(MediaType.APPLICATION_JSON)
+        }.andReturn()
+
+        assertThat(mvcResult.response.status).isEqualTo(200)
+    }
 }
