@@ -220,18 +220,18 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                     </div>
                   </mat-menu>
 
-                  <button
-                    mat-raised-button
-                    color="primary"
+                  <app-brand-button
+                    variant="primary"
+                    size="sm"
                     (click)="$event.stopPropagation(); selectRegion(region)"
                     [disabled]="region.feedCount === 0"
                     [attr.aria-label]="'Select ' + getDisplayName(region) + ' for import'"
                   >
                     <mat-icon>play_arrow</mat-icon>
-                    Select
-                  </button>
+                    <span>Select</span>
+                  </app-brand-button>
                 </div>
-              </app-mobilispect-card>
+              </app-brand-card>
             }
 
             @if (regions.length === 0) {

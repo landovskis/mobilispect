@@ -5,8 +5,7 @@ $mobilispect-theme: mat.define-theme((
   color: (
     theme-type: light,
     primary: mat.$azure-palette,
-    secondary: mat.$cyan-palette,
-    tertiary: mat.$orange-palette,
+    tertiary: mat.$cyan-palette,
   ),
   typography: (
     plain-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
@@ -116,8 +115,7 @@ $mobilispect-dark-theme: mat.define-theme((
   color: (
     theme-type: dark,
     primary: mat.$azure-palette,
-    secondary: mat.$cyan-palette,
-    tertiary: mat.$orange-palette,
+    tertiary: mat.$cyan-palette,
   ),
   typography: (
     plain-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
