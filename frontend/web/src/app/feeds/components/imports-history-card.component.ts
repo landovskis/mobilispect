@@ -5,9 +5,9 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
-import { MatChipsModule } from '@angular/material/chips';
 import { FeedImportSummary } from '../models/import.models';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
 
 /**
  * Imports History Card Component
@@ -37,8 +37,8 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
     MatIconModule,
     MatProgressSpinnerModule,
     MatExpansionModule,
-    MatChipsModule,
-    BrandCardComponent
+    BrandCardComponent,
+    BrandBadgeComponent
   ],
   template: `
     <mat-expansion-panel class="history-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
@@ -80,40 +80,16 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
           <div class="history-container">
           <div class="history-list">
             @for (importItem of history; track importItem.id) {
-              <app-brand-card class="history-item-card">
-                <div card-header class="history-card-header">
-                  <div class="history-avatar" [ngClass]="{
-                    'avatar-completed': importItem.status === 'completed',
-                    'avatar-failed': importItem.status === 'failed',
-                    'avatar-cancelled': importItem.status === 'cancelled'
-                  }">
-                    @if (importItem.status === 'completed') {
-                      <mat-icon>check_circle</mat-icon>
-                    } @else if (importItem.status === 'failed') {
-                      <mat-icon>error</mat-icon>
-                    } @else if (importItem.status === 'cancelled') {
-                      <mat-icon>cancel</mat-icon>
-                    }
-                  </div>
-
-                  <div class="card-title">
-                    {{ importItem.feedName || importItem.feedOnestopId }}
-                  </div>
-
-                  <div class="card-subtitle">
-                    {{ importItem.regionName }}
-                  </div>
-                </div>
-
+              <app-brand-card
+                class="history-item-card"
+                [title]="importItem.feedName || importItem.feedOnestopId"
+                [subtitle]="importItem.regionName">
                 <div card-content class="history-card-content">
                   <div class="history-meta">
-                    <mat-chip-set aria-label="Import status">
-                      <mat-chip [class.chip-success]="importItem.status === 'completed'"
-                                [class.chip-error]="importItem.status === 'failed'"
-                                [class.chip-warning]="importItem.status === 'cancelled'">
-                        {{ importItem.status }}
-                      </mat-chip>
-                    </mat-chip-set>
+                    <app-brand-badge
+                      [variant]="statusToBadge(importItem.status)"
+                      [label]="importItem.status | titlecase">
+                    </app-brand-badge>
 
                     <span class="meta-item">
                       <mat-icon>schedule</mat-icon>
@@ -155,11 +131,11 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
     styles: [`
     .history-panel { margin-bottom: 24px; }
     .history-container { display: flex; flex-direction: column; gap: 16px; }
-    .history-list { display: grid; gap: 12px; }
-    .history-card-header { display: flex; align-items: center; gap: 12px; }
-    .history-avatar { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; background: var(--mat-sys-primary, #0b4f8a); color: var(--mat-sys-on-primary, #fff); }
-    .history-card-content { display: flex; flex-direction: column; gap: 8px; }
-    .history-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .history-list { display: grid; gap: 16px; }
+    .history-card-content { display: flex; flex-direction: column; gap: 12px; }
+    .history-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--mat-sys-on-surface-variant, #475569); }
+    .meta-item { display: inline-flex; align-items: center; gap: 6px; }
+    .count-badge { padding: 4px 10px; border-radius: 999px; background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
     .empty-state { text-align: center; padding: 24px; color: var(--mat-sys-on-surface-variant, #475569); display: flex; flex-direction: column; gap: 6px; align-items: center; }
     .empty-icon { font-size: 48px; width: 48px; height: 48px; color: #94a3b8; }
     .empty-title { margin: 0; font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
@@ -198,5 +174,18 @@ export class ImportsHistoryCardComponent {
     }
 
     return `${size.toFixed(1)} ${units[unitIndex]}`;
+  }
+
+  statusToBadge(status: string): 'good' | 'mixed' | 'bad' | 'neutral' {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'good';
+      case 'failed':
+        return 'bad';
+      case 'cancelled':
+        return 'mixed';
+      default:
+        return 'neutral';
+    }
   }
 }
