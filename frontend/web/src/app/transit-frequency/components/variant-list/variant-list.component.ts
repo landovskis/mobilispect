@@ -28,6 +28,8 @@ import { BrandButtonComponent } from '../../../shared/components/brand-button.co
     .variant { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--mat-sys-outline, #e2e8f0); }
     .title { display: flex; flex-direction: column; gap: 2px; }
     .pattern { color: var(--mat-sys-on-surface-variant, #64748b); font-size: 0.85rem; }
+    :host-context(.dark-theme) .variant { border-bottom-color: rgba(148, 163, 184, 0.3); }
+    :host-context(.dark-theme) .pattern { color: var(--mat-sys-on-surface-variant, #cbd5e1); }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

@@ -32,6 +32,11 @@ import { FrequencyDto } from '../../services/frequency.service';
     .headway { color: var(--mat-sys-on-surface-variant, #475569); }
     .irregular { color: #c2410c; font-weight: 600; }
     .muted { color: var(--mat-sys-on-surface-variant, #94a3b8); }
+
+    :host-context(.dark-theme) .row { border-bottom-color: rgba(148, 163, 184, 0.3); }
+    :host-context(.dark-theme) .headway { color: var(--mat-sys-on-surface-variant, #cbd5e1); }
+    :host-context(.dark-theme) .muted { color: var(--mat-sys-on-surface-variant, #94a3b8); }
+    :host-context(.dark-theme) .irregular { color: #f97316; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
