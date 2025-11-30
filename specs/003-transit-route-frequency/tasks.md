@@ -338,7 +338,6 @@ The following components **already exist** in the codebase and should be **reuse
 - [X] T150 [P] [US3] Create common-section-display component in frontend/web/src/app/transit-frequency/components/common-section-display/common-section-display.component.ts
 - [X] T151 [US3] Display common sections on route-frequency page
 - [X] T152 [US3] Show combined frequency with individual route contributions
-- [ ] T153 [US3] Highlight common section geographic extent on map (if map integration exists)
 - [X] T154 [US3] Add visual indicator for which variants participate in common sections
 - [X] T155 [US3] Add light/dark mode support for common-section-display component
 - [X] T156 [US3] Add ARIA labels and accessible table markup for common section data
