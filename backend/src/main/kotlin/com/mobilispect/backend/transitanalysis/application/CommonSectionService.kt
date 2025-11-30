@@ -2,6 +2,7 @@ package com.mobilispect.backend.transitanalysis.application
 
 import com.mobilispect.backend.transitanalysis.api.dto.CommonSectionDTO
 import com.mobilispect.backend.transitanalysis.api.dto.CombinedFrequencyDTO
+import com.mobilispect.backend.transitanalysis.api.dto.RouteContributionDTO
 import com.mobilispect.backend.transitanalysis.domain.model.TimePeriod
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
 import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
@@ -56,12 +57,23 @@ class CommonSectionService(
         } else null
         val isIrregular = frequencies.any { it.isIrregular } || combinedHeadway == null
 
+        val contributions = sectionVariants.mapNotNull { csv ->
+            val freq = frequencies.firstOrNull { it.variant.id == csv.variant.id } ?: return@mapNotNull null
+            RouteContributionDTO(
+                routeId = csv.variant.route.id.value,
+                averageHeadwayMinutes = freq.averageHeadway,
+                tripCount = freq.tripCount,
+                isIrregular = freq.isIrregular
+            )
+        }
+
         return CombinedFrequencyDTO(
             commonSectionId = sectionId.toString(),
             timePeriod = timePeriod.name,
             averageHeadwayMinutes = combinedHeadway,
             tripCount = frequencies.sumOf { it.tripCount },
-            isIrregular = isIrregular
+            isIrregular = isIrregular,
+            contributions = contributions
         )
     }
 

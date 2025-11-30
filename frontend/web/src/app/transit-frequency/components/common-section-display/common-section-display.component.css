@@ -8,3 +8,8 @@
 .variant-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .tag { background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-on-surface, #0f172a); padding: 4px 8px; border-radius: 8px; font-size: 0.85rem; }
 :host-context(.dark-theme) .tag { background: rgba(148, 163, 184, 0.2); color: var(--mat-sys-on-surface, #e5e7eb); }
+.contributions { margin-top: 10px; border-top: 1px solid var(--mat-sys-outline, #e2e8f0); padding-top: 8px; display: grid; gap: 6px; }
+.contrib-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.contrib-row.header { font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
+:host-context(.dark-theme) .contributions { border-top-color: rgba(148, 163, 184, 0.3); }
+:host-context(.dark-theme) .contrib-row.header { color: var(--mat-sys-on-surface, #e5e7eb); }

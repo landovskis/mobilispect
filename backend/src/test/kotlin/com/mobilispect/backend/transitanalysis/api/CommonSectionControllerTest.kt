@@ -1,6 +1,8 @@
 package com.mobilispect.backend.transitanalysis.api
 
 import com.mobilispect.backend.transitanalysis.api.dto.CommonSectionDTO
+import com.mobilispect.backend.transitanalysis.api.dto.CombinedFrequencyDTO
+import com.mobilispect.backend.transitanalysis.api.dto.RouteContributionDTO
 import com.mobilispect.backend.transitanalysis.application.CommonSectionService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -32,6 +34,27 @@ class CommonSectionControllerTest {
             )
         )
         val result = mockMvc.get("/api/v1/common-sections/routes/r-1") {
+            accept(MediaType.APPLICATION_JSON)
+        }.andReturn()
+        assertThat(result.response.status).isEqualTo(200)
+    }
+
+    @Test
+    fun `getCombinedFrequency returns 200`() {
+        val id = UUID.randomUUID()
+        `when`(service.getCombinedFrequency(id, com.mobilispect.backend.transitanalysis.domain.model.TimePeriod.WEEKDAY_AM_PEAK)).thenReturn(
+            CombinedFrequencyDTO(
+                commonSectionId = id.toString(),
+                timePeriod = "WEEKDAY_AM_PEAK",
+                averageHeadwayMinutes = 10.0,
+                tripCount = 4,
+                isIrregular = false,
+                contributions = listOf(
+                    RouteContributionDTO(routeId = "r-1", averageHeadwayMinutes = 10.0, tripCount = 4, isIrregular = false)
+                )
+            )
+        )
+        val result = mockMvc.get("/api/v1/common-sections/$id/frequency?timePeriod=WEEKDAY_AM_PEAK") {
             accept(MediaType.APPLICATION_JSON)
         }.andReturn()
         assertThat(result.response.status).isEqualTo(200)

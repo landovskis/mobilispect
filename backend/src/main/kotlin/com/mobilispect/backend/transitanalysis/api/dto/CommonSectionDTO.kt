@@ -14,5 +14,13 @@ data class CombinedFrequencyDTO(
     val timePeriod: String,
     val averageHeadwayMinutes: Double?,
     val tripCount: Int,
+    val isIrregular: Boolean,
+    val contributions: List<RouteContributionDTO> = emptyList()
+)
+
+data class RouteContributionDTO(
+    val routeId: String,
+    val averageHeadwayMinutes: Double?,
+    val tripCount: Int,
     val isIrregular: Boolean
 )

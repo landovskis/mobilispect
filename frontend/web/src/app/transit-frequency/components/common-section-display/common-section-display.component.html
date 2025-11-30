@@ -22,6 +22,28 @@
           <span class="tag">{{ variant }}</span>
         }
       </div>
+      @if (combined?.[section.id]?.contributions?.length) {
+        <div class="contributions" role="table" aria-label="Route contributions">
+          <div class="contrib-row header" role="row">
+            <span role="columnheader">Route</span>
+            <span role="columnheader">Headway</span>
+            <span role="columnheader">Trips</span>
+          </div>
+          @for (contrib of combined?.[section.id]?.contributions; track contrib.routeId) {
+            <div class="contrib-row" role="row">
+              <span role="cell">{{ contrib.routeId }}</span>
+              <span role="cell">
+                @if (!contrib.isIrregular && contrib.averageHeadwayMinutes !== null && contrib.averageHeadwayMinutes !== undefined) {
+                  {{ contrib.averageHeadwayMinutes }} min
+                } @else {
+                  Variable
+                }
+              </span>
+              <span role="cell">{{ contrib.tripCount }}</span>
+            </div>
+          }
+        </div>
+      }
     </div>
   }
 </div>
