@@ -291,11 +291,11 @@ The following components **already exist** in the codebase and should be **reuse
 - [X] T127 [P] [US2] Create variant-list component in frontend/web/src/app/transit-frequency/components/variant-list/variant-list.component.ts
 - [X] T128 [P] [US2] Create frequency-chart component (headway by time period) in frontend/web/src/app/transit-frequency/components/frequency-chart/frequency-chart.component.ts
 - [X] T129 [US2] Add routing for /routes/:routeId in transit-frequency-routing.module.ts
-- [ ] T130 [US2] Display stop pattern for each variant in variant-list component
-- [ ] T131 [US2] Add date picker for frequency queries in route-frequency component
-- [ ] T132 [US2] Display "Variable Schedule" indicator for irregular frequencies
+- [X] T130 [US2] Display stop pattern for each variant in variant-list component
+- [X] T131 [US2] Add date picker for frequency queries in route-frequency component
+- [X] T132 [US2] Display "Variable Schedule" indicator for irregular frequencies
 - [ ] T133 [US2] Add light/dark mode support for all US2 components
-- [ ] T134 [US2] Add ARIA labels and keyboard navigation for variant-list and frequency-chart
+- [X] T134 [US2] Add ARIA labels and keyboard navigation for variant-list and frequency-chart
 
 ### Integration for User Story 2
 
