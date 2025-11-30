@@ -10,6 +10,10 @@ const routes: Routes = [
   {
     path: 'regions/:regionId',
     component: RegionListComponent
+  },
+  {
+    path: 'routes/:routeId',
+    loadComponent: () => import('./pages/route-frequency/route-frequency.component').then(m => m.RouteFrequencyComponent)
   }
 ];
 
