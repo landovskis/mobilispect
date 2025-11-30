@@ -154,39 +154,39 @@ The following components **already exist** in the codebase and should be **reuse
 
 > **TDD: Write tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T044 [P] [US4] Create TransitlandClientTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/infrastructure/transitland/TransitlandClientTest.kt
-- [ ] T045 [P] [US4] Create FeedImportServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/domain/service/FeedImportServiceTest.kt
-- [ ] T046 [P] [US4] Create VariantIdentificationServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/domain/service/VariantIdentificationServiceTest.kt
-- [ ] T047 [P] [US4] Create FrequencyCalculationServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/domain/service/FrequencyCalculationServiceTest.kt
-- [ ] T048 [P] [US4] Create CommonSectionDetectionServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/domain/service/CommonSectionDetectionServiceTest.kt
+- [X] T044 [P] [US4] Create TransitlandClientTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/infrastructure/transitland/TransitlandClientTest.kt
+- [X] T045 [P] [US4] Create FeedImportServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/domain/service/FeedImportServiceTest.kt
+- [X] T046 [P] [US4] Create VariantIdentificationServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/domain/service/VariantIdentificationServiceTest.kt
+- [X] T047 [P] [US4] Create FrequencyCalculationServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/domain/service/FrequencyCalculationServiceTest.kt
+- [X] T048 [P] [US4] Create CommonSectionDetectionServiceTest in backend/src/test/kotlin/com/mobilispect/backend/transitanalysis/domain/service/CommonSectionDetectionServiceTest.kt
 
 ### Backend Infrastructure for User Story 4
 
 - [ ]egi49 **SKIP** - TransitLandClient already exists in schedule module at backend/src/main/kotlin/com/mobilispect/backend/schedule/transit_land/TransitLandClient.kt (reuse with WebClient, rate limiting, concurrency control)
-- [ ] T050 [P] [US4] Verify TransitLandClient has methods needed for metro areas discovery (check if metro_areas endpoint exists, add if missing)
+- [X] T050 [P] [US4] Verify TransitLandClient has methods needed for metro areas discovery (check if metro_areas endpoint exists, add if missing)
 - [ ] T051 **NOTE** - Feed discovery DTOs already exist (ScheduledFeed, TransitLandFeedResponse, TransitLandOperatorResponse) - reuse existing types
-- [ ] T053 [P] [US4] Create GtfsParser service in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/infrastructure/gtfs/GtfsParser.kt
-- [ ] T054 [US4] Implement GtfsParser using OneBusAway library to extract routes, trips, stops, stop_times
-- [ ] T055 [P] [US4] Create VariantHashGenerator utility in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/VariantHashGenerator.kt
-- [ ] T056 [US4] Implement SHA-256 hash generation for stop patterns in VariantHashGenerator
-- [ ] T057 [US4] Create VariantIdentificationService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/VariantIdentificationService.kt
-- [ ] T058 [US4] Implement variant detection logic by grouping trips with identical stop patterns
-- [ ] T059 [US4] Create FrequencyCalculationService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/FrequencyCalculationService.kt
-- [ ] T060 [US4] Implement average headway calculation by time period using scheduled departure times
-- [ ] T061 [US4] Implement edge case handling for irregular schedules (< 2 trips in period)
-- [ ] T062 [US4] Create CommonSectionDetectionService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/CommonSectionDetectionService.kt
-- [ ] T063 [US4] Implement LCS (Longest Common Subsequence) algorithm for stop pattern matching
-- [ ] T064 [US4] Filter common sections to minimum 3 consecutive stops
-- [ ] T065 [US4] Create FeedImportService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/FeedImportService.kt
-- [ ] T066 [US4] Implement orchestration logic: fetch feed → parse GTFS → identify variants → calculate frequencies → detect common sections
-- [ ] T067 [US4] Add error handling and retry logic with exponential backoff for Transitland API failures
-- [ ] T068 [US4] Add structured logging for all feed import stages (FR-023)
-- [ ] T069 [US4] Add metrics collection for processing duration, feed size, route count, variant count, error rates (FR-024)
-- [ ] T070 [US4] Add distributed tracing spans for feed import workflow stages (FR-025)
-- [ ] T071 [US4] Create FeedImportCompleted domain event in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/events/FeedImportCompleted.kt
-- [ ] T072 [US4] Create FrequencyCalculationCompleted domain event in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/events/FrequencyCalculationCompleted.kt
-- [ ] T073 [US4] Create RouteVariantIdentified domain event in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/events/RouteVariantIdentified.kt
-- [ ] T074 [US4] Publish domain events at appropriate stages in FeedImportService
+- [X] T053 [P] [US4] Create GtfsParser service in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/infrastructure/gtfs/GtfsParser.kt
+- [X] T054 [US4] Implement GtfsParser using OneBusAway library to extract routes, trips, stops, stop_times
+- [X] T055 [P] [US4] Create VariantHashGenerator utility in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/VariantHashGenerator.kt
+- [X] T056 [US4] Implement SHA-256 hash generation for stop patterns in VariantHashGenerator
+- [X] T057 [US4] Create VariantIdentificationService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/VariantIdentificationService.kt
+- [X] T058 [US4] Implement variant detection logic by grouping trips with identical stop patterns
+- [X] T059 [US4] Create FrequencyCalculationService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/FrequencyCalculationService.kt
+- [X] T060 [US4] Implement average headway calculation by time period using scheduled departure times
+- [X] T061 [US4] Implement edge case handling for irregular schedules (< 2 trips in period)
+- [X] T062 [US4] Create CommonSectionDetectionService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/CommonSectionDetectionService.kt
+- [X] T063 [US4] Implement LCS (Longest Common Subsequence) algorithm for stop pattern matching
+- [X] T064 [US4] Filter common sections to minimum 3 consecutive stops
+- [X] T065 [US4] Create FeedImportService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/domain/service/FeedImportService.kt
+- [X] T066 [US4] Implement orchestration logic: fetch feed → parse GTFS → identify variants → calculate frequencies → detect common sections
+- [X] T067 [US4] Add error handling and retry logic with exponential backoff for Transitland API failures
+- [X] T068 [US4] Add structured logging for all feed import stages (FR-023)
+- [X] T069 [US4] Add metrics collection for processing duration, feed size, route count, variant count, error rates (FR-024)
+- [X] T070 [US4] Add distributed tracing spans for feed import workflow stages (FR-025)
+- [X] T071 [US4] Create FeedImportCompleted domain event in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/events/FeedImportCompleted.kt
+- [X] T072 [US4] Create FrequencyCalculationCompleted domain event in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/events/FrequencyCalculationCompleted.kt
+- [X] T073 [US4] Create RouteVariantIdentified domain event in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/events/RouteVariantIdentified.kt
+- [X] T074 [US4] Publish domain events at appropriate stages in FeedImportService
 
 ### Application Services for User Story 4
 
