@@ -7,6 +7,7 @@ import { AgencyFeedCardComponent } from './agency-feed-card.component';
 import { AgencyFeedGroup } from '../models/agency-feed-group.model';
 import { MetropolitanRegion, Feed } from '../models/region.models';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 @Component({
   selector: 'app-region-feeds-card',
@@ -16,65 +17,53 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
     MatProgressSpinnerModule,
     MatIconModule,
     BrandCardComponent,
+    BrandSectionComponent,
     RegionSelectorComponent,
     AgencyFeedCardComponent,
   ],
   template: `
-    <app-brand-card
-      class="region-feeds-card"
-    >
-      <div card-header class="card-header-content">
-        <div class="header-icon">
-          <mat-icon>travel_explore</mat-icon>
-        </div>
-        <div class="header-text">
-          <div class="header-title">Discover Feeds</div>
-          <div class="header-subtitle">
-            Choose a metropolitan region to explore its agencies and feeds.
-          </div>
-        </div>
-      </div>
+    <app-brand-section
+      title="Discover Feeds"
+      subtitle="Choose a metropolitan region to explore its agencies and feeds"
+      icon="travel_explore">
+      <app-region-selector
+        [regions]="regions"
+        [selectedRegionId]="selectedRegionId"
+        (regionChange)="regionChange.emit($event)"
+      ></app-region-selector>
 
-      <div card-content>
-        <app-region-selector
-          [regions]="regions"
-          [selectedRegionId]="selectedRegionId"
-          (regionChange)="regionChange.emit($event)"
-        ></app-region-selector>
-
-        @if (loadingFeeds) {
-          <div class="loading-state" role="status" aria-live="polite">
-            <mat-spinner diameter="40"></mat-spinner>
-            <p>Loading feeds...</p>
+      @if (loadingFeeds) {
+        <div class="loading-state" role="status" aria-live="polite">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Loading feeds...</p>
+        </div>
+      } @else {
+        @if (agencyGroups.length > 0) {
+          <div class="feeds-grid">
+            @for (group of agencyGroups; track group.agencyName) {
+              <app-agency-feed-card
+                [agencyGroup]="group"
+                (importFeed)="importFeed.emit($event)"
+                (importAllFeeds)="importAllFeeds.emit($event)"
+                (viewDetails)="viewDetails.emit($event)">
+              </app-agency-feed-card>
+            }
           </div>
         } @else {
-          @if (agencyGroups.length > 0) {
-            <div class="feeds-grid">
-              @for (group of agencyGroups; track group.agencyName) {
-                <app-agency-feed-card
-                  [agencyGroup]="group"
-                  (importFeed)="importFeed.emit($event)"
-                  (importAllFeeds)="importAllFeeds.emit($event)"
-                  (viewDetails)="viewDetails.emit($event)">
-                </app-agency-feed-card>
+          <div class="empty-state">
+            <mat-icon class="empty-icon">inbox</mat-icon>
+            <h3>No feeds found</h3>
+            <p>
+              @if (selectedRegionId) {
+                No feeds are available for the selected region yet.
+              } @else {
+                Select a region to view available transit feeds.
               }
-            </div>
-          } @else {
-            <div class="empty-state">
-              <mat-icon class="empty-icon">inbox</mat-icon>
-              <h3>No feeds found</h3>
-              <p>
-                @if (selectedRegionId) {
-                  No feeds are available for the selected region yet.
-                } @else {
-                  Select a region to view available transit feeds.
-                }
-              </p>
-            </div>
-          }
+            </p>
+          </div>
         }
-      </div>
-    </app-brand-card>
+      }
+    </app-brand-section>
   `,
   styles: [`
     .feeds-grid {
@@ -102,10 +91,6 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
       .feeds-grid {
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       }
-    }
-
-    .header-icon mat-icon {
-      color: #fff;
     }
 
     .loading-state {

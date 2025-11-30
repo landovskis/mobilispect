@@ -4,11 +4,11 @@ import { Observable } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { MatChipsModule } from '@angular/material/chips';
 import { FeedImportSummary } from '../models/import.models';
 import { ProgressMonitorComponent } from './progress-monitor.component';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 /**
  * Active Imports Card Component
@@ -36,36 +36,36 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
 
     MatCheckboxModule,
     MatTooltipModule,
-    MatExpansionModule,
     MatChipsModule,
     ProgressMonitorComponent,
-    BrandCardComponent
+    BrandCardComponent,
+    BrandSectionComponent
   ],
   template: `
-    <mat-expansion-panel class="active-imports-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
-      <mat-expansion-panel-header class="panel-header">
-        <mat-panel-title class="panel-title">
-          <mat-icon>downloading</mat-icon>
-          <span>Active Imports</span>
-          @if (activeImports$ | async; as activeImports) {
-            <span class="count-badge">{{ activeImports.length }}</span>
-          }
-        </mat-panel-title>
-        @if (selectedImportIds.size > 0) {
-          <mat-panel-description class="panel-description">
-            <span class="selection-count">{{ selectedImportIds.size }} selected</span>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="onBulkCancel(); $event.stopPropagation()"
-              [disabled]="selectedImportIds.size === 0"
-              matTooltip="Cancel selected imports"
-            >
-              <mat-icon>cancel</mat-icon>
-            </button>
-          </mat-panel-description>
+    <app-brand-section
+      class="active-imports-panel"
+      title="Active Imports"
+      subtitle="Running feed imports with real-time progress"
+      icon="downloading"
+      [collapsible]="true"
+      [(expanded)]="isExpanded">
+      <div section-actions class="panel-actions">
+        @if (activeImports$ | async; as activeImports) {
+          <span class="count-badge">{{ activeImports.length }}</span>
         }
-      </mat-expansion-panel-header>
+        @if (selectedImportIds.size > 0) {
+          <span class="selection-count">{{ selectedImportIds.size }} selected</span>
+          <button
+            mat-icon-button
+            color="warn"
+            (click)="onBulkCancel(); $event.stopPropagation()"
+            [disabled]="selectedImportIds.size === 0"
+            matTooltip="Cancel selected imports"
+          >
+            <mat-icon>cancel</mat-icon>
+          </button>
+        }
+      </div>
 
       <!-- Active imports list -->
       @if (activeImports$ | async; as activeImports) {
@@ -144,11 +144,13 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
           </p>
         </div>
       }
-    </mat-expansion-panel>
+    </app-brand-section>
   `,
     styles: [`
-    .active-imports-panel { margin-bottom: 24px; }
-    .active-imports-list { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+    .active-imports-panel { margin-bottom: 24px; display: block; }
+    .panel-actions { display: inline-flex; align-items: center; gap: 10px; }
+    .count-badge { padding: 4px 10px; border-radius: 999px; background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
+    .active-imports-list { display: flex; flex-direction: column; gap: 16px; padding: 4px; }
     .import-card-header { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
     .import-avatar { background: var(--mat-sys-primary, #0b4f8a); color: var(--mat-sys-on-primary, #fff); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; }
     .import-title { font-size: 1rem; font-weight: 700; color: var(--mat-sys-on-surface, #1a3a52); }

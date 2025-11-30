@@ -4,10 +4,10 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatExpansionModule } from '@angular/material/expansion';
 import { FeedImportSummary } from '../models/import.models';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
+import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 /**
  * Imports History Card Component
@@ -36,21 +36,23 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
     MatPaginatorModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatExpansionModule,
     BrandCardComponent,
-    BrandBadgeComponent
+    BrandBadgeComponent,
+    BrandSectionComponent
   ],
   template: `
-    <mat-expansion-panel class="history-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
-      <mat-expansion-panel-header class="panel-header">
-        <mat-panel-title class="panel-title">
-          <mat-icon>history</mat-icon>
-          <span>Import History</span>
-          @if (history && history.length > 0) {
-            <span class="count-badge">{{ totalItems }}</span>
-          }
-        </mat-panel-title>
-      </mat-expansion-panel-header>
+    <app-brand-section
+      class="history-panel"
+      title="Import History"
+      subtitle="Completed feed imports and metadata"
+      icon="history"
+      [collapsible]="true"
+      [(expanded)]="isExpanded">
+      <div section-actions class="panel-actions">
+        @if (history && history.length > 0) {
+          <span class="count-badge">{{ totalItems }}</span>
+        }
+      </div>
 
       <!-- Loading State -->
       @if (loading) {
@@ -126,10 +128,11 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
           ></mat-paginator>
         </div>
       }
-    </mat-expansion-panel>
+    </app-brand-section>
   `,
     styles: [`
-    .history-panel { margin-bottom: 24px; }
+    .history-panel { margin-bottom: 24px; display: block; }
+    .panel-actions { display: inline-flex; align-items: center; gap: 10px; }
     .history-container { display: flex; flex-direction: column; gap: 16px; }
     .history-list { display: grid; gap: 16px; }
     .history-card-content { display: flex; flex-direction: column; gap: 12px; }
