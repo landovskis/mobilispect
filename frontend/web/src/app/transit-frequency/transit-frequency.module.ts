@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { RegionListComponent } from './pages/region-list/region-list.component';
+import { RegionSelectComponent } from './pages/region-select/region-select.component';
 
 const routes: Routes = [
   {
@@ -10,6 +11,10 @@ const routes: Routes = [
   {
     path: 'regions/:regionId',
     component: RegionListComponent
+  },
+  {
+    path: 'regions-select/imported',
+    component: RegionSelectComponent
   },
   {
     path: 'routes/:routeId',
