@@ -64,4 +64,10 @@ class CommonSectionService(
             isIrregular = isIrregular
         )
     }
+
+    fun getContributingRoutes(sectionId: UUID): List<String> {
+        val sectionVariants = commonSectionVariantRepository.findAll()
+            .filter { it.commonSection.id == sectionId }
+        return sectionVariants.map { it.variant.route.id.value }.distinct()
+    }
 }

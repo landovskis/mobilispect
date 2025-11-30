@@ -27,4 +27,9 @@ class CommonSectionController(
         @RequestParam timePeriod: TimePeriod
     ): CombinedFrequencyDTO? =
         commonSectionService.getCombinedFrequency(UUID.fromString(sectionId), timePeriod)
+
+    @GetMapping("/{sectionId}/contributing-routes")
+    fun getContributingRoutes(
+        @PathVariable sectionId: String
+    ): List<String> = commonSectionService.getContributingRoutes(UUID.fromString(sectionId))
 }

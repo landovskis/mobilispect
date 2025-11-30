@@ -1,0 +1,27 @@
+<div class="sections" role="list">
+  @for (section of sections; track section.id) {
+    <div class="section" role="listitem">
+      <div class="title">
+        <span>Stops: {{ section.stopCount }}</span>
+        <small>{{ section.stopPattern }}</small>
+      </div>
+      <div class="details">
+        <span>Variants: {{ section.variants.length }}</span>
+        @if (combined?.[section.id]) {
+          <span class="headway">
+            @if (!combined?.[section.id]?.isIrregular && combined?.[section.id]?.averageHeadwayMinutes) {
+              {{ combined?.[section.id]?.averageHeadwayMinutes }} min avg
+            } @else {
+              Variable schedule
+            }
+          </span>
+        }
+      </div>
+      <div class="variant-tags" aria-label="Variants">
+        @for (variant of section.variants; track variant) {
+          <span class="tag">{{ variant }}</span>
+        }
+      </div>
+    </div>
+  }
+</div>
