@@ -1,55 +1,51 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MetropolitanRegion } from '../models/region.models';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
 @Component({
   selector: 'app-feed-regions-tab',
   standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
     MatIconModule,
-    MobilispectCardComponent
+    BrandCardComponent,
+    BrandButtonComponent
   ],
   template: `
     <div class="tab-content">
-      <app-mobilispect-card class="welcome-card">
-        <div card-content>
+      <app-brand-card class="welcome-card">
           <p>
             Choose from available metropolitan regions to view and import their transit feeds.
           </p>
-        </div>
-      </app-mobilispect-card>
+      </app-brand-card>
 
       @if (regions?.length) {
         <div class="regions-grid">
           @for (region of regions!; track region.regionOnestopId) {
-            <app-mobilispect-card
+            <app-brand-card
               class="region-card region-item"
             >
-              <div card-header class="flex items-center justify-between gap-3">
+              <div class="flex items-center justify-between gap-3">
                 <div>
-                  <div card-title class="text-lg font-semibold text-white">{{ region.name }}</div>
-                  <div card-subtitle class="text-white/90">{{ region.feedCount }} feeds</div>
+                  <div class="text-lg font-semibold text-[var(--ms-color-primary,#0b4f8a)]">{{ region.name }}</div>
+                  <div class="text-[var(--ms-color-muted,#6b7280)]">{{ region.feedCount }} feeds</div>
                 </div>
-                <mat-icon class="text-white !text-3xl">public</mat-icon>
+                <mat-icon class="!text-3xl text-[var(--ms-color-primary,#0b4f8a)]">public</mat-icon>
               </div>
 
-              <div card-actions>
-                <button
-                  mat-raised-button
-                  color="primary"
-                  class="w-full !rounded-lg"
-                  (click)="importRegion.emit(region)"
-                >
+              <div class="mt-4">
+                <app-brand-button
+                  variant="primary"
+                  [block]="true"
+                  (click)="importRegion.emit(region)">
                   <mat-icon>download</mat-icon>
-                  Import
-                </button>
+                  <span>Import</span>
+                </app-brand-button>
               </div>
-            </app-mobilispect-card>
+            </app-brand-card>
           }
         </div>
       } @else {

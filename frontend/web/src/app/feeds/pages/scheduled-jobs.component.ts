@@ -19,7 +19,8 @@ import {
   ManualCheckResult
 } from '../models/scheduler.model';
 import { FeedImport, ImportStatus, TriggerType } from '../models/import.models';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
 @Component({
   selector: 'app-scheduled-jobs',
@@ -32,7 +33,8 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MatChipsModule,
     MatTableModule,
     MatPaginatorModule,
-    MobilispectCardComponent
+    BrandCardComponent,
+    BrandButtonComponent
   ],
   template: `
     <div class="scheduled-jobs-page">
@@ -41,127 +43,111 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         <p class="subtitle">Monitor automatic feed update jobs and their execution status</p>
 
         <div class="header-actions">
-          <button
-            mat-raised-button
-            color="primary"
+          <app-brand-button
+            variant="primary"
             (click)="triggerManualCheck()"
             [disabled]="triggering">
             <mat-icon>refresh</mat-icon>
             {{ triggering ? 'Checking...' : 'Trigger Manual Check' }}
-          </button>
+          </app-brand-button>
 
-          <button
-            mat-stroked-button
+          <app-brand-button
+            variant="ghost"
             (click)="refreshData()">
             <mat-icon>sync</mat-icon>
             Refresh
-          </button>
+          </app-brand-button>
         </div>
       </div>
 
       <!-- Status Overview -->
       <div class="status-overview">
         @if (schedulerStatus$ | async; as status) {
-          <app-mobilispect-card>
-            <div card-header>
-              <div card-title>Scheduler Status</div>
-            </div>
-            <div card-content>
-              <div class="status-grid">
-                <div class="status-item">
-                  <mat-icon [class]="status.enabled ? 'status-enabled' : 'status-disabled'">
-                    {{ status.enabled ? 'check_circle' : 'cancel' }}
-                  </mat-icon>
-                  <div class="status-info">
-                    <span class="label">Scheduler</span>
-                    <span class="value" [class]="status.enabled ? 'enabled' : 'disabled'">
-                      {{ status.enabled ? 'Enabled' : 'Disabled' }}
-                    </span>
-                  </div>
+          <app-brand-card title="Scheduler Status">
+            <div class="status-grid">
+              <div class="status-item">
+                <mat-icon [class]="status.enabled ? 'status-enabled' : 'status-disabled'">
+                  {{ status.enabled ? 'check_circle' : 'cancel' }}
+                </mat-icon>
+                <div class="status-info">
+                  <span class="label">Scheduler</span>
+                  <span class="value" [class]="status.enabled ? 'enabled' : 'disabled'">
+                    {{ status.enabled ? 'Enabled' : 'Disabled' }}
+                  </span>
                 </div>
+              </div>
 
-                <div class="status-item">
-                  <mat-icon class="info">schedule</mat-icon>
-                  <div class="status-info">
-                    <span class="label">Next Run</span>
-                    <span class="value">{{ status.nextScheduledRun }}</span>
-                  </div>
+              <div class="status-item">
+                <mat-icon class="info">schedule</mat-icon>
+                <div class="status-info">
+                  <span class="label">Next Run</span>
+                  <span class="value">{{ status.nextScheduledRun }}</span>
                 </div>
+              </div>
 
-                <div class="status-item">
-                  <mat-icon class="info">feed</mat-icon>
-                  <div class="status-info">
-                    <span class="label">Active Feeds</span>
-                    <span class="value">{{ status.totalActiveFeeds }}</span>
-                  </div>
+              <div class="status-item">
+                <mat-icon class="info">feed</mat-icon>
+                <div class="status-info">
+                  <span class="label">Active Feeds</span>
+                  <span class="value">{{ status.totalActiveFeeds }}</span>
                 </div>
+              </div>
 
-                <div class="status-item">
-                  <mat-icon class="info">update</mat-icon>
-                  <div class="status-info">
-                    <span class="label">Checked (24h)</span>
-                    <span class="value">{{ status.feedsCheckedInLast24Hours }}</span>
-                  </div>
+              <div class="status-item">
+                <mat-icon class="info">update</mat-icon>
+                <div class="status-info">
+                  <span class="label">Checked (24h)</span>
+                  <span class="value">{{ status.feedsCheckedInLast24Hours }}</span>
                 </div>
               </div>
             </div>
-          </app-mobilispect-card>
+          </app-brand-card>
         }
       </div>
 
       <!-- Import Statistics -->
       <div class="import-stats">
         @if (importStats$ | async; as stats) {
-          <app-mobilispect-card>
-            <div card-header>
-              <div card-title>Import Activity (Last 24 Hours)</div>
-            </div>
-            <div card-content>
-              <div class="stats-grid">
-                <div class="stat-card success">
-                  <div class="stat-number">{{ stats.successfulImportsLast24h }}</div>
-                  <div class="stat-label">Successful</div>
-                  <mat-icon>check_circle</mat-icon>
-                </div>
-
-                <div class="stat-card failed">
-                  <div class="stat-number">{{ stats.failedImportsLast24h }}</div>
-                  <div class="stat-label">Failed</div>
-                  <mat-icon>error</mat-icon>
-                </div>
-
-                <div class="stat-card running">
-                  <div class="stat-number">{{ stats.currentlyRunningAutoImports }}</div>
-                  <div class="stat-label">Running</div>
-                  <mat-icon>sync</mat-icon>
-                </div>
-
-                <div class="stat-card total">
-                  <div class="stat-number">{{ stats.totalAutomaticImportsLast24h }}</div>
-                  <div class="stat-label">Total</div>
-                  <mat-icon>analytics</mat-icon>
-                </div>
+          <app-brand-card title="Import Activity (Last 24 Hours)">
+            <div class="stats-grid">
+              <div class="stat-card success">
+                <div class="stat-number">{{ stats.successfulImportsLast24h }}</div>
+                <div class="stat-label">Successful</div>
+                <mat-icon>check_circle</mat-icon>
               </div>
 
-              @if (stats.lastAutomaticImportTime) {
-                <div class="last-import">
-                  <mat-icon>schedule</mat-icon>
-                  <span>Last automatic import: {{ stats.lastAutomaticImportTime | date:'medium' }}</span>
-                </div>
-              }
+              <div class="stat-card failed">
+                <div class="stat-number">{{ stats.failedImportsLast24h }}</div>
+                <div class="stat-label">Failed</div>
+                <mat-icon>error</mat-icon>
+              </div>
+
+              <div class="stat-card running">
+                <div class="stat-number">{{ stats.currentlyRunningAutoImports }}</div>
+                <div class="stat-label">Running</div>
+                <mat-icon>sync</mat-icon>
+              </div>
+
+              <div class="stat-card total">
+                <div class="stat-number">{{ stats.totalAutomaticImportsLast24h }}</div>
+                <div class="stat-label">Total</div>
+                <mat-icon>analytics</mat-icon>
+              </div>
             </div>
-          </app-mobilispect-card>
+
+            @if (stats.lastAutomaticImportTime) {
+              <div class="last-import">
+                <mat-icon>schedule</mat-icon>
+                <span>Last automatic import: {{ stats.lastAutomaticImportTime | date:'medium' }}</span>
+              </div>
+            }
+          </app-brand-card>
         }
       </div>
 
       <!-- Feed Version Status -->
       <div class="feed-versions">
-        <app-mobilispect-card>
-          <div card-header>
-            <div card-title>Feed Version Status</div>
-            <div card-subtitle>Current version status for all monitored feeds</div>
-          </div>
-          <div card-content>
+        <app-brand-card title="Feed Version Status" subtitle="Current version status for all monitored feeds">
             <div class="table-container">
               <table mat-table [dataSource]="(feedVersions$ | async) || []" class="feed-versions-table">
                 <!-- Feed ID Column -->
@@ -245,18 +231,12 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
               [pageSizeOptions]="[5, 10, 20, 50]"
               showFirstLastButtons>
             </mat-paginator>
-          </div>
-        </app-mobilispect-card>
+        </app-brand-card>
       </div>
 
       <!-- Recent Automatic Imports -->
       <div class="recent-imports">
-        <app-mobilispect-card>
-          <div card-header>
-            <div card-title>Recent Automatic Imports</div>
-            <div card-subtitle>Last 20 automatic import operations</div>
-          </div>
-          <div card-content>
+        <app-brand-card title="Recent Automatic Imports" subtitle="Last 20 automatic import operations">
             <div class="table-container">
               <table mat-table [dataSource]="(recentImports$ | async) || []" class="imports-table">
                 <!-- Feed ID Column -->
@@ -311,8 +291,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                 <tr mat-row *matRowDef="let row; columns: importColumns;"></tr>
               </table>
             </div>
-          </div>
-        </app-mobilispect-card>
+        </app-brand-card>
       </div>
     </div>
   `,

@@ -7,7 +7,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatChipsModule } from '@angular/material/chips';
 import { FeedImportSummary } from '../models/import.models';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
 
 /**
  * Imports History Card Component
@@ -38,7 +38,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MatProgressSpinnerModule,
     MatExpansionModule,
     MatChipsModule,
-    MobilispectCardComponent
+    BrandCardComponent
   ],
   template: `
     <mat-expansion-panel class="history-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
@@ -77,10 +77,10 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
 
       <!-- History Cards List -->
       @if (!loading && history && history.length > 0) {
-        <div class="history-container">
+          <div class="history-container">
           <div class="history-list">
             @for (importItem of history; track importItem.id) {
-              <app-mobilispect-card class="history-item-card">
+              <app-brand-card class="history-item-card">
                 <div card-header class="history-card-header">
                   <div class="history-avatar" [ngClass]="{
                     'avatar-completed': importItem.status === 'completed',
@@ -135,7 +135,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                     }
                   </div>
                 </div>
-              </app-mobilispect-card>
+              </app-brand-card>
             }
           </div>
 

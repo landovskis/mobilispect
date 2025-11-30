@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 import { AgencyFeedGroup, FeedGroupingUtils } from '../models/agency-feed-group.model';
 import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
 
@@ -28,15 +28,15 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
   standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
     MatIconModule,
     MatChipsModule,
     MatTooltipModule,
-    MobilispectCardComponent
+    BrandCardComponent,
+    BrandButtonComponent
   ],
   template: `
     @if (agencyGroup) {
-      <app-mobilispect-card>
+      <app-brand-card>
         <!-- Header -->
         <div card-header class="flex items-center gap-4">
           <div card-avatar class="w-12 h-12 flex items-center justify-center rounded-xl bg-white/20">
@@ -86,17 +86,16 @@ import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
 
         <!-- Actions -->
         <div card-actions>
-          <button
-            mat-raised-button
-            color="primary"
-            class="w-full !rounded-lg !font-semibold !h-12"
+          <app-brand-button
+            variant="primary"
+            [block]="true"
             (click)="onImport()"
             [disabled]="!agencyGroup.hasActiveFeeds">
             <mat-icon>download</mat-icon>
             <span>Import{{ getActiveFeedsCount() > 1 ? ' All' : '' }}</span>
-          </button>
+          </app-brand-button>
         </div>
-      </app-mobilispect-card>
+      </app-brand-card>
     }
   `,
   styleUrls: ['../styles/card.styles.css'],

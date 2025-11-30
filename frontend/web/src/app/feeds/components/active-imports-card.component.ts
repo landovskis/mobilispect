@@ -9,7 +9,7 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatChipsModule } from '@angular/material/chips';
 import { FeedImportSummary } from '../models/import.models';
 import { ProgressMonitorComponent } from './progress-monitor.component';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
 
 /**
  * Active Imports Card Component
@@ -40,7 +40,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MatExpansionModule,
     MatChipsModule,
     ProgressMonitorComponent,
-    MobilispectCardComponent
+    BrandCardComponent
   ],
   template: `
     <mat-expansion-panel class="active-imports-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
@@ -73,7 +73,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
         @if (activeImports.length > 0) {
           <div class="active-imports-list">
             @for (importItem of activeImports; track importItem.id) {
-              <app-mobilispect-card class="import-item-card">
+              <app-brand-card class="import-item-card">
                 <div card-header class="import-card-header">
                   <mat-checkbox
                     [checked]="selectedImportIds.has(importItem.id)"
@@ -124,7 +124,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                     [importId]="importItem.id"
                   ></app-progress-monitor>
                 </div>
-              </app-mobilispect-card>
+              </app-brand-card>
             }
           </div>
         } @else {

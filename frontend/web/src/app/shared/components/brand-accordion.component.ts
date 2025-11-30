@@ -53,8 +53,8 @@ export interface BrandAccordionItem {
             [attr.aria-labelledby]="item.id + '-header'"
             [hidden]="!item.open"
           >
-            <ng-container *ngIf="itemTemplate; else defaultContent" [ngTemplateOutlet]="itemTemplate" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
-            <ng-template #defaultContent>
+            <ng-container *ngIf="itemTemplate; else defaultContent" [ngTemplateOutlet]="itemTemplate" [ngTemplateOutletContext]="{ item: item }"></ng-container>
+            <ng-template #defaultContent let-item="item">
               <p class="panel-text" *ngIf="item.content">{{ item.content }}</p>
             </ng-template>
           </div>
@@ -206,7 +206,7 @@ export interface BrandAccordionItem {
 export class BrandAccordionComponent {
   @Input() items: BrandAccordionItem[] = [];
   @Input() allowMultiple = true;
-  @Input() itemTemplate?: TemplateRef<BrandAccordionItem>;
+  @Input() itemTemplate?: TemplateRef<{ item: BrandAccordionItem }>;
 
   toggleItem(index: number): void {
     if (!this.items?.length) return;

@@ -3,12 +3,12 @@ import { Observable, Subject, BehaviorSubject, timer, combineLatest } from 'rxjs
 import { takeUntil, map, startWith, switchMap, catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { ImportProgress, ProgressDisplayData, ProgressStatus } from '../models/import-progress.model';
 import { ProgressWebSocketService } from '../services/progress-websocket.service';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
 @Component({
   selector: 'app-progress-monitor',
@@ -16,15 +16,15 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
   imports: [
     CommonModule,
     MatProgressBarModule,
-    MatButtonModule,
     MatIconModule,
     MatChipsModule,
-    MobilispectCardComponent
+    BrandCardComponent,
+    BrandButtonComponent
   ],
   template: `
     @if (importId) {
       <div class="progress-monitor">
-        <app-mobilispect-card class="progress-card" [ngClass]="'status-' + progressStatus">
+        <app-brand-card class="progress-card" [ngClass]="'status-' + progressStatus">
           <div card-header>
             <div class="flex items-center gap-2 text-white font-semibold">
               <mat-icon [ngClass]="getIconClass()">{{ getStatusIcon() }}</mat-icon>
@@ -100,20 +100,20 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
 
           @if (showActions) {
             <div card-actions>
-              <button mat-button (click)="refreshProgress()" [disabled]="(isLoading$ | async)">
+              <app-brand-button variant="accent" size="sm" (click)="refreshProgress()" [disabled]="!!(isLoading$ | async)">
                 <mat-icon>refresh</mat-icon>
                 Refresh
-              </button>
+              </app-brand-button>
               @if (progressStatus === 'active') {
-                <button mat-button color="warn" (click)="onCancel()"
-                        [disabled]="(isLoading$ | async)">
+                <app-brand-button variant="ghost" size="sm" (click)="onCancel()"
+                        [disabled]="!!(isLoading$ | async)">
                   <mat-icon>cancel</mat-icon>
                   Cancel Import
-                </button>
+                </app-brand-button>
               }
             </div>
           }
-        </app-mobilispect-card>
+        </app-brand-card>
 
         <!-- WebSocket Connection Status -->
         @if (showConnectionStatus) {
