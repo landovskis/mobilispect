@@ -47,6 +47,7 @@ class FrequencyQueryServiceTest {
         val result = service.getVariantsByRoute(RouteId("r-1"))
         assertThat(result).hasSize(1)
         assertThat(result.first().id).isEqualTo("a".repeat(64))
+        assertThat(result.first().stopPattern).isEqualTo("s1|s2")
     }
 
     @Test

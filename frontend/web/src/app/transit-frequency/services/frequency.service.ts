@@ -21,6 +21,7 @@ export interface RouteVariantDto {
   directionId?: number | null;
   headsign?: string | null;
   stopCount: number;
+  stopPattern: string;
   firstStopId: string;
   lastStopId: string;
 }

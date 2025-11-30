@@ -6,6 +6,7 @@ data class RouteVariantDTO(
     val directionId: Int?,
     val headsign: String?,
     val stopCount: Int,
+    val stopPattern: String,
     val firstStopId: String,
     val lastStopId: String
 )

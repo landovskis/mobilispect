@@ -5,13 +5,18 @@ import { FrequencyService, RouteDto, RouteVariantDto, FrequencyDto } from '../..
 import { VariantListComponent } from '../../components/variant-list/variant-list.component';
 import { FrequencyChartComponent } from '../../components/frequency-chart/frequency-chart.component';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-route-frequency',
   standalone: true,
-  imports: [CommonModule, BrandCardComponent, VariantListComponent, FrequencyChartComponent],
+  imports: [CommonModule, FormsModule, BrandCardComponent, VariantListComponent, FrequencyChartComponent],
   template: `
     <app-brand-card [title]="route?.longName" [subtitle]="route?.shortName">
+      <label class="date-picker" aria-label="Select service date">
+        <span>Service date</span>
+        <input type="date" [(ngModel)]="selectedDate" (change)="onDateChange()" />
+      </label>
       <app-variant-list
         [variants]="variants"
         (variantSelect)="loadFrequencies($event)">
@@ -29,6 +34,7 @@ export class RouteFrequencyComponent implements OnInit {
   route?: RouteDto;
   variants: RouteVariantDto[] = [];
   frequencies: FrequencyDto[] = [];
+  selectedDate?: string;
 
   constructor(
     private readonly routeParams: ActivatedRoute,
@@ -53,8 +59,15 @@ export class RouteFrequencyComponent implements OnInit {
   }
 
   loadFrequencies(variantId: string): void {
-    this.frequencyService.getFrequencies(variantId).subscribe(freqs => {
+    this.frequencyService.getFrequencies(variantId, this.selectedDate).subscribe(freqs => {
       this.frequencies = freqs;
     });
+  }
+
+  onDateChange(): void {
+    // reload last viewed variant if any
+    if (this.variants.length > 0) {
+      this.loadFrequencies(this.variants[0].id);
+    }
   }
 }

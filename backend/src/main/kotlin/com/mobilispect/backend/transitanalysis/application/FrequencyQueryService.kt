@@ -37,6 +37,7 @@ class FrequencyQueryService(
                 directionId = it.directionId,
                 headsign = it.headsign,
                 stopCount = it.stopCount,
+                stopPattern = it.stopPattern,
                 firstStopId = it.firstStopId,
                 lastStopId = it.lastStopId
             )
