@@ -35,7 +35,7 @@ COMMENT ON TYPE route_type IS 'GTFS route_type enumeration for transit service m
 -- Region Access: Agencies inherit region membership through their feed reference
 CREATE TABLE agencies (
     agency_onestop_id VARCHAR(255) PRIMARY KEY,  -- AgencyId value class (Transitland Onestop ID format: o-geohash-name)
-    feed_onestop_id VARCHAR(255) NOT NULL REFERENCES feeds(feed_onestop_id) ON DELETE CASCADE,
+    feed_onestop_id VARCHAR(512) NOT NULL REFERENCES feeds(feed_onestop_id) ON DELETE CASCADE,
     gtfs_agency_id VARCHAR(255) NOT NULL,  -- ID from GTFS agency.txt
     name VARCHAR(255) NOT NULL,
     website VARCHAR(512),

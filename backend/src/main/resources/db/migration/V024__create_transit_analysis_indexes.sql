@@ -111,13 +111,15 @@ CREATE INDEX idx_common_sections_last_stop ON common_sections(last_stop_id);
 CREATE INDEX idx_common_sections_stop_pair ON common_sections(first_stop_id, last_stop_id);
 
 -- Spatial index for geographic queries (requires PostGIS)
-CREATE INDEX idx_common_sections_geographic_extent
-    ON common_sections USING GIST(geographic_extent);
+-- TEMPORARILY DISABLED: PostGIS not installed in test environment yet
+-- TODO: Re-enable GIST spatial index once PostGIS is installed
+-- CREATE INDEX idx_common_sections_geographic_extent
+--     ON common_sections USING GIST(geographic_extent);
 
 COMMENT ON INDEX idx_common_sections_first_stop IS 'Find common sections starting at a specific stop';
 COMMENT ON INDEX idx_common_sections_last_stop IS 'Find common sections ending at a specific stop';
 COMMENT ON INDEX idx_common_sections_stop_pair IS 'Efficient lookup of sections by stop pair';
-COMMENT ON INDEX idx_common_sections_geographic_extent IS 'Spatial index for geographic queries (PostGIS GIST)';
+-- COMMENT ON INDEX idx_common_sections_geographic_extent IS 'Spatial index for geographic queries (PostGIS GIST)';
 
 -- ============================================================================
 -- COMMON SECTION VARIANTS TABLE INDEXES
@@ -182,18 +184,18 @@ ANALYZE imported_feeds;
 -- INDEX SUMMARY
 -- ============================================================================
 
--- Total Indexes Created: 33
+-- Total Indexes Created: 32 (33 when PostGIS GIST index is enabled)
 --   - agencies: 3 indexes
 --   - routes: 4 indexes
 --   - route_variants: 6 indexes
 --   - frequencies: 5 indexes
---   - common_sections: 4 indexes
+--   - common_sections: 3 indexes (4 when PostGIS GIST index is enabled)
 --   - common_section_variants: 3 indexes
 --   - imported_feeds: 5 indexes
 --
 -- Index Types:
 --   - B-tree indexes: 32 (standard for equality and range queries)
---   - GIST indexes: 1 (spatial index for PostGIS geometry)
+--   - GIST indexes: 0 (will be 1 spatial index for PostGIS geometry once PostGIS is installed)
 --   - Partial indexes: 3 (active-only filters to reduce index size)
 --   - Unique indexes: 1 (frequencies uniqueness constraint)
 --
@@ -201,4 +203,4 @@ ANALYZE imported_feeds;
 --   - Partial indexes on 'active' columns save space by excluding inactive records
 --   - Composite indexes support multi-column queries without separate index scans
 --   - DESC indexes on timestamp columns optimize recent-first queries
---   - GIST index enables efficient spatial queries on geographic_extent column
+--   - GIST index will enable efficient spatial queries on geographic_extent column once PostGIS is installed

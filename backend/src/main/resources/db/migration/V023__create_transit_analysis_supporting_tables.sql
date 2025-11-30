@@ -9,9 +9,10 @@
 
 -- Enable PostGIS extension for geographic data (if not already enabled)
 -- This is optional for Phase 1 but included for future geographic analysis
-CREATE EXTENSION IF NOT EXISTS postgis;
-
-COMMENT ON EXTENSION postgis IS 'PostGIS geometry and geography spatial types and functions';
+-- TEMPORARILY DISABLED: PostGIS not installed in test environment yet
+-- TODO: Re-enable PostGIS extension once installed system-wide
+-- CREATE EXTENSION IF NOT EXISTS postgis;
+-- COMMENT ON EXTENSION postgis IS 'PostGIS geometry and geography spatial types and functions';
 
 -- Common Sections table
 -- Purpose: Geographic segments where multiple routes/variants share the same path
@@ -23,7 +24,7 @@ CREATE TABLE common_sections (
     stop_count INTEGER NOT NULL,  -- Number of stops in the common section
     first_stop_id VARCHAR(255) NOT NULL,  -- First stop in the section
     last_stop_id VARCHAR(255) NOT NULL,  -- Last stop in the section
-    geographic_extent GEOMETRY(LINESTRING, 4326),  -- PostGIS geometry for the section path (SRID 4326 = WGS84)
+    geographic_extent TEXT,  -- TEMPORARILY TEXT: Will be GEOMETRY(LINESTRING, 4326) once PostGIS is enabled
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
@@ -36,7 +37,7 @@ COMMENT ON COLUMN common_sections.stop_pattern IS 'Ordered stop IDs separated by
 COMMENT ON COLUMN common_sections.stop_count IS 'Number of stops in the common section (must be >= 3)';
 COMMENT ON COLUMN common_sections.first_stop_id IS 'First stop in the common section';
 COMMENT ON COLUMN common_sections.last_stop_id IS 'Last stop in the common section';
-COMMENT ON COLUMN common_sections.geographic_extent IS 'PostGIS LineString geometry representing the geographic path (SRID 4326)';
+COMMENT ON COLUMN common_sections.geographic_extent IS 'TEMPORARILY TEXT: Will be PostGIS LineString geometry (SRID 4326) once PostGIS is enabled';
 
 -- Common Section Variants junction table
 -- Purpose: Link common sections to the route variants that traverse them
