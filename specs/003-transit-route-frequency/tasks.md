@@ -326,10 +326,10 @@ The following components **already exist** in the codebase and should be **reuse
 - [X] T141 [US3] Create CommonSectionService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/application/CommonSectionService.kt
 - [X] T142 [US3] Implement getCommonSectionsForRoute(routeId) method
 - [X] T143 [US3] Implement getCombinedFrequency(commonSectionId, timePeriod) method summing frequencies from all contributing variants
-- [ ] T144 [US3] Implement getContributingRoutes(commonSectionId) method
+- [X] T144 [US3] Implement getContributingRoutes(commonSectionId) method
 - [X] T145 [US3] Create CommonSectionController GET /api/v1/routes/{routeId}/common-sections in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/CommonSectionController.kt
 - [X] T146 [US3] Create CommonSectionController GET /api/v1/common-sections/{sectionId}/frequency endpoint
-- [ ] T147 [US3] Create CommonSectionController GET /api/v1/common-sections/{sectionId}/contributing-routes endpoint
+- [X] T147 [US3] Create CommonSectionController GET /api/v1/common-sections/{sectionId}/contributing-routes endpoint
 - [ ] T148 [US3] Add Redis caching for common section queries with 6-hour TTL
 
 ### Frontend Implementation for User Story 3
@@ -337,11 +337,11 @@ The following components **already exist** in the codebase and should be **reuse
 - [X] T149 [P] [US3] Create common-section.service.ts HTTP client in frontend/web/src/app/transit-frequency/services/common-section.service.ts
 - [X] T150 [P] [US3] Create common-section-display component in frontend/web/src/app/transit-frequency/components/common-section-display/common-section-display.component.ts
 - [X] T151 [US3] Display common sections on route-frequency page
-- [ ] T152 [US3] Show combined frequency with individual route contributions
+- [X] T152 [US3] Show combined frequency with individual route contributions
 - [ ] T153 [US3] Highlight common section geographic extent on map (if map integration exists)
-- [ ] T154 [US3] Add visual indicator for which variants participate in common sections
-- [ ] T155 [US3] Add light/dark mode support for common-section-display component
-- [ ] T156 [US3] Add ARIA labels and accessible table markup for common section data
+- [X] T154 [US3] Add visual indicator for which variants participate in common sections
+- [X] T155 [US3] Add light/dark mode support for common-section-display component
+- [X] T156 [US3] Add ARIA labels and accessible table markup for common section data
 
 **Checkpoint**: User Story 3 complete - common section analysis functional with combined frequencies
 
