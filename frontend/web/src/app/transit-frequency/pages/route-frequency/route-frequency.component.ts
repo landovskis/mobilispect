@@ -14,7 +14,7 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
   standalone: true,
   imports: [CommonModule, FormsModule, BrandCardComponent, VariantListComponent, FrequencyChartComponent, CommonSectionDisplayComponent],
   template: `
-    <app-brand-card [title]="route?.longName" [subtitle]="route?.shortName">
+    <app-brand-card [title]="route?.longName" [subtitle]="route?.shortName || undefined">
       <label class="date-picker" aria-label="Select service date">
         <span>Service date</span>
         <input type="date" [(ngModel)]="selectedDate" (change)="onDateChange()" />

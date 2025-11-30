@@ -17,6 +17,12 @@ export interface CombinedFrequencyDto {
   averageHeadwayMinutes?: number | null;
   tripCount: number;
   isIrregular: boolean;
+  contributions?: Array<{
+    routeId: string;
+    averageHeadwayMinutes?: number | null;
+    tripCount: number;
+    isIrregular: boolean;
+  }>;
 }
 
 @Injectable({ providedIn: 'root' })

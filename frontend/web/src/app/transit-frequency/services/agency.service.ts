@@ -19,7 +19,7 @@ export class AgencyService {
 
   listAgencies(page: number = 0, size: number = 20, regionId?: string): Observable<AgencyListResponse> {
     const params: Record<string, any> = { page, size };
-    if (regionId) params.regionId = regionId;
+    if (regionId) params['regionId'] = regionId;
     return this.http.get<AgencyListResponse>(`${this.baseUrl}/agencies`, {
       params
     });

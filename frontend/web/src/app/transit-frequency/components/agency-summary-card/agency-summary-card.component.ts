@@ -33,7 +33,6 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       color: var(--mat-sys-on-surface, #e5e7eb);
     }
   `],
-  `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AgencySummaryCardComponent {
