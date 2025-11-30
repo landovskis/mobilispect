@@ -88,6 +88,15 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
                 <span class="nav-count active">{{ activeImports }} active</span>
               }
             </button>
+
+            <button
+              type="button"
+              class="sidebar-link"
+              routerLink="/transit-frequency/regions-select/imported"
+              routerLinkActive="active">
+              <mat-icon>map</mat-icon>
+              <span>Imported Regions</span>
+            </button>
           </nav>
         </mat-sidenav>
 
