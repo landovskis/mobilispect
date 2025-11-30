@@ -76,6 +76,45 @@ import { CommonModule } from '@angular/common';
       font-size: 0.85rem;
     }
 
+    /* Utility styles inspired by agency card */
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--mat-sys-primary, #0b4f8a);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .feed-type-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 999px;
+      height: auto;
+      line-height: 1.2;
+    }
+
+    .feed-type-gtfs {
+      background: rgba(76, 175, 80, 0.15);
+      color: #2e7d32;
+    }
+
+    .feed-type-gtfs-rt {
+      background: rgba(41, 128, 185, 0.15);
+      color: #1f6c9e;
+    }
+
     .card-body {
       display: block;
       color: inherit;
