@@ -30,7 +30,7 @@ import { CommonModule } from '@angular/common';
       color: var(--mat-sys-on-surface, var(--ms-color-ink, #111827));
       border-radius: 16px;
       padding: var(--ms-space-5, 24px);
-      box-shadow: var(--ms-surface-card-shadow, 0 12px 30px rgba(15, 23, 42, 0.08));
+      box-shadow: none;
       border: 1px solid var(--mat-sys-outline, var(--ms-color-border, #d1d5db));
       display: block;
     }
