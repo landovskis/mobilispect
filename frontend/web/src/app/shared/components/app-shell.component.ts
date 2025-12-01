@@ -89,13 +89,14 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
               }
             </button>
 
+            <div class="sidebar-heading">Regions</div>
             <button
               type="button"
               class="sidebar-link"
-              routerLink="/transit-frequency/regions-select/imported"
+              routerLink="/regions"
               routerLinkActive="active">
               <mat-icon>map</mat-icon>
-              <span>Imported Regions</span>
+              <span>List</span>
             </button>
           </nav>
         </mat-sidenav>

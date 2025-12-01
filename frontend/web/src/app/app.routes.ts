@@ -12,6 +12,10 @@ export const routes: Routes = [
         pathMatch: 'full'
       },
       {
+        path: 'regions',
+        loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule)
+      },
+      {
         path: 'transit-frequency',
         loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule)
       },

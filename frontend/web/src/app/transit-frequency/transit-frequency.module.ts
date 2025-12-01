@@ -13,7 +13,7 @@ const routes: Routes = [
     component: RegionListComponent
   },
   {
-    path: 'regions-select/imported',
+    path: 'regions',
     component: RegionSelectComponent
   },
   {
