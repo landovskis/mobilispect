@@ -48,7 +48,7 @@ export class RegionListComponent implements OnInit {
 
   ngOnInit(): void {
     this.regionService.listRegions().subscribe(regions => {
-      this.regions = regions;
+      this.regions = [...regions].sort((a, b) => a.name.localeCompare(b.name));
     });
   }
 
