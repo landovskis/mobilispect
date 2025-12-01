@@ -9,10 +9,10 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable, Subject, combineLatest, firstValueFrom } from 'rxjs';
 import { filter, map, shareReplay, startWith, takeUntil } from 'rxjs/operators';
 import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from '../../shared/components/app-bar.component';
-import { ImportService } from '../services/import.service';
-import { FeedsMetricsService } from '../services/feeds-metrics.service';
-import { FeedsEventsService } from '../services/feeds-events.service';
-import { RegionService } from '../services/region.service';
+import { ImportService } from '../../feeds/services/import.service';
+import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
+import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
+import { RegionService } from '../../feeds/services/region.service';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle.component';
 
 @Component({
@@ -325,7 +325,7 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
     }
   `]
 })
-export class FeedsShellComponent implements OnDestroy {
+export class AppShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   breadcrumbs: Breadcrumb[] = [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
@@ -352,7 +352,7 @@ export class FeedsShellComponent implements OnDestroy {
     this.discoverFeedCount$ = this.metrics.discoverFeedCount$;
     this.totalImportElements$ = this.metrics.totalImportElements$;
     this.activeImportCount$ = this.importService.getActiveImportsObservable().pipe(
-      map(imports => imports?.length || 0)
+      map((imports: any[] | null | undefined) => imports?.length ?? 0)
     );
 
     combineLatest([
