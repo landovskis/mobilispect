@@ -73,11 +73,6 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
               </li>
             }
           </ul>
-        } @else {
-          <div class="empty-results">
-            <mat-icon>travel_explore</mat-icon>
-            <p>No regions match "{{ searchControl.value }}"</p>
-          </div>
         }
       }
     </div>
