@@ -16,7 +16,7 @@ export const routes: Routes = [
         loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule)
       },
       {
-        path: 'transit-frequency',
+        path: 'regions',
         loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule)
       },
       {

@@ -1,20 +1,11 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { RegionListComponent } from './pages/region-list/region-list.component';
-import { RegionSelectComponent } from './pages/region-select/region-select.component';
 
 const routes: Routes = [
   {
-    path: 'regions',
+    path: '',
     component: RegionListComponent
-  },
-  {
-    path: 'regions/:regionId',
-    component: RegionListComponent
-  },
-  {
-    path: 'regions',
-    component: RegionSelectComponent
   },
   {
     path: 'routes/:routeId',

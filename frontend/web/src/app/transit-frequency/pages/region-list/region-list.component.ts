@@ -1,57 +1,58 @@
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
-import { AgencyService } from '../../services/agency.service';
-import { AgencySummary } from '../../models/agency-summary.model';
+import { Router } from '@angular/router';
+import { RegionService } from '../../../feeds/services/region.service';
+import { MetropolitanRegion } from '../../../feeds/models/region.models';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
-import { AgencySummaryCardComponent } from '../../components/agency-summary-card/agency-summary-card.component';
+import { BrandButtonComponent } from '../../../shared/components/brand-button.component';
 
 @Component({
   selector: 'app-region-list',
   standalone: true,
-  imports: [CommonModule, BrandCardComponent, AgencySummaryCardComponent],
+  imports: [CommonModule, BrandCardComponent, BrandButtonComponent],
   template: `
-    <app-brand-card title="Agencies" subtitle="Overview of agencies with route counts">
+    <app-brand-card title="Regions" subtitle="All regions with imported feeds">
       <div class="grid" role="list">
-        @for (agency of agencies; track agency.id) {
-          <app-agency-summary-card role="listitem" [agency]="agency"></app-agency-summary-card>
+        @for (region of regions; track region.regionOnestopId) {
+          <div class="region-card" role="listitem">
+            <div class="info">
+              <div class="name">{{ region.name }}</div>
+              <small>{{ region.adm0Name }} {{ region.adm1Name }}</small>
+              <small>Feeds: {{ region.feedCount }}</small>
+            </div>
+            <app-brand-button variant="primary" (click)="goToRegion(region.regionOnestopId)">
+              View
+            </app-brand-button>
+          </div>
         }
       </div>
     </app-brand-card>
   `,
   styles: [`
-    .grid {
-      display: grid;
-      gap: 16px;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      color: var(--mat-sys-on-surface, #0f172a);
-    }
-
-    :host-context(.dark-theme) .grid {
-      color: var(--mat-sys-on-surface, #e5e7eb);
-    }
+    .grid { display: flex; flex-direction: column; gap: 12px; }
+    .region-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--mat-sys-outline, #e2e8f0); border-radius: 12px; }
+    .info { display: flex; flex-direction: column; gap: 2px; color: var(--mat-sys-on-surface, #0f172a); }
+    .name { font-weight: 700; }
+    :host-context(.dark-theme) .region-card { border-color: rgba(148, 163, 184, 0.3); }
+    :host-context(.dark-theme) .info { color: var(--mat-sys-on-surface, #e5e7eb); }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RegionListComponent implements OnInit {
-  agencies: AgencySummary[] = [];
-  regionId?: string | null;
+  regions: MetropolitanRegion[] = [];
 
   constructor(
-    private readonly agencyService: AgencyService,
-    private readonly route: ActivatedRoute
+    private readonly regionService: RegionService,
+    private readonly router: Router
   ) {}
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
-      this.regionId = params.get('regionId');
-      this.loadAgencies();
+    this.regionService.listRegions().subscribe(regions => {
+      this.regions = regions;
     });
   }
 
-  private loadAgencies(): void {
-    this.agencyService.listAgencies(0, 50, this.regionId ?? undefined).subscribe(response => {
-      this.agencies = response.content.sort((a, b) => b.routeCount - a.routeCount);
-    });
+  goToRegion(regionId: string): void {
+    this.router.navigate(['/regions', regionId]);
   }
 }
