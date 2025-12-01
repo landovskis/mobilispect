@@ -23,13 +23,13 @@ import { RegionSelectorComponent } from '../../../feeds/components/region-select
       </div>
       <div class="grid" role="list">
         @for (region of filteredRegions; track region.regionOnestopId) {
-          <div class="region-card" role="listitem">
+          <div class="region-card" role="listitem" (click)="goToRegion(region.regionOnestopId)" tabindex="0" (keydown.enter)="goToRegion(region.regionOnestopId)" (keydown.space)="goToRegion(region.regionOnestopId)">
             <div class="info">
               <div class="name">{{ region.name }}</div>
               <small>{{ region.adm0Name }} {{ region.adm1Name }}</small>
               <small>Feeds: {{ region.feedCount }}</small>
             </div>
-            <app-brand-button variant="primary" (click)="goToRegion(region.regionOnestopId)">
+            <app-brand-button variant="primary">
               View
             </app-brand-button>
           </div>
@@ -40,7 +40,7 @@ import { RegionSelectorComponent } from '../../../feeds/components/region-select
   styles: [`
     .actions { margin: 12px 0; }
     .grid { display: flex; flex-direction: column; gap: 12px; }
-    .region-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--mat-sys-outline, #e2e8f0); border-radius: 12px; }
+    .region-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--mat-sys-outline, #e2e8f0); border-radius: 12px; cursor: pointer; }
     .info { display: flex; flex-direction: column; gap: 2px; color: var(--mat-sys-on-surface, #0f172a); }
     .name { font-weight: 700; }
     :host-context(.dark-theme) .region-card { border-color: rgba(148, 163, 184, 0.3); }
