@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { AppShellComponent } from '../shared/components/app-shell.component';
 import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
 import { FeedImportsPageComponent } from './pages/feed-imports.page';
 
@@ -12,7 +11,6 @@ const routes: Routes = [
   },
   {
     path: '',
-    component: AppShellComponent,
     children: [
       {
         path: 'discover',

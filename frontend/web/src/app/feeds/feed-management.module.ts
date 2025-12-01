@@ -35,7 +35,6 @@ import { FeedActiveImportsTabComponent } from './components/feed-active-imports-
 import { FeedImportsTabComponent } from './components/feed-imports-tab.component';
 import { RegionSelectorComponent } from './components/region-selector.component';
 import { AgencyFeedCardComponent } from './components/agency-feed-card.component';
-import { FeedsShellComponent } from './pages/feeds-shell.component';
 import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
 import { FeedImportsPageComponent } from './pages/feed-imports.page';
 import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
@@ -49,7 +48,6 @@ import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
     FeedManagementRoutingModule,
 
     // Standalone components
-    FeedsShellComponent,
     DiscoverFeedsPageComponent,
     FeedImportsPageComponent,
     RegionListComponent,
