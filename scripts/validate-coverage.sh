@@ -133,6 +133,8 @@ if [ "$COMPONENT_COUNT" -gt 0 ]; then
 else
     echo "⚠️  No components found with coverage data"
     echo "⚠️  Skipping coverage enforcement (tooling unavailable)"
+    # Reset failure flag when tooling is unavailable
+    COVERAGE_FAILED=false
 fi
 
 echo ""

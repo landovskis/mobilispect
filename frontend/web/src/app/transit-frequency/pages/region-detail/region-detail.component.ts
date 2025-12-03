@@ -4,13 +4,14 @@ import { ActivatedRoute } from '@angular/router';
 import { RegionService } from '../../../feeds/services/region.service';
 import { MetropolitanRegionDetail } from '../../../feeds/models/region.models';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-region-detail',
   standalone: true,
   imports: [CommonModule, BrandCardComponent],
   template: `
-    <app-brand-card *ngIf="region" [title]="region.name" [subtitle]="region.regionOnestopId">
+    <app-brand-card *ngIf="region$ | async as region" [title]="region.name" [subtitle]="region.regionOnestopId">
       <div class="meta">
         <div><strong>Country:</strong> {{ region.adm0Name }}</div>
         <div><strong>State/Province:</strong> {{ region.adm1Name }}</div>
@@ -25,7 +26,7 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RegionDetailComponent implements OnInit {
-  region: MetropolitanRegionDetail | null = null;
+  region$!: Observable<MetropolitanRegionDetail>;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -35,9 +36,7 @@ export class RegionDetailComponent implements OnInit {
   ngOnInit(): void {
     const regionId = this.route.snapshot.paramMap.get('regionId');
     if (regionId) {
-      this.regionService.getRegion(regionId).subscribe(region => {
-        this.region = region;
-      });
+      this.region$ = this.regionService.getRegion(regionId);
     }
   }
 }
