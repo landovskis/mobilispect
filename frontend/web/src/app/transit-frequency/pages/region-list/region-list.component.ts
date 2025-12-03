@@ -23,7 +23,7 @@ import { RegionSelectorComponent } from '../../../feeds/components/region-select
       </div>
       <div class="grid" role="list">
         @for (region of filteredRegions; track region.regionOnestopId) {
-          <div class="region-card" role="listitem" tabindex="0" (keydown.enter)="goToRegion(region.regionOnestopId)" (keydown.space)="goToRegion(region.regionOnestopId)">
+          <div class="region-card" role="listitem" tabindex="0" (click)="goToRegion(region.regionOnestopId)" (keydown.enter)="goToRegion(region.regionOnestopId)" (keydown.space)="goToRegion(region.regionOnestopId)">
             <div class="info">
               <div class="name">{{ region.name }}</div>
               <small>{{ region.adm0Name }} {{ region.adm1Name }}</small>
