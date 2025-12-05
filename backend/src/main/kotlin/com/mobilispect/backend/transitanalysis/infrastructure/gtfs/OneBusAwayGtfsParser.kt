@@ -1,9 +1,6 @@
 package com.mobilispect.backend.transitanalysis.infrastructure.gtfs
 
-import org.onebusaway.gtfs.impl.GtfsReader
-import org.onebusaway.gtfs.model.StopTime
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 import java.nio.file.Path
 import java.time.LocalTime
 
@@ -12,10 +9,16 @@ import java.time.LocalTime
  *
  * Keeps the output lean by mapping only the fields needed by the transit-analysis
  * services (routes, trips, stop times).
+ *
+ * DISABLED: OneBusAway library has compilation issues.
+ * Using StubGtfsParser temporarily until OneBusAway dependency is properly configured.
  */
-@Component
-class OneBusAwayGtfsParser : GtfsParser {
+// @Component - DISABLED until OneBusAway library is properly configured
+class OneBusAwayGtfsParser /* : GtfsParser */ {
     private val logger = LoggerFactory.getLogger(OneBusAwayGtfsParser::class.java)
+
+    /*
+     * IMPLEMENTATION DISABLED - see StubGtfsParser.kt
 
     override fun parse(feedPath: Path): Result<ParsedGtfsData> = runCatching {
         val reader = GtfsReader()
@@ -57,4 +60,5 @@ class OneBusAwayGtfsParser : GtfsParser {
         logger.info("Parsed GTFS feed at {} -> {} routes, {} trips", feedPath, routes.size, trips.size)
         ParsedGtfsData(routes = routes, trips = trips)
     }
+    */
 }

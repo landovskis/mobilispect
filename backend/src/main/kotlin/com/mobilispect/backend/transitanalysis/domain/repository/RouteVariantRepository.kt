@@ -25,6 +25,17 @@ import java.time.Instant
 interface RouteVariantRepository : JpaRepository<RouteVariant, VariantHash> {
 
     /**
+     * Find all variants for a specific route by route ID.
+     *
+     * @param routeId The route ID to search within
+     * @return List of variants belonging to the specified route
+     */
+    @Query("SELECT rv FROM RouteVariant rv WHERE rv.route.id = :routeId ORDER BY rv.stopCount ASC, rv.id ASC")
+    fun findByRouteId(
+        @Param("routeId") routeId: com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
+    ): List<RouteVariant>
+
+    /**
      * Find all variants for a specific route.
      *
      * @param route The route entity to search within

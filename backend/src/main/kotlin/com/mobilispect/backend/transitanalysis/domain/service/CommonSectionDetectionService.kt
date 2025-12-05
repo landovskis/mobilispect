@@ -44,7 +44,6 @@ class CommonSectionDetectionServiceImpl : CommonSectionDetectionService {
                         stopCount = seq.size,
                         firstStopId = seq.first(),
                         lastStopId = seq.last(),
-                        geographicExtent = null,
                         createdAt = Instant.now(),
                         updatedAt = Instant.now()
                     )

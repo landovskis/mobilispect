@@ -5,6 +5,7 @@ import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
+import com.mobilispect.backend.transitanalysis.domain.service.FeedImportService as TransitAnalysisFeedImportService
 import com.mobilispect.backend.util.ArchiveExtractor
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +29,7 @@ class FeedManagementImportProcessor(
     private val feedRepository: FeedRepository,
     private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
+    private val transitAnalysisFeedImportService: TransitAnalysisFeedImportService,
     private val progressTrackingService: ProgressTrackingService,
     private val clock: Clock = Clock.systemUTC()
 ) {
@@ -86,24 +88,31 @@ class FeedManagementImportProcessor(
                 progress(stepNumber = 3, stepName = "Validating GTFS files")
                 validateGtfsFiles(extractedDir).getOrThrow()
 
-                progress(stepNumber = 4, stepName = "Processing agencies")
-                // TODO: Implement agency processing when needed
-
-                progress(stepNumber = 5, stepName = "Processing routes")
-                // TODO: Implement route processing when needed
-
-                progress(stepNumber = 6, stepName = "Processing stops")
-                // TODO: Implement stop processing when needed
-
-                progress(stepNumber = 7, stepName = "Processing trips")
-                // TODO: Implement trip processing when needed
-
-                progress(stepNumber = 8, stepName = "Finalizing import", percentage = 100)
-
-                // Clean up
+                // Clean up extracted validation directory
                 Files.walk(extractedDir)
                     .sorted(Comparator.reverseOrder())
                     .forEach { Files.deleteIfExists(it) }
+
+                progress(stepNumber = 4, stepName = "Processing GTFS data")
+                logger.info("Starting transit analysis import for feed: $feedOnestopId")
+
+                // Call transit analysis service to parse GTFS and calculate frequencies
+                val analysisResult = transitAnalysisFeedImportService.importFeed(
+                    feedPath = archive,
+                    feedEntity = feed
+                ).getOrThrow()
+
+                logger.info(
+                    "Transit analysis complete - {} agencies, {} routes, {} variants",
+                    analysisResult.agenciesProcessed,
+                    analysisResult.routesProcessed,
+                    analysisResult.variantsIdentified
+                )
+
+                progress(stepNumber = 8, stepName = "Finalizing import", percentage = 100)
+
+                // Clean up archive
+                Files.deleteIfExists(archive)
 
                 importId
             }
