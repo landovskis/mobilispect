@@ -12,4 +12,7 @@ import java.util.UUID
 interface CommonSectionVariantRepository : JpaRepository<CommonSectionVariant, UUID> {
     @Query("SELECT csv FROM CommonSectionVariant csv WHERE csv.variant.id = :variantId")
     fun findByVariantId(@Param("variantId") variantId: VariantHash): List<CommonSectionVariant>
+
+    @Query("SELECT csv FROM CommonSectionVariant csv WHERE csv.commonSection.id = :sectionId")
+    fun findBySectionId(@Param("sectionId") sectionId: UUID): List<CommonSectionVariant>
 }

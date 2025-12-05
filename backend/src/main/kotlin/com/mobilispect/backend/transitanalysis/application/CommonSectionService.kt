@@ -42,8 +42,7 @@ class CommonSectionService(
 
     fun getCombinedFrequency(sectionId: UUID, timePeriod: TimePeriod): CombinedFrequencyDTO? {
         val section = commonSectionRepository.findById(sectionId).orElse(null) ?: return null
-        val sectionVariants = commonSectionVariantRepository.findAll()
-            .filter { it.commonSection.id == sectionId }
+        val sectionVariants = commonSectionVariantRepository.findBySectionId(sectionId)
         val frequencies = sectionVariants.flatMap { csv ->
             frequencyRepository.findByVariant(csv.variant, org.springframework.data.domain.Pageable.unpaged()).content
                 .filter { it.timePeriod == timePeriod }
@@ -78,8 +77,7 @@ class CommonSectionService(
     }
 
     fun getContributingRoutes(sectionId: UUID): List<String> {
-        val sectionVariants = commonSectionVariantRepository.findAll()
-            .filter { it.commonSection.id == sectionId }
+        val sectionVariants = commonSectionVariantRepository.findBySectionId(sectionId)
         return sectionVariants.map { it.variant.route.id.value }.distinct()
     }
 }
