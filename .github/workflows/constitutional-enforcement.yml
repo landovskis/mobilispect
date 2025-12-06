@@ -1,7 +1,7 @@
 name: Constitutional Quality Gates
 on:
   pull_request:
-    branches: [main, develop, spec-kit-main]
+    branches: ["**"]
   push:
     branches: [main, develop, spec-kit-main]
 
