@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral';
+type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral' | 'indeterminate';
 
 @Component({
   selector: 'app-brand-badge',
@@ -43,6 +43,11 @@ type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral';
     }
 
     .brand-badge.neutral {
+      background: rgba(59, 130, 246, 0.16);
+      color: #1d4ed8;
+    }
+
+    .brand-badge.indeterminate {
       background: rgba(59, 130, 246, 0.16);
       color: #1d4ed8;
     }

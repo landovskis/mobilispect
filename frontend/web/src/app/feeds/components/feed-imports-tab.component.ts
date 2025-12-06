@@ -37,9 +37,6 @@ import { ImportsHistoryCardComponent } from './imports-history-card.component';
       <!-- Active Imports Card -->
       <app-active-imports-card
         [activeImports$]="activeImports$"
-        [selectedImportIds]="selectedImportIds"
-        (selectionChange)="onSelectionChange($event.id, $event.selected)"
-        (bulkCancel)="onBulkCancel()"
         (cancelImport)="onCancelImport($event)"
       ></app-active-imports-card>
 
@@ -82,15 +79,9 @@ export class FeedImportsTabComponent {
 
   // Active imports inputs
   @Input() activeImports$: Observable<FeedImportSummary[]> | null = null;
-  @Input() selectedImportIds: Set<string> = new Set();
-  @Input() allImportsSelected = false;
-  @Input() someImportsSelected = false;
 
   // Outputs
   @Output() pageChange = new EventEmitter<number>();
-  @Output() selectAllChange = new EventEmitter<boolean>();
-  @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() bulkCancel = new EventEmitter<void>();
   @Output() cancelImport = new EventEmitter<string>();
 
   /**
@@ -102,14 +93,6 @@ export class FeedImportsTabComponent {
 
   onPageChange(pageIndex: number): void {
     this.pageChange.emit(pageIndex);
-  }
-
-  onSelectionChange(id: string, selected: boolean): void {
-    this.selectionChange.emit({ id, selected });
-  }
-
-  onBulkCancel(): void {
-    this.bulkCancel.emit();
   }
 
   onCancelImport(id: string): void {

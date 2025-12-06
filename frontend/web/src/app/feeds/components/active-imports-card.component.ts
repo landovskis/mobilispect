@@ -2,26 +2,23 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { FeedImportSummary } from '../models/import.models';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
+import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
 /**
  * Active Imports Card Component
  *
- * Displays currently running imports in a card with real-time progress monitoring,
- * bulk selection, and cancellation capabilities.
+ * Displays currently running imports in a card with real-time progress monitoring
+ * and individual cancellation capabilities.
  *
  * @example
  * ```html
  * <app-active-imports-card
  *   [activeImports$]="activeImports$"
- *   [selectedImportIds]="selectedIds"
- *   (selectionChange)="handleSelection($event)"
- *   (bulkCancel)="cancelSelected()"
  *   (cancelImport)="cancelOne($event)">
  * </app-active-imports-card>
  * ```
@@ -32,11 +29,11 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
   imports: [
     CommonModule,
     MatIconModule,
-    MatCheckboxModule,
     MatTooltipModule,
-    MatChipsModule,
     MatProgressBarModule,
-    BrandSectionComponent
+    BrandSectionComponent,
+    BrandBadgeComponent,
+    BrandButtonComponent
   ],
   template: `
     <app-brand-section
@@ -50,18 +47,6 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
         @if (activeImports$ | async; as activeImports) {
           <span class="count-badge">{{ activeImports.length }}</span>
         }
-        @if (selectedImportIds.size > 0) {
-          <span class="selection-count">{{ selectedImportIds.size }} selected</span>
-          <button
-            mat-icon-button
-            color="warn"
-            (click)="onBulkCancel(); $event.stopPropagation()"
-            [disabled]="selectedImportIds.size === 0"
-            matTooltip="Cancel selected imports"
-          >
-            <mat-icon>cancel</mat-icon>
-          </button>
-        }
       </div>
 
       <!-- Active imports list -->
@@ -71,46 +56,39 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
             @for (importItem of activeImports; track importItem.id) {
               <div class="import-item-card">
                 <div class="import-card-header">
-                  <mat-checkbox
-                    [checked]="selectedImportIds.has(importItem.id)"
-                    (change)="onSelectionChange(importItem.id, $event.checked)"
-                    [attr.aria-label]="'Select ' + importItem.feedName"
-                  ></mat-checkbox>
-
                   <div class="import-avatar">
                     <mat-icon>rss_feed</mat-icon>
                   </div>
 
                   <div class="import-info">
-                    <div class="import-title">
-                      {{ importItem.feedName }}
+                    <div class="import-title-row">
+                      <div class="import-title">
+                        {{ importItem.feedName }}
+                      </div>
+                      <app-brand-badge
+                        variant="indeterminate"
+                        [label]="importItem.status"
+                      />
                     </div>
                     <div class="import-subtitle">
                       {{ importItem.regionName }}
                     </div>
                   </div>
 
-                  <button
-                    mat-icon-button
-                    color="warn"
+                  <app-brand-button
+                    variant="destructive"
+                    size="sm"
                     (click)="onCancelImport(importItem.id)"
-                    matTooltip="Cancel import"
-                    class="cancel-button"
+                    matTooltip="Stop import"
+                    class="stop-button"
                   >
-                    <mat-icon>cancel</mat-icon>
-                  </button>
+                    <mat-icon>stop_circle</mat-icon>
+                    Stop
+                  </app-brand-button>
                 </div>
 
                 <div class="import-card-content">
                   <div class="import-meta">
-                    <mat-chip-set aria-label="Import status">
-                      <mat-chip [ngClass]="{
-                        'status-pending': importItem.status === 'pending',
-                        'status-running': importItem.status === 'running'
-                      }">
-                        {{ importItem.status }}
-                      </mat-chip>
-                    </mat-chip-set>
                     <span class="started-time">
                       Started: {{ importItem.startedAt | date:'short' }}
                     </span>
@@ -152,9 +130,10 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     .active-imports-list { display: flex; flex-direction: column; gap: 16px; padding: 4px; }
     .import-item-card { background: var(--mat-sys-surface, #ffffff); border: 1px solid var(--mat-sys-outline-variant, #e2e8f0); border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); transition: box-shadow 0.2s ease; }
     .import-item-card:hover { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
-    .import-card-header { display: grid; grid-template-columns: auto auto 1fr auto; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .import-card-header { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; margin-bottom: 12px; }
     .import-avatar { background: var(--mat-sys-primary, #0b4f8a); color: var(--mat-sys-on-primary, #fff); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; }
     .import-info { min-width: 0; }
+    .import-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .import-title { font-size: 1rem; font-weight: 700; color: var(--mat-sys-on-surface, #1a3a52); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .import-subtitle { font-size: 0.9rem; color: var(--mat-sys-on-surface-variant, #666); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .import-card-content { display: flex; flex-direction: column; gap: 12px; }
@@ -174,21 +153,10 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
 })
 export class ActiveImportsCardComponent {
   @Input() activeImports$: Observable<FeedImportSummary[]> | null = null;
-  @Input() selectedImportIds: Set<string> = new Set();
 
-  @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() bulkCancel = new EventEmitter<void>();
   @Output() cancelImport = new EventEmitter<string>();
 
   isExpanded = true;
-
-  onSelectionChange(id: string, selected: boolean): void {
-    this.selectionChange.emit({ id, selected });
-  }
-
-  onBulkCancel(): void {
-    this.bulkCancel.emit();
-  }
 
   onCancelImport(id: string): void {
     this.cancelImport.emit(id);

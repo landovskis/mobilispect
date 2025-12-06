@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-type BrandButtonVariant = 'primary' | 'accent' | 'ghost';
+type BrandButtonVariant = 'primary' | 'accent' | 'ghost' | 'destructive';
 type BrandButtonSize = 'sm' | 'md';
 
 @Component({
@@ -73,6 +73,21 @@ type BrandButtonSize = 'sm' | 'md';
       --btn-text: var(--ms-color-primary, #0b4f8a);
       --btn-border: var(--ms-color-border, #d1d5db);
       box-shadow: none;
+    }
+
+    .brand-button.destructive {
+      --btn-bg: #dc2626;
+      --btn-text: #ffffff;
+      --btn-border: transparent;
+      box-shadow: 0 10px 20px rgba(220, 38, 38, 0.12);
+    }
+
+    .brand-button.destructive:hover:not(:disabled) {
+      box-shadow: 0 12px 24px rgba(220, 38, 38, 0.18);
+    }
+
+    .brand-button.destructive:active:not(:disabled) {
+      box-shadow: 0 8px 18px rgba(220, 38, 38, 0.14);
     }
 
     .brand-button.sm {
