@@ -32,7 +32,6 @@
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 [Gates determined based on constitution file]
-- Integration tests that touch PostgreSQL/Redis (or other stateful dependencies) MUST run via Testcontainers with pinned images shared between local dev and CI; plans MUST call this out in testing strategy.
 
 ## Project Structure
 
