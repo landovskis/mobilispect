@@ -52,13 +52,9 @@ class CommonSectionVariant(
         endSequence = 0
     )
 
-    init {
-        require(startSequence < endSequence) {
-            "Start sequence must be less than end sequence"
-        }
-        require(startSequence >= 0) { "Start sequence must be non-negative" }
-        require(endSequence >= 0) { "End sequence must be non-negative" }
-    }
+    // Validation removed from init block to allow JPA no-arg constructor instantiation
+    // Database constraints enforce these requirements (see migration V027)
+    // Application-level validation should be done before calling the constructor
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

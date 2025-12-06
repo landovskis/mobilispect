@@ -75,7 +75,7 @@ CREATE TABLE imported_feeds (
     import_started_at TIMESTAMP WITH TIME ZONE NOT NULL,
     import_completed_at TIMESTAMP WITH TIME ZONE,
     import_duration_seconds BIGINT,  -- Duration in seconds
-    status import_status NOT NULL DEFAULT 'STARTED',  -- Reuses existing import_status type from V001
+    status import_status NOT NULL DEFAULT 'pending',  -- Reuses existing import_status type from V001
     routes_processed INTEGER,
     variants_identified INTEGER,
     error_message TEXT,
@@ -87,7 +87,7 @@ CREATE TABLE imported_feeds (
     CONSTRAINT check_imported_feed_variants_identified CHECK (variants_identified IS NULL OR variants_identified >= 0)
 );
 
--- Note: Reuses import_status enum from V001 (STARTED, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)
+-- Note: Reuses import_status enum from V001 (pending, running, completed, failed, cancelled)
 -- This maintains consistency with existing feed import tracking
 
 COMMENT ON TABLE imported_feeds IS 'Historical tracking of GTFS feed imports for transit analysis';
@@ -98,7 +98,7 @@ COMMENT ON COLUMN imported_feeds.file_size_bytes IS 'Size of the GTFS ZIP file i
 COMMENT ON COLUMN imported_feeds.import_started_at IS 'Timestamp when import process began';
 COMMENT ON COLUMN imported_feeds.import_completed_at IS 'Timestamp when import process finished (NULL if still running or failed)';
 COMMENT ON COLUMN imported_feeds.import_duration_seconds IS 'Total import duration in seconds';
-COMMENT ON COLUMN imported_feeds.status IS 'Import status (STARTED, IN_PROGRESS, COMPLETED, FAILED, CANCELLED)';
+COMMENT ON COLUMN imported_feeds.status IS 'Import status (pending, running, completed, failed, cancelled)';
 COMMENT ON COLUMN imported_feeds.routes_processed IS 'Number of routes processed during import';
 COMMENT ON COLUMN imported_feeds.variants_identified IS 'Number of unique route variants identified during import';
 COMMENT ON COLUMN imported_feeds.error_message IS 'Error details if import failed';

@@ -74,14 +74,9 @@ class CommonSection(
         updatedAt = Instant.EPOCH
     )
 
-    init {
-        require(stopCount >= 3) {
-            "Common section must have at least 3 stops (constitutional requirement)"
-        }
-        require(stopPattern.isNotBlank()) { "Stop pattern cannot be blank" }
-        require(firstStopId.isNotBlank()) { "First stop ID cannot be blank" }
-        require(lastStopId.isNotBlank()) { "Last stop ID cannot be blank" }
-    }
+    // Validation removed from init block to allow JPA no-arg constructor instantiation
+    // Database constraints enforce these requirements (see migration V027)
+    // Application-level validation should be done before calling the constructor
 
     @PrePersist
     fun onCreate() {

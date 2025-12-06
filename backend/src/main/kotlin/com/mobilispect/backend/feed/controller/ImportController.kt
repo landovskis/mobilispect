@@ -95,7 +95,7 @@ class ImportController(
         val uuid = runCatching { UUID.fromString(importId) }
             .getOrElse { throw ResponseStatusException(HttpStatus.NOT_FOUND, "Import not found: $importId") }
 
-        val import = feedImportRepository.findById(ImportId(uuid))
+        val import = feedImportRepository.findByImportId(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
 
         val progressPercentage = when (import.status) {
@@ -126,7 +126,7 @@ class ImportController(
     @Transactional(readOnly = true)
     fun getImport(@PathVariable importId: String): FeedImportDetailDTO {
         val uuid = parseImportId(importId)
-        val import = feedImportRepository.findById(ImportId(uuid))
+        val import = feedImportRepository.findByImportId(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
 
         val feed = import.feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${import.id}")
@@ -161,7 +161,7 @@ class ImportController(
     fun cancelImport(@PathVariable importId: String): FeedImportDTO {
         val uuid = parseImportId(importId)
         feedImportService.cancelImport(ImportId(uuid))
-        val updated = feedImportRepository.findById(ImportId(uuid))
+        val updated = feedImportRepository.findByImportId(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
         return updated.toFeedImportDTO()
     }

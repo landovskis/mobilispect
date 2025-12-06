@@ -48,7 +48,7 @@ class FeedManagementImportProcessor(
             logger.info("Starting PostgreSQL-based import for feed: $feedOnestopId")
 
             // Find the feed in PostgreSQL
-            val feed = feedRepository.findById(FeedId(feedOnestopId)).orElse(null)
+            val feed = feedRepository.findByFeedOnestopId(FeedId(feedOnestopId)).orElse(null)
                 ?: return@withContext Result.failure(
                     IllegalArgumentException("Feed not found: $feedOnestopId")
                 )

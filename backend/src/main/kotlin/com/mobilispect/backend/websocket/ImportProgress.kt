@@ -13,6 +13,7 @@ data class ImportProgress(
     val currentStepNumber: Int,
     val totalSteps: Int,
     val startedAt: Instant,
+    val lastUpdatedAt: Instant,
     val estimatedTimeRemainingSeconds: Long? = null,
     val processingRate: Double? = null
 )
@@ -23,7 +24,9 @@ data class ImportProgress(
 data class ProgressUpdate(
     val progress: ImportProgress? = null,
     val completed: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val finishedAt: Instant? = null,
+    val durationSeconds: Long? = null
 )
 
 /**

@@ -23,7 +23,10 @@ import org.springframework.scheduling.annotation.EnableScheduling
     scanBasePackages = ["com.mobilispect.backend"]
 )
 
-@EnableJpaRepositories(basePackages = ["com.mobilispect.backend.feed.repository"])
+@EnableJpaRepositories(basePackages = [
+    "com.mobilispect.backend.feed.repository",
+    "com.mobilispect.backend.transitanalysis.domain.repository"
+])
 @EnableScheduling
 @EnableAsync
 @EnableBatchProcessing

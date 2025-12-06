@@ -39,7 +39,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.reactor)
     implementation(libs.kotlinx.serialization.csv)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.conveyal.gtfs)
+    implementation(libs.conveyal.gtfs) {
+        exclude(group = "org.slf4j", module = "slf4j-simple")
+    }
     implementation(libs.resilience4j.spring)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")

@@ -99,13 +99,9 @@ class RouteVariant(
         lastSeen = Instant.EPOCH
     )
 
-    init {
-        require(stopCount >= 2) { "Route variant must have at least 2 stops" }
-        require(stopPattern.isNotBlank()) { "Stop pattern cannot be blank" }
-        require(directionId == null || directionId in 0..1) {
-            "Direction ID must be 0 or 1 if provided"
-        }
-    }
+    // Validation removed from init block to allow JPA no-arg constructor instantiation
+    // Database constraints enforce these requirements (see migration V025)
+    // Application-level validation should be done before calling the constructor
 
     @PrePersist
     fun onCreate() {

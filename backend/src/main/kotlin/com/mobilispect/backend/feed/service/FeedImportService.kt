@@ -15,8 +15,12 @@ import org.springframework.batch.core.Job
 import org.springframework.batch.core.JobParametersBuilder
 import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.core.task.SimpleAsyncTaskExecutor
+import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
@@ -31,18 +35,19 @@ class FeedImportService(
     private val jobLauncher: JobLauncher,
     @Qualifier("feedImportJob")
     private val feedImportJob: Job,
+    @Qualifier("taskExecutor")
+    private val importLaunchExecutor: TaskExecutor,
     private val clock: Clock = Clock.systemUTC()
 ) {
     private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
-    @Transactional
     fun startImport(
         feedOnestopId: String,
         administratorUsername: String?,
         triggerType: ImportTriggerType,
         force: Boolean
     ): FeedImport {
-        val feed = feedRepository.findById(FeedId(feedOnestopId))
+        val feed = feedRepository.findByFeedOnestopId(FeedId(feedOnestopId))
             .orElseThrow { IllegalArgumentException("Feed not found: $feedOnestopId") }
 
         val administrator = administratorUsername?.let { adminUsername ->
@@ -71,14 +76,24 @@ class FeedImportService(
             startedAt = now
         )
 
-        launchImportJob(feedImport.requireId(), feed.feedOnestopId.value)
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                object : TransactionSynchronization {
+                    override fun afterCommit() {
+                        launchImportJob(feedImport.requireId(), feed.feedOnestopId.value)
+                    }
+                }
+            )
+        } else {
+            launchImportJob(feedImport.requireId(), feed.feedOnestopId.value)
+        }
 
         return feedImport
     }
 
     @Transactional
     fun cancelImport(importId: ImportId) {
-        val feedImport = feedImportRepository.findById(importId)
+        val feedImport = feedImportRepository.findByImportId(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
         feedImport.status = ImportStatus.CANCELLED
@@ -94,17 +109,19 @@ class FeedImportService(
             .addLong("timestamp", System.currentTimeMillis())
             .toJobParameters()
 
-        runCatching {
-            jobLauncher.run(feedImportJob, params)
-        }.onFailure { throwable ->
-            logger.error("Failed to launch feed import job for {}", feedOnestopId, throwable)
-            failImport(importId, throwable.message ?: "Failed to start import job")
+        importLaunchExecutor.execute {
+            runCatching {
+                jobLauncher.run(feedImportJob, params)
+            }.onFailure { throwable ->
+                logger.error("Failed to launch feed import job for {}", feedOnestopId, throwable)
+                failImport(importId, throwable.message ?: "Failed to start import job")
+            }
         }
     }
 
     @Transactional
     fun completeImport(importId: ImportId, versionSha1: String?) {
-        val feedImport = feedImportRepository.findById(importId)
+        val feedImport = feedImportRepository.findByImportId(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
         val now = clock.instant()
@@ -125,7 +142,7 @@ class FeedImportService(
 
     @Transactional
     fun failImport(importId: ImportId, message: String) {
-        val feedImport = feedImportRepository.findById(importId)
+        val feedImport = feedImportRepository.findByImportId(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
         feedImport.status = ImportStatus.FAILED

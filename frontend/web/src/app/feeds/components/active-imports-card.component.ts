@@ -5,9 +5,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { FeedImportSummary } from '../models/import.models';
-import { ProgressMonitorComponent } from './progress-monitor.component';
-import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 /**
@@ -33,12 +32,10 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
   imports: [
     CommonModule,
     MatIconModule,
-
     MatCheckboxModule,
     MatTooltipModule,
     MatChipsModule,
-    ProgressMonitorComponent,
-    BrandCardComponent,
+    MatProgressBarModule,
     BrandSectionComponent
   ],
   template: `
@@ -72,8 +69,8 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
         @if (activeImports.length > 0) {
           <div class="active-imports-list">
             @for (importItem of activeImports; track importItem.id) {
-              <app-brand-card class="import-item-card">
-                <div card-header class="import-card-header">
+              <div class="import-item-card">
+                <div class="import-card-header">
                   <mat-checkbox
                     [checked]="selectedImportIds.has(importItem.id)"
                     (change)="onSelectionChange(importItem.id, $event.checked)"
@@ -84,12 +81,13 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
                     <mat-icon>rss_feed</mat-icon>
                   </div>
 
-                  <div class="import-title" card-title>
-                    {{ importItem.feedName }}
-                  </div>
-
-                  <div class="import-subtitle" card-subtitle>
-                    {{ importItem.regionName }}
+                  <div class="import-info">
+                    <div class="import-title">
+                      {{ importItem.feedName }}
+                    </div>
+                    <div class="import-subtitle">
+                      {{ importItem.regionName }}
+                    </div>
                   </div>
 
                   <button
@@ -103,7 +101,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
                   </button>
                 </div>
 
-                <div card-content class="import-card-content">
+                <div class="import-card-content">
                   <div class="import-meta">
                     <mat-chip-set aria-label="Import status">
                       <mat-chip [ngClass]="{
@@ -118,12 +116,21 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
                     </span>
                   </div>
 
-                  <!-- Progress monitor -->
-                  <app-progress-monitor
-                    [importId]="importItem.id"
-                  ></app-progress-monitor>
+                  @if (importItem.progress) {
+                    <div class="progress-section">
+                      <div class="progress-details">
+                        <span class="progress-percentage">{{ importItem.progress.progressPercentage }}%</span>
+                        <span class="progress-step">{{ importItem.progress.currentStep }}</span>
+                      </div>
+                      <mat-progress-bar
+                        mode="determinate"
+                        [value]="importItem.progress.progressPercentage"
+                        color="primary">
+                      </mat-progress-bar>
+                    </div>
+                  }
                 </div>
-              </app-brand-card>
+              </div>
             }
           </div>
         } @else {
@@ -135,14 +142,6 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
             </p>
           </div>
         }
-      } @else {
-        <div class="empty-state">
-          <mat-icon class="empty-icon">cloud_done</mat-icon>
-          <p class="empty-title">No active imports</p>
-          <p class="empty-subtitle">
-            Import feeds from the discovery tab to see them here.
-          </p>
-        </div>
       }
     </app-brand-section>
   `,
@@ -151,18 +150,25 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     .panel-actions { display: inline-flex; align-items: center; gap: 10px; }
     .count-badge { padding: 4px 10px; border-radius: 999px; background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
     .active-imports-list { display: flex; flex-direction: column; gap: 16px; padding: 4px; }
-    .import-card-header { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
-    .import-avatar { background: var(--mat-sys-primary, #0b4f8a); color: var(--mat-sys-on-primary, #fff); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; }
-    .import-title { font-size: 1rem; font-weight: 700; color: var(--mat-sys-on-surface, #1a3a52); }
-    .import-subtitle { font-size: 0.9rem; color: var(--mat-sys-on-surface-variant, #666); }
+    .import-item-card { background: var(--mat-sys-surface, #ffffff); border: 1px solid var(--mat-sys-outline-variant, #e2e8f0); border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); transition: box-shadow 0.2s ease; }
+    .import-item-card:hover { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
+    .import-card-header { display: grid; grid-template-columns: auto auto 1fr auto; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .import-avatar { background: var(--mat-sys-primary, #0b4f8a); color: var(--mat-sys-on-primary, #fff); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; }
+    .import-info { min-width: 0; }
+    .import-title { font-size: 1rem; font-weight: 700; color: var(--mat-sys-on-surface, #1a3a52); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .import-subtitle { font-size: 0.9rem; color: var(--mat-sys-on-surface-variant, #666); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .import-card-content { display: flex; flex-direction: column; gap: 12px; }
     .import-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .started-time { display: inline-flex; align-items: center; gap: 6px; color: var(--mat-sys-on-surface-variant, #475569); font-size: 0.9rem; }
+    .progress-section { display: flex; flex-direction: column; gap: 8px; }
+    .progress-details { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .progress-percentage { font-size: 1.1rem; font-weight: 700; color: var(--mat-sys-primary, #0b4f8a); }
+    .progress-step { font-size: 0.85rem; color: var(--mat-sys-on-surface-variant, #475569); font-style: italic; }
     .empty-state { padding: 24px; text-align: center; color: var(--mat-sys-on-surface-variant, #475569); display: flex; flex-direction: column; gap: 6px; align-items: center; }
     .empty-icon { font-size: 48px; width: 48px; height: 48px; color: #94a3b8; }
     .empty-title { margin: 0; font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
     .empty-subtitle { margin: 0; color: var(--mat-sys-on-surface-variant, #475569); max-width: 340px; }
-    @media (max-width: 768px) { .active-imports-list { padding: 8px; } .import-card-header { grid-template-columns: 1fr; gap: 8px; align-items: start; } .import-meta { flex-direction: column; align-items: flex-start; } }
+    @media (max-width: 768px) { .active-imports-list { padding: 8px; } .import-item-card { padding: 12px; } .import-card-header { grid-template-columns: auto 1fr auto; gap: 8px; } .import-avatar { width: 32px; height: 32px; } .import-meta { flex-direction: column; align-items: flex-start; } }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

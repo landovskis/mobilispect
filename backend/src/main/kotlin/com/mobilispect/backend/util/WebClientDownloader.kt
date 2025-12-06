@@ -53,9 +53,10 @@ internal class WebClientDownloader(webClientBuilder: WebClient.Builder) : Downlo
                         })
 
             DataBufferUtils.write(
-                dataBuffer, dest, StandardOpenOption.CREATE
-            ).share().block()
-            return Result.success(dest)
+                dataBuffer, dest, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
+            ).then().block()
+
+            Result.success(dest)
         } catch (e: WebClientException) {
             Result.failure(e)
         }

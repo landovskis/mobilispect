@@ -19,6 +19,7 @@ import java.time.Instant
 import java.util.UUID
 
 import com.mobilispect.backend.feed.model.ids.ImportId
+import com.mobilispect.backend.feed.model.ids.ImportIdConverter
 
 @Entity
 @Table(name = "feed_imports")
@@ -26,6 +27,7 @@ class FeedImport(
     @Id
     @GeneratedValue
     @UuidGenerator
+    @Convert(converter = ImportIdConverter::class)
     @Column(columnDefinition = "uuid")
     var id: ImportId? = null,
 
@@ -68,6 +70,22 @@ class FeedImport(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
+    // Explicit no-arg constructor for Hibernate instantiation
+    constructor() : this(
+        id = null,
+        feed = null,
+        administrator = null,
+        triggerType = ImportTriggerType.MANUAL,
+        status = ImportStatus.PENDING,
+        versionSha1 = null,
+        startedAt = null,
+        completedAt = null,
+        fileSizeBytes = null,
+        errorMessage = null,
+        createdAt = Instant.now(),
+        updatedAt = Instant.now()
+    )
+
     @OneToMany(mappedBy = "feedImport", fetch = FetchType.LAZY)
     val logs: MutableSet<ImportLog> = mutableSetOf()
 

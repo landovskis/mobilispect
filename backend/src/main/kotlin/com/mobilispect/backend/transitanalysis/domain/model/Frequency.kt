@@ -83,21 +83,9 @@ class Frequency(
         calculatedAt = Instant.EPOCH
     )
 
-    init {
-        require(tripCount >= 0) { "Trip count must be non-negative" }
-        require(!isIrregular || averageHeadway == null) {
-            "Irregular schedules should not have average headway"
-        }
-        averageHeadway?.let { avg ->
-            require(avg > 0) { "Average headway must be positive if provided" }
-        }
-        minHeadway?.let { min ->
-            require(min > 0) { "Min headway must be positive if provided" }
-        }
-        maxHeadway?.let { max ->
-            require(max > 0) { "Max headway must be positive if provided" }
-        }
-    }
+    // Validation removed from init block to allow JPA no-arg constructor instantiation
+    // Database constraints enforce these requirements (see migration V026)
+    // Application-level validation should be done before calling the constructor
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

@@ -125,7 +125,7 @@ class ImportHistoryService(
      * @return The import record or null if not found
      */
     fun getImportDetail(importId: UUID): FeedImport? {
-        return feedImportRepository.findById(ImportId(importId)).orElse(null)
+        return feedImportRepository.findByImportId(ImportId(importId)).orElse(null)
     }
 
     /**

@@ -3,6 +3,7 @@ package com.mobilispect.backend.websocket
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import java.time.Instant
+import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -29,6 +30,7 @@ class ProgressTrackingService(
         estimatedTimeRemainingSeconds: Long? = null,
         processingRate: Double? = null
     ) {
+        val now = Instant.now()
         val progress = ImportProgress(
             importId = importId,
             feedOnestopId = feedOnestopId,
@@ -37,6 +39,7 @@ class ProgressTrackingService(
             currentStepNumber = currentStepNumber,
             totalSteps = totalSteps,
             startedAt = startedAt,
+            lastUpdatedAt = now,
             estimatedTimeRemainingSeconds = estimatedTimeRemainingSeconds,
             processingRate = processingRate
         )
@@ -54,10 +57,12 @@ class ProgressTrackingService(
      * Mark import as completed and remove from active tracking
      */
     fun markCompleted(importId: String) {
-        activeImports.remove(importId)
+        val progress = activeImports.remove(importId)
+        val finishedAt = Instant.now()
+        val durationSeconds = progress?.let { Duration.between(it.startedAt, finishedAt).seconds }
         messagingTemplate.convertAndSend(
             "/topic/import/progress/$importId",
-            ProgressUpdate(completed = true)
+            ProgressUpdate(completed = true, finishedAt = finishedAt, durationSeconds = durationSeconds)
         )
     }
 
@@ -65,10 +70,12 @@ class ProgressTrackingService(
      * Mark import as failed with error message
      */
     fun markFailed(importId: String, errorMessage: String) {
-        activeImports.remove(importId)
+        val progress = activeImports.remove(importId)
+        val finishedAt = Instant.now()
+        val durationSeconds = progress?.let { Duration.between(it.startedAt, finishedAt).seconds }
         messagingTemplate.convertAndSend(
             "/topic/import/progress/$importId",
-            ProgressUpdate(error = errorMessage)
+            ProgressUpdate(error = errorMessage, finishedAt = finishedAt, durationSeconds = durationSeconds)
         )
     }
 
