@@ -1,0 +1,71 @@
+package com.mobilispect.backend.transitanalysis.infrastructure.gtfs
+
+import com.conveyal.gtfs.GTFSFeed
+import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Primary
+import org.springframework.stereotype.Component
+import java.nio.file.Path
+import java.time.LocalTime
+
+/**
+ * Conveyal GTFS library-based parser.
+ *
+ * Uses the modern Conveyal gtfs-lib (6.2.0), which is the successor to OneBusAway.
+ * Provides better performance for large feeds with disk-backed storage via MapDB.
+ *
+ * Key improvements over OneBusAway:
+ * - Handles feeds larger than available memory
+ * - Better error tolerance and validation
+ * - Modern Java/Kotlin compatibility
+ * - Active maintenance
+ */
+@Component
+@Primary
+class ConveyalGtfsParser : GtfsParser {
+    private val logger = LoggerFactory.getLogger(ConveyalGtfsParser::class.java)
+
+    override fun parse(feedPath: Path): Result<ParsedGtfsData> = runCatching {
+        logger.info("Parsing GTFS feed at: {}", feedPath)
+
+        val feed = GTFSFeed.fromFile(feedPath.toString())
+
+        try {
+            val routes = feed.routes.values.map { route ->
+                ParsedRoute(
+                    routeId = route.route_id,
+                    agencyId = route.agency_id,
+                    shortName = route.route_short_name,
+                    longName = route.route_long_name,
+                    type = route.route_type
+                )
+            }
+
+            val trips = feed.trips.values.map { trip ->
+                val stopTimes = feed.getOrderedStopTimesForTrip(trip.trip_id)
+                    .map { stopTime ->
+                        ParsedStopTime(
+                            stopId = stopTime.stop_id,
+                            stopSequence = stopTime.stop_sequence,
+                            departureTime = stopTime.departure_time.takeIf { it >= 0 }?.let { seconds ->
+                                LocalTime.ofSecondOfDay(seconds.toLong())
+                            }
+                        )
+                    }
+
+                ParsedTrip(
+                    routeId = trip.route_id,
+                    tripId = trip.trip_id,
+                    directionId = trip.direction_id,
+                    headsign = trip.trip_headsign,
+                    stopTimes = stopTimes
+                )
+            }
+
+            logger.info("Parsed GTFS feed at {} -> {} routes, {} trips", feedPath, routes.size, trips.size)
+            ParsedGtfsData(routes = routes, trips = trips)
+        } finally {
+            // Clean up MapDB resources
+            feed.close()
+        }
+    }
+}

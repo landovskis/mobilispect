@@ -39,7 +39,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.reactor)
     implementation(libs.kotlinx.serialization.csv)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.onebusaway.gtfs)
+    implementation(libs.conveyal.gtfs)
     implementation(libs.resilience4j.spring)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
