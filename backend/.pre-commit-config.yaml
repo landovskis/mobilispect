@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: backend-kotlin-tests
         name: Backend Kotlin Tests (Constitutional TDD Requirement)
-        entry: bash -c './gradlew test'
+        entry: bash -c 'cd backend && ./gradlew test'
         language: system
         files: '.*\.(kt|kts)$'
         exclude: '(build|\.gradle)/.*'
@@ -11,7 +11,7 @@ repos:
 
       - id: backend-kotlin-format
         name: Backend Kotlin Format (ktfmt)
-        entry: bash -c './gradlew ktfmtFormat'
+        entry: bash -c 'cd backend && ./gradlew ktfmtFormat'
         language: system
         files: '.*\.kt$'
         exclude: '(build|\.gradle)/.*'
@@ -19,7 +19,7 @@ repos:
 
       - id: backend-kotlin-lint
         name: Backend Kotlin Lint (ktlint)
-        entry: bash -c './gradlew ktlintCheck'
+        entry: bash -c 'cd backend && ./gradlew ktlintCheck'
         language: system
         files: '.*\.kt$'
         exclude: '(build|\.gradle)/.*'
@@ -27,7 +27,7 @@ repos:
 
       - id: backend-kotlin-detekt
         name: Backend Kotlin Static Analysis (detekt)
-        entry: bash -c './gradlew detekt'
+        entry: bash -c 'cd backend && ./gradlew detekt'
         language: system
         files: '.*\.kt$'
         exclude: '(build|\.gradle)/.*'
@@ -35,7 +35,7 @@ repos:
 
       - id: backend-modulith-verify
         name: Spring Modulith Module Boundaries (Constitutional Principle VII)
-        entry: bash -c './gradlew verifyModulith'
+        entry: bash -c 'cd backend && ./gradlew verifyModulith'
         language: system
         files: '.*\.kt$'
         exclude: '(build|\.gradle)/.*'

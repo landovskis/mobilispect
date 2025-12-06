@@ -6,6 +6,7 @@ appcompat = "1.7.1"
 compose = "1.8.3"
 compose-material3 = "1.3.2"
 dagger = "2.57"
+dependencyCheck = "11.1.1"
 hilt = "2.57"
 hiltNavigationCompose = "1.2.0"
 javax-inject = "1"
@@ -70,6 +71,7 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
+dependencyCheck = { id = "org.owasp.dependencycheck", version.ref = "dependencyCheck" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

@@ -5,6 +5,7 @@ plugins {
     id("org.springframework.boot") version "3.5.3"
     id("io.spring.dependency-management") version "1.1.7"
     alias(libs.plugins.kotlin.serialization)
+    id("org.owasp.dependencycheck") version "11.1.1"
 }
 
 group = "com.mobilispect"
@@ -115,6 +116,19 @@ tasks.register("jacocoTestReport") {
 
     doLast {
         logger.lifecycle("jacocoTestReport stub: no coverage generated (JaCoCo plugin unavailable offline)")
+    }
+}
+
+// OWASP Dependency Check Configuration (Constitutional Security Requirement)
+configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
+    formats = listOf("HTML", "JSON")
+    scanConfigurations = listOf("runtimeClasspath")
+    suppressionFile = "${project.rootDir}/owasp-suppressions.xml"
+    failBuildOnCVSS = 7.0f
+    analyzers.apply {
+        assemblyEnabled = false
+        nugetconfEnabled = false
+        nodeEnabled = false
     }
 }
 
