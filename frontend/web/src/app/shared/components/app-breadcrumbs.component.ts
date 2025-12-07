@@ -51,14 +51,14 @@ import { RouterModule, Params } from '@angular/router';
       display: flex;
       align-items: center;
       font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.85);
+      color: #0b3558;
       margin-top: 2px;
       gap: 6px;
     }
 
     .breadcrumb-link {
       text-decoration: none;
-      color: inherit;
+      color: #0b3558;
       display: flex;
       align-items: center;
     }
@@ -71,12 +71,12 @@ import { RouterModule, Params } from '@angular/router';
       font-size: 18px;
       height: 18px;
       width: 18px;
-      color: #ffffff;
+      color: #0b3558;
     }
 
     .breadcrumb-region {
       font-weight: 500;
-      color: #fff;
+      color: #0b3558;
     }
 
     @media (max-width: 768px) {
