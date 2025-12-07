@@ -363,7 +363,9 @@ export class AppShellComponent implements OnDestroy {
       takeUntil(this.destroy$),
       map(() => this.buildBreadcrumbsFromRoute(this.activatedRoute.snapshot))
     ).subscribe(crumbs => {
-      this.breadcrumbs = crumbs;
+      this.breadcrumbs = crumbs.length
+        ? crumbs
+        : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
     });
   }
 
@@ -398,22 +400,24 @@ export class AppShellComponent implements OnDestroy {
     this.sidebarOpened = opened;
   }
 
-  private buildBreadcrumbsFromRoute(route: ActivatedRouteSnapshot, url: string = '', crumbs: Breadcrumb[] = []): Breadcrumb[] {
-    const children = route.children;
+  private buildBreadcrumbsFromRoute(
+    route: ActivatedRouteSnapshot,
+    url: string = '',
+    crumbs: Breadcrumb[] = []
+  ): Breadcrumb[] {
+    const children = route.children.filter(child => child.outlet === 'primary');
 
-    if (children.length === 0) {
-      return crumbs.length ? crumbs : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
+    if (!children.length) {
+      return crumbs;
     }
 
     for (const child of children) {
       const routeURL = child.url.map(segment => segment.path).join('/');
       const nextUrl = routeURL ? `${url}/${routeURL}` : url;
       const label =
-        child.data['breadcrumb'] ||
-        child.paramMap.get('regionId') ||
-        child.paramMap.get('routeId') ||
-        child.routeConfig?.path ||
-        null;
+        child.data['breadcrumb'] ??
+        child.paramMap.get('regionId') ??
+        child.paramMap.get('routeId');
 
       if (label) {
         crumbs.push({
@@ -423,7 +427,7 @@ export class AppShellComponent implements OnDestroy {
         });
       }
 
-      return this.buildBreadcrumbsFromRoute(child, nextUrl, crumbs);
+      this.buildBreadcrumbsFromRoute(child, nextUrl, crumbs);
     }
 
     return crumbs;
