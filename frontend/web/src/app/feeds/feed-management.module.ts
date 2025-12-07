@@ -25,7 +25,6 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 
 import { FeedManagementRoutingModule } from './feed-management-routing.module';
 import { AppBarComponent } from '../shared/components/app-bar.component';
-import { RegionListComponent } from './components/region-list.component';
 import { ProgressMonitorComponent } from './components/progress-monitor.component';
 import { RegionService } from './services/region.service';
 import { ImportService } from './services/import.service';
@@ -33,7 +32,6 @@ import { FeedAuthenticationService } from './services/feed-authentication.servic
 import { FeedRegionsTabComponent } from './components/feed-regions-tab.component';
 import { FeedActiveImportsTabComponent } from './components/feed-active-imports-tab.component';
 import { FeedImportsTabComponent } from './components/feed-imports-tab.component';
-import { RegionSelectorComponent } from './components/region-selector.component';
 import { AgencyFeedCardComponent } from './components/agency-feed-card.component';
 import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
 import { FeedImportsPageComponent } from './pages/feed-imports.page';
@@ -50,8 +48,6 @@ import { ScheduledJobsComponent } from './pages/scheduled-jobs.component';
     // Standalone components
     DiscoverFeedsPageComponent,
     FeedImportsPageComponent,
-    RegionListComponent,
-    RegionSelectorComponent,
     ProgressMonitorComponent,
     AppBarComponent,
     FeedRegionsTabComponent,

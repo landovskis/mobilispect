@@ -12,7 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { MetropolitanRegion, RegionUtils } from '../models/region.models';
+import { MetropolitanRegion, RegionUtils } from '../../feeds/models/region.models';
 import { Observable, Subject, of } from 'rxjs';
 import { map, startWith, takeUntil } from 'rxjs/operators';
 
