@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone
+AGY,Sample Transit,http://example.com,America/Los_Angeles
