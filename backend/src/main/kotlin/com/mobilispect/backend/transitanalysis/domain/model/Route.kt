@@ -5,8 +5,6 @@ import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
@@ -15,6 +13,8 @@ import jakarta.persistence.OneToMany
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.Instant
 
 /**
@@ -53,8 +53,8 @@ class Route(
     @Column(name = "long_name", nullable = false, length = 255)
     var longName: String,
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "route_type", nullable = false, length = 50)
+    @Convert(converter = com.mobilispect.backend.transitanalysis.domain.model.converters.RouteTypeConverter::class)
+    @Column(name = "route_type", nullable = false)
     var routeType: RouteType,
 
     @Column(name = "color", length = 6)

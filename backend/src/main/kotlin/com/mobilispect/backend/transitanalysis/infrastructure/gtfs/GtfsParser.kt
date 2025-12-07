@@ -31,8 +31,17 @@ interface GtfsParser {
  * from the OneBusAway classes.
  */
 data class ParsedGtfsData(
+    val agencies: List<ParsedAgency>,
     val routes: List<ParsedRoute>,
     val trips: List<ParsedTrip>
+)
+
+data class ParsedAgency(
+    val agencyId: String,
+    val name: String,
+    val url: String?,
+    val timezone: String?,
+    val phone: String?
 )
 
 data class ParsedRoute(

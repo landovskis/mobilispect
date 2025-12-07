@@ -27,6 +27,7 @@ import java.time.Clock
 class FeedManagementImportProcessor(
     @Qualifier("feedManagementFeedRepository")
     private val feedRepository: FeedRepository,
+    @Qualifier("curlDownloader")
     private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
     private val transitAnalysisFeedImportService: TransitAnalysisFeedImportService,
@@ -41,9 +42,9 @@ class FeedManagementImportProcessor(
      * Downloads the GTFS feed, extracts it, and processes the data.
      *
      * @param feedOnestopId The onestop ID of the feed to import
-     * @return Result containing the import ID (feedOnestopId:versionSha1) on success
+     * @return Result containing the version SHA1 hash of the imported feed on success
      */
-    suspend fun importFeedById(feedOnestopId: String): Result<String> {
+    suspend fun importFeedById(feedOnestopId: String): Result<String?> {
         return withContext(Dispatchers.IO) {
             logger.info("Starting PostgreSQL-based import for feed: $feedOnestopId")
 
@@ -114,7 +115,8 @@ class FeedManagementImportProcessor(
                 // Clean up archive
                 Files.deleteIfExists(archive)
 
-                importId
+                // Return null for versionSha1 - feed version tracking handled separately
+                null
             }
 
             result

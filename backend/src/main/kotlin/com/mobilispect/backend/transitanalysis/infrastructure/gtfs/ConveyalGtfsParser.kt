@@ -30,6 +30,16 @@ class ConveyalGtfsParser : GtfsParser {
         val feed = GTFSFeed.fromFile(feedPath.toString())
 
         try {
+            val agencies = feed.agency.values.map { agency ->
+                ParsedAgency(
+                    agencyId = agency.agency_id,
+                    name = agency.agency_name,
+                    url = agency.agency_url?.toString(),
+                    timezone = agency.agency_timezone,
+                    phone = agency.agency_phone
+                )
+            }
+
             val routes = feed.routes.values.map { route ->
                 ParsedRoute(
                     routeId = route.route_id,
@@ -47,7 +57,9 @@ class ConveyalGtfsParser : GtfsParser {
                             stopId = stopTime.stop_id,
                             stopSequence = stopTime.stop_sequence,
                             departureTime = stopTime.departure_time.takeIf { it >= 0 }?.let { seconds ->
-                                LocalTime.ofSecondOfDay(seconds.toLong())
+                                // GTFS allows times >= 24:00:00 for overnight service
+                                // Normalize to 0-86399 range for LocalTime
+                                LocalTime.ofSecondOfDay((seconds % 86400).toLong())
                             }
                         )
                     }
@@ -61,8 +73,8 @@ class ConveyalGtfsParser : GtfsParser {
                 )
             }
 
-            logger.info("Parsed GTFS feed at {} -> {} routes, {} trips", feedPath, routes.size, trips.size)
-            ParsedGtfsData(routes = routes, trips = trips)
+            logger.info("Parsed GTFS feed at {} -> {} agencies, {} routes, {} trips", feedPath, agencies.size, routes.size, trips.size)
+            ParsedGtfsData(agencies = agencies, routes = routes, trips = trips)
         } finally {
             // Clean up MapDB resources
             feed.close()

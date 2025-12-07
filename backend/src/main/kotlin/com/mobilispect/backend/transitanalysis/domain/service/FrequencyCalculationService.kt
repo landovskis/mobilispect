@@ -35,7 +35,11 @@ class FrequencyCalculationServiceImpl : FrequencyCalculationService {
         if (departureTimes.isEmpty()) return null
 
         val sorted = departureTimes.sorted()
-        val headways = sorted.zipWithNext { a, b -> Duration.between(a, b).toMinutes().toDouble() }
+        val allHeadways = sorted.zipWithNext { a, b -> Duration.between(a, b).toMinutes().toDouble() }
+
+        // Filter out zero or near-zero headways (data anomalies where buses depart simultaneously)
+        // Database constraint requires min_headway > 0, so we exclude zeros
+        val headways = allHeadways.filter { it > 0.0 }
 
         if (headways.isEmpty()) {
             return Frequency(

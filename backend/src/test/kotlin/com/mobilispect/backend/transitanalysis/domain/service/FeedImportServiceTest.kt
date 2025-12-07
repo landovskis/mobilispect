@@ -354,6 +354,7 @@ class FeedImportServiceTest {
             stopTimes = emptyList()
         )
         return ParsedGtfsData(
+            agencies = emptyList(),
             routes = listOf(mockRoute),
             trips = listOf(mockTrip)
         )

@@ -58,6 +58,7 @@ class FeedImportServiceImpl(
     private val variantIdentificationService: VariantIdentificationService,
     private val frequencyCalculationService: FrequencyCalculationService,
     private val commonSectionDetectionService: CommonSectionDetectionService,
+    private val agencyRepository: com.mobilispect.backend.transitanalysis.domain.repository.AgencyRepository,
     private val routeRepository: RouteRepository,
     private val routeVariantRepository: RouteVariantRepository,
     private val frequencyRepository: FrequencyRepository,
@@ -70,7 +71,8 @@ class FeedImportServiceImpl(
             val start = Instant.now()
             val parsed = gtfsParser.parse(feedPath).getOrThrow()
 
-            val routeMap = persistRoutes(feedEntity, parsed)
+            val agencyMap = persistAgencies(feedEntity, parsed)
+            val routeMap = persistRoutes(feedEntity, parsed, agencyMap)
             val variants = variantIdentificationService.identifyVariants(
                 routeMap.values.associateWith { route ->
                     parsed.trips.filter { it.routeId == route.id.value }
@@ -104,7 +106,7 @@ class FeedImportServiceImpl(
 
             val duration = Duration.between(start, Instant.now()).toMillis()
             val result = FeedImportService.ImportResult(
-                agenciesProcessed = parsed.routes.mapNotNull { it.agencyId }.toSet().size,
+                agenciesProcessed = parsed.agencies.size,
                 routesProcessed = parsed.routes.size,
                 variantsIdentified = variants.size,
                 durationMillis = duration
@@ -128,12 +130,48 @@ class FeedImportServiceImpl(
             result
         }
 
-    private fun persistRoutes(feedEntity: FeedEntity, parsed: ParsedGtfsData): Map<String, Route> {
+    private fun persistAgencies(feedEntity: FeedEntity, parsed: ParsedGtfsData): Map<String, com.mobilispect.backend.transitanalysis.domain.model.Agency> {
+        val now = Instant.now()
+        val agencies = parsed.agencies.map { parsedAgency ->
+            // Check if agency already exists for this feed
+            val existing = agencyRepository.findByFeedAndGtfsAgencyId(feedEntity, parsedAgency.agencyId)
+            if (existing.isPresent) {
+                // Update existing agency
+                val agency = existing.get()
+                agency.name = parsedAgency.name
+                agency.website = parsedAgency.url
+                agency.phone = parsedAgency.phone
+                agency.lastFeedImport = now
+                agencyRepository.save(agency)
+            } else {
+                // Create new agency with Onestop ID format: o-{geohash}-{agency_name}
+                val agencyOnestopId = com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId(
+                    "o-${feedEntity.feedOnestopId.value.substringAfter("f-")}-${parsedAgency.agencyId.lowercase().replace(Regex("[^a-z0-9]+"), "~")}"
+                )
+                val agency = com.mobilispect.backend.transitanalysis.domain.model.Agency(
+                    agencyOnestopId = agencyOnestopId,
+                    feed = feedEntity,
+                    gtfsAgencyId = parsedAgency.agencyId,
+                    name = parsedAgency.name,
+                    website = parsedAgency.url,
+                    phone = parsedAgency.phone,
+                    lastFeedImport = now,
+                    active = true
+                )
+                agencyRepository.save(agency)
+            }
+        }
+        return agencies.associateBy { it.gtfsAgencyId }
+    }
+
+    private fun persistRoutes(feedEntity: FeedEntity, parsed: ParsedGtfsData, agencyMap: Map<String, com.mobilispect.backend.transitanalysis.domain.model.Agency>): Map<String, Route> {
         val routes = parsed.routes.map { parsedRoute ->
             val routeId = RouteId(parsedRoute.routeId)
+            // Find the agency for this route, fallback to first agency if not specified
+            val agency = parsedRoute.agencyId?.let { agencyMap[it] } ?: agencyMap.values.first()
             val route = Route(
                 id = routeId,
-                agency = com.mobilispect.backend.transitanalysis.domain.model.Agency(),
+                agency = agency,
                 gtfsRouteId = parsedRoute.routeId,
                 shortName = parsedRoute.shortName,
                 longName = parsedRoute.longName ?: parsedRoute.shortName ?: parsedRoute.routeId,
