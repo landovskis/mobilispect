@@ -1,14 +1,15 @@
 <!--
 Sync Impact Report:
-Version: 1.10.0 → 1.11.0 (Testcontainers enforced for integration testing)
-Modified sections: Testing Standards (stateful integration tests via Testcontainers), Quality Gates (integration environment parity)
+Version: 1.11.0 → 1.12.0 (Testing standards add MockK as required Kotlin mocking library)
+Modified sections: Testing Standards (MockK mandated for Kotlin mocking)
 Added sections: None
 Removed sections: None
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md (Constitution Check gate for Testcontainers integration tests)
-  ✅ README.md (Backend integration tests note on Testcontainers)
+  ⚠ pending (.specify/templates/plan-template.md)
+  ⚠ pending (.specify/templates/spec-template.md)
+  ⚠ pending (.specify/templates/tasks-template.md)
 Follow-up TODOs:
-  - None
+  - Align templates to reference MockK as the standard Kotlin mocking library where mocking guidance appears
 -->
 
 # Mobilispect Constitution
@@ -91,6 +92,8 @@ All features MUST include comprehensive test coverage across unit, integration, 
 - Module integration tests MUST verify module boundaries and contracts
 - Cross-module integration tests MUST use published events and public APIs only
 - Module tests MUST be independently executable without requiring the full application context
+- Kotlin mocking MUST use MockK for unit and integration tests to ensure idiomatic coroutine and
+  inline/extension handling; new tests MUST migrate to MockK instead of Mockito.
 
 **End-to-End Testing with Playwright**:
 - Playwright MUST be used for all cross-browser E2E tests
@@ -186,4 +189,4 @@ All automation MUST use GitHub Actions workflows. Separate workflows are require
 
 **ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
 
-**Version**: 1.11.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-11-29
+**Version**: 1.12.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-12-06
