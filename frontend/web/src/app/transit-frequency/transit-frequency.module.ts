@@ -6,15 +6,24 @@ import { RegionDetailComponent } from './pages/region-detail/region-detail.compo
 const routes: Routes = [
   {
     path: '',
-    component: RegionListComponent
+    component: RegionListComponent,
+    data: {
+      breadcrumb: 'Regions'
+    }
   },
   {
     path: ':regionId',
-    component: RegionDetailComponent
+    component: RegionDetailComponent,
+    data: {
+      breadcrumb: 'Region'
+    }
   },
   {
     path: 'routes/:routeId',
-    loadComponent: () => import('./pages/route-frequency/route-frequency.component').then(m => m.RouteFrequencyComponent)
+    loadComponent: () => import('./pages/route-frequency/route-frequency.component').then(m => m.RouteFrequencyComponent),
+    data: {
+      breadcrumb: 'Route'
+    }
   }
 ];
 

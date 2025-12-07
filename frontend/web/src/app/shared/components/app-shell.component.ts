@@ -1,12 +1,12 @@
 import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, NavigationEnd, RouterModule } from '@angular/router';
+import { Router, NavigationEnd, RouterModule, ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
 import { BreakpointObserver, LayoutModule } from '@angular/cdk/layout';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Observable, Subject, combineLatest, firstValueFrom } from 'rxjs';
+import { Observable, Subject, firstValueFrom } from 'rxjs';
 import { filter, map, shareReplay, startWith, takeUntil } from 'rxjs/operators';
 import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from '../../shared/components/app-bar.component';
 import { ImportService } from '../../feeds/services/import.service';
@@ -339,6 +339,7 @@ export class AppShellComponent implements OnDestroy {
 
   constructor(
     private readonly router: Router,
+    private readonly activatedRoute: ActivatedRoute,
     private readonly snackBar: MatSnackBar,
     breakpointObserver: BreakpointObserver,
     private readonly importService: ImportService,
@@ -356,15 +357,11 @@ export class AppShellComponent implements OnDestroy {
       map((imports: any[] | null | undefined) => imports?.length ?? 0)
     );
 
-    combineLatest([
-      this.metrics.selectedRegion$,
-      this.router.events.pipe(
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-        startWith(null)
-      )
-    ]).pipe(
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null),
       takeUntil(this.destroy$),
-      map(([region]) => this.buildBreadcrumbs(region))
+      map(() => this.buildBreadcrumbsFromRoute(this.activatedRoute.snapshot))
     ).subscribe(crumbs => {
       this.breadcrumbs = crumbs;
     });
@@ -401,22 +398,32 @@ export class AppShellComponent implements OnDestroy {
     this.sidebarOpened = opened;
   }
 
-  private buildBreadcrumbs(region: { id: string | null; name: string | null } | null): Breadcrumb[] {
-    const crumbs: Breadcrumb[] = [
-      {
-        id: 'feeds',
-        label: 'Feeds',
-        link: ['/feeds/discover']
-      }
-    ];
+  private buildBreadcrumbsFromRoute(route: ActivatedRouteSnapshot, url: string = '', crumbs: Breadcrumb[] = []): Breadcrumb[] {
+    const children = route.children;
 
-    if (region?.id) {
-      crumbs.push({
-        id: 'region',
-        label: region.name ?? region.id,
-        link: ['/feeds/discover'],
-        queryParams: { region: region.id }
-      });
+    if (children.length === 0) {
+      return crumbs.length ? crumbs : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
+    }
+
+    for (const child of children) {
+      const routeURL = child.url.map(segment => segment.path).join('/');
+      const nextUrl = routeURL ? `${url}/${routeURL}` : url;
+      const label =
+        child.data['breadcrumb'] ||
+        child.paramMap.get('regionId') ||
+        child.paramMap.get('routeId') ||
+        child.routeConfig?.path ||
+        null;
+
+      if (label) {
+        crumbs.push({
+          id: child.routeConfig?.path ?? label,
+          label,
+          link: [nextUrl || '/']
+        });
+      }
+
+      return this.buildBreadcrumbsFromRoute(child, nextUrl, crumbs);
     }
 
     return crumbs;
