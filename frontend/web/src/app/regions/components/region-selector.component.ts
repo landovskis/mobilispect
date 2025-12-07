@@ -26,8 +26,6 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
   ],
   template: `
     <div class="region-selector">
-      <label class="selector-label" [attr.for]="searchInputId">Search Metropolitan Region</label>
-
       <div class="search-input" [class.disabled]="disabled">
         <mat-icon class="search-icon">search</mat-icon>
         <input

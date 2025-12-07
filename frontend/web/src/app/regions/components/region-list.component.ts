@@ -13,11 +13,11 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, Subject, BehaviorSubject, combineLatest } from 'rxjs';
 import { map, takeUntil, debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
-import { MetropolitanRegion, RegionUtils, FeedDiscoveryResult } from '../models/region.models';
-import { RegionService } from '../services/region.service';
-import { ImportService } from '../services/import.service';
-import { SchedulerService } from '../services/scheduler.service';
-import { FeedImportSummary } from '../models/import.models';
+import { MetropolitanRegion, RegionUtils, FeedDiscoveryResult } from '../../feeds/models/region.models';
+import { RegionService } from '../../feeds/services/region.service';
+import { ImportService } from '../../feeds/services/import.service';
+import { SchedulerService } from '../../feeds/services/scheduler.service';
+import { FeedImportSummary } from '../../feeds/models/import.models';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 

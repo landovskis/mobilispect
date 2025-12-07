@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { MetropolitanRegion } from '../models/region.models';
+import { MetropolitanRegion } from '../models';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 

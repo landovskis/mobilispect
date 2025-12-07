@@ -6,7 +6,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 import { AgencyFeedGroup, FeedGroupingUtils } from '../models/agency-feed-group.model';
-import { Feed, FeedStatus, FeedSpecType } from '../models/region.models';
+import { Feed, FeedStatus, FeedSpecType } from '../models';
 
 @Component({
   selector: 'app-agency-feed-card',

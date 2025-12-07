@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
-import { FeedImportSummary } from '../models/import.models';
+import { FeedImportSummary } from '../models';
 import { ActiveImportsCardComponent } from './active-imports-card.component';
 import { ImportsHistoryCardComponent } from './imports-history-card.component';
 

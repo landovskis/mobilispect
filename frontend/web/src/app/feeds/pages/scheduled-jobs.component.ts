@@ -8,8 +8,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule } from '@angular/material/paginator';
-import { Observable, Subject, timer, combineLatest } from 'rxjs';
-import { takeUntil, switchMap, startWith, share, map } from 'rxjs/operators';
+import { Observable, Subject, timer } from 'rxjs';
+import { takeUntil, share, map } from 'rxjs/operators';
 import { SchedulerService } from '../services/scheduler.service';
 import { ImportService } from '../services/import.service';
 import {

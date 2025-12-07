@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { FeedImportSummary } from '../models/import.models';
+import { FeedImportSummary } from '../models';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
 import { BrandButtonComponent } from '../../shared/components/brand-button.component';

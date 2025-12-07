@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { RegionSelectorComponent } from './region-selector.component';
+import { RegionSelectorComponent } from '../../regions/components/region-selector.component';
 import { AgencyFeedCardComponent } from './agency-feed-card.component';
 import { AgencyFeedGroup } from '../models/agency-feed-group.model';
 import { MetropolitanRegion, Feed } from '../models';

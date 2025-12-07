@@ -4,7 +4,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { FeedImportSummary } from '../models/import.models';
+import { FeedImportSummary } from '../models';
 import { ImportService } from '../services/import.service';
 import { FeedImportsTabComponent } from '../components/feed-imports-tab.component';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';

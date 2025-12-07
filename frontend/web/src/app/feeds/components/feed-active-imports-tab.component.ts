@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { ProgressMonitorComponent } from './progress-monitor.component';
-import { FeedImportSummary } from '../models/import.models';
+import { FeedImportSummary } from '../models';
 import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
 @Component({
