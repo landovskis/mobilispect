@@ -1,11 +1,11 @@
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { RegionService } from '../../../feeds/services/region.service';
-import { MetropolitanRegion } from '../../../feeds/models/region.models';
-import { BrandCardComponent } from '../../../shared/components/brand-card.component';
-import { BrandButtonComponent } from '../../../shared/components/brand-button.component';
-import { RegionSelectorComponent } from '../../../regions/components/region-selector.component';
+import { RegionService } from '../../feeds/services/region.service';
+import { MetropolitanRegion } from '../../feeds/models/region.models';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
+import { RegionSelectorComponent } from '../components/region-selector.component';
 
 @Component({
   selector: 'app-region-list',

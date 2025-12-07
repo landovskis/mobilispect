@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { RegionService } from '../../../feeds/services/region.service';
-import { MetropolitanRegionDetail } from '../../../feeds/models/region.models';
-import { BrandCardComponent } from '../../../shared/components/brand-card.component';
+import { RegionService } from '../../feeds/services/region.service';
+import { MetropolitanRegionDetail } from '../../feeds/models/region.models';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { Observable } from 'rxjs';
 
 @Component({
