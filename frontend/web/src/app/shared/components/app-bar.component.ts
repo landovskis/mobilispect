@@ -66,6 +66,10 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       margin-left: 8px;
     }
 
+    app-toolbar-breadcrumbs {
+      color: #0B3558;
+    }
+
     .toolbar-right {
       margin-left: auto;
       display: flex;
