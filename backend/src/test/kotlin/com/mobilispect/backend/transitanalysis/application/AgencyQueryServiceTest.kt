@@ -40,8 +40,8 @@ class AgencyQueryServiceTest {
                 adm0Name = "Country",
                 adm1Name = "State",
                 autoUpdateEnabled = true,
-                createdAt = java.time.LocalDateTime.now(),
-                updatedAt = java.time.LocalDateTime.now()
+                createdAt = java.time.Instant.now(),
+                updatedAt = java.time.Instant.now()
             )
         )
         val agency = Agency(

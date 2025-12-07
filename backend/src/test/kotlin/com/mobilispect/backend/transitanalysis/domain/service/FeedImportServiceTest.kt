@@ -338,10 +338,24 @@ class FeedImportServiceTest {
     }
 
     private fun createMockParsedGtfsData(): ParsedGtfsData {
-        // Using placeholder Any types until GtfsParser is fully implemented
+        // Using placeholder data for testing
+        val mockRoute = com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedRoute(
+            routeId = "route-1",
+            agencyId = "agency-1",
+            shortName = "1",
+            longName = "Mock Route",
+            type = 3 // Bus
+        )
+        val mockTrip = com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedTrip(
+            routeId = "route-1",
+            tripId = "trip-1",
+            directionId = 0,
+            headsign = "Downtown",
+            stopTimes = emptyList()
+        )
         return ParsedGtfsData(
-            agencies = listOf("mock-agency-data"),
-            routes = listOf("mock-route-data")
+            routes = listOf(mockRoute),
+            trips = listOf(mockTrip)
         )
     }
 

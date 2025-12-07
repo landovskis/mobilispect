@@ -3,10 +3,11 @@ package com.mobilispect.backend.transitanalysis.api
 import com.mobilispect.backend.transitanalysis.api.dto.AgencyDTO
 import com.mobilispect.backend.transitanalysis.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.transitanalysis.application.AgencyQueryService
+import io.mockk.any
+import io.mockk.every
+import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.MediaType
@@ -16,7 +17,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders
 
 class FrequencyAnalysisControllerTest {
 
-    private val agencyQueryService: AgencyQueryService = mock(AgencyQueryService::class.java)
+    private val agencyQueryService: AgencyQueryService = mockk()
     private val controller = FrequencyAnalysisController(agencyQueryService)
     private val mockMvc: MockMvc = MockMvcBuilders.standaloneSetup(controller).build()
 
@@ -31,7 +32,7 @@ class FrequencyAnalysisControllerTest {
             activeRouteCount = 1,
             routesByType = emptyMap()
         )
-        `when`(agencyQueryService.getAgencies(PageRequest.of(0, 20))).thenReturn(PageImpl(listOf(dto)))
+        every { agencyQueryService.getAgencies(PageRequest.of(0, 20)) } returns PageImpl(listOf(dto))
 
         val mvcResult = mockMvc.get("/api/v1/frequency/agencies?page=0&size=20") {
             accept(MediaType.APPLICATION_JSON)
@@ -50,7 +51,11 @@ class FrequencyAnalysisControllerTest {
             minHeadwayMinutes = null,
             maxHeadwayMinutes = null
         )
-        `when`(agencyQueryService.getAgencySummary(org.mockito.kotlin.eq(com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId("o-123")))).thenReturn(summary)
+        every {
+            agencyQueryService.getAgencySummary(
+                com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId("o-123")
+            )
+        } returns summary
 
         val mvcResult = mockMvc.get("/api/v1/frequency/agencies/o-123") {
             accept(MediaType.APPLICATION_JSON)
@@ -70,9 +75,12 @@ class FrequencyAnalysisControllerTest {
             activeRouteCount = 1,
             routesByType = emptyMap()
         )
-        `when`(agencyQueryService.getAgenciesByRegion(org.mockito.kotlin.eq(com.mobilispect.backend.feed.model.ids.RegionId("r-1")), org.mockito.kotlin.any())).thenReturn(
-            PageImpl(listOf(dto))
-        )
+        every {
+            agencyQueryService.getAgenciesByRegion(
+                com.mobilispect.backend.feed.model.ids.RegionId("r-1"),
+                any()
+            )
+        } returns PageImpl(listOf(dto))
 
         val mvcResult = mockMvc.get("/api/v1/frequency/regions/r-1/agencies?page=0&size=20") {
             accept(MediaType.APPLICATION_JSON)
