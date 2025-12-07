@@ -16,7 +16,7 @@ import { RegionService } from '../../feeds/services/region.service';
 import { ThemeToggleComponent } from '../../shared/components/theme-toggle.component';
 
 @Component({
-  selector: 'app-feeds-shell',
+  selector: 'app-shell',
   standalone: true,
   imports: [
     CommonModule,
