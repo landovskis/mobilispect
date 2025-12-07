@@ -405,10 +405,6 @@ export class AppShellComponent implements OnDestroy {
     url: string = '',
     crumbs: Breadcrumb[] = []
   ): Breadcrumb[] {
-    if (!url && crumbs.length === 0) {
-      crumbs.push({ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] });
-    }
-
     const children = route.children.filter(child => child.outlet === 'primary');
 
     if (!children.length) {
