@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { RegionSelectorComponent } from './region-selector.component';
 import { AgencyFeedCardComponent } from './agency-feed-card.component';
 import { AgencyFeedGroup } from '../models/agency-feed-group.model';
-import { MetropolitanRegion, Feed } from '../models/region.models';
+import { MetropolitanRegion, Feed } from '../models';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 @Component({

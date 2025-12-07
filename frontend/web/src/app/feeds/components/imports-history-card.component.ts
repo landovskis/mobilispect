@@ -134,7 +134,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     .history-panel { margin-bottom: 24px; display: block; }
     .panel-actions { display: inline-flex; align-items: center; gap: 10px; }
     .history-container { display: flex; flex-direction: column; gap: 16px; }
-    .history-list { display: grid; gap: 16px; }
+    .history-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
     .history-card-content { display: flex; flex-direction: column; gap: 12px; }
     .history-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--mat-sys-on-surface-variant, #475569); }
     .meta-item { display: inline-flex; align-items: center; gap: 6px; }
