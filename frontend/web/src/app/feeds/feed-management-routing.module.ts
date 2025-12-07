@@ -13,6 +13,15 @@ const routes: Routes = [
     path: '',
     children: [
       {
+        path: 'discover/:regionId',
+        component: DiscoverFeedsPageComponent,
+        data: {
+          title: 'Discover Feeds',
+          breadcrumb: 'Discover',
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+        }
+      },
+      {
         path: 'discover',
         component: DiscoverFeedsPageComponent,
         data: {
