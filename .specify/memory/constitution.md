@@ -1,192 +1,50 @@
-<!--
-Sync Impact Report:
-Version: 1.11.0 → 1.12.0 (Testing standards add MockK as required Kotlin mocking library)
-Modified sections: Testing Standards (MockK mandated for Kotlin mocking)
-Added sections: None
-Removed sections: None
-Templates requiring updates:
-  ⚠ pending (.specify/templates/plan-template.md)
-  ⚠ pending (.specify/templates/spec-template.md)
-  ⚠ pending (.specify/templates/tasks-template.md)
-Follow-up TODOs:
-  - Align templates to reference MockK as the standard Kotlin mocking library where mocking guidance appears
--->
-
-# Mobilispect Constitution
+# [PROJECT_NAME] Constitution
+<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
 ## Core Principles
 
-### I. Code Quality First
-All code MUST pass automated quality gates before merge. Every component requires linting, formatting, and static analysis. Technical debt MUST be documented with clear remediation plans. Code reviews are mandatory for all changes with at least one approval required. Code MUST follow DRY (Don't Repeat Yourself), YAGNI (You Aren't Gonna Need It), and SOLID principles. Value classes MUST be used for all entity IDs to ensure type safety and prevent ID mixups across domain boundaries.
+### [PRINCIPLE_1_NAME]
+<!-- Example: I. Library-First -->
+[PRINCIPLE_1_DESCRIPTION]
+<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
 
-**Rationale**: Multi-platform development amplifies quality issues across all platforms. Consistent quality standards prevent platform-specific bugs from propagating. DRY/YAGNI/SOLID principles ensure maintainable, extensible code across all platforms. Value classes prevent runtime errors from ID confusion (e.g., using AgencyId where RouteId expected).
+### [PRINCIPLE_2_NAME]
+<!-- Example: II. CLI Interface -->
+[PRINCIPLE_2_DESCRIPTION]
+<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
 
-### II. Test-Driven Development (NON-NEGOTIABLE)
-Tests MUST be written before implementation. Every feature requires unit tests, integration tests, and platform-specific contract tests. Test coverage MUST exceed 80% for all new code. All tests MUST pass before deployment.
+### [PRINCIPLE_3_NAME]
+<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
+[PRINCIPLE_3_DESCRIPTION]
+<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
 
-**Rationale**: With Spring backend, Angular frontend, and Android/iOS apps, untested changes create cascading failures across the entire system.
+### [PRINCIPLE_4_NAME]
+<!-- Example: IV. Integration Testing -->
+[PRINCIPLE_4_DESCRIPTION]
+<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
 
-### III. Cross-Platform UX Consistency
-User experience MUST be consistent across all platforms while respecting platform conventions. Design systems MUST define shared components, typography, and interaction patterns. Platform-specific implementations MUST maintain functional parity. Light/dark mode support is mandatory across all platforms. All user-facing experiences MUST comply with WCAG 2.1 AA accessibility guidelines; each feature plan MUST document accessibility acceptance criteria, and releases MUST include automated (e.g., axe, Lighthouse) and manual assistive-technology checks for critical flows. Accessibility regressions block deployment.
+### [PRINCIPLE_5_NAME]
+<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
+[PRINCIPLE_5_DESCRIPTION]
+<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
 
-**Rationale**: Users expect consistent behavior across platforms. Divergent experiences create confusion and support burden. Accessibility parity is foundational to product trust and is legally mandated in several jurisdictions.
+## [SECTION_2_NAME]
+<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
 
-### IV. Performance Standards
-Backend APIs MUST respond within 200ms p95. Mobile apps MUST maintain 60fps during interactions. Database queries MUST use indexes and avoid N+1 patterns. Performance regressions block deployment.
+[SECTION_2_CONTENT]
+<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
 
-**Rationale**: Mobile users have zero tolerance for performance issues. API latency directly impacts user experience across all client platforms.
+## [SECTION_3_NAME]
+<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
 
-### V. Observability & Monitoring
-All services MUST emit structured logs, metrics, and traces using Grafana Cloud as the centralized observability platform. Error tracking is mandatory with alert thresholds. Performance monitoring covers all user journeys. Deployment health checks are required. Dashboards MUST be created for all critical business metrics and system health indicators.
-
-**Rationale**: Distributed systems require comprehensive observability to diagnose issues across platform boundaries. Grafana Cloud provides unified monitoring, alerting, and visualization across all platforms with minimal operational overhead.
-
-### VI. Architecture Decision Records (NON-NEGOTIABLE)
-All significant technical decisions MUST be documented as Architecture Decision Records (ADRs). ADRs are required for technology choices, design patterns, architectural changes, and trade-offs. Each ADR MUST include context, decision, consequences, and alternatives considered.
-
-**Rationale**: Complex multi-platform systems require documented decision history to prevent repeated debates, ensure knowledge transfer, and provide context for future changes.
-
-### VII. Modular Monolith Architecture (NON-NEGOTIABLE)
-The backend MUST be structured as a modular monolith using Spring Modulith. Domain modules MUST own their data, business logic, and public interfaces. Cross-module communication MUST occur only through well-defined module APIs (events, application services, or explicit dependencies). Direct database access across module boundaries is PROHIBITED. Module boundaries MUST be verified through Spring Modulith's runtime verification. Service extraction from the monolith requires an ADR documenting the extraction rationale, migration plan, and impact analysis.
-
-**Module Ownership Rules**:
-- Each module MUST have a clearly defined bounded context
-- Modules MUST expose only public APIs (services, events, DTOs)
-- Internal implementation details (entities, repositories, domain logic) MUST remain private
-- Module dependencies MUST be acyclic and explicitly declared
-- Shared kernel concepts MUST be minimal and documented
-
-**Spring Modulith Requirements**:
-- Module structure MUST follow Spring Modulith conventions (package-based modules)
-- Module boundaries MUST be documented using `@Modulith` annotations
-- Integration tests MUST use `@ModuleTest` to verify module isolation
-- Application events MUST be used for asynchronous cross-module communication
-- Module documentation MUST be auto-generated using Spring Modulith's documentation features
-
-**Rationale**: Modular monoliths provide the development velocity and operational simplicity of monoliths while enforcing architectural boundaries that prevent the "big ball of mud" anti-pattern. Spring Modulith provides runtime verification of module boundaries, event-driven communication patterns, and tooling for eventual service extraction. This architecture supports the team's current size while maintaining a clear path to microservices if needed.
-
-## Cross-Platform Standards
-
-### Technology Stack
-- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 17, Redis 8.2, Spring Modulith for modular architecture
-- **Frontend**: Angular 19 LTS with TypeScript, RxJS for state management
-- **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
-- **Android**: Compose UI with Material Design 3
-- **iOS**: SwiftUI with iOS Design Guidelines
-- **CI/CD**: GitHub Actions for all automation, testing, and deployment pipelines
-- **Observability**: Grafana Cloud for monitoring, alerting, and visualization
-- **E2E Testing**: Playwright for cross-browser end-to-end testing
-- **Accessibility**: Every feature MUST define WCAG 2.1 AA acceptance criteria, include automated
-  accessibility scans in CI, and record manual assistive technology walkthroughs for high-impact flows.
-
-### Testing Standards
-All features MUST include comprehensive test coverage across unit, integration, and end-to-end levels. Database-dependent tests MUST execute against PostgreSQL 17 locally and in CI to guarantee compatibility with production storage. Cache-dependent tests MUST execute against Redis 8.2 in development and CI environments.
-
-**Integration Testing with Testcontainers**:
-- Stateful integration tests (PostgreSQL, Redis, and any future stateful dependencies) MUST run via Testcontainers with images pinned to production versions.
-- Local development and CI MUST share the same container definitions to prevent environment drift.
-- Spring Boot integration tests MUST use `spring-boot-testcontainers`/`@Testcontainers` with per-suite lifecycle to avoid shared state between test classes.
-
-**Module Testing**:
-- Each module MUST have its own test suite using `@ModuleTest`
-- Module integration tests MUST verify module boundaries and contracts
-- Cross-module integration tests MUST use published events and public APIs only
-- Module tests MUST be independently executable without requiring the full application context
-- Kotlin mocking MUST use MockK for unit and integration tests to ensure idiomatic coroutine and
-  inline/extension handling; new tests MUST migrate to MockK instead of Mockito.
-
-**End-to-End Testing with Playwright**:
-- Playwright MUST be used for all cross-browser E2E tests
-- Test coverage MUST include Chrome, Firefox, and Safari (WebKit)
-- Tests MUST verify complete user journeys from UI interaction to backend data persistence
-- Parallel execution MUST be enabled for fast feedback
-- Auto-waiting for elements is mandatory (no manual timeouts)
-- Visual regression testing SHOULD be included for critical UI flows
-- E2E tests MUST run in CI/CD before deployment to staging/production
-
-**Rationale**: Playwright provides modern cross-browser testing with excellent TypeScript support, aligning with Angular frontend technology. Auto-waiting and parallel execution reduce flaky tests and speed up CI/CD pipelines. Multi-browser support ensures consistent behavior across all supported platforms.
-
-### API Contracts
-All backend APIs MUST follow OpenAPI 3.0 specification. Contract testing is mandatory between all services. Breaking changes require version increments and deprecation notices.
-
-### Security Requirements
-Authentication via OAuth 2.0/OIDC. All data transmission MUST use TLS 1.3+. Client certificates required for production APIs. Regular security audits are mandatory.
-
-### Architecture Decision Records
-ADRs MUST be stored in `docs/adr/` directory using numbered format (e.g., `0001-use-kotlin-for-backend.md`). Template MUST include: Title, Status, Context, Decision, Consequences, Alternatives. All ADRs require team review before acceptance.
-
-**Modular Monolith ADRs**:
-- Module boundary decisions MUST be documented with ADRs
-- Cross-module dependency introductions MUST be documented with ADRs
-- Service extraction decisions MUST include migration plans and impact analysis
-
-### Documentation Standards
-All architectural diagrams MUST use PlantUML with C4 model notation for consistency and version control compatibility. Diagrams MUST be stored as `.puml` files alongside their rendered outputs in `docs/architecture/`.
-
-**C4 Model Requirements**:
-- **Context Diagrams** (Level 1): Show system boundaries and external actors/systems
-- **Container Diagrams** (Level 2): Show high-level technology choices and communication patterns
-- **Component Diagrams** (Level 3): Show internal structure of containers and module boundaries
-- **Code Diagrams** (Level 4): Use when critical implementation details need visualization
-
-All major features MUST include at minimum a Container diagram (C4 Level 2). Complex features MUST include Component diagrams (C4 Level 3) for critical subsystems. Sequence diagrams and entity relationship diagrams are required for data flows and persistence layers respectively. Module interaction diagrams are required for cross-module features.
-
-**Rationale**: C4 model provides a standardized hierarchy for architectural documentation, ensuring consistent abstraction levels across all documentation. PlantUML enables version control, diff tracking, and automated diagram generation in CI/CD pipelines.
-
-### CI/CD Standards
-All automation MUST use GitHub Actions workflows. Separate workflows are required for each platform (backend, frontend, mobile). Matrix builds MUST cover all supported platform versions. Deployment pipelines MUST include staging validation before production. All workflows MUST integrate with Grafana Cloud for build and deployment metrics.
-
-**Module Verification in CI**:
-- CI pipelines MUST execute Spring Modulith's module structure verification
-- Module dependency violations MUST fail the build
-- Module documentation MUST be generated and published as part of the build
-
-## Quality Gates
-
-### Pre-Commit Gates
-- [ ] All tests pass locally
-- [ ] Code formatting applied (Prettier, ktlint, SwiftFormat)
-- [ ] Linting violations resolved (ESLint, ktlint, SwiftLint)
-- [ ] Security scan passes (SonarQube, OWASP)
-- [ ] Module structure verification passes (Spring Modulith)
-- [ ] Stateful integration tests use Testcontainers (PostgreSQL 17, Redis 8.2) with no reliance on host services
-
-### Pre-Merge Gates
-- [ ] Code review approved by platform expert
-- [ ] GitHub Actions CI/CD pipeline passes completely
-- [ ] Performance tests show no regressions
-- [ ] Contract tests verify API compatibility
-- [ ] Module boundaries verified (no circular dependencies, proper encapsulation)
-- [ ] CI executes Testcontainers-backed integration suites for all stateful components
-
-### Pre-Deploy Gates
-- [ ] End-to-end tests pass in staging (Playwright multi-browser)
-- [ ] Load testing confirms performance targets
-- [ ] Security scan shows no critical issues
-- [ ] Database migration validated
-- [ ] Module integration tests pass
+[SECTION_3_CONTENT]
+<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
 
 ## Governance
+<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-### Version Management
-- **Semantic Versioning**: All components follow MAJOR.MINOR.PATCH format
-- **Breaking Changes**: MAJOR version increments require migration documentation
-- **Changelog**: All changes documented in CHANGELOG.md following Keep a Changelog format
-- **Release Coordination**: Multi-platform releases must maintain version synchronization
+[GOVERNANCE_RULES]
+<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
 
-### Amendment Process
-- Constitution changes require version bump and changelog entry
-- All PRs/reviews must verify compliance with versioning requirements
-- Release approval requires changelog review and version validation
-
-**Authority**: This constitution supersedes all other development practices and coding standards. Violations require explicit justification and team approval.
-
-**Amendment Process**: Constitution changes require documentation, team consensus, and migration plan for existing code. All amendments must increment version number.
-
-**Compliance**: All pull requests MUST verify constitutional compliance. Code reviews MUST validate adherence to principles. Complexity that violates principles requires architectural justification.
-
-**Exception Handling**: Principle violations require explicit documentation in code comments and Architecture Decision Records (ADRs). Emergency exceptions require immediate follow-up remediation.
-
-**ADR Requirements**: All architectural changes, technology selections, and design pattern choices MUST be documented as ADRs before implementation. ADRs are living documents that MUST be updated when decisions change.
-
-**Version**: 1.12.0 | **Ratified**: 2025-10-07 | **Last Amended**: 2025-12-06
+**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
+<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->

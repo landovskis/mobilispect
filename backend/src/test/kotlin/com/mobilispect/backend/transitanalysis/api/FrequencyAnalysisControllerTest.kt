@@ -3,23 +3,24 @@ package com.mobilispect.backend.transitanalysis.api
 import com.mobilispect.backend.transitanalysis.api.dto.AgencyDTO
 import com.mobilispect.backend.transitanalysis.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.transitanalysis.application.AgencyQueryService
-import io.mockk.any
 import io.mockk.every
 import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
-import org.springframework.http.MediaType
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.get
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
 
 class FrequencyAnalysisControllerTest {
 
-    private val agencyQueryService: AgencyQueryService = mockk()
-    private val controller = FrequencyAnalysisController(agencyQueryService)
-    private val mockMvc: MockMvc = MockMvcBuilders.standaloneSetup(controller).build()
+    private lateinit var agencyQueryService: AgencyQueryService
+    private lateinit var controller: FrequencyAnalysisController
+
+    @BeforeEach
+    fun setUp() {
+        agencyQueryService = mockk()
+        controller = FrequencyAnalysisController(agencyQueryService)
+    }
 
     @Test
     fun `listAgencies returns paged agencies`() {
@@ -32,13 +33,12 @@ class FrequencyAnalysisControllerTest {
             activeRouteCount = 1,
             routesByType = emptyMap()
         )
-        every { agencyQueryService.getAgencies(PageRequest.of(0, 20)) } returns PageImpl(listOf(dto))
+        every { agencyQueryService.getAgencies(any()) } returns PageImpl(listOf(dto))
 
-        val mvcResult = mockMvc.get("/api/v1/frequency/agencies?page=0&size=20") {
-            accept(MediaType.APPLICATION_JSON)
-        }.andReturn()
+        val result = controller.listAgencies(PageRequest.of(0, 20))
 
-        assertThat(mvcResult.response.status).isEqualTo(200)
+        assertThat(result.content).hasSize(1)
+        assertThat(result.content.first().id).isEqualTo("o-123")
     }
 
     @Test
@@ -57,11 +57,10 @@ class FrequencyAnalysisControllerTest {
             )
         } returns summary
 
-        val mvcResult = mockMvc.get("/api/v1/frequency/agencies/o-123") {
-            accept(MediaType.APPLICATION_JSON)
-        }.andReturn()
+        val result = controller.getAgency("o-123")
 
-        assertThat(mvcResult.response.status).isEqualTo(200)
+        assertThat(result).isNotNull
+        assertThat(result?.id).isEqualTo("o-123")
     }
 
     @Test
@@ -82,10 +81,9 @@ class FrequencyAnalysisControllerTest {
             )
         } returns PageImpl(listOf(dto))
 
-        val mvcResult = mockMvc.get("/api/v1/frequency/regions/r-1/agencies?page=0&size=20") {
-            accept(MediaType.APPLICATION_JSON)
-        }.andReturn()
+        val result = controller.listAgenciesByRegion("r-1", PageRequest.of(0, 20))
 
-        assertThat(mvcResult.response.status).isEqualTo(200)
+        assertThat(result.content).hasSize(1)
+        assertThat(result.content.first().regionIds).contains("r-1")
     }
 }

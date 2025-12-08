@@ -226,13 +226,13 @@ The following components **already exist** in the codebase and should be **reuse
 - [X] T087 [P] [US1] Create AgencyDTO in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/AgencyDTO.kt (with regions: Set<RegionId>, feedOnestopId, route count)
 - [X] T088 [P] [US1] Create AgencySummaryDTO with route count and aggregate frequency metrics in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/dto/AgencySummaryDTO.kt
 - [X] T089 [US1] Create AgencyQueryService in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/application/AgencyQueryService.kt (frequency-focused queries, NOT general agency management)
-- [ ] T090 [US1] Implement getAgenciesByRegion(regionId) method with sorting by route count and frequency aggregates
-- [ ] T091 [US1] Implement getAgencyById(agencyId) method with route/frequency summary
+- [X] T090 [US1] Implement getAgenciesByRegion(regionId) method with sorting by route count and frequency aggregates
+- [X] T091 [US1] Implement getAgencyById(agencyId) method with route/frequency summary
 - [ ] T092 **SKIP** - Region listing already handled by existing feed.controller.RegionController at /api/feeds/regions (reuse for region selection in UI)
 - [X] T093 [US1] Create FrequencyAnalysisController in backend/src/main/kotlin/com/mobilispect/backend/transitanalysis/api/FrequencyAnalysisController.kt
-- [ ] T094 [US1] Create FrequencyAnalysisController GET /api/v1/frequency/regions/{regionId}/agencies endpoint (agencies with frequency summary)
+- [X] T094 [US1] Create FrequencyAnalysisController GET /api/v1/frequency/regions/{regionId}/agencies endpoint (agencies with frequency summary)
 - [X] T095 [US1] Create FrequencyAnalysisController GET /api/v1/frequency/agencies/{agencyId} endpoint (agency details with routes)
-- [ ] T096 [US1] Add caching for agency and frequency queries using Redis with 24-hour TTL
+- [X] T096 [US1] Add caching for agency and frequency queries using Redis with 24-hour TTL
 
 ### Frontend Implementation for User Story 1
 

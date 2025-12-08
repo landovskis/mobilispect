@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="mobilispect-backend" target="21" />
+      <module name="mobilispect-backend.main" target="21" />
+      <module name="mobilispect-backend.test" target="21" />
+      <module name="Mobilispect.androidApp" target="21" />
+      <module name="Mobilispect.shared" target="21" />
+    </bytecodeTargetLevel>
+  </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="mobilispect-backend" options="-parameters" />

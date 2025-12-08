@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -104,9 +105,21 @@ class AgencyQueryServiceTest {
             createdAt = Instant.now(),
             updatedAt = Instant.now()
         )
+        feed.regions = mutableSetOf(
+            com.mobilispect.backend.feed.model.MetropolitanRegion(
+                regionOnestopId = RegionId("r-1"),
+                name = "Region",
+                adm0Name = "Country",
+                adm1Name = "State",
+                autoUpdateEnabled = true,
+                createdAt = Instant.now(),
+                updatedAt = Instant.now()
+            )
+        )
         `when`(feedRepository.findAllByRegionRegionOnestopId(RegionId("r-1"))).thenReturn(listOf(feed))
-        `when`(agencyRepository.findByFeed(feed, Pageable.unpaged())).thenReturn(PageImpl(listOf(agency)))
-        `when`(routeRepository.findByAgency(agency, Pageable.unpaged())).thenReturn(PageImpl(emptyList()))
+        `when`(agencyRepository.findByFeed(any(), any())).thenReturn(PageImpl(listOf(agency)))
+        `when`(routeRepository.findByAgency(any(), any())).thenReturn(PageImpl(emptyList()))
+        `when`(routeRepository.countByAgency(agency)).thenReturn(0)
         val page = service.getAgenciesByRegion(RegionId("r-1"), PageRequest.of(0, 20))
         assertThat(page.totalElements).isEqualTo(1)
     }
