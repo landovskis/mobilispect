@@ -12,6 +12,23 @@
 - Supporting assets: `docs` for architecture and ADRs, `scripts` for automation
   gates, and `specs` for constitutional product definitions.
 
+## Constitution (v2.2.0) — Core Principles
+
+- Modular monolith ownership: Spring Modulith boundaries, no cross-module DB
+  access; ports/events only.
+- Test-driven quality: tests first, fail first, ≥80% coverage per component;
+  contract/integration with Testcontainers.
+- Observability: structured logs, metrics, traces, dashboards, and alerts for new
+  flows.
+- Performance & reliability: API p95 ≤200ms, ingestion SLAs, 60fps UX with
+  graceful degradation.
+- Security by default: secrets outside VCS; OWASP dependency checks; authn/authz
+  and audit logging on sensitive paths.
+- Accessibility & UX parity: WCAG 2.1 AA plus light/dark parity across
+  Android/iOS/web (Chromium/Firefox/WebKit).
+- Documentation & traceability: ADRs required for significant decisions; spec →
+  plan → tasks chain with recorded assumptions.
+
 ## Build, Test, and Development Commands
 
 - `cd backend && ./gradlew build` – compile the backend and verify dependency

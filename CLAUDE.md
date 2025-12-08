@@ -2,28 +2,35 @@
 
 ## Project Constitution
 
-This project follows the Mobilispect Constitution which defines core
-principles, standards, and governance for development.
+This project follows the Mobilispect Constitution which defines core principles,
+standards, and governance for development (v2.2.0).
 
 **Constitution Location**: `.specify/memory/constitution.md`
 
 ### Key Constitutional Requirements
 
-Before working on any feature or making architectural decisions, review the
-full constitution. Key principles include:
+Before working on any feature or making architectural decisions, review the full
+constitution. Core principles:
 
-1. **Code Quality First** - DRY, YAGNI, SOLID principles mandatory
-2. **Test-Driven Development** - NON-NEGOTIABLE, 80%+ coverage required
-3. **Cross-Platform UX Consistency** - Light/dark mode mandatory across all platforms
-4. **Performance Standards** - 200ms API response, 60fps mobile UI
-5. **Observability & Monitoring** - Structured logging, metrics, traces required
-6. **Architecture Decision Records** - NON-NEGOTIABLE for all significant
-   technical decisions
-7. **Modular Monolith Architecture** - NON-NEGOTIABLE, Spring Modulith enforces
-   module boundaries, no cross-module database access, event-driven communication
-8. **Accessibility & WCAG** - Every user-facing change MUST satisfy WCAG 2.1 AA
-   (automated scans + manual assistive-technology walkthroughs) with evidence in
-   feature plans and release notes
+1. **Modular Monolith Ownership** — Spring Modulith boundaries; no cross-module
+   DB access; ports/events only; extraction requires ADR + migration plan.
+2. **Test-Driven Quality (NON-NEGOTIABLE)** — Tests first, fail first;
+   unit/contract/integration (Testcontainers) and E2E; ≥80% coverage per
+   component via `scripts/validate-coverage.sh`; defects add regression tests.
+3. **Observability & Operational Insight** — Structured logs, metrics, traces;
+   dashboards/alerts for ingestion and API journeys; trace errors to user paths.
+4. **Performance & Reliability Targets** — API p95 ≤200ms, ingestion SLAs,
+   60fps UX; load/stress tests; graceful degradation (backpressure, retries with
+   jitter, circuit breakers).
+5. **Security & Compliance by Default** — Secrets outside VCS; OWASP dependency
+   checks; authn/authz and audit logging on sensitive paths; encrypted
+   transit/at-rest.
+6. **Accessibility & UX Parity** — WCAG 2.1 AA with automated + manual checks;
+   light/dark parity across Android/iOS/web with Playwright coverage
+   (Chromium/Firefox/WebKit).
+7. **Documentation & Traceability** — ADRs for significant decisions; spec →
+   plan → tasks chain records assumptions/risks/NFRs; release notes include
+   coverage, security, performance, accessibility, observability results.
 
 ### Technology Stack (Constitutional)
 
