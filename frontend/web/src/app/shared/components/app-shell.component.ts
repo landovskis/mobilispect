@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, Input, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule, ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
 import { BreakpointObserver, LayoutModule } from '@angular/cdk/layout';
@@ -8,12 +8,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable, Subject, firstValueFrom } from 'rxjs';
 import { filter, map, shareReplay, startWith, takeUntil } from 'rxjs/operators';
-import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from '../../shared/components/app-bar.component';
+import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from './app-bar.component';
 import { ImportService } from '../../feeds/services/import.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
-import { ThemeToggleComponent } from '../../shared/components/theme-toggle.component';
+import { ThemeToggleComponent } from './theme-toggle.component';
 
 @Component({
   selector: 'app-shell',
@@ -329,7 +329,9 @@ import { ThemeToggleComponent } from '../../shared/components/theme-toggle.compo
 export class AppShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
-  breadcrumbs: Breadcrumb[] = [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
+  @Input() breadcrumbs: Breadcrumb[] = [
+    { id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }
+  ];
   sidebarOpened = false;
 
   readonly isHandset$: Observable<boolean>;
@@ -363,9 +365,10 @@ export class AppShellComponent implements OnDestroy {
       takeUntil(this.destroy$),
       map(() => this.buildBreadcrumbsFromRoute(this.activatedRoute.snapshot))
     ).subscribe(crumbs => {
-      this.breadcrumbs = crumbs.length
+      const resolved = crumbs.length
         ? crumbs
         : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
+      this.breadcrumbs = this.breadcrumbs?.length ? this.breadcrumbs : resolved;
     });
   }
 
