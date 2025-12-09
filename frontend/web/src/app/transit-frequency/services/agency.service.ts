@@ -1,9 +1,15 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AgencySummary } from '../models/agency-summary.model';
+import { AgencyDTO, AgencySummary } from '../models/agency.model';
 
 export interface AgencyListResponse {
+  content: AgencyDTO[];
+  totalElements: number;
+  totalPages: number;
+}
+
+export interface AgencySummaryListResponse {
   content: AgencySummary[];
   totalElements: number;
   totalPages: number;
@@ -18,11 +24,13 @@ export class AgencyService {
   constructor(private readonly http: HttpClient) {}
 
   listAgencies(page: number = 0, size: number = 20, regionId?: string): Observable<AgencyListResponse> {
-    const params: Record<string, any> = { page, size };
-    if (regionId) params['regionId'] = regionId;
-    return this.http.get<AgencyListResponse>(`${this.baseUrl}/agencies`, {
-      params
-    });
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+    const url = regionId
+      ? `${this.baseUrl}/regions/${regionId}/agencies`
+      : `${this.baseUrl}/agencies`;
+    return this.http.get<AgencyListResponse>(url, { params });
   }
 
   getAgency(agencyId: string): Observable<AgencySummary> {
