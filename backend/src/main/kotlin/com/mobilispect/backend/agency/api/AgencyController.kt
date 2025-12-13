@@ -1,9 +1,9 @@
-package com.mobilispect.backend.transitanalysis.api
+package com.mobilispect.backend.agency.api
 
-import com.mobilispect.backend.transitanalysis.api.dto.AgencyDTO
-import com.mobilispect.backend.transitanalysis.api.dto.AgencySummaryDTO
-import com.mobilispect.backend.transitanalysis.application.AgencyQueryService
-import com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.api.dto.AgencyDTO
+import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
+import com.mobilispect.backend.agency.application.AgencyQueryService
+import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.feed.model.ids.RegionId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/v1/frequency")
-class FrequencyAnalysisController(
+@RequestMapping("/api")
+class AgencyController(
     private val agencyQueryService: AgencyQueryService
 ) {
 

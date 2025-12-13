@@ -25,7 +25,7 @@ class FrequencyQueryService(
     private val routeVariantRepository: RouteVariantRepository,
     private val frequencyRepository: FrequencyRepository
 ) {
-    @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'route_' + #routeId.value")
+    @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'route_' + #routeId")
     fun getRoute(routeId: RouteId): RouteDTO? =
         routeRepository.findById(routeId).orElse(null)?.let {
             RouteDTO(
@@ -38,7 +38,7 @@ class FrequencyQueryService(
             )
         }
 
-    @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'variants_' + #routeId.value")
+    @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'variants_' + #routeId")
     fun getVariantsByRoute(routeId: RouteId): List<RouteVariantDTO> =
         routeVariantRepository.findByRouteId(routeId).map {
             RouteVariantDTO(
@@ -51,11 +51,11 @@ class FrequencyQueryService(
                 firstStopId = it.firstStopId,
                 lastStopId = it.lastStopId
             )
-        }
+    }
 
     @Cacheable(
         value = [RedisConfiguration.FREQUENCY_CACHE],
-        key = "'freq_' + #variantHash.value + '_' + (#serviceDate != null ? #serviceDate : 'all')"
+        key = "'freq_' + #variantHash + '_' + (#serviceDate != null ? #serviceDate : 'all')"
     )
     fun getFrequenciesForVariant(variantHash: VariantHash, serviceDate: LocalDate?): List<FrequencyDTO> {
         val variant = routeVariantRepository.findById(variantHash).orElse(null) ?: return emptyList()

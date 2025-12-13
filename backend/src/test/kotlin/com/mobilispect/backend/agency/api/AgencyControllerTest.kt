@@ -1,8 +1,8 @@
-package com.mobilispect.backend.transitanalysis.api
+package com.mobilispect.backend.agency.api
 
-import com.mobilispect.backend.transitanalysis.api.dto.AgencyDTO
-import com.mobilispect.backend.transitanalysis.api.dto.AgencySummaryDTO
-import com.mobilispect.backend.transitanalysis.application.AgencyQueryService
+import com.mobilispect.backend.agency.api.dto.AgencyDTO
+import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
+import com.mobilispect.backend.agency.application.AgencyQueryService
 import io.mockk.every
 import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
@@ -11,15 +11,15 @@ import org.junit.jupiter.api.Test
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 
-class FrequencyAnalysisControllerTest {
+class AgencyControllerTest {
 
     private lateinit var agencyQueryService: AgencyQueryService
-    private lateinit var controller: FrequencyAnalysisController
+    private lateinit var controller: AgencyController
 
     @BeforeEach
     fun setUp() {
         agencyQueryService = mockk()
-        controller = FrequencyAnalysisController(agencyQueryService)
+        controller = AgencyController(agencyQueryService)
     }
 
     @Test
@@ -53,7 +53,7 @@ class FrequencyAnalysisControllerTest {
         )
         every {
             agencyQueryService.getAgencySummary(
-                com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId("o-123")
+                com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-123")
             )
         } returns summary
 

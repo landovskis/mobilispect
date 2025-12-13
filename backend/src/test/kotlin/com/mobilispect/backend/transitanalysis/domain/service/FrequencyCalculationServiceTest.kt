@@ -302,7 +302,7 @@ class FrequencyCalculationServiceTest {
     @Test
     fun `calculateFrequency() sets calculatedAt timestamp`() {
         // Given: A variant with trips
-        val variantId = VariantHash("g".repeat(64))
+        val variantId = VariantHash("0".repeat(64))
         val serviceDate = LocalDate.of(2025, 1, 15)
         val tripTimes = listOf(LocalTime.of(8, 0), LocalTime.of(8, 15))
 
@@ -331,7 +331,7 @@ class FrequencyCalculationServiceTest {
     @Test
     fun `calculateFrequency() respects unique constraint per variant-date-period`() {
         // Given: A frequency already exists for (variant, date, period)
-        val variantId = VariantHash("h".repeat(64))
+        val variantId = VariantHash("1".repeat(64))
         val serviceDate = LocalDate.of(2025, 1, 15)
         val timePeriod = TimePeriod.WEEKDAY_AM_PEAK
 

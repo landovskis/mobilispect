@@ -15,6 +15,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.eq
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
@@ -34,7 +35,7 @@ class FrequencyApiContractTest {
 
     @Test
     fun `GET route matches contract`() {
-        `when`(frequencyQueryService.getRoute(eq(com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId("r-1")))).thenReturn(
+        `when`(frequencyQueryService.getRoute(any())).thenReturn(
             RouteDTO(
                 id = "r-1",
                 agencyId = "o-1",
@@ -55,7 +56,7 @@ class FrequencyApiContractTest {
 
     @Test
     fun `GET variants matches contract`() {
-        `when`(frequencyQueryService.getVariantsByRoute(eq(com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId("r-1")))).thenReturn(
+        `when`(frequencyQueryService.getVariantsByRoute(any())).thenReturn(
             listOf(
                 RouteVariantDTO(
                     id = "v1",
@@ -80,7 +81,7 @@ class FrequencyApiContractTest {
 
     @Test
     fun `GET variant frequencies matches contract`() {
-        `when`(frequencyQueryService.getFrequenciesForVariant(eq(com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash("a".repeat(64))), any())).thenReturn(
+        `when`(frequencyQueryService.getFrequenciesForVariant(any(), anyOrNull())).thenReturn(
             listOf(
                 FrequencyDTO(
                     id = UUID.randomUUID().toString(),
@@ -106,7 +107,7 @@ class FrequencyApiContractTest {
 
     @Test
     fun `GET common sections matches contract`() {
-        `when`(commonSectionService.getCommonSectionsForRoute(eq(com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId("r-1")))).thenReturn(
+        `when`(commonSectionService.getCommonSectionsForRoute(any())).thenReturn(
             listOf(
                 CommonSectionDTO(
                     id = UUID.randomUUID().toString(),

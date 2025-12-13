@@ -1,6 +1,6 @@
 package com.mobilispect.backend.transitanalysis.domain.repository
 
-import com.mobilispect.backend.transitanalysis.domain.model.Agency
+import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.transitanalysis.domain.model.Route
 import com.mobilispect.backend.transitanalysis.domain.model.RouteType
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId

@@ -1,4 +1,4 @@
-package com.mobilispect.backend.transitanalysis.domain.model.ids
+package com.mobilispect.backend.agency.domain.model.ids
 
 /**
  * Value class for Agency identifiers using Onestop ID format.

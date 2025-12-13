@@ -1,6 +1,6 @@
-package com.mobilispect.backend.transitanalysis.domain.model.converters
+package com.mobilispect.backend.agency.domain.model.converters
 
-import com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import jakarta.persistence.AttributeConverter
 import jakarta.persistence.Converter
 

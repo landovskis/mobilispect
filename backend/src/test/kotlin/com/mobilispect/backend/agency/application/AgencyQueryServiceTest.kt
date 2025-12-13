@@ -1,15 +1,15 @@
-package com.mobilispect.backend.transitanalysis.application
+package com.mobilispect.backend.agency.application
 
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedRepository
-import com.mobilispect.backend.transitanalysis.domain.model.Agency
+import com.mobilispect.backend.agency.domain.model.Agency
+import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.transitanalysis.domain.model.Route
 import com.mobilispect.backend.transitanalysis.domain.model.RouteType
-import com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
-import com.mobilispect.backend.transitanalysis.domain.repository.AgencyRepository
 import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -78,7 +78,7 @@ class AgencyQueryServiceTest {
         `when`(routeRepository.findByAgency(agency, Pageable.unpaged())).thenReturn(PageImpl(routes))
 
         val page: Page<*> = service.getAgencies(PageRequest.of(0, 20))
-        val dto = page.content.first() as com.mobilispect.backend.transitanalysis.api.dto.AgencyDTO
+        val dto = page.content.first() as com.mobilispect.backend.agency.api.dto.AgencyDTO
 
         assertThat(dto.id).isEqualTo("o-123")
         assertThat(dto.routeCount).isEqualTo(2)

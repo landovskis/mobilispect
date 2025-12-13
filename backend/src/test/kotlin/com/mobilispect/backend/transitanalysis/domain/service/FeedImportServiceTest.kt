@@ -2,11 +2,11 @@ package com.mobilispect.backend.transitanalysis.domain.service
 
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.ids.FeedId
-import com.mobilispect.backend.transitanalysis.domain.model.Agency
+import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.transitanalysis.domain.model.Route
 import com.mobilispect.backend.transitanalysis.domain.model.RouteVariant
-import com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId
-import com.mobilispect.backend.transitanalysis.domain.repository.AgencyRepository
+import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
 import com.mobilispect.backend.transitanalysis.domain.repository.RouteVariantRepository
 import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.GtfsParser

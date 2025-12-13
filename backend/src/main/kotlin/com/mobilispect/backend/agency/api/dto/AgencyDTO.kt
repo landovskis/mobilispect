@@ -1,4 +1,4 @@
-package com.mobilispect.backend.transitanalysis.api.dto
+package com.mobilispect.backend.agency.api.dto
 
 import com.mobilispect.backend.transitanalysis.domain.model.RouteType
 

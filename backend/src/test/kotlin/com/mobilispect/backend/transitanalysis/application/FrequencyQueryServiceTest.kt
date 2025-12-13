@@ -24,12 +24,13 @@ class FrequencyQueryServiceTest {
     private val variantRepository: RouteVariantRepository = mock(RouteVariantRepository::class.java)
     private val frequencyRepository: FrequencyRepository = mock(FrequencyRepository::class.java)
     private val service = FrequencyQueryService(routeRepository, variantRepository, frequencyRepository)
+    private val mockAgency = mock(com.mobilispect.backend.agency.domain.model.Agency::class.java)
 
     @Test
     fun `getVariantsByRoute maps variants`() {
         val route = Route(
             id = RouteId("r-1"),
-            agency = com.mobilispect.backend.transitanalysis.domain.model.Agency(),
+            agency = mockAgency,
             gtfsRouteId = "R1",
             longName = "Route 1",
             routeType = RouteType.BUS,
@@ -61,7 +62,7 @@ class FrequencyQueryServiceTest {
     fun `getFrequenciesForVariant maps frequencies`() {
         val route = Route(
             id = RouteId("r-1"),
-            agency = com.mobilispect.backend.transitanalysis.domain.model.Agency(),
+            agency = mockAgency,
             gtfsRouteId = "R1",
             longName = "Route 1",
             routeType = RouteType.BUS,

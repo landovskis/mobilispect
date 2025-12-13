@@ -1,5 +1,8 @@
 package com.mobilispect.backend.transitanalysis.domain.service
 
+import com.mobilispect.backend.agency.domain.model.Agency
+import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.transitanalysis.domain.model.Route
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
@@ -58,7 +61,7 @@ class FeedImportServiceImpl(
     private val variantIdentificationService: VariantIdentificationService,
     private val frequencyCalculationService: FrequencyCalculationService,
     private val commonSectionDetectionService: CommonSectionDetectionService,
-    private val agencyRepository: com.mobilispect.backend.transitanalysis.domain.repository.AgencyRepository,
+    private val agencyRepository: AgencyRepository,
     private val routeRepository: RouteRepository,
     private val routeVariantRepository: RouteVariantRepository,
     private val frequencyRepository: FrequencyRepository,
@@ -130,7 +133,7 @@ class FeedImportServiceImpl(
             result
         }
 
-    private fun persistAgencies(feedEntity: FeedEntity, parsed: ParsedGtfsData): Map<String, com.mobilispect.backend.transitanalysis.domain.model.Agency> {
+    private fun persistAgencies(feedEntity: FeedEntity, parsed: ParsedGtfsData): Map<String, Agency> {
         val now = Instant.now()
         val agencies = parsed.agencies.map { parsedAgency ->
             // Check if agency already exists for this feed
@@ -145,10 +148,10 @@ class FeedImportServiceImpl(
                 agencyRepository.save(agency)
             } else {
                 // Create new agency with Onestop ID format: o-{geohash}-{agency_name}
-                val agencyOnestopId = com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId(
+                val agencyOnestopId = AgencyId(
                     "o-${feedEntity.feedOnestopId.value.substringAfter("f-")}-${parsedAgency.agencyId.lowercase().replace(Regex("[^a-z0-9]+"), "~")}"
                 )
-                val agency = com.mobilispect.backend.transitanalysis.domain.model.Agency(
+                val agency = Agency(
                     agencyOnestopId = agencyOnestopId,
                     feed = feedEntity,
                     gtfsAgencyId = parsedAgency.agencyId,
@@ -164,7 +167,7 @@ class FeedImportServiceImpl(
         return agencies.associateBy { it.gtfsAgencyId }
     }
 
-    private fun persistRoutes(feedEntity: FeedEntity, parsed: ParsedGtfsData, agencyMap: Map<String, com.mobilispect.backend.transitanalysis.domain.model.Agency>): Map<String, Route> {
+    private fun persistRoutes(feedEntity: FeedEntity, parsed: ParsedGtfsData, agencyMap: Map<String, Agency>): Map<String, Route> {
         val routes = parsed.routes.map { parsedRoute ->
             val routeId = RouteId(parsedRoute.routeId)
             // Find the agency for this route, fallback to first agency if not specified

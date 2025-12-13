@@ -1,8 +1,9 @@
-package com.mobilispect.backend.transitanalysis.domain.model
+package com.mobilispect.backend.agency.domain.model
 
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.transitanalysis.domain.model.converters.AgencyIdConverter
-import com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.domain.model.converters.AgencyIdConverter
+import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.transitanalysis.domain.model.Route
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity

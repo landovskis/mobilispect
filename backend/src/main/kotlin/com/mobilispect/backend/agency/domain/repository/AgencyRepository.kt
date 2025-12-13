@@ -1,8 +1,8 @@
-package com.mobilispect.backend.transitanalysis.domain.repository
+package com.mobilispect.backend.agency.domain.repository
 
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.transitanalysis.domain.model.Agency
-import com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.domain.model.Agency
+import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository

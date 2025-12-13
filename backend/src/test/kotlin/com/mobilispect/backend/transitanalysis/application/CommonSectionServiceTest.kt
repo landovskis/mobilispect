@@ -28,12 +28,13 @@ class CommonSectionServiceTest {
     private val variantRepo: RouteVariantRepository = mock(RouteVariantRepository::class.java)
     private val freqRepo: FrequencyRepository = mock(FrequencyRepository::class.java)
     private val service = CommonSectionService(csRepo, csvRepo, variantRepo, freqRepo)
+    private val mockAgency = mock(com.mobilispect.backend.agency.domain.model.Agency::class.java)
 
     @Test
     fun `getCommonSectionsForRoute returns sections linked to route variants`() {
         val route = Route(
             id = RouteId("r-1"),
-            agency = com.mobilispect.backend.transitanalysis.domain.model.Agency(),
+            agency = mockAgency,
             gtfsRouteId = "R1",
             longName = "Route 1",
             routeType = com.mobilispect.backend.transitanalysis.domain.model.RouteType.BUS,
@@ -88,7 +89,7 @@ class CommonSectionServiceTest {
         )
         val variant = RouteVariant(
             id = VariantHash("e".repeat(64)),
-            route = Route(id = RouteId("r-2"), agency = com.mobilispect.backend.transitanalysis.domain.model.Agency(), gtfsRouteId = "R2", longName = "Route 2", routeType = com.mobilispect.backend.transitanalysis.domain.model.RouteType.BUS, active = true),
+            route = Route(id = RouteId("r-2"), agency = mockAgency, gtfsRouteId = "R2", longName = "Route 2", routeType = com.mobilispect.backend.transitanalysis.domain.model.RouteType.BUS, active = true),
             stopPattern = "s1|s2|s3",
             stopCount = 3,
             firstStopId = "s1",
@@ -114,7 +115,7 @@ class CommonSectionServiceTest {
             createdAt = Instant.now()
         )
         `when`(csRepo.findById(sectionId)).thenReturn(Optional.of(section))
-        `when`(csvRepo.findAll()).thenReturn(listOf(csv))
+        `when`(csvRepo.findBySectionId(sectionId)).thenReturn(listOf(csv))
         `when`(freqRepo.findByVariant(variant, Pageable.unpaged())).thenReturn(PageImpl(listOf(freq)))
 
         val result = service.getCombinedFrequency(sectionId, TimePeriod.WEEKDAY_AM_PEAK)

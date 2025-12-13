@@ -1,13 +1,13 @@
-package com.mobilispect.backend.transitanalysis.application
+package com.mobilispect.backend.agency.application
 
 import com.mobilispect.backend.config.RedisConfiguration
-import com.mobilispect.backend.transitanalysis.api.dto.AgencyDTO
-import com.mobilispect.backend.transitanalysis.api.dto.AgencySummaryDTO
+import com.mobilispect.backend.agency.api.dto.AgencyDTO
+import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.transitanalysis.domain.model.RouteType
-import com.mobilispect.backend.transitanalysis.domain.model.ids.AgencyId
-import com.mobilispect.backend.transitanalysis.domain.repository.AgencyRepository
+import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
@@ -44,7 +44,7 @@ class AgencyQueryService(
      */
     @Cacheable(
         value = [RedisConfiguration.AGENCY_CACHE],
-        key = "'region_' + #regionId.value + '_' + #pageable.pageNumber + '_' + #pageable.pageSize"
+        key = "'region_' + #regionId.toString() + '_' + #pageable.pageNumber + '_' + #pageable.pageSize"
     )
     fun getAgenciesByRegion(regionId: RegionId, pageable: Pageable): Page<AgencyDTO> {
         val feeds = feedRepository.findAllByRegionRegionOnestopId(regionId)
@@ -65,7 +65,7 @@ class AgencyQueryService(
      * Get detailed summary for a specific agency.
      * Cached with 24-hour TTL (T096).
      */
-    @Cacheable(value = [RedisConfiguration.AGENCY_CACHE], key = "'summary_' + #agencyId.value")
+    @Cacheable(value = [RedisConfiguration.AGENCY_CACHE], key = "'summary_' + #agencyId.toString()")
     fun getAgencySummary(agencyId: AgencyId): AgencySummaryDTO? {
         val agency = agencyRepository.findById(agencyId).orElse(null) ?: return null
         val routes = routeRepository.findByAgency(agency, Pageable.unpaged()).toList()
@@ -79,7 +79,7 @@ class AgencyQueryService(
         )
     }
 
-    private fun mapAgency(agency: com.mobilispect.backend.transitanalysis.domain.model.Agency): AgencyDTO {
+    private fun mapAgency(agency: com.mobilispect.backend.agency.domain.model.Agency): AgencyDTO {
         val routes = routeRepository.findByAgency(agency, Pageable.unpaged()).toList()
         val routesByType = routes.groupingBy { it.routeType }.eachCount()
         val regionIds = agency.feed.regions.map { it.regionOnestopId.value }.toSet()

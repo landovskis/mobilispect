@@ -1,5 +1,6 @@
 package com.mobilispect.backend.transitanalysis.domain.model
 
+import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.transitanalysis.domain.model.converters.RouteIdConverter
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
 import jakarta.persistence.Column
