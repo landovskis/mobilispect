@@ -26,15 +26,6 @@ interface RegionSummary {
   standalone: true,
   imports: [CommonModule, BrandCardComponent, BrandSectionComponent, AgencyCardComponent],
   template: `
-    <app-brand-card *ngIf="region$ | async as region" [title]="region.name" [subtitle]="region.regionOnestopId">
-      <div class="meta">
-        <div><strong>Country:</strong> {{ region.adm0Name }}</div>
-        <div><strong>State/Province:</strong> {{ region.adm1Name }}</div>
-        <div><strong>Feeds:</strong> {{ region.feedCount }}</div>
-        <div><strong>Auto-update:</strong> {{ region.autoUpdateEnabled ? 'Enabled' : 'Manual' }}</div>
-      </div>
-    </app-brand-card>
-
     <app-brand-section
       [title]="(summary$ | async)?.name || 'Summary'"
       subtitle="Overview of transit data in this region"
@@ -88,9 +79,7 @@ interface RegionSummary {
     </app-brand-section>
   `,
   styles: [`
-    .meta { display: grid; gap: 8px; }
-
-    app-brand-section {
+    app-brand-section:not(:first-child) {
       display: block;
       margin-top: 24px;
     }
