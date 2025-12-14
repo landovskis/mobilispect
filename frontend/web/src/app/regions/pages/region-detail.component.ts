@@ -12,6 +12,7 @@ import { AgencyCardComponent } from '../../transit-frequency/components/agency-c
 import { AgencyService } from "../../agencies/services/agency.service";
 
 interface RegionSummary {
+  name: string;
   totalAgencies: number;
   totalRoutes: number;
   totalActiveRoutes: number;
@@ -35,7 +36,7 @@ interface RegionSummary {
     </app-brand-card>
 
     <app-brand-section
-      title="Summary"
+      [title]="(summary$ | async)?.name || 'Summary'"
       subtitle="Overview of transit data in this region"
       icon="analytics">
       <ng-container *ngIf="summary$ | async as summary; else loadingSummary">
@@ -181,6 +182,7 @@ export class RegionDetailComponent implements OnInit {
           const totalActiveRoutes = agencies.reduce((sum, agency) => sum + agency.activeRouteCount, 0);
 
           return {
+            name: region.name,
             totalAgencies: agencies.length,
             totalRoutes,
             totalActiveRoutes,
