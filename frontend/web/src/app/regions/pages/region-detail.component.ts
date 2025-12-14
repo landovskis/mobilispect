@@ -166,7 +166,7 @@ export class RegionDetailComponent implements OnInit {
           const agencies = agenciesResponse.content;
 
           // Count feeds by status
-          const feedsByStatus = region.feeds.reduce(
+          const feedsByStatus = (region.feeds || []).reduce(
             (acc, feed) => {
               if (feed.status === FeedStatus.ACTIVE) acc.active++;
               else if (feed.status === FeedStatus.INACTIVE) acc.inactive++;

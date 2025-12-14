@@ -1,5 +1,8 @@
 package com.mobilispect.backend.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
 import org.springframework.context.annotation.Bean
@@ -92,16 +95,29 @@ class RedisConfiguration {
     /**
      * Configure cache manager with specific TTLs for different cache types.
      * Task T096: Agency and frequency queries cached for 24 hours.
+     *
+     * Uses a custom ObjectMapper that supports PageImpl serialization/deserialization.
      */
     @Bean
-    fun cacheManager(connectionFactory: RedisConnectionFactory): CacheManager {
+    fun cacheManager(connectionFactory: RedisConnectionFactory, pageJacksonModule: PageJacksonModule): CacheManager {
+        // Create ObjectMapper with PageJacksonModule for proper Page serialization
+        val objectMapper = ObjectMapper()
+            .registerKotlinModule()
+            .registerModule(pageJacksonModule)
+            .activateDefaultTyping(
+                BasicPolymorphicTypeValidator.builder()
+                    .allowIfBaseType(Any::class.java)
+                    .build(),
+                ObjectMapper.DefaultTyping.NON_FINAL
+            )
+
         val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .serializeKeysWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(StringRedisSerializer())
             )
             .serializeValuesWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(
-                    GenericJackson2JsonRedisSerializer()
+                    GenericJackson2JsonRedisSerializer(objectMapper)
                 )
             )
             .entryTtl(Duration.ofMinutes(5)) // Default 5-minute TTL
