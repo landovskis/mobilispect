@@ -14,11 +14,7 @@ import { AgencyService } from "../../agencies/services/agency.service";
 interface RegionSummary {
   name: string;
   totalAgencies: number;
-  totalRoutes: number;
   totalActiveRoutes: number;
-  activeFeeds: number;
-  inactiveFeeds: number;
-  errorFeeds: number;
 }
 
 @Component({
@@ -37,19 +33,8 @@ interface RegionSummary {
             <div class="summary-label">Transit Agencies</div>
           </div>
           <div class="summary-card">
-            <div class="summary-value">{{ summary.totalRoutes }}</div>
-            <div class="summary-label">Total Routes</div>
-          </div>
-          <div class="summary-card">
             <div class="summary-value">{{ summary.totalActiveRoutes }}</div>
             <div class="summary-label">Active Routes</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-value">{{ summary.activeFeeds }}</div>
-            <div class="summary-label">Active Feeds</div>
-            <div class="summary-sublabel" *ngIf="summary.inactiveFeeds > 0 || summary.errorFeeds > 0">
-              {{ summary.inactiveFeeds }} inactive, {{ summary.errorFeeds }} error
-            </div>
           </div>
         </div>
       </ng-container>
@@ -155,29 +140,13 @@ export class RegionDetailComponent implements OnInit {
         map(([region, agenciesResponse]) => {
           const agencies = agenciesResponse.content;
 
-          // Count feeds by status
-          const feedsByStatus = (region.feeds || []).reduce(
-            (acc, feed) => {
-              if (feed.status === FeedStatus.ACTIVE) acc.active++;
-              else if (feed.status === FeedStatus.INACTIVE) acc.inactive++;
-              else if (feed.status === FeedStatus.ERROR) acc.error++;
-              return acc;
-            },
-            { active: 0, inactive: 0, error: 0 }
-          );
-
-          // Sum route counts across all agencies
-          const totalRoutes = agencies.reduce((sum, agency) => sum + agency.routeCount, 0);
+          // Sum active route counts across all agencies
           const totalActiveRoutes = agencies.reduce((sum, agency) => sum + agency.activeRouteCount, 0);
 
           return {
             name: region.name,
             totalAgencies: agencies.length,
-            totalRoutes,
-            totalActiveRoutes,
-            activeFeeds: feedsByStatus.active,
-            inactiveFeeds: feedsByStatus.inactive,
-            errorFeeds: feedsByStatus.error
+            totalActiveRoutes
           };
         })
       );
