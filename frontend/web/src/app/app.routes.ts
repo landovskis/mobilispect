@@ -34,6 +34,13 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'agencies/:agencyId',
+        loadComponent: () => import('./agencies/pages/agency-page.component').then(m => m.AgencyPageComponent),
+        data: {
+          breadcrumb: 'Agency Details'
+        }
+      },
+      {
         path: '**',
         redirectTo: '/feeds/discover'
       }

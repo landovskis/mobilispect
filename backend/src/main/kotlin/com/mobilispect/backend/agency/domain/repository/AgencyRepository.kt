@@ -26,6 +26,17 @@ import java.time.Instant
 interface AgencyRepository : JpaRepository<Agency, AgencyId> {
 
     /**
+     * Find agency by its Onestop ID.
+     *
+     * @param agencyId The agency Onestop ID
+     * @return Agency if found, empty Optional otherwise
+     */
+    @Query("SELECT a FROM Agency a WHERE a.agencyOnestopId = :agencyId")
+    fun findByAgencyOnestopId(
+        @Param("agencyId") agencyId: AgencyId
+    ): java.util.Optional<Agency>
+
+    /**
      * Find all agencies for a specific feed.
      *
      * @param feed The feed entity to search within

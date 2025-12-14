@@ -29,7 +29,8 @@ import { RouterModule, Params } from '@angular/router';
           <span
             [ngClass]="{
               'breadcrumb-item': !last,
-              'breadcrumb-region': last
+              'breadcrumb-region': last,
+              'breadcrumb-active': last
             }"
           >
             {{ breadcrumb.label }}
@@ -38,7 +39,10 @@ import { RouterModule, Params } from '@angular/router';
       } @else {
         <span
           class="breadcrumb-item"
-          [ngClass]="{ 'breadcrumb-region': last }"
+          [ngClass]="{
+            'breadcrumb-region': last,
+            'breadcrumb-active': last
+          }"
           (click)="onBreadcrumbClick($event, breadcrumb)"
         >
           {{ breadcrumb.label }}
@@ -77,6 +81,12 @@ import { RouterModule, Params } from '@angular/router';
     .breadcrumb-region {
       font-weight: 500;
       color: #0b3558;
+    }
+
+    .breadcrumb-active {
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 2px;
     }
 
     @media (max-width: 768px) {

@@ -67,7 +67,7 @@ class AgencyQueryService(
      */
     @Cacheable(value = [RedisConfiguration.AGENCY_CACHE], key = "'summary_' + #agencyId.toString()")
     fun getAgencySummary(agencyId: AgencyId): AgencySummaryDTO? {
-        val agency = agencyRepository.findById(agencyId).orElse(null) ?: return null
+        val agency = agencyRepository.findByAgencyOnestopId(agencyId).orElse(null) ?: return null
         val routes = routeRepository.findByAgency(agency, Pageable.unpaged()).toList()
         return AgencySummaryDTO(
             id = agency.agencyOnestopId.value,

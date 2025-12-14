@@ -4,6 +4,7 @@ import {HttpClient, HttpParams} from "@angular/common/http";
 import {Observable} from "rxjs";
 import {AgencySummary} from "../../transit-frequency/models/agency.model";
 import {AgencyListResponse} from "../../transit-frequency/services/agency.service";
+import {RouteListResponse} from "../models/route.model";
 
 @Injectable({
   providedIn: 'root'
@@ -26,5 +27,12 @@ export class AgencyService {
 
   getAgency(agencyId: string): Observable<AgencySummary> {
     return this.http.get<AgencySummary>(`${this.apiUrl}/agencies/${agencyId}`);
+  }
+
+  listRoutesByAgency(agencyId: string, page: number = 0, size: number = 100): Observable<RouteListResponse> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+    return this.http.get<RouteListResponse>(`${this.apiUrl}/agencies/${agencyId}/routes`, {params});
   }
 }
