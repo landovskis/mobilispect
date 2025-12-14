@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { RegionListComponent } from '../regions/pages/region-list.component';
 import { RegionDetailComponent } from '../regions/pages/region-detail.component';
+import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 
 const routes: Routes = [
   {
@@ -14,8 +15,8 @@ const routes: Routes = [
   {
     path: ':regionId',
     component: RegionDetailComponent,
-    data: {
-      breadcrumb: 'Region'
+    resolve: {
+      breadcrumb: RegionBreadcrumbResolver
     }
   },
   {

@@ -13,11 +13,17 @@ export const routes: Routes = [
       },
       {
         path: 'regions',
-        loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule)
+        loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule),
+        data: {
+          breadcrumb: 'Regions'
+        }
       },
       {
         path: 'regions',
-        loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule)
+        loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule),
+        data: {
+          breadcrumb: 'Regions'
+        }
       },
       {
         path: 'feeds',

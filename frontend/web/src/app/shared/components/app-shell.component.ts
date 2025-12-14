@@ -329,9 +329,7 @@ import { ThemeToggleComponent } from './theme-toggle.component';
 export class AppShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
-  @Input() breadcrumbs: Breadcrumb[] = [
-    { id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }
-  ];
+  @Input() breadcrumbs: Breadcrumb[] = [];
   sidebarOpened = false;
 
   readonly isHandset$: Observable<boolean>;
@@ -365,10 +363,9 @@ export class AppShellComponent implements OnDestroy {
       takeUntil(this.destroy$),
       map(() => this.buildBreadcrumbsFromRoute(this.activatedRoute.snapshot))
     ).subscribe(crumbs => {
-      const resolved = crumbs.length
+      this.breadcrumbs = crumbs.length
         ? crumbs
         : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
-      this.breadcrumbs = this.breadcrumbs?.length ? this.breadcrumbs : resolved;
     });
   }
 
