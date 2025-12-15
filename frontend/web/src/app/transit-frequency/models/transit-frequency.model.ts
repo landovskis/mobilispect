@@ -335,3 +335,74 @@ export interface FrequencyQueryResponse {
   /** Aggregated statistics for the matching records */
   readonly stats: FrequencyStats;
 }
+
+/**
+ * Hourly frequency data for a specific route variant.
+ *
+ * Represents service frequency metrics in 1-hour intervals (00:00-01:00, 01:00-02:00, ..., 23:00-24:00).
+ * This provides finer granularity than the standard TimePeriod-based frequency data.
+ *
+ * Reference: Backend HourlyFrequencyDTO at com.mobilispect.backend.transitanalysis.api.dto.HourlyFrequencyDTO
+ */
+export interface HourlyFrequency {
+  /** SHA-256 hash of the stop pattern identifying the variant */
+  readonly variantId: string;
+
+  /** ISO-formatted date string (e.g., "2025-01-15") */
+  readonly serviceDate: string;
+
+  /** Hour of day (0-23) when this frequency applies */
+  readonly hourOfDay: number;
+
+  /** Average time in minutes between consecutive trips, null if irregular */
+  readonly averageHeadwayMinutes?: number;
+
+  /** Minimum observed headway in minutes */
+  readonly minHeadwayMinutes?: number;
+
+  /** Maximum observed headway in minutes */
+  readonly maxHeadwayMinutes?: number;
+
+  /** Number of trips during this hour */
+  readonly tripCount: number;
+
+  /** True if the service does not follow a fixed schedule pattern */
+  readonly isIrregular: boolean;
+}
+
+/**
+ * Aggregated hourly frequency data across all variants for a route.
+ *
+ * Used when displaying route-level frequency patterns, combining metrics from all
+ * variants operating on the route during each hour.
+ *
+ * Reference: Backend RouteHourlyFrequencyDTO at com.mobilispect.backend.transitanalysis.api.dto.RouteHourlyFrequencyDTO
+ */
+export interface RouteHourlyFrequency {
+  /** Onestop ID of the route */
+  readonly routeId: string;
+
+  /** ISO-formatted date string (e.g., "2025-01-15") */
+  readonly serviceDate: string;
+
+  /** Hour of day (0-23) when this frequency applies */
+  readonly hourOfDay: number;
+
+  /** Average time in minutes between consecutive trips across all variants, null if irregular */
+  readonly averageHeadwayMinutes?: number;
+
+  /** Minimum observed headway across all variants in minutes */
+  readonly minHeadwayMinutes?: number;
+
+  /** Maximum observed headway across all variants in minutes */
+  readonly maxHeadwayMinutes?: number;
+
+  /** Total number of trips across all variants during this hour */
+  readonly tripCount: number;
+
+  /** Number of active variants contributing trips during this hour */
+  readonly variantCount: number;
+
+  /** True if any variant operates without a fixed schedule pattern */
+  readonly isIrregular: boolean;
+}

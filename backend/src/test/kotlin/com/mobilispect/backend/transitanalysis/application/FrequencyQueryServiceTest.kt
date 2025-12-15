@@ -23,7 +23,8 @@ class FrequencyQueryServiceTest {
     private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
     private val variantRepository: RouteVariantRepository = mock(RouteVariantRepository::class.java)
     private val frequencyRepository: FrequencyRepository = mock(FrequencyRepository::class.java)
-    private val service = FrequencyQueryService(routeRepository, variantRepository, frequencyRepository)
+    private val hourlyFrequencyCalculationService: HourlyFrequencyCalculationService = mock(HourlyFrequencyCalculationService::class.java)
+    private val service = FrequencyQueryService(routeRepository, variantRepository, frequencyRepository, hourlyFrequencyCalculationService)
     private val mockAgency = mock(com.mobilispect.backend.agency.domain.model.Agency::class.java)
 
     @Test

@@ -2,7 +2,9 @@ package com.mobilispect.backend.transitanalysis.application
 
 import com.mobilispect.backend.config.RedisConfiguration
 import com.mobilispect.backend.transitanalysis.api.dto.FrequencyDTO
+import com.mobilispect.backend.transitanalysis.api.dto.HourlyFrequencyDTO
 import com.mobilispect.backend.transitanalysis.api.dto.RouteDTO
+import com.mobilispect.backend.transitanalysis.api.dto.RouteHourlyFrequencyDTO
 import com.mobilispect.backend.transitanalysis.api.dto.RouteVariantDTO
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
 import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
@@ -17,13 +19,15 @@ import java.time.LocalDate
  * Query service for frequency-related operations with Redis caching (T123).
  *
  * All query methods are cached with 1-hour TTL to improve performance.
+ * Hourly frequency methods use 24-hour TTL due to expensive calculation.
  * Cache is invalidated when feed imports complete (T124).
  */
 @Service
 class FrequencyQueryService(
     private val routeRepository: RouteRepository,
     private val routeVariantRepository: RouteVariantRepository,
-    private val frequencyRepository: FrequencyRepository
+    private val frequencyRepository: FrequencyRepository,
+    private val hourlyFrequencyCalculationService: HourlyFrequencyCalculationService
 ) {
     @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'route_' + #routeId")
     fun getRoute(routeId: RouteId): RouteDTO? =
@@ -77,5 +81,49 @@ class FrequencyQueryService(
                 isIrregular = it.isIrregular
             )
         }
+    }
+
+    /**
+     * Get hourly frequencies for a route on a specific service date.
+     *
+     * Returns 24 hourly frequency records (0-23), providing granular
+     * frequency data throughout the day. Cached with 24-hour TTL due to
+     * expensive calculation.
+     *
+     * @param routeId Onestop ID of the route
+     * @param serviceDate Date for which to calculate frequencies
+     * @return List of 24 hourly frequency records
+     */
+    @Cacheable(
+        value = [RedisConfiguration.FREQUENCY_CACHE],
+        key = "'hourly_route_' + #routeId + '_' + #serviceDate"
+    )
+    fun getHourlyFrequenciesForRoute(
+        routeId: RouteId,
+        serviceDate: LocalDate
+    ): List<RouteHourlyFrequencyDTO> {
+        return hourlyFrequencyCalculationService.calculateRouteHourlyFrequencies(routeId, serviceDate)
+    }
+
+    /**
+     * Get hourly frequencies for a specific variant on a specific service date.
+     *
+     * Returns 24 hourly frequency records (0-23) for a single variant,
+     * providing detailed frequency patterns throughout the day. Cached with
+     * 24-hour TTL due to expensive calculation.
+     *
+     * @param variantHash SHA-256 hash identifying the variant
+     * @param serviceDate Date for which to calculate frequencies
+     * @return List of 24 hourly frequency records
+     */
+    @Cacheable(
+        value = [RedisConfiguration.FREQUENCY_CACHE],
+        key = "'hourly_variant_' + #variantHash + '_' + #serviceDate"
+    )
+    fun getHourlyFrequenciesForVariant(
+        variantHash: VariantHash,
+        serviceDate: LocalDate
+    ): List<HourlyFrequencyDTO> {
+        return hourlyFrequencyCalculationService.calculateVariantHourlyFrequencies(variantHash, serviceDate)
     }
 }

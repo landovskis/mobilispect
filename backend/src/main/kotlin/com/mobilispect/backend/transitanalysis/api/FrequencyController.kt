@@ -1,7 +1,9 @@
 package com.mobilispect.backend.transitanalysis.api
 
 import com.mobilispect.backend.transitanalysis.api.dto.FrequencyDTO
+import com.mobilispect.backend.transitanalysis.api.dto.HourlyFrequencyDTO
 import com.mobilispect.backend.transitanalysis.api.dto.RouteDTO
+import com.mobilispect.backend.transitanalysis.api.dto.RouteHourlyFrequencyDTO
 import com.mobilispect.backend.transitanalysis.api.dto.RouteVariantDTO
 import com.mobilispect.backend.transitanalysis.application.FrequencyQueryService
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
@@ -33,4 +35,18 @@ class FrequencyController(
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate?
     ): List<FrequencyDTO> =
         frequencyQueryService.getFrequenciesForVariant(VariantHash(variantId), date)
+
+    @GetMapping("/{routeId}/hourly-frequencies")
+    fun getRouteHourlyFrequencies(
+        @PathVariable routeId: String,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate
+    ): List<RouteHourlyFrequencyDTO> =
+        frequencyQueryService.getHourlyFrequenciesForRoute(RouteId(routeId), date)
+
+    @GetMapping("/variants/{variantId}/hourly-frequencies")
+    fun getVariantHourlyFrequencies(
+        @PathVariable variantId: String,
+        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate
+    ): List<HourlyFrequencyDTO> =
+        frequencyQueryService.getHourlyFrequenciesForVariant(VariantHash(variantId), date)
 }
