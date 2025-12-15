@@ -3,6 +3,7 @@ package com.mobilispect.backend.config
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import org.slf4j.LoggerFactory
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
 import org.springframework.context.annotation.Bean
@@ -12,6 +13,7 @@ import org.springframework.data.redis.cache.RedisCacheManager
 import org.springframework.data.redis.connection.RedisConnectionFactory
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializationContext
+import org.springframework.data.redis.serializer.SerializationException
 import org.springframework.data.redis.serializer.StringRedisSerializer
 import java.time.Duration
 
@@ -42,7 +44,9 @@ import java.time.Duration
  */
 @Configuration
 @EnableCaching
-class RedisConfiguration {
+class RedisConfiguration : org.springframework.cache.annotation.CachingConfigurer {
+
+    private val logger = LoggerFactory.getLogger(RedisConfiguration::class.java)
 
     companion object {
         /**
@@ -56,10 +60,16 @@ class RedisConfiguration {
         const val DEFAULT_TTL_SECONDS = 86400L
 
         /**
+         * Cache version - increment this when Jackson serialization config changes
+         * to automatically invalidate incompatible cached data.
+         */
+        private const val CACHE_VERSION = "v1"
+
+        /**
          * Cache names for transit analysis queries (T096)
          */
-        const val AGENCY_CACHE = "agency-queries"
-        const val FREQUENCY_CACHE = "frequency-queries"
+        const val AGENCY_CACHE = "agency-queries::$CACHE_VERSION"
+        const val FREQUENCY_CACHE = "frequency-queries::$CACHE_VERSION"
 
         /**
          * Cache TTL for agency queries (24 hours) - T096
@@ -107,6 +117,9 @@ class RedisConfiguration {
             .activateDefaultTyping(
                 BasicPolymorphicTypeValidator.builder()
                     .allowIfBaseType(Any::class.java)
+                    .allowIfSubType(java.util.List::class.java)
+                    .allowIfSubType(java.util.ArrayList::class.java)
+                    .allowIfSubType(java.util.Collections::class.java)
                     .build(),
                 ObjectMapper.DefaultTyping.NON_FINAL
             )
@@ -121,6 +134,7 @@ class RedisConfiguration {
                 )
             )
             .entryTtl(Duration.ofMinutes(5)) // Default 5-minute TTL
+            .disableCachingNullValues() // Don't cache null values
 
         val cacheConfigurations = mapOf(
             AGENCY_CACHE to defaultConfig.entryTtl(AGENCY_TTL),
@@ -130,6 +144,48 @@ class RedisConfiguration {
         return RedisCacheManager.builder(connectionFactory)
             .cacheDefaults(defaultConfig)
             .withInitialCacheConfigurations(cacheConfigurations)
+            .transactionAware() // Make cache operations participate in transactions
             .build()
+    }
+
+    /**
+     * Error handler for Redis cache operations.
+     * Logs serialization errors and allows the application to continue by falling back to direct queries.
+     */
+    override fun errorHandler(): org.springframework.cache.interceptor.CacheErrorHandler {
+        return object : org.springframework.cache.interceptor.CacheErrorHandler {
+            override fun handleCacheGetError(exception: RuntimeException, cache: org.springframework.cache.Cache, key: Any) {
+                if (exception.cause is SerializationException) {
+                    logger.warn(
+                        "Cache deserialization failed for cache '{}' and key '{}'. " +
+                        "This may indicate a cache version mismatch. The cache entry will be evicted and regenerated. " +
+                        "Error: {}",
+                        cache.name,
+                        key,
+                        exception.message
+                    )
+                    // Evict the problematic entry so it will be regenerated
+                    try {
+                        cache.evict(key)
+                    } catch (e: Exception) {
+                        logger.error("Failed to evict cache entry: {}", e.message)
+                    }
+                } else {
+                    logger.error("Cache get error for cache '{}' and key '{}': {}", cache.name, key, exception.message, exception)
+                }
+            }
+
+            override fun handleCachePutError(exception: RuntimeException, cache: org.springframework.cache.Cache, key: Any, value: Any?) {
+                logger.error("Cache put error for cache '{}' and key '{}': {}", cache.name, key, exception.message, exception)
+            }
+
+            override fun handleCacheEvictError(exception: RuntimeException, cache: org.springframework.cache.Cache, key: Any) {
+                logger.error("Cache evict error for cache '{}' and key '{}': {}", cache.name, key, exception.message, exception)
+            }
+
+            override fun handleCacheClearError(exception: RuntimeException, cache: org.springframework.cache.Cache) {
+                logger.error("Cache clear error for cache '{}': {}", cache.name, exception.message, exception)
+            }
+        }
     }
 }
