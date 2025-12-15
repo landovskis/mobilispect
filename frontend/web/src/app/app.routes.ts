@@ -41,6 +41,13 @@ export const routes: Routes = [
         }
       },
       {
+        path: 'routes/:routeId',
+        loadComponent: () => import('./transit-frequency/pages/route-detail/route-detail-page.component').then(m => m.RouteDetailPageComponent),
+        data: {
+          breadcrumb: 'Route Details'
+        }
+      },
+      {
         path: '**',
         redirectTo: '/feeds/discover'
       }
