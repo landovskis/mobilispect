@@ -72,7 +72,7 @@ class HourlyFrequencyCalculationServiceImpl(
         routeId: RouteId,
         serviceDate: LocalDate
     ): List<RouteHourlyFrequencyDTO> {
-        val route = routeRepository.findById(routeId).orElse(null)
+        val route = routeRepository.findByRouteId(routeId).orElse(null)
             ?: run {
                 logger.warn("Route not found: {}", routeId)
                 return emptyList()

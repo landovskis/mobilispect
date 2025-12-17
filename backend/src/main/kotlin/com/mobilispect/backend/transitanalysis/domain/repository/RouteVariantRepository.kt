@@ -30,7 +30,7 @@ interface RouteVariantRepository : JpaRepository<RouteVariant, VariantHash> {
      * @param routeId The route ID to search within
      * @return List of variants belonging to the specified route
      */
-    @Query("SELECT rv FROM RouteVariant rv WHERE rv.route.id = :routeId ORDER BY rv.stopCount ASC, rv.id ASC")
+    @Query("SELECT rv FROM RouteVariant rv JOIN rv.route r WHERE r.id = :routeId ORDER BY rv.stopCount ASC, rv.id ASC")
     fun findByRouteId(
         @Param("routeId") routeId: com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
     ): List<RouteVariant>
@@ -102,7 +102,7 @@ interface RouteVariantRepository : JpaRepository<RouteVariant, VariantHash> {
      * @param pageable Pagination parameters
      * @return Page of variants with the specified stop count
      */
-    @Query("SELECT rv FROM RouteVariant rv WHERE rv.stopCount = :stopCount ORDER BY rv.route.id ASC, rv.id ASC")
+    @Query("SELECT rv FROM RouteVariant rv JOIN rv.route r WHERE rv.stopCount = :stopCount ORDER BY r.id ASC, rv.id ASC")
     fun findByStopCount(
         @Param("stopCount") stopCount: Int,
         pageable: Pageable
@@ -115,7 +115,7 @@ interface RouteVariantRepository : JpaRepository<RouteVariant, VariantHash> {
      * @param pageable Pagination parameters
      * @return Page of variants with the specified active status
      */
-    @Query("SELECT rv FROM RouteVariant rv WHERE rv.active = :active ORDER BY rv.route.id ASC, rv.stopCount ASC")
+    @Query("SELECT rv FROM RouteVariant rv JOIN rv.route r WHERE rv.active = :active ORDER BY r.id ASC, rv.stopCount ASC")
     fun findByActive(
         @Param("active") active: Boolean,
         pageable: Pageable
@@ -163,7 +163,7 @@ interface RouteVariantRepository : JpaRepository<RouteVariant, VariantHash> {
      * @param pageable Pagination parameters
      * @return Page of variants with the specified first and last stops
      */
-    @Query("SELECT rv FROM RouteVariant rv WHERE rv.firstStopId = :firstStopId AND rv.lastStopId = :lastStopId ORDER BY rv.route.id ASC")
+    @Query("SELECT rv FROM RouteVariant rv JOIN rv.route r WHERE rv.firstStopId = :firstStopId AND rv.lastStopId = :lastStopId ORDER BY r.id ASC")
     fun findByFirstStopIdAndLastStopId(
         @Param("firstStopId") firstStopId: String,
         @Param("lastStopId") lastStopId: String,

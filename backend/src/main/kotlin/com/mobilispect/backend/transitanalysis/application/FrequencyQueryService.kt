@@ -31,7 +31,7 @@ class FrequencyQueryService(
 ) {
     @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'route_' + #routeId")
     fun getRoute(routeId: RouteId): RouteDTO? =
-        routeRepository.findById(routeId).orElse(null)?.let {
+        routeRepository.findByRouteId(routeId).orElse(null)?.let {
             RouteDTO(
                 id = it.id.value,
                 agencyId = it.agency.agencyOnestopId.value,

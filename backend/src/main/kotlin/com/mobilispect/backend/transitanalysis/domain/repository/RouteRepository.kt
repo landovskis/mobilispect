@@ -23,6 +23,15 @@ import java.time.Instant
 interface RouteRepository : JpaRepository<Route, RouteId> {
 
     /**
+     * Find a route by its ID.
+     *
+     * This method is needed because Hibernate's findById doesn't properly convert
+     * the RouteId value class for ID lookups. Use this instead of findById(RouteId).
+     */
+    @Query("SELECT r FROM Route r WHERE r.id = :routeId")
+    fun findByRouteId(@Param("routeId") routeId: RouteId): java.util.Optional<Route>
+
+    /**
      * Find all routes operated by a specific agency.
      *
      * @param agency The agency entity to search within
