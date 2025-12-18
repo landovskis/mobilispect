@@ -21,7 +21,6 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
       </app-brand-badge>
       <div class="route-details">
         <div class="route-name">{{ route.longName }}</div>
-        <div class="route-type">{{ getRouteTypeLabel(route.routeType) }}</div>
       </div>
       <div class="route-status" [class.active]="route.active">
         {{ route.active ? 'Active' : 'Inactive' }}
@@ -90,22 +89,6 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
 })
 export class AgencyRouteCardComponent {
   @Input({ required: true }) route!: RouteDTO;
-
-  getRouteTypeLabel(routeType: string): string {
-    const labels: Record<string, string> = {
-      'TRAM': 'Tram/Light Rail',
-      'SUBWAY': 'Subway/Metro',
-      'RAIL': 'Rail',
-      'BUS': 'Bus',
-      'FERRY': 'Ferry',
-      'CABLE_TRAM': 'Cable Tram',
-      'AERIAL_LIFT': 'Aerial Lift',
-      'FUNICULAR': 'Funicular',
-      'TROLLEYBUS': 'Trolleybus',
-      'MONORAIL': 'Monorail'
-    };
-    return labels[routeType] || routeType;
-  }
 
   getRouteTypeIconName(routeType: string): string {
     const icons: Record<string, string> = {
