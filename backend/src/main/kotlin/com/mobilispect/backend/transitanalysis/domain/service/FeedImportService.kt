@@ -169,11 +169,17 @@ class FeedImportServiceImpl(
 
     private fun persistRoutes(feedEntity: FeedEntity, parsed: ParsedGtfsData, agencyMap: Map<String, Agency>): Map<String, Route> {
         val routes = parsed.routes.map { parsedRoute ->
-            val routeId = RouteId(parsedRoute.routeId)
             // Find the agency for this route, fallback to first agency if not specified
             val agency = parsedRoute.agencyId?.let { agencyMap[it] } ?: agencyMap.values.first()
+
+            // Generate Onestop ID format: r-{geohash}-{route_identifier}
+            // Extract geohash from agency onestop ID (o-geohash-name -> geohash)
+            val geohash = agency.agencyOnestopId.value.substringAfter("o-").substringBefore("-")
+            val routeIdentifier = parsedRoute.routeId.lowercase().replace(Regex("[^a-z0-9]+"), "~")
+            val routeOnestopId = RouteId("r-$geohash-$routeIdentifier")
+
             val route = Route(
-                id = routeId,
+                id = routeOnestopId,
                 agency = agency,
                 gtfsRouteId = parsedRoute.routeId,
                 shortName = parsedRoute.shortName,

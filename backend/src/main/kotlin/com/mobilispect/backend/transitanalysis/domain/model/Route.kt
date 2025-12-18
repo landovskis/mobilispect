@@ -21,7 +21,7 @@ import java.time.Instant
 /**
  * Named transit line operated by an agency.
  *
- * @property id Unique route identifier
+ * @property id Unique route identifier in Transitland Onestop ID format (r-{geohash}-{route_identifier})
  * @property agency Agency that operates this route
  * @property gtfsRouteId Route ID from GTFS routes.txt file
  * @property shortName Short route name (e.g., "5", "Red Line")
@@ -38,8 +38,8 @@ import java.time.Instant
 class Route(
     @Id
     @Convert(converter = RouteIdConverter::class)
-    @Column(name = "id", nullable = false, updatable = false, columnDefinition = "VARCHAR(50)")
-    val id: RouteId = RouteId(""),
+    @Column(name = "id", nullable = false, updatable = false, columnDefinition = "VARCHAR(255)")
+    val id: RouteId = RouteId("r-placeholder"),
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agency_onestop_id", nullable = false)
