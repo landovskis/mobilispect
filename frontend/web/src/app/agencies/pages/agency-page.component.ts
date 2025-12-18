@@ -5,15 +5,14 @@ import { AgencyService } from '../services/agency.service';
 import { AgencySummary } from '../../transit-frequency/models/agency.model';
 import { RouteDTO } from '../models/route.model';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
-import { MatIconModule } from '@angular/material/icon';
+import { AgencyRouteCardComponent } from '../components/agency-route-card.component';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.model';
 
 @Component({
   selector: 'app-agency-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, BrandSectionComponent, MatIconModule],
+  imports: [CommonModule, RouterModule, BrandSectionComponent, AgencyRouteCardComponent],
   template: `
     <app-brand-section
       [title]="(agency$ | async)?.name || 'Agency Details'"
@@ -42,23 +41,10 @@ import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.mode
       icon="route">
       <ng-container *ngIf="routes$ | async as routesResponse; else loadingRoutes">
         <div class="routes-list">
-          <a
+          <app-agency-route-card
             *ngFor="let route of routesResponse.content"
-            class="route-item"
-            [routerLink]="['/routes', route.id]"
-            [attr.aria-label]="'View route ' + (route.shortName || route.longName)">
-            <div class="route-badge" [class.inactive]="!route.active">
-              <mat-icon aria-hidden="true">{{ getRouteTypeIconName(route.routeType) }}</mat-icon>
-              <span class="route-short">{{ route.shortName || route.longName }}</span>
-            </div>
-            <div class="route-details">
-              <div class="route-name">{{ route.longName }}</div>
-              <div class="route-type">{{ getRouteTypeLabel(route.routeType) }}</div>
-            </div>
-            <div class="route-status" [class.active]="route.active">
-              {{ route.active ? 'Active' : 'Inactive' }}
-            </div>
-          </a>
+            [route]="route">
+          </app-agency-route-card>
         </div>
         <p *ngIf="routesResponse.content.length === 0" class="no-routes">
           No routes found for this agency.
@@ -108,89 +94,6 @@ import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.mode
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     }
 
-    .route-item {
-      text-decoration: none;
-      color: inherit;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 12px;
-      padding: 16px 14px;
-      border-radius: 8px;
-      background: var(--mat-sys-surface-container, #f5f5f5);
-      border: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
-      transition: border-color 0.2s ease, background-color 0.2s ease;
-    }
-
-    .route-badge {
-      min-width: 72px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      background: var(--mat-sys-primary, #1976d2);
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 14px;
-      text-align: center;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      justify-content: center;
-    }
-
-    .route-badge.inactive {
-      background: var(--mat-sys-surface-variant, #ddd);
-      color: #ffffff;
-    }
-
-    .route-details {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .route-name {
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--mat-sys-on-surface, #333);
-    }
-
-    .route-type {
-      font-size: 13px;
-      color: var(--mat-sys-on-surface-variant, #6b7280);
-    }
-
-    .route-status {
-      font-size: 12px;
-      font-weight: 500;
-      padding: 4px 12px;
-      border-radius: 12px;
-      background: var(--mat-sys-surface-variant, #e0e0e0);
-      color: var(--mat-sys-on-surface-variant, #666);
-    }
-
-    .route-status.active {
-      background: var(--mat-sys-tertiary-container, #c8e6c9);
-      color: var(--mat-sys-on-tertiary-container, #1b5e20);
-    }
-
-    .route-item:hover {
-      border-color: var(--mat-sys-primary, #1976d2);
-      background: var(--mat-sys-surface-container-high, #eef5ff);
-    }
-
-    .route-short {
-      display: inline-block;
-      min-width: 32px;
-      text-align: center;
-    }
-
-    .route-badge mat-icon {
-      color: #ffffff !important;
-      font-size: 18px;
-      line-height: 1;
-      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
-    }
-
     .routes-list .route-item:nth-child(odd) {
       background: var(--mat-sys-surface-container-high, #f9fafb);
     }
@@ -224,22 +127,6 @@ export class AgencyPageComponent implements OnInit {
         }))
       );
     }
-  }
-
-  getRouteTypeLabel(routeType: string): string {
-    const labels: Record<string, string> = {
-      'TRAM': 'Tram/Light Rail',
-      'SUBWAY': 'Subway/Metro',
-      'RAIL': 'Rail',
-      'BUS': 'Bus',
-      'FERRY': 'Ferry',
-      'CABLE_TRAM': 'Cable Tram',
-      'AERIAL_LIFT': 'Aerial Lift',
-      'FUNICULAR': 'Funicular',
-      'TROLLEYBUS': 'Trolleybus',
-      'MONORAIL': 'Monorail'
-    };
-    return labels[routeType] || routeType;
   }
 
   private sortRoutes(routes: RouteDTO[]): RouteDTO[] {
