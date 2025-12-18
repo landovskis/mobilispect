@@ -7,6 +7,7 @@ import { RouteDTO } from '../models/route.model';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.model';
 
 @Component({
   selector: 'app-agency-page',
@@ -46,7 +47,8 @@ import { map } from 'rxjs/operators';
             [routerLink]="['/routes', route.id]"
             [attr.aria-label]="'View route ' + (route.shortName || route.longName)">
             <div class="route-badge" [class.inactive]="!route.active">
-              {{ route.shortName || route.longName }}
+              <mat-icon aria-hidden="true">{{ getRouteTypeIcon(route.routeType) }}</mat-icon>
+              <span class="route-short">{{ route.shortName || route.longName }}</span>
             </div>
             <div class="route-details">
               <div class="route-name">{{ route.longName }}</div>
@@ -119,7 +121,7 @@ import { map } from 'rxjs/operators';
     }
 
     .route-badge {
-      min-width: 60px;
+      min-width: 72px;
       padding: 8px 12px;
       border-radius: 6px;
       background: var(--mat-sys-primary, #1976d2);
@@ -127,6 +129,10 @@ import { map } from 'rxjs/operators';
       font-weight: 600;
       font-size: 14px;
       text-align: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
     }
 
     .route-badge.inactive {
@@ -169,6 +175,12 @@ import { map } from 'rxjs/operators';
     .route-item:hover {
       border-color: var(--mat-sys-primary, #1976d2);
       background: var(--mat-sys-surface-container-high, #eef5ff);
+    }
+
+    .route-short {
+      display: inline-block;
+      min-width: 32px;
+      text-align: center;
     }
 
     .routes-list .route-item:nth-child(odd) {
