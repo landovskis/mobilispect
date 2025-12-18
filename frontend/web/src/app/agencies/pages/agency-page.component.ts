@@ -126,7 +126,7 @@ import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.mode
       padding: 8px 12px;
       border-radius: 6px;
       background: var(--mat-sys-primary, #1976d2);
-      color: var(--mat-sys-on-primary, #fff);
+      color: #ffffff;
       font-weight: 600;
       font-size: 14px;
       text-align: center;
@@ -138,7 +138,7 @@ import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.mode
 
     .route-badge.inactive {
       background: var(--mat-sys-surface-variant, #ddd);
-      color: var(--mat-sys-on-surface-variant, #666);
+      color: #ffffff;
     }
 
     .route-details {
@@ -182,6 +182,13 @@ import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.mode
       display: inline-block;
       min-width: 32px;
       text-align: center;
+    }
+
+    .route-badge mat-icon {
+      color: #ffffff !important;
+      font-size: 18px;
+      line-height: 1;
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
     }
 
     .routes-list .route-item:nth-child(odd) {
@@ -263,6 +270,19 @@ export class AgencyPageComponent implements OnInit {
   }
 
   getRouteTypeIconName(routeType: string): string {
-    return getRouteTypeIcon(routeType as any);
+    const icons: Record<string, string> = {
+      'TRAM': 'tram',
+      'SUBWAY': 'subway',
+      'RAIL': 'train',
+      'BUS': 'directions_bus',
+      'FERRY': 'directions_boat',
+      'CABLE_TRAM': 'cable_car',
+      'AERIAL_LIFT': 'cable_car',
+      'FUNICULAR': 'tram',
+      'TROLLEYBUS': 'electric_bus',
+      'MONORAIL': 'train'
+    };
+
+    return icons[routeType] || getRouteTypeIcon(routeType as any);
   }
 }
