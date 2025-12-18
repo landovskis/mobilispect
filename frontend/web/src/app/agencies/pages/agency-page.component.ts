@@ -5,6 +5,7 @@ import { AgencyService } from '../services/agency.service';
 import { AgencySummary } from '../../transit-frequency/models/agency.model';
 import { RouteDTO } from '../models/route.model';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
+import { MatIconModule } from '@angular/material/icon';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.model';
@@ -12,7 +13,7 @@ import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.mode
 @Component({
   selector: 'app-agency-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, BrandSectionComponent],
+  imports: [CommonModule, RouterModule, BrandSectionComponent, MatIconModule],
   template: `
     <app-brand-section
       [title]="(agency$ | async)?.name || 'Agency Details'"
@@ -47,7 +48,7 @@ import { getRouteTypeIcon } from '../../transit-frequency/models/route-type.mode
             [routerLink]="['/routes', route.id]"
             [attr.aria-label]="'View route ' + (route.shortName || route.longName)">
             <div class="route-badge" [class.inactive]="!route.active">
-              <mat-icon aria-hidden="true">{{ getRouteTypeIcon(route.routeType) }}</mat-icon>
+              <mat-icon aria-hidden="true">{{ getRouteTypeIconName(route.routeType) }}</mat-icon>
               <span class="route-short">{{ route.shortName || route.longName }}</span>
             </div>
             <div class="route-details">
@@ -259,5 +260,9 @@ export class AgencyPageComponent implements OnInit {
       number: Number.isNaN(numericValue) ? undefined : numericValue,
       text: shortName || longName || route.id
     };
+  }
+
+  getRouteTypeIconName(routeType: string): string {
+    return getRouteTypeIcon(routeType as any);
   }
 }

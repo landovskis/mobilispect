@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
 import { MetropolitanRegionDetail, FeedStatus } from '../../feeds/models/region.models';
-import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -20,7 +19,7 @@ interface RegionSummary {
 @Component({
   selector: 'app-region-detail',
   standalone: true,
-  imports: [CommonModule, BrandCardComponent, BrandSectionComponent, AgencyCardComponent],
+  imports: [CommonModule, BrandSectionComponent, AgencyCardComponent],
   template: `
     <app-brand-section
       [title]="(summary$ | async)?.name || 'Summary'"
