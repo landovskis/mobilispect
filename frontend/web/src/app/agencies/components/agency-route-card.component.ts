@@ -15,7 +15,6 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
       [routerLink]="['/routes', route.id]"
       [attr.aria-label]="'View route ' + (route.shortName || route.longName)">
       <app-brand-badge
-        class="route-badge"
         [variant]="route.active ? 'neutral' : 'indeterminate'"
         [icon]="getRouteTypeIconName(route.routeType)"
         [label]="route.shortName || route.longName">
@@ -41,21 +40,6 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
       background: var(--mat-sys-surface-container, #f5f5f5);
       border: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
       transition: border-color 0.2s ease, background-color 0.2s ease;
-    }
-
-    .route-badge {
-      min-width: 72px;
-      gap: 8px;
-      padding: 6px 10px;
-      font-weight: 700;
-      text-transform: none;
-      background: var(--mat-sys-primary, #1976d2);
-      color: #ffffff;
-    }
-
-    .route-badge.indeterminate {
-      background: var(--mat-sys-surface-variant, #ddd);
-      color: #ffffff;
     }
 
     .route-details {
@@ -100,12 +84,6 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
       font-size: 18px;
       line-height: 1;
       font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
-    }
-
-    .route-badge .badge-label {
-      min-width: 32px;
-      text-align: center;
-      justify-content: center;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
