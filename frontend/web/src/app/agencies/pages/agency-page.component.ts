@@ -155,21 +155,4 @@ export class AgencyPageComponent implements OnInit {
       text: shortName || longName || route.id
     };
   }
-
-  getRouteTypeIconName(routeType: string): string {
-    const icons: Record<string, string> = {
-      'TRAM': 'tram',
-      'SUBWAY': 'subway',
-      'RAIL': 'train',
-      'BUS': 'directions_bus',
-      'FERRY': 'directions_boat',
-      'CABLE_TRAM': 'cable_car',
-      'AERIAL_LIFT': 'cable_car',
-      'FUNICULAR': 'tram',
-      'TROLLEYBUS': 'electric_bus',
-      'MONORAIL': 'train'
-    };
-
-    return icons[routeType] || getRouteTypeIcon(routeType as any);
-  }
 }
