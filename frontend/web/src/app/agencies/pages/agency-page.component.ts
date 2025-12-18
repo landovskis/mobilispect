@@ -6,6 +6,7 @@ import { AgencySummary } from '../../transit-frequency/models/agency.model';
 import { RouteDTO } from '../models/route.model';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-agency-page',
@@ -196,7 +197,12 @@ export class AgencyPageComponent implements OnInit {
     const agencyId = this.route.snapshot.paramMap.get('agencyId');
     if (agencyId) {
       this.agency$ = this.agencyService.getAgency(agencyId);
-      this.routes$ = this.agencyService.listRoutesByAgency(agencyId, 0, 500);
+      this.routes$ = this.agencyService.listRoutesByAgency(agencyId, 0, 500).pipe(
+        map(response => ({
+          ...response,
+          content: this.sortRoutes(response.content)
+        }))
+      );
     }
   }
 
@@ -214,5 +220,32 @@ export class AgencyPageComponent implements OnInit {
       'MONORAIL': 'Monorail'
     };
     return labels[routeType] || routeType;
+  }
+
+  private sortRoutes(routes: RouteDTO[]): RouteDTO[] {
+    return [...routes].sort((a, b) => {
+      const keyA = this.getRouteSortKey(a);
+      const keyB = this.getRouteSortKey(b);
+
+      if (keyA.number !== undefined && keyB.number !== undefined && keyA.number !== keyB.number) {
+        return keyA.number - keyB.number;
+      }
+
+      if (keyA.number !== undefined && keyB.number === undefined) return -1;
+      if (keyA.number === undefined && keyB.number !== undefined) return 1;
+
+      return keyA.text.localeCompare(keyB.text, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  private getRouteSortKey(route: RouteDTO): { number?: number; text: string } {
+    const shortName = route.shortName?.trim() || '';
+    const longName = route.longName?.trim() || '';
+    const numericValue = shortName !== '' ? Number(shortName) : NaN;
+
+    return {
+      number: Number.isNaN(numericValue) ? undefined : numericValue,
+      text: shortName || longName || route.id
+    };
   }
 }
