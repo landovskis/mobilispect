@@ -1,15 +1,17 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 
 type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral' | 'indeterminate';
 
 @Component({
   selector: 'app-brand-badge',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatIconModule],
   template: `
     <span class="brand-badge" [ngClass]="variant">
-      {{ label || variant }}
+      <mat-icon *ngIf="icon" aria-hidden="true">{{ icon }}</mat-icon>
+      <span class="badge-label">{{ label || variant }}</span>
     </span>
   `,
   styles: [`
@@ -51,10 +53,21 @@ type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral' | 'indeterminate';
       background: rgba(59, 130, 246, 0.16);
       color: #1d4ed8;
     }
+
+    .brand-badge mat-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .badge-label {
+      display: inline-flex;
+      align-items: center;
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class BrandBadgeComponent {
   @Input() variant: BrandBadgeVariant = 'neutral';
   @Input() label?: string;
+  @Input() icon?: string;
 }

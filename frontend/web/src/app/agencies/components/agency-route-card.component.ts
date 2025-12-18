@@ -3,20 +3,23 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { RouteDTO } from '../models/route.model';
+import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
 
 @Component({
   selector: 'app-agency-route-card',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [CommonModule, RouterModule, MatIconModule, BrandBadgeComponent],
   template: `
     <a
       class="route-item"
       [routerLink]="['/routes', route.id]"
       [attr.aria-label]="'View route ' + (route.shortName || route.longName)">
-      <div class="route-badge" [class.inactive]="!route.active">
-        <mat-icon aria-hidden="true">{{ getRouteTypeIconName(route.routeType) }}</mat-icon>
-        <span class="route-short">{{ route.shortName || route.longName }}</span>
-      </div>
+      <app-brand-badge
+        class="route-badge"
+        [variant]="route.active ? 'neutral' : 'indeterminate'"
+        [icon]="getRouteTypeIconName(route.routeType)"
+        [label]="route.shortName || route.longName">
+      </app-brand-badge>
       <div class="route-details">
         <div class="route-name">{{ route.longName }}</div>
         <div class="route-type">{{ getRouteTypeLabel(route.routeType) }}</div>
@@ -42,20 +45,15 @@ import { RouteDTO } from '../models/route.model';
 
     .route-badge {
       min-width: 72px;
-      padding: 8px 12px;
-      border-radius: 6px;
+      gap: 8px;
+      padding: 6px 10px;
+      font-weight: 700;
+      text-transform: none;
       background: var(--mat-sys-primary, #1976d2);
       color: #ffffff;
-      font-weight: 600;
-      font-size: 14px;
-      text-align: center;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      justify-content: center;
     }
 
-    .route-badge.inactive {
+    .route-badge.indeterminate {
       background: var(--mat-sys-surface-variant, #ddd);
       color: #ffffff;
     }
@@ -97,17 +95,17 @@ import { RouteDTO } from '../models/route.model';
       background: var(--mat-sys-surface-container-high, #eef5ff);
     }
 
-    .route-short {
-      display: inline-block;
-      min-width: 32px;
-      text-align: center;
-    }
-
     .route-badge mat-icon {
       color: #ffffff !important;
       font-size: 18px;
       line-height: 1;
       font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+    }
+
+    .route-badge .badge-label {
+      min-width: 32px;
+      text-align: center;
+      justify-content: center;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
