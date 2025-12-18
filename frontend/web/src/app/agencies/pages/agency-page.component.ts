@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { AgencyService } from '../services/agency.service';
 import { AgencySummary } from '../../transit-frequency/models/agency.model';
 import { RouteDTO } from '../models/route.model';
@@ -10,7 +10,7 @@ import { Observable } from 'rxjs';
 @Component({
   selector: 'app-agency-page',
   standalone: true,
-  imports: [CommonModule, BrandSectionComponent],
+  imports: [CommonModule, RouterModule, BrandSectionComponent],
   template: `
     <app-brand-section
       [title]="(agency$ | async)?.name || 'Agency Details'"
@@ -39,7 +39,11 @@ import { Observable } from 'rxjs';
       icon="route">
       <ng-container *ngIf="routes$ | async as routesResponse; else loadingRoutes">
         <div class="routes-list">
-          <div *ngFor="let route of routesResponse.content" class="route-item">
+          <a
+            *ngFor="let route of routesResponse.content"
+            class="route-item"
+            [routerLink]="['/routes', route.id]"
+            [attr.aria-label]="'View route ' + (route.shortName || route.longName)">
             <div class="route-badge" [class.inactive]="!route.active">
               {{ route.shortName || route.longName }}
             </div>
@@ -50,7 +54,7 @@ import { Observable } from 'rxjs';
             <div class="route-status" [class.active]="route.active">
               {{ route.active ? 'Active' : 'Inactive' }}
             </div>
-          </div>
+          </a>
         </div>
         <p *ngIf="routesResponse.content.length === 0" class="no-routes">
           No routes found for this agency.
@@ -101,6 +105,8 @@ import { Observable } from 'rxjs';
     }
 
     .route-item {
+      text-decoration: none;
+      color: inherit;
       display: flex;
       align-items: center;
       gap: 16px;
@@ -108,6 +114,7 @@ import { Observable } from 'rxjs';
       border-radius: 8px;
       background: var(--mat-sys-surface-container, #f5f5f5);
       border: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
+      transition: border-color 0.2s ease, background-color 0.2s ease;
     }
 
     .route-badge {
@@ -156,6 +163,11 @@ import { Observable } from 'rxjs';
     .route-status.active {
       background: var(--mat-sys-tertiary-container, #c8e6c9);
       color: var(--mat-sys-on-tertiary-container, #1b5e20);
+    }
+
+    .route-item:hover {
+      border-color: var(--mat-sys-primary, #1976d2);
+      background: var(--mat-sys-surface-container-high, #eef5ff);
     }
 
     .no-routes {

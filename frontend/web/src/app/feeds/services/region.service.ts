@@ -138,6 +138,13 @@ export class RegionService {
   }
 
   /**
+   * Gets a region from the in-memory cache (if available)
+   */
+  getCachedRegion(regionOnestopId: string): MetropolitanRegion | undefined {
+    return this.regionsCache$.value?.find(region => region.regionOnestopId === regionOnestopId);
+  }
+
+  /**
    * Gets the current cached regions (for reactive components)
    */
   getCachedRegions(): Observable<MetropolitanRegion[] | null> {
