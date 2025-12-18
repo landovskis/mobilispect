@@ -196,7 +196,7 @@ export class AgencyPageComponent implements OnInit {
     const agencyId = this.route.snapshot.paramMap.get('agencyId');
     if (agencyId) {
       this.agency$ = this.agencyService.getAgency(agencyId);
-      this.routes$ = this.agencyService.listRoutesByAgency(agencyId);
+      this.routes$ = this.agencyService.listRoutesByAgency(agencyId, 0, 500);
     }
   }
 

@@ -29,7 +29,7 @@ export class AgencyService {
     return this.http.get<AgencySummary>(`${this.apiUrl}/agencies/${agencyId}`);
   }
 
-  listRoutesByAgency(agencyId: string, page: number = 0, size: number = 100): Observable<RouteListResponse> {
+  listRoutesByAgency(agencyId: string, page: number = 0, size: number = 500): Observable<RouteListResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
