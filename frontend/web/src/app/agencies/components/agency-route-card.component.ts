@@ -22,9 +22,6 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
       <div class="route-details">
         <div class="route-name">{{ route.longName }}</div>
       </div>
-      <div class="route-status" [class.active]="route.active">
-        {{ route.active ? 'Active' : 'Inactive' }}
-      </div>
     </a>
   `,
   styles: [`
@@ -57,20 +54,6 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
     .route-type {
       font-size: 13px;
       color: var(--mat-sys-on-surface-variant, #6b7280);
-    }
-
-    .route-status {
-      font-size: 12px;
-      font-weight: 500;
-      padding: 4px 12px;
-      border-radius: 12px;
-      background: var(--mat-sys-surface-variant, #e0e0e0);
-      color: var(--mat-sys-on-surface-variant, #666);
-    }
-
-    .route-status.active {
-      background: var(--mat-sys-tertiary-container, #c8e6c9);
-      color: var(--mat-sys-on-tertiary-container, #1b5e20);
     }
 
     .route-item:hover {
