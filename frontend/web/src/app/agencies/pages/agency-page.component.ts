@@ -99,18 +99,18 @@ import { Observable } from 'rxjs';
     }
 
     .routes-list {
-      display: flex;
-      flex-direction: column;
+      display: grid;
       gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     }
 
     .route-item {
       text-decoration: none;
       color: inherit;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      padding: 16px 14px;
       border-radius: 8px;
       background: var(--mat-sys-surface-container, #f5f5f5);
       border: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
@@ -168,6 +168,10 @@ import { Observable } from 'rxjs';
     .route-item:hover {
       border-color: var(--mat-sys-primary, #1976d2);
       background: var(--mat-sys-surface-container-high, #eef5ff);
+    }
+
+    .routes-list .route-item:nth-child(odd) {
+      background: var(--mat-sys-surface-container-high, #f9fafb);
     }
 
     .no-routes {
