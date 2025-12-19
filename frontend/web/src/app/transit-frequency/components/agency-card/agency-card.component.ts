@@ -11,12 +11,8 @@ import { BrandBadgeComponent } from '../../../shared/components/brand-badge.comp
   imports: [CommonModule, RouterModule, BrandCardComponent, BrandBadgeComponent],
   template: `
     <a [routerLink]="['/agencies', agency.id]" class="agency-card-link">
-      <app-brand-card [title]="agency.name" [badge]="agency.routeCount + ' routes'">
+      <app-brand-card [title]="agency.name">
         <div class="meta" aria-label="agency details" role="list">
-          <app-brand-badge
-            role="listitem"
-            variant="neutral"
-            [label]="agency.activeRouteCount + ' active'"></app-brand-badge>
           @if (agency.routesByType && hasRoutes) {
             <div class="route-types">
               @for (type of routeTypes; track type) {
