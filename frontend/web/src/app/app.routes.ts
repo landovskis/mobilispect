@@ -34,11 +34,17 @@ export const routes: Routes = [
         }
       },
       {
-        path: 'agencies/:agencyId',
-        loadComponent: () => import('./agencies/pages/agency-page.component').then(m => m.AgencyPageComponent),
-        resolve: {
-          breadcrumb: (await import('./agencies/resolvers/agency-breadcrumb.resolver')).AgencyBreadcrumbResolver
-        }
+        path: 'agencies',
+        data: { breadcrumb: 'Agencies' },
+        children: [
+          {
+            path: ':agencyId',
+            loadComponent: () => import('./agencies/pages/agency-page.component').then(m => m.AgencyPageComponent),
+            resolve: {
+              breadcrumb: (await import('./agencies/resolvers/agency-breadcrumb.resolver')).AgencyBreadcrumbResolver
+            }
+          }
+        ]
       },
       {
         path: 'routes/:routeId',
