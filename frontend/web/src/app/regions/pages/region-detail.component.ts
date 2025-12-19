@@ -132,7 +132,12 @@ export class RegionDetailComponent implements OnInit {
     const regionId = this.route.snapshot.paramMap.get('regionId');
     if (regionId) {
       this.region$ = this.regionService.getRegion(regionId);
-      this.agencies$ = this.agencyService.listAgencies(0, 100, regionId);
+      this.agencies$ = this.agencyService.listAgencies(0, 100, regionId).pipe(
+        map(response => ({
+          ...response,
+          content: [...response.content].sort((a, b) => a.name.localeCompare(b.name))
+        }))
+      );
 
       // Compute summary from region and agencies data
       this.summary$ = combineLatest([this.region$, this.agencies$]).pipe(
