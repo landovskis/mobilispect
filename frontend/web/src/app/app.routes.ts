@@ -36,8 +36,8 @@ export const routes: Routes = [
       {
         path: 'agencies/:agencyId',
         loadComponent: () => import('./agencies/pages/agency-page.component').then(m => m.AgencyPageComponent),
-        data: {
-          breadcrumb: 'Agency Details'
+        resolve: {
+          breadcrumb: (await import('./agencies/resolvers/agency-breadcrumb.resolver')).AgencyBreadcrumbResolver
         }
       },
       {
