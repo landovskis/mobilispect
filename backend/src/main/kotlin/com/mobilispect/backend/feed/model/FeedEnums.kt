@@ -69,17 +69,6 @@ enum class ImportStatus(val dbValue: String) {
     }
 }
 
-enum class LogLevel(val dbValue: String) {
-    INFO("info"),
-    WARN("warn"),
-    ERROR("error");
-
-    companion object {
-        private val byDbValue = values().associateBy { it.dbValue }
-        fun fromDb(value: String?): LogLevel? = value?.let(byDbValue::get)
-    }
-}
-
 @Converter(autoApply = true)
 class FeedSpecTypeConverter :
     PostgreSqlEnumConverter<FeedSpecType>(
@@ -120,11 +109,4 @@ class ImportStatusConverter :
     PostgreSqlEnumConverter<ImportStatus>(
         toDbValue = { it.dbValue },
         fromDbValue = { ImportStatus.fromDb(it) }
-    )
-
-@Converter(autoApply = true)
-class LogLevelConverter :
-    PostgreSqlEnumConverter<LogLevel>(
-        toDbValue = { it.dbValue },
-        fromDbValue = { LogLevel.fromDb(it) }
     )

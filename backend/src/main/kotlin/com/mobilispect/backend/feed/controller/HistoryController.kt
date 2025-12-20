@@ -2,7 +2,6 @@ package com.mobilispect.backend.feed.controller
 
 import com.mobilispect.backend.api.dto.FeedImportDTO
 import com.mobilispect.backend.api.dto.FeedImportDetailDTO
-import com.mobilispect.backend.api.dto.ImportLogDTO
 import com.mobilispect.backend.api.dto.ImportStatus as ImportStatusDto
 import com.mobilispect.backend.api.dto.PageInfo
 import com.mobilispect.backend.api.dto.TriggerType as TriggerTypeDto
@@ -10,7 +9,6 @@ import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.ids.ImportId
-import com.mobilispect.backend.feed.repository.ImportLogRepository
 import com.mobilispect.backend.feed.service.ImportHistoryService
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -40,8 +38,7 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/feeds/history")
 class HistoryController(
-    private val importHistoryService: ImportHistoryService,
-    private val importLogRepository: ImportLogRepository
+    private val importHistoryService: ImportHistoryService
 ) {
 
     /**
@@ -94,19 +91,6 @@ class HistoryController(
         val feed = import.feed
             ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import")
 
-        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(ImportId(uuid))
-            .map { log ->
-                ImportLogDTO(
-                    id = log.id?.toString() ?: "",
-                    importId = importId,
-                    level = log.level.toDto(),
-                    message = log.message,
-                    component = log.component,
-                    details = null, // Could parse JSON if needed
-                    createdAt = log.createdAt
-                )
-            }
-
         return FeedImportDetailDTO(
             id = import.requireIdAsString(),
             feedOnestopId = feed.feedOnestopId.value,
@@ -123,8 +107,7 @@ class HistoryController(
             updatedAt = import.updatedAt,
             feedName = feed.name,
             regionName = feed.regions.firstOrNull()?.name,
-            progress = null,
-            recentLogs = logs
+            progress = null
         )
     }
 
@@ -241,12 +224,6 @@ class HistoryController(
     private fun ImportTriggerType.toDto(): TriggerTypeDto = when (this) {
         ImportTriggerType.MANUAL -> TriggerTypeDto.MANUAL
         ImportTriggerType.AUTOMATIC -> TriggerTypeDto.AUTOMATIC
-    }
-
-    private fun com.mobilispect.backend.feed.model.LogLevel.toDto(): com.mobilispect.backend.api.dto.LogLevel = when (this) {
-        com.mobilispect.backend.feed.model.LogLevel.INFO -> com.mobilispect.backend.api.dto.LogLevel.INFO
-        com.mobilispect.backend.feed.model.LogLevel.WARN -> com.mobilispect.backend.api.dto.LogLevel.WARN
-        com.mobilispect.backend.feed.model.LogLevel.ERROR -> com.mobilispect.backend.api.dto.LogLevel.ERROR
     }
 
     private fun ImportStatusDto.toEntity(): ImportStatus = when (this) {
