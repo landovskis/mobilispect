@@ -2,13 +2,13 @@ package com.mobilispect.backend.feed.batch.discovery
 
 import com.mobilispect.backend.infastructure.transit_land.TransitLandAPI
 import org.slf4j.LoggerFactory
-import org.springframework.batch.core.Job
-import org.springframework.batch.core.Step
+import org.springframework.batch.core.job.Job
+import org.springframework.batch.core.step.Step
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.core.job.builder.JobBuilder
 import org.springframework.batch.core.repository.JobRepository
 import org.springframework.batch.core.step.builder.StepBuilder
-import org.springframework.batch.item.ItemReader
+import org.springframework.batch.infrastructure.item.ItemReader
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -109,11 +109,11 @@ class SimplifiedFeedDiscoveryJobConfig(
  * Provides logging and monitoring for job execution lifecycle.
  */
 @Component
-class FeedDiscoveryJobListener : org.springframework.batch.core.JobExecutionListener {
+class FeedDiscoveryJobListener : org.springframework.batch.core.listener.JobExecutionListener {
 
     private val logger = LoggerFactory.getLogger(FeedDiscoveryJobListener::class.java)
 
-    override fun beforeJob(jobExecution: org.springframework.batch.core.JobExecution) {
+    override fun beforeJob(jobExecution: org.springframework.batch.core.job.JobExecution) {
         logger.info(
             "Starting feed discovery job: {} with parameters: {}",
             jobExecution.jobInstance.jobName,
@@ -121,7 +121,7 @@ class FeedDiscoveryJobListener : org.springframework.batch.core.JobExecutionList
         )
     }
 
-    override fun afterJob(jobExecution: org.springframework.batch.core.JobExecution) {
+    override fun afterJob(jobExecution: org.springframework.batch.core.job.JobExecution) {
         val duration = if (jobExecution.endTime != null && jobExecution.startTime != null) {
             java.time.Duration.between(
                 jobExecution.startTime,
