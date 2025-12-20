@@ -362,7 +362,7 @@ export class AppShellComponent implements OnDestroy {
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       startWith(null),
       takeUntil(this.destroy$),
-      map(() => this.buildBreadcrumbsFromRoute(this.activatedRoute.snapshot))
+      map(() => this.buildBreadcrumbsFromRoute(this.router.routerState.root.snapshot))
     ).subscribe(crumbs => {
       this.breadcrumbs = crumbs.length
         ? crumbs
