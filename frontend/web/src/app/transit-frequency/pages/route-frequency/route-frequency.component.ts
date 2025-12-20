@@ -2,37 +2,24 @@ import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, RouteDto, RouteVariantDto, FrequencyDto } from '../../services/frequency.service';
-import { VariantListComponent } from '../../components/variant-list/variant-list.component';
-import { FrequencyChartComponent } from '../../components/frequency-chart/frequency-chart.component';
-import { BrandCardComponent } from '../../../shared/components/brand-card.component';
-import { FormsModule } from '@angular/forms';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
-import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
+import { RouteFrequencyCardComponent } from '../../components/route-frequency-card/route-frequency-card.component';
 
 @Component({
   selector: 'app-route-frequency',
   standalone: true,
-  imports: [CommonModule, FormsModule, BrandCardComponent, VariantListComponent, FrequencyChartComponent, CommonSectionDisplayComponent],
+  imports: [CommonModule, RouteFrequencyCardComponent],
   template: `
-    <app-brand-card [title]="route?.longName" [subtitle]="route?.shortName || undefined">
-      <label class="date-picker" aria-label="Select service date">
-        <span>Service date</span>
-        <input type="date" [(ngModel)]="selectedDate" (change)="onDateChange()" />
-      </label>
-      <app-variant-list
-        [variants]="variants"
-        (variantSelect)="loadFrequencies($event)">
-      </app-variant-list>
-
-      <app-frequency-chart
-        [frequencies]="frequencies">
-      </app-frequency-chart>
-
-      <app-common-section-display
-        [sections]="commonSections"
-        [combined]="combinedBySection">
-      </app-common-section-display>
-    </app-brand-card>
+    <app-route-frequency-card
+      [route]="route"
+      [variants]="variants"
+      [frequencies]="frequencies"
+      [commonSections]="commonSections"
+      [combinedBySection]="combinedBySection"
+      [selectedDate]="selectedDate"
+      (variantSelect)="loadFrequencies($event)"
+      (dateChange)="onDateChange($event)">
+    </app-route-frequency-card>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -82,7 +69,8 @@ export class RouteFrequencyComponent implements OnInit {
     });
   }
 
-  onDateChange(): void {
+  onDateChange(date?: string): void {
+    this.selectedDate = date;
     // reload last viewed variant if any
     if (this.variants.length > 0) {
       this.loadFrequencies(this.variants[0].id);

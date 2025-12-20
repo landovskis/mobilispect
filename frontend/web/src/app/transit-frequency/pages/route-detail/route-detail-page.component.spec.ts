@@ -3,18 +3,24 @@ import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { RouteDetailPageComponent } from './route-detail-page.component';
 import { FrequencyService } from '../../services/frequency.service';
+import { CommonSectionService } from '../../services/common-section.service';
 
 describe('RouteDetailPageComponent', () => {
   let component: RouteDetailPageComponent;
   let fixture: ComponentFixture<RouteDetailPageComponent>;
   let mockFrequencyService: jasmine.SpyObj<FrequencyService>;
   let mockActivatedRoute: any;
+  let mockCommonSectionService: jasmine.SpyObj<CommonSectionService>;
 
   beforeEach(async () => {
     mockFrequencyService = jasmine.createSpyObj('FrequencyService', [
       'getRoute',
       'getVariants',
-      'getRouteHourlyFrequencies'
+      'getFrequencies'
+    ]);
+    mockCommonSectionService = jasmine.createSpyObj('CommonSectionService', [
+      'getCommonSectionsForRoute',
+      'getCombinedFrequency'
     ]);
 
     mockActivatedRoute = {
@@ -29,6 +35,7 @@ describe('RouteDetailPageComponent', () => {
       imports: [RouteDetailPageComponent],
       providers: [
         { provide: FrequencyService, useValue: mockFrequencyService },
+        { provide: CommonSectionService, useValue: mockCommonSectionService },
         { provide: ActivatedRoute, useValue: mockActivatedRoute }
       ]
     }).compileComponents();
@@ -64,38 +71,33 @@ describe('RouteDetailPageComponent', () => {
       }
     ];
 
-    const mockHourlyFrequencies = [
+    const mockSections = [
       {
-        routeId: 'test-route-id',
-        serviceDate: '2025-01-15',
-        hourOfDay: 8,
-        averageHeadwayMinutes: 15,
-        minHeadwayMinutes: 12,
-        maxHeadwayMinutes: 18,
-        tripCount: 4,
-        variantCount: 1,
-        isIrregular: false
+        id: 'section-1',
+        stopPattern: 'stop1|stop2|stop3',
+        stopCount: 3,
+        firstStopId: 'stop1',
+        lastStopId: 'stop3',
+        variants: ['variant-1']
       }
     ];
 
     mockFrequencyService.getRoute.and.returnValue(of(mockRoute));
     mockFrequencyService.getVariants.and.returnValue(of(mockVariants));
-    mockFrequencyService.getRouteHourlyFrequencies.and.returnValue(of(mockHourlyFrequencies));
+    mockCommonSectionService.getCommonSectionsForRoute.and.returnValue(of(mockSections));
+    mockCommonSectionService.getCombinedFrequency.and.returnValue(of({
+      commonSectionId: 'section-1',
+      timePeriod: 'WEEKDAY_AM_PEAK',
+      averageHeadwayMinutes: 10,
+      tripCount: 12,
+      isIrregular: false
+    }));
 
     fixture.detectChanges();
 
     expect(mockFrequencyService.getRoute).toHaveBeenCalledWith('test-route-id');
     expect(mockFrequencyService.getVariants).toHaveBeenCalledWith('test-route-id');
-    expect(mockFrequencyService.getRouteHourlyFrequencies).toHaveBeenCalledWith(
-      'test-route-id',
-      jasmine.any(String)
-    );
-  });
-
-  it('should format hour correctly', () => {
-    expect(component.formatHour(0)).toBe('00:00-01:00');
-    expect(component.formatHour(8)).toBe('08:00-09:00');
-    expect(component.formatHour(23)).toBe('23:00-00:00');
+    expect(mockCommonSectionService.getCommonSectionsForRoute).toHaveBeenCalledWith('test-route-id');
   });
 
   it('should return route type label', () => {

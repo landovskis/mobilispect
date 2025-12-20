@@ -155,7 +155,7 @@ class RedisConfiguration : org.springframework.cache.annotation.CachingConfigure
     override fun errorHandler(): org.springframework.cache.interceptor.CacheErrorHandler {
         return object : org.springframework.cache.interceptor.CacheErrorHandler {
             override fun handleCacheGetError(exception: RuntimeException, cache: org.springframework.cache.Cache, key: Any) {
-                if (exception.cause is SerializationException) {
+                if (exception is SerializationException || exception.cause is SerializationException) {
                     logger.warn(
                         "Cache deserialization failed for cache '{}' and key '{}'. " +
                         "This may indicate a cache version mismatch. The cache entry will be evicted and regenerated. " +

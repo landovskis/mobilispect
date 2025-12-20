@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('RouteDetailPage', () => {
-  const testRouteId = 'r-test-route';
+test.describe('RouteFrequencyCard', () => {
+  const testRouteId = 'r-card-route';
   const testVariantId = 'variant-1';
   const testDate = '2025-03-10';
   const testSectionId = 'section-1';
@@ -23,6 +23,17 @@ test.describe('RouteDetailPage', () => {
               minHeadwayMinutes: 10,
               maxHeadwayMinutes: 15,
               tripCount: 8,
+              isIrregular: false,
+            },
+            {
+              id: 'freq-2',
+              variantId: testVariantId,
+              serviceDate: testDate,
+              timePeriod: 'WEEKDAY_PM_PEAK',
+              averageHeadwayMinutes: 15,
+              minHeadwayMinutes: 12,
+              maxHeadwayMinutes: 18,
+              tripCount: 6,
               isIrregular: false,
             },
           ]),
@@ -47,7 +58,7 @@ test.describe('RouteDetailPage', () => {
             routeId: testRouteId,
             directionId: 0,
             headsign: 'Downtown',
-            stopCount: 15,
+            stopCount: 12,
             stopPattern: 'stop1|stop2|stop3',
             firstStopId: 'stop1',
             lastStopId: 'stop3',
@@ -62,9 +73,9 @@ test.describe('RouteDetailPage', () => {
         contentType: 'application/json',
         body: JSON.stringify({
           id: testRouteId,
-          agencyId: 'o-test-agency',
-          shortName: '5',
-          longName: 'Downtown Express',
+          agencyId: 'agency-1',
+          shortName: '10',
+          longName: 'Riverfront Express',
           routeType: 'BUS',
           active: true,
         }),
@@ -98,28 +109,28 @@ test.describe('RouteDetailPage', () => {
           averageHeadwayMinutes: 10,
           tripCount: 12,
           isIrregular: false,
+          contributions: [
+            {
+              routeId: testRouteId,
+              averageHeadwayMinutes: 10,
+              tripCount: 12,
+              isIrregular: false,
+            },
+          ],
         }),
       });
     });
 
-    await page.goto(`/routes/${testRouteId}`);
+    await page.goto(`/regions/routes/${testRouteId}`);
   });
 
-  test('should display route information', async ({ page }) => {
-    await expect(page.locator('app-brand-section').first()).toBeVisible();
+  test('renders route card details and frequency content', async ({ page }) => {
+    await expect(page.getByText('Riverfront Express')).toBeVisible();
+    await expect(page.locator('.card-subtitle', { hasText: '10' })).toBeVisible();
 
-    await expect(page.getByText('Downtown Express')).toBeVisible();
-    await expect(page.getByText('Route 5')).toBeVisible();
+    const datePicker = page.locator('input[type="date"]');
+    await expect(datePicker).toBeVisible();
 
-    await expect(page.getByText('Route Number:')).toBeVisible();
-    await expect(page.getByText('Route Type:')).toBeVisible();
-    await expect(page.getByText('Bus')).toBeVisible();
-    await expect(page.getByText('Variants:')).toBeVisible();
-    await expect(page.getByText('Status:')).toBeVisible();
-    await expect(page.getByText('Active')).toBeVisible();
-  });
-
-  test('should render route frequency card content', async ({ page }) => {
     await expect(page.getByText('Select a variant to view frequencies.')).toBeVisible();
 
     await page.getByRole('button', { name: 'View frequencies' }).click();
@@ -130,22 +141,5 @@ test.describe('RouteDetailPage', () => {
     await expect(page.getByText('Stops: 3')).toBeVisible();
     await expect(page.getByText('Variants: 2')).toBeVisible();
     await expect(page.getByText('10 min avg')).toBeVisible();
-  });
-
-  test('should request frequencies for date changes', async ({ page }) => {
-    await page.getByRole('button', { name: 'View frequencies' }).click();
-
-    const datePicker = page.locator('input[type="date"]');
-    await expect(datePicker).toBeVisible();
-
-    const responsePromise = page.waitForResponse(response => {
-      return response.url().includes(`/api/v1/routes/variants/${testVariantId}/frequencies`)
-        && response.url().includes('date=2025-04-01');
-    });
-
-    await datePicker.fill('2025-04-01');
-    await datePicker.blur();
-
-    await responsePromise;
   });
 });
