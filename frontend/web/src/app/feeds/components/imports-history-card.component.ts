@@ -4,10 +4,10 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatChipsModule } from '@angular/material/chips';
-import { FeedImportSummary } from '../models/import.models';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { FeedImportSummary } from '../models';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
+import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 /**
  * Imports History Card Component
@@ -36,21 +36,23 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
     MatPaginatorModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatExpansionModule,
-    MatChipsModule,
-    MobilispectCardComponent
+    BrandCardComponent,
+    BrandBadgeComponent,
+    BrandSectionComponent
   ],
   template: `
-    <mat-expansion-panel class="history-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
-      <mat-expansion-panel-header class="panel-header">
-        <mat-panel-title class="panel-title">
-          <mat-icon>history</mat-icon>
-          <span>Import History</span>
-          @if (history && history.length > 0) {
-            <span class="count-badge">{{ totalItems }}</span>
-          }
-        </mat-panel-title>
-      </mat-expansion-panel-header>
+    <app-brand-section
+      class="history-panel"
+      title="Import History"
+      subtitle="Completed feed imports and metadata"
+      icon="history"
+      [collapsible]="true"
+      [(expanded)]="isExpanded">
+      <div section-actions class="panel-actions">
+        @if (history && history.length > 0) {
+          <span class="count-badge">{{ totalItems }}</span>
+        }
+      </div>
 
       <!-- Loading State -->
       @if (loading) {
@@ -77,43 +79,19 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
 
       <!-- History Cards List -->
       @if (!loading && history && history.length > 0) {
-        <div class="history-container">
+          <div class="history-container">
           <div class="history-list">
             @for (importItem of history; track importItem.id) {
-              <app-mobilispect-card class="history-item-card">
-                <div card-header class="history-card-header">
-                  <div class="history-avatar" [ngClass]="{
-                    'avatar-completed': importItem.status === 'completed',
-                    'avatar-failed': importItem.status === 'failed',
-                    'avatar-cancelled': importItem.status === 'cancelled'
-                  }">
-                    @if (importItem.status === 'completed') {
-                      <mat-icon>check_circle</mat-icon>
-                    } @else if (importItem.status === 'failed') {
-                      <mat-icon>error</mat-icon>
-                    } @else if (importItem.status === 'cancelled') {
-                      <mat-icon>cancel</mat-icon>
-                    }
-                  </div>
-
-                  <div class="card-title">
-                    {{ importItem.feedName || importItem.feedOnestopId }}
-                  </div>
-
-                  <div class="card-subtitle">
-                    {{ importItem.regionName }}
-                  </div>
-                </div>
-
+              <app-brand-card
+                class="history-item-card"
+                [title]="importItem.feedName || importItem.feedOnestopId"
+                [subtitle]="importItem.regionName">
                 <div card-content class="history-card-content">
                   <div class="history-meta">
-                    <mat-chip-set aria-label="Import status">
-                      <mat-chip [class.chip-success]="importItem.status === 'completed'"
-                                [class.chip-error]="importItem.status === 'failed'"
-                                [class.chip-warning]="importItem.status === 'cancelled'">
-                        {{ importItem.status }}
-                      </mat-chip>
-                    </mat-chip-set>
+                    <app-brand-badge
+                      [variant]="statusToBadge(importItem.status)"
+                      [label]="importItem.status | titlecase">
+                    </app-brand-badge>
 
                     <span class="meta-item">
                       <mat-icon>schedule</mat-icon>
@@ -135,7 +113,7 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
                     }
                   </div>
                 </div>
-              </app-mobilispect-card>
+              </app-brand-card>
             }
           </div>
 
@@ -150,156 +128,21 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
           ></mat-paginator>
         </div>
       }
-    </mat-expansion-panel>
+    </app-brand-section>
   `,
-  styleUrls: ['../styles/card.styles.css'],
-  styles: [`
-    /* Expansion Panel Styles */
-    .history-panel {
-      margin-bottom: 24px;
-      border-radius: 12px !important;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-      border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    }
-
-    :host-context(.dark-theme) .history-panel {
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    }
-
-    .panel-header {
-      background: #2980B9 !important;
-      color: white !important;
-      border-radius: 12px 12px 0 0 !important;
-    }
-
-    :host-context(.dark-theme) .panel-header {
-      background: #1e5f8c !important;
-    }
-
-    .panel-title {
-      display: flex !important;
-      align-items: center !important;
-      gap: 12px !important;
-      font-weight: 600 !important;
-      font-size: 1.1rem !important;
-    }
-
-    .panel-title mat-icon {
-      color: white !important;
-    }
-
-    /* Loading & Empty States */
-
-    .loading-container p {
-      margin-top: 20px;
-      color: #666;
-    }
-
-    :host-context(.dark-theme) .loading-container p {
-      color: #aaa;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #666;
-    }
-
-    :host-context(.dark-theme) .empty-state {
-      color: #aaa;
-    }
-
-    :host-context(.dark-theme) .empty-title {
-      color: #e0e0e0;
-    }
-
-    :host-context(.dark-theme) .empty-subtitle {
-      color: #888;
-    }
-
-    .empty-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      color: #999;
-    }
-
-    :host-context(.dark-theme) .empty-icon {
-      color: #666;
-    }
-
-    /* History List */
-    .history-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 16px;
-      padding: 16px;
-    }
-
-    /* Individual History Item Cards */
-    .history-item-card {
-      border-radius: 8px !important;
-      transition: all 0.2s ease;
-    }
-
-    .history-item-card:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-      transform: translateY(-2px);
-    }
-
-    .history-card-header {
-      padding: 16px !important;
-    }
-
-    .history-avatar {
-      color: white !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    :host-context(.dark-theme) .avatar-completed {
-      background-color: #388E3C !important;
-    }
-
-    :host-context(.dark-theme) .avatar-failed {
-      background-color: #D32F2F !important;
-    }
-
-    :host-context(.dark-theme) .avatar-cancelled {
-      background-color: #F57C00 !important;
-    }
-
-    :host-context(.dark-theme) .history-title {
-      color: #e0e0e0 !important;
-    }
-
-    :host-context(.dark-theme) .history-subtitle {
-      color: #aaa !important;
-    }
-
-    .meta-item mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: #2980B9;
-    }
-
-    :host-context(.dark-theme) .meta-item {
-      color: #aaa;
-    }
-
-    :host-context(.dark-theme) .meta-item mat-icon {
-      color: #64b5f6;
-    }
-
-    mat-chip {
-      font-size: 12px !important;
-      font-weight: 600 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.5px !important;
-      min-height: 28px !important;
-    }
+    styles: [`
+    .history-panel { margin-bottom: 24px; display: block; }
+    .panel-actions { display: inline-flex; align-items: center; gap: 10px; }
+    .history-container { display: flex; flex-direction: column; gap: 16px; }
+    .history-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .history-card-content { display: flex; flex-direction: column; gap: 12px; }
+    .history-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--mat-sys-on-surface-variant, #475569); }
+    .meta-item { display: inline-flex; align-items: center; gap: 6px; }
+    .count-badge { padding: 4px 10px; border-radius: 999px; background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
+    .empty-state { text-align: center; padding: 24px; color: var(--mat-sys-on-surface-variant, #475569); display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .empty-icon { font-size: 48px; width: 48px; height: 48px; color: #94a3b8; }
+    .empty-title { margin: 0; font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
+    .empty-subtitle { margin: 0; color: var(--mat-sys-on-surface-variant, #475569); max-width: 340px; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -334,5 +177,18 @@ export class ImportsHistoryCardComponent {
     }
 
     return `${size.toFixed(1)} ${units[unitIndex]}`;
+  }
+
+  statusToBadge(status: string): 'good' | 'mixed' | 'bad' | 'neutral' {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'good';
+      case 'failed':
+        return 'bad';
+      case 'cancelled':
+        return 'mixed';
+      default:
+        return 'neutral';
+    }
   }
 }

@@ -45,9 +45,9 @@ class FeedVersionService(
      * @return true if the feed has a new version, false otherwise
      */
     fun hasUpdate(feedOnestopId: FeedId): Boolean {
-        val feed = feedRepository.findById(feedOnestopId).orElse(null)
+        val feed = feedRepository.findByFeedOnestopId(feedOnestopId).orElse(null)
         if (feed == null) {
-            logger.warn("Feed not found: {}", feedOnestopId)
+            logger.warn("Feed not found: {}", feedOnestopId.value)
             return false
         }
 

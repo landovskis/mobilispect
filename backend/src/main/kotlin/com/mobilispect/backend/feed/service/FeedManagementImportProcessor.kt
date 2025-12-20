@@ -5,6 +5,7 @@ import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
+import com.mobilispect.backend.transitanalysis.domain.service.FeedImportService as TransitAnalysisFeedImportService
 import com.mobilispect.backend.util.ArchiveExtractor
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import kotlinx.coroutines.Dispatchers
@@ -26,8 +27,10 @@ import java.time.Clock
 class FeedManagementImportProcessor(
     @Qualifier("feedManagementFeedRepository")
     private val feedRepository: FeedRepository,
+    @Qualifier("curlDownloader")
     private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
+    private val transitAnalysisFeedImportService: TransitAnalysisFeedImportService,
     private val progressTrackingService: ProgressTrackingService,
     private val clock: Clock = Clock.systemUTC()
 ) {
@@ -39,14 +42,14 @@ class FeedManagementImportProcessor(
      * Downloads the GTFS feed, extracts it, and processes the data.
      *
      * @param feedOnestopId The onestop ID of the feed to import
-     * @return Result containing the import ID (feedOnestopId:versionSha1) on success
+     * @return Result containing the version SHA1 hash of the imported feed on success
      */
-    suspend fun importFeedById(feedOnestopId: String): Result<String> {
+    suspend fun importFeedById(feedOnestopId: String): Result<String?> {
         return withContext(Dispatchers.IO) {
             logger.info("Starting PostgreSQL-based import for feed: $feedOnestopId")
 
             // Find the feed in PostgreSQL
-            val feed = feedRepository.findById(FeedId(feedOnestopId)).orElse(null)
+            val feed = feedRepository.findByFeedOnestopId(FeedId(feedOnestopId)).orElse(null)
                 ?: return@withContext Result.failure(
                     IllegalArgumentException("Feed not found: $feedOnestopId")
                 )
@@ -86,26 +89,34 @@ class FeedManagementImportProcessor(
                 progress(stepNumber = 3, stepName = "Validating GTFS files")
                 validateGtfsFiles(extractedDir).getOrThrow()
 
-                progress(stepNumber = 4, stepName = "Processing agencies")
-                // TODO: Implement agency processing when needed
-
-                progress(stepNumber = 5, stepName = "Processing routes")
-                // TODO: Implement route processing when needed
-
-                progress(stepNumber = 6, stepName = "Processing stops")
-                // TODO: Implement stop processing when needed
-
-                progress(stepNumber = 7, stepName = "Processing trips")
-                // TODO: Implement trip processing when needed
-
-                progress(stepNumber = 8, stepName = "Finalizing import", percentage = 100)
-
-                // Clean up
+                // Clean up extracted validation directory
                 Files.walk(extractedDir)
                     .sorted(Comparator.reverseOrder())
                     .forEach { Files.deleteIfExists(it) }
 
-                importId
+                progress(stepNumber = 4, stepName = "Processing GTFS data")
+                logger.info("Starting transit analysis import for feed: $feedOnestopId")
+
+                // Call transit analysis service to parse GTFS and calculate frequencies
+                val analysisResult = transitAnalysisFeedImportService.importFeed(
+                    feedPath = archive,
+                    feedEntity = feed
+                ).getOrThrow()
+
+                logger.info(
+                    "Transit analysis complete - {} agencies, {} routes, {} variants",
+                    analysisResult.agenciesProcessed,
+                    analysisResult.routesProcessed,
+                    analysisResult.variantsIdentified
+                )
+
+                progress(stepNumber = 8, stepName = "Finalizing import", percentage = 100)
+
+                // Clean up archive
+                Files.deleteIfExists(archive)
+
+                // Return null for versionSha1 - feed version tracking handled separately
+                null
             }
 
             result

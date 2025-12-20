@@ -32,7 +32,9 @@ ios: iOS App + UI
 
 The backend is powered by Spring Boot and follows a modular monolith
 architecture: domain modules own their data and interfaces, and service
-extraction requires an ADR and migration plan.
+extraction requires an ADR and migration plan. Integration tests use
+Testcontainers (PostgreSQL 17, Redis 8.2) so Docker must be available in
+both local and CI environments.
 
 ## Development Containers
 

@@ -1,6 +1,5 @@
 package com.mobilispect.backend.feed.model
 
-import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity
@@ -9,7 +8,6 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
-import jakarta.persistence.OneToMany
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
@@ -19,6 +17,7 @@ import java.time.Instant
 import java.util.UUID
 
 import com.mobilispect.backend.feed.model.ids.ImportId
+import com.mobilispect.backend.feed.model.ids.ImportIdConverter
 
 @Entity
 @Table(name = "feed_imports")
@@ -26,6 +25,7 @@ class FeedImport(
     @Id
     @GeneratedValue
     @UuidGenerator
+    @Convert(converter = ImportIdConverter::class)
     @Column(columnDefinition = "uuid")
     var id: ImportId? = null,
 
@@ -68,8 +68,21 @@ class FeedImport(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
-    @OneToMany(mappedBy = "feedImport", fetch = FetchType.LAZY)
-    val logs: MutableSet<ImportLog> = mutableSetOf()
+    // Explicit no-arg constructor for Hibernate instantiation
+    constructor() : this(
+        id = null,
+        feed = null,
+        administrator = null,
+        triggerType = ImportTriggerType.MANUAL,
+        status = ImportStatus.PENDING,
+        versionSha1 = null,
+        startedAt = null,
+        completedAt = null,
+        fileSizeBytes = null,
+        errorMessage = null,
+        createdAt = Instant.now(),
+        updatedAt = Instant.now()
+    )
 
     @PrePersist
     fun onCreate() {

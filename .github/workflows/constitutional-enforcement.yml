@@ -1,7 +1,7 @@
 name: Constitutional Quality Gates
 on:
   pull_request:
-    branches: [main, develop, spec-kit-main]
+    branches: ["**"]
   push:
     branches: [main, develop, spec-kit-main]
 
@@ -75,6 +75,18 @@ jobs:
           echo "🧪 Running Backend Tests - Constitutional TDD Enforcement"
           cd backend && ./gradlew test --continue --info
 
+      - name: SonarCloud Scan (Backend)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          echo "📡 Running SonarCloud analysis for backend"
+          cd backend
+          ./gradlew sonarqube \
+            -Dsonar.projectKey=mobilispect_backend \
+            -Dsonar.organization=mobilispect \
+            -Dsonar.host.url=https://sonarcloud.io
+
       - name: Backend Coverage Check (80% Constitutional Minimum)
         run: |
           echo "📊 Verifying 80% Coverage Constitutional Requirement"
@@ -146,6 +158,18 @@ jobs:
           # Set Android SDK environment if available
           export ANDROID_HOME=$ANDROID_SDK_ROOT
           ./gradlew shared:testDebugUnitTest --continue --info || echo "⚠️ Some mobile tests require Android SDK setup"
+
+      - name: SonarCloud Scan (Mobile)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          echo "📡 Running SonarCloud analysis for mobile"
+          cd frontend/mobile
+          ./gradlew sonarqube \
+            -Dsonar.projectKey=mobilispect_mobile \
+            -Dsonar.organization=mobilispect \
+            -Dsonar.host.url=https://sonarcloud.io
 
       - name: Mobile Coverage Check (80% Constitutional Minimum)
         run: |

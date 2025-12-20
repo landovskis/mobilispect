@@ -1,0 +1,41 @@
+// Mobilispect design tokens (sourced from docs/brand/mobilispect_design_tokens.json)
+:root {
+  /* Primary */
+  --ms-color-primary: #0b4f8a;
+  --ms-color-primary-cyan: #00a7c4;
+  --ms-color-primary-dark-navy: #0b3558;
+
+  /* Accent + neutrals */
+  --ms-color-station-yellow: #ffd54f;
+  --ms-color-info-blue-light: #e1f3ff;
+  --ms-color-ink: #111827;
+  --ms-color-muted: #6b7280;
+  --ms-color-border: #d1d5db;
+  --ms-color-background: #f9fafb;
+
+  /* Typography */
+  --ms-font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", sans-serif;
+
+  /* Spacing (4px grid) */
+  --ms-space-0: 0px;
+  --ms-space-1: 4px;
+  --ms-space-2: 8px;
+  --ms-space-3: 12px;
+  --ms-space-4: 16px;
+  --ms-space-5: 24px;
+  --ms-space-6: 32px;
+  --ms-space-7: 40px;
+  --ms-space-8: 48px;
+
+  /* Surfaces */
+  --ms-surface-card-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --ms-gradient-primary: linear-gradient(90deg, #0b4f8a 0%, #00a7c4 100%);
+}
+
+.dark-theme {
+  --ms-color-surface: #020617;
+  --ms-color-surface-elevated: #0f172a;
+  --ms-color-text-primary: #e5f1ff;
+  --ms-color-text-secondary: #94a3b8;
+}

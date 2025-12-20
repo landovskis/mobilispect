@@ -1,20 +1,17 @@
 @use '@angular/material' as mat;
 
-// Material Design 3 Theming using the new mat.theme() API
-// Define custom Mobilispect theme with brand colors and typography
-
-// Mobilispect Brand Color Palette (Material Design 3)
+// Material Design 3 theming using brand colors and typography
 $mobilispect-theme: mat.define-theme((
   color: (
     theme-type: light,
     primary: mat.$azure-palette,
-    tertiary: mat.$orange-palette,
+    tertiary: mat.$cyan-palette,
   ),
   typography: (
-    plain-family: 'Public Sans, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif',
-    brand-family: 'Red Hat Display, Public Sans, sans-serif',
+    plain-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
+    brand-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
     bold-weight: 700,
-    medium-weight: 500,
+    medium-weight: 600,
     regular-weight: 400,
   ),
   density: (
@@ -25,6 +22,16 @@ $mobilispect-theme: mat.define-theme((
 // Apply the light theme by default
 html {
   @include mat.theme($mobilispect-theme);
+  // Override key system colors with Mobilispect tokens
+  --mat-sys-primary: #0b4f8a;
+  --mat-sys-on-primary: #e5f1ff;
+  --mat-sys-primary-container: #e1f3ff;
+  --mat-sys-on-primary-container: #0b3558;
+  --mat-sys-secondary: #00a7c4;
+  --mat-sys-on-secondary: #02131f;
+  --mat-sys-secondary-container: #e0f9fd;
+  --mat-sys-on-secondary-container: #004f5f;
+  --mat-sys-outline: #d1d5db;
 }
 
 // Global border-radius customizations for slightly rounded shapes
@@ -108,13 +115,13 @@ $mobilispect-dark-theme: mat.define-theme((
   color: (
     theme-type: dark,
     primary: mat.$azure-palette,
-    tertiary: mat.$orange-palette,
+    tertiary: mat.$cyan-palette,
   ),
   typography: (
-    plain-family: 'Public Sans, Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif',
-    brand-family: 'Red Hat Display, Public Sans, sans-serif',
+    plain-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
+    brand-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
     bold-weight: 700,
-    medium-weight: 500,
+    medium-weight: 600,
     regular-weight: 400,
   ),
   density: (
@@ -125,8 +132,12 @@ $mobilispect-dark-theme: mat.define-theme((
 // Apply the dark theme when the dark-theme class is present
 .dark-theme {
   @include mat.theme($mobilispect-dark-theme);
-
-  // Additional dark theme customizations
-  background-color: #121212;
-  color: rgba(255, 255, 255, 0.87);
+  --mat-sys-primary: #00a7c4;
+  --mat-sys-on-primary: #02131f;
+  --mat-sys-primary-container: #08335c;
+  --mat-sys-on-primary-container: #e5f1ff;
+  --mat-sys-secondary: #0b4f8a;
+  --mat-sys-on-secondary: #e5f1ff;
+  --mat-sys-secondary-container: #0f172a;
+  --mat-sys-on-secondary-container: #e5f1ff;
 }

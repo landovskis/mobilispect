@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { FeedsShellComponent } from './pages/feeds-shell.component';
 import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
 import { FeedImportsPageComponent } from './pages/feed-imports.page';
 
@@ -12,8 +11,16 @@ const routes: Routes = [
   },
   {
     path: '',
-    component: FeedsShellComponent,
     children: [
+      {
+        path: 'discover/:regionId',
+        component: DiscoverFeedsPageComponent,
+        data: {
+          title: 'Discover Feeds',
+          breadcrumb: 'Discover',
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+        }
+      },
       {
         path: 'discover',
         component: DiscoverFeedsPageComponent,

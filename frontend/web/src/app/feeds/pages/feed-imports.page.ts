@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Observable, Subject } from 'rxjs';
-import { takeUntil, take } from 'rxjs/operators';
-import { FeedImportSummary } from '../models/import.models';
+import { takeUntil } from 'rxjs/operators';
+import { FeedImportSummary } from '../models';
 import { ImportService } from '../services/import.service';
 import { FeedImportsTabComponent } from '../components/feed-imports-tab.component';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
@@ -27,12 +27,6 @@ import { FeedsEventsService } from '../services/feeds-events.service';
       [pageIndex]="importHistoryPage"
       [pageSize]="importHistorySize"
       [activeImports$]="activeImports$"
-      [selectedImportIds]="selectedImportIds"
-      [allImportsSelected]="allImportsSelected"
-      [someImportsSelected]="someImportsSelected"
-      (selectAllChange)="toggleAllImports($event)"
-      (selectionChange)="toggleImportSelection($event.id, $event.selected)"
-      (bulkCancel)="bulkCancelImports()"
       (cancelImport)="cancelImport($event)"
       (pageChange)="loadImportHistory($event)"
     ></app-feed-imports-tab>
@@ -49,10 +43,6 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
   totalImportPages = 0;
   totalImportElements = 0;
   loadingHistory = false;
-
-  selectedImportIds = new Set<string>();
-  allImportsSelected = false;
-  someImportsSelected = false;
 
   constructor(
     private readonly importService: ImportService,
@@ -121,70 +111,6 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
           panelClass: ['error-snackbar']
         }).onAction().subscribe(() => this.cancelImport(importId));
       }
-    });
-  }
-
-  toggleImportSelection(importId: string, selected: boolean): void {
-    if (selected) {
-      this.selectedImportIds.add(importId);
-    } else {
-      this.selectedImportIds.delete(importId);
-    }
-    this.updateSelectionState();
-  }
-
-  toggleAllImports(selectAll: boolean): void {
-    this.selectedImportIds.clear();
-    if (selectAll) {
-      this.activeImports$.pipe(take(1)).subscribe(imports => {
-        (imports || []).forEach(imp => this.selectedImportIds.add(imp.id));
-        this.updateSelectionState();
-      });
-    } else {
-      this.updateSelectionState();
-    }
-  }
-
-  bulkCancelImports(): void {
-    const importIds = Array.from(this.selectedImportIds);
-    if (!importIds.length) {
-      return;
-    }
-
-    const message = `Are you sure you want to cancel ${importIds.length} import(s)?`;
-    if (!confirm(message)) {
-      return;
-    }
-
-    this.snackBar.open(`Cancelling ${importIds.length} imports...`, 'Close', { duration: 3000 });
-
-    this.importService.bulkCancelImports(importIds).then(results => {
-      const successCount = results.filter(r => r.status === 'COMPLETED').length;
-      const failCount = results.length - successCount;
-
-      if (failCount === 0) {
-        this.snackBar.open(`✅ Successfully cancelled ${successCount} imports`, 'Close', { duration: 4000 });
-      } else {
-        this.snackBar.open(`⚠️ Cancelled ${successCount} imports, ${failCount} failed`, 'Close', { duration: 6000 });
-      }
-
-      this.selectedImportIds.clear();
-      this.updateSelectionState();
-      this.importService.refreshActiveImports();
-      this.loadImportHistory(this.importHistoryPage);
-    }).catch(error => {
-      console.error('Bulk cancel failed:', error);
-      this.snackBar.open(`❌ Bulk cancellation failed: ${error.message || 'Unknown error'}`, 'Close', { duration: 8000 });
-    });
-  }
-
-  private updateSelectionState(): void {
-    this.activeImports$.pipe(take(1)).subscribe(imports => {
-      const list = imports || [];
-      const total = list.length;
-      const selected = this.selectedImportIds.size;
-      this.allImportsSelected = selected > 0 && selected === total;
-      this.someImportsSelected = selected > 0 && selected < total;
     });
   }
 }

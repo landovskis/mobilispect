@@ -1,0 +1,29 @@
+repos:
+  - repo: local
+    hooks:
+      - id: mobile-kotlin-tests
+        name: Mobile KMM Tests (Constitutional TDD Requirement)
+        entry: bash -c './gradlew shared:testDebugUnitTest'
+        language: system
+        files: '.*\.(kt|swift)$'
+        exclude: '(build|\.gradle)/.*'
+        pass_filenames: false
+        stages: [manual]
+
+      - id: mobile-kotlin-format
+        name: Mobile KMM Format (ktfmt)
+        entry: bash -c './gradlew ktfmtFormat'
+        language: system
+        files: '.*\.kt$'
+        exclude: '(build|\.gradle)/.*'
+        pass_filenames: false
+        stages: [manual]
+
+      - id: mobile-kotlin-lint
+        name: Mobile KMM Lint (ktlint)
+        entry: bash -c './gradlew ktlintCheck'
+        language: system
+        files: '.*\.kt$'
+        exclude: '(build|\.gradle)/.*'
+        pass_filenames: false
+        stages: [manual]

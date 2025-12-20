@@ -5,6 +5,7 @@ plugins {
     id("org.springframework.boot") version "3.5.3"
     id("io.spring.dependency-management") version "1.1.7"
     alias(libs.plugins.kotlin.serialization)
+    id("org.owasp.dependencycheck") version "11.1.1"
 }
 
 group = "com.mobilispect"
@@ -39,6 +40,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.reactor)
     implementation(libs.kotlinx.serialization.csv)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.conveyal.gtfs) {
+        exclude(group = "org.slf4j", module = "slf4j-simple")
+    }
     implementation(libs.resilience4j.spring)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
@@ -49,6 +53,7 @@ dependencies {
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation(libs.spring.batch.test)
     testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
@@ -112,6 +117,19 @@ tasks.register("jacocoTestReport") {
 
     doLast {
         logger.lifecycle("jacocoTestReport stub: no coverage generated (JaCoCo plugin unavailable offline)")
+    }
+}
+
+// OWASP Dependency Check Configuration (Constitutional Security Requirement)
+configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
+    formats = listOf("HTML", "JSON")
+    scanConfigurations = listOf("runtimeClasspath")
+    suppressionFile = "${project.rootDir}/owasp-suppressions.xml"
+    failBuildOnCVSS = 7.0f
+    analyzers.apply {
+        assemblyEnabled = false
+        nugetconfEnabled = false
+        nodeEnabled = false
     }
 }
 

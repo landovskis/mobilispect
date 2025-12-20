@@ -4,6 +4,7 @@ kotlin = "2.0.21"
 kotlinxCoroutines = "1.8.1"
 kotlinxSerializationCSV = "2.0.0"
 kotlinxSerialization = "1.9.0"
+conveyalGtfs = "6.2.0"
 protobufCompiler = "0.9.4"
 protobuf = "4.27.2"
 resilience4j = "2.2.0"
@@ -28,6 +29,9 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 # Serialization
 kotlinx-serialization-csv = { module = "de.brudaswen.kotlinx.serialization:kotlinx-serialization-csv", version.ref = "kotlinxSerializationCSV" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
+# GTFS Parsing
+conveyal-gtfs = { module = "com.conveyal:gtfs-lib", version.ref = "conveyalGtfs" }
 
 protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }
 

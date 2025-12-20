@@ -20,15 +20,13 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     >
       <div class="toolbar-left">
         <img [src]="logoUrl" [alt]="appName + ' Logo'" class="app-logo" />
-        <div class="toolbar-heading">
-          <span class="toolbar-title">{{ appName }}</span>
-          @if (breadcrumbs.length) {
-            <app-toolbar-breadcrumbs
-              [breadcrumbs]="breadcrumbs"
-              (breadcrumbSelected)="breadcrumbSelected.emit($event)"
-            ></app-toolbar-breadcrumbs>
-          }
-        </div>
+        @if (breadcrumbs.length) {
+          <app-toolbar-breadcrumbs
+            class="toolbar-breadcrumbs"
+            [breadcrumbs]="breadcrumbs"
+            (breadcrumbSelected)="breadcrumbSelected.emit($event)"
+          ></app-toolbar-breadcrumbs>
+        }
       </div>
 
       <div class="toolbar-right">
@@ -41,9 +39,13 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       position: sticky;
       top: 0;
       z-index: 10;
-      background-color: #2980B9 !important;
-      color: white !important;
-      position: sticky;
+      background: #ffffff !important;
+      color: #0B3558 !important;
+      border-bottom: 1px solid #E1F3FF;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      min-height: 72px;
+      display: flex;
+      align-items: center;
     }
 
     .toolbar-left {
@@ -53,27 +55,19 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       position: relative;
     }
 
-    .toolbar-heading {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      line-height: 1.2;
-    }
-
-    .toolbar-left .toolbar-title {
-      color: white !important;
-    }
-
     .app-logo {
-      height: 60px;
+      height: 88px;
       width: auto;
       object-fit: contain;
+      max-width: 480px;
     }
 
-    .toolbar-title {
-      font-size: 1.25rem;
-      font-weight: 500;
-      color: white !important;
+    .toolbar-breadcrumbs {
+      margin-left: 8px;
+    }
+
+    app-toolbar-breadcrumbs {
+      color: #0B3558;
     }
 
     .toolbar-right {
@@ -87,13 +81,13 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
         font-size: 1rem;
       }
 
-      .app-logo {
-        height: 48px;
-        width: auto;
+      .toolbar-tagline {
+        font-size: 0.7rem;
       }
 
-      .toolbar-heading {
-        flex-direction: column;
+      .app-logo {
+        height: 72px;
+        max-width: 400px;
       }
     }
   `],
@@ -101,7 +95,7 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
 })
 export class AppBarComponent {
   @Input() appName = 'Mobilispect';
-  @Input() logoUrl = '/logo.png';
+  @Input() logoUrl = '/mobilispect_full_logo.svg';
   @Input() breadcrumbs: Breadcrumb[] = [];
 
   @Output() refresh = new EventEmitter<void>();

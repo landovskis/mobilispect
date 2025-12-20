@@ -31,7 +31,6 @@ export interface FeedImportDetail extends FeedImport {
   feedName: string;
   regionName: string;
   progress: ImportProgress | null;
-  recentLogs: ImportLog[];
 }
 
 /**
@@ -63,19 +62,6 @@ export interface ImportProgress {
 }
 
 /**
- * Import log entry
- */
-export interface ImportLog {
-  id: string;
-  importId: string;
-  level: LogLevel;
-  message: string;
-  component: string | null;
-  details: Record<string, any> | null;
-  createdAt: string;
-}
-
-/**
  * Import status values
  */
 export enum ImportStatus {
@@ -92,15 +78,6 @@ export enum ImportStatus {
 export enum TriggerType {
   MANUAL = 'manual',
   AUTOMATIC = 'automatic'
-}
-
-/**
- * Log levels
- */
-export enum LogLevel {
-  INFO = 'info',
-  WARN = 'warn',
-  ERROR = 'error'
 }
 
 /**
@@ -128,13 +105,6 @@ export interface PageInfo {
 export interface ImportsResponse {
   imports: FeedImport[];
   page: PageInfo;
-}
-
-/**
- * Response wrapper for import logs
- */
-export interface ImportLogsResponse {
-  logs: ImportLog[];
 }
 
 /**
@@ -344,38 +314,6 @@ export class ImportUtils {
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
     return `${hours}h ${remainingMinutes}m`;
-  }
-
-  /**
-   * Gets log level display name
-   */
-  static getLogLevelDisplayName(level: LogLevel): string {
-    switch (level) {
-      case LogLevel.INFO:
-        return 'Info';
-      case LogLevel.WARN:
-        return 'Warning';
-      case LogLevel.ERROR:
-        return 'Error';
-      default:
-        return level;
-    }
-  }
-
-  /**
-   * Gets log level color class for UI
-   */
-  static getLogLevelColorClass(level: LogLevel): string {
-    switch (level) {
-      case LogLevel.INFO:
-        return 'chip-neutral';
-      case LogLevel.WARN:
-        return 'chip-warning';
-      case LogLevel.ERROR:
-        return 'chip-error';
-      default:
-        return 'chip-neutral';
-    }
   }
 
   /**

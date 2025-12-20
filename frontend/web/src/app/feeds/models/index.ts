@@ -36,7 +36,6 @@ export type {
   FeedImportDetail,
   FeedImportSummary,
   ImportProgress,
-  ImportLog,
   ImportsResponse,
   ActiveImportsResponse,
   ProgressUpdateMessage,
@@ -61,7 +60,6 @@ export {
   // Enums from import models
   ImportStatus,
   TriggerType,
-  LogLevel,
 
   // Utility classes from import models
   ImportUtils,

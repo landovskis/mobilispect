@@ -83,8 +83,7 @@ data class FeedImportDetailDTO(
     val updatedAt: Instant,
     val feedName: String?,
     val regionName: String?,
-    val progress: ImportProgressDTO?,
-    val recentLogs: List<ImportLogDTO>
+    val progress: ImportProgressDTO?
 )
 
 /**
@@ -104,12 +103,6 @@ enum class ImportStatus {
 enum class TriggerType {
     MANUAL,
     AUTOMATIC
-}
-
-enum class LogLevel {
-    INFO,
-    WARN,
-    ERROR
 }
 
 /**
@@ -135,16 +128,6 @@ data class ImportProgressDTO(
     val processingRate: Double? = null
 )
 
-data class ImportLogDTO(
-    val id: String,
-    val importId: String,
-    val level: LogLevel,
-    val message: String,
-    val component: String?,
-    val details: Map<String, Any?>?,
-    val createdAt: Instant
-)
-
 /**
  * Page Information for Paginated Responses
  */
@@ -163,8 +146,4 @@ data class PageInfo(
 data class ImportsResponse(
     val imports: List<FeedImportDTO>,
     val page: PageInfo
-)
-
-data class ImportLogsResponse(
-    val logs: List<ImportLogDTO>
 )

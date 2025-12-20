@@ -2,28 +2,23 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatChipsModule } from '@angular/material/chips';
-import { FeedImportSummary } from '../models/import.models';
-import { ProgressMonitorComponent } from './progress-monitor.component';
-import { MobilispectCardComponent } from '../../core/components/mobilispect-card.component';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { FeedImportSummary } from '../models';
+import { BrandSectionComponent } from '../../shared/components/brand-section.component';
+import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
 /**
  * Active Imports Card Component
  *
- * Displays currently running imports in a card with real-time progress monitoring,
- * bulk selection, and cancellation capabilities.
+ * Displays currently running imports in a card with real-time progress monitoring
+ * and individual cancellation capabilities.
  *
  * @example
  * ```html
  * <app-active-imports-card
  *   [activeImports$]="activeImports$"
- *   [selectedImportIds]="selectedIds"
- *   (selectionChange)="handleSelection($event)"
- *   (bulkCancel)="cancelSelected()"
  *   (cancelImport)="cancelOne($event)">
  * </app-active-imports-card>
  * ```
@@ -34,97 +29,86 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
   imports: [
     CommonModule,
     MatIconModule,
-    MatButtonModule,
-    MatCheckboxModule,
     MatTooltipModule,
-    MatExpansionModule,
-    MatChipsModule,
-    ProgressMonitorComponent,
-    MobilispectCardComponent
+    MatProgressBarModule,
+    BrandSectionComponent,
+    BrandBadgeComponent,
+    BrandButtonComponent
   ],
   template: `
-    <mat-expansion-panel class="active-imports-panel" [expanded]="isExpanded" (expandedChange)="isExpanded = $event">
-      <mat-expansion-panel-header class="panel-header">
-        <mat-panel-title class="panel-title">
-          <mat-icon>downloading</mat-icon>
-          <span>Active Imports</span>
-          @if (activeImports$ | async; as activeImports) {
-            <span class="count-badge">{{ activeImports.length }}</span>
-          }
-        </mat-panel-title>
-        @if (selectedImportIds.size > 0) {
-          <mat-panel-description class="panel-description">
-            <span class="selection-count">{{ selectedImportIds.size }} selected</span>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="onBulkCancel(); $event.stopPropagation()"
-              [disabled]="selectedImportIds.size === 0"
-              matTooltip="Cancel selected imports"
-            >
-              <mat-icon>cancel</mat-icon>
-            </button>
-          </mat-panel-description>
+    <app-brand-section
+      class="active-imports-panel"
+      title="Active Imports"
+      subtitle="Running feed imports with real-time progress"
+      icon="downloading"
+      [collapsible]="true"
+      [(expanded)]="isExpanded">
+      <div section-actions class="panel-actions">
+        @if (activeImports$ | async; as activeImports) {
+          <span class="count-badge">{{ activeImports.length }}</span>
         }
-      </mat-expansion-panel-header>
+      </div>
 
       <!-- Active imports list -->
       @if (activeImports$ | async; as activeImports) {
         @if (activeImports.length > 0) {
           <div class="active-imports-list">
             @for (importItem of activeImports; track importItem.id) {
-              <app-mobilispect-card class="import-item-card">
-                <div card-header class="import-card-header">
-                  <mat-checkbox
-                    [checked]="selectedImportIds.has(importItem.id)"
-                    (change)="onSelectionChange(importItem.id, $event.checked)"
-                    [attr.aria-label]="'Select ' + importItem.feedName"
-                  ></mat-checkbox>
-
+              <div class="import-item-card">
+                <div class="import-card-header">
                   <div class="import-avatar">
                     <mat-icon>rss_feed</mat-icon>
                   </div>
 
-                  <div class="import-title" card-title>
-                    {{ importItem.feedName }}
+                  <div class="import-info">
+                    <div class="import-title-row">
+                      <div class="import-title">
+                        {{ importItem.feedName }}
+                      </div>
+                      <app-brand-badge
+                        variant="indeterminate"
+                        [label]="importItem.status"
+                      />
+                    </div>
+                    <div class="import-subtitle">
+                      {{ importItem.regionName }}
+                    </div>
                   </div>
 
-                  <div class="import-subtitle" card-subtitle>
-                    {{ importItem.regionName }}
-                  </div>
-
-                  <button
-                    mat-icon-button
-                    color="warn"
+                  <app-brand-button
+                    variant="destructive"
+                    size="sm"
                     (click)="onCancelImport(importItem.id)"
-                    matTooltip="Cancel import"
-                    class="cancel-button"
+                    matTooltip="Stop import"
+                    class="stop-button"
                   >
-                    <mat-icon>cancel</mat-icon>
-                  </button>
+                    <mat-icon>stop_circle</mat-icon>
+                    Stop
+                  </app-brand-button>
                 </div>
 
-                <div card-content class="import-card-content">
+                <div class="import-card-content">
                   <div class="import-meta">
-                    <mat-chip-set aria-label="Import status">
-                      <mat-chip [ngClass]="{
-                        'status-pending': importItem.status === 'pending',
-                        'status-running': importItem.status === 'running'
-                      }">
-                        {{ importItem.status }}
-                      </mat-chip>
-                    </mat-chip-set>
                     <span class="started-time">
                       Started: {{ importItem.startedAt | date:'short' }}
                     </span>
                   </div>
 
-                  <!-- Progress monitor -->
-                  <app-progress-monitor
-                    [importId]="importItem.id"
-                  ></app-progress-monitor>
+                  @if (importItem.progress) {
+                    <div class="progress-section">
+                      <div class="progress-details">
+                        <span class="progress-percentage">{{ importItem.progress.progressPercentage }}%</span>
+                        <span class="progress-step">{{ importItem.progress.currentStep }}</span>
+                      </div>
+                      <mat-progress-bar
+                        mode="determinate"
+                        [value]="importItem.progress.progressPercentage"
+                        color="primary">
+                      </mat-progress-bar>
+                    </div>
+                  }
                 </div>
-              </app-mobilispect-card>
+              </div>
             }
           </div>
         } @else {
@@ -136,278 +120,43 @@ import { MobilispectCardComponent } from '../../core/components/mobilispect-card
             </p>
           </div>
         }
-      } @else {
-        <div class="empty-state">
-          <mat-icon class="empty-icon">cloud_done</mat-icon>
-          <p class="empty-title">No active imports</p>
-          <p class="empty-subtitle">
-            Import feeds from the discovery tab to see them here.
-          </p>
-        </div>
       }
-    </mat-expansion-panel>
+    </app-brand-section>
   `,
-  styleUrls: ['../styles/card.styles.css'],
-  styles: [`
-    /* Expansion Panel Styles */
-    .active-imports-panel {
-      margin-bottom: 24px;
-      border-radius: 12px !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-      border: 1px solid rgba(0, 0, 0, 0.12) !important;
-    }
-
-    :host-context(.dark-theme) .active-imports-panel {
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    }
-
-    .panel-header {
-      background: #2980B9 !important;
-      color: white !important;
-      border-radius: 12px 12px 0 0 !important;
-    }
-
-    :host-context(.dark-theme) .panel-header {
-      background: #1e5f8c !important;
-    }
-
-    .panel-title {
-      display: flex !important;
-      align-items: center !important;
-      gap: 12px !important;
-      font-weight: 600 !important;
-      font-size: 1.1rem !important;
-    }
-
-    .panel-title mat-icon {
-      color: white !important;
-    }
-
-    .count-badge {
-      background: rgba(255, 255, 255, 0.25);
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-
-    .panel-description {
-      display: flex !important;
-      align-items: center !important;
-      gap: 12px !important;
-      justify-content: flex-end !important;
-    }
-
-    .selection-count {
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    /* Active Imports List */
-    .active-imports-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 16px;
-      padding: 16px;
-      align-items: stretch;
-    }
-
-    /* Individual Import Item Cards */
-    .import-item-card {
-      border-radius: 8px !important;
-      transition: all 0.2s ease;
-    }
-
-    .import-item-card:hover {
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-      transform: translateY(-2px);
-    }
-
-    .import-card-header {
-      position: relative;
-      padding: 16px !important;
-    }
-
-    .import-card-header mat-checkbox {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    .import-avatar {
-      background-color: #2980B9 !important;
-      color: white !important;
-      margin-left: 40px !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    :host-context(.dark-theme) .import-avatar {
-      background-color: #1e5f8c !important;
-    }
-
-    .import-title {
-      font-size: 1rem !important;
-      font-weight: 600 !important;
-      color: #1A3A52 !important;
-    }
-
-    :host-context(.dark-theme) .import-title {
-      color: #e0e0e0 !important;
-    }
-
-    .import-subtitle {
-      font-size: 0.875rem !important;
-      color: #666 !important;
-    }
-
-    :host-context(.dark-theme) .import-subtitle {
-      color: #aaa !important;
-    }
-
-    .cancel-button {
-      position: absolute !important;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    .import-card-content {
-      padding: 0 16px 16px 16px !important;
-    }
-
-    .import-meta {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .started-time {
-      font-size: 0.8125rem;
-      color: #666;
-    }
-
-    :host-context(.dark-theme) .started-time {
-      color: #aaa;
-    }
-
-    mat-chip {
-      font-size: 12px !important;
-      font-weight: 600 !important;
-      text-transform: uppercase !important;
-      letter-spacing: 0.5px !important;
-      min-height: 28px !important;
-    }
-
-    mat-chip.status-pending {
-      background-color: rgba(33, 150, 243, 0.15) !important;
-      color: #1565C0 !important;
-      border: 1px solid rgba(33, 150, 243, 0.3) !important;
-    }
-
-    :host-context(.dark-theme) mat-chip.status-pending {
-      background-color: rgba(33, 150, 243, 0.25) !important;
-      color: #64b5f6 !important;
-      border-color: rgba(33, 150, 243, 0.5) !important;
-    }
-
-    mat-chip.status-running {
-      background-color: rgba(33, 150, 243, 0.15) !important;
-      color: #1565C0 !important;
-      border: 1px solid rgba(33, 150, 243, 0.3) !important;
-    }
-
-    :host-context(.dark-theme) mat-chip.status-running {
-      background-color: rgba(33, 150, 243, 0.25) !important;
-      color: #64b5f6 !important;
-      border-color: rgba(33, 150, 243, 0.5) !important;
-    }
-
-    /* Empty State */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #666;
-    }
-
-    :host-context(.dark-theme) .empty-state {
-      color: #aaa;
-    }
-
-    .empty-title {
-      font-size: 18px;
-      margin-top: 20px;
-      color: #1A3A52;
-    }
-
-    :host-context(.dark-theme) .empty-title {
-      color: #e0e0e0;
-    }
-
-    .empty-subtitle {
-      color: #999;
-    }
-
-    :host-context(.dark-theme) .empty-subtitle {
-      color: #888;
-    }
-
-    .empty-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      color: #999;
-    }
-
-    :host-context(.dark-theme) .empty-icon {
-      color: #666;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .panel-title {
-        font-size: 1rem !important;
-      }
-
-      .import-meta {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .import-card-header {
-        padding-bottom: 60px !important;
-      }
-
-      .cancel-button {
-        top: auto;
-        bottom: 16px;
-        transform: none;
-      }
-    }
+    styles: [`
+    .active-imports-panel { margin-bottom: 24px; display: block; }
+    .panel-actions { display: inline-flex; align-items: center; gap: 10px; }
+    .count-badge { padding: 4px 10px; border-radius: 999px; background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
+    .active-imports-list { display: flex; flex-direction: column; gap: 16px; padding: 4px; }
+    .import-item-card { background: var(--mat-sys-surface, #ffffff); border: 1px solid var(--mat-sys-outline-variant, #e2e8f0); border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); transition: box-shadow 0.2s ease; }
+    .import-item-card:hover { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); }
+    .import-card-header { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; margin-bottom: 12px; }
+    .import-avatar { background: var(--mat-sys-primary, #0b4f8a); color: var(--mat-sys-on-primary, #fff); display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; }
+    .import-info { min-width: 0; }
+    .import-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .import-title { font-size: 1rem; font-weight: 700; color: var(--mat-sys-on-surface, #1a3a52); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .import-subtitle { font-size: 0.9rem; color: var(--mat-sys-on-surface-variant, #666); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .import-card-content { display: flex; flex-direction: column; gap: 12px; }
+    .import-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .started-time { display: inline-flex; align-items: center; gap: 6px; color: var(--mat-sys-on-surface-variant, #475569); font-size: 0.9rem; }
+    .progress-section { display: flex; flex-direction: column; gap: 8px; }
+    .progress-details { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .progress-percentage { font-size: 1.1rem; font-weight: 700; color: var(--mat-sys-primary, #0b4f8a); }
+    .progress-step { font-size: 0.85rem; color: var(--mat-sys-on-surface-variant, #475569); font-style: italic; }
+    .empty-state { padding: 24px; text-align: center; color: var(--mat-sys-on-surface-variant, #475569); display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .empty-icon { font-size: 48px; width: 48px; height: 48px; color: #94a3b8; }
+    .empty-title { margin: 0; font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
+    .empty-subtitle { margin: 0; color: var(--mat-sys-on-surface-variant, #475569); max-width: 340px; }
+    @media (max-width: 768px) { .active-imports-list { padding: 8px; } .import-item-card { padding: 12px; } .import-card-header { grid-template-columns: auto 1fr auto; gap: 8px; } .import-avatar { width: 32px; height: 32px; } .import-meta { flex-direction: column; align-items: flex-start; } }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ActiveImportsCardComponent {
   @Input() activeImports$: Observable<FeedImportSummary[]> | null = null;
-  @Input() selectedImportIds: Set<string> = new Set();
 
-  @Output() selectionChange = new EventEmitter<{ id: string; selected: boolean }>();
-  @Output() bulkCancel = new EventEmitter<void>();
   @Output() cancelImport = new EventEmitter<string>();
 
   isExpanded = true;
-
-  onSelectionChange(id: string, selected: boolean): void {
-    this.selectionChange.emit({ id, selected });
-  }
-
-  onBulkCancel(): void {
-    this.bulkCancel.emit();
-  }
 
   onCancelImport(id: string): void {
     this.cancelImport.emit(id);

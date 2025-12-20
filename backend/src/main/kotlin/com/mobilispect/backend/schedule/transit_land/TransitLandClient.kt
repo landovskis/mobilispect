@@ -11,6 +11,8 @@ import com.mobilispect.backend.TransitLandFeedResponse
 import com.mobilispect.backend.TransitLandOperatorResponse
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.infastructure.transit_land.FeedMetadataResult
+import com.mobilispect.backend.infastructure.transit_land.MetroAreaResult
+import com.mobilispect.backend.infastructure.transit_land.MetroAreaResultItem
 import com.mobilispect.backend.infastructure.transit_land.OperatorsResult
 import com.mobilispect.backend.infastructure.transit_land.RouteResult
 import com.mobilispect.backend.infastructure.transit_land.RouteResultItem
@@ -275,6 +277,12 @@ class TransitLandClient(
                 OperatorsResult(response.operators.toList(), response.meta?.after)
             )
         }
+    }
+
+    override fun metroAreas(apiKey: String): Result<List<MetroAreaResultItem>> = handleError {
+        val uri = "/metro_areas.json?limit=200"
+        val response = get(uri, apiKey, MetroAreaResult::class.java)
+        Result.success(response?.metro_areas ?: emptyList())
     }
 
     /**

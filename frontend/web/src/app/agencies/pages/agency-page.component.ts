@@ -1,0 +1,158 @@
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { AgencyService } from '../services/agency.service';
+import { AgencySummary } from '../../transit-frequency/models/agency.model';
+import { RouteDTO } from '../models/route.model';
+import { BrandSectionComponent } from '../../shared/components/brand-section.component';
+import { AgencyRouteCardComponent } from '../components/agency-route-card.component';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+@Component({
+  selector: 'app-agency-page',
+  standalone: true,
+  imports: [CommonModule, RouterModule, BrandSectionComponent, AgencyRouteCardComponent],
+  template: `
+    <app-brand-section
+      [title]="(agency$ | async)?.name || 'Agency Details'"
+      subtitle="Routes and stops served by this agency"
+      icon="directions_bus">
+      <ng-container *ngIf="agency$ | async as agency; else loadingAgency">
+        <div class="agency-info">
+          <div class="info-item">
+            <span class="info-label">Total Routes:</span>
+            <span class="info-value">{{ agency.routeCount }}</span>
+          </div>
+          <div class="info-item" *ngIf="agency.averageHeadwayMinutes">
+            <span class="info-label">Average Headway:</span>
+            <span class="info-value">{{ agency.averageHeadwayMinutes }} min</span>
+          </div>
+        </div>
+      </ng-container>
+      <ng-template #loadingAgency>
+        <p>Loading agency details...</p>
+      </ng-template>
+    </app-brand-section>
+
+    <app-brand-section
+      title="Routes"
+      subtitle="Transit routes operated by this agency"
+      icon="route">
+      <ng-container *ngIf="routes$ | async as routesResponse; else loadingRoutes">
+        <div class="routes-list">
+          <app-agency-route-card
+            *ngFor="let route of routesResponse.content"
+            [route]="route">
+          </app-agency-route-card>
+        </div>
+        <p *ngIf="routesResponse.content.length === 0" class="no-routes">
+          No routes found for this agency.
+        </p>
+      </ng-container>
+      <ng-template #loadingRoutes>
+        <p>Loading routes...</p>
+      </ng-template>
+    </app-brand-section>
+  `,
+  styles: [`
+    app-brand-section:not(:first-child) {
+      display: block;
+      margin-top: 24px;
+    }
+
+    .agency-info {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      padding: 16px 0;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .info-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--mat-sys-on-surface-variant, #6b7280);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--mat-sys-on-surface, #333);
+    }
+
+    .routes-list {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    .routes-list .route-item:nth-child(odd) {
+      background: var(--mat-sys-surface-container-high, #f9fafb);
+    }
+
+    .no-routes {
+      color: var(--mat-sys-on-surface-variant, #6b7280);
+      font-style: italic;
+      text-align: center;
+      padding: 24px 0;
+    }
+  `],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AgencyPageComponent implements OnInit {
+  agency$!: Observable<AgencySummary>;
+  routes$!: Observable<any>;
+
+  constructor(
+    private readonly route: ActivatedRoute,
+    private readonly agencyService: AgencyService
+  ) {}
+
+  ngOnInit(): void {
+    const agencyId = this.route.snapshot.paramMap.get('agencyId');
+    if (agencyId) {
+      this.agency$ = this.agencyService.getAgency(agencyId);
+      this.routes$ = this.agencyService.listRoutesByAgency(agencyId, 0, 500).pipe(
+        map(response => ({
+          ...response,
+          content: this.sortRoutes(response.content)
+        }))
+      );
+    }
+  }
+
+  private sortRoutes(routes: RouteDTO[]): RouteDTO[] {
+    return [...routes].sort((a, b) => {
+      const keyA = this.getRouteSortKey(a);
+      const keyB = this.getRouteSortKey(b);
+
+      if (keyA.number !== undefined && keyB.number !== undefined && keyA.number !== keyB.number) {
+        return keyA.number - keyB.number;
+      }
+
+      if (keyA.number !== undefined && keyB.number === undefined) return -1;
+      if (keyA.number === undefined && keyB.number !== undefined) return 1;
+
+      return keyA.text.localeCompare(keyB.text, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+
+  private getRouteSortKey(route: RouteDTO): { number?: number; text: string } {
+    const shortName = route.shortName?.trim() || '';
+    const longName = route.longName?.trim() || '';
+    const numericValue = shortName !== '' ? Number(shortName) : NaN;
+
+    return {
+      number: Number.isNaN(numericValue) ? undefined : numericValue,
+      text: shortName || longName || route.id
+    };
+  }
+}

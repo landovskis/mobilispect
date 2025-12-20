@@ -2,10 +2,10 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ProgressMonitorComponent } from './progress-monitor.component';
-import { FeedImportSummary } from '../models/import.models';
+import { FeedImportSummary } from '../models';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
 @Component({
   selector: 'app-feed-active-imports-tab',
@@ -13,9 +13,9 @@ import { FeedImportSummary } from '../models/import.models';
   imports: [
     CommonModule,
     MatCheckboxModule,
-    MatButtonModule,
     MatIconModule,
-    ProgressMonitorComponent
+    ProgressMonitorComponent,
+    BrandButtonComponent
   ],
   template: `
     <div class="tab-content">
@@ -29,15 +29,14 @@ import { FeedImportSummary } from '../models/import.models';
             >
               Select All
             </mat-checkbox>
-            <button
-              mat-button
-              color="warn"
+            <app-brand-button
+              variant="ghost"
+              size="sm"
               [disabled]="!selectedImportIds || selectedImportIds.size === 0"
-              (click)="bulkCancel.emit()"
-            >
+              (click)="bulkCancel.emit()">
               <mat-icon>cancel</mat-icon>
               Cancel Selected ({{ selectedImportIds?.size || 0 }})
-            </button>
+            </app-brand-button>
           </div>
         }
 

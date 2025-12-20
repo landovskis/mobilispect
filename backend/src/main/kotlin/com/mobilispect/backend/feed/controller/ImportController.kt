@@ -1,32 +1,24 @@
 package com.mobilispect.backend.feed.controller
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.mobilispect.backend.api.dto.ActiveImportsResponse
 import com.mobilispect.backend.api.dto.FeedImportDTO
 import com.mobilispect.backend.api.dto.FeedImportDetailDTO
 import com.mobilispect.backend.api.dto.FeedImportSummaryDTO
-import com.mobilispect.backend.api.dto.ImportLogDTO
-import com.mobilispect.backend.api.dto.ImportLogsResponse
 import com.mobilispect.backend.api.dto.ImportProgressDTO
 import com.mobilispect.backend.api.dto.ImportRequest
 import com.mobilispect.backend.api.dto.ImportResponse
 import com.mobilispect.backend.api.dto.ImportsResponse
 import com.mobilispect.backend.api.dto.ImportStatus as ImportStatusDto
-import com.mobilispect.backend.api.dto.LogLevel as LogLevelDto
 import com.mobilispect.backend.api.dto.PageInfo
 import com.mobilispect.backend.api.dto.TriggerType as TriggerTypeDto
 import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
-import com.mobilispect.backend.feed.model.LogLevel
 import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedImportRepository
-import com.mobilispect.backend.feed.repository.ImportLogRepository
 import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.websocket.ProgressTrackingService
-import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -48,12 +40,8 @@ import java.util.UUID
 class ImportController(
     private val feedImportService: FeedImportService,
     private val feedImportRepository: FeedImportRepository,
-    private val importLogRepository: ImportLogRepository,
-    private val progressTrackingService: ProgressTrackingService,
-    private val objectMapper: ObjectMapper
+    private val progressTrackingService: ProgressTrackingService
 ) {
-    private val logger = LoggerFactory.getLogger(ImportController::class.java)
-
     private val activeStatuses = listOf(ImportStatus.RUNNING, ImportStatus.PENDING)
 
     @PostMapping("/feeds/{feedOnestopId}/import")
@@ -95,7 +83,7 @@ class ImportController(
         val uuid = runCatching { UUID.fromString(importId) }
             .getOrElse { throw ResponseStatusException(HttpStatus.NOT_FOUND, "Import not found: $importId") }
 
-        val import = feedImportRepository.findById(ImportId(uuid))
+        val import = feedImportRepository.findByImportId(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
 
         val progressPercentage = when (import.status) {
@@ -126,15 +114,13 @@ class ImportController(
     @Transactional(readOnly = true)
     fun getImport(@PathVariable importId: String): FeedImportDetailDTO {
         val uuid = parseImportId(importId)
-        val import = feedImportRepository.findById(ImportId(uuid))
+        val import = feedImportRepository.findByImportId(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
 
         val feed = import.feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${import.id}")
         val regionName = feed.regions.firstOrNull()?.name
 
         val progress = progressTrackingService.getProgress(importId)?.toDto()
-        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(ImportId(uuid))
-            .map { log -> log.toDto(importId) }
 
         return FeedImportDetailDTO(
             id = import.requireIdAsString(),
@@ -152,8 +138,7 @@ class ImportController(
             updatedAt = import.updatedAt,
             feedName = feed.name,
             regionName = regionName,
-            progress = progress,
-            recentLogs = logs
+            progress = progress
         )
     }
 
@@ -161,7 +146,7 @@ class ImportController(
     fun cancelImport(@PathVariable importId: String): FeedImportDTO {
         val uuid = parseImportId(importId)
         feedImportService.cancelImport(ImportId(uuid))
-        val updated = feedImportRepository.findById(ImportId(uuid))
+        val updated = feedImportRepository.findByImportId(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
         return updated.toFeedImportDTO()
     }
@@ -232,15 +217,6 @@ class ImportController(
         )
     }
 
-    @GetMapping("/imports/{importId}/logs")
-    @Transactional(readOnly = true)
-    fun getImportLogs(@PathVariable importId: String): ImportLogsResponse {
-        val uuid = parseImportId(importId)
-        val logs = importLogRepository.findAllByFeedImportIdOrderByCreatedAtAsc(ImportId(uuid))
-            .map { it.toDto(importId) }
-        return ImportLogsResponse(logs)
-    }
-
     private fun FeedImport.toResponse(message: String?): ImportResponse {
         val feed = feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${id}")
         return ImportResponse(
@@ -295,26 +271,6 @@ class ImportController(
         updatedAt = updatedAt
     )
 
-    private fun com.mobilispect.backend.feed.model.ImportLog.toDto(importId: String): ImportLogDTO {
-        val detailsMap: Map<String, Any?>? = details?.let { raw ->
-            runCatching {
-                objectMapper.readValue(raw, object : TypeReference<Map<String, Any?>>() {})
-            }.onFailure { ex ->
-                logger.warn("Failed to parse import log details for {}: {}", id, ex.message)
-            }.getOrNull()
-        }
-
-        return ImportLogDTO(
-            id = id?.toString() ?: "",
-            importId = importId,
-            level = level.toDto(),
-            message = message,
-            component = component,
-            details = detailsMap,
-            createdAt = createdAt
-        )
-    }
-
     private fun com.mobilispect.backend.websocket.ImportProgress.toDto(): ImportProgressDTO = ImportProgressDTO(
         importId = importId,
         feedOnestopId = feedOnestopId,
@@ -338,12 +294,6 @@ class ImportController(
     private fun ImportTriggerType.toDto(): TriggerTypeDto = when (this) {
         ImportTriggerType.MANUAL -> TriggerTypeDto.MANUAL
         ImportTriggerType.AUTOMATIC -> TriggerTypeDto.AUTOMATIC
-    }
-
-    private fun LogLevel.toDto(): LogLevelDto = when (this) {
-        LogLevel.INFO -> LogLevelDto.INFO
-        LogLevel.WARN -> LogLevelDto.WARN
-        LogLevel.ERROR -> LogLevelDto.ERROR
     }
 
     private fun ImportStatusDto.toEntity(): ImportStatus = when (this) {

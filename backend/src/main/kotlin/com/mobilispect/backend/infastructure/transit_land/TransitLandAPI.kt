@@ -53,4 +53,9 @@ interface TransitLandAPI {
      * Returns detailed feed information including version, URLs, and authorization details.
      */
     fun feedMetadata(apiKey: String, feedId: String): Result<FeedMetadataResult>
+
+    /**
+     * Retrieve Transitland metropolitan areas.
+     */
+    fun metroAreas(apiKey: String): Result<List<MetroAreaResultItem>>
 }
