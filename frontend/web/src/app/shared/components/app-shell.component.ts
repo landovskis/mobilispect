@@ -411,25 +411,24 @@ export class AppShellComponent implements OnDestroy {
       return crumbs;
     }
 
-    for (const child of children) {
-      const routeURL = child.url.map(segment => segment.path).join('/');
-      const nextUrl = routeURL ? `${url}/${routeURL}` : url;
-      const label =
-        child.data['breadcrumb'] ??
-        child.paramMap.get('regionId') ??
-        child.paramMap.get('routeId');
+    const [child] = children;
+    if (!child) return crumbs;
 
-      if (label) {
-        crumbs.push({
-          id: child.routeConfig?.path ?? label,
-          label,
-          link: [nextUrl || '/']
-        });
-      }
+    const routeURL = child.url.map(segment => segment.path).join('/');
+    const nextUrl = routeURL ? `${url}/${routeURL}` : url;
+    const label =
+      child.data['breadcrumb'] ??
+      child.paramMap.get('regionId') ??
+      child.paramMap.get('routeId');
 
-      this.buildBreadcrumbsFromRoute(child, nextUrl, crumbs);
+    if (label) {
+      crumbs.push({
+        id: child.routeConfig?.path ?? label,
+        label,
+        link: [nextUrl || '/']
+      });
     }
 
-    return crumbs;
+    return this.buildBreadcrumbsFromRoute(child, nextUrl, crumbs);
   }
 }

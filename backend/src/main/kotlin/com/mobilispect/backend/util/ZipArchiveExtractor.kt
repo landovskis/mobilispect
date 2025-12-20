@@ -77,14 +77,44 @@ internal class ZipArchiveExtractor : ArchiveExtractor {
 
 
     @Throws(IOException::class)
-    // Source: https://www.baeldung.com/java-compress-and-uncompress
+    // Prevent zip slip vulnerability by validating entry paths
+    // Reference: https://security.snyk.io/research/zip-slip-vulnerability
     private fun newFile(destinationDir: File, zipEntry: ZipEntry): File {
-        val destFile = File(destinationDir, zipEntry.name)
+        // Sanitize the entry name to prevent path traversal
+        val sanitizedName = sanitizeZipEntryName(zipEntry.name)
+
+        // Construct the destination file using the sanitized name
+        val destFile = File(destinationDir, sanitizedName)
+
+        // Validate that the canonical path is within the destination directory
         val destDirPath: String = destinationDir.canonicalPath
         val destFilePath: String = destFile.canonicalPath
+
         if (!destFilePath.startsWith(destDirPath + File.separator)) {
-            throw IOException("Entry is outside of the target dir: " + zipEntry.name)
+            throw IOException("Entry is outside of the target dir: ${zipEntry.name}")
         }
+
         return destFile
+    }
+
+    /**
+     * Sanitizes a zip entry name to prevent path traversal attacks.
+     * Removes any path components that attempt to navigate outside the extraction directory.
+     */
+    private fun sanitizeZipEntryName(entryName: String): String {
+        // Normalize path separators to the system separator
+        val normalized = entryName.replace('/', File.separatorChar)
+            .replace('\\', File.separatorChar)
+
+        // Split into path components and filter out dangerous elements
+        val parts = normalized.split(File.separatorChar)
+            .filter { it.isNotEmpty() && it != "." && it != ".." }
+
+        if (parts.isEmpty()) {
+            throw IOException("Invalid zip entry name: $entryName")
+        }
+
+        // Reconstruct the safe path
+        return parts.joinToString(File.separator)
     }
 }
