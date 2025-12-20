@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, RouteDto, RouteVariantDto, FrequencyDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
@@ -8,7 +8,7 @@ import { RouteFrequencyCardComponent } from '../../components/route-frequency-ca
 @Component({
   selector: 'app-route-frequency',
   standalone: true,
-  imports: [CommonModule, RouteFrequencyCardComponent],
+  imports: [RouteFrequencyCardComponent],
   template: `
     <app-route-frequency-card
       [route]="route"

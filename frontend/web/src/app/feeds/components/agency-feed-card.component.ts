@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -12,13 +12,12 @@ import { Feed, FeedStatus, FeedSpecType } from '../models';
   selector: 'app-agency-feed-card',
   standalone: true,
   imports: [
-    CommonModule,
     MatIconModule,
     MatChipsModule,
     MatTooltipModule,
     BrandCardComponent,
     BrandButtonComponent
-  ],
+],
   template: `
     @if (agencyGroup) {
       <app-brand-card

@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router, RouterModule } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
 import { MetropolitanRegion } from '../../feeds/models/region.models';
@@ -10,7 +10,7 @@ import { RegionSelectorComponent } from '../components/region-selector.component
 @Component({
   selector: 'app-region-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, BrandCardComponent, BrandButtonComponent, RegionSelectorComponent],
+  imports: [RouterModule, BrandCardComponent, BrandButtonComponent, RegionSelectorComponent],
   template: `
     <app-brand-card title="Regions" subtitle="All regions with imported feeds">
       <app-region-selector
@@ -18,9 +18,11 @@ import { RegionSelectorComponent } from '../components/region-selector.component
         [selectedRegionId]="selectedRegionId"
         (regionChange)="onRegionChange($event)">
       </app-region-selector>
-      <div class="actions" *ngIf="selectedRegionId">
-        <app-brand-button variant="ghost" size="sm" (click)="clearSelection()">Show all regions</app-brand-button>
-      </div>
+      @if (selectedRegionId) {
+        <div class="actions">
+          <app-brand-button variant="ghost" size="sm" (click)="clearSelection()">Show all regions</app-brand-button>
+        </div>
+      }
       <div class="grid" role="list">
         @for (region of filteredRegions; track region.regionOnestopId) {
           <div class="region-card" role="listitem" tabindex="0" (click)="goToRegion(region.regionOnestopId)" (keydown.enter)="goToRegion(region.regionOnestopId)" (keydown.space)="goToRegion(region.regionOnestopId)">
@@ -38,7 +40,7 @@ import { RegionSelectorComponent } from '../components/region-selector.component
         }
       </div>
     </app-brand-card>
-  `,
+    `,
   styles: [`
     .actions { margin: 12px 0; }
     .grid { display: flex; flex-direction: column; gap: 12px; }

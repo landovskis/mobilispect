@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -20,14 +20,13 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
   selector: 'app-discover-feeds-page',
   standalone: true,
   imports: [
-    CommonModule,
     MatSnackBarModule,
     MatProgressSpinnerModule,
     MatIconModule,
     BrandSectionComponent,
     RegionSelectorComponent,
     AgencyFeedCardComponent
-  ],
+],
   template: `
     <app-brand-section
       title="Discover Feeds"

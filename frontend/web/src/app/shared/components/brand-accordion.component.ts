@@ -22,7 +22,7 @@ export interface BrandAccordionItem {
           class="accordion-item"
           [class.open]="item.open"
           [class.disabled]="item.disabled"
-        >
+          >
           <button
             type="button"
             class="accordion-trigger"
@@ -31,7 +31,7 @@ export interface BrandAccordionItem {
             [id]="item.id + '-header'"
             [disabled]="item.disabled"
             (click)="toggleItem(i)"
-          >
+            >
             <div class="header-text">
               <span class="title">{{ item.title }}</span>
               @if (item.subtitle) {
@@ -52,16 +52,19 @@ export interface BrandAccordionItem {
             [id]="item.id + '-panel'"
             [attr.aria-labelledby]="item.id + '-header'"
             [hidden]="!item.open"
-          >
-            <ng-container *ngIf="itemTemplate; else defaultContent" [ngTemplateOutlet]="itemTemplate" [ngTemplateOutletContext]="{ item: item }"></ng-container>
-            <ng-template #defaultContent let-item="item">
-              <p class="panel-text" *ngIf="item.content">{{ item.content }}</p>
-            </ng-template>
+            >
+            @if (itemTemplate) {
+              <ng-container [ngTemplateOutlet]="itemTemplate" [ngTemplateOutletContext]="{ item: item }"></ng-container>
+            } @else {
+              @if (item.content) {
+                <p class="panel-text">{{ item.content }}</p>
+              }
+            }
           </div>
         </section>
       }
     </div>
-  `,
+    `,
   styles: [`
     .accordion {
       display: flex;

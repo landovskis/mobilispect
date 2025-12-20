@@ -1,12 +1,12 @@
 import { Component, EventEmitter, Input, Output, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouteVariantDto } from '../../services/frequency.service';
 import { BrandButtonComponent } from '../../../shared/components/brand-button.component';
 
 @Component({
   selector: 'app-variant-list',
   standalone: true,
-  imports: [CommonModule, BrandButtonComponent],
+  imports: [BrandButtonComponent],
   template: `
     <div class="list" role="list">
       @for (variant of variants; track variant.id) {

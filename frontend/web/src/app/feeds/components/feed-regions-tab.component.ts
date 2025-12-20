@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatIconModule } from '@angular/material/icon';
 import { MetropolitanRegion } from '../models';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
@@ -9,11 +9,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
   selector: 'app-feed-regions-tab',
   standalone: true,
   imports: [
-    CommonModule,
     MatIconModule,
     BrandCardComponent,
     BrandButtonComponent
-  ],
+],
   template: `
     <div class="tab-content">
       <app-brand-card class="welcome-card">
