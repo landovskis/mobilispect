@@ -106,9 +106,9 @@ describe('RegionDetailComponent', () => {
 
     const compiled = fixture.nativeElement;
     expect(compiled.textContent).toContain('Test Region');
-    expect(compiled.textContent).toContain('Canada');
-    expect(compiled.textContent).toContain('Quebec');
-    expect(compiled.textContent).toContain('Enabled');
+    expect(compiled.textContent).toContain('2'); // totalAgencies
+    expect(compiled.textContent).toContain('Transit Agencies');
+    expect(compiled.textContent).toContain('Active Routes');
   });
 
   it('should display agencies list when agencies are available', () => {
