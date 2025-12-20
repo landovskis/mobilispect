@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { AgencyBreadcrumbResolver } from './agencies/resolvers/agency-breadcrumb.resolver';
 import { AppShellComponent } from './shared/components/app-shell.component';
 
 export const routes: Routes = [
@@ -41,7 +42,7 @@ export const routes: Routes = [
             path: ':agencyId',
             loadComponent: () => import('./agencies/pages/agency-page.component').then(m => m.AgencyPageComponent),
             resolve: {
-              breadcrumb: (await import('./agencies/resolvers/agency-breadcrumb.resolver')).AgencyBreadcrumbResolver
+              breadcrumb: AgencyBreadcrumbResolver
             }
           }
         ]
