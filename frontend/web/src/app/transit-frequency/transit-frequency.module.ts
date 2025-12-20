@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { RegionListComponent } from '../regions/pages/region-list.component';
 import { RegionDetailComponent } from '../regions/pages/region-detail.component';
 import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
+import { RouteBreadcrumbResolver } from './resolvers/route-breadcrumb.resolver';
 
 const routes: Routes = [
   {
@@ -22,8 +23,8 @@ const routes: Routes = [
   {
     path: 'routes/:routeId',
     loadComponent: () => import('./pages/route-frequency/route-frequency.component').then(m => m.RouteFrequencyComponent),
-    data: {
-      breadcrumb: 'Route'
+    resolve: {
+      breadcrumb: RouteBreadcrumbResolver
     }
   }
 ];
@@ -32,4 +33,4 @@ const routes: Routes = [
   imports: [RouterModule.forChild(routes)],
   exports: [RouterModule]
 })
-export class TransitFrequencyModule {}
+export class TransitFrequencyModule { }

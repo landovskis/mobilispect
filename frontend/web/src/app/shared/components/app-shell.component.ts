@@ -418,9 +418,7 @@ export class AppShellComponent implements OnDestroy {
     const routeURL = child.url.map(segment => segment.path).join('/');
     const nextUrl = routeURL ? `${url}/${routeURL}` : url;
     const label =
-      child.data['breadcrumb'] ??
-      child.paramMap.get('regionId') ??
-      child.paramMap.get('routeId');
+      child.data['breadcrumb'];
 
     if (label) {
       crumbs.push({

@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AgencyBreadcrumbResolver } from './agencies/resolvers/agency-breadcrumb.resolver';
 import { AppShellComponent } from './shared/components/app-shell.component';
+import { RouteBreadcrumbResolver } from './transit-frequency/resolvers/route-breadcrumb.resolver';
 
 export const routes: Routes = [
   {
@@ -50,8 +51,8 @@ export const routes: Routes = [
       {
         path: 'routes/:routeId',
         loadComponent: () => import('./transit-frequency/pages/route-detail/route-detail-page.component').then(m => m.RouteDetailPageComponent),
-        data: {
-          breadcrumb: 'Route Details'
+        resolve: {
+          breadcrumb: RouteBreadcrumbResolver
         }
       },
       {
