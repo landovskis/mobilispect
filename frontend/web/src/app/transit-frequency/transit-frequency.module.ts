@@ -9,9 +9,7 @@ const routes: Routes = [
   {
     path: '',
     component: RegionListComponent,
-    data: {
-      breadcrumb: 'Regions'
-    }
+    data: {}
   },
   {
     path: ':regionId',
