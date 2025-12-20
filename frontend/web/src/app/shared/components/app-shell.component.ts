@@ -35,16 +35,17 @@ import { ThemeToggleComponent } from './theme-toggle.component';
         [breadcrumbs]="breadcrumbs"
         (refresh)="onRefresh()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
-      >
+        >
         <div toolbar-actions>
-          <button
-            *ngIf="isHandset$ | async"
-            mat-icon-button
-            type="button"
-            aria-label="Toggle navigation"
-            (click)="toggleSidenav()">
-            <mat-icon>menu</mat-icon>
-          </button>
+          @if (isHandset$ | async) {
+            <button
+              mat-icon-button
+              type="button"
+              aria-label="Toggle navigation"
+              (click)="toggleSidenav()">
+              <mat-icon>menu</mat-icon>
+            </button>
+          }
           <app-theme-toggle></app-theme-toggle>
         </div>
       </app-bar>
@@ -112,7 +113,7 @@ import { ThemeToggleComponent } from './theme-toggle.component';
         </mat-sidenav-content>
       </mat-sidenav-container>
     </div>
-  `,
+    `,
   styles: [`
     .feeds-container {
       height: 100vh;

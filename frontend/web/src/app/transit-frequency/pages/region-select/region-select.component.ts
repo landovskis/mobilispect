@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { RegionService } from '../../../feeds/services/region.service';
 import { MetropolitanRegion } from '../../../feeds/models/region.models';
@@ -9,7 +9,7 @@ import { BrandButtonComponent } from '../../../shared/components/brand-button.co
 @Component({
   selector: 'app-region-select',
   standalone: true,
-  imports: [CommonModule, BrandCardComponent, BrandButtonComponent],
+  imports: [BrandCardComponent, BrandButtonComponent],
   template: `
     <app-brand-card title="Select a Region" subtitle="Showing regions with at least one imported feed">
       <div class="regions" role="list">

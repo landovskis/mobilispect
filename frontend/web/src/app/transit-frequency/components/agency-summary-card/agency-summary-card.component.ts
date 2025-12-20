@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { AgencySummary } from '../../models/agency-summary.model';
 import { BrandBadgeComponent } from '../../../shared/components/brand-badge.component';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
@@ -7,7 +7,7 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
 @Component({
   selector: 'app-agency-summary-card',
   standalone: true,
-  imports: [CommonModule, BrandCardComponent, BrandBadgeComponent],
+  imports: [BrandCardComponent, BrandBadgeComponent],
   template: `
     <app-brand-card [title]="agency.name" [badge]="agency.routeCount + ' routes'">
       <div class="meta" aria-label="agency summary" role="list">

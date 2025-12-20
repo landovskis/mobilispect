@@ -25,7 +25,7 @@ interface RegionSummary {
       [title]="(summary$ | async)?.name || 'Summary'"
       subtitle="Overview of transit data in this region"
       icon="analytics">
-      <ng-container *ngIf="summary$ | async as summary; else loadingSummary">
+      @if (summary$ | async; as summary) {
         <div class="summary-grid">
           <div class="summary-card">
             <div class="summary-value">{{ summary.totalAgencies }}</div>
@@ -36,32 +36,33 @@ interface RegionSummary {
             <div class="summary-label">Active Routes</div>
           </div>
         </div>
-      </ng-container>
-      <ng-template #loadingSummary>
+      } @else {
         <p>Loading summary...</p>
-      </ng-template>
+      }
     </app-brand-section>
 
     <app-brand-section
       title="Agencies"
       subtitle="Transit agencies serving this region"
       icon="business">
-      <ng-container *ngIf="agencies$ | async as agenciesResponse; else loading">
+      @if (agencies$ | async; as agenciesResponse) {
         <div class="agencies-grid">
-          <app-agency-card
-            *ngFor="let agency of agenciesResponse.content"
-            [agency]="agency">
-          </app-agency-card>
+          @for (agency of agenciesResponse.content; track agency) {
+            <app-agency-card
+              [agency]="agency">
+            </app-agency-card>
+          }
         </div>
-        <p *ngIf="agenciesResponse.content.length === 0" class="no-agencies">
-          No agencies found for this region.
-        </p>
-      </ng-container>
-      <ng-template #loading>
+        @if (agenciesResponse.content.length === 0) {
+          <p class="no-agencies">
+            No agencies found for this region.
+          </p>
+        }
+      } @else {
         <p>Loading agencies...</p>
-      </ng-template>
+      }
     </app-brand-section>
-  `,
+    `,
   styles: [`
     app-brand-section:not(:first-child) {
       display: block;

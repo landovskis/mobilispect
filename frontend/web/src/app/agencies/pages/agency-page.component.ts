@@ -18,43 +18,46 @@ import { map } from 'rxjs/operators';
       [title]="(agency$ | async)?.name || 'Agency Details'"
       subtitle="Routes and stops served by this agency"
       icon="directions_bus">
-      <ng-container *ngIf="agency$ | async as agency; else loadingAgency">
+      @if (agency$ | async; as agency) {
         <div class="agency-info">
           <div class="info-item">
             <span class="info-label">Total Routes:</span>
             <span class="info-value">{{ agency.routeCount }}</span>
           </div>
-          <div class="info-item" *ngIf="agency.averageHeadwayMinutes">
-            <span class="info-label">Average Headway:</span>
-            <span class="info-value">{{ agency.averageHeadwayMinutes }} min</span>
-          </div>
+          @if (agency.averageHeadwayMinutes) {
+            <div class="info-item">
+              <span class="info-label">Average Headway:</span>
+              <span class="info-value">{{ agency.averageHeadwayMinutes }} min</span>
+            </div>
+          }
         </div>
-      </ng-container>
-      <ng-template #loadingAgency>
+      } @else {
         <p>Loading agency details...</p>
-      </ng-template>
+      }
     </app-brand-section>
 
     <app-brand-section
       title="Routes"
       subtitle="Transit routes operated by this agency"
       icon="route">
-      <ng-container *ngIf="routes$ | async as routesResponse; else loadingRoutes">
+      @if (routes$ | async; as routesResponse) {
         <div class="routes-list">
-          <app-agency-route-card
-            *ngFor="let route of routesResponse.content"
-            [route]="route">
-          </app-agency-route-card>
+          @for (route of routesResponse.content; track route) {
+            <app-agency-route-card
+              [route]="route">
+            </app-agency-route-card>
+          }
         </div>
-        <p *ngIf="routesResponse.content.length === 0" class="no-routes">
-          No routes found for this agency.
-        </p>
-      </ng-container>
-      <ng-template #loadingRoutes>
+        @if (routesResponse.content.length === 0) {
+          <p class="no-routes">
+            No routes found for this agency.
+          </p>
+        }
+      } @else {
         <p>Loading routes...</p>
-      </ng-template>
+      }
     </app-brand-section>
-  `,
+    `,
   styles: [`
     app-brand-section:not(:first-child) {
       display: block;

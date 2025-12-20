@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { AgencyDTO } from '../../models/agency.model';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
@@ -8,7 +8,7 @@ import { BrandBadgeComponent } from '../../../shared/components/brand-badge.comp
 @Component({
   selector: 'app-agency-card',
   standalone: true,
-  imports: [CommonModule, RouterModule, BrandCardComponent, BrandBadgeComponent],
+  imports: [RouterModule, BrandCardComponent, BrandBadgeComponent],
   template: `
     <a [routerLink]="['/agencies', agency.id]" class="agency-card-link">
       <app-brand-card [title]="agency.name">

@@ -10,10 +10,12 @@ type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral' | 'indeterminate';
   imports: [CommonModule, MatIconModule],
   template: `
     <span class="brand-badge" [ngClass]="variant">
-      <mat-icon *ngIf="icon" aria-hidden="true">{{ icon }}</mat-icon>
+      @if (icon) {
+        <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+      }
       <span class="badge-label">{{ label || variant }}</span>
     </span>
-  `,
+    `,
   styles: [`
     .brand-badge {
       display: inline-flex;

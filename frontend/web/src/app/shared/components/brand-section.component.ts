@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatIconModule } from '@angular/material/icon';
 
 /**
@@ -8,37 +8,46 @@ import { MatIconModule } from '@angular/material/icon';
 @Component({
   selector: 'app-brand-section',
   standalone: true,
-  imports: [CommonModule, MatIconModule],
+  imports: [MatIconModule],
   template: `
     <section class="brand-section" [class.collapsible]="collapsible">
       <header class="section-header">
-        <div class="icon-wrap" *ngIf="icon">
-          <mat-icon>{{ icon }}</mat-icon>
-        </div>
+        @if (icon) {
+          <div class="icon-wrap">
+            <mat-icon>{{ icon }}</mat-icon>
+          </div>
+        }
         <div class="section-titles">
-          <h3 class="section-title" *ngIf="title">{{ title }}</h3>
-          <p class="section-subtitle" *ngIf="subtitle">{{ subtitle }}</p>
+          @if (title) {
+            <h3 class="section-title">{{ title }}</h3>
+          }
+          @if (subtitle) {
+            <p class="section-subtitle">{{ subtitle }}</p>
+          }
         </div>
 
         <div class="section-actions">
           <ng-content select="[section-actions]"></ng-content>
-          <button
-            *ngIf="collapsible"
-            type="button"
-            class="toggle"
-            (click)="toggle()"
-            [attr.aria-expanded]="expanded"
-            [attr.aria-label]="expanded ? 'Collapse section' : 'Expand section'">
-            <mat-icon [class.rotated]="expanded">expand_more</mat-icon>
-          </button>
+          @if (collapsible) {
+            <button
+              type="button"
+              class="toggle"
+              (click)="toggle()"
+              [attr.aria-expanded]="expanded"
+              [attr.aria-label]="expanded ? 'Collapse section' : 'Expand section'">
+              <mat-icon [class.rotated]="expanded">expand_more</mat-icon>
+            </button>
+          }
         </div>
       </header>
 
-      <div class="section-body" *ngIf="!collapsible || expanded">
-        <ng-content></ng-content>
-      </div>
+      @if (!collapsible || expanded) {
+        <div class="section-body">
+          <ng-content></ng-content>
+        </div>
+      }
     </section>
-  `,
+    `,
   styles: [`
     .brand-section {
       background: var(--mat-sys-surface, #ffffff);

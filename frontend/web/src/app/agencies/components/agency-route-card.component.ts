@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { RouteDTO } from '../models/route.model';
@@ -8,7 +8,7 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
 @Component({
   selector: 'app-agency-route-card',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, BrandBadgeComponent],
+  imports: [RouterModule, MatIconModule, BrandBadgeComponent],
   template: `
     <a
       class="route-item"

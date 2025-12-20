@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-breadcrumbs.component';
@@ -8,11 +8,10 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
   selector: 'app-bar',
   standalone: true,
   imports: [
-    CommonModule,
     MatToolbarModule,
     MatIconModule,
     AppBreadcrumbsComponent
-  ],
+],
   template: `
     <mat-toolbar
       color="primary"

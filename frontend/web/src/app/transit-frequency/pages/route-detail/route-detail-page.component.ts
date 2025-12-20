@@ -16,7 +16,7 @@ import { Observable, tap } from 'rxjs';
       [title]="(route$ | async)?.longName || 'Route Details'"
       [subtitle]="'Route ' + ((route$ | async)?.shortName || '')"
       icon="route">
-      <ng-container *ngIf="route$ | async as route; else loadingRoute">
+      @if (route$ | async; as route) {
         <div class="route-info">
           <div class="info-item">
             <span class="info-label">Route Number:</span>
@@ -37,10 +37,9 @@ import { Observable, tap } from 'rxjs';
             </span>
           </div>
         </div>
-      </ng-container>
-      <ng-template #loadingRoute>
+      } @else {
         <p>Loading route details...</p>
-      </ng-template>
+      }
     </app-brand-section>
 
     <app-route-frequency-card
@@ -53,7 +52,7 @@ import { Observable, tap } from 'rxjs';
       (variantSelect)="loadFrequencies($event)"
       (dateChange)="onDateChange($event)">
     </app-route-frequency-card>
-  `,
+    `,
   styles: [`
     app-brand-section:not(:first-child) {
       display: block;

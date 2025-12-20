@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Observable, Subject } from 'rxjs';
@@ -14,11 +14,10 @@ import { FeedsEventsService } from '../services/feeds-events.service';
   selector: 'app-feed-imports-page',
   standalone: true,
   imports: [
-    CommonModule,
     MatSnackBarModule,
     MatDialogModule,
     FeedImportsTabComponent
-  ],
+],
   template: `
     <app-feed-imports-tab
       [loading]="loadingHistory"

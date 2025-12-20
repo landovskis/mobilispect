@@ -1,29 +1,39 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-brand-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <section class="brand-card" [class.border]="border">
-      <header *ngIf="title || badge" class="card-header">
-        <div class="card-titles">
-          <h3 class="card-title" *ngIf="title">{{ title }}</h3>
-          <p class="card-subtitle" *ngIf="subtitle">{{ subtitle }}</p>
-        </div>
-        <span *ngIf="badge" class="card-badge">{{ badge }}</span>
-      </header>
+      @if (title || badge) {
+        <header class="card-header">
+          <div class="card-titles">
+            @if (title) {
+              <h3 class="card-title">{{ title }}</h3>
+            }
+            @if (subtitle) {
+              <p class="card-subtitle">{{ subtitle }}</p>
+            }
+          </div>
+          @if (badge) {
+            <span class="card-badge">{{ badge }}</span>
+          }
+        </header>
+      }
 
       <div class="card-body">
         <ng-content></ng-content>
       </div>
 
-      <footer class="card-footer" *ngIf="hasFooter">
-        <ng-content select="[card-footer]"></ng-content>
-      </footer>
+      @if (hasFooter) {
+        <footer class="card-footer">
+          <ng-content select="[card-footer]"></ng-content>
+        </footer>
+      }
     </section>
-  `,
+    `,
   styles: [`
     .brand-card {
       background: var(--mat-sys-surface, var(--ms-color-background, #ffffff));

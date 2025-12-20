@@ -1,6 +1,6 @@
 import { RegionBreadcrumbResolver } from './region-breadcrumb.resolver';
 import { RegionService } from '../../feeds/services/region.service';
-import { MetropolitanRegion } from '../../feeds/models/region.models';
+import { MetropolitanRegion, MetropolitanRegionDetail } from '../../feeds/models/region.models';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { ActivatedRouteSnapshot } from '@angular/router';
 
@@ -18,6 +18,11 @@ describe('RegionBreadcrumbResolver', () => {
     lastCheckAt: null,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z'
+  };
+
+  const mockRegionDetail: MetropolitanRegionDetail = {
+    ...mockRegion,
+    feeds: []
   };
 
   beforeEach(() => {
@@ -56,7 +61,7 @@ describe('RegionBreadcrumbResolver', () => {
 
   it('fetches region when cache is missing and formats display name', async () => {
     regionServiceSpy.getCachedRegion.and.returnValue(undefined);
-    regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
+    regionServiceSpy.getRegion.and.returnValue(of(mockRegionDetail));
     const snapshot = createSnapshot(mockRegion.regionOnestopId);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));

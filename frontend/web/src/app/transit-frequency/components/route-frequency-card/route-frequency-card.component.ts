@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 import { VariantListComponent } from '../variant-list/variant-list.component';
@@ -12,13 +12,12 @@ import { CommonSectionDto, CombinedFrequencyDto } from '../../services/common-se
   selector: 'app-route-frequency-card',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     BrandCardComponent,
     VariantListComponent,
     FrequencyChartComponent,
     CommonSectionDisplayComponent
-  ],
+],
   template: `
     <app-brand-card [title]="route?.longName" [subtitle]="route?.shortName || undefined">
       <label class="date-picker" aria-label="Select service date">
