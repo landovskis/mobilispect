@@ -237,11 +237,11 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
             @if (regions.length === 0) {
               <div class="empty-state">
                 <mat-icon>location_off</mat-icon>
-                <h3>No regions found</h3>
+                <h3>{{ searchTerm ? 'No regions found' : 'No region selected' }}</h3>
                 @if (searchTerm) {
                   <p>Try adjusting your search criteria.</p>
                 } @else {
-                  <p>No regions are available for feed management.</p>
+                  <p>Select a region to get started.</p>
                 }
               </div>
             }
