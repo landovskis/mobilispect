@@ -3,7 +3,7 @@ package com.mobilispect.backend.feed.batch.discovery
 import com.mobilispect.backend.feed.model.ids.FeedId
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.configuration.annotation.StepScope
-import org.springframework.batch.item.ItemProcessor
+import org.springframework.batch.infrastructure.item.ItemProcessor
 import org.springframework.stereotype.Component
 
 /**

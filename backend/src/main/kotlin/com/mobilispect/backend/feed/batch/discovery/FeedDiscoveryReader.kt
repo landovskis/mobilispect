@@ -7,7 +7,7 @@ import com.mobilispect.backend.infastructure.transit_land.OperatorsResult
 import com.mobilispect.backend.infastructure.transit_land.TransitLandAPI
 import com.mobilispect.backend.transit_land.PagingParameters
 import org.slf4j.LoggerFactory
-import org.springframework.batch.item.ItemReader
+import org.springframework.batch.infrastructure.item.ItemReader
 import java.util.concurrent.CompletableFuture
 
 /**

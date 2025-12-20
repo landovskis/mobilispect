@@ -1,6 +1,6 @@
 [versions]
 arrow = "2.1.0"
-kotlin = "2.0.21"
+kotlin = "2.2.0"
 kotlinxCoroutines = "1.8.1"
 kotlinxSerializationCSV = "2.0.0"
 kotlinxSerialization = "1.9.0"
@@ -14,6 +14,7 @@ springModulith = "1.3.0"
 springDoc = "2.6.0"
 springDocPlugin = "1.9.0"
 squareSortDependency = "0.14"
+testcontainers = "1.20.4"
 
 [libraries]
 
@@ -53,6 +54,8 @@ spring-modulith-starter-test = { module = "org.springframework.modulith:spring-m
 
 # View OpenAPI
 springdoc-openapi-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springDoc" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 
 [plugins]
 
