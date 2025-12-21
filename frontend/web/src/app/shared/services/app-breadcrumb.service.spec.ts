@@ -105,4 +105,21 @@ describe('AppBreadcrumbService', () => {
         expect(crumbs[1].label).toBe('Discover');
         expect(crumbs[1].link).toEqual(['/feeds/discover']);
     });
+
+    it('skips routes without breadcrumb labels', () => {
+        const root = {
+            children: [{
+                outlet: 'primary',
+                url: [{ path: 'feeds' }],
+                data: {},
+                children: [],
+                paramMap: { get: () => null },
+                routeConfig: { path: 'feeds' }
+            }] as any
+        } as ActivatedRouteSnapshot;
+
+        const crumbs = service.getBreadcrumbs(root);
+
+        expect(crumbs.length).toBe(0);
+    });
 });

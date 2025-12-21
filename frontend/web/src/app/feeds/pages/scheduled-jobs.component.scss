@@ -54,7 +54,7 @@
       .update-available { color: #ff9800; animation: pulse 2s infinite; }
       .update-none { color: #4caf50; }
       .error-message { font-size: 0.875rem; color: #f44336; cursor: help; }
-      mat-chip { font-size: 0.75rem; @apply h-6 leading-6; }
+      mat-chip { font-size: 0.75rem; height: 1.5rem; line-height: 1.5rem; }
     }
   }
 }
