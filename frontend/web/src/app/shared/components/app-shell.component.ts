@@ -420,7 +420,8 @@ export class AppShellComponent implements OnDestroy {
     const label =
       child.data['breadcrumb'];
 
-    if (label) {
+    const lastCrumb = crumbs[crumbs.length - 1];
+    if (label && lastCrumb?.label !== label) {
       crumbs.push({
         id: child.routeConfig?.path ?? label,
         label,
