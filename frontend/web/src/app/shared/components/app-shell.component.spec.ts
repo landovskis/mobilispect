@@ -40,10 +40,6 @@ describe('AppShellComponent', () => {
         observe: () => of({ matches: false })
     };
 
-    const mockBreadcrumbService = {
-        getBreadcrumbs: jasmine.createSpy('getBreadcrumbs').and.returnValue([])
-    };
-
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
@@ -57,8 +53,7 @@ describe('AppShellComponent', () => {
                 { provide: FeedsMetricsService, useValue: mockMetricsService },
                 { provide: FeedsEventsService, useValue: mockEventsService },
                 { provide: RegionService, useValue: mockRegionService },
-                { provide: BreakpointObserver, useValue: mockBreakpointObserver },
-                { provide: AppBreadcrumbService, useValue: mockBreadcrumbService }
+                { provide: BreakpointObserver, useValue: mockBreakpointObserver }
             ]
         }).compileComponents();
 
@@ -70,22 +65,5 @@ describe('AppShellComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
-    });
-
-    it('should default to Feeds breadcrumb', () => {
-        expect(component.breadcrumbs).toEqual([
-            { id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }
-        ]);
-    });
-
-    it('should build breadcrumbs using service on navigation', () => {
-        const mockCrumbs = [{ id: 'test', label: 'Test', link: ['/test'] }];
-        (component as any).breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
-
-        // Simulate router event
-        const navEnd = new NavigationEnd(1, '/test', '/test');
-        (router.events as any).next(navEnd);
-
-        expect(component.breadcrumbs).toEqual(mockCrumbs);
     });
 });

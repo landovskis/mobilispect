@@ -14,7 +14,7 @@ import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service'
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
 import { ThemeToggleComponent } from './theme-toggle.component';
-import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
+
 
 @Component({
   selector: 'app-shell',
@@ -33,7 +33,6 @@ import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
   template: `
     <div class="feeds-container">
       <app-bar
-        [breadcrumbs]="breadcrumbs"
         (refresh)="onRefresh()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
         >
@@ -331,7 +330,6 @@ import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
 export class AppShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
-  @Input() breadcrumbs: Breadcrumb[] = [];
   sidebarOpened = false;
 
   readonly isHandset$: Observable<boolean>;
@@ -347,8 +345,7 @@ export class AppShellComponent implements OnDestroy {
     private readonly importService: ImportService,
     private readonly metrics: FeedsMetricsService,
     private readonly events: FeedsEventsService,
-    private readonly regionService: RegionService,
-    private readonly breadcrumbService: AppBreadcrumbService
+    private readonly regionService: RegionService
   ) {
     this.isHandset$ = breakpointObserver.observe('(max-width: 768px)').pipe(
       map(result => result.matches),
@@ -359,17 +356,6 @@ export class AppShellComponent implements OnDestroy {
     this.activeImportCount$ = this.importService.getActiveImportsObservable().pipe(
       map((imports: any[] | null | undefined) => imports?.length ?? 0)
     );
-
-    this.router.events.pipe(
-      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      startWith(null),
-      takeUntil(this.destroy$),
-      map(() => this.breadcrumbService.getBreadcrumbs(this.router.routerState.root.snapshot))
-    ).subscribe(crumbs => {
-      this.breadcrumbs = crumbs.length
-        ? crumbs
-        : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
-    });
   }
 
   ngOnDestroy(): void {
