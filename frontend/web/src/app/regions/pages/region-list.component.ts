@@ -19,19 +19,19 @@ import { RegionSelectorComponent } from '../components/region-selector.component
         (regionChange)="onRegionChange($event)">
       </app-region-selector>
       @if (selectedRegionId) {
-        <div class="actions">
+        <div class="actions my-3">
           <app-brand-button variant="ghost" size="sm" (click)="clearSelection()">Show all regions</app-brand-button>
         </div>
       }
-      <div class="grid" role="list">
+      <div class="grid flex flex-col gap-3" role="list">
         @for (region of filteredRegions; track region.regionOnestopId) {
-          <div class="region-card" role="listitem" tabindex="0" (click)="goToRegion(region.regionOnestopId)" (keydown.enter)="goToRegion(region.regionOnestopId)" (keydown.space)="goToRegion(region.regionOnestopId)">
-            <div class="info">
+          <div class="region-card flex items-center justify-between gap-4 rounded-xl border border-[var(--mat-sys-outline,#e2e8f0)] p-3" role="listitem" tabindex="0" (click)="goToRegion(region.regionOnestopId)" (keydown.enter)="goToRegion(region.regionOnestopId)" (keydown.space)="goToRegion(region.regionOnestopId)">
+            <div class="info flex flex-col gap-0.5 text-[var(--mat-sys-on-surface,#0f172a)]">
               <div class="name">{{ region.name }}</div>
               <small>{{ region.adm0Name }} {{ region.adm1Name }}</small>
               <small>Feeds: {{ region.feedCount }}</small>
             </div>
-            <a class="btn-link" [routerLink]="['/regions', region.regionOnestopId]" (click)="$event.stopPropagation()">
+            <a class="btn-link no-underline" [routerLink]="['/regions', region.regionOnestopId]" (click)="$event.stopPropagation()">
               <app-brand-button variant="primary">
                 View
               </app-brand-button>
@@ -42,12 +42,7 @@ import { RegionSelectorComponent } from '../components/region-selector.component
     </app-brand-card>
     `,
   styles: [`
-    .actions { margin: 12px 0; }
-    .grid { display: flex; flex-direction: column; gap: 12px; }
-    .region-card { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid var(--mat-sys-outline, #e2e8f0); border-radius: 12px; }
-    .info { display: flex; flex-direction: column; gap: 2px; color: var(--mat-sys-on-surface, #0f172a); }
     .name { font-weight: 700; }
-    .btn-link { text-decoration: none; }
     :host-context(.dark-theme) .region-card { border-color: rgba(148, 163, 184, 0.3); }
     :host-context(.dark-theme) .info { color: var(--mat-sys-on-surface, #e5e7eb); }
   `],

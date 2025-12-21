@@ -11,7 +11,7 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
   imports: [RouterModule, MatIconModule, BrandBadgeComponent],
   template: `
     <a
-      class="route-item"
+      class="route-item grid grid-cols-[auto_1fr_auto] gap-3 rounded-lg border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-4 text-inherit no-underline transition-colors"
       [routerLink]="['/routes', route.id]"
       [attr.aria-label]="'View route ' + (route.shortName || route.longName)">
       <app-brand-badge
@@ -19,32 +19,12 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
         [icon]="getRouteTypeIconName(route.routeType)"
         [label]="route.shortName || route.longName">
       </app-brand-badge>
-      <div class="route-details">
+      <div class="route-details flex flex-1 flex-col gap-1">
         <div class="route-name">{{ route.longName }}</div>
       </div>
     </a>
   `,
   styles: [`
-    .route-item {
-      text-decoration: none;
-      color: inherit;
-      display: grid;
-      grid-template-columns: auto 1fr auto;
-      gap: 12px;
-      padding: 16px 14px;
-      border-radius: 8px;
-      background: var(--mat-sys-surface-container, #f5f5f5);
-      border: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
-      transition: border-color 0.2s ease, background-color 0.2s ease;
-    }
-
-    .route-details {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
     .route-name {
       font-size: 16px;
       font-weight: 500;

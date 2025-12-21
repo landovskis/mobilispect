@@ -25,13 +25,13 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
     MatIconModule
   ],
   template: `
-    <div class="region-selector">
-      <div class="search-input" [class.disabled]="disabled">
-        <mat-icon class="search-icon">search</mat-icon>
+    <div class="region-selector flex w-full max-w-[640px] flex-col gap-3">
+      <div class="search-input flex items-center gap-2.5 rounded-[14px] border px-[1.1rem] py-[0.85rem]" [class.disabled]="disabled">
+        <mat-icon class="search-icon text-[20px]">search</mat-icon>
         <input
           [id]="searchInputId"
           type="text"
-          class="region-input"
+          class="region-input flex-1 border-0 bg-transparent text-base outline-none"
           [formControl]="searchControl"
           placeholder="Type to search regions..."
           [attr.disabled]="disabled ? true : null"
@@ -39,7 +39,7 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
         @if (searchControl.value) {
           <button
             type="button"
-            class="clear-button"
+            class="clear-button rounded-full p-1 transition"
             aria-label="Clear search"
             (click)="clearSearch()">
             <mat-icon>close</mat-icon>
@@ -49,20 +49,20 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
 
       @if (filteredRegions$ | async; as regions) {
         @if (regions.length > 0) {
-          <ul class="region-results" role="listbox">
+          <ul class="region-results m-0 list-none p-0 max-h-[360px] overflow-y-auto rounded-2xl border bg-white shadow-[0_12px_24px_rgba(15,23,42,0.08)]" role="listbox">
             @for (region of regions; track region.regionOnestopId) {
               <li>
                 <button
                   type="button"
-                  class="region-option"
+                  class="region-option flex w-full items-center gap-3 px-[18px] py-3 text-left"
                   [class.selected]="region.regionOnestopId === selectedRegionId"
                   (click)="onRegionSelected(region)"
                   [disabled]="disabled">
                   <mat-icon class="region-icon">place</mat-icon>
-                  <div class="region-details">
+                  <div class="region-details flex flex-1 flex-col gap-1">
                     <span class="region-name">{{ getDisplayName(region) }}</span>
                     @if (region.feedCount > 0) {
-                      <span class="region-feed-count">
+                      <span class="region-feed-count inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-[0.78rem] font-semibold">
                         {{ region.feedCount }} feed{{ region.feedCount !== 1 ? 's' : '' }}
                       </span>
                     }
@@ -76,14 +76,6 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
     </div>
   `,
   styles: [`
-    .region-selector {
-      width: 100%;
-      max-width: 640px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
     .selector-label {
       font-size: 0.85rem;
       font-weight: 600;
@@ -93,11 +85,6 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
     }
 
     .search-input {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 0.85rem 1.1rem;
-      border-radius: 14px;
       border: 1px solid rgba(30, 58, 138, 0.2);
       background: #fff;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -115,15 +102,9 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
 
     .search-icon {
       color: #1e3a8a;
-      font-size: 20px;
     }
 
     .region-input {
-      flex: 1;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-      background: transparent;
       color: #0f172a;
     }
 
@@ -136,8 +117,6 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
       background: transparent;
       color: rgba(15, 23, 42, 0.5);
       cursor: pointer;
-      padding: 4px;
-      border-radius: 50%;
       transition: background 0.2s ease, color 0.2s ease;
     }
 
@@ -146,27 +125,9 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
       color: #1e3a8a;
     }
 
-    .region-results {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      border: 1px solid rgba(15, 23, 42, 0.08);
-      border-radius: 16px;
-      background: #fff;
-      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-      max-height: 360px;
-      overflow-y: auto;
-    }
-
     .region-option {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 18px;
       border: none;
       background: transparent;
-      text-align: left;
       cursor: pointer;
       transition: background 0.2s ease, color 0.2s ease;
     }
@@ -186,13 +147,6 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
       opacity: 0.6;
     }
 
-    .region-details {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      flex: 1;
-    }
-
     .region-name {
       font-size: 0.95rem;
       color: inherit;
@@ -202,19 +156,10 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
       font-size: 0.78rem;
       color: rgba(15, 23, 42, 0.7);
       background: rgba(30, 58, 138, 0.12);
-      padding: 2px 10px;
-      border-radius: 999px;
       font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
     }
 
     .empty-results {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px;
       border-radius: 12px;
       border: 1px dashed rgba(15, 23, 42, 0.2);
       color: rgba(15, 23, 42, 0.6);

@@ -3,8 +3,7 @@
 @use "tailwindcss";
 
 html, body {
-  height: 100%;
-  margin: 0;
+  @apply h-full m-0;
 }
 
 html {
@@ -34,7 +33,7 @@ body.dark-theme {
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
-  display: inline-block;
+  @apply inline-block;
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
@@ -66,7 +65,7 @@ img {
 /* Tables */
 table {
   border-radius: 8px;
-  overflow: hidden;
+  @apply overflow-hidden;
 }
 
 /* Code blocks */

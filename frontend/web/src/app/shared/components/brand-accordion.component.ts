@@ -16,38 +16,38 @@ export interface BrandAccordionItem {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="accordion" role="tablist">
+    <div class="accordion flex flex-col gap-2" role="tablist">
       @for (item of items; let i = $index; track item.id) {
         <section
-          class="accordion-item"
+          class="accordion-item rounded-[14px] border border-[var(--ms-color-border,#d1d5db)] bg-white shadow-[0_8px_18px_rgba(11,79,138,0.06)]"
           [class.open]="item.open"
           [class.disabled]="item.disabled"
           >
           <button
             type="button"
-            class="accordion-trigger"
+            class="accordion-trigger flex w-full items-center justify-between gap-3 rounded-[14px] px-6 py-4 text-left"
             [attr.aria-expanded]="!!item.open"
             [attr.aria-controls]="item.id + '-panel'"
             [id]="item.id + '-header'"
             [disabled]="item.disabled"
             (click)="toggleItem(i)"
             >
-            <div class="header-text">
+            <div class="header-text flex min-w-0 flex-col gap-1">
               <span class="title">{{ item.title }}</span>
               @if (item.subtitle) {
                 <span class="subtitle">{{ item.subtitle }}</span>
               }
             </div>
-            <div class="header-meta">
+            <div class="header-meta ml-auto flex items-center gap-2.5">
               @if (item.badge) {
-                <span class="badge">{{ item.badge }}</span>
+                <span class="badge rounded-full px-2.5 py-1 text-[0.85rem] font-bold">{{ item.badge }}</span>
               }
-              <span class="chevron" aria-hidden="true"></span>
+              <span class="chevron inline-block h-3 w-3 border-b-2 border-r-2" aria-hidden="true"></span>
             </div>
           </button>
 
           <div
-            class="accordion-panel"
+            class="accordion-panel px-6 pb-4"
             role="region"
             [id]="item.id + '-panel'"
             [attr.aria-labelledby]="item.id + '-header'"
@@ -57,7 +57,7 @@ export interface BrandAccordionItem {
               <ng-container [ngTemplateOutlet]="itemTemplate" [ngTemplateOutletContext]="{ item: item }"></ng-container>
             } @else {
               @if (item.content) {
-                <p class="panel-text">{{ item.content }}</p>
+                <p class="panel-text m-0">{{ item.content }}</p>
               }
             }
           </div>
@@ -66,17 +66,8 @@ export interface BrandAccordionItem {
     </div>
     `,
   styles: [`
-    .accordion {
-      display: flex;
-      flex-direction: column;
-      gap: var(--ms-space-2, 8px);
-    }
-
     .accordion-item {
-      border: 1px solid var(--ms-color-border, #d1d5db);
-      border-radius: 14px;
       background: #ffffff;
-      box-shadow: 0 8px 18px rgba(11, 79, 138, 0.06);
       transition: box-shadow 150ms ease, border-color 150ms ease, transform 120ms ease;
     }
 
@@ -91,17 +82,9 @@ export interface BrandAccordionItem {
     }
 
     .accordion-trigger {
-      width: 100%;
       border: none;
       background: transparent;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--ms-space-3, 12px);
-      padding: var(--ms-space-4, 16px) var(--ms-space-5, 24px);
-      text-align: left;
       cursor: pointer;
-      border-radius: 14px;
       color: var(--ms-color-ink, #111827);
       font-family: var(--ms-font-family, system-ui, sans-serif);
     }
@@ -109,13 +92,6 @@ export interface BrandAccordionItem {
     .accordion-trigger:focus-visible {
       outline: 2px solid var(--ms-color-station-yellow, #ffd54f);
       outline-offset: 3px;
-    }
-
-    .header-text {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      min-width: 0;
     }
 
     .title {
@@ -129,26 +105,12 @@ export interface BrandAccordionItem {
       color: var(--ms-color-muted, #6b7280);
     }
 
-    .header-meta {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-left: auto;
-    }
-
     .badge {
-      padding: 4px 10px;
-      border-radius: 999px;
       background: var(--ms-color-info-blue-light, #e1f3ff);
       color: var(--ms-color-primary, #0b4f8a);
-      font-weight: 700;
-      font-size: 0.85rem;
     }
 
     .chevron {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
       border-right: 2px solid currentColor;
       border-bottom: 2px solid currentColor;
       transform: rotate(45deg);
@@ -162,12 +124,10 @@ export interface BrandAccordionItem {
     }
 
     .accordion-panel {
-      padding: 0 var(--ms-space-5, 24px) var(--ms-space-4, 16px);
       color: var(--ms-color-ink, #111827);
     }
 
     .panel-text {
-      margin: 0;
       line-height: 1.5;
       color: var(--ms-color-ink, #111827);
     }

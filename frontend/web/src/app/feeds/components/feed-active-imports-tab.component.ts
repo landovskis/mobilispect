@@ -18,10 +18,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     BrandButtonComponent
   ],
   template: `
-    <div class="tab-content">
+    <div class="tab-content py-6 max-md:py-4">
       @if (activeImports$ | async; as activeImports) {
         @if (activeImports.length > 0) {
-          <div class="bulk-actions">
+          <div class="bulk-actions flex items-center gap-4 border-b border-[#e0e0e0] bg-[#f5f5f5] px-6 py-4 max-md:flex-col max-md:items-start max-md:gap-3">
             <mat-checkbox
               [checked]="allImportsSelected"
               [indeterminate]="someImportsSelected && !allImportsSelected"
@@ -41,28 +41,28 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
         }
 
         @if (activeImports.length === 0) {
-          <div class="no-imports">
-            <mat-icon class="no-imports-icon">hourglass_empty</mat-icon>
+          <div class="no-imports px-5 py-10 text-center text-[#666]">
+            <mat-icon class="no-imports-icon mb-4 text-[48px] text-[#ccc]">hourglass_empty</mat-icon>
             <p>No active imports at this time.</p>
-            <p class="hint">Start an import from the regions view to see real-time progress here.</p>
+            <p class="hint mt-2 text-sm text-[#999]">Start an import from the regions view to see real-time progress here.</p>
           </div>
         }
 
         @for (activeImport of activeImports; track activeImport.id) {
           <div
-            class="active-import-card active-import-item"
+            class="active-import-card active-import-item mb-4"
           >
-            <div class="import-header">
+            <div class="import-header flex items-start gap-2 max-md:flex-col max-md:gap-1">
               <mat-checkbox
                 [checked]="selectedImportIds?.has(activeImport.id)"
                 (change)="selectionChange.emit({ id: activeImport.id, selected: $event.checked })"
-                class="import-checkbox"
+                class="import-checkbox mr-3 max-md:mr-0"
               ></mat-checkbox>
-              <h3>
-                <mat-icon class="import-icon">download</mat-icon>
+              <h3 class="m-0 flex-1 font-semibold">
+                <mat-icon class="import-icon mr-2 align-middle">download</mat-icon>
                 {{ activeImport.feedName }}
               </h3>
-              <p class="import-subtitle">
+              <p class="import-subtitle m-0 mt-1 flex-1 text-[#666] max-md:mt-0">
                 {{ activeImport.regionName }} • Started: {{ activeImport.startedAt | date:'short' }}
               </p>
             </div>
@@ -78,92 +78,6 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       }
     </div>
   `,
-  styles: [`
-    .tab-content {
-      padding: 24px 0;
-    }
-
-    .bulk-actions {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 24px;
-      background-color: #f5f5f5;
-      border-bottom: 1px solid #e0e0e0;
-    }
-
-    .no-imports {
-      text-align: center;
-      padding: 40px 20px;
-      color: #666;
-    }
-
-    .no-imports-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: #ccc;
-      margin-bottom: 16px;
-    }
-
-    .hint {
-      font-size: 14px;
-      color: #999;
-      margin-top: 8px;
-    }
-
-    .active-import-card {
-      margin-bottom: 16px;
-    }
-
-    .import-header {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .import-checkbox {
-      margin-right: 12px;
-    }
-
-    .import-header h3 {
-      flex: 1;
-      margin: 0;
-      font-weight: 600;
-    }
-
-    .import-subtitle {
-      flex: 1;
-      margin: 4px 0 0 0;
-      color: #666;
-    }
-
-    .import-icon {
-      margin-right: 8px;
-      vertical-align: middle;
-    }
-
-    @media (max-width: 768px) {
-      .tab-content {
-        padding: 16px 0;
-      }
-
-      .bulk-actions {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 12px;
-      }
-
-      .import-header {
-        flex-direction: column;
-        gap: 4px;
-      }
-
-      .import-subtitle {
-        margin-left: 0;
-      }
-    }
-  `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FeedActiveImportsTabComponent {

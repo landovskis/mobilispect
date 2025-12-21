@@ -17,20 +17,20 @@ import { Observable, tap } from 'rxjs';
       [subtitle]="'Route ' + ((route$ | async)?.shortName || '')"
       icon="route">
       @if (route$ | async; as route) {
-        <div class="route-info">
-          <div class="info-item">
+        <div class="route-info flex flex-wrap gap-6 py-4">
+          <div class="info-item flex flex-col gap-1">
             <span class="info-label">Route Number:</span>
             <span class="info-value">{{ route.shortName || 'N/A' }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item flex flex-col gap-1">
             <span class="info-label">Route Type:</span>
             <span class="info-value">{{ getRouteTypeLabel(route.routeType) }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item flex flex-col gap-1">
             <span class="info-label">Variants:</span>
             <span class="info-value">{{ (variants$ | async)?.length || 0 }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item flex flex-col gap-1">
             <span class="info-label">Status:</span>
             <span class="info-value" [class.active]="route.active">
               {{ route.active ? 'Active' : 'Inactive' }}
@@ -43,6 +43,7 @@ import { Observable, tap } from 'rxjs';
     </app-brand-section>
 
     <app-route-frequency-card
+      class="mt-6 block"
       [route]="route"
       [variants]="variants"
       [frequencies]="frequencies"
@@ -54,24 +55,6 @@ import { Observable, tap } from 'rxjs';
     </app-route-frequency-card>
     `,
   styles: [`
-    app-brand-section:not(:first-child) {
-      display: block;
-      margin-top: 24px;
-    }
-
-    .route-info {
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-      padding: 16px 0;
-    }
-
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
     .info-label {
       font-size: 12px;
       font-weight: 500;
@@ -88,11 +71,6 @@ import { Observable, tap } from 'rxjs';
 
     .info-value.active {
       color: var(--mat-sys-tertiary, #388e3c);
-    }
-
-    app-route-frequency-card {
-      display: block;
-      margin-top: 24px;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush

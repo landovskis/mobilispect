@@ -23,8 +23,8 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
   ],
   template: `
     @if (importId) {
-      <div class="progress-monitor">
-        <app-brand-card class="progress-card" [ngClass]="'status-' + progressStatus">
+      <div class="progress-monitor w-full max-w-[600px]">
+        <app-brand-card class="progress-card mb-4" [ngClass]="'status-' + progressStatus">
           <div card-header>
             <div class="flex items-center gap-2 text-white font-semibold">
               <mat-icon [ngClass]="getIconClass()">{{ getStatusIcon() }}</mat-icon>
@@ -37,8 +37,8 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
             @if (displayData$ | async; as data) {
               <div class="progress-info">
                 <!-- Progress Bar -->
-                <div class="progress-section">
-                  <div class="progress-percentage">
+                <div class="progress-section mb-4 flex items-center gap-4">
+                  <div class="progress-percentage min-w-[60px] text-2xl font-bold">
                     {{ data.progress.progressPercentage }}%
                   </div>
                   <mat-progress-bar
@@ -49,12 +49,12 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 </div>
 
                 <!-- Current Step -->
-                <div class="current-step">
+                <div class="current-step mb-4 rounded p-2">
                   <strong>Current Step:</strong> {{ data.progress.currentStep }}
                 </div>
 
                 <!-- Step Progress -->
-                <div class="step-progress">
+                <div class="step-progress mb-4">
                   <mat-chip-listbox>
                     @for (step of getStepArray(data.progress.totalSteps); track step; let i = $index) {
                       <mat-chip [color]="getStepColor(i, data.progress)">
@@ -65,14 +65,14 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 </div>
 
                 <!-- Timing Information -->
-                <div class="timing-info">
-                  <div class="duration">
+                <div class="timing-info mb-4 flex flex-wrap gap-6">
+                  <div class="duration flex items-center gap-2">
                     <mat-icon>schedule</mat-icon>
                     <span>Duration: {{ formatDuration(data.duration) }}</span>
                   </div>
 
                   @if (data.estimatedCompletion) {
-                    <div class="estimated-completion">
+                    <div class="estimated-completion flex items-center gap-2">
                       <mat-icon>event</mat-icon>
                       <span>Est. Completion: {{ data.estimatedCompletion | date:'short' }}</span>
                     </div>
@@ -83,7 +83,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
             <!-- Error State -->
             @if (error$ | async; as error) {
-              <div class="error-state">
+              <div class="error-state flex items-center gap-2 rounded p-4">
                 <mat-icon color="warn">error</mat-icon>
                 <span>{{ error }}</span>
               </div>
@@ -91,7 +91,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
             <!-- Loading State -->
             @if (isLoading$ | async) {
-              <div class="loading-state">
+              <div class="loading-state flex items-center gap-2 rounded p-4">
                 <mat-progress-bar mode="indeterminate"></mat-progress-bar>
                 <span>Connecting to progress updates...</span>
               </div>
@@ -117,7 +117,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
         <!-- WebSocket Connection Status -->
         @if (showConnectionStatus) {
-          <div class="connection-status">
+          <div class="connection-status mt-2">
             <mat-chip [color]="getConnectionColor()" highlighted>
               <mat-icon>{{ getConnectionIcon() }}</mat-icon>
               {{ connectionStatus$ | async }}
@@ -128,15 +128,6 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     }
   `,
   styles: [`
-    .progress-monitor {
-      width: 100%;
-      max-width: 600px;
-    }
-
-    .progress-card {
-      margin-bottom: 16px;
-    }
-
     .progress-card.status-active {
       border-left: 4px solid #2196f3;
     }
@@ -149,63 +140,22 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       border-left: 4px solid #f44336;
     }
 
-    .progress-section {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
-    }
-
     .progress-percentage {
-      font-size: 24px;
-      font-weight: bold;
-      min-width: 60px;
+      color: #0b4f8a;
     }
 
     .current-step {
-      margin-bottom: 16px;
-      padding: 8px;
       background-color: #f5f5f5;
-      border-radius: 4px;
-    }
-
-    .step-progress {
-      margin-bottom: 16px;
-    }
-
-    .timing-info {
-      display: flex;
-      gap: 24px;
-      margin-bottom: 16px;
-    }
-
-    .duration, .estimated-completion {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .error-state, .loading-state {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 16px;
     }
 
     .error-state {
       background-color: #ffebee;
-      border-radius: 4px;
       color: #c62828;
     }
 
     .loading-state {
       background-color: #e3f2fd;
-      border-radius: 4px;
       color: #1565c0;
-    }
-
-    .connection-status {
-      margin-top: 8px;
     }
 
     .icon-spinning {

@@ -24,20 +24,20 @@ import { Feed, FeedStatus, FeedSpecType } from '../models';
         [title]="agencyGroup.agencyName"
         [badge]="agencyGroup.feeds.length + ' feeds'"
         [hasFooter]="true">
-        <div class="feed-types">
-          <div class="section-label">
+        <div class="feed-types flex flex-col gap-3">
+          <div class="section-label inline-flex items-center gap-2">
             <mat-icon>category</mat-icon>
             <span>Feed Types</span>
           </div>
-          <mat-chip-listbox aria-label="Feed types">
+          <mat-chip-listbox aria-label="Feed types" class="flex flex-wrap gap-2">
             @if (agencyGroup.feedsByType.gtfs > 0) {
-              <mat-chip class="feed-type-chip feed-type-gtfs" [highlighted]="true">
+              <mat-chip class="feed-type-chip feed-type-gtfs inline-flex items-center gap-1.5 rounded-full px-2.5 py-1" [highlighted]="true">
                 <mat-icon>directions_bus</mat-icon>
                 {{ agencyGroup.feedsByType.gtfs }} Static
               </mat-chip>
             }
             @if (agencyGroup.feedsByType.gtfsRt > 0) {
-              <mat-chip class="feed-type-chip feed-type-gtfs-rt" [highlighted]="true">
+              <mat-chip class="feed-type-chip feed-type-gtfs-rt inline-flex items-center gap-1.5 rounded-full px-2.5 py-1" [highlighted]="true">
                 <mat-icon>update</mat-icon>
                 {{ agencyGroup.feedsByType.gtfsRt }} Realtime
               </mat-chip>
@@ -45,7 +45,7 @@ import { Feed, FeedStatus, FeedSpecType } from '../models';
           </mat-chip-listbox>
         </div>
 
-        <div card-footer>
+        <div card-footer class="w-full">
           <app-brand-button
             variant="primary"
             [block]="true"
