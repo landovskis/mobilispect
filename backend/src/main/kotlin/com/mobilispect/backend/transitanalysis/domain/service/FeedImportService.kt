@@ -79,7 +79,9 @@ class FeedImportServiceImpl(
             val variants = variantIdentificationService.identifyVariants(
                 routeMap.values.associateWith { route ->
                     parsed.trips.filter { it.routeId == route.id.value }
-                }
+                },
+                parsed.stops.associateBy { it.stopId },
+                parsed.shapes
             )
             variants.forEach { variant ->
                 routeVariantRepository.save(variant)

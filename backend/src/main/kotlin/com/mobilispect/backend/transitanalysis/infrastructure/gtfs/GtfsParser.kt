@@ -33,7 +33,9 @@ interface GtfsParser {
 data class ParsedGtfsData(
     val agencies: List<ParsedAgency>,
     val routes: List<ParsedRoute>,
-    val trips: List<ParsedTrip>
+    val trips: List<ParsedTrip>,
+    val stops: List<ParsedStop>,
+    val shapes: Map<String, List<ParsedShapePoint>>
 )
 
 data class ParsedAgency(
@@ -57,11 +59,27 @@ data class ParsedTrip(
     val tripId: String,
     val directionId: Int?,
     val headsign: String?,
+    val shapeId: String?,
     val stopTimes: List<ParsedStopTime>
 )
 
 data class ParsedStopTime(
     val stopId: String,
     val stopSequence: Int,
-    val departureTime: LocalTime?
+    val departureTime: LocalTime?,
+    val shapeDistTraveledKm: Double?
+)
+
+data class ParsedStop(
+    val stopId: String,
+    val name: String?,
+    val latitude: Double?,
+    val longitude: Double?
+)
+
+data class ParsedShapePoint(
+    val latitude: Double,
+    val longitude: Double,
+    val sequence: Int,
+    val distTraveledKm: Double?
 )

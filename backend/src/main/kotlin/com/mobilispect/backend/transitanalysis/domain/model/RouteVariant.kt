@@ -29,6 +29,7 @@ import java.time.Instant
  * @property stopCount Number of stops in the pattern
  * @property firstStopId ID of the first stop in the pattern
  * @property lastStopId ID of the last stop in the pattern
+ * @property averageStopSpacingKm Average distance between consecutive stops in kilometers
  * @property active Whether this variant is currently active
  * @property firstSeen Timestamp when this variant was first observed
  * @property lastSeen Timestamp when this variant was last observed
@@ -65,6 +66,9 @@ class RouteVariant(
     @Column(name = "last_stop_id", nullable = false, length = 255)
     val lastStopId: String,
 
+    @Column(name = "average_stop_spacing_km")
+    var averageStopSpacingKm: Double? = null,
+
     @Column(name = "active", nullable = false)
     var active: Boolean = true,
 
@@ -93,6 +97,7 @@ class RouteVariant(
         stopCount = 0,
         firstStopId = "",
         lastStopId = "",
+        averageStopSpacingKm = null,
         createdAt = Instant.EPOCH,
         updatedAt = Instant.EPOCH,
         firstSeen = Instant.EPOCH,

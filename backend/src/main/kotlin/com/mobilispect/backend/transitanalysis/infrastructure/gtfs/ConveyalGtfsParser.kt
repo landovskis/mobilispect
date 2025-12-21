@@ -50,6 +50,30 @@ class ConveyalGtfsParser : GtfsParser {
                 )
             }
 
+            val stops = feed.stops.values.map { stop ->
+                ParsedStop(
+                    stopId = stop.stop_id,
+                    name = stop.stop_name,
+                    latitude = stop.stop_lat,
+                    longitude = stop.stop_lon
+                )
+            }
+
+            val shapes = feed.shape_points.values
+                .groupBy { it.shape_id }
+                .mapValues { (_, points) ->
+                    points
+                        .sortedBy { it.shape_pt_sequence }
+                        .map { point ->
+                            ParsedShapePoint(
+                                latitude = point.shape_pt_lat,
+                                longitude = point.shape_pt_lon,
+                                sequence = point.shape_pt_sequence,
+                                distTraveledKm = point.shape_dist_traveled
+                            )
+                        }
+                }
+
             val trips = feed.trips.values.map { trip ->
                 val stopTimes = feed.getOrderedStopTimesForTrip(trip.trip_id)
                     .map { stopTime ->
@@ -60,7 +84,8 @@ class ConveyalGtfsParser : GtfsParser {
                                 // GTFS allows times >= 24:00:00 for overnight service
                                 // Normalize to 0-86399 range for LocalTime
                                 LocalTime.ofSecondOfDay((seconds % 86400).toLong())
-                            }
+                            },
+                            shapeDistTraveledKm = stopTime.shape_dist_traveled
                         )
                     }
 
@@ -69,12 +94,19 @@ class ConveyalGtfsParser : GtfsParser {
                     tripId = trip.trip_id,
                     directionId = trip.direction_id,
                     headsign = trip.trip_headsign,
+                    shapeId = trip.shape_id,
                     stopTimes = stopTimes
                 )
             }
 
             logger.info("Parsed GTFS feed at {} -> {} agencies, {} routes, {} trips", feedPath, agencies.size, routes.size, trips.size)
-            ParsedGtfsData(agencies = agencies, routes = routes, trips = trips)
+            ParsedGtfsData(
+                agencies = agencies,
+                routes = routes,
+                trips = trips,
+                stops = stops,
+                shapes = shapes
+            )
         } finally {
             // Clean up MapDB resources
             feed.close()

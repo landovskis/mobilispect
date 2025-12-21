@@ -18,21 +18,41 @@ import java.time.Instant
  * - FR-007: Use SHA-256 hash of stop pattern as variant identifier
  */
 interface VariantIdentificationService {
-    fun identifyVariants(route: Route, trips: List<ParsedTrip>): List<RouteVariant>
-    fun identifyVariants(tripsByRoute: Map<Route, List<ParsedTrip>>): List<RouteVariant>
+    fun identifyVariants(
+        route: Route,
+        trips: List<ParsedTrip>,
+        stopsById: Map<String, com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedStop>,
+        shapesById: Map<String, List<com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedShapePoint>>
+    ): List<RouteVariant>
+    fun identifyVariants(
+        tripsByRoute: Map<Route, List<ParsedTrip>>,
+        stopsById: Map<String, com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedStop>,
+        shapesById: Map<String, List<com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedShapePoint>>
+    ): List<RouteVariant>
 }
 
 @Service
 class VariantIdentificationServiceImpl(
-    private val variantHashGenerator: VariantHashGenerator
+    private val variantHashGenerator: VariantHashGenerator,
+    private val stopSpacingCalculationService: StopSpacingCalculationService
 ) : VariantIdentificationService {
-    override fun identifyVariants(route: Route, trips: List<ParsedTrip>): List<RouteVariant> {
+    override fun identifyVariants(
+        route: Route,
+        trips: List<ParsedTrip>,
+        stopsById: Map<String, com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedStop>,
+        shapesById: Map<String, List<com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedShapePoint>>
+    ): List<RouteVariant> {
         val variants = mutableMapOf<String, RouteVariant>()
         trips.forEach { trip ->
             val stopIds = trip.stopTimes.sortedBy { it.stopSequence }.map { it.stopId }
             if (stopIds.size < 2) return@forEach
             val hash = variantHashGenerator.fromStops(stopIds)
             variants.computeIfAbsent(hash.value) {
+                val averageStopSpacingKm = stopSpacingCalculationService.calculateAverageSpacingKm(
+                    trip = trip,
+                    stopsById = stopsById,
+                    shapesById = shapesById
+                )
                 RouteVariant(
                     id = hash,
                     route = route,
@@ -41,7 +61,8 @@ class VariantIdentificationServiceImpl(
                     stopPattern = stopIds.joinToString("|"),
                     stopCount = stopIds.size,
                     firstStopId = stopIds.first(),
-                    lastStopId = stopIds.last()
+                    lastStopId = stopIds.last(),
+                    averageStopSpacingKm = averageStopSpacingKm
                 )
             }.apply {
                 lastSeen = Instant.now()
@@ -50,6 +71,10 @@ class VariantIdentificationServiceImpl(
         return variants.values.toList()
     }
 
-    override fun identifyVariants(tripsByRoute: Map<Route, List<ParsedTrip>>): List<RouteVariant> =
-        tripsByRoute.flatMap { (route, trips) -> identifyVariants(route, trips) }
+    override fun identifyVariants(
+        tripsByRoute: Map<Route, List<ParsedTrip>>,
+        stopsById: Map<String, com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedStop>,
+        shapesById: Map<String, List<com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedShapePoint>>
+    ): List<RouteVariant> =
+        tripsByRoute.flatMap { (route, trips) -> identifyVariants(route, trips, stopsById, shapesById) }
 }

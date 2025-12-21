@@ -126,7 +126,13 @@ class HourlyFrequencyCalculationServiceTest {
             ))
         )
 
-        val parsedData = ParsedGtfsData(agencies = emptyList(), routes = emptyList(), trips = trips)
+        val parsedData = ParsedGtfsData(
+            agencies = emptyList(),
+            routes = emptyList(),
+            trips = trips,
+            stops = emptyList(),
+            shapes = emptyMap()
+        )
 
         `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1))
@@ -158,7 +164,13 @@ class HourlyFrequencyCalculationServiceTest {
             ))
         )
 
-        val parsedData = ParsedGtfsData(agencies = emptyList(), routes = emptyList(), trips = trips)
+        val parsedData = ParsedGtfsData(
+            agencies = emptyList(),
+            routes = emptyList(),
+            trips = trips,
+            stops = emptyList(),
+            shapes = emptyMap()
+        )
 
         `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1))
@@ -186,7 +198,13 @@ class HourlyFrequencyCalculationServiceTest {
             ))
         )
 
-        val parsedData = ParsedGtfsData(agencies = emptyList(), routes = emptyList(), trips = trips)
+        val parsedData = ParsedGtfsData(
+            agencies = emptyList(),
+            routes = emptyList(),
+            trips = trips,
+            stops = emptyList(),
+            shapes = emptyMap()
+        )
 
         `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1))
@@ -220,7 +238,13 @@ class HourlyFrequencyCalculationServiceTest {
             ))
         )
 
-        val parsedData = ParsedGtfsData(agencies = emptyList(), routes = emptyList(), trips = trips)
+        val parsedData = ParsedGtfsData(
+            agencies = emptyList(),
+            routes = emptyList(),
+            trips = trips,
+            stops = emptyList(),
+            shapes = emptyMap()
+        )
 
         `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1, mockVariant2))
@@ -258,7 +282,13 @@ class HourlyFrequencyCalculationServiceTest {
             ))
         )
 
-        val parsedData = ParsedGtfsData(agencies = emptyList(), routes = emptyList(), trips = trips)
+        val parsedData = ParsedGtfsData(
+            agencies = emptyList(),
+            routes = emptyList(),
+            trips = trips,
+            stops = emptyList(),
+            shapes = emptyMap()
+        )
 
         `when`(routeVariantRepository.findById(mockVariant1.id)).thenReturn(Optional.of(mockVariant1))
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip"))).thenReturn(Result.success(parsedData))
@@ -289,7 +319,13 @@ class HourlyFrequencyCalculationServiceTest {
             ))
         )
 
-        val parsedData = ParsedGtfsData(agencies = emptyList(), routes = emptyList(), trips = trips)
+        val parsedData = ParsedGtfsData(
+            agencies = emptyList(),
+            routes = emptyList(),
+            trips = trips,
+            stops = emptyList(),
+            shapes = emptyMap()
+        )
 
         `when`(routeVariantRepository.findById(mockVariant1.id)).thenReturn(Optional.of(mockVariant1))
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip"))).thenReturn(Result.success(parsedData))
@@ -307,6 +343,7 @@ class HourlyFrequencyCalculationServiceTest {
             routeId = routeId,
             headsign = "Downtown",
             directionId = 0,
+            shapeId = null,
             stopTimes = stopTimes
         )
     }
@@ -315,7 +352,8 @@ class HourlyFrequencyCalculationServiceTest {
         return ParsedStopTime(
             stopId = stopId,
             stopSequence = sequence,
-            departureTime = departureTime
+            departureTime = departureTime,
+            shapeDistTraveledKm = null
         )
     }
 }

@@ -351,12 +351,15 @@ class FeedImportServiceTest {
             tripId = "trip-1",
             directionId = 0,
             headsign = "Downtown",
+            shapeId = null,
             stopTimes = emptyList()
         )
         return ParsedGtfsData(
             agencies = emptyList(),
             routes = listOf(mockRoute),
-            trips = listOf(mockTrip)
+            trips = listOf(mockTrip),
+            stops = emptyList(),
+            shapes = emptyMap()
         )
     }
 

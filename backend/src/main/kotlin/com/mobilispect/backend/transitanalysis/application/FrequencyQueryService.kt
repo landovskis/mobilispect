@@ -53,7 +53,9 @@ class FrequencyQueryService(
                 stopCount = it.stopCount,
                 stopPattern = it.stopPattern,
                 firstStopId = it.firstStopId,
-                lastStopId = it.lastStopId
+                lastStopId = it.lastStopId,
+                averageStopSpacingKm = it.averageStopSpacingKm,
+                stopSpacingClassification = classifyStopSpacing(it.averageStopSpacingKm)
             )
     }
 
@@ -125,5 +127,14 @@ class FrequencyQueryService(
         serviceDate: LocalDate
     ): List<HourlyFrequencyDTO> {
         return hourlyFrequencyCalculationService.calculateVariantHourlyFrequencies(variantHash, serviceDate)
+    }
+
+    private fun classifyStopSpacing(averageStopSpacingKm: Double?): String? {
+        return when {
+            averageStopSpacingKm == null -> null
+            averageStopSpacingKm < 0.5 -> "local"
+            averageStopSpacingKm <= 1.0 -> "rapid"
+            else -> "express"
+        }
     }
 }
