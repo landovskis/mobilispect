@@ -15,76 +15,30 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
   template: `
     <mat-toolbar
       color="primary"
-      class="app-toolbar"
+      class="app-toolbar sticky top-0 z-10 flex min-h-[72px] items-center border-b border-[#E1F3FF] bg-white text-[#0B3558]"
     >
-      <div class="toolbar-left">
-        <img [src]="logoUrl" [alt]="appName + ' Logo'" class="app-logo" />
+      <div class="toolbar-left flex items-center gap-3 relative">
+        <img [src]="logoUrl" [alt]="appName + ' Logo'" class="h-[88px] w-auto max-w-[480px] object-contain max-md:h-[72px] max-md:max-w-[400px]" />
         <app-toolbar-breadcrumbs
-          class="toolbar-breadcrumbs"
+          class="toolbar-breadcrumbs ml-2"
           (breadcrumbSelected)="breadcrumbSelected.emit($event)"
         ></app-toolbar-breadcrumbs>
       </div>
 
-      <div class="toolbar-right">
+      <div class="toolbar-right ml-auto flex items-center gap-2">
         <ng-content select="[toolbar-actions]"></ng-content>
       </div>
     </mat-toolbar>
   `,
   styles: [`
     .app-toolbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
       background: #ffffff !important;
       color: #0B3558 !important;
-      border-bottom: 1px solid #E1F3FF;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
-      min-height: 72px;
-      display: flex;
-      align-items: center;
-    }
-
-    .toolbar-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      position: relative;
-    }
-
-    .app-logo {
-      height: 88px;
-      width: auto;
-      object-fit: contain;
-      max-width: 480px;
-    }
-
-    .toolbar-breadcrumbs {
-      margin-left: 8px;
     }
 
     app-toolbar-breadcrumbs {
       color: #0B3558;
-    }
-
-    .toolbar-right {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    @media (max-width: 768px) {
-      .toolbar-title {
-        font-size: 1rem;
-      }
-
-      .toolbar-tagline {
-        font-size: 0.7rem;
-      }
-
-      .app-logo {
-        height: 72px;
-        max-width: 400px;
-      }
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush

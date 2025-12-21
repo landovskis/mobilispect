@@ -10,11 +10,11 @@ import { BrandBadgeComponent } from '../../../shared/components/brand-badge.comp
   standalone: true,
   imports: [RouterModule, BrandCardComponent, BrandBadgeComponent],
   template: `
-    <a [routerLink]="['/agencies', agency.id]" class="agency-card-link">
+    <a [routerLink]="['/agencies', agency.id]" class="agency-card-link block transition-transform hover:-translate-y-0.5">
       <app-brand-card [title]="agency.name">
-        <div class="meta" aria-label="agency details" role="list">
+        <div class="meta flex flex-wrap gap-2" aria-label="agency details" role="list">
           @if (agency.routesByType && hasRoutes) {
-            <div class="route-types">
+            <div class="route-types flex flex-wrap gap-1">
               @for (type of routeTypes; track type) {
                 @if (agency.routesByType[type] > 0) {
                   <app-brand-badge
@@ -33,24 +33,10 @@ import { BrandBadgeComponent } from '../../../shared/components/brand-badge.comp
     .agency-card-link {
       text-decoration: none;
       color: inherit;
-      display: block;
-      transition: transform 0.2s ease-in-out;
     }
 
     .agency-card-link:hover {
       transform: translateY(-2px);
-    }
-
-    .meta {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .route-types {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
     }
 
     :host-context(.dark-theme) app-brand-card {

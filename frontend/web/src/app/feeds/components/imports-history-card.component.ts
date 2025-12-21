@@ -42,22 +42,22 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
   ],
   template: `
     <app-brand-section
-      class="history-panel"
+      class="history-panel mb-6 block"
       title="Import History"
       subtitle="Completed feed imports and metadata"
       icon="history"
       [collapsible]="true"
       [(expanded)]="isExpanded">
-      <div section-actions class="panel-actions">
+      <div section-actions class="panel-actions inline-flex items-center gap-2.5">
         @if (history && history.length > 0) {
-          <span class="count-badge">{{ totalItems }}</span>
+          <span class="count-badge rounded-full px-2.5 py-1">{{ totalItems }}</span>
         }
       </div>
 
       <!-- Loading State -->
       @if (loading) {
         <div
-          class="loading-container"
+          class="loading-container flex flex-col items-center justify-center gap-3 p-6 text-center"
           role="status"
           aria-live="polite"
         >
@@ -68,10 +68,10 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
 
       <!-- Empty State -->
       @if (!loading && (!history || history.length === 0)) {
-        <div class="empty-state">
+        <div class="empty-state flex flex-col items-center gap-1.5 p-6 text-center">
           <mat-icon class="empty-icon">history</mat-icon>
-          <p class="empty-title">No import history available yet.</p>
-          <p class="empty-subtitle">
+          <p class="empty-title m-0">No import history available yet.</p>
+          <p class="empty-subtitle max-w-[340px] m-0">
             Start an import to see it appear here.
           </p>
         </div>
@@ -79,34 +79,34 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
 
       <!-- History Cards List -->
       @if (!loading && history && history.length > 0) {
-          <div class="history-container">
-          <div class="history-list">
+        <div class="history-container flex flex-col gap-4">
+          <div class="history-list grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @for (importItem of history; track importItem.id) {
               <app-brand-card
                 class="history-item-card"
                 [title]="importItem.feedName || importItem.feedOnestopId"
                 [subtitle]="importItem.regionName">
-                <div card-content class="history-card-content">
-                  <div class="history-meta">
+                <div card-content class="history-card-content flex flex-col gap-3">
+                  <div class="history-meta flex flex-wrap items-center gap-3">
                     <app-brand-badge
                       [variant]="statusToBadge(importItem.status)"
                       [label]="importItem.status | titlecase">
                     </app-brand-badge>
 
-                    <span class="meta-item">
+                    <span class="meta-item inline-flex items-center gap-1.5">
                       <mat-icon>schedule</mat-icon>
                       Started: {{ importItem.startedAt | date:'short' }}
                     </span>
 
                     @if (importItem.completedAt) {
-                      <span class="meta-item">
+                      <span class="meta-item inline-flex items-center gap-1.5">
                         <mat-icon>event_available</mat-icon>
                         Completed: {{ importItem.completedAt | date:'short' }}
                       </span>
                     }
 
                     @if (importItem.fileSizeBytes) {
-                      <span class="meta-item">
+                      <span class="meta-item inline-flex items-center gap-1.5">
                         <mat-icon>storage</mat-icon>
                         {{ formatFileSize(importItem.fileSizeBytes) }}
                       </span>
@@ -131,18 +131,12 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     </app-brand-section>
   `,
     styles: [`
-    .history-panel { margin-bottom: 24px; display: block; }
-    .panel-actions { display: inline-flex; align-items: center; gap: 10px; }
-    .history-container { display: flex; flex-direction: column; gap: 16px; }
-    .history-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-    .history-card-content { display: flex; flex-direction: column; gap: 12px; }
-    .history-meta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; color: var(--mat-sys-on-surface-variant, #475569); }
-    .meta-item { display: inline-flex; align-items: center; gap: 6px; }
-    .count-badge { padding: 4px 10px; border-radius: 999px; background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
-    .empty-state { text-align: center; padding: 24px; color: var(--mat-sys-on-surface-variant, #475569); display: flex; flex-direction: column; gap: 6px; align-items: center; }
+    .history-meta { color: var(--mat-sys-on-surface-variant, #475569); }
+    .count-badge { background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
+    .empty-state { color: var(--mat-sys-on-surface-variant, #475569); }
     .empty-icon { font-size: 48px; width: 48px; height: 48px; color: #94a3b8; }
-    .empty-title { margin: 0; font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
-    .empty-subtitle { margin: 0; color: var(--mat-sys-on-surface-variant, #475569); max-width: 340px; }
+    .empty-title { font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
+    .empty-subtitle { color: var(--mat-sys-on-surface-variant, #475569); }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

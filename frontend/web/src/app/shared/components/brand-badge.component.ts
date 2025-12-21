@@ -9,24 +9,15 @@ type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral' | 'indeterminate';
   standalone: true,
   imports: [CommonModule, MatIconModule],
   template: `
-    <span class="brand-badge" [ngClass]="variant">
+    <span class="brand-badge inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.85rem] font-bold tracking-[0.01em] capitalize" [ngClass]="variant">
       @if (icon) {
-        <mat-icon aria-hidden="true">{{ icon }}</mat-icon>
+        <mat-icon class="text-[18px] leading-none" aria-hidden="true">{{ icon }}</mat-icon>
       }
-      <span class="badge-label">{{ label || variant }}</span>
+      <span class="badge-label inline-flex items-center">{{ label || variant }}</span>
     </span>
     `,
   styles: [`
     .brand-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 0.85rem;
-      letter-spacing: 0.01em;
-      text-transform: capitalize;
       background: var(--mat-sys-surface-variant, #e2e8f0);
       color: var(--mat-sys-on-surface, #0f172a);
     }
@@ -56,15 +47,6 @@ type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral' | 'indeterminate';
       color: #1d4ed8;
     }
 
-    .brand-badge mat-icon {
-      font-size: 18px;
-      line-height: 1;
-    }
-
-    .badge-label {
-      display: inline-flex;
-      align-items: center;
-    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

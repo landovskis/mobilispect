@@ -31,7 +31,7 @@ import { ThemeToggleComponent } from './theme-toggle.component';
     ThemeToggleComponent
   ],
   template: `
-    <div class="feeds-container">
+    <div class="flex min-h-screen flex-col">
       <app-bar
         (refresh)="onRefresh()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
@@ -50,62 +50,62 @@ import { ThemeToggleComponent } from './theme-toggle.component';
         </div>
       </app-bar>
 
-      <mat-sidenav-container class="drawer-container">
+      <mat-sidenav-container class="flex-1 bg-transparent md:h-[calc(100vh-64px)] max-md:h-auto">
         <mat-sidenav
-          class="app-sidenav"
+          class="app-sidenav w-60 border-r border-[#E1F3FF] bg-white px-[18px] pb-8 pt-7 text-[#0B3558] max-md:w-full max-md:border-b max-md:border-r-0"
           [mode]="(isHandset$ | async) ? 'over' : 'side'"
           [opened]="(isHandset$ | async) ? sidebarOpened : true"
           (openedChange)="onSidenavOpenedChange($event)">
-          <nav class="sidebar-nav" aria-label="Feed navigation">
-            <div class="sidebar-heading">Feeds</div>
+          <nav class="flex flex-col gap-4 sticky top-24 max-md:static" aria-label="Feed navigation">
+            <div class="mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Feeds</div>
 
             <button
               type="button"
-              class="sidebar-link"
+              class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
               routerLink="/feeds/discover"
               routerLinkActive="active"
               [routerLinkActiveOptions]="{ exact: true }">
-              <mat-icon>rss_feed</mat-icon>
+              <mat-icon class="text-[20px] text-[#0B4F8A]">rss_feed</mat-icon>
               <span>Discover</span>
               @let discoverCount = discoverFeedCount$ | async;
               @if ((discoverCount ?? 0) > 0) {
-                <span class="nav-count">{{ discoverCount }}</span>
+                <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ discoverCount }}</span>
               }
             </button>
 
             <button
               type="button"
-              class="sidebar-link"
+              class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
               routerLink="/feeds/imports"
               routerLinkActive="active">
-              <mat-icon>history</mat-icon>
+              <mat-icon class="text-[20px] text-[#0B4F8A]">history</mat-icon>
               <span>Imports</span>
               @let totalImports = totalImportElements$ | async;
               @if ((totalImports ?? 0) > 0) {
-                <span class="nav-count">{{ totalImports }}</span>
+                <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ totalImports }}</span>
               }
               @let activeImports = activeImportCount$ | async;
               @if ((activeImports ?? 0) > 0) {
-                <span class="nav-count active">{{ activeImports }} active</span>
+                <span class="nav-count active ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ activeImports }} active</span>
               }
             </button>
 
-            <div class="sidebar-heading">Regions</div>
+            <div class="mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Regions</div>
             <button
               type="button"
-              class="sidebar-link"
+              class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
               routerLink="/regions"
               routerLinkActive="active">
-              <mat-icon>map</mat-icon>
+              <mat-icon class="text-[20px] text-[#0B4F8A]">map</mat-icon>
               <span>List</span>
             </button>
           </nav>
         </mat-sidenav>
 
         <mat-sidenav-content>
-          <div class="content-area">
-            <div class="view-container">
-              <section class="view-content">
+          <div class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-6 max-md:p-4">
+            <div class="mx-auto max-w-[1200px]">
+              <section class="view-content min-h-[calc(100vh-160px)] rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)] max-md:p-4">
                 <router-outlet></router-outlet>
               </section>
             </div>
@@ -115,69 +115,21 @@ import { ThemeToggleComponent } from './theme-toggle.component';
     </div>
     `,
   styles: [`
-    .feeds-container {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .drawer-container {
-      flex: 1;
-      height: calc(100vh - 64px);
-      background: transparent;
-    }
-
     .app-sidenav {
-      width: 240px;
-      border-right: 1px solid #E1F3FF;
-      padding: 28px 18px 32px;
       background: #ffffff;
       color: #0B3558;
     }
 
-    .sidebar-nav {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      position: sticky;
-      top: 96px;
-    }
-
-    .sidebar-heading {
-      font-size: 0.82rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #6B7280;
-      margin-bottom: 4px;
-      padding: 0 6px;
-    }
-
     .sidebar-link {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      width: 100%;
-      padding: 12px 16px;
-      border-radius: 12px;
-      border: 1px solid #D1D5DB;
       background: #fff;
       color: #0B4F8A;
-      font-weight: 600;
-      text-align: left;
-      transition: all 0.2s ease;
-      box-shadow: 0 6px 14px rgba(11, 79, 138, 0.05);
     }
 
     .sidebar-link mat-icon {
-      font-size: 20px;
       color: #0B4F8A;
     }
 
     .sidebar-link .nav-count {
-      margin-left: auto;
-      padding: 2px 10px;
-      border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
       background: #E1F3FF;
@@ -216,23 +168,9 @@ import { ThemeToggleComponent } from './theme-toggle.component';
       color: #E5F1FF;
     }
 
-    .content-area {
-      padding: 24px;
-      background-color: #fafafa;
-      min-height: calc(100vh - 64px);
-    }
-
-    .view-container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
     .view-content {
       background: #fff;
-      border-radius: 16px;
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-      padding: 24px;
-      min-height: calc(100vh - 160px);
     }
 
     :host-context(.dark-theme) .drawer-container {
@@ -296,35 +234,6 @@ import { ThemeToggleComponent } from './theme-toggle.component';
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     }
 
-    @media (max-width: 768px) {
-      .content-area {
-        padding: 16px;
-      }
-
-      .drawer-container {
-        height: auto;
-      }
-
-      .app-sidenav {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-      }
-
-      .sidebar-nav {
-        position: static;
-        flex-direction: column;
-      }
-
-      .sidebar-link {
-        flex: none;
-        width: 100%;
-      }
-
-      .view-content {
-        padding: 16px;
-      }
-    }
   `]
 })
 export class AppShellComponent implements OnDestroy {

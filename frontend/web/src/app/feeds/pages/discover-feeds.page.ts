@@ -39,13 +39,13 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
       ></app-region-selector>
 
       @if (loadingFeeds) {
-        <div class="loading-state" role="status" aria-live="polite">
+        <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12" role="status" aria-live="polite">
           <mat-spinner diameter="40"></mat-spinner>
           <p>Loading feeds...</p>
         </div>
       } @else {
         @if (agencyGroups.length > 0) {
-          <div class="feeds-grid">
+          <div class="feeds-grid mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             @for (group of agencyGroups; track group.agencyName) {
               <app-agency-feed-card
                 [agencyGroup]="group"
@@ -56,10 +56,10 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
             }
           </div>
         } @else {
-          <div class="empty-state">
-            <mat-icon class="empty-icon">inbox</mat-icon>
-            <h3>No feeds found</h3>
-            <p>
+          <div class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center">
+            <mat-icon class="empty-icon mb-4 text-[64px] text-[rgba(0,0,0,0.3)]">inbox</mat-icon>
+            <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">No feeds found</h3>
+            <p class="max-w-[400px] text-sm text-[rgba(0,0,0,0.6)]">
               @if (selectedRegionId) {
                 No feeds are available for the selected region yet.
               } @else {
@@ -72,41 +72,6 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     </app-brand-section>
   `,
   styles: [`
-    .feeds-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 24px;
-      margin-top: 24px;
-    }
-
-    @media (max-width: 768px) {
-      .feeds-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-    }
-
-    @media (min-width: 769px) and (max-width: 1024px) {
-      .feeds-grid {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      }
-    }
-
-    @media (min-width: 1025px) {
-      .feeds-grid {
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      }
-    }
-
-    .loading-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 48px 24px;
-      gap: 16px;
-    }
-
     .loading-state p {
       color: rgba(0, 0, 0, 0.6);
       font-size: 0.875rem;
@@ -116,43 +81,12 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
       color: rgba(255, 255, 255, 0.7);
     }
 
-    .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 64px 24px;
-      text-align: center;
-    }
-
-    .empty-state .empty-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      color: rgba(0, 0, 0, 0.3);
-      margin-bottom: 16px;
-    }
-
     :host-context(.dark-theme) .empty-state .empty-icon {
       color: rgba(255, 255, 255, 0.3);
     }
 
-    .empty-state h3 {
-      margin: 0 0 8px 0;
-      color: rgba(0, 0, 0, 0.7);
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-
     :host-context(.dark-theme) .empty-state h3 {
       color: rgba(255, 255, 255, 0.87);
-    }
-
-    .empty-state p {
-      margin: 0;
-      color: rgba(0, 0, 0, 0.6);
-      font-size: 0.875rem;
-      max-width: 400px;
     }
 
     :host-context(.dark-theme) .empty-state p {

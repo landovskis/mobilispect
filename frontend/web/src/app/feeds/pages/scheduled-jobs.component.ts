@@ -37,36 +37,40 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     BrandButtonComponent
   ],
   template: `
-    <div class="scheduled-jobs-page">
-      <div class="page-header">
-        <h1>Scheduled Jobs Monitoring</h1>
-        <p class="subtitle">Monitor automatic feed update jobs and their execution status</p>
+    <div class="scheduled-jobs-page mx-auto max-w-[1400px] p-6 max-lg:p-4 max-sm:p-2">
+      <div class="page-header mb-8 flex flex-wrap items-start justify-between gap-4 max-md:flex-col">
+        <h1 class="m-0">Scheduled Jobs Monitoring</h1>
+        <p class="subtitle m-0 mt-2">Monitor automatic feed update jobs and their execution status</p>
 
-        <div class="header-actions">
+        <div class="header-actions flex flex-wrap gap-4 max-md:w-full">
           <app-brand-button
             variant="primary"
+            class="min-w-[140px] max-md:flex-1"
             (click)="triggerManualCheck()"
             [disabled]="triggering">
-            <mat-icon>refresh</mat-icon>
+            <mat-icon class="mr-2">refresh</mat-icon>
             {{ triggering ? 'Checking...' : 'Trigger Manual Check' }}
           </app-brand-button>
 
           <app-brand-button
             variant="ghost"
+            class="min-w-[140px] max-md:flex-1"
             (click)="refreshData()">
-            <mat-icon>sync</mat-icon>
+            <mat-icon class="mr-2">sync</mat-icon>
             Refresh
           </app-brand-button>
         </div>
       </div>
 
       <!-- Status Overview -->
-      <div class="status-overview">
+      <div class="status-overview mb-8">
         @if (schedulerStatus$ | async; as status) {
           <app-brand-card title="Scheduler Status">
-            <div class="status-grid">
-              <div class="status-item">
-                <mat-icon [class]="status.enabled ? 'status-enabled' : 'status-disabled'">
+            <div class="status-grid mt-4 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+              <div class="status-item flex items-center gap-4 rounded-lg border border-[var(--mdc-theme-outline)] bg-[var(--mdc-theme-surface-variant)] p-4">
+                <mat-icon
+                  class="status-icon h-8 w-8 text-[2rem]"
+                  [class]="status.enabled ? 'status-enabled' : 'status-disabled'">
                   {{ status.enabled ? 'check_circle' : 'cancel' }}
                 </mat-icon>
                 <div class="status-info">
@@ -77,24 +81,24 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 </div>
               </div>
 
-              <div class="status-item">
-                <mat-icon class="info">schedule</mat-icon>
+              <div class="status-item flex items-center gap-4 rounded-lg border border-[var(--mdc-theme-outline)] bg-[var(--mdc-theme-surface-variant)] p-4">
+                <mat-icon class="info status-icon h-8 w-8 text-[2rem]">schedule</mat-icon>
                 <div class="status-info">
                   <span class="label">Next Run</span>
                   <span class="value">{{ status.nextScheduledRun }}</span>
                 </div>
               </div>
 
-              <div class="status-item">
-                <mat-icon class="info">feed</mat-icon>
+              <div class="status-item flex items-center gap-4 rounded-lg border border-[var(--mdc-theme-outline)] bg-[var(--mdc-theme-surface-variant)] p-4">
+                <mat-icon class="info status-icon h-8 w-8 text-[2rem]">feed</mat-icon>
                 <div class="status-info">
                   <span class="label">Active Feeds</span>
                   <span class="value">{{ status.totalActiveFeeds }}</span>
                 </div>
               </div>
 
-              <div class="status-item">
-                <mat-icon class="info">update</mat-icon>
+              <div class="status-item flex items-center gap-4 rounded-lg border border-[var(--mdc-theme-outline)] bg-[var(--mdc-theme-surface-variant)] p-4">
+                <mat-icon class="info status-icon h-8 w-8 text-[2rem]">update</mat-icon>
                 <div class="status-info">
                   <span class="label">Checked (24h)</span>
                   <span class="value">{{ status.feedsCheckedInLast24Hours }}</span>
@@ -106,38 +110,38 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       </div>
 
       <!-- Import Statistics -->
-      <div class="import-stats">
+      <div class="import-stats mb-8">
         @if (importStats$ | async; as stats) {
           <app-brand-card title="Import Activity (Last 24 Hours)">
-            <div class="stats-grid">
-              <div class="stat-card success">
-                <div class="stat-number">{{ stats.successfulImportsLast24h }}</div>
+            <div class="stats-grid mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div class="stat-card success relative flex flex-col items-center overflow-hidden rounded-xl p-6 max-sm:p-4">
+                <div class="stat-number mb-2">{{ stats.successfulImportsLast24h }}</div>
                 <div class="stat-label">Successful</div>
-                <mat-icon>check_circle</mat-icon>
+                <mat-icon class="stat-icon absolute right-2 top-2 text-[4rem] opacity-10 max-sm:text-[3rem]">check_circle</mat-icon>
               </div>
 
-              <div class="stat-card failed">
-                <div class="stat-number">{{ stats.failedImportsLast24h }}</div>
+              <div class="stat-card failed relative flex flex-col items-center overflow-hidden rounded-xl p-6 max-sm:p-4">
+                <div class="stat-number mb-2">{{ stats.failedImportsLast24h }}</div>
                 <div class="stat-label">Failed</div>
-                <mat-icon>error</mat-icon>
+                <mat-icon class="stat-icon absolute right-2 top-2 text-[4rem] opacity-10 max-sm:text-[3rem]">error</mat-icon>
               </div>
 
-              <div class="stat-card running">
-                <div class="stat-number">{{ stats.currentlyRunningAutoImports }}</div>
+              <div class="stat-card running relative flex flex-col items-center overflow-hidden rounded-xl p-6 max-sm:p-4">
+                <div class="stat-number mb-2">{{ stats.currentlyRunningAutoImports }}</div>
                 <div class="stat-label">Running</div>
-                <mat-icon>sync</mat-icon>
+                <mat-icon class="stat-icon absolute right-2 top-2 text-[4rem] opacity-10 max-sm:text-[3rem]">sync</mat-icon>
               </div>
 
-              <div class="stat-card total">
-                <div class="stat-number">{{ stats.totalAutomaticImportsLast24h }}</div>
+              <div class="stat-card total relative flex flex-col items-center overflow-hidden rounded-xl p-6 max-sm:p-4">
+                <div class="stat-number mb-2">{{ stats.totalAutomaticImportsLast24h }}</div>
                 <div class="stat-label">Total</div>
-                <mat-icon>analytics</mat-icon>
+                <mat-icon class="stat-icon absolute right-2 top-2 text-[4rem] opacity-10 max-sm:text-[3rem]">analytics</mat-icon>
               </div>
             </div>
 
             @if (stats.lastAutomaticImportTime) {
-              <div class="last-import">
-                <mat-icon>schedule</mat-icon>
+              <div class="last-import mt-4 flex items-center gap-2 rounded-lg bg-[var(--mdc-theme-surface-variant)] p-3 text-sm text-[var(--mdc-theme-on-surface-variant)]">
+                <mat-icon class="h-4 w-4 text-base">schedule</mat-icon>
                 <span>Last automatic import: {{ stats.lastAutomaticImportTime | date:'medium' }}</span>
               </div>
             }
@@ -146,10 +150,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       </div>
 
       <!-- Feed Version Status -->
-      <div class="feed-versions">
+      <div class="feed-versions mb-8">
         <app-brand-card title="Feed Version Status" subtitle="Current version status for all monitored feeds">
-            <div class="table-container">
-              <table mat-table [dataSource]="(feedVersions$ | async) || []" class="feed-versions-table">
+            <div class="table-container mt-4 max-h-[600px] overflow-auto rounded-lg border border-[var(--mdc-theme-outline)] max-md:text-sm">
+              <table mat-table [dataSource]="(feedVersions$ | async) || []" class="feed-versions-table w-full">
                 <!-- Feed ID Column -->
                 <ng-container matColumnDef="feedId">
                   <th mat-header-cell *matHeaderCellDef>Feed ID</th>
@@ -182,7 +186,11 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 <ng-container matColumnDef="currentVersion">
                   <th mat-header-cell *matHeaderCellDef>Current SHA1</th>
                   <td mat-cell *matCellDef="let version">
-                    <code class="sha1">{{ version.currentVersionSha1 || 'N/A' }}</code>
+                    <code
+                      class="sha1 inline-block max-w-[120px] truncate rounded bg-[var(--mdc-theme-surface-variant)] px-2 py-1 text-[0.75rem] font-mono max-md:max-w-[80px] max-md:text-[0.7rem]"
+                    >
+                      {{ version.currentVersionSha1 || 'N/A' }}
+                    </code>
                   </td>
                 </ng-container>
 
@@ -190,7 +198,11 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 <ng-container matColumnDef="latestVersion">
                   <th mat-header-cell *matHeaderCellDef>Latest SHA1</th>
                   <td mat-cell *matCellDef="let version">
-                    <code class="sha1">{{ version.latestVersionSha1 || 'N/A' }}</code>
+                    <code
+                      class="sha1 inline-block max-w-[120px] truncate rounded bg-[var(--mdc-theme-surface-variant)] px-2 py-1 text-[0.75rem] font-mono max-md:max-w-[80px] max-md:text-[0.7rem]"
+                    >
+                      {{ version.latestVersionSha1 || 'N/A' }}
+                    </code>
                   </td>
                 </ng-container>
 
@@ -235,10 +247,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       </div>
 
       <!-- Recent Automatic Imports -->
-      <div class="recent-imports">
+      <div class="recent-imports mb-8">
         <app-brand-card title="Recent Automatic Imports" subtitle="Last 20 automatic import operations">
-            <div class="table-container">
-              <table mat-table [dataSource]="(recentImports$ | async) || []" class="imports-table">
+            <div class="table-container mt-4 max-h-[600px] overflow-auto rounded-lg border border-[var(--mdc-theme-outline)] max-md:text-sm">
+              <table mat-table [dataSource]="(recentImports$ | async) || []" class="imports-table w-full">
                 <!-- Feed ID Column -->
                 <ng-container matColumnDef="feedId">
                   <th mat-header-cell *matHeaderCellDef>Feed ID</th>

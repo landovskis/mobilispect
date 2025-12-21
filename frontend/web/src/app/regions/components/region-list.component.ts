@@ -52,10 +52,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     BrandButtonComponent
   ],
   template: `
-    <div class="region-list-container">
+    <div class="region-list-container mx-auto max-w-[1200px] p-4 max-md:p-3">
       <!-- Search and Filters -->
-      <div class="search-section">
-        <mat-form-field class="search-field" appearance="outline">
+      <div class="search-section mb-6 flex flex-col gap-4 max-md:mb-4">
+        <mat-form-field class="search-field w-full max-w-[400px]" appearance="outline">
           <mat-label>Search regions</mat-label>
           <input
             matInput
@@ -66,7 +66,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
-        <div class="filter-chips">
+        <div class="filter-chips flex flex-wrap gap-2">
           <mat-chip-listbox [multiple]="false" [hideSingleSelectionIndicator]="true">
             <mat-chip-option
               [selected]="autoUpdateFilter === undefined"
@@ -92,7 +92,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
       <!-- Loading State -->
       @if (isLoading$ | async) {
-        <div class="loading-container">
+        <div class="loading-container flex flex-col items-center justify-center px-4 py-12 text-center">
           <mat-spinner diameter="40"></mat-spinner>
           <p>Loading regions...</p>
         </div>
@@ -100,8 +100,8 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
       <!-- Error State -->
       @if (error$ | async; as error) {
-        <div class="error-container">
-          <mat-icon color="warn">error</mat-icon>
+        <div class="error-container flex flex-col items-center justify-center px-4 py-12 text-center">
+          <mat-icon class="mb-4" color="warn">error</mat-icon>
           <p>{{ error }}</p>
           <app-brand-button variant="primary" size="sm" (click)="refreshRegions()">
             <mat-icon>refresh</mat-icon>
@@ -113,10 +113,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       <!-- Regions Grid -->
       @if (!(isLoading$ | async) && !(error$ | async)) {
         @if (filteredRegions$ | async; as regions) {
-          <div class="regions-grid">
+          <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3">
             @for (region of regions; track region.regionOnestopId) {
               <app-brand-card
-                class="region-card"
+                class="region-card cursor-pointer transition-all"
                 [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
                 [title]="getDisplayName(region)"
                 [subtitle]="region.regionOnestopId"
@@ -129,14 +129,14 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 (keydown.space)="selectRegion(region)"
               >
                 <div class="card-body">
-                  <div class="region-stats">
-                    <div class="stat-item">
+                  <div class="region-stats mt-3 flex flex-col gap-2">
+                    <div class="stat-item flex items-center gap-2 text-sm">
                       <mat-icon>feed</mat-icon>
                       <span>{{ region.feedCount }} feeds</span>
                     </div>
 
-                    <div class="stat-item">
-                      <mat-icon [class]="{
+                    <div class="stat-item flex items-center gap-2 text-sm">
+                      <mat-icon [ngClass]="{
                         'auto-update-enabled': region.autoUpdateEnabled,
                         'auto-update-disabled': !region.autoUpdateEnabled
                       }">
@@ -146,7 +146,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                     </div>
 
                     @if (region.lastCheckAt) {
-                      <div class="stat-item">
+                      <div class="stat-item flex items-center gap-2 text-sm">
                         <mat-icon>schedule</mat-icon>
                         <span>{{ formatLastCheck(region) }}</span>
                       </div>
@@ -175,13 +175,16 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                     <mat-icon>settings</mat-icon>
                   </button>
                   <mat-menu #autoUpdateMenu="matMenu">
-                    <div class="auto-update-controls" (click)="$event.stopPropagation()">
-                      <div class="control-header">
+                    <div
+                      class="auto-update-controls min-w-[280px] p-4 max-md:min-w-[240px] max-md:p-3"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <div class="control-header mb-4 flex items-center gap-2 font-semibold text-[var(--mdc-theme-primary)]">
                         <mat-icon>sync</mat-icon>
                         <span>Automatic Updates</span>
                       </div>
 
-                      <div class="control-item">
+                      <div class="control-item flex items-center justify-between border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0">
                         <span>Enable auto-update</span>
                         <mat-slide-toggle
                           [checked]="region.autoUpdateEnabled"
@@ -191,7 +194,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                       </div>
 
                       @if (region.autoUpdateEnabled) {
-                        <div class="control-item">
+                        <div class="control-item flex items-center justify-between border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0">
                           <span>Check for updates now</span>
                           <button
                             mat-icon-button
@@ -204,13 +207,17 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                       }
 
                       @if (getVersionStatus(region); as versionStatus) {
-                        <div class="control-item version-info">
-                          <div class="version-item">
-                            <span class="version-label">Last checked:</span>
-                            <span class="version-value">{{ versionStatus.lastChecked ? (versionStatus.lastChecked | date:'short') : 'Never' }}</span>
+                        <div
+                          class="control-item version-info flex flex-col items-start gap-2 border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0"
+                        >
+                          <div class="version-item flex w-full items-center gap-2">
+                            <span class="version-label min-w-[100px] font-medium">Last checked:</span>
+                            <span class="version-value font-mono text-xs text-[var(--mdc-theme-on-surface-variant)]">
+                              {{ versionStatus.lastChecked ? (versionStatus.lastChecked | date:'short') : 'Never' }}
+                            </span>
                           </div>
                           @if (versionStatus.hasUpdate) {
-                            <div class="version-item">
+                            <div class="version-item flex w-full items-center gap-2">
                               <mat-icon class="update-available">new_releases</mat-icon>
                               <span class="update-text">Update available</span>
                             </div>
@@ -235,8 +242,8 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
             }
 
             @if (regions.length === 0) {
-              <div class="empty-state">
-                <mat-icon>location_off</mat-icon>
+              <div class="empty-state col-span-full flex flex-col items-center justify-center px-4 py-12 text-center">
+                <mat-icon class="mb-4">location_off</mat-icon>
                 <h3>{{ searchTerm ? 'No regions found' : 'No region selected' }}</h3>
                 @if (searchTerm) {
                   <p>Try adjusting your search criteria.</p>
@@ -251,18 +258,18 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
       <!-- Quick Stats -->
       @if (!(isLoading$ | async) && !(error$ | async)) {
-        <div class="quick-stats">
-          <div class="stat-card">
+        <div class="quick-stats flex flex-wrap justify-center gap-4 rounded-lg bg-[var(--mdc-theme-surface-variant)] p-4 max-md:gap-3 max-md:p-3">
+          <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
             <span class="stat-number">{{ (filteredRegions$ | async)?.length || 0 }}</span>
             <span class="stat-label">Regions</span>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
             <span class="stat-number">{{ getTotalFeeds() | async }}</span>
             <span class="stat-label">Total Feeds</span>
           </div>
 
-          <div class="stat-card">
+          <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
             <span class="stat-number">{{ (activeImports$ | async)?.length || 0 }}</span>
             <span class="stat-label">Active Imports</span>
           </div>
@@ -271,39 +278,6 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     </div>
   `,
   styles: [`
-    .region-list-container {
-      padding: 16px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .search-section {
-      margin-bottom: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .search-field {
-      width: 100%;
-      max-width: 400px;
-    }
-
-    .filter-chips {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .loading-container, .error-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 48px 16px;
-      text-align: center;
-    }
-
     .error-container {
       color: var(--mdc-theme-error);
     }
@@ -312,19 +286,9 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       font-size: 48px;
       width: 48px;
       height: 48px;
-      margin-bottom: 16px;
-    }
-
-    .regions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
     }
 
     .region-card {
-      cursor: pointer;
-      transition: all 0.2s ease-in-out;
       border: 1px solid var(--ms-color-border, #d1d5db);
     }
 
@@ -353,18 +317,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       to { transform: rotate(360deg); }
     }
 
-    .region-stats {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
     .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 14px;
       color: var(--mdc-theme-on-surface-variant);
     }
 
@@ -383,13 +336,6 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     }
 
     .empty-state {
-      grid-column: 1 / -1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 48px 16px;
-      text-align: center;
       color: var(--mdc-theme-on-surface-variant);
     }
 
@@ -397,28 +343,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       font-size: 64px;
       width: 64px;
       height: 64px;
-      margin-bottom: 16px;
       opacity: 0.5;
-    }
-
-    .quick-stats {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-      padding: 16px;
-      background-color: var(--mdc-theme-surface-variant);
-      border-radius: 8px;
-    }
-
-    .stat-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 12px 16px;
-      background-color: var(--mdc-theme-surface);
-      border-radius: 8px;
-      min-width: 80px;
     }
 
     .stat-number {
@@ -435,58 +360,8 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     }
 
     /* Auto-Update Controls */
-    .auto-update-controls {
-      padding: 16px;
-      min-width: 280px;
-    }
-
-    .control-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      font-weight: 600;
-      color: var(--mdc-theme-primary);
-    }
-
-    .control-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--mdc-theme-outline);
-    }
-
-    .control-item:last-child {
-      border-bottom: none;
-    }
-
     .control-item span {
       font-size: 14px;
-    }
-
-    .version-info {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .version-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-    }
-
-    .version-label {
-      font-weight: 500;
-      min-width: 100px;
-    }
-
-    .version-value {
-      font-family: monospace;
-      font-size: 12px;
-      color: var(--mdc-theme-on-surface-variant);
     }
 
     .update-available {
@@ -499,31 +374,6 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       font-weight: 500;
     }
 
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      .region-list-container {
-        padding: 12px;
-      }
-
-      .regions-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-      }
-
-      .search-section {
-        margin-bottom: 16px;
-      }
-
-      .quick-stats {
-        padding: 12px;
-        gap: 12px;
-      }
-
-      .auto-update-controls {
-        min-width: 240px;
-        padding: 12px;
-      }
-    }
   `]
 })
 export class RegionListComponent implements OnInit, OnDestroy {
