@@ -7,9 +7,7 @@ import kotlinx.serialization.SerializationException
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.core.io.ResourceLoader
+import org.springframework.core.io.DefaultResourceLoader
 import java.io.IOException
 import java.nio.file.Path
 import java.time.LocalDate
@@ -17,10 +15,8 @@ import java.time.LocalDate
 private const val VERSION: String = "v1"
 private const val FEED_ID: String = "feed_id"
 
-@SpringBootTest
 internal class GTFSScheduledTripDataSourceTest {
-    @Autowired
-    lateinit var resourceLoader: ResourceLoader
+    private val resourceLoader = DefaultResourceLoader()
 
     private val routeIDDataSource = StubRouteIDDataSource(mapOf(
         "1" to "r-f2566-1",

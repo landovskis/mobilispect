@@ -8,18 +8,14 @@ import kotlinx.serialization.SerializationException
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.core.io.ResourceLoader
+import org.springframework.core.io.DefaultResourceLoader
 import java.io.IOException
 import java.nio.file.Path
 
 private const val VERSION = "v1"
 
-@SpringBootTest
 class GTFSScheduledStopDataSourceTest {
-    @Autowired
-    lateinit var resourceLoader: ResourceLoader
+    private val resourceLoader = DefaultResourceLoader()
 
     private val subject = GTFSScheduledStopDataSource()
 

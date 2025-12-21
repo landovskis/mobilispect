@@ -20,13 +20,7 @@ export const routes: Routes = [
           breadcrumb: 'Regions'
         }
       },
-      {
-        path: 'regions',
-        loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule),
-        data: {
-          breadcrumb: 'Regions'
-        }
-      },
+
       {
         path: 'feeds',
         loadChildren: () => import('./feeds/feed-management.module').then(m => m.FeedManagementModule),

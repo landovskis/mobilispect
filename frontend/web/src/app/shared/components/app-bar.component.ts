@@ -11,7 +11,7 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     MatToolbarModule,
     MatIconModule,
     AppBreadcrumbsComponent
-],
+  ],
   template: `
     <mat-toolbar
       color="primary"
@@ -19,13 +19,10 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     >
       <div class="toolbar-left">
         <img [src]="logoUrl" [alt]="appName + ' Logo'" class="app-logo" />
-        @if (breadcrumbs.length) {
-          <app-toolbar-breadcrumbs
-            class="toolbar-breadcrumbs"
-            [breadcrumbs]="breadcrumbs"
-            (breadcrumbSelected)="breadcrumbSelected.emit($event)"
-          ></app-toolbar-breadcrumbs>
-        }
+        <app-toolbar-breadcrumbs
+          class="toolbar-breadcrumbs"
+          (breadcrumbSelected)="breadcrumbSelected.emit($event)"
+        ></app-toolbar-breadcrumbs>
       </div>
 
       <div class="toolbar-right">
@@ -95,7 +92,7 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
 export class AppBarComponent {
   @Input() appName = 'Mobilispect';
   @Input() logoUrl = '/mobilispect_full_logo.svg';
-  @Input() breadcrumbs: Breadcrumb[] = [];
+  @Input() logoUrl = '/mobilispect_full_logo.svg';
 
   @Output() refresh = new EventEmitter<void>();
   @Output() breadcrumbSelected = new EventEmitter<BreadcrumbSelection>();

@@ -24,13 +24,15 @@ html {
   @include mat.theme($mobilispect-theme);
   // Override key system colors with Mobilispect tokens
   --mat-sys-primary: #0b4f8a;
-  --mat-sys-on-primary: #e5f1ff;
-  --mat-sys-primary-container: #e1f3ff;
-  --mat-sys-on-primary-container: #0b3558;
+  --mat-sys-on-primary: #ffffff;
+  --mat-sys-primary-container: #0b3558;
+  --mat-sys-on-primary-container: #ffffff;
   --mat-sys-secondary: #00a7c4;
   --mat-sys-on-secondary: #02131f;
   --mat-sys-secondary-container: #e0f9fd;
   --mat-sys-on-secondary-container: #004f5f;
+  --mat-sys-error: #ffd54f;
+  --mat-sys-on-error: #111827;
   --mat-sys-outline: #d1d5db;
 }
 
@@ -134,10 +136,13 @@ $mobilispect-dark-theme: mat.define-theme((
   @include mat.theme($mobilispect-dark-theme);
   --mat-sys-primary: #00a7c4;
   --mat-sys-on-primary: #02131f;
-  --mat-sys-primary-container: #08335c;
-  --mat-sys-on-primary-container: #e5f1ff;
+  --mat-sys-primary-container: #0b3558;
+  --mat-sys-on-primary-container: #ffffff;
   --mat-sys-secondary: #0b4f8a;
-  --mat-sys-on-secondary: #e5f1ff;
+  --mat-sys-on-secondary: #ffffff;
   --mat-sys-secondary-container: #0f172a;
-  --mat-sys-on-secondary-container: #e5f1ff;
+  --mat-sys-on-secondary-container: #ffffff;
+  --mat-sys-error: #ffd54f;
+  --mat-sys-on-error: #111827;
+  --mat-sys-outline: #d1d5db;
 }

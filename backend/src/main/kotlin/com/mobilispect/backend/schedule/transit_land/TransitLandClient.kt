@@ -368,7 +368,7 @@ class TransitLandClient(
         return uri
     }
 
-    private fun <T> get(
+    private fun <T : Any> get(
         uri: String, apiKey: String, clazz: Class<T>
     ): T? {
         // Acquire permission from rate limiter before making the request
@@ -389,7 +389,7 @@ class TransitLandClient(
      * Uses both a semaphore to limit concurrent requests and a rate limiter
      * to control request rate. This is suitable for parallel batch operations.
      */
-    private fun <T> getConcurrent(
+    private fun <T : Any> getConcurrent(
         uri: String, apiKey: String, clazz: Class<T>
     ): T? {
         // Acquire concurrency permit to limit parallel requests

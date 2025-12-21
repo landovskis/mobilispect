@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
 import { FeedImportsPageComponent } from './pages/feed-imports.page';
+import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 
 const routes: Routes = [
   {
@@ -11,13 +12,16 @@ const routes: Routes = [
   },
   {
     path: '',
+    data: {},
     children: [
       {
         path: 'discover/:regionId',
         component: DiscoverFeedsPageComponent,
+        resolve: {
+          breadcrumb: RegionBreadcrumbResolver
+        },
         data: {
           title: 'Discover Feeds',
-          breadcrumb: 'Discover',
           permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
         }
       },

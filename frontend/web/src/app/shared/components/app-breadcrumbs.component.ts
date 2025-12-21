@@ -1,7 +1,11 @@
-import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectionStrategy, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterModule, Params } from '@angular/router';
+import { RouterModule, Params, Router, NavigationEnd } from '@angular/router';
+import { AppBreadcrumbService, Breadcrumb } from '../services/app-breadcrumb.service';
+export type { Breadcrumb };
+import { Subject } from 'rxjs';
+import { filter, startWith, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-toolbar-breadcrumbs',
@@ -84,9 +88,8 @@ import { RouterModule, Params } from '@angular/router';
     }
 
     .breadcrumb-active {
-      text-decoration: underline;
-      text-decoration-thickness: 1.5px;
-      text-underline-offset: 2px;
+      text-decoration: none;
+      font-weight: 700;
     }
 
     @media (max-width: 768px) {
@@ -98,21 +101,47 @@ import { RouterModule, Params } from '@angular/router';
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AppBreadcrumbsComponent {
-  @Input() breadcrumbs: Breadcrumb[] = [];
+export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
+  breadcrumbs: Breadcrumb[] = [];
   @Output() breadcrumbSelected = new EventEmitter<BreadcrumbSelection>();
+
+  private readonly destroy$ = new Subject<void>();
+
+  constructor(
+    private readonly router: Router,
+    private readonly breadcrumbService: AppBreadcrumbService,
+    private readonly cdr: ChangeDetectorRef
+  ) { }
+
+  ngOnInit(): void {
+    this.router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null), // Trigger initial load
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.updateBreadcrumbs();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private updateBreadcrumbs(): void {
+    const crumbs = this.breadcrumbService.getBreadcrumbs(this.router.routerState.root.snapshot);
+    this.breadcrumbs = crumbs.length
+      ? crumbs
+      : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
+    this.cdr.markForCheck();
+  }
 
   onBreadcrumbClick(event: MouseEvent, breadcrumb: Breadcrumb): void {
     this.breadcrumbSelected.emit({ breadcrumb, originalEvent: event });
   }
 }
 
-export interface Breadcrumb {
-  id?: string;
-  label: string;
-  link?: string | any[];
-  queryParams?: Params | null;
-}
+
 
 export interface BreadcrumbSelection {
   breadcrumb: Breadcrumb;
