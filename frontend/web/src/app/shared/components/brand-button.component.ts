@@ -11,8 +11,12 @@ type BrandButtonSize = 'sm' | 'md';
   template: `
     <button
       type="button"
-      class="brand-button"
-      [ngClass]="[variant, size, block ? 'block' : '']"
+      class="brand-button inline-flex items-center justify-center gap-2 rounded-[10px] border font-bold tracking-[0.01em]"
+      [ngClass]="[
+        variant,
+        size === 'sm' ? 'px-3 py-2 text-sm rounded-lg' : 'px-4 py-2.5 text-base',
+        block ? 'w-full' : ''
+      ]"
       [disabled]="disabled"
     >
       <ng-content></ng-content>
@@ -23,18 +27,10 @@ type BrandButtonSize = 'sm' | 'md';
       --btn-bg: var(--ms-color-primary, #0b4f8a);
       --btn-text: #ffffff;
       --btn-border: transparent;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 16px;
-      border-radius: 10px;
       border: 1px solid var(--btn-border);
       background: var(--btn-bg);
       color: var(--btn-text);
       font-family: var(--ms-font-family, system-ui, sans-serif);
-      font-weight: 700;
-      letter-spacing: 0.01em;
       cursor: pointer;
       transition: transform 120ms ease, box-shadow 150ms ease, background 150ms ease,
         color 150ms ease, border-color 150ms ease;
@@ -88,21 +84,6 @@ type BrandButtonSize = 'sm' | 'md';
 
     .brand-button.destructive:active:not(:disabled) {
       box-shadow: 0 8px 18px rgba(220, 38, 38, 0.14);
-    }
-
-    .brand-button.sm {
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-    }
-
-    .brand-button.md {
-      padding: 10px 16px;
-      font-size: 1rem;
-    }
-
-    .brand-button.block {
-      width: 100%;
     }
 
     .brand-button:disabled {

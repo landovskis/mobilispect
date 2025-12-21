@@ -32,7 +32,7 @@ import { ImportsHistoryCardComponent } from './imports-history-card.component';
     ImportsHistoryCardComponent
 ],
   template: `
-    <div class="tab-content">
+    <div class="tab-content py-6 max-md:py-4">
       <!-- Active Imports Card -->
       <app-active-imports-card
         [activeImports$]="activeImports$"
@@ -53,17 +53,6 @@ import { ImportsHistoryCardComponent } from './imports-history-card.component';
       ></app-imports-history-card>
     </div>
   `,
-  styles: [`
-    .tab-content {
-      padding: 24px 0;
-    }
-
-    @media (max-width: 768px) {
-      .tab-content {
-        padding: 16px 0;
-      }
-    }
-  `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class FeedImportsTabComponent {

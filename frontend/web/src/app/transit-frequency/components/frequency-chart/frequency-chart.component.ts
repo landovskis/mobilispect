@@ -8,9 +8,9 @@ import { FrequencyDto } from '../../services/frequency.service';
   imports: [],
   template: `
     @if (frequencies?.length) {
-      <div class="chart">
+      <div class="chart flex flex-col gap-2">
         @for (freq of frequencies; track freq.id) {
-          <div class="row">
+          <div class="row flex justify-between border-b py-2">
             <span class="period">{{ freq.timePeriod }}</span>
             <span class="headway">
               @if (!freq.isIrregular && freq.averageHeadwayMinutes !== null && freq.averageHeadwayMinutes !== undefined) {
@@ -27,8 +27,7 @@ import { FrequencyDto } from '../../services/frequency.service';
     }
     `,
   styles: [`
-    .chart { display: flex; flex-direction: column; gap: 8px; }
-    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--mat-sys-outline, #e2e8f0); }
+    .row { border-bottom-color: var(--mat-sys-outline, #e2e8f0); }
     .period { font-weight: 600; }
     .headway { color: var(--mat-sys-on-surface-variant, #475569); }
     .irregular { color: #c2410c; font-weight: 600; }

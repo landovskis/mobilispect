@@ -14,18 +14,18 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     BrandButtonComponent
 ],
   template: `
-    <div class="tab-content">
-      <app-brand-card class="welcome-card">
+    <div class="tab-content py-6 max-md:py-4">
+      <app-brand-card class="welcome-card mb-6">
           <p>
             Choose from available metropolitan regions to view and import their transit feeds.
           </p>
       </app-brand-card>
 
       @if (regions?.length) {
-        <div class="regions-grid">
+        <div class="regions-grid mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           @for (region of regions!; track region.regionOnestopId) {
             <app-brand-card
-              class="region-card region-item"
+              class="region-card region-item transition-transform duration-200 hover:-translate-y-0.5"
             >
               <div class="flex items-center justify-between gap-3">
                 <div>
@@ -48,32 +48,17 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
           }
         </div>
       } @else {
-        <div class="empty-state">
-          <div class="empty-content">
-            <mat-icon class="empty-icon">location_off</mat-icon>
-            <h3>No regions available</h3>
-            <p>Try refreshing data or check your connection.</p>
+        <div class="empty-state mt-6">
+          <div class="empty-content flex flex-col items-center px-5 py-10 text-center text-[#666]">
+            <mat-icon class="empty-icon mb-4 text-[48px] text-[#ccc]">location_off</mat-icon>
+            <h3 class="mb-2 font-medium m-0">No regions available</h3>
+            <p class="text-[#999] m-0">Try refreshing data or check your connection.</p>
           </div>
         </div>
       }
     </div>
   `,
   styles: [`
-    .tab-content {
-      padding: 24px 0;
-    }
-
-    .welcome-card {
-      margin-bottom: 24px;
-    }
-
-    .regions-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-    }
-
     .region-card {
       transition: transform 0.2s, box-shadow 0.2s;
     }
@@ -83,46 +68,6 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       box-shadow: 0 4px 8px rgba(0,0,0,0.12);
     }
 
-    .empty-state {
-      margin-top: 24px;
-    }
-
-    .empty-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-      text-align: center;
-      color: #666;
-    }
-
-    .empty-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-      color: #ccc;
-      margin-bottom: 16px;
-    }
-
-    .empty-content h3 {
-      margin: 0 0 8px 0;
-      font-weight: 500;
-    }
-
-    .empty-content p {
-      margin: 0;
-      color: #999;
-    }
-
-    @media (max-width: 768px) {
-      .tab-content {
-        padding: 16px 0;
-      }
-
-      .regions-grid {
-        grid-template-columns: 1fr;
-      }
-    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

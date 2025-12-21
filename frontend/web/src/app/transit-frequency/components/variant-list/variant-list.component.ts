@@ -8,10 +8,10 @@ import { BrandButtonComponent } from '../../../shared/components/brand-button.co
   standalone: true,
   imports: [BrandButtonComponent],
   template: `
-    <div class="list" role="list">
+    <div class="list flex flex-col gap-3" role="list">
       @for (variant of variants; track variant.id) {
-        <div class="variant" role="listitem">
-          <div class="title">
+        <div class="variant flex items-center justify-between border-b py-2" role="listitem">
+          <div class="title flex flex-col gap-0.5">
             <span>{{ variant.headsign || 'Variant' }}</span>
             <small>Stops: {{ variant.stopCount }}</small>
             <small class="pattern">Pattern: {{ variant.stopPattern }}</small>
@@ -24,9 +24,7 @@ import { BrandButtonComponent } from '../../../shared/components/brand-button.co
     </div>
   `,
   styles: [`
-    .list { display: flex; flex-direction: column; gap: 12px; }
-    .variant { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--mat-sys-outline, #e2e8f0); }
-    .title { display: flex; flex-direction: column; gap: 2px; }
+    .variant { border-bottom-color: var(--mat-sys-outline, #e2e8f0); }
     .pattern { color: var(--mat-sys-on-surface-variant, #64748b); font-size: 0.85rem; }
     :host-context(.dark-theme) .variant { border-bottom-color: rgba(148, 163, 184, 0.3); }
     :host-context(.dark-theme) .pattern { color: var(--mat-sys-on-surface-variant, #cbd5e1); }
