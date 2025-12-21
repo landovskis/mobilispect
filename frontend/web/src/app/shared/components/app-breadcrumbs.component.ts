@@ -1,5 +1,5 @@
 import { Component, Output, EventEmitter, ChangeDetectionStrategy, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule, Params, Router, NavigationEnd } from '@angular/router';
 import { AppBreadcrumbService, Breadcrumb } from '../services/app-breadcrumb.service';
@@ -10,7 +10,7 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
 @Component({
   selector: 'app-toolbar-breadcrumbs',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterModule],
+  imports: [MatIconModule, RouterModule],
   template: `
     @for (breadcrumb of breadcrumbs; track breadcrumb.id ?? breadcrumb.label; let first = $first; let last = $last) {
       @if (!first) {
@@ -31,7 +31,7 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
           (click)="onBreadcrumbClick($event, breadcrumb)"
         >
           <span
-            [ngClass]="{
+            [class]="{
               'breadcrumb-item': !last,
               'breadcrumb-region': last,
               'breadcrumb-active': last
@@ -43,7 +43,7 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
       } @else {
         <span
           class="breadcrumb-item"
-          [ngClass]="{
+          [class]="{
             'breadcrumb-region': last,
             'breadcrumb-active': last
           }"

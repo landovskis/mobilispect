@@ -7,7 +7,7 @@ import { FrequencyDto } from '../../services/frequency.service';
   standalone: true,
   imports: [],
   template: `
-    @if (frequencies?.length) {
+    @if (frequencies.length) {
       <div class="chart">
         @for (freq of frequencies; track freq.id) {
           <div class="row">

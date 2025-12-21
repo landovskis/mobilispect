@@ -1,11 +1,10 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { RegionListComponent } from '../regions/pages/region-list.component';
 import { RegionDetailComponent } from '../regions/pages/region-detail.component';
 import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 import { RouteBreadcrumbResolver } from './resolvers/route-breadcrumb.resolver';
 
-const routes: Routes = [
+export const TRANSIT_FREQUENCY_ROUTES: Routes = [
   {
     path: '',
     component: RegionListComponent,
@@ -26,9 +25,3 @@ const routes: Routes = [
     }
   }
 ];
-
-@NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule]
-})
-export class TransitFrequencyModule { }

@@ -136,7 +136,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                     </div>
 
                     <div class="stat-item">
-                      <mat-icon [ngClass]="{
+                      <mat-icon [class]="{
                         'auto-update-enabled': region.autoUpdateEnabled,
                         'auto-update-disabled': !region.autoUpdateEnabled
                       }">

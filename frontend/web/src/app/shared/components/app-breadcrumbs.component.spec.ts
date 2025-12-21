@@ -1,7 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppBreadcrumbsComponent } from './app-breadcrumbs.component';
-import { RouterTestingModule } from '@angular/router/testing';
-import { Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd, RouterModule } from '@angular/router';
 import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
 import { By } from '@angular/platform-browser';
 
@@ -15,7 +14,7 @@ describe('AppBreadcrumbsComponent', () => {
         const breadcrumbServiceSpy = jasmine.createSpyObj('AppBreadcrumbService', ['getBreadcrumbs']);
 
         await TestBed.configureTestingModule({
-            imports: [AppBreadcrumbsComponent, RouterTestingModule],
+            imports: [AppBreadcrumbsComponent, RouterModule],
             providers: [
                 { provide: AppBreadcrumbService, useValue: breadcrumbServiceSpy }
             ]
