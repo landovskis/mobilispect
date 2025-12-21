@@ -6,7 +6,8 @@ import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { FeedImportSummary } from '../models';
 import { ImportService } from '../services/import.service';
-import { FeedImportsTabComponent } from '../components/feed-imports-tab.component';
+import { ActiveImportsCardComponent } from '../components/active-imports-card.component';
+import { ImportsHistoryCardComponent } from '../components/imports-history-card.component';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
 
@@ -16,19 +17,28 @@ import { FeedsEventsService } from '../services/feeds-events.service';
   imports: [
     MatSnackBarModule,
     MatDialogModule,
-    FeedImportsTabComponent
+    ActiveImportsCardComponent,
+    ImportsHistoryCardComponent
 ],
   template: `
-    <app-feed-imports-tab
-      [loading]="loadingHistory"
-      [history]="importHistory"
-      [totalItems]="totalImportElements"
-      [pageIndex]="importHistoryPage"
-      [pageSize]="importHistorySize"
-      [activeImports$]="activeImports$"
-      (cancelImport)="cancelImport($event)"
-      (pageChange)="loadImportHistory($event)"
-    ></app-feed-imports-tab>
+    <div class="tab-content py-6 max-md:py-4">
+      <app-active-imports-card
+        [activeImports$]="activeImports$"
+        (cancelImport)="cancelImport($event)"
+      ></app-active-imports-card>
+
+      <app-imports-history-card
+        [loading]="loadingHistory"
+        [history]="importHistory"
+        [totalItems]="totalImportElements"
+        [pageIndex]="importHistoryPage"
+        [pageSize]="importHistorySize"
+        [pageSizeOptions]="pageSizeOptions"
+        [displayedColumns]="displayedColumns"
+        [showHeader]="hasActiveImports"
+        (pageChange)="loadImportHistory($event)"
+      ></app-imports-history-card>
+    </div>
   `
 })
 export class FeedImportsPageComponent implements OnInit, OnDestroy {
@@ -39,6 +49,8 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
   importHistory: FeedImportSummary[] = [];
   importHistoryPage = 0;
   importHistorySize = 20;
+  pageSizeOptions: number[] = [10, 20, 50, 100];
+  displayedColumns: string[] = ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'fileSize'];
   totalImportPages = 0;
   totalImportElements = 0;
   loadingHistory = false;
@@ -64,6 +76,10 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  get hasActiveImports(): boolean {
+    return false;
   }
 
   loadImportHistory(page: number = 0): void {
