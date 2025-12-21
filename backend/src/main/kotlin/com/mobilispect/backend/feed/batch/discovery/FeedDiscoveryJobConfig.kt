@@ -65,7 +65,8 @@ class SimplifiedFeedDiscoveryJobConfig(
         @Qualifier("combinedFeedDiscoveryReader")
         reader: ItemReader<FeedDiscoveryInput>
     ): Step = StepBuilder("simplifiedDiscoveryStep", jobRepository)
-        .chunk<FeedDiscoveryInput, FeedDiscoveryBatch>(10, transactionManager)
+        .chunk<FeedDiscoveryInput, FeedDiscoveryBatch>(10)
+        .transactionManager(transactionManager)
         .reader(reader)
         .processor(feedDiscoveryProcessor)
         .writer(feedDiscoveryWriter)

@@ -1,8 +1,9 @@
 package com.mobilispect.backend.config
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import tools.jackson.databind.DefaultTyping
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator
+import tools.jackson.databind.json.JsonMapper
+import tools.jackson.module.kotlin.KotlinModule
 import org.slf4j.LoggerFactory
 import org.springframework.cache.CacheManager
 import org.springframework.cache.annotation.EnableCaching
@@ -11,7 +12,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.cache.RedisCacheConfiguration
 import org.springframework.data.redis.cache.RedisCacheManager
 import org.springframework.data.redis.connection.RedisConnectionFactory
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer
+import org.springframework.data.redis.serializer.GenericJacksonJsonRedisSerializer
 import org.springframework.data.redis.serializer.RedisSerializationContext
 import org.springframework.data.redis.serializer.SerializationException
 import org.springframework.data.redis.serializer.StringRedisSerializer
@@ -111,9 +112,9 @@ class RedisConfiguration : org.springframework.cache.annotation.CachingConfigure
     @Bean
     fun cacheManager(connectionFactory: RedisConnectionFactory, pageJacksonModule: PageJacksonModule): CacheManager {
         // Create ObjectMapper with PageJacksonModule for proper Page serialization
-        val objectMapper = ObjectMapper()
-            .registerKotlinModule()
-            .registerModule(pageJacksonModule)
+        val objectMapper = JsonMapper.builder()
+            .addModule(KotlinModule.Builder().build())
+            .addModule(pageJacksonModule)
             .activateDefaultTyping(
                 BasicPolymorphicTypeValidator.builder()
                     .allowIfBaseType(Any::class.java)
@@ -121,8 +122,9 @@ class RedisConfiguration : org.springframework.cache.annotation.CachingConfigure
                     .allowIfSubType(java.util.ArrayList::class.java)
                     .allowIfSubType(java.util.Collections::class.java)
                     .build(),
-                ObjectMapper.DefaultTyping.NON_FINAL
+                DefaultTyping.NON_FINAL
             )
+            .build()
 
         val defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .serializeKeysWith(
@@ -130,7 +132,7 @@ class RedisConfiguration : org.springframework.cache.annotation.CachingConfigure
             )
             .serializeValuesWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(
-                    GenericJackson2JsonRedisSerializer(objectMapper)
+                    GenericJacksonJsonRedisSerializer(objectMapper)
                 )
             )
             .entryTtl(Duration.ofMinutes(5)) // Default 5-minute TTL

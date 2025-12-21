@@ -1,12 +1,10 @@
 package com.mobilispect.backend.config
 
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.DeserializationContext
-import com.fasterxml.jackson.databind.JsonDeserializer
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.Module
-import com.fasterxml.jackson.databind.module.SimpleModule
+import tools.jackson.core.JsonParser
+import tools.jackson.databind.DeserializationContext
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.ValueDeserializer
+import tools.jackson.databind.module.SimpleModule
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Component
@@ -31,9 +29,9 @@ class PageJacksonModule : SimpleModule() {
  * This deserializer properly handles the polymorphic type information stored by Jackson,
  * ensuring that content items are deserialized with their correct concrete types.
  */
-class PageImplDeserializer : JsonDeserializer<PageImpl<*>>() {
+class PageImplDeserializer : ValueDeserializer<PageImpl<*>>() {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): PageImpl<*> {
-        val node: JsonNode = p.codec.readTree(p)
+        val node: JsonNode = ctxt.readTree(p)
 
         // Extract page metadata
         val number = node.get("number")?.asInt() ?: 0
