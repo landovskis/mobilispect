@@ -6,10 +6,10 @@ import { ImportService } from '../../feeds/services/import.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
-import { of } from 'rxjs';
-import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router';
+import { BehaviorSubject, firstValueFrom, of } from 'rxjs';
+import { Router } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
 
 describe('AppShellComponent', () => {
     let component: AppShellComponent;
@@ -35,18 +35,19 @@ describe('AppShellComponent', () => {
         clearCache: jasmine.createSpy('clearCache')
     };
 
+    const breakpointState$ = new BehaviorSubject({ matches: false });
     const mockBreakpointObserver = {
-        observe: () => of({ matches: false })
+        observe: () => breakpointState$.asObservable()
     };
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
-    AppShellComponent,
-    MatSnackBarModule,
-    NoopAnimationsModule,
-    RouterModule
-],
+                AppShellComponent,
+                MatSnackBarModule,
+                NoopAnimationsModule,
+                RouterTestingModule
+            ],
             providers: [
                 { provide: ImportService, useValue: mockImportService },
                 { provide: FeedsMetricsService, useValue: mockMetricsService },
@@ -64,5 +65,64 @@ describe('AppShellComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
+    });
+
+    it('refreshes data and triggers events', () => {
+        component.onRefresh();
+
+        expect(mockRegionService.clearCache).toHaveBeenCalled();
+        expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
+        expect(mockEventsService.triggerRefresh).toHaveBeenCalled();
+    });
+
+    it('navigates when feeds breadcrumb is selected', () => {
+        const preventDefault = jasmine.createSpy('preventDefault');
+        const stopPropagation = jasmine.createSpy('stopPropagation');
+
+        component.onBreadcrumbSelected({
+            breadcrumb: { id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] },
+            originalEvent: { preventDefault, stopPropagation } as unknown as MouseEvent
+        });
+
+        expect(preventDefault).toHaveBeenCalled();
+        expect(stopPropagation).toHaveBeenCalled();
+        expect(mockMetricsService.resetSelectedRegion).toHaveBeenCalled();
+    });
+
+    it('ignores breadcrumb selections outside feeds', () => {
+        const preventDefault = jasmine.createSpy('preventDefault');
+        const stopPropagation = jasmine.createSpy('stopPropagation');
+
+        component.onBreadcrumbSelected({
+            breadcrumb: { id: 'regions', label: 'Regions', link: ['/regions'] },
+            originalEvent: { preventDefault, stopPropagation } as unknown as MouseEvent
+        });
+
+        expect(preventDefault).not.toHaveBeenCalled();
+        expect(stopPropagation).not.toHaveBeenCalled();
+    });
+
+    it('toggles the sidenav only on handset layouts', async () => {
+        await component.toggleSidenav();
+        expect(component.sidebarOpened).toBeFalse();
+
+        breakpointState$.next({ matches: true });
+        await component.toggleSidenav();
+        expect(component.sidebarOpened).toBeTrue();
+    });
+
+    it('updates sidebar state on opened change', () => {
+        component.onSidenavOpenedChange(true);
+        expect(component.sidebarOpened).toBeTrue();
+    });
+
+    it('falls back to zero active imports when data is missing', async () => {
+        mockImportService.getActiveImportsObservable = () => of(null as any);
+
+        const testFixture = TestBed.createComponent(AppShellComponent);
+        const testComponent = testFixture.componentInstance;
+
+        const activeCount = await firstValueFrom(testComponent.activeImportCount$);
+        expect(activeCount).toBe(0);
     });
 });

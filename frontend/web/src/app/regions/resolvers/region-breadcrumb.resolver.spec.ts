@@ -81,4 +81,24 @@ describe('RegionBreadcrumbResolver', () => {
     expect(label).toBe('Montr al qu, Bec, Canada');
     expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
   });
+
+  it('humanizes short region slugs', async () => {
+    regionServiceSpy.getCachedRegion.and.returnValue(undefined);
+    regionServiceSpy.getRegion.and.returnValue(throwError(() => new Error('boom')));
+    const snapshot = createSnapshot('r-ny');
+
+    const label = await firstValueFrom(resolver.resolve(snapshot));
+
+    expect(label).toBe('Ny');
+  });
+
+  it('handles empty slugs by falling back to region id', async () => {
+    regionServiceSpy.getCachedRegion.and.returnValue(undefined);
+    regionServiceSpy.getRegion.and.returnValue(throwError(() => new Error('boom')));
+    const snapshot = createSnapshot('r-');
+
+    const label = await firstValueFrom(resolver.resolve(snapshot));
+
+    expect(label).toBe('r-');
+  });
 });
