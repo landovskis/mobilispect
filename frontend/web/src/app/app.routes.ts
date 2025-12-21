@@ -15,7 +15,7 @@ export const routes: Routes = [
       },
       {
         path: 'regions',
-        loadChildren: () => import('./transit-frequency/transit-frequency.module').then(m => m.TransitFrequencyModule),
+        loadChildren: () => import('./transit-frequency/transit-frequency.routes').then(m => m.TRANSIT_FREQUENCY_ROUTES),
         data: {
           breadcrumb: 'Regions'
         }
@@ -23,7 +23,7 @@ export const routes: Routes = [
 
       {
         path: 'feeds',
-        loadChildren: () => import('./feeds/feed-management.module').then(m => m.FeedManagementModule),
+        loadChildren: () => import('./feeds/feed-management.routes').then(m => m.FEED_MANAGEMENT_ROUTES),
         data: {
           title: 'Feeds',
           breadcrumb: 'Feeds'

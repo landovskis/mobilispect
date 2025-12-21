@@ -1,10 +1,9 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
 import { FeedImportsPageComponent } from './pages/feed-imports.page';
 import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 
-const routes: Routes = [
+export const FEED_MANAGEMENT_ROUTES: Routes = [
   {
     path: '',
     redirectTo: 'discover',
@@ -65,9 +64,3 @@ const routes: Routes = [
     ]
   }
 ];
-
-@NgModule({
-  imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule]
-})
-export class FeedManagementRoutingModule { }

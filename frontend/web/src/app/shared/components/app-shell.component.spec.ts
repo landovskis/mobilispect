@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppShellComponent } from './app-shell.component';
-import { RouterTestingModule } from '@angular/router/testing';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { ImportService } from '../../feeds/services/import.service';
@@ -8,7 +7,7 @@ import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service'
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
 import { of } from 'rxjs';
-import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
 
@@ -43,11 +42,11 @@ describe('AppShellComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
-                AppShellComponent,
-                RouterTestingModule,
-                MatSnackBarModule,
-                NoopAnimationsModule
-            ],
+    AppShellComponent,
+    MatSnackBarModule,
+    NoopAnimationsModule,
+    RouterModule
+],
             providers: [
                 { provide: ImportService, useValue: mockImportService },
                 { provide: FeedsMetricsService, useValue: mockMetricsService },
