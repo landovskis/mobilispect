@@ -7,7 +7,7 @@ import { FrequencyDto } from '../../services/frequency.service';
   standalone: true,
   imports: [],
   template: `
-    @if (frequencies?.length) {
+    @if (frequencies.length) {
       <div class="chart flex flex-col gap-2">
         @for (freq of frequencies; track freq.id) {
           <div class="row flex justify-between border-b py-2">
