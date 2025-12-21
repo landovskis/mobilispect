@@ -14,69 +14,53 @@ import { map } from 'rxjs/operators';
   standalone: true,
   imports: [CommonModule, RouterModule, BrandSectionComponent, AgencyRouteCardComponent],
   template: `
-    <app-brand-section
-      [title]="(agency$ | async)?.name || 'Agency Details'"
-      subtitle="Routes and stops served by this agency"
-      icon="directions_bus">
-      @if (agency$ | async; as agency) {
-        <div class="agency-info">
-          <div class="info-item">
-            <span class="info-label">Total Routes:</span>
-            <span class="info-value">{{ agency.routeCount }}</span>
-          </div>
-          @if (agency.averageHeadwayMinutes) {
-            <div class="info-item">
-              <span class="info-label">Average Headway:</span>
-              <span class="info-value">{{ agency.averageHeadwayMinutes }} min</span>
+    <div class="flex flex-col gap-6">
+      <app-brand-section
+        [title]="(agency$ | async)?.name || 'Agency Details'"
+        subtitle="Routes and stops served by this agency"
+        icon="directions_bus">
+        @if (agency$ | async; as agency) {
+          <div class="agency-info flex flex-wrap gap-6 py-4">
+            <div class="info-item flex flex-col gap-1">
+              <span class="info-label">Total Routes:</span>
+              <span class="info-value">{{ agency.routeCount }}</span>
             </div>
-          }
-        </div>
-      } @else {
-        <p>Loading agency details...</p>
-      }
-    </app-brand-section>
-
-    <app-brand-section
-      title="Routes"
-      subtitle="Transit routes operated by this agency"
-      icon="route">
-      @if (routes$ | async; as routesResponse) {
-        <div class="routes-list">
-          @for (route of routesResponse.content; track route) {
-            <app-agency-route-card
-              [route]="route">
-            </app-agency-route-card>
-          }
-        </div>
-        @if (routesResponse.content.length === 0) {
-          <p class="no-routes">
-            No routes found for this agency.
-          </p>
+            @if (agency.averageHeadwayMinutes) {
+              <div class="info-item flex flex-col gap-1">
+                <span class="info-label">Average Headway:</span>
+                <span class="info-value">{{ agency.averageHeadwayMinutes }} min</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <p>Loading agency details...</p>
         }
-      } @else {
-        <p>Loading routes...</p>
-      }
-    </app-brand-section>
+      </app-brand-section>
+
+      <app-brand-section
+        title="Routes"
+        subtitle="Transit routes operated by this agency"
+        icon="route">
+        @if (routes$ | async; as routesResponse) {
+          <div class="routes-list grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            @for (route of routesResponse.content; track route) {
+              <app-agency-route-card
+                [route]="route">
+              </app-agency-route-card>
+            }
+          </div>
+          @if (routesResponse.content.length === 0) {
+            <p class="no-routes py-6 text-center italic">
+              No routes found for this agency.
+            </p>
+          }
+        } @else {
+          <p>Loading routes...</p>
+        }
+      </app-brand-section>
+    </div>
     `,
   styles: [`
-    app-brand-section:not(:first-child) {
-      display: block;
-      margin-top: 24px;
-    }
-
-    .agency-info {
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-      padding: 16px 0;
-    }
-
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
     .info-label {
       font-size: 12px;
       font-weight: 500;
@@ -91,21 +75,12 @@ import { map } from 'rxjs/operators';
       color: var(--mat-sys-on-surface, #333);
     }
 
-    .routes-list {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    }
-
     .routes-list .route-item:nth-child(odd) {
       background: var(--mat-sys-surface-container-high, #f9fafb);
     }
 
     .no-routes {
       color: var(--mat-sys-on-surface-variant, #6b7280);
-      font-style: italic;
-      text-align: center;
-      padding: 24px 0;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush

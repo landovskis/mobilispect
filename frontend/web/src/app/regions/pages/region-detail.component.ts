@@ -21,68 +21,51 @@ interface RegionSummary {
   standalone: true,
   imports: [CommonModule, BrandSectionComponent, AgencyCardComponent],
   template: `
-    <app-brand-section
-      [title]="(summary$ | async)?.name || 'Summary'"
-      subtitle="Overview of transit data in this region"
-      icon="analytics">
-      @if (summary$ | async; as summary) {
-        <div class="summary-grid">
-          <div class="summary-card">
-            <div class="summary-value">{{ summary.totalAgencies }}</div>
-            <div class="summary-label">Transit Agencies</div>
+    <div class="flex flex-col gap-6">
+      <app-brand-section
+        [title]="(summary$ | async)?.name || 'Summary'"
+        subtitle="Overview of transit data in this region"
+        icon="analytics">
+        @if (summary$ | async; as summary) {
+          <div class="summary-grid grid gap-4 md:grid-cols-2">
+            <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
+              <div class="summary-value">{{ summary.totalAgencies }}</div>
+              <div class="summary-label mt-2">Transit Agencies</div>
+            </div>
+            <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
+              <div class="summary-value">{{ summary.totalActiveRoutes }}</div>
+              <div class="summary-label mt-2">Active Routes</div>
+            </div>
           </div>
-          <div class="summary-card">
-            <div class="summary-value">{{ summary.totalActiveRoutes }}</div>
-            <div class="summary-label">Active Routes</div>
-          </div>
-        </div>
-      } @else {
-        <p>Loading summary...</p>
-      }
-    </app-brand-section>
-
-    <app-brand-section
-      title="Agencies"
-      subtitle="Transit agencies serving this region"
-      icon="business">
-      @if (agencies$ | async; as agenciesResponse) {
-        <div class="agencies-grid">
-          @for (agency of agenciesResponse.content; track agency) {
-            <app-agency-card
-              [agency]="agency">
-            </app-agency-card>
-          }
-        </div>
-        @if (agenciesResponse.content.length === 0) {
-          <p class="no-agencies">
-            No agencies found for this region.
-          </p>
+        } @else {
+          <p>Loading summary...</p>
         }
-      } @else {
-        <p>Loading agencies...</p>
-      }
-    </app-brand-section>
+      </app-brand-section>
+
+      <app-brand-section
+        title="Agencies"
+        subtitle="Transit agencies serving this region"
+        icon="business">
+        @if (agencies$ | async; as agenciesResponse) {
+          <div class="agencies-grid grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            @for (agency of agenciesResponse.content; track agency) {
+              <app-agency-card
+                [agency]="agency">
+              </app-agency-card>
+            }
+          </div>
+          @if (agenciesResponse.content.length === 0) {
+            <p class="no-agencies py-4 text-center italic">
+              No agencies found for this region.
+            </p>
+          }
+        } @else {
+          <p>Loading agencies...</p>
+        }
+      </app-brand-section>
+    </div>
     `,
   styles: [`
-    app-brand-section:not(:first-child) {
-      display: block;
-      margin-top: 24px;
-    }
-
-    .summary-grid {
-      display: grid;
-      gap: 16px;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    }
-
-    .summary-card {
-      padding: 20px;
-      border-radius: 12px;
-      background: var(--mat-sys-surface-container, #f5f5f5);
-      border: 1px solid var(--mat-sys-outline-variant, #e0e0e0);
-      text-align: center;
-    }
-
     .summary-value {
       font-size: 32px;
       font-weight: 600;
@@ -91,29 +74,18 @@ interface RegionSummary {
     }
 
     .summary-label {
-      margin-top: 8px;
       font-size: 14px;
       font-weight: 500;
       color: var(--mat-sys-on-surface, #333);
     }
 
     .summary-sublabel {
-      margin-top: 4px;
       font-size: 12px;
       color: var(--mat-sys-on-surface-variant, #6b7280);
     }
 
-    .agencies-grid {
-      display: grid;
-      gap: 16px;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    }
-
     .no-agencies {
       color: var(--mat-sys-on-surface-variant, #6b7280);
-      font-style: italic;
-      text-align: center;
-      padding: 16px 0;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
