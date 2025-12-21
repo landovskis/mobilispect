@@ -15,6 +15,7 @@ import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
 import { ThemeToggleComponent } from './theme-toggle.component';
 
+
 @Component({
   selector: 'app-shell',
   standalone: true,
@@ -32,7 +33,6 @@ import { ThemeToggleComponent } from './theme-toggle.component';
   template: `
     <div class="feeds-container">
       <app-bar
-        [breadcrumbs]="breadcrumbs"
         (refresh)="onRefresh()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
         >
@@ -330,7 +330,6 @@ import { ThemeToggleComponent } from './theme-toggle.component';
 export class AppShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
-  @Input() breadcrumbs: Breadcrumb[] = [];
   sidebarOpened = false;
 
   readonly isHandset$: Observable<boolean>;
@@ -357,17 +356,6 @@ export class AppShellComponent implements OnDestroy {
     this.activeImportCount$ = this.importService.getActiveImportsObservable().pipe(
       map((imports: any[] | null | undefined) => imports?.length ?? 0)
     );
-
-    this.router.events.pipe(
-      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      startWith(null),
-      takeUntil(this.destroy$),
-      map(() => this.buildBreadcrumbsFromRoute(this.activatedRoute.snapshot))
-    ).subscribe(crumbs => {
-      this.breadcrumbs = crumbs.length
-        ? crumbs
-        : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
-    });
   }
 
   ngOnDestroy(): void {
@@ -399,35 +387,5 @@ export class AppShellComponent implements OnDestroy {
 
   onSidenavOpenedChange(opened: boolean): void {
     this.sidebarOpened = opened;
-  }
-
-  private buildBreadcrumbsFromRoute(
-    route: ActivatedRouteSnapshot,
-    url: string = '',
-    crumbs: Breadcrumb[] = []
-  ): Breadcrumb[] {
-    const children = route.children.filter(child => child.outlet === 'primary');
-
-    if (!children.length) {
-      return crumbs;
-    }
-
-    const [child] = children;
-    if (!child) return crumbs;
-
-    const routeURL = child.url.map(segment => segment.path).join('/');
-    const nextUrl = routeURL ? `${url}/${routeURL}` : url;
-    const label =
-      child.data['breadcrumb'];
-
-    if (label) {
-      crumbs.push({
-        id: child.routeConfig?.path ?? label,
-        label,
-        link: [nextUrl || '/']
-      });
-    }
-
-    return this.buildBreadcrumbsFromRoute(child, nextUrl, crumbs);
   }
 }

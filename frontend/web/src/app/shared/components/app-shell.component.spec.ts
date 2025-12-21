@@ -10,6 +10,7 @@ import { RegionService } from '../../feeds/services/region.service';
 import { of } from 'rxjs';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
 
 describe('AppShellComponent', () => {
     let component: AppShellComponent;
@@ -64,65 +65,5 @@ describe('AppShellComponent', () => {
 
     it('should create', () => {
         expect(component).toBeTruthy();
-    });
-
-    it('should default to Feeds breadcrumb', () => {
-        expect(component.breadcrumbs).toEqual([
-            { id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }
-        ]);
-    });
-
-    it('should build breadcrumbs from route data', () => {
-        const root = router.routerState.snapshot.root;
-        // Mock the route tree structure
-        spyOnProperty(root, 'children').and.returnValue([
-            {
-                outlet: 'primary',
-                url: [{ path: 'regions' }],
-                data: { breadcrumb: 'Regions' },
-                children: [],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'regions' }
-            } as any
-        ]);
-
-        // Trigger navigation event logic manually since we can't easily trigger real router events in unit test without complex setup
-        // Accessing private method via any cast for testing purposes, or we could refactor to public
-        const crumbs = (component as any).buildBreadcrumbsFromRoute(root);
-
-        expect(crumbs.length).toBe(1);
-        expect(crumbs[0].label).toBe('Regions');
-        expect(crumbs[0].link).toEqual(['/regions']);
-    });
-
-    it('should handle nested breadcrumbs', () => {
-        const root = router.routerState.snapshot.root;
-        // Mock nested route tree
-        const childRoute = {
-            outlet: 'primary',
-            url: [{ path: '123' }],
-            data: { breadcrumb: 'Specific Region' },
-            children: [],
-            paramMap: { get: () => null },
-            routeConfig: { path: ':id' }
-        };
-
-        spyOnProperty(root, 'children').and.returnValue([
-            {
-                outlet: 'primary',
-                url: [{ path: 'regions' }],
-                data: { breadcrumb: 'Regions' },
-                children: [childRoute],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'regions' }
-            } as any
-        ]);
-
-        const crumbs = (component as any).buildBreadcrumbsFromRoute(root);
-
-        expect(crumbs.length).toBe(2);
-        expect(crumbs[0].label).toBe('Regions');
-        expect(crumbs[1].label).toBe('Specific Region');
-        expect(crumbs[1].link).toEqual(['/regions/123']);
     });
 });
