@@ -1,9 +1,7 @@
 package com.mobilispect.backend.transitanalysis.domain.model
 
-import com.mobilispect.backend.transitanalysis.domain.model.converters.VariantHashConverter
 import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
 import jakarta.persistence.Column
-import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
@@ -40,7 +38,6 @@ import java.time.Instant
 @Table(name = "route_variants")
 class RouteVariant(
     @Id
-    @Convert(converter = VariantHashConverter::class)
     @Column(name = "id", nullable = false, updatable = false, columnDefinition = "VARCHAR(64)")
     val id: VariantHash = VariantHash("0".repeat(64)),
 

@@ -1,7 +1,6 @@
 package com.mobilispect.backend.transitanalysis.domain.model
 
 import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.transitanalysis.domain.model.converters.RouteIdConverter
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
@@ -37,7 +36,6 @@ import java.time.Instant
 @Table(name = "routes")
 class Route(
     @Id
-    @Convert(converter = RouteIdConverter::class)
     @Column(name = "id", nullable = false, updatable = false, columnDefinition = "VARCHAR(255)")
     val id: RouteId = RouteId("r-placeholder"),
 

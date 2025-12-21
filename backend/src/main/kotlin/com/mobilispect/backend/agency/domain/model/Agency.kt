@@ -1,11 +1,9 @@
 package com.mobilispect.backend.agency.domain.model
 
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.agency.domain.model.converters.AgencyIdConverter
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.transitanalysis.domain.model.Route
 import jakarta.persistence.Column
-import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
@@ -40,7 +38,6 @@ import java.time.Instant
 @Table(name = "agencies")
 class Agency(
     @Id
-    @Convert(converter = AgencyIdConverter::class)
     @Column(name = "agency_onestop_id", nullable = false, updatable = false, length = 255)
     val agencyOnestopId: AgencyId = AgencyId(""),
 

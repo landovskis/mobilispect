@@ -17,7 +17,6 @@ import java.time.Instant
 import java.util.UUID
 
 import com.mobilispect.backend.feed.model.ids.ImportId
-import com.mobilispect.backend.feed.model.ids.ImportIdConverter
 
 @Entity
 @Table(name = "feed_imports")
@@ -25,7 +24,6 @@ class FeedImport(
     @Id
     @GeneratedValue
     @UuidGenerator
-    @Convert(converter = ImportIdConverter::class)
     @Column(columnDefinition = "uuid")
     var id: ImportId? = null,
 

@@ -16,13 +16,11 @@ import org.hibernate.annotations.ColumnTransformer
 import java.time.Instant
 
 import com.mobilispect.backend.feed.model.ids.FeedId
-import com.mobilispect.backend.feed.model.ids.FeedIdConverter
 
 @Entity
 @Table(name = "feeds")
 class FeedEntity(
     @Id
-    @Convert(converter = FeedIdConverter::class)
     @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512)
     val feedOnestopId: FeedId = FeedId("f-"),
 

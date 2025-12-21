@@ -8,12 +8,12 @@ import jakarta.persistence.Converter
  * JPA AttributeConverter for VariantHash value class.
  *
  * Converts between the VariantHash value class and its underlying String representation
- * for database persistence and ID lookup operations. The autoApply=true ensures
- * Hibernate automatically uses this converter for all VariantHash fields.
+ * for database persistence and ID lookup operations. autoApply is disabled to
+ * avoid implicit conversion on identifier fields in Hibernate 7.
  *
  * Per constitutional Code Quality First requirements (FR-018) for value classes.
  */
-@Converter(autoApply = true)
+@Converter(autoApply = false)
 class VariantHashConverter : AttributeConverter<VariantHash, String> {
 
     override fun convertToDatabaseColumn(attribute: VariantHash?): String? =
