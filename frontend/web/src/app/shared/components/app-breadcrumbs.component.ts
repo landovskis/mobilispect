@@ -88,9 +88,8 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
     }
 
     .breadcrumb-active {
-      text-decoration: underline;
-      text-decoration-thickness: 1.5px;
-      text-underline-offset: 2px;
+      text-decoration: none;
+      font-weight: 700;
     }
 
     @media (max-width: 768px) {
