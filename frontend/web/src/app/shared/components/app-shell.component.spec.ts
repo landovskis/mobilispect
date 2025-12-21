@@ -125,4 +125,45 @@ describe('AppShellComponent', () => {
         expect(crumbs[1].label).toBe('Specific Region');
         expect(crumbs[1].link).toEqual(['/regions/123']);
     });
+
+    it('should handle empty path intermediate routes correctly', () => {
+        const root = router.routerState.snapshot.root;
+        // Mock structure: feeds -> empty -> discover
+        const discoverRoute = {
+            outlet: 'primary',
+            url: [{ path: 'discover' }],
+            data: { breadcrumb: 'Discover' },
+            children: [],
+            paramMap: { get: () => null },
+            routeConfig: { path: 'discover' }
+        };
+
+        const emptyRoute = {
+            outlet: 'primary',
+            url: [], // empty path
+            data: {}, // no breadcrumb
+            children: [discoverRoute],
+            paramMap: { get: () => null },
+            routeConfig: { path: '' }
+        };
+
+        spyOnProperty(root, 'children').and.returnValue([
+            {
+                outlet: 'primary',
+                url: [{ path: 'feeds' }],
+                data: { breadcrumb: 'Feeds' },
+                children: [emptyRoute],
+                paramMap: { get: () => null },
+                routeConfig: { path: 'feeds' }
+            } as any
+        ]);
+
+        const crumbs = (component as any).buildBreadcrumbsFromRoute(root);
+
+        expect(crumbs.length).toBe(2);
+        expect(crumbs[0].label).toBe('Feeds');
+        expect(crumbs[0].link).toEqual(['/feeds']);
+        expect(crumbs[1].label).toBe('Discover');
+        expect(crumbs[1].link).toEqual(['/feeds/discover']);
+    });
 });

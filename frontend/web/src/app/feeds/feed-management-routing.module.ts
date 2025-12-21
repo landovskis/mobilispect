@@ -12,6 +12,7 @@ const routes: Routes = [
   },
   {
     path: '',
+    data: {},
     children: [
       {
         path: 'discover/:regionId',
