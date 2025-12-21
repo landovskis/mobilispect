@@ -81,8 +81,19 @@ springBoot {
     mainClass.set("com.mobilispect.backend.FeedManagementApplicationKt")
 }
 
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    jvmArgs = listOf(
+        "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+        "--add-opens", "java.base/java.util=ALL-UNNAMED"
+    )
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    jvmArgs = listOf(
+        "--add-opens", "java.base/java.lang=ALL-UNNAMED",
+        "--add-opens", "java.base/java.util=ALL-UNNAMED"
+    )
 }
 
 // Linting stubs for offline tooling

@@ -1,12 +1,13 @@
 package com.mobilispect.backend.agency.domain.model
 
-import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.transitanalysis.domain.model.Route
+import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
+import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
-import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
@@ -37,8 +38,8 @@ import java.time.Instant
 @Entity
 @Table(name = "agencies")
 class Agency(
-    @Id
-    @Column(name = "agency_onestop_id", nullable = false, updatable = false, length = 255)
+    @EmbeddedId
+    @AttributeOverride(name = "value", column = Column(name = "agency_onestop_id", nullable = false, updatable = false, length = 255))
     val agencyOnestopId: AgencyId = AgencyId(""),
 
     @ManyToOne(fetch = FetchType.LAZY)

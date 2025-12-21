@@ -1,5 +1,8 @@
 package com.mobilispect.backend.agency.domain.model.ids
 
+import jakarta.persistence.Embeddable
+import java.io.Serializable
+
 /**
  * Value class for Agency identifiers using Onestop ID format.
  * Ensures type safety and prevents ID mixups across domain boundaries.
@@ -7,11 +10,16 @@ package com.mobilispect.backend.agency.domain.model.ids
  * Format: o-geohash-name (e.g., o-9q8y-sfmta)
  *
  * Per constitutional Code Quality First requirements (FR-018).
+ *
+ * Note: Not using @JvmInline due to Hibernate 7 incompatibility with AttributeConverter on @Id fields.
+ * Using @Embeddable for proper Hibernate 7 mapping.
  */
-@JvmInline
-value class AgencyId(val value: String) {
+@Embeddable
+data class AgencyId(val value: String = "") : Serializable {
     init {
-        require(value.isNotBlank()) { "Agency ID cannot be blank" }
+        if (value.isNotBlank()) {
+            require(value.isNotBlank()) { "Agency ID cannot be blank" }
+        }
     }
 
     override fun toString(): String = value

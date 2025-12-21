@@ -153,8 +153,7 @@ class FeedImportService(
         progressTrackingService.markFailed(importId.value.toString(), message)
     }
 
-    private fun FeedImport.requireId(): ImportId =
-        id ?: throw IllegalStateException("Import must have an identifier before use")
+    private fun FeedImport.requireId(): ImportId = id
 
     private fun FeedImport.requireIdAsString(): String = requireId().value.toString()
 }

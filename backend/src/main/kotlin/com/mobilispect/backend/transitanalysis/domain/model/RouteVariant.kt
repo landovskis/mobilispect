@@ -1,10 +1,11 @@
 package com.mobilispect.backend.transitanalysis.domain.model
 
 import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
+import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
+import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
-import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
@@ -37,8 +38,8 @@ import java.time.Instant
 @Entity
 @Table(name = "route_variants")
 class RouteVariant(
-    @Id
-    @Column(name = "id", nullable = false, updatable = false, columnDefinition = "VARCHAR(64)")
+    @EmbeddedId
+    @AttributeOverride(name = "value", column = Column(name = "id", nullable = false, updatable = false, columnDefinition = "VARCHAR(64)"))
     val id: VariantHash = VariantHash("0".repeat(64)),
 
     @ManyToOne(fetch = FetchType.LAZY)

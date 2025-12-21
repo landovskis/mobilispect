@@ -1,10 +1,12 @@
 package com.mobilispect.backend.feed.model
 
+import com.mobilispect.backend.feed.model.ids.FeedId
+import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
+import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
-import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
 import jakarta.persistence.ManyToMany
@@ -15,13 +17,11 @@ import jakarta.persistence.Table
 import org.hibernate.annotations.ColumnTransformer
 import java.time.Instant
 
-import com.mobilispect.backend.feed.model.ids.FeedId
-
 @Entity
 @Table(name = "feeds")
 class FeedEntity(
-    @Id
-    @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512)
+    @EmbeddedId
+    @AttributeOverride(name = "value", column = Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512))
     val feedOnestopId: FeedId = FeedId("f-"),
 
     @ManyToMany(fetch = FetchType.LAZY)

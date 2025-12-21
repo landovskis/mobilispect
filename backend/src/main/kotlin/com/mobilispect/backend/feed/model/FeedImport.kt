@@ -1,18 +1,17 @@
 package com.mobilispect.backend.feed.model
 
+import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
+import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import org.hibernate.annotations.ColumnTransformer
-import org.hibernate.annotations.UuidGenerator
 import java.time.Instant
 import java.util.UUID
 
@@ -21,11 +20,9 @@ import com.mobilispect.backend.feed.model.ids.ImportId
 @Entity
 @Table(name = "feed_imports")
 class FeedImport(
-    @Id
-    @GeneratedValue
-    @UuidGenerator
-    @Column(columnDefinition = "uuid")
-    var id: ImportId? = null,
+    @EmbeddedId
+    @AttributeOverride(name = "value", column = Column(name = "id", nullable = false, updatable = false, columnDefinition = "uuid"))
+    var id: ImportId = ImportId.random(),
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "feed_onestop_id", nullable = false)
@@ -68,7 +65,7 @@ class FeedImport(
 ) {
     // Explicit no-arg constructor for Hibernate instantiation
     constructor() : this(
-        id = null,
+        id = ImportId(),
         feed = null,
         administrator = null,
         triggerType = ImportTriggerType.MANUAL,

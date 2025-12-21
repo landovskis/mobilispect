@@ -318,5 +318,4 @@ class ImportController(
     private fun FeedImport.requireIdAsString(): String = requireId().value.toString()
 
     private fun FeedImport.requireId(): ImportId = id
-        ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Import identifier is not set")
 }
