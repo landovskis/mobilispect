@@ -10,6 +10,7 @@ import { RegionService } from '../../feeds/services/region.service';
 import { of } from 'rxjs';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
 
 describe('AppShellComponent', () => {
     let component: AppShellComponent;
@@ -39,6 +40,10 @@ describe('AppShellComponent', () => {
         observe: () => of({ matches: false })
     };
 
+    const mockBreadcrumbService = {
+        getBreadcrumbs: jasmine.createSpy('getBreadcrumbs').and.returnValue([])
+    };
+
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [
@@ -52,7 +57,8 @@ describe('AppShellComponent', () => {
                 { provide: FeedsMetricsService, useValue: mockMetricsService },
                 { provide: FeedsEventsService, useValue: mockEventsService },
                 { provide: RegionService, useValue: mockRegionService },
-                { provide: BreakpointObserver, useValue: mockBreakpointObserver }
+                { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+                { provide: AppBreadcrumbService, useValue: mockBreadcrumbService }
             ]
         }).compileComponents();
 
@@ -72,98 +78,14 @@ describe('AppShellComponent', () => {
         ]);
     });
 
-    it('should build breadcrumbs from route data', () => {
-        const root = router.routerState.snapshot.root;
-        // Mock the route tree structure
-        spyOnProperty(root, 'children').and.returnValue([
-            {
-                outlet: 'primary',
-                url: [{ path: 'regions' }],
-                data: { breadcrumb: 'Regions' },
-                children: [],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'regions' }
-            } as any
-        ]);
+    it('should build breadcrumbs using service on navigation', () => {
+        const mockCrumbs = [{ id: 'test', label: 'Test', link: ['/test'] }];
+        (component as any).breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
 
-        // Trigger navigation event logic manually since we can't easily trigger real router events in unit test without complex setup
-        // Accessing private method via any cast for testing purposes, or we could refactor to public
-        const crumbs = (component as any).buildBreadcrumbsFromRoute(root);
+        // Simulate router event
+        const navEnd = new NavigationEnd(1, '/test', '/test');
+        (router.events as any).next(navEnd);
 
-        expect(crumbs.length).toBe(1);
-        expect(crumbs[0].label).toBe('Regions');
-        expect(crumbs[0].link).toEqual(['/regions']);
-    });
-
-    it('should handle nested breadcrumbs', () => {
-        const root = router.routerState.snapshot.root;
-        // Mock nested route tree
-        const childRoute = {
-            outlet: 'primary',
-            url: [{ path: '123' }],
-            data: { breadcrumb: 'Specific Region' },
-            children: [],
-            paramMap: { get: () => null },
-            routeConfig: { path: ':id' }
-        };
-
-        spyOnProperty(root, 'children').and.returnValue([
-            {
-                outlet: 'primary',
-                url: [{ path: 'regions' }],
-                data: { breadcrumb: 'Regions' },
-                children: [childRoute],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'regions' }
-            } as any
-        ]);
-
-        const crumbs = (component as any).buildBreadcrumbsFromRoute(root);
-
-        expect(crumbs.length).toBe(2);
-        expect(crumbs[0].label).toBe('Regions');
-        expect(crumbs[1].label).toBe('Specific Region');
-        expect(crumbs[1].link).toEqual(['/regions/123']);
-    });
-
-    it('should handle empty path intermediate routes correctly', () => {
-        const root = router.routerState.snapshot.root;
-        // Mock structure: feeds -> empty -> discover
-        const discoverRoute = {
-            outlet: 'primary',
-            url: [{ path: 'discover' }],
-            data: { breadcrumb: 'Discover' },
-            children: [],
-            paramMap: { get: () => null },
-            routeConfig: { path: 'discover' }
-        };
-
-        const emptyRoute = {
-            outlet: 'primary',
-            url: [], // empty path
-            data: {}, // no breadcrumb
-            children: [discoverRoute],
-            paramMap: { get: () => null },
-            routeConfig: { path: '' }
-        };
-
-        spyOnProperty(root, 'children').and.returnValue([
-            {
-                outlet: 'primary',
-                url: [{ path: 'feeds' }],
-                data: { breadcrumb: 'Feeds' },
-                children: [emptyRoute],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'feeds' }
-            } as any
-        ]);
-
-        const crumbs = (component as any).buildBreadcrumbsFromRoute(root);
-
-        expect(crumbs.length).toBe(2);
-        expect(crumbs[0].label).toBe('Feeds');
-        expect(crumbs[0].link).toEqual(['/feeds']);
-        expect(crumbs[1].label).toBe('Discover');
-        expect(crumbs[1].link).toEqual(['/feeds/discover']);
+        expect(component.breadcrumbs).toEqual(mockCrumbs);
     });
 });

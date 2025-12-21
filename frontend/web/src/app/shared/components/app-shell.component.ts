@@ -14,6 +14,7 @@ import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service'
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
 import { ThemeToggleComponent } from './theme-toggle.component';
+import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
 
 @Component({
   selector: 'app-shell',
@@ -346,7 +347,8 @@ export class AppShellComponent implements OnDestroy {
     private readonly importService: ImportService,
     private readonly metrics: FeedsMetricsService,
     private readonly events: FeedsEventsService,
-    private readonly regionService: RegionService
+    private readonly regionService: RegionService,
+    private readonly breadcrumbService: AppBreadcrumbService
   ) {
     this.isHandset$ = breakpointObserver.observe('(max-width: 768px)').pipe(
       map(result => result.matches),
@@ -362,7 +364,7 @@ export class AppShellComponent implements OnDestroy {
       filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       startWith(null),
       takeUntil(this.destroy$),
-      map(() => this.buildBreadcrumbsFromRoute(this.router.routerState.root.snapshot))
+      map(() => this.breadcrumbService.getBreadcrumbs(this.router.routerState.root.snapshot))
     ).subscribe(crumbs => {
       this.breadcrumbs = crumbs.length
         ? crumbs
@@ -399,36 +401,5 @@ export class AppShellComponent implements OnDestroy {
 
   onSidenavOpenedChange(opened: boolean): void {
     this.sidebarOpened = opened;
-  }
-
-  private buildBreadcrumbsFromRoute(
-    route: ActivatedRouteSnapshot,
-    url: string = '',
-    crumbs: Breadcrumb[] = []
-  ): Breadcrumb[] {
-    const children = route.children.filter(child => child.outlet === 'primary');
-
-    if (!children.length) {
-      return crumbs;
-    }
-
-    const [child] = children;
-    if (!child) return crumbs;
-
-    const routeURL = child.url.map(segment => segment.path).join('/');
-    const nextUrl = routeURL ? `${url}/${routeURL}` : url;
-    const label =
-      child.data['breadcrumb'];
-
-    const lastCrumb = crumbs[crumbs.length - 1];
-    if (label && lastCrumb?.label !== label) {
-      crumbs.push({
-        id: child.routeConfig?.path ?? label,
-        label,
-        link: [nextUrl || '/']
-      });
-    }
-
-    return this.buildBreadcrumbsFromRoute(child, nextUrl, crumbs);
   }
 }
