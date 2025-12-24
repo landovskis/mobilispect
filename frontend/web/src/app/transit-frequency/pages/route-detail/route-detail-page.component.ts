@@ -78,6 +78,9 @@ export class RouteDetailPageComponent implements OnInit {
       );
       this.frequencyService.getVariants(routeId).subscribe(variants => {
         this.variants = variants;
+        if (variants.length > 0 && !this.lastVariantId) {
+          this.loadFrequencies(variants[0].id);
+        }
       });
       this.commonSectionService.getCommonSectionsForRoute(routeId).subscribe(sections => {
         this.commonSections = sections;

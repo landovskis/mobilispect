@@ -44,6 +44,7 @@ export class RouteFrequencyComponent implements OnInit {
   frequencies: FrequencyDto[] = [];
   commonSections: CommonSectionDto[] = [];
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
+  private lastVariantId?: string;
 
   constructor(
     private readonly routeParams: ActivatedRoute,
@@ -65,6 +66,9 @@ export class RouteFrequencyComponent implements OnInit {
     });
     this.frequencyService.getVariants(this.routeId).subscribe(variants => {
       this.variants = variants;
+      if (variants.length > 0 && !this.lastVariantId) {
+        this.loadFrequencies(variants[0].id);
+      }
     });
     this.commonSectionService.getCommonSectionsForRoute(this.routeId).subscribe(sections => {
       this.commonSections = sections;
@@ -77,6 +81,7 @@ export class RouteFrequencyComponent implements OnInit {
   }
 
   loadFrequencies(variantId: string): void {
+    this.lastVariantId = variantId;
     this.frequencyService.getFrequencies(variantId).subscribe(freqs => {
       this.frequencies = freqs;
     });
