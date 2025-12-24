@@ -74,7 +74,13 @@ data class ParsedStop(
     val stopId: String,
     val name: String?,
     val latitude: Double?,
-    val longitude: Double?
+    val longitude: Double?,
+    val stopCode: String? = null,
+    val stopDesc: String? = null,
+    val zoneId: String? = null,
+    val stopUrl: String? = null,
+    val locationType: Int? = null,
+    val parentStation: String? = null
 )
 
 data class ParsedShapePoint(

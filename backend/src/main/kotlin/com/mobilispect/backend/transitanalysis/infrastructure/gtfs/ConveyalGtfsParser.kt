@@ -55,7 +55,13 @@ class ConveyalGtfsParser : GtfsParser {
                     stopId = stop.stop_id,
                     name = stop.stop_name,
                     latitude = stop.stop_lat,
-                    longitude = stop.stop_lon
+                    longitude = stop.stop_lon,
+                    stopCode = stop.stop_code,
+                    stopDesc = stop.stop_desc,
+                    zoneId = stop.zone_id,
+                    stopUrl = stop.stop_url?.toString(),
+                    locationType = stop.location_type,
+                    parentStation = stop.parent_station
                 )
             }
 

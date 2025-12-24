@@ -52,6 +52,7 @@ interface FeedImportService {
         val agenciesProcessed: Int,
         val routesProcessed: Int,
         val variantsIdentified: Int,
+        val stopsProcessed: Int,
         val durationMillis: Long
     )
 }
@@ -62,6 +63,7 @@ class FeedImportServiceImpl(
     private val variantIdentificationService: VariantIdentificationService,
     private val frequencyCalculationService: FrequencyCalculationService,
     private val commonSectionDetectionService: CommonSectionDetectionService,
+    private val stopPersistenceService: StopPersistenceService,
     private val agencyRepository: AgencyRepository,
     private val routeRepository: RouteRepository,
     private val routeVariantRepository: RouteVariantRepository,
@@ -77,6 +79,7 @@ class FeedImportServiceImpl(
 
             val agencyMap = persistAgencies(feedEntity, parsed)
             val routeMap = persistRoutes(feedEntity, parsed, agencyMap)
+            val stopMap = stopPersistenceService.persistStops(feedEntity, parsed.stops)
             val variants = variantIdentificationService.identifyVariants(
                 routeMap.values.associateWith { route ->
                     parsed.trips.filter { it.routeId == route.gtfsRouteId }
@@ -87,6 +90,10 @@ class FeedImportServiceImpl(
             variants.forEach { variant ->
                 routeVariantRepository.save(variant)
                 eventPublisher.publishEvent(RouteVariantIdentified(variant.id, variant.routeId))
+
+                // Link stops to variant via junction table
+                val gtfsStopIds = variant.stopPattern.split("|")
+                stopPersistenceService.linkStopsToVariant(variant, gtfsStopIds, stopMap)
             }
 
             // Frequency calculation is intentionally conservative: use departure from first stop
@@ -116,6 +123,7 @@ class FeedImportServiceImpl(
                 agenciesProcessed = parsed.agencies.size,
                 routesProcessed = parsed.routes.size,
                 variantsIdentified = variants.size,
+                stopsProcessed = stopMap.size,
                 durationMillis = duration
             )
 
@@ -128,9 +136,10 @@ class FeedImportServiceImpl(
                 )
             )
             logger.info(
-                "Imported GTFS feed {} -> {} routes, {} variants in {} ms",
+                "Imported GTFS feed {} -> {} routes, {} stops, {} variants in {} ms",
                 feedEntity.feedOnestopId,
                 result.routesProcessed,
+                result.stopsProcessed,
                 result.variantsIdentified,
                 result.durationMillis
             )
