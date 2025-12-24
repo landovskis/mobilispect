@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
-import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { FrequencyChartComponent } from '../../components/frequency-chart/frequency-chart.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
@@ -16,7 +15,6 @@ import {BrandSectionComponent} from '../../../shared/components/brand-section.co
   standalone: true,
   imports: [
     CommonModule,
-    BrandCardComponent,
     RouteVariantCardComponent,
     FrequencyChartComponent,
     CommonSectionDisplayComponent,
