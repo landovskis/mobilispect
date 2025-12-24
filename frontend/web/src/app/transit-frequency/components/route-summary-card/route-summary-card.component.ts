@@ -1,27 +1,21 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-
 import { RouteDto } from '../../services/frequency.service';
-import {BrandCardComponent} from '../../../shared/components/brand-card.component';
+import { BrandCardComponent } from '../../../shared/components/brand-card.component';
+import { AsyncPipe } from '@angular/common';
+import { BrandSectionComponent } from '../../../shared/components/brand-section.component';
+import { RouteType, getRouteTypeLabel } from '../../models/route-type.model';
 
 @Component({
   selector: 'app-route-summary-card',
   standalone: true,
   template: `
     <app-brand-card
-      title="A"
+      [title]="route.shortName && route.longName ? (route.shortName + ': ' + route.longName) : (route.longName || route.shortName || 'Route Details')"
     >
     <div class="route-info flex flex-wrap gap-6 py-4" aria-label="route summary">
       <div class="info-item flex flex-col gap-1">
-        <span class="info-label">Route Number:</span>
-        <span class="info-value">{{ route.shortName || 'N/A' }}</span>
-      </div>
-      <div class="info-item flex flex-col gap-1">
         <span class="info-label">Route Type:</span>
         <span class="info-value">{{ getRouteTypeLabel(route.routeType) }}</span>
-      </div>
-      <div class="info-item flex flex-col gap-1">
-        <span class="info-label">Variants:</span>
-        <span class="info-value">{{ variantsCount }}</span>
       </div>
       <div class="info-item flex flex-col gap-1">
         <span class="info-label">Status:</span>
@@ -49,29 +43,20 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
     .info-value.active {
       color: var(--mat-sys-tertiary, #388e3c);
     }
+
   `],
   imports: [
-    BrandCardComponent
+    BrandCardComponent,
+    AsyncPipe,
+    BrandSectionComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteSummaryCardComponent {
   @Input({ required: true }) route!: RouteDto;
-  @Input() variantsCount = 0;
 
   getRouteTypeLabel(routeType: string): string {
-    const labels: Record<string, string> = {
-      'TRAM': 'Tram/Light Rail',
-      'SUBWAY': 'Subway/Metro',
-      'RAIL': 'Rail',
-      'BUS': 'Bus',
-      'FERRY': 'Ferry',
-      'CABLE_TRAM': 'Cable Tram',
-      'AERIAL_LIFT': 'Aerial Lift',
-      'FUNICULAR': 'Funicular',
-      'TROLLEYBUS': 'Trolleybus',
-      'MONORAIL': 'Monorail'
-    };
-    return labels[routeType] || routeType;
+    return getRouteTypeLabel(routeType as RouteType);
   }
+
 }
