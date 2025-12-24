@@ -1,9 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { RouteDto } from '../../services/frequency.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
-import { AsyncPipe } from '@angular/common';
-import { BrandSectionComponent } from '../../../shared/components/brand-section.component';
-import { RouteType, getRouteTypeLabel } from '../../models/route-type.model';
 
 @Component({
   selector: 'app-route-summary-card',
@@ -12,51 +9,14 @@ import { RouteType, getRouteTypeLabel } from '../../models/route-type.model';
     <app-brand-card
       [title]="route.shortName && route.longName ? (route.shortName + ': ' + route.longName) : (route.longName || route.shortName || 'Route Details')"
     >
-    <div class="route-info flex flex-wrap gap-6 py-4" aria-label="route summary">
-      <div class="info-item flex flex-col gap-1">
-        <span class="info-label">Route Type:</span>
-        <span class="info-value">{{ getRouteTypeLabel(route.routeType) }}</span>
-      </div>
-      <div class="info-item flex flex-col gap-1">
-        <span class="info-label">Status:</span>
-        <span class="info-value" [class.active]="route.active">
-          {{ route.active ? 'Active' : 'Inactive' }}
-        </span>
-      </div>
-    </div></app-brand-card>
+    </app-brand-card>
   `,
-  styles: [`
-    .info-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--mat-sys-on-surface-variant, #6b7280);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .info-value {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--mat-sys-on-surface, #333);
-    }
-
-    .info-value.active {
-      color: var(--mat-sys-tertiary, #388e3c);
-    }
-
-  `],
+  styles: [],
   imports: [
-    BrandCardComponent,
-    AsyncPipe,
-    BrandSectionComponent
+    BrandCardComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteSummaryCardComponent {
   @Input({ required: true }) route!: RouteDto;
-
-  getRouteTypeLabel(routeType: string): string {
-    return getRouteTypeLabel(routeType as RouteType);
-  }
-
 }
