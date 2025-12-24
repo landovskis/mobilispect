@@ -4,11 +4,12 @@ import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
-import { VariantListComponent } from '../../components/variant-list/variant-list.component';
+import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { FrequencyChartComponent } from '../../components/frequency-chart/frequency-chart.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
 import { RouteSummaryCardComponent } from '../../components/route-summary-card/route-summary-card.component';
 import { Observable, tap } from 'rxjs';
+import {BrandSectionComponent} from '../../../shared/components/brand-section.component';
 
 @Component({
   selector: 'app-route-detail-page',
@@ -16,10 +17,11 @@ import { Observable, tap } from 'rxjs';
   imports: [
     CommonModule,
     BrandCardComponent,
-    VariantListComponent,
+    RouteVariantCardComponent,
     FrequencyChartComponent,
     CommonSectionDisplayComponent,
-    RouteSummaryCardComponent
+    RouteSummaryCardComponent,
+    BrandSectionComponent
   ],
   template: `
     @if (route$ | async; as route) {
@@ -28,14 +30,17 @@ import { Observable, tap } from 'rxjs';
       <p>Loading route details...</p>
     }
 
-    <app-brand-card
+    <app-brand-section
       class="mt-6 block"
-      [title]="route?.longName"
-      [subtitle]="route?.shortName || undefined">
-      <app-variant-list
-        [variants]="variants"
-        (variantSelect)="loadFrequencies($event)">
-      </app-variant-list>
+      title="Variants">
+      <div class="list flex flex-col gap-3" role="list">
+        @for (variant of variants; track variant.id) {
+          <app-route-variant-card
+            [variant]="variant"
+            (select)="loadFrequencies($event)">
+          </app-route-variant-card>
+        }
+      </div>
 
       <app-frequency-chart
         [frequencies]="frequencies">
@@ -45,7 +50,7 @@ import { Observable, tap } from 'rxjs';
         [sections]="commonSections"
         [combined]="combinedBySection">
       </app-common-section-display>
-    </app-brand-card>
+    </app-brand-section>
     `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush

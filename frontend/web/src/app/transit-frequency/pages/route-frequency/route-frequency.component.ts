@@ -4,22 +4,26 @@ import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, RouteDto, RouteVariantDto, FrequencyDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
-import { VariantListComponent } from '../../components/variant-list/variant-list.component';
+import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { FrequencyChartComponent } from '../../components/frequency-chart/frequency-chart.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
 
 @Component({
   selector: 'app-route-frequency',
   standalone: true,
-  imports: [BrandCardComponent, VariantListComponent, FrequencyChartComponent, CommonSectionDisplayComponent],
+  imports: [BrandCardComponent, RouteVariantCardComponent, FrequencyChartComponent, CommonSectionDisplayComponent],
   template: `
     <app-brand-card
       [title]="route?.longName"
       [subtitle]="route?.shortName || undefined">
-      <app-variant-list
-        [variants]="variants"
-        (variantSelect)="loadFrequencies($event)">
-      </app-variant-list>
+      <div class="list flex flex-col gap-3" role="list">
+        @for (variant of variants; track variant.id) {
+          <app-route-variant-card
+            [variant]="variant"
+            (select)="loadFrequencies($event)">
+          </app-route-variant-card>
+        }
+      </div>
 
       <app-frequency-chart
         [frequencies]="frequencies">
