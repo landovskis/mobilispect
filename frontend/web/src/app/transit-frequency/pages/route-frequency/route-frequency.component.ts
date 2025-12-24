@@ -3,21 +3,33 @@ import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, RouteDto, RouteVariantDto, FrequencyDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
-import { RouteFrequencyCardComponent } from '../../components/route-frequency-card/route-frequency-card.component';
+import { BrandCardComponent } from '../../../shared/components/brand-card.component';
+import { VariantListComponent } from '../../components/variant-list/variant-list.component';
+import { FrequencyChartComponent } from '../../components/frequency-chart/frequency-chart.component';
+import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
 
 @Component({
   selector: 'app-route-frequency',
   standalone: true,
-  imports: [RouteFrequencyCardComponent],
+  imports: [BrandCardComponent, VariantListComponent, FrequencyChartComponent, CommonSectionDisplayComponent],
   template: `
-    <app-route-frequency-card
-      [route]="route"
-      [variants]="variants"
-      [frequencies]="frequencies"
-      [commonSections]="commonSections"
-      [combinedBySection]="combinedBySection"
-      (variantSelect)="loadFrequencies($event)">
-    </app-route-frequency-card>
+    <app-brand-card
+      [title]="route?.longName"
+      [subtitle]="route?.shortName || undefined">
+      <app-variant-list
+        [variants]="variants"
+        (variantSelect)="loadFrequencies($event)">
+      </app-variant-list>
+
+      <app-frequency-chart
+        [frequencies]="frequencies">
+      </app-frequency-chart>
+
+      <app-common-section-display
+        [sections]="commonSections"
+        [combined]="combinedBySection">
+      </app-common-section-display>
+    </app-brand-card>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
