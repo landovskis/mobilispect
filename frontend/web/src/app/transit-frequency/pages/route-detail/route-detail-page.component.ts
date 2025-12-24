@@ -25,9 +25,7 @@ import { Observable, tap } from 'rxjs';
       [frequencies]="frequencies"
       [commonSections]="commonSections"
       [combinedBySection]="combinedBySection"
-      [selectedDate]="selectedDate"
-      (variantSelect)="loadFrequencies($event)"
-      (dateChange)="onDateChange($event)">
+      (variantSelect)="loadFrequencies($event)">
     </app-route-frequency-card>
     `,
   styles: [],
@@ -35,13 +33,11 @@ import { Observable, tap } from 'rxjs';
 })
 export class RouteDetailPageComponent implements OnInit {
   route$!: Observable<RouteDto>;
-  variants$!: Observable<RouteVariantDto[]>;
   route?: RouteDto;
   variants: RouteVariantDto[] = [];
   frequencies: FrequencyDto[] = [];
   commonSections: CommonSectionDto[] = [];
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
-  selectedDate: string = this.getDefaultDate();
   private lastVariantId?: string;
 
   constructor(
@@ -58,11 +54,9 @@ export class RouteDetailPageComponent implements OnInit {
           this.route = route;
         })
       );
-      this.variants$ = this.frequencyService.getVariants(routeId).pipe(
-        tap(variants => {
-          this.variants = variants;
-        })
-      );
+      this.frequencyService.getVariants(routeId).subscribe(variants => {
+        this.variants = variants;
+      });
       this.commonSectionService.getCommonSectionsForRoute(routeId).subscribe(sections => {
         this.commonSections = sections;
         sections.forEach(section => {
@@ -74,25 +68,11 @@ export class RouteDetailPageComponent implements OnInit {
     }
   }
 
-  onDateChange(date?: string): void {
-    this.selectedDate = date ?? this.selectedDate;
-    if (this.lastVariantId) {
-      this.loadFrequencies(this.lastVariantId);
-    } else if (this.variants.length > 0) {
-      this.loadFrequencies(this.variants[0].id);
-    }
-  }
-
   loadFrequencies(variantId: string): void {
     this.lastVariantId = variantId;
-    this.frequencyService.getFrequencies(variantId, this.selectedDate).subscribe(freqs => {
+    this.frequencyService.getFrequencies(variantId).subscribe(freqs => {
       this.frequencies = freqs;
     });
-  }
-
-  private getDefaultDate(): string {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
   }
 
 }
