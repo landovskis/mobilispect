@@ -16,9 +16,7 @@ import { RouteFrequencyCardComponent } from '../../components/route-frequency-ca
       [frequencies]="frequencies"
       [commonSections]="commonSections"
       [combinedBySection]="combinedBySection"
-      [selectedDate]="selectedDate"
-      (variantSelect)="loadFrequencies($event)"
-      (dateChange)="onDateChange($event)">
+      (variantSelect)="loadFrequencies($event)">
     </app-route-frequency-card>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -30,7 +28,6 @@ export class RouteFrequencyComponent implements OnInit {
   frequencies: FrequencyDto[] = [];
   commonSections: CommonSectionDto[] = [];
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
-  selectedDate?: string;
 
   constructor(
     private readonly routeParams: ActivatedRoute,
@@ -64,16 +61,8 @@ export class RouteFrequencyComponent implements OnInit {
   }
 
   loadFrequencies(variantId: string): void {
-    this.frequencyService.getFrequencies(variantId, this.selectedDate).subscribe(freqs => {
+    this.frequencyService.getFrequencies(variantId).subscribe(freqs => {
       this.frequencies = freqs;
     });
-  }
-
-  onDateChange(date?: string): void {
-    this.selectedDate = date;
-    // reload last viewed variant if any
-    if (this.variants.length > 0) {
-      this.loadFrequencies(this.variants[0].id);
-    }
   }
 }
