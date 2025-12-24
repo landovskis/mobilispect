@@ -42,7 +42,7 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
       padding-right: 12px;
     }
     .stop-list {
-      border-left: 6px solid var(--mat-sys-outline, #e2e8f0);
+      border-left: 10px solid var(--mat-sys-primary, #0b4f8a);
       color: var(--mat-sys-on-surface-variant, #64748b);
       font-size: 0.85rem;
       padding-left: 12px;
@@ -52,11 +52,11 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
       position: relative;
     }
     .stop-name::before {
-      background: var(--mat-sys-primary, #0b4f8a);
+      background: var(--mat-sys-on-primary, #ffffff);
       border-radius: 999px;
       content: '';
       height: 8px;
-      left: -17px;
+      left: -21px;
       position: absolute;
       top: 0.45em;
       width: 8px;
@@ -71,7 +71,7 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
       border-right-color: rgba(148, 163, 184, 0.3);
     }
     :host-context(.dark-theme) .stop-list {
-      border-left-color: rgba(148, 163, 184, 0.3);
+      border-left-color: var(--mat-sys-primary, #0b4f8a);
       color: var(--mat-sys-on-surface-variant, #cbd5e1);
     }
     :host-context(.dark-theme) .spacing { color: var(--mat-sys-on-surface-variant, #cbd5e1); }
