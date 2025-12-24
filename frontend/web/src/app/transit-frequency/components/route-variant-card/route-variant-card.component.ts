@@ -11,16 +11,20 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
   imports: [CommonModule, BrandButtonComponent, BrandCardComponent],
   template: `
     <div class="variant">
-      <app-brand-card
-        title="{{ variant.headsign || 'Variant' }}">
+      <app-brand-card>
         <div class="title flex flex-col gap-0.5">
+          <div class="variant-header flex flex-wrap items-center gap-2">
+            <span>{{ variant.headsign || 'Variant' }}</span>
+            <span class="spacing-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold">
+              {{ formatSpacing(variant) }}
+            </span>
+          </div>
           <ul class="stop-list m-0 ml-4 list-none">
             @for (stopName of stopNames; track stopName) {
               <li class="stop-name">{{ stopName }}</li>
             }
           </ul>
           <div class="meta flex flex-wrap items-center gap-2 text-sm">
-            <span class="spacing">{{ formatSpacing(variant) }}</span>
             @if (variant.stopSpacingClassification) {
               <span class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold" [ngClass]="classificationClass(variant.stopSpacingClassification)">
                 {{ formatClassification(variant.stopSpacingClassification) }}
@@ -61,7 +65,10 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
       top: 0.45em;
       width: 8px;
     }
-    .spacing { color: var(--mat-sys-on-surface-variant, #64748b); }
+    .spacing-badge {
+      background: rgba(11, 79, 138, 0.12);
+      color: var(--mat-sys-primary, #0b4f8a);
+    }
     .classification { background: rgba(11, 79, 138, 0.12); color: #0b4f8a; }
     .classification.local { background: rgba(76, 175, 80, 0.15); color: #2e7d32; }
     .classification.rapid { background: rgba(255, 152, 0, 0.15); color: #ef6c00; }
@@ -74,7 +81,10 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
       border-left-color: var(--mat-sys-primary, #0b4f8a);
       color: var(--mat-sys-on-surface-variant, #cbd5e1);
     }
-    :host-context(.dark-theme) .spacing { color: var(--mat-sys-on-surface-variant, #cbd5e1); }
+    :host-context(.dark-theme) .spacing-badge {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--mat-sys-on-surface, #e2e8f0);
+    }
     :host-context(.dark-theme) .classification { background: rgba(59, 130, 246, 0.2); color: #e2e8f0; }
     :host-context(.dark-theme) .classification.local { background: rgba(76, 175, 80, 0.2); color: #bbf7d0; }
     :host-context(.dark-theme) .classification.rapid { background: rgba(255, 152, 0, 0.2); color: #fed7aa; }
