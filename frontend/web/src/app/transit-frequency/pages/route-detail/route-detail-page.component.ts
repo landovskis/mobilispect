@@ -31,7 +31,7 @@ import {BrandSectionComponent} from '../../../shared/components/brand-section.co
     <app-brand-section
       class="mt-6 block"
       title="Variants">
-      <div class="list flex flex-col gap-3" role="list">
+      <div class="grid gap-4 md:grid-cols-2" role="list">
         @for (variant of variants; track variant.id) {
           <app-route-variant-card
             [variant]="variant"

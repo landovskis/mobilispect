@@ -16,7 +16,7 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
     <app-brand-card
       [title]="route?.longName"
       [subtitle]="route?.shortName || undefined">
-      <div class="list flex flex-col gap-3" role="list">
+      <div class="grid gap-4 md:grid-cols-2" role="list">
         @for (variant of variants; track variant.id) {
           <app-route-variant-card
             [variant]="variant"
