@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
-import { BrandSectionComponent } from '../../../shared/components/brand-section.component';
 import { RouteFrequencyCardComponent } from '../../components/route-frequency-card/route-frequency-card.component';
 import { RouteSummaryCardComponent } from '../../components/route-summary-card/route-summary-card.component';
 import { Observable, tap } from 'rxjs';
@@ -11,21 +10,13 @@ import { Observable, tap } from 'rxjs';
 @Component({
   selector: 'app-route-detail-page',
   standalone: true,
-  imports: [CommonModule, BrandSectionComponent, RouteFrequencyCardComponent, RouteSummaryCardComponent],
+  imports: [CommonModule, RouteFrequencyCardComponent, RouteSummaryCardComponent],
   template: `
-    <app-brand-section
-      [title]="(route$ | async)?.longName || 'Route Details'"
-      [subtitle]="'Route ' + ((route$ | async)?.shortName || '')"
-      icon="route">
-      @if (route$ | async; as route) {
-        <app-route-summary-card
-          [route]="route"
-          [variantsCount]="(variants$ | async)?.length || 0">
-        </app-route-summary-card>
-      } @else {
-        <p>Loading route details...</p>
-      }
-    </app-brand-section>
+    @if (route$ | async; as route) {
+      <app-route-summary-card [route]="route"></app-route-summary-card>
+    } @else {
+      <p>Loading route details...</p>
+    }
 
     <app-route-frequency-card
       class="mt-6 block"
