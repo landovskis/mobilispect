@@ -14,7 +14,6 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
       <app-brand-card
         title="{{ variant.headsign || 'Variant' }}">
         <div class="title flex flex-col gap-0.5">
-          <small>Stops: {{ variant.stopCount }}</small>
           <ul class="stop-list m-0 ml-4 list-none">
             @for (stopName of stopNames; track stopName) {
               <li class="stop-name">{{ stopName }}</li>
