@@ -1,16 +1,22 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 
-import { RouteVariantDto } from '../../services/frequency.service';
-import { BrandButtonComponent } from '../../../shared/components/brand-button.component';
-import {BrandCardComponent} from '../../../shared/components/brand-card.component';
+import { FrequencyDto, RouteVariantDto } from '../../services/frequency.service';
+import { BrandCardComponent } from '../../../shared/components/brand-card.component';
+import { FrequencyChartComponent } from '../frequency-chart/frequency-chart.component';
 
 @Component({
   selector: 'app-route-variant-card',
   standalone: true,
-  imports: [CommonModule, BrandButtonComponent, BrandCardComponent],
+  imports: [CommonModule, BrandCardComponent, FrequencyChartComponent],
   template: `
-    <div class="variant">
+    <div
+      class="variant"
+      role="button"
+      tabindex="0"
+      (click)="select.emit(variant.id)"
+      (keydown.enter)="$event.preventDefault(); select.emit(variant.id)"
+      (keydown.space)="$event.preventDefault(); select.emit(variant.id)">
       <app-brand-card>
         <div class="title flex flex-col gap-0.5">
           <div class="variant-header flex flex-wrap items-center gap-2">
@@ -24,6 +30,9 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
               <li class="stop-name">{{ stopName }}</li>
             }
           </ul>
+          @if (frequencies.length) {
+            <app-frequency-chart [frequencies]="frequencies"></app-frequency-chart>
+          }
           <div class="meta flex flex-wrap items-center gap-2 text-sm">
             @if (variant.stopSpacingClassification) {
               <span class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold" [ngClass]="classificationClass(variant.stopSpacingClassification)">
@@ -32,9 +41,6 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
             }
           </div>
         </div>
-        <app-brand-button variant="primary" (click)="select.emit(variant.id)">
-          View frequencies
-        </app-brand-button>
       </app-brand-card>
     </div>
   `,
@@ -42,6 +48,7 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
     .variant {
       border-bottom-color: var(--mat-sys-outline, #e2e8f0);
       border-right: 1px solid var(--mat-sys-outline, #e2e8f0);
+      cursor: pointer;
       display: block;
       padding-right: 12px;
     }
@@ -94,6 +101,7 @@ import {BrandCardComponent} from '../../../shared/components/brand-card.componen
 })
 export class RouteVariantCardComponent {
   @Input({ required: true }) variant!: RouteVariantDto;
+  @Input() frequencies: FrequencyDto[] = [];
   @Output() select = new EventEmitter<string>();
 
   get stopNames(): string[] {

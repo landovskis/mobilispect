@@ -20,6 +20,7 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
         @for (variant of variants; track variant.id) {
           <app-route-variant-card
             [variant]="variant"
+            [frequencies]="variant.id === lastVariantId ? frequencies : []"
             (select)="loadFrequencies($event)">
           </app-route-variant-card>
         }
@@ -44,7 +45,7 @@ export class RouteFrequencyComponent implements OnInit {
   frequencies: FrequencyDto[] = [];
   commonSections: CommonSectionDto[] = [];
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
-  private lastVariantId?: string;
+  lastVariantId?: string;
 
   constructor(
     private readonly routeParams: ActivatedRoute,
