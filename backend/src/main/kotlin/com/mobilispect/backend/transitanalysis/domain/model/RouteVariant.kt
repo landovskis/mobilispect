@@ -1,17 +1,7 @@
 package com.mobilispect.backend.transitanalysis.domain.model
 
+import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
 import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
-import jakarta.persistence.AttributeOverride
-import jakarta.persistence.Column
-import jakarta.persistence.EmbeddedId
-import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
-import jakarta.persistence.OneToMany
-import jakarta.persistence.PrePersist
-import jakarta.persistence.PreUpdate
-import jakarta.persistence.Table
 import java.time.Instant
 
 /**
@@ -21,7 +11,7 @@ import java.time.Instant
  * The variant ID is a SHA-256 hash of the ordered stop pattern for uniqueness.
  *
  * @property id SHA-256 hash of the stop pattern (64-character hex string)
- * @property route Route this variant belongs to
+ * @property routeId Route this variant belongs to
  * @property directionId GTFS direction_id (0 = outbound, 1 = inbound, null = unknown)
  * @property headsign Destination headsign shown to passengers
  * @property stopPattern Pipe-separated ordered stop IDs (e.g., "stop1|stop2|stop3")
@@ -35,99 +25,32 @@ import java.time.Instant
  * @property createdAt Record creation timestamp
  * @property updatedAt Record last update timestamp
  */
-@Entity
-@Table(name = "route_variants")
-class RouteVariant(
-    @EmbeddedId
-    @AttributeOverride(name = "value", column = Column(name = "id", nullable = false, updatable = false, columnDefinition = "VARCHAR(64)"))
-    val id: VariantHash = VariantHash("0".repeat(64)),
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "route_id", nullable = false)
-    val route: Route,
-
-    @Column(name = "direction_id")
-    var directionId: Int? = null,
-
-    @Column(name = "headsign", length = 255)
-    var headsign: String? = null,
-
-    @Column(name = "stop_pattern", nullable = false, columnDefinition = "TEXT")
+data class RouteVariant(
+    val id: VariantHash,
+    val routeId: RouteId,
+    val directionId: Int? = null,
+    val headsign: String? = null,
     val stopPattern: String,
-
-    @Column(name = "stop_count", nullable = false)
     val stopCount: Int,
-
-    @Column(name = "first_stop_id", nullable = false, length = 255)
     val firstStopId: String,
-
-    @Column(name = "last_stop_id", nullable = false, length = 255)
     val lastStopId: String,
-
-    @Column(name = "average_stop_spacing_km")
-    var averageStopSpacingKm: Double? = null,
-
-    @Column(name = "active", nullable = false)
-    var active: Boolean = true,
-
-    @Column(name = "first_seen", nullable = false)
-    var firstSeen: Instant = Instant.now(),
-
-    @Column(name = "last_seen", nullable = false)
-    var lastSeen: Instant = Instant.now(),
-
-    @Column(name = "created_at", nullable = false)
-    var createdAt: Instant = Instant.now(),
-
-    @Column(name = "updated_at", nullable = false)
-    var updatedAt: Instant = Instant.now()
+    val averageStopSpacingKm: Double? = null,
+    val active: Boolean = true,
+    val firstSeen: Instant = Instant.now(),
+    val lastSeen: Instant = Instant.now(),
+    val createdAt: Instant = Instant.now(),
+    val updatedAt: Instant = Instant.now()
 ) {
-    @OneToMany(mappedBy = "variant", fetch = FetchType.LAZY)
-    val frequencies: MutableSet<Frequency> = mutableSetOf()
-
-    @OneToMany(mappedBy = "variant", fetch = FetchType.LAZY)
-    val commonSectionVariants: MutableSet<CommonSectionVariant> = mutableSetOf()
-
     constructor() : this(
         id = VariantHash("0".repeat(64)),
-        route = Route(),
+        routeId = RouteId("r-placeholder"),
         stopPattern = "",
         stopCount = 0,
         firstStopId = "",
         lastStopId = "",
-        averageStopSpacingKm = null,
-        createdAt = Instant.EPOCH,
-        updatedAt = Instant.EPOCH,
         firstSeen = Instant.EPOCH,
-        lastSeen = Instant.EPOCH
+        lastSeen = Instant.EPOCH,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH
     )
-
-    // Validation removed from init block to allow JPA no-arg constructor instantiation
-    // Database constraints enforce these requirements (see migration V025)
-    // Application-level validation should be done before calling the constructor
-
-    @PrePersist
-    fun onCreate() {
-        val now = Instant.now()
-        createdAt = now
-        updatedAt = now
-        firstSeen = firstSeen.takeIf { it != Instant.EPOCH } ?: now
-        lastSeen = lastSeen.takeIf { it != Instant.EPOCH } ?: now
-    }
-
-    @PreUpdate
-    fun onUpdate() {
-        updatedAt = Instant.now()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is RouteVariant) return false
-        return id == other.id
-    }
-
-    override fun hashCode(): Int = id.hashCode()
-
-    override fun toString(): String =
-        "RouteVariant(id=$id, stopCount=$stopCount, directionId=$directionId, headsign='$headsign', active=$active)"
 }

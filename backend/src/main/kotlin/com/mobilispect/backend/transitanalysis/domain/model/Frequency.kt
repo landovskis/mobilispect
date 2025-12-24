@@ -4,12 +4,9 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
-import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import java.time.Instant
 import java.time.LocalDate
@@ -23,7 +20,7 @@ import java.util.UUID
  * the same route variant.
  *
  * @property id Unique identifier (UUID)
- * @property variant Route variant this frequency applies to
+ * @property variantId Route variant ID this frequency applies to
  * @property serviceDate Date this frequency data applies to
  * @property timePeriod Time period (peak, off-peak, weekend, etc.)
  * @property averageHeadway Average headway in minutes (null if irregular schedule)
@@ -42,9 +39,8 @@ class Frequency(
     @Column(name = "id", nullable = false, updatable = false)
     val id: UUID? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "variant_id", nullable = false)
-    val variant: RouteVariant,
+    @Column(name = "variant_id", nullable = false, length = 64)
+    val variantId: String,
 
     @Column(name = "service_date", nullable = false)
     val serviceDate: LocalDate,
@@ -75,7 +71,7 @@ class Frequency(
     var createdAt: Instant = Instant.now()
 ) {
     constructor() : this(
-        variant = RouteVariant(),
+        variantId = "",
         serviceDate = LocalDate.now(),
         timePeriod = TimePeriod.WEEKDAY_OFF_PEAK,
         tripCount = 0,

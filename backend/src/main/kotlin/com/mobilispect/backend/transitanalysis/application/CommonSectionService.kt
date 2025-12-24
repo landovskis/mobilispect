@@ -24,7 +24,7 @@ class CommonSectionService(
         val variants = routeVariantRepository.findByRouteId(routeId)
         val variantIds = variants.map { it.id }.toSet()
 
-        val sectionVariants = variantIds.flatMap { commonSectionVariantRepository.findByVariantId(it) }
+        val sectionVariants = variantIds.flatMap { commonSectionVariantRepository.findByVariantId(it.value) }
         val sections = sectionVariants.map { it.commonSection }.distinctBy { it.id }
 
         return sections.map { section ->
@@ -35,7 +35,7 @@ class CommonSectionService(
                 firstStopId = section.firstStopId,
                 lastStopId = section.lastStopId,
                 variants = sectionVariants.filter { it.commonSection.id == section.id }
-                    .map { it.variant.id.value }
+                    .map { it.variantId }
             )
         }
     }
@@ -44,7 +44,7 @@ class CommonSectionService(
         val section = commonSectionRepository.findById(sectionId).orElse(null) ?: return null
         val sectionVariants = commonSectionVariantRepository.findBySectionId(sectionId)
         val frequencies = sectionVariants.flatMap { csv ->
-            frequencyRepository.findByVariant(csv.variant, org.springframework.data.domain.Pageable.unpaged()).content
+            frequencyRepository.findByVariant(csv.variantId, org.springframework.data.domain.Pageable.unpaged()).content
                 .filter { it.timePeriod == timePeriod }
         }
         if (frequencies.isEmpty()) return CombinedFrequencyDTO(sectionId.toString(), timePeriod.name, null, 0, true)
@@ -57,9 +57,10 @@ class CommonSectionService(
         val isIrregular = frequencies.any { it.isIrregular } || combinedHeadway == null
 
         val contributions = sectionVariants.mapNotNull { csv ->
-            val freq = frequencies.firstOrNull { it.variant.id == csv.variant.id } ?: return@mapNotNull null
+            val freq = frequencies.firstOrNull { it.variantId == csv.variantId } ?: return@mapNotNull null
+            val variant = routeVariantRepository.findById(VariantHash(csv.variantId)) ?: return@mapNotNull null
             RouteContributionDTO(
-                routeId = csv.variant.route.id.value,
+                routeId = variant.routeId.value,
                 averageHeadwayMinutes = freq.averageHeadway,
                 tripCount = freq.tripCount,
                 isIrregular = freq.isIrregular
@@ -78,6 +79,8 @@ class CommonSectionService(
 
     fun getContributingRoutes(sectionId: UUID): List<String> {
         val sectionVariants = commonSectionVariantRepository.findBySectionId(sectionId)
-        return sectionVariants.map { it.variant.route.id.value }.distinct()
+        return sectionVariants.mapNotNull { csv ->
+            routeVariantRepository.findById(VariantHash(csv.variantId))?.routeId?.value
+        }.distinct()
     }
 }

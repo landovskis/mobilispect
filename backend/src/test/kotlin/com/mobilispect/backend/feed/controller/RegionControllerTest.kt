@@ -356,7 +356,7 @@ class RegionControllerTest {
         status: FeedStatus = FeedStatus.ACTIVE
     ): FeedEntity {
         return FeedEntity(
-            feedOnestopId = FeedId(id),
+            feedOnestopId = id,
             regions = mutableSetOf(region),
             name = id.substringAfterLast("-").uppercase(),
             specType = specType,

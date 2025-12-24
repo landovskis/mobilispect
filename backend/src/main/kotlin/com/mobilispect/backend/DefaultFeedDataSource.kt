@@ -14,7 +14,7 @@ class DefaultFeedDataSource : FeedDataSource {
             Result.success(
                 ScheduledFeed(
                     feed = FeedEntity(
-                        feedOnestopId = FeedId("f-f256-exo~citlapresquîle"),
+                        feedOnestopId = "f-f256-exo~citlapresquîle",
                         downloadUrl = "https://exo.quebec/xdata/citpi/google_transit.zip"
                     ),
                     version = FeedVersion(

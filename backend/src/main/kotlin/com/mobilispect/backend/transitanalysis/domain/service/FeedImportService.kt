@@ -5,6 +5,7 @@ import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.transitanalysis.domain.model.Route
+import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
 import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
 import com.mobilispect.backend.transitanalysis.domain.repository.FrequencyRepository
 import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
@@ -78,20 +79,21 @@ class FeedImportServiceImpl(
             val routeMap = persistRoutes(feedEntity, parsed, agencyMap)
             val variants = variantIdentificationService.identifyVariants(
                 routeMap.values.associateWith { route ->
-                    parsed.trips.filter { it.routeId == route.id.value }
+                    parsed.trips.filter { it.routeId == route.gtfsRouteId }
                 },
                 parsed.stops.associateBy { it.stopId },
                 parsed.shapes
             )
             variants.forEach { variant ->
                 routeVariantRepository.save(variant)
-                eventPublisher.publishEvent(RouteVariantIdentified(variant.id, variant.route.id))
+                eventPublisher.publishEvent(RouteVariantIdentified(variant.id, variant.routeId))
             }
 
             // Frequency calculation is intentionally conservative: use departure from first stop
             variants.forEach { variant ->
+                val route = routeMap[variant.routeId.value] ?: return@forEach
                 val times = parsed.trips
-                    .filter { it.routeId == variant.route.id.value }
+                    .filter { it.routeId == route.gtfsRouteId }
                     .mapNotNull { trip ->
                         trip.stopTimes.firstOrNull()?.departureTime
                     }
@@ -103,7 +105,7 @@ class FeedImportServiceImpl(
                 )
                 frequency?.let {
                     frequencyRepository.save(it)
-                    eventPublisher.publishEvent(FrequencyCalculationCompleted(it.variant.id, it.serviceDate))
+                    eventPublisher.publishEvent(FrequencyCalculationCompleted(VariantHash(it.variantId), it.serviceDate))
                 }
             }
 
@@ -119,7 +121,7 @@ class FeedImportServiceImpl(
 
             eventPublisher.publishEvent(
                 FeedImportCompleted(
-                    feedId = feedEntity.feedOnestopId,
+                    feedId = com.mobilispect.backend.feed.model.ids.FeedId(feedEntity.feedOnestopId),
                     routesProcessed = result.routesProcessed,
                     variantsIdentified = result.variantsIdentified,
                     durationMillis = result.durationMillis
@@ -137,25 +139,27 @@ class FeedImportServiceImpl(
 
     private fun persistAgencies(feedEntity: FeedEntity, parsed: ParsedGtfsData): Map<String, Agency> {
         val now = Instant.now()
+        val feedId = com.mobilispect.backend.feed.model.ids.FeedId(feedEntity.feedOnestopId)
         val agencies = parsed.agencies.map { parsedAgency ->
             // Check if agency already exists for this feed
-            val existing = agencyRepository.findByFeedAndGtfsAgencyId(feedEntity, parsedAgency.agencyId)
-            if (existing.isPresent) {
-                // Update existing agency
-                val agency = existing.get()
-                agency.name = parsedAgency.name
-                agency.website = parsedAgency.url
-                agency.phone = parsedAgency.phone
-                agency.lastFeedImport = now
-                agencyRepository.save(agency)
+            val existing = agencyRepository.findByFeedIdAndGtfsAgencyId(feedId, parsedAgency.agencyId)
+            if (existing != null) {
+                // Update existing agency by creating new instance with updated values
+                val updated = existing.copy(
+                    name = parsedAgency.name,
+                    website = parsedAgency.url,
+                    phone = parsedAgency.phone,
+                    lastFeedImport = now
+                )
+                agencyRepository.save(updated)
             } else {
                 // Create new agency with Onestop ID format: o-{geohash}-{agency_name}
                 val agencyOnestopId = AgencyId(
-                    "o-${feedEntity.feedOnestopId.value.substringAfter("f-")}-${parsedAgency.agencyId.lowercase().replace(Regex("[^a-z0-9]+"), "~")}"
+                    "o-${feedEntity.feedOnestopId.substringAfter("f-")}-${parsedAgency.agencyId.lowercase().replace(Regex("[^a-z0-9]+"), "~")}"
                 )
                 val agency = Agency(
                     agencyOnestopId = agencyOnestopId,
-                    feed = feedEntity,
+                    feedId = feedId,
                     gtfsAgencyId = parsedAgency.agencyId,
                     name = parsedAgency.name,
                     website = parsedAgency.url,
@@ -182,7 +186,7 @@ class FeedImportServiceImpl(
 
             val route = Route(
                 id = routeOnestopId,
-                agency = agency,
+                agencyId = agency.agencyOnestopId,
                 gtfsRouteId = parsedRoute.routeId,
                 shortName = parsedRoute.shortName,
                 longName = parsedRoute.longName ?: parsedRoute.shortName ?: parsedRoute.routeId,

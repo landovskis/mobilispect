@@ -20,12 +20,12 @@ import org.mockito.Mockito.`when`
 import java.nio.file.Paths
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.Optional
 
 class HourlyFrequencyCalculationServiceTest {
     private lateinit var gtfsParser: GtfsParser
     private lateinit var routeRepository: RouteRepository
     private lateinit var routeVariantRepository: RouteVariantRepository
+    private lateinit var agencyRepository: com.mobilispect.backend.agency.domain.repository.AgencyRepository
     private lateinit var service: HourlyFrequencyCalculationService
 
     private lateinit var mockAgency: Agency
@@ -38,17 +38,19 @@ class HourlyFrequencyCalculationServiceTest {
         gtfsParser = mock(GtfsParser::class.java)
         routeRepository = mock(RouteRepository::class.java)
         routeVariantRepository = mock(RouteVariantRepository::class.java)
+        agencyRepository = mock(com.mobilispect.backend.agency.domain.repository.AgencyRepository::class.java)
 
         service = HourlyFrequencyCalculationServiceImpl(
             gtfsParser = gtfsParser,
             routeRepository = routeRepository,
             routeVariantRepository = routeVariantRepository,
+            agencyRepository = agencyRepository,
             gtfsDownloadDirectory = "./data/gtfs"
         )
 
         // Setup test entities
         val feed = com.mobilispect.backend.feed.model.FeedEntity(
-            feedOnestopId = com.mobilispect.backend.feed.model.ids.FeedId("f-test"),
+            feedOnestopId = "f-test",
             name = "Test Feed",
             specType = com.mobilispect.backend.feed.model.FeedSpecType.GTFS,
             downloadUrl = "https://example.com/feed.zip"
@@ -56,7 +58,7 @@ class HourlyFrequencyCalculationServiceTest {
 
         mockAgency = Agency(
             agencyOnestopId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-test-agency"),
-            feed = feed,
+            feedId = com.mobilispect.backend.feed.model.ids.FeedId(feed.feedOnestopId),
             gtfsAgencyId = "A1",
             name = "Test Agency",
             active = true
@@ -64,7 +66,7 @@ class HourlyFrequencyCalculationServiceTest {
 
         mockRoute = Route(
             id = RouteId("r-route1"),
-            agency = mockAgency,
+            agencyId = mockAgency.agencyOnestopId,
             gtfsRouteId = "R1",
             longName = "Test Route",
             routeType = RouteType.BUS,
@@ -73,7 +75,7 @@ class HourlyFrequencyCalculationServiceTest {
 
         mockVariant1 = RouteVariant(
             id = VariantHash("a".repeat(64)),
-            route = mockRoute,
+            routeId = mockRoute.id,
             stopPattern = "stop1|stop2|stop3",
             stopCount = 3,
             firstStopId = "stop1",
@@ -82,7 +84,7 @@ class HourlyFrequencyCalculationServiceTest {
 
         mockVariant2 = RouteVariant(
             id = VariantHash("b".repeat(64)),
-            route = mockRoute,
+            routeId = mockRoute.id,
             stopPattern = "stop1|stop4|stop5",
             stopCount = 3,
             firstStopId = "stop1",
@@ -92,7 +94,7 @@ class HourlyFrequencyCalculationServiceTest {
 
     @Test
     fun `calculateRouteHourlyFrequencies returns empty when route not found`() {
-        `when`(routeRepository.findByRouteId(RouteId("nonexistent"))).thenReturn(Optional.empty())
+        `when`(routeRepository.findById(RouteId("nonexistent"))).thenReturn(null)
 
         val result = service.calculateRouteHourlyFrequencies(RouteId("nonexistent"), LocalDate.of(2025, 1, 15))
 
@@ -101,7 +103,8 @@ class HourlyFrequencyCalculationServiceTest {
 
     @Test
     fun `calculateRouteHourlyFrequencies returns empty when GTFS parsing fails`() {
-        `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
+        `when`(routeRepository.findById(mockRoute.id)).thenReturn(mockRoute)
+        `when`(agencyRepository.findById(mockAgency.agencyOnestopId)).thenReturn(mockAgency)
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1))
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip")))
             .thenReturn(Result.failure(RuntimeException("Parse failed")))
@@ -134,7 +137,8 @@ class HourlyFrequencyCalculationServiceTest {
             shapes = emptyMap()
         )
 
-        `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
+        `when`(routeRepository.findById(mockRoute.id)).thenReturn(mockRoute)
+        `when`(agencyRepository.findById(mockAgency.agencyOnestopId)).thenReturn(mockAgency)
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1))
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip"))).thenReturn(Result.success(parsedData))
 
@@ -172,7 +176,8 @@ class HourlyFrequencyCalculationServiceTest {
             shapes = emptyMap()
         )
 
-        `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
+        `when`(routeRepository.findById(mockRoute.id)).thenReturn(mockRoute)
+        `when`(agencyRepository.findById(mockAgency.agencyOnestopId)).thenReturn(mockAgency)
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1))
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip"))).thenReturn(Result.success(parsedData))
 
@@ -206,7 +211,8 @@ class HourlyFrequencyCalculationServiceTest {
             shapes = emptyMap()
         )
 
-        `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
+        `when`(routeRepository.findById(mockRoute.id)).thenReturn(mockRoute)
+        `when`(agencyRepository.findById(mockAgency.agencyOnestopId)).thenReturn(mockAgency)
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1))
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip"))).thenReturn(Result.success(parsedData))
 
@@ -246,7 +252,8 @@ class HourlyFrequencyCalculationServiceTest {
             shapes = emptyMap()
         )
 
-        `when`(routeRepository.findByRouteId(mockRoute.id)).thenReturn(Optional.of(mockRoute))
+        `when`(routeRepository.findById(mockRoute.id)).thenReturn(mockRoute)
+        `when`(agencyRepository.findById(mockAgency.agencyOnestopId)).thenReturn(mockAgency)
         `when`(routeVariantRepository.findByRouteId(mockRoute.id)).thenReturn(listOf(mockVariant1, mockVariant2))
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip"))).thenReturn(Result.success(parsedData))
 
@@ -261,8 +268,7 @@ class HourlyFrequencyCalculationServiceTest {
     @Test
     fun `calculateVariantHourlyFrequencies returns empty when variant not found`() {
         val nonexistentHash = VariantHash("9".repeat(64))
-        `when`(routeVariantRepository.findById(nonexistentHash))
-            .thenReturn(Optional.empty())
+        `when`(routeVariantRepository.findById(nonexistentHash)).thenReturn(null)
 
         val result = service.calculateVariantHourlyFrequencies(
             nonexistentHash,
@@ -290,7 +296,9 @@ class HourlyFrequencyCalculationServiceTest {
             shapes = emptyMap()
         )
 
-        `when`(routeVariantRepository.findById(mockVariant1.id)).thenReturn(Optional.of(mockVariant1))
+        `when`(routeVariantRepository.findById(mockVariant1.id)).thenReturn(mockVariant1)
+        `when`(routeRepository.findById(mockRoute.id)).thenReturn(mockRoute)
+        `when`(agencyRepository.findById(mockAgency.agencyOnestopId)).thenReturn(mockAgency)
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip"))).thenReturn(Result.success(parsedData))
 
         val result = service.calculateVariantHourlyFrequencies(mockVariant1.id, LocalDate.of(2025, 1, 15))
@@ -327,7 +335,9 @@ class HourlyFrequencyCalculationServiceTest {
             shapes = emptyMap()
         )
 
-        `when`(routeVariantRepository.findById(mockVariant1.id)).thenReturn(Optional.of(mockVariant1))
+        `when`(routeVariantRepository.findById(mockVariant1.id)).thenReturn(mockVariant1)
+        `when`(routeRepository.findById(mockRoute.id)).thenReturn(mockRoute)
+        `when`(agencyRepository.findById(mockAgency.agencyOnestopId)).thenReturn(mockAgency)
         `when`(gtfsParser.parse(Paths.get("./data/gtfs/f-test.zip"))).thenReturn(Result.success(parsedData))
 
         val result = service.calculateVariantHourlyFrequencies(mockVariant1.id, LocalDate.of(2025, 1, 15))

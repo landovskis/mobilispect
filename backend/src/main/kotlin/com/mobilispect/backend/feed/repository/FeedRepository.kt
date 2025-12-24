@@ -8,12 +8,11 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
-import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.RegionId
 import java.util.Optional
 
 @Repository("feedManagementFeedRepository")
-interface FeedRepository : JpaRepository<FeedEntity, FeedId> {
+interface FeedRepository : JpaRepository<FeedEntity, String> {
 
     /**
      * Find a feed by its Onestop ID.
@@ -22,7 +21,7 @@ interface FeedRepository : JpaRepository<FeedEntity, FeedId> {
      * the FeedId value class for ID lookups. Use this instead of findById(FeedId).
      */
     @Query("SELECT f FROM FeedEntity f WHERE f.feedOnestopId = :feedId")
-    fun findByFeedOnestopId(@Param("feedId") feedId: FeedId): Optional<FeedEntity>
+    fun findByFeedOnestopId(@Param("feedId") feedId: String): Optional<FeedEntity>
 
     @Query("SELECT f FROM FeedEntity f JOIN f.regions r WHERE r.regionOnestopId = :regionOnestopId")
     fun findAllByRegionRegionOnestopId(@Param("regionOnestopId") regionOnestopId: RegionId): List<FeedEntity>

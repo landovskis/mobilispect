@@ -8,6 +8,7 @@ import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
 import com.mobilispect.backend.transitanalysis.domain.repository.RouteVariantRepository
 import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.GtfsParser
 import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedTrip
+import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -63,6 +64,7 @@ class HourlyFrequencyCalculationServiceImpl(
     private val gtfsParser: GtfsParser,
     private val routeRepository: RouteRepository,
     private val routeVariantRepository: RouteVariantRepository,
+    private val agencyRepository: AgencyRepository,
     @Value("\${app.gtfs.download-directory:./data/gtfs}") private val gtfsDownloadDirectory: String
 ) : HourlyFrequencyCalculationService {
 
@@ -72,14 +74,19 @@ class HourlyFrequencyCalculationServiceImpl(
         routeId: RouteId,
         serviceDate: LocalDate
     ): List<RouteHourlyFrequencyDTO> {
-        val route = routeRepository.findByRouteId(routeId).orElse(null)
+        val route = routeRepository.findById(routeId)
             ?: run {
                 logger.warn("Route not found: {}", routeId)
                 return emptyList()
             }
+        val agency = agencyRepository.findById(route.agencyId)
+            ?: run {
+                logger.warn("Agency not found for route {}: {}", routeId, route.agencyId)
+                return emptyList()
+            }
 
         // Get GTFS feed path for this route's agency
-        val feedOnestopId = route.agency.feed.feedOnestopId.value
+        val feedOnestopId = agency.feedId.value
         val gtfsPath = resolveGtfsPath(feedOnestopId)
 
         // Parse GTFS feed
@@ -115,14 +122,24 @@ class HourlyFrequencyCalculationServiceImpl(
         variantHash: VariantHash,
         serviceDate: LocalDate
     ): List<HourlyFrequencyDTO> {
-        val variant = routeVariantRepository.findById(variantHash).orElse(null)
+        val variant = routeVariantRepository.findById(variantHash)
             ?: run {
                 logger.warn("Variant not found: {}", variantHash)
                 return emptyList()
             }
+        val route = routeRepository.findById(variant.routeId)
+            ?: run {
+                logger.warn("Route not found for variant {}: {}", variantHash, variant.routeId)
+                return emptyList()
+            }
+        val agency = agencyRepository.findById(route.agencyId)
+            ?: run {
+                logger.warn("Agency not found for route {}: {}", variant.routeId, route.agencyId)
+                return emptyList()
+            }
 
         // Get GTFS feed path for this variant's route's agency
-        val feedOnestopId = variant.route.agency.feed.feedOnestopId.value
+        val feedOnestopId = agency.feedId.value
         val gtfsPath = resolveGtfsPath(feedOnestopId)
 
         // Parse GTFS feed
@@ -133,7 +150,7 @@ class HourlyFrequencyCalculationServiceImpl(
 
         // Filter trips that match this variant's stop pattern
         val variantTrips = parsedData.trips.filter { trip ->
-            trip.routeId == variant.route.gtfsRouteId && matchesTripPattern(trip, variant.stopPattern)
+            trip.routeId == route.gtfsRouteId && matchesTripPattern(trip, variant.stopPattern)
         }
 
         return calculateHourlyFrequenciesForTrips(variantTrips, variantHash.value, serviceDate)

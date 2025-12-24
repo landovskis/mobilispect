@@ -25,8 +25,11 @@ import org.springframework.scheduling.annotation.EnableScheduling
 
 @EnableJpaRepositories(basePackages = [
     "com.mobilispect.backend.agency.domain.repository",
+    "com.mobilispect.backend.agency.data.repository",
     "com.mobilispect.backend.feed.repository",
-    "com.mobilispect.backend.transitanalysis.domain.repository"
+    "com.mobilispect.backend.feed.data.repository",
+    "com.mobilispect.backend.transitanalysis.domain.repository",
+    "com.mobilispect.backend.transitanalysis.data.repository"
 ])
 @EnableScheduling
 @EnableAsync

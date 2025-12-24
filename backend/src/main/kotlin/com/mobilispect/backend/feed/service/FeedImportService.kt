@@ -4,7 +4,6 @@ import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
-import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.AdministratorRepository
 import com.mobilispect.backend.feed.repository.FeedImportRepository
@@ -47,7 +46,7 @@ class FeedImportService(
         triggerType: ImportTriggerType,
         force: Boolean
     ): FeedImport {
-        val feed = feedRepository.findByFeedOnestopId(FeedId(feedOnestopId))
+        val feed = feedRepository.findByFeedOnestopId(feedOnestopId)
             .orElseThrow { IllegalArgumentException("Feed not found: $feedOnestopId") }
 
         val administrator = administratorUsername?.let { adminUsername ->
@@ -57,7 +56,7 @@ class FeedImportService(
         val now = clock.instant()
         val feedImport = feedImportRepository.save(
             FeedImport().apply {
-                this.feed = feed
+                this.feedOnestopId = feed.feedOnestopId
                 this.administrator = administrator
                 this.triggerType = triggerType
                 this.status = ImportStatus.RUNNING
@@ -68,7 +67,7 @@ class FeedImportService(
 
         progressTrackingService.updateProgress(
             importId = feedImport.requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId.value,
+            feedOnestopId = feed.feedOnestopId,
             progressPercentage = 0,
             currentStep = "Starting import",
             currentStepNumber = 0,
@@ -80,12 +79,12 @@ class FeedImportService(
             TransactionSynchronizationManager.registerSynchronization(
                 object : TransactionSynchronization {
                     override fun afterCommit() {
-                        launchImportJob(feedImport.requireId(), feed.feedOnestopId.value)
+                        launchImportJob(feedImport.requireId(), feed.feedOnestopId)
                     }
                 }
             )
         } else {
-            launchImportJob(feedImport.requireId(), feed.feedOnestopId.value)
+            launchImportJob(feedImport.requireId(), feed.feedOnestopId)
         }
 
         return feedImport
@@ -130,11 +129,14 @@ class FeedImportService(
         feedImport.versionSha1 = versionSha1 ?: feedImport.versionSha1
         feedImportRepository.save(feedImport)
 
-        feedImport.feed?.let { feed ->
-            feed.status = FeedStatus.ACTIVE
-            feed.lastUpdatedAt = now
-            feed.currentVersionSha1 = feedImport.versionSha1
-            feedRepository.save(feed)
+        if (feedImport.feedOnestopId.isNotBlank()) {
+            feedRepository.findByFeedOnestopId(feedImport.feedOnestopId)
+                .ifPresent { feed ->
+                    feed.status = FeedStatus.ACTIVE
+                    feed.lastUpdatedAt = now
+                    feed.currentVersionSha1 = feedImport.versionSha1
+                    feedRepository.save(feed)
+                }
         }
 
         progressTrackingService.markCompleted(importId.value.toString())

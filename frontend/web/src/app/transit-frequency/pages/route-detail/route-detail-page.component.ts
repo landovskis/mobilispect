@@ -5,38 +5,23 @@ import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto } from '../..
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
 import { BrandSectionComponent } from '../../../shared/components/brand-section.component';
 import { RouteFrequencyCardComponent } from '../../components/route-frequency-card/route-frequency-card.component';
+import { RouteSummaryCardComponent } from '../../components/route-summary-card/route-summary-card.component';
 import { Observable, tap } from 'rxjs';
 
 @Component({
   selector: 'app-route-detail-page',
   standalone: true,
-  imports: [CommonModule, BrandSectionComponent, RouteFrequencyCardComponent],
+  imports: [CommonModule, BrandSectionComponent, RouteFrequencyCardComponent, RouteSummaryCardComponent],
   template: `
     <app-brand-section
       [title]="(route$ | async)?.longName || 'Route Details'"
       [subtitle]="'Route ' + ((route$ | async)?.shortName || '')"
       icon="route">
       @if (route$ | async; as route) {
-        <div class="route-info flex flex-wrap gap-6 py-4">
-          <div class="info-item flex flex-col gap-1">
-            <span class="info-label">Route Number:</span>
-            <span class="info-value">{{ route.shortName || 'N/A' }}</span>
-          </div>
-          <div class="info-item flex flex-col gap-1">
-            <span class="info-label">Route Type:</span>
-            <span class="info-value">{{ getRouteTypeLabel(route.routeType) }}</span>
-          </div>
-          <div class="info-item flex flex-col gap-1">
-            <span class="info-label">Variants:</span>
-            <span class="info-value">{{ (variants$ | async)?.length || 0 }}</span>
-          </div>
-          <div class="info-item flex flex-col gap-1">
-            <span class="info-label">Status:</span>
-            <span class="info-value" [class.active]="route.active">
-              {{ route.active ? 'Active' : 'Inactive' }}
-            </span>
-          </div>
-        </div>
+        <app-route-summary-card
+          [route]="route"
+          [variantsCount]="(variants$ | async)?.length || 0">
+        </app-route-summary-card>
       } @else {
         <p>Loading route details...</p>
       }
@@ -54,25 +39,7 @@ import { Observable, tap } from 'rxjs';
       (dateChange)="onDateChange($event)">
     </app-route-frequency-card>
     `,
-  styles: [`
-    .info-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--mat-sys-on-surface-variant, #6b7280);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .info-value {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--mat-sys-on-surface, #333);
-    }
-
-    .info-value.active {
-      color: var(--mat-sys-tertiary, #388e3c);
-    }
-  `],
+  styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteDetailPageComponent implements OnInit {
@@ -137,19 +104,4 @@ export class RouteDetailPageComponent implements OnInit {
     return today.toISOString().split('T')[0];
   }
 
-  getRouteTypeLabel(routeType: string): string {
-    const labels: Record<string, string> = {
-      'TRAM': 'Tram/Light Rail',
-      'SUBWAY': 'Subway/Metro',
-      'RAIL': 'Rail',
-      'BUS': 'Bus',
-      'FERRY': 'Ferry',
-      'CABLE_TRAM': 'Cable Tram',
-      'AERIAL_LIFT': 'Aerial Lift',
-      'FUNICULAR': 'Funicular',
-      'TROLLEYBUS': 'Trolleybus',
-      'MONORAIL': 'Monorail'
-    };
-    return labels[routeType] || routeType;
-  }
 }

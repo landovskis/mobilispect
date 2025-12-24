@@ -1,16 +1,13 @@
 package com.mobilispect.backend.feed.model
 
-import com.mobilispect.backend.feed.model.ids.FeedId
-import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
-import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
+import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
 import jakarta.persistence.ManyToMany
-import jakarta.persistence.OneToOne
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
@@ -20,9 +17,9 @@ import java.time.Instant
 @Entity
 @Table(name = "feeds")
 class FeedEntity(
-    @EmbeddedId
-    @AttributeOverride(name = "value", column = Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512))
-    val feedOnestopId: FeedId = FeedId("f-"),
+    @Id
+    @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512)
+    var feedOnestopId: String = "",
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -75,11 +72,8 @@ class FeedEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
-    @OneToOne(mappedBy = "feed", fetch = FetchType.LAZY)
-    var authentication: FeedAuthentication? = null
-
     constructor() : this(
-        feedOnestopId = FeedId("placeholder"),
+        feedOnestopId = "placeholder",
         name = "",
         specType = FeedSpecType.GTFS,
         downloadUrl = "",

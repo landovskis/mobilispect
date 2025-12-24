@@ -104,7 +104,7 @@ class TransitLandClient(
                 val latestVersion = remote.feed_versions.firstOrNull() ?: return@mapNotNull null
                 ScheduledFeed(
                     feed = FeedEntity(
-                        feedOnestopId = FeedId(feedID), downloadUrl = latestVersion.url
+                        feedOnestopId = feedID, downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(
                         uid = latestVersion.sha1,
@@ -131,7 +131,7 @@ class TransitLandClient(
 
                 ScheduledFeed(
                     feed = FeedEntity(
-                        feedOnestopId = FeedId(feedOnestopId),
+                        feedOnestopId = feedOnestopId,
                         downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(
@@ -165,7 +165,7 @@ class TransitLandClient(
 
                 ScheduledFeed(
                     feed = FeedEntity(
-                        feedOnestopId = FeedId(feedOnestopId),
+                        feedOnestopId = feedOnestopId,
                         downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(

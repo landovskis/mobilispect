@@ -47,25 +47,31 @@ class VariantIdentificationServiceImpl(
             val stopIds = trip.stopTimes.sortedBy { it.stopSequence }.map { it.stopId }
             if (stopIds.size < 2) return@forEach
             val hash = variantHashGenerator.fromStops(stopIds)
-            variants.computeIfAbsent(hash.value) {
+            if (!variants.containsKey(hash.value)) {
                 val averageStopSpacingKm = stopSpacingCalculationService.calculateAverageSpacingKm(
                     trip = trip,
                     stopsById = stopsById,
                     shapesById = shapesById
                 )
-                RouteVariant(
+                val now = Instant.now()
+                val variant = RouteVariant(
                     id = hash,
-                    route = route,
+                    routeId = route.id,
                     directionId = trip.directionId,
                     headsign = trip.headsign,
                     stopPattern = stopIds.joinToString("|"),
                     stopCount = stopIds.size,
                     firstStopId = stopIds.first(),
                     lastStopId = stopIds.last(),
-                    averageStopSpacingKm = averageStopSpacingKm
+                    averageStopSpacingKm = averageStopSpacingKm,
+                    firstSeen = now,
+                    lastSeen = now
                 )
-            }.apply {
-                lastSeen = Instant.now()
+                variants[hash.value] = variant
+            } else {
+                // Update lastSeen for existing variant
+                val existing = variants[hash.value]!!
+                variants[hash.value] = existing.copy(lastSeen = Instant.now())
             }
         }
         return variants.values.toList()

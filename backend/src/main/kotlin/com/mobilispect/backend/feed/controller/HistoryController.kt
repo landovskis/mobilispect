@@ -9,6 +9,7 @@ import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.ids.ImportId
+import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.service.ImportHistoryService
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -38,7 +39,8 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/feeds/history")
 class HistoryController(
-    private val importHistoryService: ImportHistoryService
+    private val importHistoryService: ImportHistoryService,
+    private val feedRepository: FeedRepository
 ) {
 
     /**
@@ -88,12 +90,12 @@ class HistoryController(
         val import = importHistoryService.getImportDetail(uuid)
             ?: throw notFound("Import", importId)
 
-        val feed = import.feed
+        val feed = findFeed(import)
             ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import")
 
         return FeedImportDetailDTO(
             id = import.requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId.value,
+            feedOnestopId = feed.feedOnestopId,
             administratorId = import.administrator?.id?.toString(),
             administratorUsername = import.administrator?.username,
             triggerType = import.triggerType.toDto(),
@@ -199,7 +201,7 @@ class HistoryController(
     // Helper methods
     private fun FeedImport.toDTO(): FeedImportDTO = FeedImportDTO(
         id = requireIdAsString(),
-        feedOnestopId = feed?.feedOnestopId?.value ?: "",
+        feedOnestopId = feedOnestopId,
         administratorId = administrator?.id?.toString(),
         administratorUsername = administrator?.username,
         triggerType = triggerType.toDto(),
@@ -212,6 +214,10 @@ class HistoryController(
         createdAt = createdAt,
         updatedAt = updatedAt
     )
+
+    private fun findFeed(import: FeedImport) =
+        import.feedOnestopId.takeIf { it.isNotBlank() }
+            ?.let { feedRepository.findByFeedOnestopId(it).orElse(null) }
 
     private fun ImportStatus.toDto(): ImportStatusDto = when (this) {
         ImportStatus.PENDING -> ImportStatusDto.PENDING

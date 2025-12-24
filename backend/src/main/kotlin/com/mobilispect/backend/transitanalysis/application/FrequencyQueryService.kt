@@ -31,10 +31,10 @@ class FrequencyQueryService(
 ) {
     @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'route_' + #routeId")
     fun getRoute(routeId: RouteId): RouteDTO? =
-        routeRepository.findByRouteId(routeId).orElse(null)?.let {
+        routeRepository.findById(routeId)?.let {
             RouteDTO(
                 id = it.id.value,
-                agencyId = it.agency.agencyOnestopId.value,
+                agencyId = it.agencyId.value,
                 shortName = it.shortName,
                 longName = it.longName,
                 routeType = it.routeType,
@@ -47,7 +47,7 @@ class FrequencyQueryService(
         routeVariantRepository.findByRouteId(routeId).map {
             RouteVariantDTO(
                 id = it.id.value,
-                routeId = it.route.id.value,
+                routeId = it.routeId.value,
                 directionId = it.directionId,
                 headsign = it.headsign,
                 stopCount = it.stopCount,
@@ -64,16 +64,16 @@ class FrequencyQueryService(
         key = "'freq_' + #variantHash + '_' + (#serviceDate != null ? #serviceDate : 'all')"
     )
     fun getFrequenciesForVariant(variantHash: VariantHash, serviceDate: LocalDate?): List<FrequencyDTO> {
-        val variant = routeVariantRepository.findById(variantHash).orElse(null) ?: return emptyList()
+        val variantId = variantHash.value
         val freqs = if (serviceDate != null) {
-            frequencyRepository.findByVariantAndServiceDate(variant, serviceDate, org.springframework.data.domain.Pageable.unpaged()).content
+            frequencyRepository.findByVariantAndServiceDate(variantId, serviceDate, org.springframework.data.domain.Pageable.unpaged()).content
         } else {
-            frequencyRepository.findByVariant(variant, org.springframework.data.domain.Pageable.unpaged()).content
+            frequencyRepository.findByVariant(variantId, org.springframework.data.domain.Pageable.unpaged()).content
         }
         return freqs.map {
             FrequencyDTO(
                 id = it.id.toString(),
-                variantId = it.variant.id.value,
+                variantId = it.variantId,
                 serviceDate = it.serviceDate.toString(),
                 timePeriod = it.timePeriod,
                 averageHeadwayMinutes = it.averageHeadway,

@@ -5,8 +5,6 @@ import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
 import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
-import jakarta.persistence.ManyToMany
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
@@ -17,7 +15,7 @@ import java.time.Instant
 class MetropolitanRegion(
     @EmbeddedId
     @AttributeOverride(name = "value", column = Column(name = "region_onestop_id", nullable = false, updatable = false, length = 255))
-    val regionOnestopId: RegionId = RegionId(""),
+    var regionOnestopId: RegionId = RegionId(""),
 
     @Column(nullable = false, length = 255)
     var name: String = "",
@@ -37,9 +35,6 @@ class MetropolitanRegion(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
-
-    @ManyToMany(mappedBy = "regions", fetch = FetchType.LAZY)
-    val feeds: MutableSet<FeedEntity> = mutableSetOf()
 
     constructor() : this(
         regionOnestopId = RegionId("placeholder"),

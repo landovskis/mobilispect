@@ -14,9 +14,9 @@ import com.mobilispect.backend.api.dto.TriggerType as TriggerTypeDto
 import com.mobilispect.backend.feed.model.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
-import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedImportRepository
+import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import org.springframework.data.domain.PageRequest
@@ -40,6 +40,7 @@ import java.util.UUID
 class ImportController(
     private val feedImportService: FeedImportService,
     private val feedImportRepository: FeedImportRepository,
+    private val feedRepository: FeedRepository,
     private val progressTrackingService: ProgressTrackingService
 ) {
     private val activeStatuses = listOf(ImportStatus.RUNNING, ImportStatus.PENDING)
@@ -94,7 +95,7 @@ class ImportController(
 
         return ImportProgressDTO(
             importId = importId,
-            feedOnestopId = import.feed?.feedOnestopId?.value ?: "",
+            feedOnestopId = import.feedOnestopId,
             progressPercentage = progressPercentage,
             currentStep = when (import.status) {
                 ImportStatus.COMPLETED -> "Completed"
@@ -117,14 +118,15 @@ class ImportController(
         val import = feedImportRepository.findByImportId(ImportId(uuid))
             .orElseThrow { notFound("Import", importId) }
 
-        val feed = import.feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${import.id}")
+        val feed = findFeed(import)
+            ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${import.id}")
         val regionName = feed.regions.firstOrNull()?.name
 
         val progress = progressTrackingService.getProgress(importId)?.toDto()
 
         return FeedImportDetailDTO(
             id = import.requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId.value,
+            feedOnestopId = feed.feedOnestopId,
             administratorId = import.administrator?.id?.value?.toString(),
             administratorUsername = import.administrator?.username,
             triggerType = import.triggerType.toDto(),
@@ -199,9 +201,9 @@ class ImportController(
         val statuses = status?.let { listOf(it.toEntity()) }
 
         val pageResult = if (statuses != null) {
-            feedImportRepository.findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(FeedId(feedOnestopId), statuses, pageable)
+            feedImportRepository.findAllByFeedOnestopIdAndStatusInOrderByStartedAtDesc(feedOnestopId, statuses, pageable)
         } else {
-            feedImportRepository.findAllByFeedFeedOnestopIdOrderByStartedAtDesc(FeedId(feedOnestopId), pageable)
+            feedImportRepository.findAllByFeedOnestopIdOrderByStartedAtDesc(feedOnestopId, pageable)
         }
 
         return ImportsResponse(
@@ -218,11 +220,12 @@ class ImportController(
     }
 
     private fun FeedImport.toResponse(message: String?): ImportResponse {
-        val feed = feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${id}")
+        val feed = findFeed(this)
+            ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import $id")
         return ImportResponse(
             id = requireIdAsString(),
             importId = requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId.value,
+            feedOnestopId = feed.feedOnestopId,
             administratorId = administrator?.id?.value?.toString(),
             administratorUsername = administrator?.username,
             triggerType = triggerType.toDto(),
@@ -239,11 +242,12 @@ class ImportController(
     }
 
     private fun FeedImport.toSummary(progress: ImportProgressDTO?): FeedImportSummaryDTO {
-        val feed = feed ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${id}")
+        val feed = findFeed(this)
+            ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import $id")
         val region = feed.regions.firstOrNull()
         return FeedImportSummaryDTO(
             id = requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId.value,
+            feedOnestopId = feed.feedOnestopId,
             feedName = feed.name,
             regionOnestopId = region?.regionOnestopId?.value,
             regionName = region?.name ?: "",
@@ -257,7 +261,7 @@ class ImportController(
 
     private fun FeedImport.toFeedImportDTO(): FeedImportDTO = FeedImportDTO(
         id = requireIdAsString(),
-        feedOnestopId = feed?.feedOnestopId?.value ?: "",
+        feedOnestopId = feedOnestopId,
         administratorId = administrator?.id?.value?.toString(),
         administratorUsername = administrator?.username,
         triggerType = triggerType.toDto(),
@@ -270,6 +274,10 @@ class ImportController(
         createdAt = createdAt,
         updatedAt = updatedAt
     )
+
+    private fun findFeed(import: FeedImport) =
+        import.feedOnestopId.takeIf { it.isNotBlank() }
+            ?.let { feedRepository.findByFeedOnestopId(it).orElse(null) }
 
     private fun com.mobilispect.backend.websocket.ImportProgress.toDto(): ImportProgressDTO = ImportProgressDTO(
         importId = importId,

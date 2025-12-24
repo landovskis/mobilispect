@@ -1,8 +1,5 @@
 package com.mobilispect.backend.transitanalysis.domain.model.ids
 
-import jakarta.persistence.Embeddable
-import java.io.Serializable
-
 /**
  * Value class for RouteVariant identifiers using SHA-256 hash.
  * Ensures type safety and prevents ID mixups across domain boundaries.
@@ -14,18 +11,16 @@ import java.io.Serializable
  *
  * Per constitutional Code Quality First requirements (FR-018).
  *
- * Note: Not using @JvmInline due to Hibernate 7 incompatibility with AttributeConverter on @Id fields.
- * Using @Embeddable for proper Hibernate 7 mapping.
+ * Now using @JvmInline for zero-overhead type safety in the domain layer.
+ * Data layer uses plain String IDs for Hibernate 7 compatibility.
  */
-@Embeddable
-data class VariantHash(val value: String = "0".repeat(64)) : Serializable {
+@JvmInline
+value class VariantHash(val value: String) {
     init {
-        if (value.isNotBlank() && value != "0".repeat(64)) {
-            require(value.isNotBlank()) { "Variant hash cannot be blank" }
-            require(value.length == 64) { "Variant hash must be 64 characters (SHA-256)" }
-            require(value.matches(Regex("^[a-fA-F0-9]{64}$"))) {
-                "Variant hash must be a valid hex string"
-            }
+        require(value.isNotBlank()) { "Variant hash cannot be blank" }
+        require(value.length == 64) { "Variant hash must be 64 characters (SHA-256)" }
+        require(value.matches(Regex("^[a-fA-F0-9]{64}$"))) {
+            "Variant hash must be a valid hex string"
         }
     }
 
@@ -33,6 +28,7 @@ data class VariantHash(val value: String = "0".repeat(64)) : Serializable {
 
     companion object {
         fun from(value: String?): VariantHash? =
-            value?.takeIf { it.isNotBlank() }?.let { VariantHash(it) }
+            value?.takeIf { it.isNotBlank() && it.length == 64 && it.matches(Regex("^[a-fA-F0-9]{64}$")) }
+                ?.let { VariantHash(it) }
     }
 }

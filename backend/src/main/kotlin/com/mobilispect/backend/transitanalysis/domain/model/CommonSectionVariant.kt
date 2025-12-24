@@ -19,7 +19,7 @@ import java.util.UUID
  *
  * @property id Unique identifier (UUID)
  * @property commonSection Common section this variant traverses
- * @property variant Route variant that traverses the common section
+ * @property variantId Route variant ID that traverses the common section
  * @property startSequence Position in variant's stop pattern where common section starts
  * @property endSequence Position in variant's stop pattern where common section ends
  */
@@ -35,9 +35,8 @@ class CommonSectionVariant(
     @JoinColumn(name = "common_section_id", nullable = false)
     val commonSection: CommonSection,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "variant_id", nullable = false)
-    val variant: RouteVariant,
+    @Column(name = "variant_id", nullable = false, length = 64)
+    val variantId: String,
 
     @Column(name = "start_sequence", nullable = false)
     val startSequence: Int,
@@ -47,7 +46,7 @@ class CommonSectionVariant(
 ) {
     constructor() : this(
         commonSection = CommonSection(),
-        variant = RouteVariant(),
+        variantId = "",
         startSequence = 0,
         endSequence = 0
     )

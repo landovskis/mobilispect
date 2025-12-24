@@ -17,7 +17,6 @@ import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import java.time.Instant
 import java.time.LocalDate
-import java.util.Optional
 
 class FrequencyQueryServiceTest {
     private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
@@ -25,13 +24,12 @@ class FrequencyQueryServiceTest {
     private val frequencyRepository: FrequencyRepository = mock(FrequencyRepository::class.java)
     private val hourlyFrequencyCalculationService: HourlyFrequencyCalculationService = mock(HourlyFrequencyCalculationService::class.java)
     private val service = FrequencyQueryService(routeRepository, variantRepository, frequencyRepository, hourlyFrequencyCalculationService)
-    private val mockAgency = mock(com.mobilispect.backend.agency.domain.model.Agency::class.java)
 
     @Test
     fun `getVariantsByRoute maps variants`() {
         val route = Route(
             id = RouteId("r-1"),
-            agency = mockAgency,
+            agencyId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-1"),
             gtfsRouteId = "R1",
             longName = "Route 1",
             routeType = RouteType.BUS,
@@ -39,7 +37,7 @@ class FrequencyQueryServiceTest {
         )
         val variant = RouteVariant(
             id = VariantHash("a".repeat(64)),
-            route = route,
+            routeId = route.id,
             stopPattern = "s1|s2",
             stopCount = 2,
             firstStopId = "s1",
@@ -54,7 +52,7 @@ class FrequencyQueryServiceTest {
 
     @Test
     fun `getFrequenciesForVariant returns empty when variant missing`() {
-        `when`(variantRepository.findById(VariantHash("b".repeat(64)))).thenReturn(Optional.empty())
+        `when`(frequencyRepository.findByVariant("b".repeat(64), Pageable.unpaged())).thenReturn(PageImpl(emptyList()))
         val result = service.getFrequenciesForVariant(VariantHash("b".repeat(64)), null)
         assertThat(result).isEmpty()
     }
@@ -63,7 +61,7 @@ class FrequencyQueryServiceTest {
     fun `getFrequenciesForVariant maps frequencies`() {
         val route = Route(
             id = RouteId("r-1"),
-            agency = mockAgency,
+            agencyId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-1"),
             gtfsRouteId = "R1",
             longName = "Route 1",
             routeType = RouteType.BUS,
@@ -71,14 +69,14 @@ class FrequencyQueryServiceTest {
         )
         val variant = RouteVariant(
             id = VariantHash("c".repeat(64)),
-            route = route,
+            routeId = route.id,
             stopPattern = "s1|s2",
             stopCount = 2,
             firstStopId = "s1",
             lastStopId = "s2"
         )
         val freq = com.mobilispect.backend.transitanalysis.domain.model.Frequency(
-            variant = variant,
+            variantId = variant.id.value,
             serviceDate = LocalDate.of(2025, 1, 1),
             timePeriod = TimePeriod.WEEKDAY_AM_PEAK,
             averageHeadway = 10.0,
@@ -89,8 +87,7 @@ class FrequencyQueryServiceTest {
             calculatedAt = Instant.now(),
             createdAt = Instant.now()
         )
-        `when`(variantRepository.findById(VariantHash("c".repeat(64)))).thenReturn(Optional.of(variant))
-        `when`(frequencyRepository.findByVariant(variant, Pageable.unpaged())).thenReturn(PageImpl(listOf(freq)))
+        `when`(frequencyRepository.findByVariant(variant.id.value, Pageable.unpaged())).thenReturn(PageImpl(listOf(freq)))
         val result = service.getFrequenciesForVariant(VariantHash("c".repeat(64)), null)
         assertThat(result).hasSize(1)
         assertThat(result.first().timePeriod).isEqualTo(TimePeriod.WEEKDAY_AM_PEAK)

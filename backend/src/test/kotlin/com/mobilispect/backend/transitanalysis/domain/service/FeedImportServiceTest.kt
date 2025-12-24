@@ -1,7 +1,6 @@
 package com.mobilispect.backend.transitanalysis.domain.service
 
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.transitanalysis.domain.model.Route
 import com.mobilispect.backend.transitanalysis.domain.model.RouteVariant
@@ -332,7 +331,7 @@ class FeedImportServiceTest {
 
     private fun createMockFeedEntity(): FeedEntity {
         return FeedEntity(
-            feedOnestopId = FeedId("f-9q8y-sfmta"),
+            feedOnestopId = "f-9q8y-sfmta",
             downloadUrl = "https://example.com/gtfs.zip"
         )
     }

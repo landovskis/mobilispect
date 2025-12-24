@@ -13,7 +13,6 @@ import java.util.Optional
 import java.util.UUID
 
 import com.mobilispect.backend.feed.model.ids.ImportId
-import com.mobilispect.backend.feed.model.ids.FeedId
 
 @Repository
 interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
@@ -27,8 +26,8 @@ interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
     @Query("SELECT fi FROM FeedImport fi WHERE fi.id = :importId")
     fun findByImportId(@Param("importId") importId: ImportId): Optional<FeedImport>
 
-    fun findAllByFeedFeedOnestopIdOrderByStartedAtDesc(
-        feedOnestopId: FeedId,
+    fun findAllByFeedOnestopIdOrderByStartedAtDesc(
+        feedOnestopId: String,
         pageable: Pageable
     ): Page<FeedImport>
 
@@ -42,8 +41,8 @@ interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
         pageable: Pageable
     ): Page<FeedImport>
 
-    fun findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(
-        feedOnestopId: FeedId,
+    fun findAllByFeedOnestopIdAndStatusInOrderByStartedAtDesc(
+        feedOnestopId: String,
         statuses: Collection<ImportStatus>,
         pageable: Pageable
     ): Page<FeedImport>

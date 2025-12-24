@@ -43,7 +43,7 @@ class FrequencyCalculationServiceImpl : FrequencyCalculationService {
 
         if (headways.isEmpty()) {
             return Frequency(
-                variant = variant,
+                variantId = variant.id.value,
                 serviceDate = serviceDate,
                 timePeriod = timePeriod,
                 tripCount = departureTimes.size,
@@ -58,7 +58,7 @@ class FrequencyCalculationServiceImpl : FrequencyCalculationService {
         val irregular = abs(max - min) > average
 
         return Frequency(
-            variant = variant,
+            variantId = variant.id.value,
             serviceDate = serviceDate,
             timePeriod = timePeriod,
             tripCount = departureTimes.size,

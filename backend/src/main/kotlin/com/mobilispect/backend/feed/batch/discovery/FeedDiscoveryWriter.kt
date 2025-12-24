@@ -109,7 +109,7 @@ class FeedDiscoveryWriter(
             // Step 3: Create or update feeds
             for (result in batch.results) {
                 val feedId = result.feedOnestopId
-                val existingFeed = feedRepository.findByFeedOnestopId(feedId)
+                val existingFeed = feedRepository.findByFeedOnestopId(feedId.value)
                     .orElse(null)
 
                 val now = Instant.now()
@@ -142,7 +142,7 @@ class FeedDiscoveryWriter(
                         ?: error("Region entity not found for ${result.region.regionOnestopId}")
 
                     FeedEntity(
-                        feedOnestopId = feedId,
+                        feedOnestopId = feedId.value,
                         name = result.name,
                         specType = result.specType,
                         downloadUrl = result.downloadUrl,

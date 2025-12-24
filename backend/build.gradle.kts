@@ -82,18 +82,12 @@ springBoot {
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-    jvmArgs = listOf(
-        "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-        "--add-opens", "java.base/java.util=ALL-UNNAMED"
-    )
+    // JVM args removed - no longer needed with domain/data layer separation
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
-    jvmArgs = listOf(
-        "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-        "--add-opens", "java.base/java.util=ALL-UNNAMED"
-    )
+    // JVM args removed - no longer needed with domain/data layer separation
 }
 
 // Linting stubs for offline tooling

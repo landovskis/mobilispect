@@ -3,11 +3,7 @@ package com.mobilispect.backend.feed.model
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
 import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.MapsId
-import jakarta.persistence.OneToOne
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
@@ -70,11 +66,6 @@ class FeedAuthentication(
     @Column(name = "version", nullable = false)
     var version: Long = 0
 ) {
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "feed_onestop_id")
-    lateinit var feed: FeedEntity
-
     @PrePersist
     fun onCreate() {
         val now = Instant.now()

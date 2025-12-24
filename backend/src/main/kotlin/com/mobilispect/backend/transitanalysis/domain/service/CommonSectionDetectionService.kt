@@ -51,14 +51,14 @@ class CommonSectionDetectionServiceImpl : CommonSectionDetectionService {
                     sectionVariants += CommonSectionVariant(
                         id = UUID.randomUUID(),
                         commonSection = section,
-                        variant = a,
+                        variantId = a.id.value,
                         startSequence = startA,
                         endSequence = endA
                     )
                     sectionVariants += CommonSectionVariant(
                         id = UUID.randomUUID(),
                         commonSection = section,
-                        variant = b,
+                        variantId = b.id.value,
                         startSequence = startB,
                         endSequence = endB
                     )

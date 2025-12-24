@@ -1,7 +1,6 @@
 package com.mobilispect.backend.transitanalysis.domain.repository
 
 import com.mobilispect.backend.transitanalysis.domain.model.Frequency
-import com.mobilispect.backend.transitanalysis.domain.model.RouteVariant
 import com.mobilispect.backend.transitanalysis.domain.model.TimePeriod
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -28,27 +27,27 @@ interface FrequencyRepository : JpaRepository<Frequency, UUID> {
     /**
      * Find all frequency records for a specific route variant.
      *
-     * @param variant The route variant to search within
+     * @param variantId The route variant ID to search within
      * @param pageable Pagination parameters
      * @return Page of frequency records for the specified variant
      */
-    @Query("SELECT f FROM Frequency f WHERE f.variant = :variant ORDER BY f.serviceDate DESC, f.timePeriod ASC")
+    @Query("SELECT f FROM Frequency f WHERE f.variantId = :variantId ORDER BY f.serviceDate DESC, f.timePeriod ASC")
     fun findByVariant(
-        @Param("variant") variant: RouteVariant,
+        @Param("variantId") variantId: String,
         pageable: Pageable
     ): Page<Frequency>
 
     /**
      * Find frequency records for a variant on a specific service date.
      *
-     * @param variant The route variant to search within
+     * @param variantId The route variant ID to search within
      * @param serviceDate The service date to filter by
      * @param pageable Pagination parameters
      * @return Page of frequency records for the specified date
      */
-    @Query("SELECT f FROM Frequency f WHERE f.variant = :variant AND f.serviceDate = :serviceDate ORDER BY f.timePeriod ASC")
+    @Query("SELECT f FROM Frequency f WHERE f.variantId = :variantId AND f.serviceDate = :serviceDate ORDER BY f.timePeriod ASC")
     fun findByVariantAndServiceDate(
-        @Param("variant") variant: RouteVariant,
+        @Param("variantId") variantId: String,
         @Param("serviceDate") serviceDate: LocalDate,
         pageable: Pageable
     ): Page<Frequency>
@@ -59,14 +58,14 @@ interface FrequencyRepository : JpaRepository<Frequency, UUID> {
      * This is the primary query for retrieving specific headway data for
      * a route variant at a particular time and day.
      *
-     * @param variant The route variant to search within
+     * @param variantId The route variant ID to search within
      * @param serviceDate The service date to filter by
      * @param timePeriod The time period classification (peak, off-peak, etc.)
      * @return Frequency record if found, empty Optional otherwise
      */
-    @Query("SELECT f FROM Frequency f WHERE f.variant = :variant AND f.serviceDate = :serviceDate AND f.timePeriod = :timePeriod")
+    @Query("SELECT f FROM Frequency f WHERE f.variantId = :variantId AND f.serviceDate = :serviceDate AND f.timePeriod = :timePeriod")
     fun findByVariantAndServiceDateAndTimePeriod(
-        @Param("variant") variant: RouteVariant,
+        @Param("variantId") variantId: String,
         @Param("serviceDate") serviceDate: LocalDate,
         @Param("timePeriod") timePeriod: TimePeriod
     ): java.util.Optional<Frequency>
@@ -93,15 +92,15 @@ interface FrequencyRepository : JpaRepository<Frequency, UUID> {
      *
      * Useful for analyzing service patterns over time for a specific variant.
      *
-     * @param variant The route variant to search within
+     * @param variantId The route variant ID to search within
      * @param startDate Start date (inclusive)
      * @param endDate End date (inclusive)
      * @param pageable Pagination parameters
      * @return Page of frequency records for the variant within the date range
      */
-    @Query("SELECT f FROM Frequency f WHERE f.variant = :variant AND f.serviceDate >= :startDate AND f.serviceDate <= :endDate ORDER BY f.serviceDate DESC, f.timePeriod ASC")
+    @Query("SELECT f FROM Frequency f WHERE f.variantId = :variantId AND f.serviceDate >= :startDate AND f.serviceDate <= :endDate ORDER BY f.serviceDate DESC, f.timePeriod ASC")
     fun findByVariantAndServiceDateBetween(
-        @Param("variant") variant: RouteVariant,
+        @Param("variantId") variantId: String,
         @Param("startDate") startDate: LocalDate,
         @Param("endDate") endDate: LocalDate,
         pageable: Pageable
@@ -114,7 +113,7 @@ interface FrequencyRepository : JpaRepository<Frequency, UUID> {
      * @param pageable Pagination parameters
      * @return Page of frequency records with the specified time period
      */
-    @Query("SELECT f FROM Frequency f WHERE f.timePeriod = :timePeriod ORDER BY f.serviceDate DESC, f.variant.id ASC")
+    @Query("SELECT f FROM Frequency f WHERE f.timePeriod = :timePeriod ORDER BY f.serviceDate DESC, f.variantId ASC")
     fun findByTimePeriod(
         @Param("timePeriod") timePeriod: TimePeriod,
         pageable: Pageable
@@ -123,13 +122,13 @@ interface FrequencyRepository : JpaRepository<Frequency, UUID> {
     /**
      * Find records with irregular schedules (no fixed headway pattern).
      *
-     * @param variant The route variant to search within
+     * @param variantId The route variant ID to search within
      * @param pageable Pagination parameters
      * @return Page of irregular frequency records for the variant
      */
-    @Query("SELECT f FROM Frequency f WHERE f.variant = :variant AND f.isIrregular = true ORDER BY f.serviceDate DESC")
+    @Query("SELECT f FROM Frequency f WHERE f.variantId = :variantId AND f.isIrregular = true ORDER BY f.serviceDate DESC")
     fun findIrregularByVariant(
-        @Param("variant") variant: RouteVariant,
+        @Param("variantId") variantId: String,
         pageable: Pageable
     ): Page<Frequency>
 
@@ -151,24 +150,24 @@ interface FrequencyRepository : JpaRepository<Frequency, UUID> {
     /**
      * Find the most recent frequency records for a variant.
      *
-     * @param variant The route variant to search within
+     * @param variantId The route variant ID to search within
      * @param limit Maximum number of records to return
      * @return List of the most recent frequency records
      */
-    @Query("SELECT f FROM Frequency f WHERE f.variant = :variant ORDER BY f.serviceDate DESC LIMIT :limit")
+    @Query("SELECT f FROM Frequency f WHERE f.variantId = :variantId ORDER BY f.serviceDate DESC LIMIT :limit")
     fun findRecentByVariant(
-        @Param("variant") variant: RouteVariant,
+        @Param("variantId") variantId: String,
         @Param("limit") limit: Int
     ): List<Frequency>
 
     /**
      * Count frequency records for a variant.
      *
-     * @param variant The route variant to count within
+     * @param variantId The route variant ID to count within
      * @return Number of frequency records for the variant
      */
-    @Query("SELECT COUNT(f) FROM Frequency f WHERE f.variant = :variant")
-    fun countByVariant(@Param("variant") variant: RouteVariant): Long
+    @Query("SELECT COUNT(f) FROM Frequency f WHERE f.variantId = :variantId")
+    fun countByVariant(@Param("variantId") variantId: String): Long
 
     /**
      * Count frequency records within a date range.
@@ -186,14 +185,14 @@ interface FrequencyRepository : JpaRepository<Frequency, UUID> {
     /**
      * Check if frequency data exists for a variant on a specific date and period.
      *
-     * @param variant The route variant to search within
+     * @param variantId The route variant ID to search within
      * @param serviceDate The service date
      * @param timePeriod The time period
      * @return true if the record exists, false otherwise
      */
-    @Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Frequency f WHERE f.variant = :variant AND f.serviceDate = :serviceDate AND f.timePeriod = :timePeriod")
+    @Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Frequency f WHERE f.variantId = :variantId AND f.serviceDate = :serviceDate AND f.timePeriod = :timePeriod")
     fun existsByVariantAndServiceDateAndTimePeriod(
-        @Param("variant") variant: RouteVariant,
+        @Param("variantId") variantId: String,
         @Param("serviceDate") serviceDate: LocalDate,
         @Param("timePeriod") timePeriod: TimePeriod
     ): Boolean

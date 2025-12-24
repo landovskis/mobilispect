@@ -1,7 +1,6 @@
 package com.mobilispect.backend.agency.application
 
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.agency.domain.model.Agency
@@ -33,7 +32,7 @@ class AgencyQueryServiceTest {
 
     @Test
     fun `getAgencies maps agency and routes into DTO`() {
-        val feed = FeedEntity(feedOnestopId = FeedId("f-abc"), downloadUrl = "")
+        val feed = FeedEntity(feedOnestopId = "f-abc", downloadUrl = "")
         feed.regions = mutableSetOf(
             com.mobilispect.backend.feed.model.MetropolitanRegion(
                 regionOnestopId = RegionId("r-1"),
@@ -47,7 +46,7 @@ class AgencyQueryServiceTest {
         )
         val agency = Agency(
             agencyOnestopId = AgencyId("o-123"),
-            feed = feed,
+            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
             gtfsAgencyId = "gtfs-agency",
             name = "Test Agency",
             createdAt = Instant.now(),
@@ -56,7 +55,7 @@ class AgencyQueryServiceTest {
         val routes = listOf(
             Route(
                 id = RouteId("r-1"),
-                agency = agency,
+                agencyId = agency.agencyOnestopId,
                 gtfsRouteId = "R1",
                 shortName = "1",
                 longName = "Route 1",
@@ -65,7 +64,7 @@ class AgencyQueryServiceTest {
             ),
             Route(
                 id = RouteId("r-2"),
-                agency = agency,
+                agencyId = agency.agencyOnestopId,
                 gtfsRouteId = "R2",
                 shortName = "2",
                 longName = "Route 2",
@@ -74,8 +73,9 @@ class AgencyQueryServiceTest {
             )
         )
 
-        `when`(agencyRepository.findAll(PageRequest.of(0, 20))).thenReturn(PageImpl(listOf(agency)))
-        `when`(routeRepository.findByAgency(agency, Pageable.unpaged())).thenReturn(PageImpl(routes))
+        `when`(agencyRepository.findAll()).thenReturn(listOf(agency))
+        `when`(routeRepository.findByAgencyId(agency.agencyOnestopId, Pageable.unpaged())).thenReturn(PageImpl(routes))
+        `when`(feedRepository.findByFeedOnestopId("f-abc")).thenReturn(java.util.Optional.of(feed))
 
         val page: Page<*> = service.getAgencies(PageRequest.of(0, 20))
         val dto = page.content.first() as com.mobilispect.backend.agency.api.dto.AgencyDTO
@@ -89,17 +89,17 @@ class AgencyQueryServiceTest {
 
     @Test
     fun `getAgencySummary returns null when agency missing`() {
-        `when`(agencyRepository.findById(AgencyId("missing"))).thenReturn(java.util.Optional.empty())
+        `when`(agencyRepository.findById(AgencyId("missing"))).thenReturn(null)
         val result = service.getAgencySummary(AgencyId("missing"))
         assertThat(result).isNull()
     }
 
     @Test
     fun `getAgenciesByRegion aggregates agencies from feeds`() {
-        val feed = FeedEntity(feedOnestopId = FeedId("f-abc"), downloadUrl = "")
+        val feed = FeedEntity(feedOnestopId = "f-abc", downloadUrl = "")
         val agency = Agency(
             agencyOnestopId = AgencyId("o-1"),
-            feed = feed,
+            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
             gtfsAgencyId = "a1",
             name = "A1",
             createdAt = Instant.now(),
@@ -117,9 +117,9 @@ class AgencyQueryServiceTest {
             )
         )
         `when`(feedRepository.findAllByRegionRegionOnestopId(RegionId("r-1"))).thenReturn(listOf(feed))
-        `when`(agencyRepository.findByFeed(any(), any())).thenReturn(PageImpl(listOf(agency)))
-        `when`(routeRepository.findByAgency(any(), any())).thenReturn(PageImpl(emptyList()))
-        `when`(routeRepository.countByAgency(agency)).thenReturn(0)
+        `when`(agencyRepository.findByFeedId(any(), any())).thenReturn(PageImpl(listOf(agency)))
+        `when`(routeRepository.findByAgencyId(any(), any())).thenReturn(PageImpl(emptyList()))
+        `when`(routeRepository.countByAgencyId(agency.agencyOnestopId)).thenReturn(0)
         val page = service.getAgenciesByRegion(RegionId("r-1"), PageRequest.of(0, 20))
         assertThat(page.totalElements).isEqualTo(1)
     }
