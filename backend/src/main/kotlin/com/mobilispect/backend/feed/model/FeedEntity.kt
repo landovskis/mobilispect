@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.model
 
+import com.mobilispect.backend.region.domain.MetropolitanRegion
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity

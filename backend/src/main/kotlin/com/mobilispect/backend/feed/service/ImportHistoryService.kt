@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.service
 
-import com.mobilispect.backend.feed.model.FeedImport
+import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.ids.ImportId

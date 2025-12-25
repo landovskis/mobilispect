@@ -1,6 +1,14 @@
-package com.mobilispect.backend.feed.data.entity
+package com.mobilispect.backend.region.data
 
-import jakarta.persistence.*
+import com.mobilispect.backend.feed.data.entity.FeedEntity
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
+import jakarta.persistence.Id
+import jakarta.persistence.ManyToMany
+import jakarta.persistence.PrePersist
+import jakarta.persistence.PreUpdate
+import jakarta.persistence.Table
 import java.time.Instant
 
 /**

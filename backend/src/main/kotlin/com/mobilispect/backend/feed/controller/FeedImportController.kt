@@ -11,13 +11,14 @@ import com.mobilispect.backend.api.dto.ImportsResponse
 import com.mobilispect.backend.api.dto.ImportStatus as ImportStatusDto
 import com.mobilispect.backend.api.dto.PageInfo
 import com.mobilispect.backend.api.dto.TriggerType as TriggerTypeDto
-import com.mobilispect.backend.feed.model.FeedImport
+import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.service.FeedImportService
+import com.mobilispect.backend.feed.service.ImportHistoryService
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
@@ -32,20 +33,41 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.server.ResponseStatusException
-import java.time.Instant
 import java.util.UUID
 
+/**
+ * Unified REST controller for feed import operations and history.
+ *
+ * Consolidates functionality from ImportController and HistoryController.
+ *
+ * Endpoints:
+ * - POST /api/feeds/feeds/{feedOnestopId}/import - Start feed import
+ * - DELETE /api/feeds/imports/{importId} - Cancel import
+ * - GET /api/feeds/imports/active - Get active imports
+ * - GET /api/feeds/imports/{importId} - Get import detail
+ * - GET /api/feeds/imports/{importId}/progress - Get import progress
+ * - GET /api/feeds/imports - List all imports
+ * - GET /api/feeds/feeds/{feedOnestopId}/imports - List imports for feed
+ * - GET /api/feeds/regions/{regionOnestopId}/imports - List imports for region
+ * - GET /api/feeds/imports/statistics - Get import statistics
+ */
 @RestController
 @RequestMapping("/api/feeds")
-class ImportController(
+class FeedImportController(
     private val feedImportService: FeedImportService,
     private val feedImportRepository: FeedImportRepository,
     private val feedRepository: FeedRepository,
-    private val progressTrackingService: ProgressTrackingService
+    private val progressTrackingService: ProgressTrackingService,
+    private val importHistoryService: ImportHistoryService
 ) {
     private val activeStatuses = listOf(ImportStatus.RUNNING, ImportStatus.PENDING)
 
-    @PostMapping("/feeds/{feedOnestopId}/import")
+    // ========== Import Operations ==========
+
+    /**
+     * Start a new feed import.
+     */
+    @PostMapping("/{feedOnestopId}/import")
     fun startImport(
         @PathVariable feedOnestopId: String,
         @RequestBody(required = false) request: ImportRequest?
@@ -61,6 +83,23 @@ class ImportController(
         return import.toResponse(message)
     }
 
+    /**
+     * Cancel a running import.
+     */
+    @DeleteMapping("/imports/{importId}")
+    fun cancelImport(@PathVariable importId: String): FeedImportDTO {
+        val uuid = parseImportId(importId)
+        feedImportService.cancelImport(ImportId(uuid))
+        val updated = feedImportRepository.findByImportId(ImportId(uuid))
+            .orElseThrow { notFound("Import", importId) }
+        return updated.toFeedImportDTO()
+    }
+
+    // ========== Active Import Tracking ==========
+
+    /**
+     * Get all currently active imports.
+     */
     @GetMapping("/imports/active")
     @Transactional(readOnly = true)
     fun getActiveImports(): ActiveImportsResponse {
@@ -76,6 +115,9 @@ class ImportController(
         )
     }
 
+    /**
+     * Get real-time progress for a specific import.
+     */
     @GetMapping("/imports/{importId}/progress")
     @Transactional(readOnly = true)
     fun getImportProgress(@PathVariable importId: String): ImportProgressDTO {
@@ -111,6 +153,11 @@ class ImportController(
         )
     }
 
+    // ========== Import Details ==========
+
+    /**
+     * Get detailed information about a specific import.
+     */
     @GetMapping("/imports/{importId}")
     @Transactional(readOnly = true)
     fun getImport(@PathVariable importId: String): FeedImportDetailDTO {
@@ -144,15 +191,11 @@ class ImportController(
         )
     }
 
-    @DeleteMapping("/imports/{importId}")
-    fun cancelImport(@PathVariable importId: String): FeedImportDTO {
-        val uuid = parseImportId(importId)
-        feedImportService.cancelImport(ImportId(uuid))
-        val updated = feedImportRepository.findByImportId(ImportId(uuid))
-            .orElseThrow { notFound("Import", importId) }
-        return updated.toFeedImportDTO()
-    }
+    // ========== Import History Lists ==========
 
+    /**
+     * List all imports with optional filtering.
+     */
     @GetMapping("/imports")
     @Transactional(readOnly = true)
     fun listImports(
@@ -189,7 +232,10 @@ class ImportController(
         )
     }
 
-    @GetMapping("/feeds/{feedOnestopId}/imports")
+    /**
+     * List imports for a specific feed.
+     */
+    @GetMapping("/{feedOnestopId}/imports")
     @Transactional(readOnly = true)
     fun listImportsForFeed(
         @PathVariable feedOnestopId: String,
@@ -218,6 +264,62 @@ class ImportController(
             )
         )
     }
+
+    /**
+     * List imports for a specific region.
+     */
+    @GetMapping("/regions/{regionOnestopId}/imports")
+    @Transactional(readOnly = true)
+    fun listImportsForRegion(
+        @PathVariable regionOnestopId: String,
+        @RequestParam(required = false, defaultValue = "0") page: Int,
+        @RequestParam(required = false, defaultValue = "20") size: Int,
+        @RequestParam(required = false) status: ImportStatusDto?
+    ): ImportsResponse {
+        val pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startedAt"))
+        val statusFilter = status?.toEntity()
+
+        val pageResult = importHistoryService.getRegionImportHistory(
+            regionOnestopId = regionOnestopId,
+            status = statusFilter,
+            pageable = pageable
+        )
+
+        return ImportsResponse(
+            imports = pageResult.content.map { it.toFeedImportDTO() },
+            page = PageInfo(
+                page = pageResult.number,
+                size = pageResult.size,
+                totalElements = pageResult.totalElements.toInt(),
+                totalPages = pageResult.totalPages,
+                hasNext = pageResult.hasNext(),
+                hasPrevious = pageResult.hasPrevious()
+            )
+        )
+    }
+
+    // ========== Statistics ==========
+
+    /**
+     * Get import statistics summary.
+     */
+    @GetMapping("/imports/statistics")
+    @Transactional(readOnly = true)
+    fun getStatistics(): StatisticsResponse {
+        val stats = importHistoryService.getImportStatistics()
+        return StatisticsResponse(
+            totalImports = stats.totalImports,
+            completedImports = stats.completedImports,
+            failedImports = stats.failedImports,
+            cancelledImports = stats.cancelledImports,
+            runningImports = stats.runningImports,
+            manualImports = stats.manualImports,
+            automaticImports = stats.automaticImports,
+            successRate = stats.successRate
+        )
+    }
+
+    // ========== Helper Methods ==========
 
     private fun FeedImport.toResponse(message: String?): ImportResponse {
         val feed = findFeed(this)
@@ -327,3 +429,17 @@ class ImportController(
 
     private fun FeedImport.requireId(): ImportId = id
 }
+
+/**
+ * Response for import statistics endpoint.
+ */
+data class StatisticsResponse(
+    val totalImports: Int,
+    val completedImports: Int,
+    val failedImports: Int,
+    val cancelledImports: Int,
+    val runningImports: Int,
+    val manualImports: Int,
+    val automaticImports: Int,
+    val successRate: Double
+)

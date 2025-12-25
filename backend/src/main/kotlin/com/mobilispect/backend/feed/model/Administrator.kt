@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.model
 
+import com.mobilispect.backend.feed.domain.FeedImport
 import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
@@ -12,7 +13,6 @@ import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import org.hibernate.annotations.ColumnTransformer
 import java.time.Instant
-import java.util.UUID
 
 import com.mobilispect.backend.feed.model.ids.AdministratorId
 

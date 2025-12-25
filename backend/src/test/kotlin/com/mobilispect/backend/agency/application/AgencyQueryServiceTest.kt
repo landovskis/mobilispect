@@ -34,7 +34,7 @@ class AgencyQueryServiceTest {
     fun `getAgencies maps agency and routes into DTO`() {
         val feed = FeedEntity(feedOnestopId = "f-abc", downloadUrl = "")
         feed.regions = mutableSetOf(
-            com.mobilispect.backend.feed.model.MetropolitanRegion(
+            com.mobilispect.backend.region.domain.MetropolitanRegion(
                 regionOnestopId = RegionId("r-1"),
                 name = "Region",
                 adm0Name = "Country",
@@ -106,7 +106,7 @@ class AgencyQueryServiceTest {
             updatedAt = Instant.now()
         )
         feed.regions = mutableSetOf(
-            com.mobilispect.backend.feed.model.MetropolitanRegion(
+            com.mobilispect.backend.region.domain.MetropolitanRegion(
                 regionOnestopId = RegionId("r-1"),
                 name = "Region",
                 adm0Name = "Country",

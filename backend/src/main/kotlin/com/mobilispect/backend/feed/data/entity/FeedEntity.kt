@@ -4,6 +4,7 @@ import com.mobilispect.backend.agency.data.entity.AgencyEntity
 import com.mobilispect.backend.feed.model.AuthType
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
+import com.mobilispect.backend.region.data.MetropolitanRegionEntity
 import jakarta.persistence.*
 import java.time.Instant
 

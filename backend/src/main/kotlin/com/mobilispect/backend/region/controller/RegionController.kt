@@ -1,21 +1,20 @@
-package com.mobilispect.backend.feed.controller
+package com.mobilispect.backend.region.controller
 
 import com.mobilispect.backend.api.dto.FeedDTO
-import com.mobilispect.backend.api.dto.FeedSpecType as FeedSpecTypeDto
-import com.mobilispect.backend.api.dto.FeedStatus as FeedStatusDto
+import com.mobilispect.backend.api.dto.FeedSpecType
+import com.mobilispect.backend.api.dto.FeedStatus
 import com.mobilispect.backend.api.dto.FeedsResponse
 import com.mobilispect.backend.api.dto.MetropolitanRegionDTO
 import com.mobilispect.backend.api.dto.RegionUpdateRequest
 import com.mobilispect.backend.api.dto.RegionsResponse
+import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
+import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.FeedSpecType
-import com.mobilispect.backend.feed.model.FeedStatus
+import com.mobilispect.backend.region.domain.MetropolitanRegion
 import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -90,8 +89,8 @@ class RegionController(
     @Transactional(readOnly = true)
     fun listFeedsForRegion(
         @PathVariable regionOnestopId: String,
-        @RequestParam(required = false) specType: FeedSpecTypeDto?,
-        @RequestParam(required = false) status: FeedStatusDto?
+        @RequestParam(required = false) specType: FeedSpecType?,
+        @RequestParam(required = false) status: FeedStatus?
     ): FeedsResponse {
         val region = regionRepository.findByRegionOnestopId(RegionId(regionOnestopId))
             .orElseThrow { notFound("Region", regionOnestopId) }
@@ -99,7 +98,7 @@ class RegionController(
         var feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
 
         // Filter out GTFS-RT feeds (currently disabled)
-        feeds = feeds.filter { it.specType != FeedSpecType.GTFS_RT }
+        feeds = feeds.filter { it.specType != com.mobilispect.backend.feed.model.FeedSpecType.GTFS_RT }
 
         specType?.let { dto ->
             val spec = dto.toEntity()
@@ -121,10 +120,10 @@ class RegionController(
     @PostMapping("/{regionOnestopId}/discover")
     suspend fun discoverFeeds(
         @PathVariable regionOnestopId: String,
-        @RequestParam(required = false, defaultValue = "GTFS") spec: FeedSpecTypeDto
+        @RequestParam(required = false, defaultValue = "GTFS") spec: FeedSpecType
     ): FeedDiscoveryJobResult {
         // GTFS-RT feeds are currently disabled
-        if (spec == FeedSpecTypeDto.GTFS_RT) {
+        if (spec == FeedSpecType.GTFS_RT) {
             logger.warn("GTFS-RT feed discovery is currently disabled")
             throw ResponseStatusException(HttpStatus.BAD_REQUEST, "GTFS-RT feed discovery is currently disabled")
         }
@@ -156,7 +155,7 @@ class RegionController(
         )
     }
 
-    private fun com.mobilispect.backend.feed.model.MetropolitanRegion.toDto(
+    private fun MetropolitanRegion.toDto(
         feeds: List<FeedEntity>
     ): MetropolitanRegionDTO {
         val feedCount = feeds.size
@@ -174,26 +173,26 @@ class RegionController(
         )
     }
 
-    private fun FeedSpecType.toDto(): FeedSpecTypeDto = when (this) {
-        FeedSpecType.GTFS -> FeedSpecTypeDto.GTFS
-        FeedSpecType.GTFS_RT -> FeedSpecTypeDto.GTFS_RT
+    private fun com.mobilispect.backend.feed.model.FeedSpecType.toDto(): FeedSpecType = when (this) {
+        com.mobilispect.backend.feed.model.FeedSpecType.GTFS -> FeedSpecType.GTFS
+        com.mobilispect.backend.feed.model.FeedSpecType.GTFS_RT -> FeedSpecType.GTFS_RT
     }
 
-    private fun FeedStatus.toDto(): FeedStatusDto = when (this) {
-        FeedStatus.ACTIVE -> FeedStatusDto.ACTIVE
-        FeedStatus.INACTIVE -> FeedStatusDto.INACTIVE
-        FeedStatus.ERROR -> FeedStatusDto.ERROR
+    private fun com.mobilispect.backend.feed.model.FeedStatus.toDto(): FeedStatus = when (this) {
+        com.mobilispect.backend.feed.model.FeedStatus.ACTIVE -> FeedStatus.ACTIVE
+        com.mobilispect.backend.feed.model.FeedStatus.INACTIVE -> FeedStatus.INACTIVE
+        com.mobilispect.backend.feed.model.FeedStatus.ERROR -> FeedStatus.ERROR
     }
 
-    private fun FeedSpecTypeDto.toEntity(): FeedSpecType = when (this) {
-        FeedSpecTypeDto.GTFS -> FeedSpecType.GTFS
-        FeedSpecTypeDto.GTFS_RT -> FeedSpecType.GTFS_RT
+    private fun FeedSpecType.toEntity(): com.mobilispect.backend.feed.model.FeedSpecType = when (this) {
+        FeedSpecType.GTFS -> com.mobilispect.backend.feed.model.FeedSpecType.GTFS
+        FeedSpecType.GTFS_RT -> com.mobilispect.backend.feed.model.FeedSpecType.GTFS_RT
     }
 
-    private fun FeedStatusDto.toEntity(): FeedStatus = when (this) {
-        FeedStatusDto.ACTIVE -> FeedStatus.ACTIVE
-        FeedStatusDto.INACTIVE -> FeedStatus.INACTIVE
-        FeedStatusDto.ERROR -> FeedStatus.ERROR
+    private fun FeedStatus.toEntity(): com.mobilispect.backend.feed.model.FeedStatus = when (this) {
+        FeedStatus.ACTIVE -> com.mobilispect.backend.feed.model.FeedStatus.ACTIVE
+        FeedStatus.INACTIVE -> com.mobilispect.backend.feed.model.FeedStatus.INACTIVE
+        FeedStatus.ERROR -> com.mobilispect.backend.feed.model.FeedStatus.ERROR
     }
 
     private fun notFound(entity: String, identifier: String) =

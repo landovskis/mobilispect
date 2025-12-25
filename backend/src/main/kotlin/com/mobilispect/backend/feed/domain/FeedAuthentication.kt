@@ -1,5 +1,7 @@
-package com.mobilispect.backend.feed.model
+package com.mobilispect.backend.feed.domain
 
+import com.mobilispect.backend.feed.model.AuthType
+import com.mobilispect.backend.feed.model.AuthTypeConverter
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity

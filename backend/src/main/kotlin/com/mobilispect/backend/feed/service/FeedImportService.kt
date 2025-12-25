@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.service
 
-import com.mobilispect.backend.feed.model.FeedImport
+import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
@@ -14,15 +14,12 @@ import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
 import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.core.task.SimpleAsyncTaskExecutor
 import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Clock
-import java.time.Instant
-import java.util.UUID
 
 @Service
 class FeedImportService(

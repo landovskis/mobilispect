@@ -1,4 +1,4 @@
-package com.mobilispect.backend.feed.model
+package com.mobilispect.backend.region.domain
 
 import com.mobilispect.backend.feed.model.ids.RegionId
 import jakarta.persistence.AttributeOverride
@@ -14,7 +14,13 @@ import java.time.Instant
 @Table(name = "metropolitan_regions")
 class MetropolitanRegion(
     @EmbeddedId
-    @AttributeOverride(name = "value", column = Column(name = "region_onestop_id", nullable = false, updatable = false, length = 255))
+    @AttributeOverride(name = "value", column = Column(
+        name = "region_onestop_id",
+        nullable = false,
+        updatable = false,
+        length = 255
+    )
+    )
     var regionOnestopId: RegionId = RegionId(""),
 
     @Column(nullable = false, length = 255)
