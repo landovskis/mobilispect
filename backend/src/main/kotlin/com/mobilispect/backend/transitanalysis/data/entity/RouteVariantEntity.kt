@@ -29,6 +29,9 @@ class RouteVariantEntity(
     @Column(name = "stop_pattern", nullable = false, columnDefinition = "TEXT")
     val stopPattern: String,
 
+    @Column(name = "stop_name_pattern", columnDefinition = "TEXT")
+    val stopNamePattern: String? = null,
+
     @Column(name = "stop_count", nullable = false)
     val stopCount: Int,
 

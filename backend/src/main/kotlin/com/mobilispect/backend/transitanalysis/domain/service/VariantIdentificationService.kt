@@ -46,6 +46,7 @@ class VariantIdentificationServiceImpl(
         trips.forEach { trip ->
             val stopIds = trip.stopTimes.sortedBy { it.stopSequence }.map { it.stopId }
             if (stopIds.size < 2) return@forEach
+            val stopNames = stopIds.map { stopId -> stopsById[stopId]?.name ?: stopId }
             val hash = variantHashGenerator.fromStops(stopIds)
             if (!variants.containsKey(hash.value)) {
                 val averageStopSpacingKm = stopSpacingCalculationService.calculateAverageSpacingKm(
@@ -60,6 +61,7 @@ class VariantIdentificationServiceImpl(
                     directionId = trip.directionId,
                     headsign = trip.headsign,
                     stopPattern = stopIds.joinToString("|"),
+                    stopNamePattern = stopNames.joinToString("|"),
                     stopCount = stopIds.size,
                     firstStopId = stopIds.first(),
                     lastStopId = stopIds.last(),

@@ -52,11 +52,17 @@ class FrequencyQueryService(
                 headsign = it.headsign,
                 stopCount = it.stopCount,
                 stopPattern = it.stopPattern,
+                stopNames = extractStopNames(it.stopNamePattern, it.stopPattern),
                 firstStopId = it.firstStopId,
                 lastStopId = it.lastStopId,
                 averageStopSpacingKm = it.averageStopSpacingKm,
                 stopSpacingClassification = classifyStopSpacing(it.averageStopSpacingKm)
             )
+    }
+
+    private fun extractStopNames(stopNamePattern: String?, stopPattern: String): List<String> {
+        val pattern = stopNamePattern?.takeIf { it.isNotBlank() } ?: stopPattern
+        return pattern.split("|").filter { it.isNotBlank() }
     }
 
     @Cacheable(

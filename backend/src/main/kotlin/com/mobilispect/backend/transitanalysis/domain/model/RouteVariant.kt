@@ -15,6 +15,7 @@ import java.time.Instant
  * @property directionId GTFS direction_id (0 = outbound, 1 = inbound, null = unknown)
  * @property headsign Destination headsign shown to passengers
  * @property stopPattern Pipe-separated ordered stop IDs (e.g., "stop1|stop2|stop3")
+ * @property stopNamePattern Pipe-separated ordered stop names (e.g., "Main St|Central Ave|Park Blvd")
  * @property stopCount Number of stops in the pattern
  * @property firstStopId ID of the first stop in the pattern
  * @property lastStopId ID of the last stop in the pattern
@@ -31,6 +32,7 @@ data class RouteVariant(
     val directionId: Int? = null,
     val headsign: String? = null,
     val stopPattern: String,
+    val stopNamePattern: String? = null,
     val stopCount: Int,
     val firstStopId: String,
     val lastStopId: String,
