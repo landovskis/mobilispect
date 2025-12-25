@@ -120,7 +120,7 @@ export class RouteDetailPageComponent implements OnInit {
     if (ids.includes(null)) ordered.push(null);
     return ordered.map(id => ({
       id,
-      label: id === null ? 'Unknown' : `Direction ${id}`,
+      label: this.getMostCommonHeadsign(id) ?? (id === null ? 'Unknown' : `Direction ${id}`),
       key: id === null ? 'unknown' : String(id)
     }));
   }
@@ -144,6 +144,27 @@ export class RouteDetailPageComponent implements OnInit {
       return;
     }
     this.loadFrequencies(this.filteredVariants[0].id);
+  }
+
+  private getMostCommonHeadsign(directionId: number | null): string | null {
+    const counts = new Map<string, number>();
+    this.variants.forEach(variant => {
+      if ((variant.directionId ?? null) !== directionId) return;
+      const headsign = variant.headsign?.trim();
+      if (!headsign) return;
+      counts.set(headsign, (counts.get(headsign) ?? 0) + 1);
+    });
+
+    let mostCommon: string | null = null;
+    let maxCount = 0;
+    counts.forEach((count, headsign) => {
+      if (count > maxCount) {
+        maxCount = count;
+        mostCommon = headsign;
+      }
+    });
+
+    return mostCommon;
   }
 
 }
