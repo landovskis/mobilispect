@@ -38,7 +38,7 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
           </div>
         </div>
       </app-brand-card>
-    </div>;H
+    </div>
   `,
   styles: [`
     .variant {
