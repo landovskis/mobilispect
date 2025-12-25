@@ -3,12 +3,11 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 
 import { FrequencyDto, RouteVariantDto } from '../../services/frequency.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
-import { FrequencyChartComponent } from '../frequency-chart/frequency-chart.component';
 
 @Component({
   selector: 'app-route-variant-card',
   standalone: true,
-  imports: [CommonModule, BrandCardComponent, FrequencyChartComponent],
+  imports: [CommonModule, BrandCardComponent],
   template: `
     <div
       class="variant"
@@ -30,9 +29,6 @@ import { FrequencyChartComponent } from '../frequency-chart/frequency-chart.comp
               <li class="stop-name">{{ stopName }}</li>
             }
           </ul>
-          @if (frequencies.length) {
-            <app-frequency-chart [frequencies]="frequencies"></app-frequency-chart>
-          }
           <div class="meta flex flex-wrap items-center gap-2 text-sm">
             @if (variant.stopSpacingClassification) {
               <span class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold" [ngClass]="classificationClass(variant.stopSpacingClassification)">
@@ -42,7 +38,7 @@ import { FrequencyChartComponent } from '../frequency-chart/frequency-chart.comp
           </div>
         </div>
       </app-brand-card>
-    </div>
+    </div>;H
   `,
   styles: [`
     .variant {
