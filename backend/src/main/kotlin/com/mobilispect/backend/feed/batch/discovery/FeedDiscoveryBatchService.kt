@@ -3,6 +3,7 @@ package com.mobilispect.backend.feed.batch.discovery
 import com.mobilispect.backend.feed.model.FeedSpecType
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
+import org.springframework.batch.core.job.JobExecution
 import org.springframework.batch.core.job.parameters.JobParameters
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
 import org.springframework.batch.core.launch.JobLauncher
@@ -163,7 +164,7 @@ class FeedDiscoveryBatchService(
         return builder.toJobParameters()
     }
 
-    private fun extractFeedsDiscoveredCount(jobExecution: org.springframework.batch.core.job.JobExecution): Int {
+    private fun extractFeedsDiscoveredCount(jobExecution: JobExecution): Int {
         val contextFeeds = jobExecution.executionContext.getInt("feedsFound", -1)
         if (contextFeeds >= 0) {
             return contextFeeds
@@ -173,25 +174,25 @@ class FeedDiscoveryBatchService(
             .sum()
     }
 
-    private fun extractFeedsCreatedCount(jobExecution: org.springframework.batch.core.job.JobExecution): Int {
+    private fun extractFeedsCreatedCount(jobExecution: JobExecution): Int {
         // Extract from execution context if stored
         return jobExecution.executionContext.getInt("feedsCreated", 0)
     }
 
-    private fun extractFeedsUpdatedCount(jobExecution: org.springframework.batch.core.job.JobExecution): Int {
+    private fun extractFeedsUpdatedCount(jobExecution: JobExecution): Int {
         // Extract from execution context if stored
         return jobExecution.executionContext.getInt("feedsUpdated", 0)
     }
 
-    private fun extractFeedsFound(jobExecution: org.springframework.batch.core.job.JobExecution): Int {
+    private fun extractFeedsFound(jobExecution: JobExecution): Int {
         return jobExecution.executionContext.getInt("feedsFound", extractFeedsDiscoveredCount(jobExecution))
     }
 
-    private fun extractRegionsFound(jobExecution: org.springframework.batch.core.job.JobExecution): Int {
+    private fun extractRegionsFound(jobExecution: JobExecution): Int {
         return jobExecution.executionContext.getInt("regionsFound", 0)
     }
 
-    private fun computeDuration(jobExecution: org.springframework.batch.core.job.JobExecution): Long? {
+    private fun computeDuration(jobExecution: JobExecution): Long? {
         val startInstant = (jobExecution.startTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC)
         val endInstant = (jobExecution.endTime as? LocalDateTime)?.toInstant(ZoneOffset.UTC)
         return if (startInstant != null && endInstant != null) {
