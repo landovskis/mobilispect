@@ -28,6 +28,9 @@ import org.springframework.scheduling.annotation.EnableScheduling
     "com.mobilispect.backend.agency.data.repository",
     "com.mobilispect.backend.feed.repository",
     "com.mobilispect.backend.feed.data.repository",
+    "com.mobilispect.backend.route.data.repository",
+    "com.mobilispect.backend.route.domain.repository",
+    "com.mobilispect.backend.stop.data.repository",
     "com.mobilispect.backend.transitanalysis.domain.repository",
     "com.mobilispect.backend.transitanalysis.data.repository"
 ])

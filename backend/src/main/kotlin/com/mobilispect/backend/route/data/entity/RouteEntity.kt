@@ -1,5 +1,6 @@
 package com.mobilispect.backend.route.data.entity
 
+import com.mobilispect.backend.agency.data.entity.AgencyEntity
 import jakarta.persistence.*
 import java.time.Instant
 
@@ -46,6 +47,10 @@ class RouteEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agency_onestop_id", insertable = false, updatable = false)
+    val agency: AgencyEntity? = null
+
     @OneToMany(mappedBy = "route", fetch = FetchType.LAZY)
     val variants: MutableSet<RouteVariantEntity> = mutableSetOf()
 
