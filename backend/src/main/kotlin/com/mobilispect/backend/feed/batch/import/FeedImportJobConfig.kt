@@ -1,6 +1,7 @@
 package com.mobilispect.backend.feed.batch.import
 
-import com.mobilispect.backend.feed.batch.import.FeedImportTasklet
+import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
+import com.mobilispect.backend.feed.service.GTFSFeedReader
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.step.Step
 import org.springframework.batch.core.job.builder.JobBuilder
@@ -14,7 +15,8 @@ import org.springframework.transaction.PlatformTransactionManager
 class FeedImportJobConfig(
     private val jobRepository: JobRepository,
     private val transactionManager: PlatformTransactionManager,
-    private val feedImportTasklet: FeedImportTasklet
+    private val feedImportReader: GTFSFeedReader,
+    private val feedImportWriter: FeedImportWriter
 ) {
 
     @Bean
@@ -24,6 +26,8 @@ class FeedImportJobConfig(
 
     @Bean
     fun feedImportStep(): Step = StepBuilder("feedImportStep", jobRepository)
-        .tasklet(feedImportTasklet, transactionManager)
+        .chunk<ParsedGtfsData, ParsedGtfsData>(1, transactionManager)
+        .reader(feedImportReader)
+        .writer(feedImportWriter)
         .build()
 }

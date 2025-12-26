@@ -8,10 +8,11 @@ import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
 import com.mobilispect.backend.util.ArchiveExtractor
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.batch.core.configuration.annotation.StepScope
+import org.springframework.batch.infrastructure.item.ItemReader
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import java.nio.file.Files
@@ -36,13 +37,19 @@ class FeedStepCompleted(
  * downloading and processing feeds.
  */
 @Service
+@StepScope
 class GTFSFeedReader(
     @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
     @Qualifier("curlDownloader") private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
     private val eventPublisher: ApplicationEventPublisher,
-) : GtfsParser {
+) : ItemReader<ParsedGtfsData>, GtfsParser {
     private val logger = LoggerFactory.getLogger(GTFSFeedReader::class.java)
+
+    @Value("#{jobParameters['feedOnestopId']}")
+    lateinit var feedOnestopId: String
+
+    private var hasRun = false
 
     /**
      * Import a feed by its onestop ID.
@@ -52,36 +59,39 @@ class GTFSFeedReader(
      * @param feedId The onestop ID of the feed to import
      * @return Result containing the version SHA1 hash of the imported feed on success
      */
-    suspend fun importFeedById(feedId: FeedId): Result<ParsedGtfsData> {
-        return withContext(Dispatchers.IO) {
-            logger.info("Starting PostgreSQL-based import for feed: $feedId")
+    fun importFeedById(feedId: FeedId): Result<ParsedGtfsData> {
+        logger.info("Starting PostgreSQL-based import for feed: {}", feedId)
 
-            val feed =
-                feedRepository.findByFeedOnestopId(feedId.value).orElse(null) ?: return@withContext Result.failure(
-                    IllegalArgumentException("Feed not found: $feedId")
-                )
+        val feed = feedRepository.findByFeedOnestopId(feedId.value).orElse(null)
+            ?: return Result.failure(IllegalArgumentException("Feed not found: $feedId"))
 
-            // Validate feed has a download URL
-            if (feed.downloadUrl.isBlank()) {
-                return@withContext Result.failure(
-                    IllegalArgumentException("Feed $feedId has no download URL")
-                )
-            }
-
-            val archive = doStep(feed.feedId, FeedStep.Download) {
-                downloadFeed(feed)
-            }.getOrNull() ?: return@withContext Result.failure(IllegalStateException("Download failed"))
-
-            val extractedDir = doStep(feed.feedId, FeedStep.Extract) {
-                extractFeed(archive)
-            }.getOrNull() ?: return@withContext Result.failure(IllegalStateException("Extraction failed"))
-
-            doStep(feed.feedId, FeedStep.Validate) {
-                validateGtfsFiles(extractedDir)
-            }.getOrNull() ?: return@withContext Result.failure(IllegalStateException("Validation failed"))
-
-            return@withContext doStep(feed.feedId, FeedStep.Parse) { parse(extractedDir) }
+        if (feed.downloadUrl.isBlank()) {
+            return Result.failure(IllegalArgumentException("Feed $feedId has no download URL"))
         }
+
+        val archive = doStep(feed.feedId, FeedStep.Download) {
+            downloadFeed(feed)
+        }.getOrNull() ?: return Result.failure(IllegalStateException("Download failed"))
+
+        val extractedDir = doStep(feed.feedId, FeedStep.Extract) {
+            extractFeed(archive)
+        }.getOrNull() ?: return Result.failure(IllegalStateException("Extraction failed"))
+
+        doStep(feed.feedId, FeedStep.Validate) {
+            validateGtfsFiles(extractedDir)
+        }.getOrNull() ?: return Result.failure(IllegalStateException("Validation failed"))
+
+        return doStep(feed.feedId, FeedStep.Parse) { parse(extractedDir) }
+    }
+
+    override fun read(): ParsedGtfsData? {
+        if (hasRun) return null
+        hasRun = true
+
+        val feedId = FeedId.from(feedOnestopId)
+            ?: throw IllegalArgumentException("feedOnestopId job parameter is required")
+
+        return importFeedById(feedId).getOrElse { throw it }
     }
 
     private fun <T> doStep(feedId: String, step: FeedStep, function: () -> Result<T>): Result<T> {
