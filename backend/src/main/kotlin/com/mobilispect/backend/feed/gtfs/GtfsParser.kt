@@ -1,4 +1,4 @@
-package com.mobilispect.backend.transitanalysis.infrastructure.gtfs
+package com.mobilispect.backend.feed.gtfs
 
 import java.nio.file.Path
 import java.time.LocalTime

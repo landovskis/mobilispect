@@ -1,7 +1,7 @@
 package com.mobilispect.backend.transitanalysis.application
 
 import com.mobilispect.backend.config.RedisConfiguration
-import com.mobilispect.backend.transitanalysis.events.FeedImportCompleted
+import com.mobilispect.backend.feed.events.FeedImportCompleted
 import org.slf4j.LoggerFactory
 import org.springframework.cache.CacheManager
 import org.springframework.context.event.EventListener

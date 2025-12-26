@@ -1,4 +1,4 @@
-package com.mobilispect.backend.transitanalysis.infrastructure.gtfs
+package com.mobilispect.backend.feed.gtfs
 
 import com.conveyal.gtfs.GTFSFeed
 import org.slf4j.LoggerFactory

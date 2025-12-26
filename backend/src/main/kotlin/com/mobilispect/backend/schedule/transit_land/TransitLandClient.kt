@@ -6,7 +6,7 @@ import com.mobilispect.backend.AgencyResultItem
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.FeedVersion
-import com.mobilispect.backend.uti.GenericError
+import com.mobilispect.backend.util.GenericError
 import com.mobilispect.backend.TransitLandFeedResponse
 import com.mobilispect.backend.TransitLandOperatorResponse
 import com.mobilispect.backend.feed.model.FeedSpecType
