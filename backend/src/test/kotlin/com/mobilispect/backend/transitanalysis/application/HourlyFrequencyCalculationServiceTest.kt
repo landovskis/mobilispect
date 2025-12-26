@@ -10,10 +10,10 @@ import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import com.mobilispect.backend.route.application.HourlyFrequencyCalculationService
 import com.mobilispect.backend.route.application.HourlyFrequencyCalculationServiceImpl
-import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.GtfsParser
-import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedGtfsData
-import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedStopTime
-import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedTrip
+import com.mobilispect.backend.feed.gtfs.GtfsParser
+import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
+import com.mobilispect.backend.feed.gtfs.ParsedStopTime
+import com.mobilispect.backend.feed.gtfs.ParsedTrip
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

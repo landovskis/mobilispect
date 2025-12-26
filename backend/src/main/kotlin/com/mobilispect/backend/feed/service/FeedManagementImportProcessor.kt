@@ -5,7 +5,6 @@ import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
-import com.mobilispect.backend.feed.service.FeedImportService as TransitAnalysisFeedImportService
 import com.mobilispect.backend.util.ArchiveExtractor
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +29,6 @@ class FeedManagementImportProcessor(
     @Qualifier("curlDownloader")
     private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
-    private val transitAnalysisFeedImportService: TransitAnalysisFeedImportService,
     private val progressTrackingService: ProgressTrackingService,
     private val clock: Clock = Clock.systemUTC()
 ) {
@@ -95,20 +93,11 @@ class FeedManagementImportProcessor(
                     .forEach { Files.deleteIfExists(it) }
 
                 progress(stepNumber = 4, stepName = "Processing GTFS data")
-                logger.info("Starting transit analysis import for feed: $feedOnestopId")
+                logger.info("GTFS validation complete for feed: $feedOnestopId")
 
-                // Call transit analysis service to parse GTFS and calculate frequencies
-                val analysisResult = transitAnalysisFeedImportService.importFeed(
-                    feedPath = archive,
-                    feedEntity = feed
-                ).getOrThrow()
-
-                logger.info(
-                    "Transit analysis complete - {} agencies, {} routes, {} variants",
-                    analysisResult.agenciesProcessed,
-                    analysisResult.routesProcessed,
-                    analysisResult.variantsIdentified
-                )
+                // TODO: Integrate with transit analysis service when available
+                // Transit analysis import (routes, variants, frequencies) will be added
+                // in a future iteration
 
                 progress(stepNumber = 8, stepName = "Finalizing import", percentage = 100)
 

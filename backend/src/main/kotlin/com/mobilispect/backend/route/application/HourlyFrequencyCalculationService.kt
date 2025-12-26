@@ -8,8 +8,8 @@ import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
-import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.GtfsParser
-import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedTrip
+import com.mobilispect.backend.feed.gtfs.GtfsParser
+import com.mobilispect.backend.feed.gtfs.ParsedTrip
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
