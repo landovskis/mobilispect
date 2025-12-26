@@ -57,7 +57,7 @@ import { ThemeToggleComponent } from './theme-toggle.component';
           [opened]="(isHandset$ | async) ? sidebarOpened : true"
           (openedChange)="onSidenavOpenedChange($event)">
           <nav class="flex flex-col gap-4 sticky top-24 max-md:static" aria-label="Feed navigation">
-            <div class="mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Feeds</div>
+            <div class="mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Inspect</div>
 
             <button
               type="button"
@@ -66,7 +66,7 @@ import { ThemeToggleComponent } from './theme-toggle.component';
               routerLinkActive="active"
               [routerLinkActiveOptions]="{ exact: true }">
               <mat-icon class="text-[20px] text-[#0B4F8A]">rss_feed</mat-icon>
-              <span>Discover</span>
+              <span>Discover Feeds</span>
               @let discoverCount = discoverFeedCount$ | async;
               @if ((discoverCount ?? 0) > 0) {
                 <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ discoverCount }}</span>
@@ -79,7 +79,7 @@ import { ThemeToggleComponent } from './theme-toggle.component';
               routerLink="/feeds/imports"
               routerLinkActive="active">
               <mat-icon class="text-[20px] text-[#0B4F8A]">history</mat-icon>
-              <span>Imports</span>
+              <span>Feed Imports</span>
               @let totalImports = totalImportElements$ | async;
               @if ((totalImports ?? 0) > 0) {
                 <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ totalImports }}</span>
@@ -90,14 +90,13 @@ import { ThemeToggleComponent } from './theme-toggle.component';
               }
             </button>
 
-            <div class="mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Regions</div>
             <button
               type="button"
               class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
               routerLink="/regions"
               routerLinkActive="active">
               <mat-icon class="text-[20px] text-[#0B4F8A]">map</mat-icon>
-              <span>List</span>
+              <span>Regions</span>
             </button>
           </nav>
         </mat-sidenav>
