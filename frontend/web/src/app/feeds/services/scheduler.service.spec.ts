@@ -26,7 +26,7 @@ describe('SchedulerService', () => {
       expect(status.lastRunTime instanceof Date).toBeTrue();
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/status`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/status`);
     req.flush({
       enabled: true,
       totalActiveFeeds: 2,
@@ -41,7 +41,7 @@ describe('SchedulerService', () => {
       expect(stats.lastAutomaticImportTime instanceof Date).toBeTrue();
     });
 
-    const statsReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/stats`);
+    const statsReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/stats`);
     statsReq.flush({
       totalAutomaticImportsLast24h: 4,
       successfulImportsLast24h: 3,
@@ -55,7 +55,7 @@ describe('SchedulerService', () => {
       expect(versions[0].lastUpdatedAt instanceof Date).toBeTrue();
     });
 
-    const versionsReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/versions`);
+    const versionsReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/versions`);
     versionsReq.flush([
       {
         feedOnestopId: 'f-abc-test',
@@ -74,7 +74,7 @@ describe('SchedulerService', () => {
       expect(status.lastRunTime).toBeUndefined();
     });
 
-    const statusReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/status`);
+    const statusReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/status`);
     statusReq.flush({
       enabled: true,
       totalActiveFeeds: 2,
@@ -87,7 +87,7 @@ describe('SchedulerService', () => {
       expect(stats.lastAutomaticImportTime).toBeUndefined();
     });
 
-    const statsReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/stats`);
+    const statsReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/stats`);
     statsReq.flush({
       totalAutomaticImportsLast24h: 0,
       successfulImportsLast24h: 0,
@@ -100,7 +100,7 @@ describe('SchedulerService', () => {
       expect(config.globalAutoUpdateEnabled).toBeTrue();
     });
 
-    const configReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/config`);
+    const configReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/config`);
     configReq.flush({
       globalAutoUpdateEnabled: true,
       defaultCheckIntervalHours: 6,
@@ -119,7 +119,7 @@ describe('SchedulerService', () => {
       expect(config.globalAutoUpdateEnabled).toBeFalse();
     });
 
-    const updateReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/config`);
+    const updateReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/config`);
     expect(updateReq.request.method).toBe('PUT');
     updateReq.flush({
       globalAutoUpdateEnabled: false,
@@ -136,7 +136,7 @@ describe('SchedulerService', () => {
       expect(version.lastUpdatedAt).toBeUndefined();
     });
 
-    const feedReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/versions/f-1`);
+    const feedReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/versions/f-1`);
     feedReq.flush({
       feedOnestopId: 'f-1',
       currentVersionSha1: 'abc',
@@ -151,7 +151,7 @@ describe('SchedulerService', () => {
       expect(version.lastCheckedAt instanceof Date).toBeTrue();
     });
 
-    const refreshReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/versions/f-1/refresh`);
+    const refreshReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/versions/f-1/refresh`);
     expect(refreshReq.request.method).toBe('POST');
     refreshReq.flush({
       feedOnestopId: 'f-1',
@@ -170,7 +170,7 @@ describe('SchedulerService', () => {
       expect(versions[0].lastUpdatedAt).toBeUndefined();
     });
 
-    const versionsReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/versions`);
+    const versionsReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/versions`);
     versionsReq.flush([
       {
         feedOnestopId: 'f-null',
@@ -189,7 +189,7 @@ describe('SchedulerService', () => {
       expect(result.checkedCount).toBe(4);
     });
 
-    const manualReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/manual-check`);
+    const manualReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/manual-check`);
     expect(manualReq.request.method).toBe('POST');
     manualReq.flush({
       success: true,
@@ -201,12 +201,12 @@ describe('SchedulerService', () => {
     });
 
     service.enableFeedAutoUpdate('f-2').subscribe();
-    const enableReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/feeds/f-2/auto-update/enable`);
+    const enableReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/feeds/f-2/auto-update/enable`);
     expect(enableReq.request.method).toBe('POST');
     enableReq.flush({});
 
     service.disableFeedAutoUpdate('f-2').subscribe();
-    const disableReq = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/feeds/f-2/auto-update/disable`);
+    const disableReq = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/feeds/f-2/auto-update/disable`);
     expect(disableReq.request.method).toBe('POST');
     disableReq.flush({});
   });
@@ -216,7 +216,7 @@ describe('SchedulerService', () => {
       expect(hasUpdate).toBeTrue();
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/feeds/scheduler/feeds/f-abc-test/check-update`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/scheduler/feeds/f-abc-test/check-update`);
     req.flush({ hasUpdate: true });
   });
 });

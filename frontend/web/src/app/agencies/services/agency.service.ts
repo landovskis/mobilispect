@@ -10,7 +10,7 @@ import {RouteListResponse} from "../models/route.model";
   providedIn: 'root'
 })
 export class AgencyService {
-  private readonly apiUrl = `${environment.apiUrl}/api`;
+  private readonly apiUrl = `${environment.apiUrl}`;
 
   constructor(private readonly http: HttpClient) {
   }
