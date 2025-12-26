@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.batch.discovery
 
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import java.time.LocalDate
 

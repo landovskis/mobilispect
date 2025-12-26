@@ -1,7 +1,7 @@
 package com.mobilispect.backend
 
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.schedule.ScheduledFeed
 import org.springframework.stereotype.Component
 import java.time.LocalDate
@@ -14,7 +14,7 @@ class DefaultFeedDataSource : FeedDataSource {
             Result.success(
                 ScheduledFeed(
                     feed = FeedEntity(
-                        feedOnestopId = "f-f256-exo~citlapresquîle",
+                        feedId = "f-f256-exo~citlapresquîle",
                         downloadUrl = "https://exo.quebec/xdata/citpi/google_transit.zip"
                     ),
                     version = FeedVersion(

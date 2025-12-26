@@ -1,6 +1,6 @@
 package com.mobilispect.backend.stop.domain.model
 
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.stop.domain.model.ids.StopId
 import java.time.Instant
 

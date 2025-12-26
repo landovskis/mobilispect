@@ -1,8 +1,9 @@
 package com.mobilispect.backend.feed.batch.import
 
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.service.FeedImportService
-import com.mobilispect.backend.feed.service.FeedManagementImportProcessor
+import com.mobilispect.backend.feed.service.GTFSFeedReader
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.ExitStatus
@@ -17,7 +18,7 @@ import java.util.UUID
 @Component
 @StepScope
 class FeedImportTasklet(
-    private val feedManagementImportProcessor: FeedManagementImportProcessor,
+    private val gtfsFeedReader: GTFSFeedReader,
     private val feedImportService: FeedImportService
 ) : Tasklet {
 
@@ -31,11 +32,11 @@ class FeedImportTasklet(
             ?: error("importId job parameter is required")
 
         val result = runBlocking {
-            feedManagementImportProcessor.importFeedById(feedOnestopId)
+            gtfsFeedReader.importFeedById(FeedId(feedOnestopId))
         }
 
-        result.onSuccess { versionSha1 ->
-            feedImportService.completeImport(ImportId(importId), versionSha1)
+        result.onSuccess { parsedData ->
+            feedImportService.completeImport(ImportId(importId), parsedData)
         }.onFailure { throwable ->
             logger.error("Feed import failed for $feedOnestopId", throwable)
             feedImportService.failImport(ImportId(importId), throwable.message ?: "Import failed")

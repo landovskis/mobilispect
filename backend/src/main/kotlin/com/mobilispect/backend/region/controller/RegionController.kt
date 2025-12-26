@@ -151,9 +151,9 @@ class RegionController(
     }
 
     private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {
-        val hasAuthentication = feedAuthenticationRepository.findById(feed.feedOnestopId).isPresent
+        val hasAuthentication = feedAuthenticationRepository.findById(feed.feedId).isPresent
         return FeedDTO(
-            feedOnestopId = feed.feedOnestopId,
+            feedOnestopId = feed.feedId,
             regionOnestopId = regionOnestopId,
             name = feed.name,
             specType = feed.specType.toDto(),

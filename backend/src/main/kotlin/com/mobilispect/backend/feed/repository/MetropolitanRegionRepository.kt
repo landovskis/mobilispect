@@ -31,12 +31,14 @@ interface MetropolitanRegionRepository : JpaRepository<MetropolitanRegion, Regio
      * DISTINCT is used to avoid duplicate regions when a region has multiple feeds
      * or a feed has multiple completed imports.
      */
-    @Query("""
+    @Query(
+        """
         SELECT DISTINCT r FROM MetropolitanRegion r
         JOIN FeedEntity f ON r MEMBER OF f.regions
-        JOIN FeedImport fi ON fi.feedOnestopId = f.feedOnestopId
+        JOIN FeedImport fi ON fi.feedId = f.feedId
         WHERE fi.status = com.mobilispect.backend.feed.model.ImportStatus.COMPLETED
-    """)
+    """
+    )
     fun findAllWithCompletedImports(): List<MetropolitanRegion>
 
     /**
@@ -45,13 +47,15 @@ interface MetropolitanRegionRepository : JpaRepository<MetropolitanRegion, Regio
      *
      * This query combines the completed import filter with the autoUpdateEnabled filter.
      */
-    @Query("""
+    @Query(
+        """
         SELECT DISTINCT r FROM MetropolitanRegion r
         JOIN FeedEntity f ON r MEMBER OF f.regions
-        JOIN FeedImport fi ON fi.feedOnestopId = f.feedOnestopId
+        JOIN FeedImport fi ON fi.feedId = f.feedId
         WHERE r.autoUpdateEnabled = :autoUpdateEnabled
         AND fi.status = com.mobilispect.backend.feed.model.ImportStatus.COMPLETED
-    """)
+    """
+    )
     fun findAllByAutoUpdateEnabledWithCompletedImports(
         autoUpdateEnabled: Boolean
     ): List<MetropolitanRegion>

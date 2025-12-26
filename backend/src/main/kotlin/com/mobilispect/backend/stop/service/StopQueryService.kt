@@ -1,7 +1,7 @@
 package com.mobilispect.backend.stop.service
 
 import com.mobilispect.backend.config.RedisConfiguration
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.stop.api.StopDTO
 import com.mobilispect.backend.stop.api.StopSummaryDTO
 import com.mobilispect.backend.stop.domain.model.ids.StopId

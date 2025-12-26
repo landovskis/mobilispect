@@ -2,6 +2,7 @@ package com.mobilispect.backend.feed.service
 
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.domain.FeedImport
+import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
@@ -24,6 +25,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Clock
 
 class FeedImportStarted(val importId: ImportId, val feedId: FeedId)
+
+class FeedImportJobFailed(val importId: ImportId, val message: String)
 
 @Service
 class FeedImportService(
@@ -103,14 +106,14 @@ class FeedImportService(
     }
 
     @Transactional
-    fun completeImport(importId: ImportId, versionSha1: String?) {
+    fun completeImport(importId: ImportId, parsedData: ParsedGtfsData) {
         val feedImport = feedImportRepository.findByImportId(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
         val now = clock.instant()
         feedImport.status = ImportStatus.COMPLETED
         feedImport.completedAt = now
-        feedImport.versionSha1 = versionSha1 ?: feedImport.versionSha1
+        // TODO: Generate version SHA1 from parsed data or feed archive
         feedImportRepository.save(feedImport)
 
         if (feedImport.feedId.isNotBlank()) {
@@ -118,12 +121,10 @@ class FeedImportService(
                 .ifPresent { feed ->
                     feed.status = FeedStatus.ACTIVE
                     feed.lastUpdatedAt = now
-                    feed.currentVersionSha1 = feedImport.versionSha1
+                    // TODO: Set currentVersionSha1 from parsed data
                     feedRepository.save(feed)
                 }
         }
-
-        eventPublisher.publishEvent(FeedImportCompleted(importId))
     }
 
     @Transactional
@@ -135,16 +136,10 @@ class FeedImportService(
         feedImport.completedAt = clock.instant()
         feedImport.errorMessage = message
         feedImportRepository.save(feedImport)
-        eventPublisher.publishEvent(FeedImportFailed(importId, message))
+        eventPublisher.publishEvent(FeedImportJobFailed(importId, message))
     }
 
     private fun FeedImport.requireId(): ImportId = id
 
     private fun FeedImport.requireIdAsString(): String = requireId().value.toString()
-}
-
-class FeedImportCompleted(importId: ImportId)
-
-class FeedImportFailed(importId: com.mobilispect.backend.feed.model.ids.ImportId, message: String) {
-
 }

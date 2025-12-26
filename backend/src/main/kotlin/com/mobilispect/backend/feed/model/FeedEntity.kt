@@ -20,7 +20,7 @@ import java.time.Instant
 class FeedEntity(
     @Id
     @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512)
-    var feedOnestopId: String = "",
+    var feedId: String = "",
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -74,7 +74,7 @@ class FeedEntity(
     var updatedAt: Instant = Instant.now()
 ) {
     constructor() : this(
-        feedOnestopId = "placeholder",
+        feedId = "placeholder",
         name = "",
         specType = FeedSpecType.GTFS,
         downloadUrl = "",

@@ -1,4 +1,4 @@
-package com.mobilispect.backend.feed.domain
+package com.mobilispect.backend.feed.domain.model.ids
 
 /**
  * Strongly typed identifier for feeds (Transit.land onestop IDs).

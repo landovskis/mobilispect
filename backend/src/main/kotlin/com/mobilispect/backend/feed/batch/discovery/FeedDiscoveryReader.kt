@@ -1,7 +1,7 @@
 package com.mobilispect.backend.feed.batch.discovery
 
 import com.mobilispect.backend.TransitLandOperator
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.infastructure.transit_land.FeedMetadataResult
 import com.mobilispect.backend.infastructure.transit_land.OperatorsResult
 import com.mobilispect.backend.infastructure.transit_land.TransitLandAPI

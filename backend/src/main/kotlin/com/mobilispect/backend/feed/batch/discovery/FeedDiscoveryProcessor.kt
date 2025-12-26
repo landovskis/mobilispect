@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.batch.discovery
 
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.infrastructure.item.ItemProcessor

@@ -1,7 +1,7 @@
 package com.mobilispect.backend.transitanalysis.data.mapper
 
 import com.mobilispect.backend.feed.data.entity.FeedEntity
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.stop.data.entity.StopEntity
 import com.mobilispect.backend.stop.data.mapper.StopMapper
 import com.mobilispect.backend.stop.domain.model.Stop

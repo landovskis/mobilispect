@@ -1,6 +1,6 @@
 package com.mobilispect.backend.stop.domain.repository
 
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.stop.domain.model.Stop
 import com.mobilispect.backend.stop.domain.model.ids.StopId
 import org.springframework.data.domain.Page

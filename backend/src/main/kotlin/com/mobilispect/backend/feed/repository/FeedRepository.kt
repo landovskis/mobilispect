@@ -20,7 +20,7 @@ interface FeedRepository : JpaRepository<FeedEntity, String> {
      * This method is needed because Hibernate's findById doesn't properly convert
      * the FeedId value class for ID lookups. Use this instead of findById(FeedId).
      */
-    @Query("SELECT f FROM FeedEntity f WHERE f.feedOnestopId = :feedId")
+    @Query("SELECT f FROM FeedEntity f WHERE f.feedId = :feedId")
     fun findByFeedOnestopId(@Param("feedId") feedId: String): Optional<FeedEntity>
 
     @Query("SELECT f FROM FeedEntity f JOIN f.regions r WHERE r.regionOnestopId = :regionOnestopId")

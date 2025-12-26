@@ -1,7 +1,7 @@
 package com.mobilispect.backend.agency.domain.model
 
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import java.time.Instant
 
 /**
