@@ -1,7 +1,6 @@
 package com.mobilispect.backend.agency.data.repository
 
 import com.mobilispect.backend.agency.data.entity.AgencyEntity
-import com.mobilispect.backend.feed.data.entity.FeedEntity
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
@@ -20,25 +19,25 @@ interface AgencyJpaRepository : JpaRepository<AgencyEntity, String> {
     /**
      * Find all agencies for a specific feed.
      */
-    @Query("SELECT a FROM AgencyEntity a WHERE a.feed = :feed ORDER BY a.name ASC")
-    fun findByFeed(
-        @Param("feed") feed: FeedEntity,
+    @Query("SELECT a FROM AgencyEntity a WHERE a.feedId = :feedId ORDER BY a.name ASC")
+    fun findByFeedId(
+        @Param("feedId") feedId: String,
         pageable: Pageable
     ): Page<AgencyEntity>
 
     /**
      * Find all active agencies for a specific feed.
      */
-    @Query("SELECT a FROM AgencyEntity a WHERE a.feed = :feed AND a.active = true ORDER BY a.name ASC")
-    fun findByFeedAndActive(
-        @Param("feed") feed: FeedEntity,
+    @Query("SELECT a FROM AgencyEntity a WHERE a.feedId = :feedId AND a.active = true ORDER BY a.name ASC")
+    fun findByFeedIdAndActive(
+        @Param("feedId") feedId: String,
         pageable: Pageable
     ): Page<AgencyEntity>
 
     /**
      * Find agency by feed ID and GTFS agency ID.
      */
-    @Query("SELECT a FROM AgencyEntity a WHERE a.feed.feedOnestopId = :feedId AND a.gtfsAgencyId = :gtfsAgencyId")
+    @Query("SELECT a FROM AgencyEntity a WHERE a.feedId = :feedId AND a.gtfsId = :gtfsAgencyId")
     fun findByFeedIdAndGtfsAgencyId(
         @Param("feedId") feedId: String,
         @Param("gtfsAgencyId") gtfsAgencyId: String
@@ -74,19 +73,19 @@ interface AgencyJpaRepository : JpaRepository<AgencyEntity, String> {
     /**
      * Count agencies for a specific feed.
      */
-    @Query("SELECT COUNT(a) FROM AgencyEntity a WHERE a.feed = :feed")
-    fun countByFeed(@Param("feed") feed: FeedEntity): Long
+    @Query("SELECT COUNT(a) FROM AgencyEntity a WHERE a.feedId = :feedId")
+    fun countByFeedId(@Param("feedId") feedId: String): Long
 
     /**
      * Count active agencies for a specific feed.
      */
-    @Query("SELECT COUNT(a) FROM AgencyEntity a WHERE a.feed = :feed AND a.active = true")
-    fun countActiveByFeed(@Param("feed") feed: FeedEntity): Long
+    @Query("SELECT COUNT(a) FROM AgencyEntity a WHERE a.feedId = :feedId AND a.active = true")
+    fun countActiveByFeedId(@Param("feedId") feedId: String): Long
 
     /**
      * Check if an agency exists for a specific feed and GTFS ID.
      */
-    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM AgencyEntity a WHERE a.feed.feedOnestopId = :feedId AND a.gtfsAgencyId = :gtfsAgencyId")
+    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM AgencyEntity a WHERE a.feedId = :feedId AND a.gtfsId = :gtfsAgencyId")
     fun existsByFeedIdAndGtfsAgencyId(
         @Param("feedId") feedId: String,
         @Param("gtfsAgencyId") gtfsAgencyId: String

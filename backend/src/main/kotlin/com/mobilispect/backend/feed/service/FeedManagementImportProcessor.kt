@@ -5,7 +5,7 @@ import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
-import com.mobilispect.backend.transitanalysis.domain.service.FeedImportService as TransitAnalysisFeedImportService
+import com.mobilispect.backend.feed.service.FeedImportService as TransitAnalysisFeedImportService
 import com.mobilispect.backend.util.ArchiveExtractor
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import kotlinx.coroutines.Dispatchers

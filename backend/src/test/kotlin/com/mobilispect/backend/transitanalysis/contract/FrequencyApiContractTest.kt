@@ -1,16 +1,16 @@
 package com.mobilispect.backend.transitanalysis.contract
 
-import com.mobilispect.backend.transitanalysis.api.CommonSectionController
-import com.mobilispect.backend.transitanalysis.api.FrequencyController
-import com.mobilispect.backend.transitanalysis.api.dto.CommonSectionDTO
-import com.mobilispect.backend.transitanalysis.api.dto.CombinedFrequencyDTO
-import com.mobilispect.backend.transitanalysis.api.dto.FrequencyDTO
-import com.mobilispect.backend.transitanalysis.api.dto.RouteDTO
-import com.mobilispect.backend.transitanalysis.api.dto.RouteVariantDTO
-import com.mobilispect.backend.transitanalysis.application.CommonSectionService
-import com.mobilispect.backend.transitanalysis.application.FrequencyQueryService
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
-import com.mobilispect.backend.transitanalysis.domain.model.TimePeriod
+import com.mobilispect.backend.route.api.CommonSectionController
+import com.mobilispect.backend.route.api.FrequencyController
+import com.mobilispect.backend.route.api.dto.CommonSectionDTO
+import com.mobilispect.backend.route.api.dto.CombinedFrequencyDTO
+import com.mobilispect.backend.route.api.dto.FrequencyDTO
+import com.mobilispect.backend.route.api.dto.RouteDTO
+import com.mobilispect.backend.route.api.dto.RouteVariantDTO
+import com.mobilispect.backend.route.application.CommonSectionService
+import com.mobilispect.backend.route.application.FrequencyQueryService
+import com.mobilispect.backend.route.domain.model.RouteType
+import com.mobilispect.backend.route.domain.model.TimePeriod
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`

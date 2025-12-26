@@ -1,16 +1,18 @@
 package com.mobilispect.backend.transitanalysis.application
 
-import com.mobilispect.backend.transitanalysis.domain.model.CommonSection
-import com.mobilispect.backend.transitanalysis.domain.model.CommonSectionVariant
-import com.mobilispect.backend.transitanalysis.domain.model.Route
-import com.mobilispect.backend.transitanalysis.domain.model.RouteVariant
-import com.mobilispect.backend.transitanalysis.domain.model.TimePeriod
-import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
-import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
-import com.mobilispect.backend.transitanalysis.domain.repository.CommonSectionRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.CommonSectionVariantRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.FrequencyRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.domain.model.CommonSection
+import com.mobilispect.backend.route.domain.model.CommonSectionVariant
+import com.mobilispect.backend.route.domain.model.Route
+import com.mobilispect.backend.route.domain.model.RouteVariant
+import com.mobilispect.backend.route.domain.model.TimePeriod
+import com.mobilispect.backend.route.domain.model.Frequency
+import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.application.CommonSectionService
+import com.mobilispect.backend.route.domain.repository.CommonSectionRepository
+import com.mobilispect.backend.route.domain.repository.CommonSectionVariantRepository
+import com.mobilispect.backend.route.domain.repository.FrequencyRepository
+import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -36,7 +38,7 @@ class CommonSectionServiceTest {
             agencyId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-1"),
             gtfsRouteId = "R1",
             longName = "Route 1",
-            routeType = com.mobilispect.backend.transitanalysis.domain.model.RouteType.BUS,
+            routeType = com.mobilispect.backend.route.domain.model.RouteType.BUS,
             active = true
         )
         val variant = RouteVariant(
@@ -101,7 +103,7 @@ class CommonSectionServiceTest {
             startSequence = 0,
             endSequence = 2
         )
-        val freq = com.mobilispect.backend.transitanalysis.domain.model.Frequency(
+        val freq = Frequency(
             variantId = variant.id.value,
             serviceDate = LocalDate.of(2025, 1, 1),
             timePeriod = TimePeriod.WEEKDAY_AM_PEAK,

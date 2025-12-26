@@ -1,6 +1,6 @@
 package com.mobilispect.backend.agency.api.dto
 
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
+import com.mobilispect.backend.route.domain.model.RouteType
 
 data class AgencyDTO(
     val id: String,

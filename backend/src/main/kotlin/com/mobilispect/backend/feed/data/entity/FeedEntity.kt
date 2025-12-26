@@ -1,6 +1,5 @@
 package com.mobilispect.backend.feed.data.entity
 
-import com.mobilispect.backend.agency.data.entity.AgencyEntity
 import com.mobilispect.backend.feed.model.AuthType
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -66,9 +65,6 @@ class FeedEntity(
         inverseJoinColumns = [JoinColumn(name = "region_onestop_id")]
     )
     val regions: MutableSet<MetropolitanRegionEntity> = mutableSetOf()
-
-    @OneToMany(mappedBy = "feed", fetch = FetchType.LAZY)
-    val agencies: MutableSet<AgencyEntity> = mutableSetOf()
 
     @OneToOne(mappedBy = "feed", fetch = FetchType.LAZY)
     var authentication: FeedAuthenticationEntity? = null

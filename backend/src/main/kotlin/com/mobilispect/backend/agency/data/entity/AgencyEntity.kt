@@ -1,7 +1,6 @@
 package com.mobilispect.backend.agency.data.entity
 
-import com.mobilispect.backend.feed.data.entity.FeedEntity
-import com.mobilispect.backend.transitanalysis.data.entity.RouteEntity
+import com.mobilispect.backend.route.data.entity.RouteEntity
 import jakarta.persistence.*
 import java.time.Instant
 
@@ -18,12 +17,11 @@ class AgencyEntity(
     @Column(name = "agency_onestop_id", nullable = false, updatable = false, length = 255)
     val agencyOnestopId: String,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "feed_onestop_id", nullable = false)
-    val feed: FeedEntity,
+    @Column(name = "feed_onestop_id", nullable = false, length = 512)
+    val feedId: String,
 
     @Column(name = "gtfs_agency_id", nullable = false, length = 255)
-    val gtfsAgencyId: String,
+    val gtfsId: String,
 
     @Column(name = "name", nullable = false, length = 255)
     var name: String,

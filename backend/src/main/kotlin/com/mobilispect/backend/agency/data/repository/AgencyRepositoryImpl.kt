@@ -4,7 +4,7 @@ import com.mobilispect.backend.agency.data.mapper.AgencyMapper
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
-import com.mobilispect.backend.feed.data.repository.FeedJpaRepository
+import com.mobilispect.backend.feed.api.FeedQueryApi
 import com.mobilispect.backend.feed.model.ids.FeedId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -19,7 +19,7 @@ import java.time.Instant
 @Repository
 class AgencyRepositoryImpl(
     private val jpaRepository: AgencyJpaRepository,
-    private val feedJpaRepository: FeedJpaRepository,
+    private val feedQueryApi: FeedQueryApi,
     private val mapper: AgencyMapper
 ) : AgencyRepository {
 
@@ -29,16 +29,18 @@ class AgencyRepositoryImpl(
             .orElse(null)
 
     override fun findByFeedId(feedId: FeedId, pageable: Pageable): Page<Agency> {
-        val feedEntity = feedJpaRepository.findByFeedOnestopId(feedId.value)
+        // Validate feed exists via API
+        feedQueryApi.findFeedById(feedId)
             ?: throw IllegalArgumentException("Feed not found: $feedId")
-        return jpaRepository.findByFeed(feedEntity, pageable)
+        return jpaRepository.findByFeedId(feedId.value, pageable)
             .map { mapper.toDomain(it) }
     }
 
     override fun findByFeedIdAndActive(feedId: FeedId, pageable: Pageable): Page<Agency> {
-        val feedEntity = feedJpaRepository.findByFeedOnestopId(feedId.value)
+        // Validate feed exists via API
+        feedQueryApi.findFeedById(feedId)
             ?: throw IllegalArgumentException("Feed not found: $feedId")
-        return jpaRepository.findByFeedAndActive(feedEntity, pageable)
+        return jpaRepository.findByFeedIdAndActive(feedId.value, pageable)
             .map { mapper.toDomain(it) }
     }
 
@@ -59,24 +61,25 @@ class AgencyRepositoryImpl(
             .map { mapper.toDomain(it) }
 
     override fun countByFeedId(feedId: FeedId): Long {
-        val feedEntity = feedJpaRepository.findByFeedOnestopId(feedId.value)
-            ?: return 0
-        return jpaRepository.countByFeed(feedEntity)
+        // Check if feed exists via API
+        feedQueryApi.findFeedById(feedId) ?: return 0
+        return jpaRepository.countByFeedId(feedId.value)
     }
 
     override fun countActiveByFeedId(feedId: FeedId): Long {
-        val feedEntity = feedJpaRepository.findByFeedOnestopId(feedId.value)
-            ?: return 0
-        return jpaRepository.countActiveByFeed(feedEntity)
+        // Check if feed exists via API
+        feedQueryApi.findFeedById(feedId) ?: return 0
+        return jpaRepository.countActiveByFeedId(feedId.value)
     }
 
     override fun existsByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: String): Boolean =
         jpaRepository.existsByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId)
 
     override fun save(agency: Agency): Agency {
-        val feedEntity = feedJpaRepository.findByFeedOnestopId(agency.feedId.value)
+        // Validate feed exists via API
+        feedQueryApi.findFeedById(agency.feedId)
             ?: throw IllegalArgumentException("Feed not found: ${agency.feedId}")
-        val entity = mapper.toEntity(agency, feedEntity)
+        val entity = mapper.toEntity(agency)
         val saved = jpaRepository.save(entity)
         return mapper.toDomain(saved)
     }

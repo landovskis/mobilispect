@@ -1,8 +1,9 @@
 package com.mobilispect.backend.transitanalysis.domain.service
 
-import com.mobilispect.backend.transitanalysis.domain.model.Frequency
-import com.mobilispect.backend.transitanalysis.domain.model.TimePeriod
-import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.domain.model.Frequency
+import com.mobilispect.backend.route.domain.model.TimePeriod
+import com.mobilispect.backend.route.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.domain.service.FrequencyCalculationService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

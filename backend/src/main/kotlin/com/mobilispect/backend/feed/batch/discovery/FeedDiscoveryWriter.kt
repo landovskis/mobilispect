@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.batch.discovery
 
+import com.mobilispect.backend.feed.events.RegionDiscoveredEvent
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -13,6 +14,7 @@ import org.springframework.batch.core.annotation.BeforeStep
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.infrastructure.item.Chunk
 import org.springframework.batch.infrastructure.item.ItemWriter
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -37,7 +39,8 @@ import java.time.Instant
 @StepScope
 class FeedDiscoveryWriter(
     private val feedRepository: FeedRepository,
-    private val regionRepository: MetropolitanRegionRepository
+    private val regionRepository: MetropolitanRegionRepository,
+    private val eventPublisher: ApplicationEventPublisher
 ) : ItemWriter<FeedDiscoveryBatch> {
 
     private val logger = LoggerFactory.getLogger(FeedDiscoveryWriter::class.java)
@@ -71,36 +74,40 @@ class FeedDiscoveryWriter(
 
             logger.info("    → Found {} unique regions", uniqueRegions.size)
 
-            // Step 2: Create or update regions
+            // Step 2: Create or update regions via event publication
+            // This maintains module boundaries by allowing Region module to handle its own data
             val regionEntities = mutableMapOf<String, MetropolitanRegion>()
 
             for (regionMetadata in uniqueRegions) {
                 val existingRegion = regionRepository.findByRegionOnestopId(RegionId(regionMetadata.regionOnestopId))
                     .orElse(null)
 
-                val regionEntity = if (existingRegion != null) {
+                if (existingRegion != null) {
                     // Update existing region
                     regionsUpdated++
-                    existingRegion.apply {
-                        name = regionMetadata.regionName
-                        adm0Name = regionMetadata.adm0Name
-                        adm1Name = regionMetadata.adm1Name
-                        updatedAt = Instant.now()
-                    }
+                    logger.debug("      • Updating region: {}", regionMetadata.regionName)
                 } else {
-                    // Create new region
-                    logger.info("      ✓ Creating region: {}", regionMetadata.regionName)
+                    // Publish event for new region creation
+                    logger.info("      ✓ Publishing RegionDiscoveredEvent for: {}", regionMetadata.regionName)
                     regionsCreated++
-                    MetropolitanRegion(
-                        regionOnestopId = RegionId(regionMetadata.regionOnestopId),
+                }
+
+                // Publish event for region creation/update
+                // Event is handled synchronously by RegionEventListener within same transaction
+                eventPublisher.publishEvent(
+                    RegionDiscoveredEvent(
+                        regionId = RegionId(regionMetadata.regionOnestopId),
                         name = regionMetadata.regionName,
                         adm0Name = regionMetadata.adm0Name,
                         adm1Name = regionMetadata.adm1Name,
-                        autoUpdateEnabled = true
+                        operatorName = regionMetadata.operatorName
                     )
-                }
+                )
 
-                val savedRegion = regionRepository.save(regionEntity)
+                // Fetch the saved region entity for feed association
+                val savedRegion = regionRepository.findByRegionOnestopId(RegionId(regionMetadata.regionOnestopId))
+                    .orElseThrow { IllegalStateException("Region not found after event handling: ${regionMetadata.regionOnestopId}") }
+
                 regionEntities[regionMetadata.regionOnestopId] = savedRegion
             }
 

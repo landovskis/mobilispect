@@ -1,13 +1,15 @@
 package com.mobilispect.backend.transitanalysis.application
 
 import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.transitanalysis.domain.model.Route
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
-import com.mobilispect.backend.transitanalysis.domain.model.RouteVariant
-import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
-import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.domain.model.Route
+import com.mobilispect.backend.route.domain.model.RouteType
+import com.mobilispect.backend.route.domain.model.RouteVariant
+import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.domain.repository.RouteRepository
+import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.application.HourlyFrequencyCalculationService
+import com.mobilispect.backend.route.application.HourlyFrequencyCalculationServiceImpl
 import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.GtfsParser
 import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedGtfsData
 import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedStopTime

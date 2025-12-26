@@ -1,5 +1,6 @@
 package com.mobilispect.backend.transitanalysis.domain.model.ids
 
+import com.mobilispect.backend.stop.domain.model.ids.StopId
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test

@@ -3,7 +3,6 @@ package com.mobilispect.backend.agency.data.mapper
 import com.mobilispect.backend.agency.data.entity.AgencyEntity
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
-import com.mobilispect.backend.feed.data.entity.FeedEntity
 import com.mobilispect.backend.feed.model.ids.FeedId
 import org.springframework.stereotype.Component
 
@@ -18,13 +17,13 @@ class AgencyMapper {
 
     /**
      * Converts data entity to domain model.
-     * Extracts ID from the feed relationship.
+     * Extracts feed ID from the feedOnestopId column.
      */
     fun toDomain(entity: AgencyEntity): Agency =
         Agency(
             agencyOnestopId = AgencyId(entity.agencyOnestopId),
-            feedId = FeedId(entity.feed.feedOnestopId),
-            gtfsAgencyId = entity.gtfsAgencyId,
+            feedId = FeedId(entity.feedId),
+            gtfsAgencyId = entity.gtfsId,
             name = entity.name,
             website = entity.website,
             phone = entity.phone,
@@ -36,16 +35,15 @@ class AgencyMapper {
 
     /**
      * Converts domain model to data entity.
-     * Requires the feed entity to be provided by the caller for the relationship.
+     * Maps feed ID directly to feedId column without entity navigation.
      *
      * @param domain The domain model to convert
-     * @param feedEntity The feed entity this agency belongs to
      */
-    fun toEntity(domain: Agency, feedEntity: FeedEntity): AgencyEntity =
+    fun toEntity(domain: Agency): AgencyEntity =
         AgencyEntity(
             agencyOnestopId = domain.agencyOnestopId.value,
-            feed = feedEntity,
-            gtfsAgencyId = domain.gtfsAgencyId,
+            feedId = domain.feedId.value,
+            gtfsId = domain.gtfsAgencyId,
             name = domain.name,
             website = domain.website,
             phone = domain.phone,

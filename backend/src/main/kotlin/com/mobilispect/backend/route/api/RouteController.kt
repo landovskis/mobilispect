@@ -2,7 +2,7 @@ package com.mobilispect.backend.route.api
 
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.route.application.RouteQueryService
-import com.mobilispect.backend.transitanalysis.api.dto.RouteDTO
+import com.mobilispect.backend.route.api.dto.RouteDTO
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.web.bind.annotation.GetMapping

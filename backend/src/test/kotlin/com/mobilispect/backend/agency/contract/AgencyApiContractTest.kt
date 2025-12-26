@@ -5,7 +5,7 @@ import com.mobilispect.backend.agency.api.AgencyController
 import com.mobilispect.backend.agency.api.dto.AgencyDTO
 import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.agency.application.AgencyQueryService
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
+import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

@@ -2,9 +2,10 @@ package com.mobilispect.backend.transitanalysis.data.mapper
 
 import com.mobilispect.backend.feed.data.entity.FeedEntity
 import com.mobilispect.backend.feed.model.ids.FeedId
-import com.mobilispect.backend.transitanalysis.data.entity.StopEntity
-import com.mobilispect.backend.transitanalysis.domain.model.Stop
-import com.mobilispect.backend.transitanalysis.domain.model.ids.StopId
+import com.mobilispect.backend.stop.data.entity.StopEntity
+import com.mobilispect.backend.stop.data.mapper.StopMapper
+import com.mobilispect.backend.stop.domain.model.Stop
+import com.mobilispect.backend.stop.domain.model.ids.StopId
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.time.Instant
@@ -28,7 +29,7 @@ class StopMapperTest {
         val now = Instant.now()
         val entity = StopEntity(
             stopOnestopId = "s-9q8y-market~st",
-            feed = feedEntity,
+            feedOnestopId = feedEntity.feedOnestopId,
             gtfsStopId = "1234",
             name = "Market St Station",
             latitude = 37.7749,
@@ -73,7 +74,7 @@ class StopMapperTest {
         val now = Instant.now()
         val entity = StopEntity(
             stopOnestopId = "s-9q8y-market~st",
-            feed = feedEntity,
+            feedOnestopId = feedEntity.feedOnestopId,
             gtfsStopId = "1234",
             name = "Market St Station",
             latitude = 37.7749,
@@ -123,10 +124,10 @@ class StopMapperTest {
             updatedAt = now
         )
 
-        val entity = mapper.toEntity(domain, feedEntity)
+        val entity = mapper.toEntity(domain)
 
         assertEquals("s-9q8y-market~st", entity.stopOnestopId)
-        assertEquals(feedEntity, entity.feed)
+        assertEquals(feedEntity.feedOnestopId, entity.feedOnestopId)
         assertEquals("1234", entity.gtfsStopId)
         assertEquals("Market St Station", entity.name)
         assertEquals(37.7749, entity.latitude)
@@ -166,7 +167,7 @@ class StopMapperTest {
             lastSeen = now
         )
 
-        val entity = mapper.toEntity(domain, feedEntity)
+        val entity = mapper.toEntity(domain)
 
         assertNull(entity.stopCode)
         assertNull(entity.stopDesc)
@@ -200,7 +201,7 @@ class StopMapperTest {
             updatedAt = now
         )
 
-        val entity = mapper.toEntity(originalDomain, feedEntity)
+        val entity = mapper.toEntity(originalDomain)
         val reconvertedDomain = mapper.toDomain(entity)
 
         assertEquals(originalDomain.stopOnestopId, reconvertedDomain.stopOnestopId)

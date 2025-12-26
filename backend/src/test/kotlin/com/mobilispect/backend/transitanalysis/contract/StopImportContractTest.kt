@@ -4,14 +4,15 @@ import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ids.FeedId
-import com.mobilispect.backend.transitanalysis.domain.model.Stop
-import com.mobilispect.backend.transitanalysis.domain.model.ids.StopId
-import com.mobilispect.backend.transitanalysis.domain.repository.StopRepository
+import com.mobilispect.backend.stop.domain.model.Stop
+import com.mobilispect.backend.stop.domain.model.ids.StopId
+import com.mobilispect.backend.stop.domain.repository.StopRepository
 import com.mobilispect.backend.transitanalysis.domain.service.FeedImportService
 import com.mobilispect.backend.transitanalysis.domain.service.OnestopIdGenerator
 import com.mobilispect.backend.transitanalysis.domain.service.StopPersistenceService
 import com.mobilispect.backend.transitanalysis.domain.service.StopPersistenceServiceImpl
 import com.mobilispect.backend.transitanalysis.infrastructure.gtfs.ParsedStop
+import com.mobilispect.backend.route.data.repository.RouteVariantStopJpaRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -51,7 +52,7 @@ class StopImportContractTest {
     private lateinit var onestopIdGenerator: OnestopIdGenerator
 
     @Mock
-    private lateinit var routeVariantStopRepository: com.mobilispect.backend.transitanalysis.data.repository.RouteVariantStopJpaRepository
+    private lateinit var routeVariantStopRepository: com.mobilispect.backend.route.data.repository.RouteVariantStopJpaRepository
 
     private lateinit var stopPersistenceService: StopPersistenceService
 

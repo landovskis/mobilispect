@@ -4,11 +4,12 @@ import com.mobilispect.backend.config.RedisConfiguration
 import com.mobilispect.backend.agency.api.dto.AgencyDTO
 import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.feed.model.ids.RegionId
-import com.mobilispect.backend.feed.repository.FeedRepository
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
+import com.mobilispect.backend.feed.api.FeedQueryApi
+import com.mobilispect.backend.route.domain.model.Route
+import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
+import com.mobilispect.backend.route.domain.repository.RouteRepository
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -26,7 +27,7 @@ import kotlin.math.min
 class AgencyQueryService(
     private val agencyRepository: AgencyRepository,
     private val routeRepository: RouteRepository,
-    private val feedRepository: FeedRepository
+    private val feedQueryApi: FeedQueryApi
 ) {
     /**
      * Get all agencies with pagination.
@@ -48,10 +49,10 @@ class AgencyQueryService(
         key = "'region_' + #regionId.toString() + '_' + #pageable.pageNumber + '_' + #pageable.pageSize"
     )
     fun getAgenciesByRegion(regionId: RegionId, pageable: Pageable): Page<AgencyDTO> {
-        val feeds = feedRepository.findAllByRegionRegionOnestopId(regionId)
+        val feeds = feedQueryApi.findFeedsByRegion(regionId)
         val agencies = feeds.flatMap { feed ->
             agencyRepository.findByFeedId(
-                com.mobilispect.backend.feed.model.ids.FeedId(feed.feedOnestopId),
+                feed.feedId,
                 Pageable.unpaged()
             ).content
         }.distinctBy { it.agencyOnestopId }
@@ -83,8 +84,8 @@ class AgencyQueryService(
     private fun mapAgency(agency: com.mobilispect.backend.agency.domain.model.Agency): AgencyDTO {
         val routes = routeRepository.findByAgencyId(agency.agencyOnestopId, Pageable.unpaged()).content
         val routesByType = routes.groupingBy { it.routeType }.eachCount()
-        val feed = feedRepository.findByFeedOnestopId(agency.feedId.value).orElse(null)
-        val regionIds = feed?.regions?.map { it.regionOnestopId.value }?.toSet() ?: emptySet()
+        val feed = feedQueryApi.findFeedById(agency.feedId)
+        val regionIds = feed?.regionIds?.map { it.value }?.toSet() ?: emptySet()
         return AgencyDTO(
             id = agency.agencyOnestopId.value,
             name = agency.name,

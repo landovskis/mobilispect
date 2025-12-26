@@ -1,14 +1,17 @@
 package com.mobilispect.backend.transitanalysis.application
 
-import com.mobilispect.backend.transitanalysis.domain.model.Route
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
-import com.mobilispect.backend.transitanalysis.domain.model.RouteVariant
-import com.mobilispect.backend.transitanalysis.domain.model.TimePeriod
-import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
-import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
-import com.mobilispect.backend.transitanalysis.domain.repository.FrequencyRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.domain.model.Route
+import com.mobilispect.backend.route.domain.model.RouteType
+import com.mobilispect.backend.route.domain.model.RouteVariant
+import com.mobilispect.backend.route.domain.model.TimePeriod
+import com.mobilispect.backend.route.domain.model.Frequency
+import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.domain.repository.FrequencyRepository
+import com.mobilispect.backend.route.domain.repository.RouteRepository
+import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.application.HourlyFrequencyCalculationService
+import com.mobilispect.backend.route.application.FrequencyQueryService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -75,7 +78,7 @@ class FrequencyQueryServiceTest {
             firstStopId = "s1",
             lastStopId = "s2"
         )
-        val freq = com.mobilispect.backend.transitanalysis.domain.model.Frequency(
+        val freq = Frequency(
             variantId = variant.id.value,
             serviceDate = LocalDate.of(2025, 1, 1),
             timePeriod = TimePeriod.WEEKDAY_AM_PEAK,
