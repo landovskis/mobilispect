@@ -4,7 +4,8 @@ import com.mobilispect.backend.api.dto.FeedSpecType as FeedSpecTypeDto
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.MetropolitanRegion
+import com.mobilispect.backend.region.domain.MetropolitanRegion
+import com.mobilispect.backend.region.controller.RegionController
 import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
@@ -356,7 +357,7 @@ class RegionControllerTest {
         status: FeedStatus = FeedStatus.ACTIVE
     ): FeedEntity {
         return FeedEntity(
-            feedOnestopId = FeedId(id),
+            feedOnestopId = id,
             regions = mutableSetOf(region),
             name = id.substringAfterLast("-").uppercase(),
             specType = specType,

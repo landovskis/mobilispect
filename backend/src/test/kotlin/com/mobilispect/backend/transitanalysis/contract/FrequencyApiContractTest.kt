@@ -1,16 +1,16 @@
 package com.mobilispect.backend.transitanalysis.contract
 
-import com.mobilispect.backend.transitanalysis.api.CommonSectionController
-import com.mobilispect.backend.transitanalysis.api.FrequencyController
-import com.mobilispect.backend.transitanalysis.api.dto.CommonSectionDTO
-import com.mobilispect.backend.transitanalysis.api.dto.CombinedFrequencyDTO
-import com.mobilispect.backend.transitanalysis.api.dto.FrequencyDTO
-import com.mobilispect.backend.transitanalysis.api.dto.RouteDTO
-import com.mobilispect.backend.transitanalysis.api.dto.RouteVariantDTO
-import com.mobilispect.backend.transitanalysis.application.CommonSectionService
-import com.mobilispect.backend.transitanalysis.application.FrequencyQueryService
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
-import com.mobilispect.backend.transitanalysis.domain.model.TimePeriod
+import com.mobilispect.backend.route.api.CommonSectionController
+import com.mobilispect.backend.route.api.FrequencyController
+import com.mobilispect.backend.route.api.dto.CommonSectionDTO
+import com.mobilispect.backend.route.api.dto.CombinedFrequencyDTO
+import com.mobilispect.backend.route.api.dto.FrequencyDTO
+import com.mobilispect.backend.route.api.dto.RouteDTO
+import com.mobilispect.backend.route.api.dto.RouteVariantDTO
+import com.mobilispect.backend.route.application.CommonSectionService
+import com.mobilispect.backend.route.application.FrequencyQueryService
+import com.mobilispect.backend.route.domain.model.RouteType
+import com.mobilispect.backend.route.domain.model.TimePeriod
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -65,8 +65,11 @@ class FrequencyApiContractTest {
                     headsign = "Downtown",
                     stopCount = 5,
                     stopPattern = "s1|s2|s3|s4|s5",
+                    stopNames = listOf("Stop 1", "Stop 2", "Stop 3", "Stop 4", "Stop 5"),
                     firstStopId = "s1",
-                    lastStopId = "s5"
+                    lastStopId = "s5",
+                    averageStopSpacingKm = null,
+                    stopSpacingClassification = null
                 )
             )
         )

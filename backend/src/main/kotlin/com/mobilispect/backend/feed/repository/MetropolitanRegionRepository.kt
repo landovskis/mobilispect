@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.repository
 
-import com.mobilispect.backend.feed.model.MetropolitanRegion
+import com.mobilispect.backend.region.domain.MetropolitanRegion
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository

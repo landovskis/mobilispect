@@ -1,14 +1,23 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { MatIconModule } from '@angular/material/icon';
 
 
 @Component({
   selector: 'app-brand-card',
   standalone: true,
-  imports: [],
+  imports: [MatIconModule],
   template: `
     <section class="brand-card block rounded-2xl p-6" [class.border]="border">
       @if (title || badge) {
         <header class="card-header mb-3 flex items-start gap-2">
+          @if (titleIcon) {
+            <mat-icon
+              class="card-title-icon"
+              [attr.aria-label]="titleIconLabel || title"
+              [attr.aria-hidden]="titleIconLabel || title ? null : true">
+              {{ titleIcon }}
+            </mat-icon>
+          }
           <div class="card-titles flex flex-col gap-0.5">
             @if (title) {
               <h3 class="card-title m-0">{{ title }}</h3>
@@ -51,6 +60,14 @@ import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
       font-weight: 700;
       color: var(--mat-sys-primary, var(--ms-color-primary, #0b4f8a));
       letter-spacing: 0.01em;
+    }
+
+    .card-title-icon {
+      margin-top: 2px;
+      color: currentColor;
+      font-size: 24px;
+      line-height: 1;
+      font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
     }
 
     .card-subtitle {
@@ -121,6 +138,8 @@ export class BrandCardComponent {
   @Input() title?: string;
   @Input() subtitle?: string;
   @Input() badge?: string;
+  @Input() titleIcon?: string;
+  @Input() titleIconLabel?: string;
   @Input() border = true;
   @Input() hasFooter = false;
 }

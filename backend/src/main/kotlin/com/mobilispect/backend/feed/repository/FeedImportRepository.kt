@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.repository
 
-import com.mobilispect.backend.feed.model.FeedImport
+import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import org.springframework.data.domain.Page
@@ -10,10 +10,8 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import java.util.Optional
-import java.util.UUID
 
 import com.mobilispect.backend.feed.model.ids.ImportId
-import com.mobilispect.backend.feed.model.ids.FeedId
 
 @Repository
 interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
@@ -27,8 +25,8 @@ interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
     @Query("SELECT fi FROM FeedImport fi WHERE fi.id = :importId")
     fun findByImportId(@Param("importId") importId: ImportId): Optional<FeedImport>
 
-    fun findAllByFeedFeedOnestopIdOrderByStartedAtDesc(
-        feedOnestopId: FeedId,
+    fun findAllByFeedOnestopIdOrderByStartedAtDesc(
+        feedOnestopId: String,
         pageable: Pageable
     ): Page<FeedImport>
 
@@ -42,8 +40,8 @@ interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
         pageable: Pageable
     ): Page<FeedImport>
 
-    fun findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(
-        feedOnestopId: FeedId,
+    fun findAllByFeedOnestopIdAndStatusInOrderByStartedAtDesc(
+        feedOnestopId: String,
         statuses: Collection<ImportStatus>,
         pageable: Pageable
     ): Page<FeedImport>

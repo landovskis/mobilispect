@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.model
 
+import com.mobilispect.backend.region.domain.MetropolitanRegion
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
 import jakarta.persistence.Entity
@@ -8,23 +9,18 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.JoinTable
 import jakarta.persistence.ManyToMany
-import jakarta.persistence.OneToOne
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import org.hibernate.annotations.ColumnTransformer
 import java.time.Instant
 
-import com.mobilispect.backend.feed.model.ids.FeedId
-import com.mobilispect.backend.feed.model.ids.FeedIdConverter
-
 @Entity
 @Table(name = "feeds")
 class FeedEntity(
     @Id
-    @Convert(converter = FeedIdConverter::class)
     @Column(name = "feed_onestop_id", nullable = false, updatable = false, length = 512)
-    val feedOnestopId: FeedId = FeedId("f-"),
+    var feedOnestopId: String = "",
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -77,11 +73,8 @@ class FeedEntity(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
 ) {
-    @OneToOne(mappedBy = "feed", fetch = FetchType.LAZY)
-    var authentication: FeedAuthentication? = null
-
     constructor() : this(
-        feedOnestopId = FeedId("placeholder"),
+        feedOnestopId = "placeholder",
         name = "",
         specType = FeedSpecType.GTFS,
         downloadUrl = "",

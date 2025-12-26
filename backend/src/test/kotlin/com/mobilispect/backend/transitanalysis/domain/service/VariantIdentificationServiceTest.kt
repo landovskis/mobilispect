@@ -1,8 +1,10 @@
 package com.mobilispect.backend.transitanalysis.domain.service
 
-import com.mobilispect.backend.transitanalysis.domain.model.RouteVariant
-import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
-import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.domain.model.RouteVariant
+import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.domain.service.VariantIdentificationService
+import com.mobilispect.backend.route.domain.service.VariantHashGenerator
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

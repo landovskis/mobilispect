@@ -1,9 +1,8 @@
 package com.mobilispect.backend.feed.service
 
-import com.mobilispect.backend.feed.model.FeedImport
+import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
-import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import org.springframework.data.domain.Page
@@ -86,14 +85,14 @@ class ImportHistoryService(
         pageable: Pageable
     ): Page<FeedImport> {
         return if (status != null) {
-            feedImportRepository.findAllByFeedFeedOnestopIdAndStatusInOrderByStartedAtDesc(
-                FeedId(feedOnestopId),
+            feedImportRepository.findAllByFeedOnestopIdAndStatusInOrderByStartedAtDesc(
+                feedOnestopId,
                 listOf(status),
                 pageable
             )
         } else {
-            feedImportRepository.findAllByFeedFeedOnestopIdOrderByStartedAtDesc(
-                FeedId(feedOnestopId),
+            feedImportRepository.findAllByFeedOnestopIdOrderByStartedAtDesc(
+                feedOnestopId,
                 pageable
             )
         }
@@ -166,8 +165,8 @@ class ImportHistoryService(
      * @return The most recent import or null
      */
     fun getLastImportForFeed(feedOnestopId: String): FeedImport? {
-        return feedImportRepository.findAllByFeedFeedOnestopIdOrderByStartedAtDesc(
-            FeedId(feedOnestopId),
+        return feedImportRepository.findAllByFeedOnestopIdOrderByStartedAtDesc(
+            feedOnestopId,
             org.springframework.data.domain.PageRequest.of(0, 1)
         ).content.firstOrNull()
     }

@@ -18,8 +18,8 @@
   access; ports/events only.
 - Test-driven quality: tests first, fail first, ≥80% coverage per component;
   contract/integration with Testcontainers.
-- Observability: structured logs, metrics, traces, dashboards, and alerts for new
-  flows.
+- Observability: structured logs, metrics, traces, dashboards, and alerts for
+  new flows.
 - Performance & reliability: API p95 ≤200ms, ingestion SLAs, 60fps UX with
   graceful degradation.
 - Security by default: secrets outside VCS; OWASP dependency checks; authn/authz
@@ -35,8 +35,8 @@
   wiring.
 - `cd backend && ./gradlew test jacocoTestReport ktlintCheck detekt` – run JUnit
   tests, produce coverage, and enforce lint plus static analysis.
-- `cd frontend/mobile && ./gradlew shared:assembleDebug shared:testDebugUnitTest`
-  – build KMM artifacts and run JVM tests; add
+- `cd frontend/mobile && ./gradlew shared:assembleDebug`
+  `shared:testDebugUnitTest` – build KMM artifacts and run JVM tests; add
   `shared:koverXmlReport` when coverage is required.
 - `cd frontend/web && npm install && npm run start` – launch the Angular dev
   server; swap `start` with `test` or `build` for Karma runs or production
@@ -58,8 +58,8 @@
 
 - Backend tests live in `src/test/kotlin`; use JUnit 5 with Testcontainers for
   data-intensive flows.
-- Mobile tests belong in `shared/src/commonTest` plus `androidTest` or `iosTest`;
-  rely on Ktor HTTP mocks and Truth assertions.
+- Mobile tests belong in `shared/src/commonTest` plus `androidTest` or
+  `iosTest`; rely on Ktor HTTP mocks and Truth assertions.
 - Web unit tests remain as `*.spec.ts`; mock HTTP via Angular
   `HttpTestingController`.
 - `scripts/validate-coverage.sh` enforces ≥80% coverage per component; review
@@ -79,3 +79,16 @@
 - Run `./scripts/security-scan.sh` before tagging releases or promoting builds.
 - Keep secrets out of VCS; store them in Spring profiles (`application-*.yml`)
   and Android Gradle local properties.
+
+## Active Technologies
+
+- Kotlin (Spring Boot) backend, TypeScript (Angular) frontend + Spring Boot,
+  JPA/Hibernate, PostgreSQL, Angular, Angular Material, Tailwind CSS
+  (001-stop-spacing-classification)
+- PostgreSQL (001-stop-spacing-classification)
+
+## Recent Changes
+
+- 001-stop-spacing-classification: Added Kotlin (Spring Boot) backend,
+  TypeScript (Angular) frontend + Spring Boot, JPA/Hibernate, PostgreSQL,
+  Angular, Angular Material, Tailwind CSS

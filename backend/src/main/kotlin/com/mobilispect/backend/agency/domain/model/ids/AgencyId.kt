@@ -7,6 +7,9 @@ package com.mobilispect.backend.agency.domain.model.ids
  * Format: o-geohash-name (e.g., o-9q8y-sfmta)
  *
  * Per constitutional Code Quality First requirements (FR-018).
+ *
+ * Now using @JvmInline for zero-overhead type safety in the domain layer.
+ * Data layer uses plain String IDs for Hibernate 7 compatibility.
  */
 @JvmInline
 value class AgencyId(val value: String) {
@@ -17,6 +20,7 @@ value class AgencyId(val value: String) {
     override fun toString(): String = value
 
     companion object {
-        fun from(value: String?): AgencyId? = value?.takeIf { it.isNotBlank() }?.let { AgencyId(it) }
+        fun from(value: String?): AgencyId? =
+            value?.takeIf { it.isNotBlank() }?.let { AgencyId(it) }
     }
 }

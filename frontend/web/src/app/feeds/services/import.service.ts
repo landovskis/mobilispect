@@ -64,7 +64,7 @@ export class ImportService {
    */
   startImport(feedOnestopId: string, request?: ImportRequest): Observable<FeedImport> {
     const body = request || { force: false };
-    return this.http.post<FeedImport>(`${this.apiUrl}/feeds/${feedOnestopId}/import`, body).pipe(
+    return this.http.post<FeedImport>(`${this.apiUrl}/${feedOnestopId}/import`, body).pipe(
       tap(importResult => {
         // Start polling for active imports to update UI
         this.startPollingActiveImports();
@@ -119,7 +119,7 @@ export class ImportService {
       params = params.set('status', options.status);
     }
 
-    return this.http.get<ImportsResponse>(`${this.apiUrl}/feeds/${feedOnestopId}/imports`, { params }).pipe(
+    return this.http.get<ImportsResponse>(`${this.apiUrl}/${feedOnestopId}/imports`, { params }).pipe(
       map(response => ({
         imports: response.imports,
         totalElements: response.page.totalElements,

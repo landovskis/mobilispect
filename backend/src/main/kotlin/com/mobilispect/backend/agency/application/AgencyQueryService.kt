@@ -4,15 +4,18 @@ import com.mobilispect.backend.config.RedisConfiguration
 import com.mobilispect.backend.agency.api.dto.AgencyDTO
 import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.feed.model.ids.RegionId
-import com.mobilispect.backend.feed.repository.FeedRepository
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
+import com.mobilispect.backend.feed.api.FeedQueryApi
+import com.mobilispect.backend.route.domain.model.Route
+import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
+import com.mobilispect.backend.route.domain.repository.RouteRepository
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import kotlin.math.min
 
 /**
  * Query service for agency-related operations with Redis caching (T096).
@@ -24,7 +27,7 @@ import org.springframework.stereotype.Service
 class AgencyQueryService(
     private val agencyRepository: AgencyRepository,
     private val routeRepository: RouteRepository,
-    private val feedRepository: FeedRepository
+    private val feedQueryApi: FeedQueryApi
 ) {
     /**
      * Get all agencies with pagination.
@@ -32,10 +35,9 @@ class AgencyQueryService(
      */
     @Cacheable(value = [RedisConfiguration.AGENCY_CACHE], key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     fun getAgencies(pageable: Pageable): Page<AgencyDTO> {
-        val agencies = agencyRepository.findAll(pageable)
-        return agencies.map { agency ->
-            mapAgency(agency)
-        }
+        val agencies = agencyRepository.findAll()
+        val mapped = agencies.map { mapAgency(it) }
+        return paginate(mapped, pageable)
     }
 
     /**
@@ -47,18 +49,18 @@ class AgencyQueryService(
         key = "'region_' + #regionId.toString() + '_' + #pageable.pageNumber + '_' + #pageable.pageSize"
     )
     fun getAgenciesByRegion(regionId: RegionId, pageable: Pageable): Page<AgencyDTO> {
-        val feeds = feedRepository.findAllByRegionRegionOnestopId(regionId)
+        val feeds = feedQueryApi.findFeedsByRegion(regionId)
         val agencies = feeds.flatMap { feed ->
-            agencyRepository.findByFeed(feed, pageable).content
-        }
+            agencyRepository.findByFeedId(
+                feed.feedId,
+                Pageable.unpaged()
+            ).content
+        }.distinctBy { it.agencyOnestopId }
         val sorted = agencies.sortedByDescending { agency ->
-            routeRepository.countByAgency(agency)
+            routeRepository.countByAgencyId(agency.agencyOnestopId)
         }
-        return org.springframework.data.domain.PageImpl(
-            sorted.map { mapAgency(it) },
-            pageable,
-            sorted.size.toLong()
-        )
+        val mapped = sorted.map { mapAgency(it) }
+        return paginate(mapped, pageable)
     }
 
     /**
@@ -67,12 +69,12 @@ class AgencyQueryService(
      */
     @Cacheable(value = [RedisConfiguration.AGENCY_CACHE], key = "'summary_' + #agencyId.toString()")
     fun getAgencySummary(agencyId: AgencyId): AgencySummaryDTO? {
-        val agency = agencyRepository.findByAgencyOnestopId(agencyId).orElse(null) ?: return null
-        val routes = routeRepository.findByAgency(agency, Pageable.unpaged()).toList()
+        val agency = agencyRepository.findById(agencyId) ?: return null
+        val routeCount = routeRepository.countByAgencyId(agency.agencyOnestopId)
         return AgencySummaryDTO(
             id = agency.agencyOnestopId.value,
             name = agency.name,
-            routeCount = routes.size,
+            routeCount = routeCount.toInt(),
             averageHeadwayMinutes = null,
             minHeadwayMinutes = null,
             maxHeadwayMinutes = null
@@ -80,17 +82,30 @@ class AgencyQueryService(
     }
 
     private fun mapAgency(agency: com.mobilispect.backend.agency.domain.model.Agency): AgencyDTO {
-        val routes = routeRepository.findByAgency(agency, Pageable.unpaged()).toList()
+        val routes = routeRepository.findByAgencyId(agency.agencyOnestopId, Pageable.unpaged()).content
         val routesByType = routes.groupingBy { it.routeType }.eachCount()
-        val regionIds = agency.feed.regions.map { it.regionOnestopId.value }.toSet()
+        val feed = feedQueryApi.findFeedById(agency.feedId)
+        val regionIds = feed?.regionIds?.map { it.value }?.toSet() ?: emptySet()
         return AgencyDTO(
             id = agency.agencyOnestopId.value,
             name = agency.name,
-            feedOnestopId = agency.feed.feedOnestopId.value,
+            feedOnestopId = agency.feedId.value,
             regionIds = regionIds,
             routeCount = routes.size,
             activeRouteCount = routes.count { it.active },
             routesByType = RouteType.values().associateWith { routesByType[it] ?: 0 }
         )
+    }
+
+    private fun <T : Any> paginate(items: List<T>, pageable: Pageable): Page<T> {
+        if (!pageable.isPaged) {
+            return PageImpl(items, pageable, items.size.toLong())
+        }
+        val start = pageable.offset.toInt()
+        if (start >= items.size) {
+            return PageImpl(emptyList<T>(), pageable, items.size.toLong())
+        }
+        val end = min(start + pageable.pageSize, items.size)
+        return PageImpl(items.subList(start, end), pageable, items.size.toLong())
     }
 }

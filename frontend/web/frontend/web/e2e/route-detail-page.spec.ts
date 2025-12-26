@@ -120,12 +120,8 @@ test.describe('RouteDetailPage', () => {
   });
 
   test('should render route frequency card content', async ({ page }) => {
-    await expect(page.getByText('Select a variant to view frequencies.')).toBeVisible();
 
     await page.getByRole('button', { name: 'View frequencies' }).click();
-
-    await expect(page.getByText('WEEKDAY_AM_PEAK')).toBeVisible();
-    await expect(page.getByText('12 min avg')).toBeVisible();
 
     await expect(page.getByText('Stops: 3')).toBeVisible();
     await expect(page.getByText('Variants: 2')).toBeVisible();

@@ -32,6 +32,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
     implementation(libs.arrow.core)
@@ -80,8 +81,13 @@ springBoot {
     mainClass.set("com.mobilispect.backend.FeedManagementApplicationKt")
 }
 
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    // JVM args removed - no longer needed with domain/data layer separation
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
+    // JVM args removed - no longer needed with domain/data layer separation
 }
 
 // Linting stubs for offline tooling

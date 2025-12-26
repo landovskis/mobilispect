@@ -1,9 +1,12 @@
 package com.mobilispect.backend.transitanalysis.api
 
-import com.mobilispect.backend.transitanalysis.api.dto.CommonSectionDTO
-import com.mobilispect.backend.transitanalysis.api.dto.CombinedFrequencyDTO
-import com.mobilispect.backend.transitanalysis.api.dto.RouteContributionDTO
-import com.mobilispect.backend.transitanalysis.application.CommonSectionService
+import com.mobilispect.backend.route.api.dto.CommonSectionDTO
+import com.mobilispect.backend.route.api.dto.CombinedFrequencyDTO
+import com.mobilispect.backend.route.api.dto.RouteContributionDTO
+import com.mobilispect.backend.route.application.CommonSectionService
+import com.mobilispect.backend.route.api.CommonSectionController
+import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.domain.model.TimePeriod
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -21,7 +24,7 @@ class CommonSectionControllerTest {
 
     @Test
     fun `getCommonSectionsForRoute returns 200`() {
-        `when`(service.getCommonSectionsForRoute(com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId("r-1"))).thenReturn(
+        `when`(service.getCommonSectionsForRoute(com.mobilispect.backend.route.domain.model.ids.RouteId("r-1"))).thenReturn(
             listOf(
                 CommonSectionDTO(
                     id = UUID.randomUUID().toString(),
@@ -42,7 +45,7 @@ class CommonSectionControllerTest {
     @Test
     fun `getCombinedFrequency returns 200`() {
         val id = UUID.randomUUID()
-        `when`(service.getCombinedFrequency(id, com.mobilispect.backend.transitanalysis.domain.model.TimePeriod.WEEKDAY_AM_PEAK)).thenReturn(
+        `when`(service.getCombinedFrequency(id, com.mobilispect.backend.route.domain.model.TimePeriod.WEEKDAY_AM_PEAK)).thenReturn(
             CombinedFrequencyDTO(
                 commonSectionId = id.toString(),
                 timePeriod = "WEEKDAY_AM_PEAK",

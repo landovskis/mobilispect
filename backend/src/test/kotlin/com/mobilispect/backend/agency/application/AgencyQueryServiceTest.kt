@@ -1,16 +1,17 @@
 package com.mobilispect.backend.agency.application
 
-import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.api.FeedDTO
+import com.mobilispect.backend.feed.api.FeedQueryApi
+import com.mobilispect.backend.feed.model.FeedSpecType
+import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ids.RegionId
-import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
-import com.mobilispect.backend.transitanalysis.domain.model.Route
-import com.mobilispect.backend.transitanalysis.domain.model.RouteType
-import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteRepository
+import com.mobilispect.backend.route.domain.model.Route
+import com.mobilispect.backend.route.domain.model.RouteType
+import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.domain.repository.RouteRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -28,26 +29,29 @@ import java.time.Instant
 class AgencyQueryServiceTest {
     private val agencyRepository: AgencyRepository = mock(AgencyRepository::class.java)
     private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
-    private val feedRepository: FeedRepository = mock(FeedRepository::class.java)
-    private val service = AgencyQueryService(agencyRepository, routeRepository, feedRepository)
+    private val feedQueryApi: FeedQueryApi = mock(FeedQueryApi::class.java)
+    private val service = AgencyQueryService(agencyRepository, routeRepository, feedQueryApi)
 
     @Test
     fun `getAgencies maps agency and routes into DTO`() {
-        val feed = FeedEntity(feedOnestopId = FeedId("f-abc"), downloadUrl = "")
-        feed.regions = mutableSetOf(
-            com.mobilispect.backend.feed.model.MetropolitanRegion(
-                regionOnestopId = RegionId("r-1"),
-                name = "Region",
-                adm0Name = "Country",
-                adm1Name = "State",
-                autoUpdateEnabled = true,
-                createdAt = java.time.Instant.now(),
-                updatedAt = java.time.Instant.now()
-            )
+        val now = Instant.now()
+        val feed = FeedDTO(
+            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
+            name = "Test Feed",
+            specType = FeedSpecType.GTFS,
+            downloadUrl = "https://example.com/gtfs.zip",
+            currentVersionSha1 = null,
+            status = FeedStatus.ACTIVE,
+            regionIds = setOf(RegionId("r-1")),
+            lastCheckedAt = null,
+            lastUpdatedAt = null,
+            lastDiscoveredAt = null,
+            createdAt = now,
+            updatedAt = now
         )
         val agency = Agency(
             agencyOnestopId = AgencyId("o-123"),
-            feed = feed,
+            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
             gtfsAgencyId = "gtfs-agency",
             name = "Test Agency",
             createdAt = Instant.now(),
@@ -56,7 +60,7 @@ class AgencyQueryServiceTest {
         val routes = listOf(
             Route(
                 id = RouteId("r-1"),
-                agency = agency,
+                agencyId = agency.agencyOnestopId,
                 gtfsRouteId = "R1",
                 shortName = "1",
                 longName = "Route 1",
@@ -65,7 +69,7 @@ class AgencyQueryServiceTest {
             ),
             Route(
                 id = RouteId("r-2"),
-                agency = agency,
+                agencyId = agency.agencyOnestopId,
                 gtfsRouteId = "R2",
                 shortName = "2",
                 longName = "Route 2",
@@ -74,8 +78,9 @@ class AgencyQueryServiceTest {
             )
         )
 
-        `when`(agencyRepository.findAll(PageRequest.of(0, 20))).thenReturn(PageImpl(listOf(agency)))
-        `when`(routeRepository.findByAgency(agency, Pageable.unpaged())).thenReturn(PageImpl(routes))
+        `when`(agencyRepository.findAll()).thenReturn(listOf(agency))
+        `when`(routeRepository.findByAgencyId(agency.agencyOnestopId, Pageable.unpaged())).thenReturn(PageImpl(routes))
+        `when`(feedQueryApi.findFeedById(com.mobilispect.backend.feed.model.ids.FeedId("f-abc"))).thenReturn(feed)
 
         val page: Page<*> = service.getAgencies(PageRequest.of(0, 20))
         val dto = page.content.first() as com.mobilispect.backend.agency.api.dto.AgencyDTO
@@ -89,37 +94,41 @@ class AgencyQueryServiceTest {
 
     @Test
     fun `getAgencySummary returns null when agency missing`() {
-        `when`(agencyRepository.findById(AgencyId("missing"))).thenReturn(java.util.Optional.empty())
+        `when`(agencyRepository.findById(AgencyId("missing"))).thenReturn(null)
         val result = service.getAgencySummary(AgencyId("missing"))
         assertThat(result).isNull()
     }
 
     @Test
     fun `getAgenciesByRegion aggregates agencies from feeds`() {
-        val feed = FeedEntity(feedOnestopId = FeedId("f-abc"), downloadUrl = "")
+        val now = Instant.now()
+        val feed = FeedDTO(
+            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
+            name = "Test Feed",
+            specType = FeedSpecType.GTFS,
+            downloadUrl = "https://example.com/gtfs.zip",
+            currentVersionSha1 = null,
+            status = FeedStatus.ACTIVE,
+            regionIds = setOf(RegionId("r-1")),
+            lastCheckedAt = null,
+            lastUpdatedAt = null,
+            lastDiscoveredAt = null,
+            createdAt = now,
+            updatedAt = now
+        )
         val agency = Agency(
             agencyOnestopId = AgencyId("o-1"),
-            feed = feed,
+            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
             gtfsAgencyId = "a1",
             name = "A1",
             createdAt = Instant.now(),
             updatedAt = Instant.now()
         )
-        feed.regions = mutableSetOf(
-            com.mobilispect.backend.feed.model.MetropolitanRegion(
-                regionOnestopId = RegionId("r-1"),
-                name = "Region",
-                adm0Name = "Country",
-                adm1Name = "State",
-                autoUpdateEnabled = true,
-                createdAt = Instant.now(),
-                updatedAt = Instant.now()
-            )
-        )
-        `when`(feedRepository.findAllByRegionRegionOnestopId(RegionId("r-1"))).thenReturn(listOf(feed))
-        `when`(agencyRepository.findByFeed(any(), any())).thenReturn(PageImpl(listOf(agency)))
-        `when`(routeRepository.findByAgency(any(), any())).thenReturn(PageImpl(emptyList()))
-        `when`(routeRepository.countByAgency(agency)).thenReturn(0)
+        `when`(feedQueryApi.findFeedsByRegion(RegionId("r-1"))).thenReturn(listOf(feed))
+        `when`(agencyRepository.findByFeedId(any(), any())).thenReturn(PageImpl(listOf(agency)))
+        `when`(routeRepository.findByAgencyId(any(), any())).thenReturn(PageImpl(emptyList()))
+        `when`(routeRepository.countByAgencyId(agency.agencyOnestopId)).thenReturn(0)
+        `when`(feedQueryApi.findFeedById(any())).thenReturn(feed)
         val page = service.getAgenciesByRegion(RegionId("r-1"), PageRequest.of(0, 20))
         assertThat(page.totalElements).isEqualTo(1)
     }

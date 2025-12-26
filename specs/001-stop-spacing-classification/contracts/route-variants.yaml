@@ -1,0 +1,61 @@
+openapi: 3.0.3
+info:
+  title: Route Variants API
+  version: 1.0.0
+paths:
+  /api/v1/routes/{routeId}/variants:
+    get:
+      summary: List route variants with stop spacing
+      parameters:
+        - in: path
+          name: routeId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Route variants for the route
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RouteVariant'
+components:
+  schemas:
+    RouteVariant:
+      type: object
+      required:
+        - id
+        - routeId
+        - stopCount
+        - stopPattern
+        - firstStopId
+        - lastStopId
+      properties:
+        id:
+          type: string
+        routeId:
+          type: string
+        directionId:
+          type: integer
+          nullable: true
+        headsign:
+          type: string
+          nullable: true
+        stopCount:
+          type: integer
+        stopPattern:
+          type: string
+        firstStopId:
+          type: string
+        lastStopId:
+          type: string
+        averageStopSpacingKm:
+          type: number
+          format: double
+          nullable: true
+        stopSpacingClassification:
+          type: string
+          nullable: true
+          enum: [local, rapid, express]

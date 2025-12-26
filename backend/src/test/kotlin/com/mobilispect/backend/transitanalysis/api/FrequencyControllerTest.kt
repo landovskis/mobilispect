@@ -1,7 +1,10 @@
 package com.mobilispect.backend.transitanalysis.api
 
-import com.mobilispect.backend.transitanalysis.api.dto.RouteDTO
-import com.mobilispect.backend.transitanalysis.application.FrequencyQueryService
+import com.mobilispect.backend.route.api.dto.RouteDTO
+import com.mobilispect.backend.route.api.FrequencyController
+import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.domain.model.RouteType
+import com.mobilispect.backend.route.application.FrequencyQueryService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -18,13 +21,13 @@ class FrequencyControllerTest {
 
     @Test
     fun `getRoute returns 200`() {
-        `when`(service.getRoute(com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId("r-1"))).thenReturn(
+        `when`(service.getRoute(RouteId("r-1"))).thenReturn(
             RouteDTO(
                 id = "r-1",
                 agencyId = "o-1",
                 shortName = "1",
                 longName = "Route 1",
-                routeType = com.mobilispect.backend.transitanalysis.domain.model.RouteType.BUS,
+                routeType = RouteType.BUS,
                 active = true
             )
         )

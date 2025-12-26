@@ -5,7 +5,6 @@ import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
-import com.mobilispect.backend.transitanalysis.domain.service.FeedImportService as TransitAnalysisFeedImportService
 import com.mobilispect.backend.util.ArchiveExtractor
 import com.mobilispect.backend.websocket.ProgressTrackingService
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +29,6 @@ class FeedManagementImportProcessor(
     @Qualifier("curlDownloader")
     private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
-    private val transitAnalysisFeedImportService: TransitAnalysisFeedImportService,
     private val progressTrackingService: ProgressTrackingService,
     private val clock: Clock = Clock.systemUTC()
 ) {
@@ -49,7 +47,7 @@ class FeedManagementImportProcessor(
             logger.info("Starting PostgreSQL-based import for feed: $feedOnestopId")
 
             // Find the feed in PostgreSQL
-            val feed = feedRepository.findByFeedOnestopId(FeedId(feedOnestopId)).orElse(null)
+            val feed = feedRepository.findByFeedOnestopId(feedOnestopId).orElse(null)
                 ?: return@withContext Result.failure(
                     IllegalArgumentException("Feed not found: $feedOnestopId")
                 )
@@ -61,14 +59,14 @@ class FeedManagementImportProcessor(
                 )
             }
 
-            val importId = "${feed.feedOnestopId.value}:${feed.currentVersionSha1 ?: "latest"}"
+            val importId = "${feed.feedOnestopId}:${feed.currentVersionSha1 ?: "latest"}"
             val startedAt = clock.instant()
             val totalSteps = 8
 
             fun progress(stepNumber: Int, stepName: String, percentage: Int = (stepNumber * 100) / totalSteps) {
                 progressTrackingService.updateProgress(
                     importId = importId,
-                    feedOnestopId = feed.feedOnestopId.value,
+                    feedOnestopId = feed.feedOnestopId,
                     progressPercentage = percentage.coerceAtMost(100),
                     currentStep = stepName,
                     currentStepNumber = stepNumber,
@@ -95,20 +93,11 @@ class FeedManagementImportProcessor(
                     .forEach { Files.deleteIfExists(it) }
 
                 progress(stepNumber = 4, stepName = "Processing GTFS data")
-                logger.info("Starting transit analysis import for feed: $feedOnestopId")
+                logger.info("GTFS validation complete for feed: $feedOnestopId")
 
-                // Call transit analysis service to parse GTFS and calculate frequencies
-                val analysisResult = transitAnalysisFeedImportService.importFeed(
-                    feedPath = archive,
-                    feedEntity = feed
-                ).getOrThrow()
-
-                logger.info(
-                    "Transit analysis complete - {} agencies, {} routes, {} variants",
-                    analysisResult.agenciesProcessed,
-                    analysisResult.routesProcessed,
-                    analysisResult.variantsIdentified
-                )
+                // TODO: Integrate with transit analysis service when available
+                // Transit analysis import (routes, variants, frequencies) will be added
+                // in a future iteration
 
                 progress(stepNumber = 8, stepName = "Finalizing import", percentage = 100)
 

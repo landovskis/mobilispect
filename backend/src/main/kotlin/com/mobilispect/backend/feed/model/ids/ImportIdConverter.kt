@@ -7,10 +7,11 @@ import java.util.UUID
 /**
  * JPA converter for ImportId value class.
  * Converts between ImportId (value class) and UUID (database type).
+ * autoApply is disabled to avoid implicit conversion on identifier fields in Hibernate 7.
  *
  * Per constitutional Code Quality First requirements (FR-018).
  */
-@Converter(autoApply = true)
+@Converter(autoApply = false)
 class ImportIdConverter : AttributeConverter<ImportId, UUID> {
 
     override fun convertToDatabaseColumn(attribute: ImportId?): UUID? =

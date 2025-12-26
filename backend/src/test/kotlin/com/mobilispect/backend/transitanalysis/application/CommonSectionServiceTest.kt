@@ -1,16 +1,18 @@
 package com.mobilispect.backend.transitanalysis.application
 
-import com.mobilispect.backend.transitanalysis.domain.model.CommonSection
-import com.mobilispect.backend.transitanalysis.domain.model.CommonSectionVariant
-import com.mobilispect.backend.transitanalysis.domain.model.Route
-import com.mobilispect.backend.transitanalysis.domain.model.RouteVariant
-import com.mobilispect.backend.transitanalysis.domain.model.TimePeriod
-import com.mobilispect.backend.transitanalysis.domain.model.ids.RouteId
-import com.mobilispect.backend.transitanalysis.domain.model.ids.VariantHash
-import com.mobilispect.backend.transitanalysis.domain.repository.CommonSectionRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.CommonSectionVariantRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.FrequencyRepository
-import com.mobilispect.backend.transitanalysis.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.domain.model.CommonSection
+import com.mobilispect.backend.route.domain.model.CommonSectionVariant
+import com.mobilispect.backend.route.domain.model.Route
+import com.mobilispect.backend.route.domain.model.RouteVariant
+import com.mobilispect.backend.route.domain.model.TimePeriod
+import com.mobilispect.backend.route.domain.model.Frequency
+import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.application.CommonSectionService
+import com.mobilispect.backend.route.domain.repository.CommonSectionRepository
+import com.mobilispect.backend.route.domain.repository.CommonSectionVariantRepository
+import com.mobilispect.backend.route.domain.repository.FrequencyRepository
+import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
@@ -28,21 +30,20 @@ class CommonSectionServiceTest {
     private val variantRepo: RouteVariantRepository = mock(RouteVariantRepository::class.java)
     private val freqRepo: FrequencyRepository = mock(FrequencyRepository::class.java)
     private val service = CommonSectionService(csRepo, csvRepo, variantRepo, freqRepo)
-    private val mockAgency = mock(com.mobilispect.backend.agency.domain.model.Agency::class.java)
 
     @Test
     fun `getCommonSectionsForRoute returns sections linked to route variants`() {
         val route = Route(
             id = RouteId("r-1"),
-            agency = mockAgency,
+            agencyId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-1"),
             gtfsRouteId = "R1",
             longName = "Route 1",
-            routeType = com.mobilispect.backend.transitanalysis.domain.model.RouteType.BUS,
+            routeType = com.mobilispect.backend.route.domain.model.RouteType.BUS,
             active = true
         )
         val variant = RouteVariant(
             id = VariantHash("d".repeat(64)),
-            route = route,
+            routeId = route.id,
             stopPattern = "s1|s2|s3",
             stopCount = 3,
             firstStopId = "s1",
@@ -58,12 +59,12 @@ class CommonSectionServiceTest {
         val csv = CommonSectionVariant(
             id = UUID.randomUUID(),
             commonSection = section,
-            variant = variant,
+            variantId = variant.id.value,
             startSequence = 0,
             endSequence = 2
         )
         `when`(variantRepo.findByRouteId(RouteId("r-1"))).thenReturn(listOf(variant))
-        `when`(csvRepo.findByVariantId(variant.id)).thenReturn(listOf(csv))
+        `when`(csvRepo.findByVariantId(variant.id.value)).thenReturn(listOf(csv))
         val result = service.getCommonSectionsForRoute(RouteId("r-1"))
         assertThat(result).hasSize(1)
         assertThat(result.first().stopCount).isEqualTo(3)
@@ -89,7 +90,7 @@ class CommonSectionServiceTest {
         )
         val variant = RouteVariant(
             id = VariantHash("e".repeat(64)),
-            route = Route(id = RouteId("r-2"), agency = mockAgency, gtfsRouteId = "R2", longName = "Route 2", routeType = com.mobilispect.backend.transitanalysis.domain.model.RouteType.BUS, active = true),
+            routeId = RouteId("r-2"),
             stopPattern = "s1|s2|s3",
             stopCount = 3,
             firstStopId = "s1",
@@ -98,12 +99,12 @@ class CommonSectionServiceTest {
         val csv = CommonSectionVariant(
             id = UUID.randomUUID(),
             commonSection = section,
-            variant = variant,
+            variantId = variant.id.value,
             startSequence = 0,
             endSequence = 2
         )
-        val freq = com.mobilispect.backend.transitanalysis.domain.model.Frequency(
-            variant = variant,
+        val freq = Frequency(
+            variantId = variant.id.value,
             serviceDate = LocalDate.of(2025, 1, 1),
             timePeriod = TimePeriod.WEEKDAY_AM_PEAK,
             averageHeadway = 10.0,
@@ -116,7 +117,7 @@ class CommonSectionServiceTest {
         )
         `when`(csRepo.findById(sectionId)).thenReturn(Optional.of(section))
         `when`(csvRepo.findBySectionId(sectionId)).thenReturn(listOf(csv))
-        `when`(freqRepo.findByVariant(variant, Pageable.unpaged())).thenReturn(PageImpl(listOf(freq)))
+        `when`(freqRepo.findByVariant(variant.id.value, Pageable.unpaged())).thenReturn(PageImpl(listOf(freq)))
 
         val result = service.getCombinedFrequency(sectionId, TimePeriod.WEEKDAY_AM_PEAK)
         assertThat(result?.tripCount).isEqualTo(3)

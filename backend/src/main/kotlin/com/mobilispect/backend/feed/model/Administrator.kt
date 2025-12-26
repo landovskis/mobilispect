@@ -1,28 +1,27 @@
 package com.mobilispect.backend.feed.model
 
+import com.mobilispect.backend.feed.domain.FeedImport
+import jakarta.persistence.AttributeOverride
 import jakarta.persistence.Column
 import jakarta.persistence.Convert
+import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
-import jakarta.persistence.Id
 import jakarta.persistence.OneToMany
 import jakarta.persistence.PrePersist
 import jakarta.persistence.PreUpdate
 import jakarta.persistence.Table
 import org.hibernate.annotations.ColumnTransformer
-import org.hibernate.annotations.UuidGenerator
 import java.time.Instant
-import java.util.UUID
 
 import com.mobilispect.backend.feed.model.ids.AdministratorId
 
 @Entity
 @Table(name = "administrators")
 class Administrator(
-    @Id
-    @UuidGenerator
-    @Column(columnDefinition = "uuid")
-    var id: AdministratorId? = null,
+    @EmbeddedId
+    @AttributeOverride(name = "value", column = Column(name = "id", nullable = false, updatable = false, columnDefinition = "uuid"))
+    var id: AdministratorId = AdministratorId.random(),
 
     @Column(nullable = false, length = 255, unique = true)
     var username: String = "",
@@ -49,6 +48,17 @@ class Administrator(
 ) {
     @OneToMany(mappedBy = "administrator", fetch = FetchType.LAZY)
     val imports: MutableSet<FeedImport> = mutableSetOf()
+
+    constructor() : this(
+        id = AdministratorId(),
+        username = "",
+        email = "",
+        role = AdminRole.FEED_VIEWER,
+        active = true,
+        lastLoginAt = null,
+        createdAt = Instant.EPOCH,
+        updatedAt = Instant.EPOCH
+    )
 
     @PrePersist
     fun onCreate() {
