@@ -41,7 +41,7 @@ class GTFSFeedReader(
     @Qualifier("curlDownloader") private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
     private val eventPublisher: ApplicationEventPublisher,
-) {
+) : GtfsParser {
     private val logger = LoggerFactory.getLogger(GTFSFeedReader::class.java)
 
     /**
@@ -80,7 +80,7 @@ class GTFSFeedReader(
                 validateGtfsFiles(extractedDir)
             }.getOrNull() ?: return@withContext Result.failure(IllegalStateException("Validation failed"))
 
-            return@withContext doStep(feed.feedId, FeedStep.Parse) { parseFeed(extractedDir) }
+            return@withContext doStep(feed.feedId, FeedStep.Parse) { parse(extractedDir) }
         }
     }
 
@@ -149,7 +149,7 @@ class GTFSFeedReader(
      * @param feedPath Path to the GTFS feed directory
      * @return Result containing parsed data on success, or error on failure
      */
-    fun parseFeed(feedPath: Path): Result<ParsedGtfsData> = runCatching {
+    override fun parse(feedPath: Path): Result<ParsedGtfsData> = runCatching {
         logger.info("Parsing GTFS feed at: {}", feedPath)
         val feed = GTFSFeed.fromFile(feedPath.toString())
         feed.use { feed ->

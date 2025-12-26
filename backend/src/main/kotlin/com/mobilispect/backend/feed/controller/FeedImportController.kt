@@ -247,9 +247,9 @@ class FeedImportController(
         val statuses = status?.let { listOf(it.toEntity()) }
 
         val pageResult = if (statuses != null) {
-            feedImportRepository.findAllByFeedOnestopIdAndStatusInOrderByStartedAtDesc(feedOnestopId, statuses, pageable)
+            feedImportRepository.findAllByFeedIdAndStatusInOrderByStartedAtDesc(feedOnestopId, statuses, pageable)
         } else {
-            feedImportRepository.findAllByFeedOnestopIdOrderByStartedAtDesc(feedOnestopId, pageable)
+            feedImportRepository.findAllByFeedIdOrderByStartedAtDesc(feedOnestopId, pageable)
         }
 
         return ImportsResponse(

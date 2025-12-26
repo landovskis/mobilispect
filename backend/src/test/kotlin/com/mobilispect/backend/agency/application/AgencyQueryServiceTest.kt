@@ -2,6 +2,7 @@ package com.mobilispect.backend.agency.application
 
 import com.mobilispect.backend.feed.api.FeedDTO
 import com.mobilispect.backend.feed.api.FeedQueryApi
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ids.RegionId
@@ -36,7 +37,7 @@ class AgencyQueryServiceTest {
     fun `getAgencies maps agency and routes into DTO`() {
         val now = Instant.now()
         val feed = FeedDTO(
-            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
+            feedId = FeedId("f-abc"),
             name = "Test Feed",
             specType = FeedSpecType.GTFS,
             downloadUrl = "https://example.com/gtfs.zip",
@@ -51,7 +52,7 @@ class AgencyQueryServiceTest {
         )
         val agency = Agency(
             agencyOnestopId = AgencyId("o-123"),
-            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
+            feedId = FeedId("f-abc"),
             gtfsAgencyId = "gtfs-agency",
             name = "Test Agency",
             createdAt = Instant.now(),
@@ -80,7 +81,7 @@ class AgencyQueryServiceTest {
 
         `when`(agencyRepository.findAll()).thenReturn(listOf(agency))
         `when`(routeRepository.findByAgencyId(agency.agencyOnestopId, Pageable.unpaged())).thenReturn(PageImpl(routes))
-        `when`(feedQueryApi.findFeedById(com.mobilispect.backend.feed.model.ids.FeedId("f-abc"))).thenReturn(feed)
+        `when`(feedQueryApi.findFeedById(FeedId("f-abc"))).thenReturn(feed)
 
         val page: Page<*> = service.getAgencies(PageRequest.of(0, 20))
         val dto = page.content.first() as com.mobilispect.backend.agency.api.dto.AgencyDTO
@@ -103,7 +104,7 @@ class AgencyQueryServiceTest {
     fun `getAgenciesByRegion aggregates agencies from feeds`() {
         val now = Instant.now()
         val feed = FeedDTO(
-            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
+            feedId = FeedId("f-abc"),
             name = "Test Feed",
             specType = FeedSpecType.GTFS,
             downloadUrl = "https://example.com/gtfs.zip",
@@ -118,7 +119,7 @@ class AgencyQueryServiceTest {
         )
         val agency = Agency(
             agencyOnestopId = AgencyId("o-1"),
-            feedId = com.mobilispect.backend.feed.model.ids.FeedId("f-abc"),
+            feedId = FeedId("f-abc"),
             gtfsAgencyId = "a1",
             name = "A1",
             createdAt = Instant.now(),

@@ -25,8 +25,8 @@ interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
     @Query("SELECT fi FROM FeedImport fi WHERE fi.id = :importId")
     fun findByImportId(@Param("importId") importId: ImportId): Optional<FeedImport>
 
-    fun findAllByFeedOnestopIdOrderByStartedAtDesc(
-        feedOnestopId: String,
+    fun findAllByFeedIdOrderByStartedAtDesc(
+        feedId: String,
         pageable: Pageable
     ): Page<FeedImport>
 
@@ -40,8 +40,8 @@ interface FeedImportRepository : JpaRepository<FeedImport, ImportId> {
         pageable: Pageable
     ): Page<FeedImport>
 
-    fun findAllByFeedOnestopIdAndStatusInOrderByStartedAtDesc(
-        feedOnestopId: String,
+    fun findAllByFeedIdAndStatusInOrderByStartedAtDesc(
+        feedId: String,
         statuses: Collection<ImportStatus>,
         pageable: Pageable
     ): Page<FeedImport>

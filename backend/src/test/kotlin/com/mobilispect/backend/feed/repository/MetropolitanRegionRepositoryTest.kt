@@ -61,12 +61,12 @@ class MetropolitanRegionRepositoryTest {
         // Region 1: has feed with COMPLETED import
         val region1 = createAndSaveRegion("r-region-1", "Region 1", autoUpdate = true)
         val feed1 = createAndSaveFeed("f-feed-1", region1)
-        createAndSaveFeedImport(feed1.feedOnestopId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed1.feedId, ImportStatus.COMPLETED)
 
         // Region 2: has feed with only PENDING import
         val region2 = createAndSaveRegion("r-region-2", "Region 2", autoUpdate = true)
         val feed2 = createAndSaveFeed("f-feed-2", region2)
-        createAndSaveFeedImport(feed2.feedOnestopId, ImportStatus.PENDING)
+        createAndSaveFeedImport(feed2.feedId, ImportStatus.PENDING)
 
         // Region 3: has no feeds
         createAndSaveRegion("r-region-3", "Region 3", autoUpdate = true)
@@ -85,10 +85,10 @@ class MetropolitanRegionRepositoryTest {
         val region = createAndSaveRegion("r-multi-feed", "Multi Feed Region", autoUpdate = true)
 
         val feed1 = createAndSaveFeed("f-feed-1", region)
-        createAndSaveFeedImport(feed1.feedOnestopId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed1.feedId, ImportStatus.COMPLETED)
 
         val feed2 = createAndSaveFeed("f-feed-2", region)
-        createAndSaveFeedImport(feed2.feedOnestopId, ImportStatus.PENDING)
+        createAndSaveFeedImport(feed2.feedId, ImportStatus.PENDING)
 
         // When
         val results = regionRepository.findAllWithCompletedImports()
@@ -105,8 +105,8 @@ class MetropolitanRegionRepositoryTest {
         val feed = createAndSaveFeed("f-feed-1", region)
 
         // Multiple completed imports for the same feed
-        createAndSaveFeedImport(feed.feedOnestopId, ImportStatus.COMPLETED)
-        createAndSaveFeedImport(feed.feedOnestopId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed.feedId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed.feedId, ImportStatus.COMPLETED)
 
         // When
         val results = regionRepository.findAllWithCompletedImports()
@@ -122,12 +122,12 @@ class MetropolitanRegionRepositoryTest {
         // Region 1: autoUpdateEnabled = true
         val region1 = createAndSaveRegion("r-region-1", "Region 1", autoUpdate = true)
         val feed1 = createAndSaveFeed("f-feed-1", region1)
-        createAndSaveFeedImport(feed1.feedOnestopId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed1.feedId, ImportStatus.COMPLETED)
 
         // Region 2: autoUpdateEnabled = false
         val region2 = createAndSaveRegion("r-region-2", "Region 2", autoUpdate = false)
         val feed2 = createAndSaveFeed("f-feed-2", region2)
-        createAndSaveFeedImport(feed2.feedOnestopId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed2.feedId, ImportStatus.COMPLETED)
 
         // When: Filter by autoUpdateEnabled = true
         val results = regionRepository.findAllByAutoUpdateEnabledWithCompletedImports(true)
@@ -143,11 +143,11 @@ class MetropolitanRegionRepositoryTest {
         // Given: 2 regions with completed imports
         val region1 = createAndSaveRegion("r-region-1", "Region 1", autoUpdate = true)
         val feed1 = createAndSaveFeed("f-feed-1", region1)
-        createAndSaveFeedImport(feed1.feedOnestopId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed1.feedId, ImportStatus.COMPLETED)
 
         val region2 = createAndSaveRegion("r-region-2", "Region 2", autoUpdate = false)
         val feed2 = createAndSaveFeed("f-feed-2", region2)
-        createAndSaveFeedImport(feed2.feedOnestopId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed2.feedId, ImportStatus.COMPLETED)
 
         // When: Filter by autoUpdateEnabled = false
         val results = regionRepository.findAllByAutoUpdateEnabledWithCompletedImports(false)
@@ -163,12 +163,12 @@ class MetropolitanRegionRepositoryTest {
         // Given: Region with feed that has FAILED import
         val region1 = createAndSaveRegion("r-region-1", "Region 1", autoUpdate = true)
         val feed1 = createAndSaveFeed("f-feed-1", region1)
-        createAndSaveFeedImport(feed1.feedOnestopId, ImportStatus.FAILED)
+        createAndSaveFeedImport(feed1.feedId, ImportStatus.FAILED)
 
         // Region with feed that has CANCELLED import
         val region2 = createAndSaveRegion("r-region-2", "Region 2", autoUpdate = true)
         val feed2 = createAndSaveFeed("f-feed-2", region2)
-        createAndSaveFeedImport(feed2.feedOnestopId, ImportStatus.CANCELLED)
+        createAndSaveFeedImport(feed2.feedId, ImportStatus.CANCELLED)
 
         // When
         val results = regionRepository.findAllWithCompletedImports()
@@ -185,19 +185,18 @@ class MetropolitanRegionRepositoryTest {
 
         // Create a feed associated with both regions
         val feed = FeedEntity(
-            feedOnestopId = "f-shared-feed",
+            feedId = "f-shared-feed",
             regions = mutableSetOf(region1, region2),
             name = "Shared Feed",
             downloadUrl = "https://example.com/feed.zip",
             specType = FeedSpecType.GTFS,
-            status = FeedStatus.ACTIVE
-        ).apply {
-            createdAt = fixedInstant
+            status = FeedStatus.ACTIVE,
+            createdAt = fixedInstant,
             updatedAt = fixedInstant
-        }
+        )
         feedRepository.save(feed)
 
-        createAndSaveFeedImport(feed.feedOnestopId, ImportStatus.COMPLETED)
+        createAndSaveFeedImport(feed.feedId, ImportStatus.COMPLETED)
 
         // When
         val results = regionRepository.findAllWithCompletedImports()
@@ -224,11 +223,11 @@ class MetropolitanRegionRepositoryTest {
         // Given: Regions with feeds but no completed imports
         val region1 = createAndSaveRegion("r-region-1", "Region 1", autoUpdate = true)
         val feed1 = createAndSaveFeed("f-feed-1", region1)
-        createAndSaveFeedImport(feed1.feedOnestopId, ImportStatus.RUNNING)
+        createAndSaveFeedImport(feed1.feedId, ImportStatus.RUNNING)
 
         val region2 = createAndSaveRegion("r-region-2", "Region 2", autoUpdate = true)
         val feed2 = createAndSaveFeed("f-feed-2", region2)
-        createAndSaveFeedImport(feed2.feedOnestopId, ImportStatus.PENDING)
+        createAndSaveFeedImport(feed2.feedId, ImportStatus.PENDING)
 
         // When
         val results = regionRepository.findAllWithCompletedImports()
@@ -262,37 +261,33 @@ class MetropolitanRegionRepositoryTest {
         status: FeedStatus = FeedStatus.ACTIVE
     ): FeedEntity {
         val feed = FeedEntity(
-            feedOnestopId = feedId,
+            feedId = feedId,
             regions = mutableSetOf(region),
             name = feedId.substringAfterLast("-").uppercase(),
             downloadUrl = "https://example.com/$feedId.zip",
             specType = specType,
-            status = status
-        ).apply {
-            createdAt = fixedInstant
+            status = status,
+            createdAt = fixedInstant,
             updatedAt = fixedInstant
-        }
+        )
         return feedRepository.save(feed)
     }
 
     private fun createAndSaveFeedImport(
-        feedOnestopId: String,
+        feedId: String,
         status: ImportStatus,
         triggerType: ImportTriggerType = ImportTriggerType.MANUAL
     ): FeedImport {
         val feedImport = FeedImport(
             id = ImportId.random(),
-            feedOnestopId = feedOnestopId,
+            feedId = feedId,
             status = status,
-            triggerType = triggerType
-        ).apply {
-            createdAt = fixedInstant
+            triggerType = triggerType,
+            startedAt = fixedInstant,
+            completedAt = if (status == ImportStatus.COMPLETED) fixedInstant else null,
+            createdAt = fixedInstant,
             updatedAt = fixedInstant
-            startedAt = fixedInstant
-            if (status == ImportStatus.COMPLETED) {
-                completedAt = fixedInstant
-            }
-        }
+        )
         return feedImportRepository.save(feedImport)
     }
 }

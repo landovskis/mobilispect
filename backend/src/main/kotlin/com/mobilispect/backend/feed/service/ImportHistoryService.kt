@@ -85,13 +85,13 @@ class ImportHistoryService(
         pageable: Pageable
     ): Page<FeedImport> {
         return if (status != null) {
-            feedImportRepository.findAllByFeedOnestopIdAndStatusInOrderByStartedAtDesc(
+            feedImportRepository.findAllByFeedIdAndStatusInOrderByStartedAtDesc(
                 feedOnestopId,
                 listOf(status),
                 pageable
             )
         } else {
-            feedImportRepository.findAllByFeedOnestopIdOrderByStartedAtDesc(
+            feedImportRepository.findAllByFeedIdOrderByStartedAtDesc(
                 feedOnestopId,
                 pageable
             )
@@ -165,7 +165,7 @@ class ImportHistoryService(
      * @return The most recent import or null
      */
     fun getLastImportForFeed(feedOnestopId: String): FeedImport? {
-        return feedImportRepository.findAllByFeedOnestopIdOrderByStartedAtDesc(
+        return feedImportRepository.findAllByFeedIdOrderByStartedAtDesc(
             feedOnestopId,
             org.springframework.data.domain.PageRequest.of(0, 1)
         ).content.firstOrNull()
