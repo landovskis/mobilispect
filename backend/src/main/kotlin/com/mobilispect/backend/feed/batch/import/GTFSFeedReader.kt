@@ -1,36 +1,33 @@
-package com.mobilispect.backend.feed.service
+package com.mobilispect.backend.feed.batch.import
 
 import com.conveyal.gtfs.GTFSFeed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.gtfs.*
+import com.mobilispect.backend.feed.events.FeedImportFailed
+import com.mobilispect.backend.feed.events.FeedImportStepCompleted
+import com.mobilispect.backend.feed.events.FeedImportStepStarted
+import com.mobilispect.backend.feed.gtfs.GtfsParser
+import com.mobilispect.backend.feed.gtfs.ParsedAgency
+import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
+import com.mobilispect.backend.feed.gtfs.ParsedRoute
+import com.mobilispect.backend.feed.gtfs.ParsedShapePoint
+import com.mobilispect.backend.feed.gtfs.ParsedStop
+import com.mobilispect.backend.feed.gtfs.ParsedStopTime
+import com.mobilispect.backend.feed.gtfs.ParsedTrip
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
 import com.mobilispect.backend.util.ArchiveExtractor
 import org.slf4j.LoggerFactory
-import org.springframework.batch.core.annotation.BeforeStep
-import org.springframework.batch.core.step.StepExecution
-import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.infrastructure.item.ItemReader
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalTime
-
-enum class FeedStep {
-    Download, Extract, Validate, Parse, Agency
-}
-
-class FeedImportFailed(val feedId: FeedId, val step: FeedStep, val message: String)
-
-class FeedStepCompleted(
-    val feedId: FeedId,
-    val step: FeedStep,
-)
 
 /**
  *  GTFS feed import reader.
@@ -48,17 +45,12 @@ class GTFSFeedReader(
 ) : ItemReader<ParsedGtfsData>, GtfsParser {
     private val logger = LoggerFactory.getLogger(GTFSFeedReader::class.java)
 
-    private lateinit var stepExecution: StepExecution
 
     @Value("#{jobParameters['feedOnestopId']}")
     lateinit var feedOnestopId: String
 
     private var hasRun = false
 
-    @BeforeStep
-    fun beforeStep(stepExecution: StepExecution) {
-        this.stepExecution = stepExecution;
-    }
     /**
      * Import a feed by its onestop ID.
      *
@@ -68,7 +60,6 @@ class GTFSFeedReader(
      * @return Result containing the version SHA1 hash of the imported feed on success
      */
     fun importFeedById(feedId: FeedId): Result<ParsedGtfsData> {
-        stepExecution.jobExecution.executionContext.put("feedId", feedId.value)
         logger.info("Starting PostgreSQL-based import for feed: {}", feedId)
 
         val feed = feedRepository.findByFeedOnestopId(feedId.value).orElse(null)
@@ -78,45 +69,45 @@ class GTFSFeedReader(
             return Result.failure(IllegalArgumentException("Feed $feedId has no download URL"))
         }
 
-        val archive = doStep(feed.feedId, FeedStep.Download) {
+        val archive = doStep(feedId, "download") {
             downloadFeed(feed)
         }.getOrNull() ?: return Result.failure(IllegalStateException("Download failed"))
 
-        val extractedDir = doStep(feed.feedId, FeedStep.Extract) {
+        val extractedDir = doStep(feedId, "extract") {
             extractFeed(archive)
         }.getOrNull() ?: return Result.failure(IllegalStateException("Extraction failed"))
 
-        doStep(feed.feedId, FeedStep.Validate) {
+        doStep(feedId, "validate") {
             validateGtfsFiles(extractedDir)
         }.getOrNull() ?: return Result.failure(IllegalStateException("Validation failed"))
 
-        return doStep(feed.feedId, FeedStep.Parse) { parse(extractedDir) }
+        return doStep(feedId, "parse") { parse(extractedDir) }
     }
 
     override fun read(): ParsedGtfsData? {
         if (hasRun) return null
         hasRun = true
 
-        val feedId = FeedId.from(feedOnestopId)
+        val feedId = FeedId.Companion.from(feedOnestopId)
             ?: throw IllegalArgumentException("feedOnestopId job parameter is required")
 
         return importFeedById(feedId).getOrElse { throw it }
     }
 
-    private fun <T> doStep(feedId: String, step: FeedStep, function: () -> Result<T>): Result<T> {
-        eventPublisher.publishEvent(FeedStepStarted(FeedId(feedId), step))
+    private fun <T> doStep(feedId: FeedId, step: String, function: () -> Result<T>): Result<T> {
+        eventPublisher.publishEvent(FeedImportStepStarted(feedId, step))
         val res = function()
         if (res.isFailure) {
             eventPublisher.publishEvent(
                 FeedImportFailed(
-                    FeedId(feedId),
+                    feedId,
                     step,
                     res.exceptionOrNull()?.message ?: "Unknown error"
                 )
             )
-            return Result.failure<T>(res.exceptionOrNull()!!)
+            return Result.failure(res.exceptionOrNull()!!)
         }
-        eventPublisher.publishEvent(FeedStepCompleted(FeedId(feedId), step))
+        eventPublisher.publishEvent(FeedImportStepCompleted(feedId, step))
         return res
     }
 
@@ -209,27 +200,27 @@ class GTFSFeedReader(
 
             val shapes = feed.shape_points.values.groupBy { it.shape_id }.mapValues { (_, points) ->
                     points.sortedBy { it.shape_pt_sequence }.map { point ->
-                            ParsedShapePoint(
-                                latitude = point.shape_pt_lat,
-                                longitude = point.shape_pt_lon,
-                                sequence = point.shape_pt_sequence,
-                                distTraveledKm = point.shape_dist_traveled
-                            )
+                        ParsedShapePoint(
+                            latitude = point.shape_pt_lat,
+                            longitude = point.shape_pt_lon,
+                            sequence = point.shape_pt_sequence,
+                            distTraveledKm = point.shape_dist_traveled
+                        )
                         }
                 }
 
             val trips = feed.trips.values.map { trip ->
                 val stopTimes = feed.getOrderedStopTimesForTrip(trip.trip_id).map { stopTime ->
-                        ParsedStopTime(
-                            stopId = stopTime.stop_id,
-                            stopSequence = stopTime.stop_sequence,
-                            departureTime = stopTime.departure_time.takeIf { it >= 0 }?.let { seconds ->
-                                // GTFS allows times >= 24:00:00 for overnight service
-                                // Normalize to 0-86399 range for LocalTime
-                                LocalTime.ofSecondOfDay((seconds % 86400).toLong())
-                            },
-                            shapeDistTraveledKm = stopTime.shape_dist_traveled
-                        )
+                    ParsedStopTime(
+                        stopId = stopTime.stop_id,
+                        stopSequence = stopTime.stop_sequence,
+                        departureTime = stopTime.departure_time.takeIf { it >= 0 }?.let { seconds ->
+                            // GTFS allows times >= 24:00:00 for overnight service
+                            // Normalize to 0-86399 range for LocalTime
+                            LocalTime.ofSecondOfDay((seconds % 86400).toLong())
+                        },
+                        shapeDistTraveledKm = stopTime.shape_dist_traveled
+                    )
                     }
 
                 ParsedTrip(

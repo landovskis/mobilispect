@@ -6,7 +6,7 @@ import com.mobilispect.backend.agency.batch.import.AgencyWriter
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.feed.gtfs.ParsedAgency
 import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
-import com.mobilispect.backend.feed.service.GTFSFeedReader
+import com.mobilispect.backend.feed.batch.import.GTFSFeedReader
 import com.mobilispect.backend.route.batch.import.RouteBatch
 import com.mobilispect.backend.route.batch.import.RouteInput
 import com.mobilispect.backend.route.batch.import.RouteProcessor
@@ -56,7 +56,8 @@ class FeedImportJobConfig(
     private val stopSpacingWriter: StopSpacingWriter,
     private val frequencyReader: FrequencyReader,
     private val frequencyProcessor: FrequencyProcessor,
-    private val frequencyWriter: FrequencyWriter
+    private val frequencyWriter: FrequencyWriter,
+    private val stepExecutionListener: FeedImportStepExecutionListener
 ) {
 
     @Bean
@@ -74,6 +75,7 @@ class FeedImportJobConfig(
         .chunk<ParsedGtfsData, ParsedGtfsData>(1, transactionManager)
         .reader(feedImportReader)
         .writer(feedImportWriter)
+        .listener(stepExecutionListener)
         .build()
 
     @Bean
@@ -82,6 +84,7 @@ class FeedImportJobConfig(
         .reader(agencyReader)
         .processor(agencyProcessor)
         .writer(agencyWriter)
+        .listener(stepExecutionListener)
         .build()
 
     @Bean
@@ -90,6 +93,7 @@ class FeedImportJobConfig(
         .reader(routeReader)
         .processor(routeProcessor)
         .writer(routeWriter)
+        .listener(stepExecutionListener)
         .build()
 
     @Bean
@@ -98,6 +102,7 @@ class FeedImportJobConfig(
         .reader(routeVariantReader)
         .processor(routeVariantProcessor)
         .writer(routeVariantWriter)
+        .listener(stepExecutionListener)
         .build()
 
     @Bean
@@ -106,6 +111,7 @@ class FeedImportJobConfig(
         .reader(stopSpacingReader)
         .processor(stopSpacingProcessor)
         .writer(stopSpacingWriter)
+        .listener(stepExecutionListener)
         .build()
 
     @Bean
@@ -114,5 +120,6 @@ class FeedImportJobConfig(
         .reader(frequencyReader)
         .processor(frequencyProcessor)
         .writer(frequencyWriter)
+        .listener(stepExecutionListener)
         .build()
 }

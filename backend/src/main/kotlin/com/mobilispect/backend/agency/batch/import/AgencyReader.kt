@@ -3,19 +3,16 @@ package com.mobilispect.backend.agency.batch.import
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.gtfs.ParsedAgency
 import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
-import com.mobilispect.backend.feed.service.FeedStep
-import com.mobilispect.backend.feed.service.FeedStepStarted
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.annotation.BeforeStep
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.core.step.StepExecution
 import org.springframework.batch.infrastructure.item.ItemReader
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Component
 
 @Component
 @StepScope
-class AgencyReader(private val eventPublisher: ApplicationEventPublisher) : ItemReader<ParsedAgency> {
+class AgencyReader() : ItemReader<ParsedAgency> {
     private val logger = LoggerFactory.getLogger(AgencyReader::class.java)
 
     private var feedId: FeedId? = null
@@ -29,7 +26,6 @@ class AgencyReader(private val eventPublisher: ApplicationEventPublisher) : Item
 
         agencyIterator = parsedData.agencies.iterator()
         logger.info("Initializing AgencyReader with {} agencies", parsedData.agencies.size)
-        eventPublisher.publishEvent(FeedStepStarted(feedId!!, FeedStep.Agency))
     }
 
     override fun read(): ParsedAgency? {
