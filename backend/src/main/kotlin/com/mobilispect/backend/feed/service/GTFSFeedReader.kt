@@ -9,6 +9,8 @@ import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
 import com.mobilispect.backend.util.ArchiveExtractor
 import org.slf4j.LoggerFactory
+import org.springframework.batch.core.annotation.BeforeStep
+import org.springframework.batch.core.step.StepExecution
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.batch.core.configuration.annotation.StepScope
@@ -20,7 +22,7 @@ import java.nio.file.Path
 import java.time.LocalTime
 
 enum class FeedStep {
-    Download, Extract, Validate, Parse
+    Download, Extract, Validate, Parse, Agency
 }
 
 class FeedImportFailed(val feedId: FeedId, val step: FeedStep, val message: String)
@@ -46,11 +48,17 @@ class GTFSFeedReader(
 ) : ItemReader<ParsedGtfsData>, GtfsParser {
     private val logger = LoggerFactory.getLogger(GTFSFeedReader::class.java)
 
+    private lateinit var stepExecution: StepExecution
+
     @Value("#{jobParameters['feedOnestopId']}")
     lateinit var feedOnestopId: String
 
     private var hasRun = false
 
+    @BeforeStep
+    fun beforeStep(stepExecution: StepExecution) {
+        this.stepExecution = stepExecution;
+    }
     /**
      * Import a feed by its onestop ID.
      *
@@ -60,6 +68,7 @@ class GTFSFeedReader(
      * @return Result containing the version SHA1 hash of the imported feed on success
      */
     fun importFeedById(feedId: FeedId): Result<ParsedGtfsData> {
+        stepExecution.jobExecution.executionContext.put("feedId", feedId.value)
         logger.info("Starting PostgreSQL-based import for feed: {}", feedId)
 
         val feed = feedRepository.findByFeedOnestopId(feedId.value).orElse(null)
