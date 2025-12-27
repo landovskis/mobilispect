@@ -12,6 +12,11 @@ import com.mobilispect.backend.route.batch.import.RouteInput
 import com.mobilispect.backend.route.batch.import.RouteProcessor
 import com.mobilispect.backend.route.batch.import.RouteReader
 import com.mobilispect.backend.route.batch.import.RouteWriter
+import com.mobilispect.backend.route.batch.frequency.FrequencyBatch
+import com.mobilispect.backend.route.batch.frequency.FrequencyInput
+import com.mobilispect.backend.route.batch.frequency.FrequencyProcessor
+import com.mobilispect.backend.route.batch.frequency.FrequencyReader
+import com.mobilispect.backend.route.batch.frequency.FrequencyWriter
 import com.mobilispect.backend.route.batch.variant.RouteVariantBatch
 import com.mobilispect.backend.route.batch.variant.RouteVariantInput
 import com.mobilispect.backend.route.batch.variant.RouteVariantProcessor
@@ -40,7 +45,10 @@ class FeedImportJobConfig(
     private val routeWriter: RouteWriter,
     private val routeVariantReader: RouteVariantReader,
     private val routeVariantProcessor: RouteVariantProcessor,
-    private val routeVariantWriter: RouteVariantWriter
+    private val routeVariantWriter: RouteVariantWriter,
+    private val frequencyReader: FrequencyReader,
+    private val frequencyProcessor: FrequencyProcessor,
+    private val frequencyWriter: FrequencyWriter
 ) {
 
     @Bean
@@ -49,6 +57,7 @@ class FeedImportJobConfig(
         .next(agencyProcessingStep())
         .next(routeProcessingStep())
         .next(routeVariantProcessingStep())
+        .next(frequencyProcessingStep())
         .build()
 
     @Bean
@@ -80,5 +89,13 @@ class FeedImportJobConfig(
         .reader(routeVariantReader)
         .processor(routeVariantProcessor)
         .writer(routeVariantWriter)
+        .build()
+
+    @Bean
+    fun frequencyProcessingStep(): Step = StepBuilder("frequencyProcessingStep", jobRepository)
+        .chunk<FrequencyInput, FrequencyBatch>(10, transactionManager)
+        .reader(frequencyReader)
+        .processor(frequencyProcessor)
+        .writer(frequencyWriter)
         .build()
 }
