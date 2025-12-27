@@ -12,7 +12,7 @@ import org.springframework.stereotype.Controller
  */
 @Controller
 class ProgressWebSocketController(
-    private val progressTrackingService: ProgressTrackingService
+    private val progressEventListener: FeedImportProgressEventListener
 ) {
     private val logger = LoggerFactory.getLogger(ProgressWebSocketController::class.java)
 
@@ -24,7 +24,7 @@ class ProgressWebSocketController(
     fun requestProgress(@DestinationVariable importId: String): ProgressUpdate {
         logger.debug("Progress request received for import: {}", importId)
 
-        val progress = progressTrackingService.getProgress(importId)
+        val progress = progressEventListener.getProgress(importId)
         return if (progress != null) {
             ProgressUpdate(progress = progress)
         } else {
@@ -41,7 +41,7 @@ class ProgressWebSocketController(
     fun getActiveImports(): ActiveImportsResponse {
         logger.debug("Active imports request received")
 
-        val activeImportIds = progressTrackingService.getActiveImportIds()
+        val activeImportIds = progressEventListener.getActiveImportIds()
         return ActiveImportsResponse(activeImports = activeImportIds)
     }
 
@@ -53,7 +53,7 @@ class ProgressWebSocketController(
     fun onSubscribe(@DestinationVariable importId: String): ProgressUpdate {
         logger.debug("Client subscribed to progress for import: {}", importId)
 
-        val progress = progressTrackingService.getProgress(importId)
+        val progress = progressEventListener.getProgress(importId)
         return if (progress != null) {
             ProgressUpdate(progress = progress)
         } else {
