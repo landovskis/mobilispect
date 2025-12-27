@@ -19,6 +19,7 @@ import java.time.ZoneOffset
  * from Transit.land, handling job parameter construction and execution.
  */
 @Service
+@Suppress("DEPRECATION")
 class FeedDiscoveryBatchService(
     private val jobLauncher: JobLauncher,
     private val simplifiedFeedDiscoveryJob: Job

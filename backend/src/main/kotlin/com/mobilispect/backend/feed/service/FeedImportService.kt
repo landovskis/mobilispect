@@ -22,6 +22,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Clock
 
 @Service
+@Suppress("DEPRECATION")
 class FeedImportService(
     @Qualifier("feedManagementFeedRepository")
     private val feedRepository: FeedRepository,
