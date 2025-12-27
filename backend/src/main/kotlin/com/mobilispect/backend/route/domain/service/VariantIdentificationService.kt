@@ -54,10 +54,6 @@ class VariantIdentificationServiceImpl(
             val stopNames = stopIds.map { stopId -> stopsById[stopId]?.name ?: stopId }
             val hash = variantHashGenerator.fromStops(stopIds)
             if (!variants.containsKey(hash.value)) {
-                val averageStopSpacingKm = calculateAverageStopSpacingKm(
-                    trip = trip,
-                    stopsById = stopsById
-                )
                 val now = Instant.now()
                 val variant = RouteVariant(
                     id = hash,
@@ -69,7 +65,6 @@ class VariantIdentificationServiceImpl(
                     stopCount = stopIds.size,
                     firstStopId = stopIds.first(),
                     lastStopId = stopIds.last(),
-                    averageStopSpacingKm = averageStopSpacingKm,
                     firstSeen = now,
                     lastSeen = now
                 )

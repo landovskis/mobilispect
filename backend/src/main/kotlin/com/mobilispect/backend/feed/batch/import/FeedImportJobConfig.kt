@@ -17,6 +17,11 @@ import com.mobilispect.backend.route.batch.frequency.FrequencyInput
 import com.mobilispect.backend.route.batch.frequency.FrequencyProcessor
 import com.mobilispect.backend.route.batch.frequency.FrequencyReader
 import com.mobilispect.backend.route.batch.frequency.FrequencyWriter
+import com.mobilispect.backend.route.batch.spacing.StopSpacingBatch
+import com.mobilispect.backend.route.batch.spacing.StopSpacingInput
+import com.mobilispect.backend.route.batch.spacing.StopSpacingProcessor
+import com.mobilispect.backend.route.batch.spacing.StopSpacingReader
+import com.mobilispect.backend.route.batch.spacing.StopSpacingWriter
 import com.mobilispect.backend.route.batch.variant.RouteVariantBatch
 import com.mobilispect.backend.route.batch.variant.RouteVariantInput
 import com.mobilispect.backend.route.batch.variant.RouteVariantProcessor
@@ -46,6 +51,9 @@ class FeedImportJobConfig(
     private val routeVariantReader: RouteVariantReader,
     private val routeVariantProcessor: RouteVariantProcessor,
     private val routeVariantWriter: RouteVariantWriter,
+    private val stopSpacingReader: StopSpacingReader,
+    private val stopSpacingProcessor: StopSpacingProcessor,
+    private val stopSpacingWriter: StopSpacingWriter,
     private val frequencyReader: FrequencyReader,
     private val frequencyProcessor: FrequencyProcessor,
     private val frequencyWriter: FrequencyWriter
@@ -57,6 +65,7 @@ class FeedImportJobConfig(
         .next(agencyProcessingStep())
         .next(routeProcessingStep())
         .next(routeVariantProcessingStep())
+        .next(stopSpacingProcessingStep())
         .next(frequencyProcessingStep())
         .build()
 
@@ -89,6 +98,14 @@ class FeedImportJobConfig(
         .reader(routeVariantReader)
         .processor(routeVariantProcessor)
         .writer(routeVariantWriter)
+        .build()
+
+    @Bean
+    fun stopSpacingProcessingStep(): Step = StepBuilder("stopSpacingProcessingStep", jobRepository)
+        .chunk<StopSpacingInput, StopSpacingBatch>(20, transactionManager)
+        .reader(stopSpacingReader)
+        .processor(stopSpacingProcessor)
+        .writer(stopSpacingWriter)
         .build()
 
     @Bean

@@ -57,9 +57,7 @@ class FrequencyQueryService(
                 stopPattern = it.stopPattern,
                 stopNames = extractStopNames(it.stopNamePattern, it.stopPattern),
                 firstStopId = it.firstStopId,
-                lastStopId = it.lastStopId,
-                averageStopSpacingKm = it.averageStopSpacingKm,
-                stopSpacingClassification = classifyStopSpacing(it.averageStopSpacingKm)
+                lastStopId = it.lastStopId
             )
     }
 

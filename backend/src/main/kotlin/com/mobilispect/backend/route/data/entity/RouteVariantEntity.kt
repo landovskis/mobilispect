@@ -41,9 +41,6 @@ class RouteVariantEntity(
     @Column(name = "last_stop_id", nullable = false, length = 255)
     val lastStopId: String,
 
-    @Column(name = "average_stop_spacing_km")
-    var averageStopSpacingKm: Double? = null,
-
     @Column(name = "active", nullable = false)
     var active: Boolean = true,
 
