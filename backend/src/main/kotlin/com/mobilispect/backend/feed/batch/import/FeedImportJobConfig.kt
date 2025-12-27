@@ -1,5 +1,10 @@
 package com.mobilispect.backend.feed.batch.import
 
+import com.mobilispect.backend.agency.batch.import.AgencyProcessor
+import com.mobilispect.backend.agency.batch.import.AgencyReader
+import com.mobilispect.backend.agency.batch.import.AgencyWriter
+import com.mobilispect.backend.agency.domain.model.Agency
+import com.mobilispect.backend.feed.gtfs.ParsedAgency
 import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
 import com.mobilispect.backend.feed.service.GTFSFeedReader
 import com.mobilispect.backend.route.batch.variant.RouteVariantBatch
@@ -22,6 +27,9 @@ class FeedImportJobConfig(
     private val transactionManager: PlatformTransactionManager,
     private val feedImportReader: GTFSFeedReader,
     private val feedImportWriter: FeedImportWriter,
+    private val agencyReader: AgencyReader,
+    private val agencyProcessor: AgencyProcessor,
+    private val agencyWriter: AgencyWriter,
     private val routeVariantReader: RouteVariantReader,
     private val routeVariantProcessor: RouteVariantProcessor,
     private val routeVariantWriter: RouteVariantWriter
@@ -30,6 +38,7 @@ class FeedImportJobConfig(
     @Bean
     fun feedImportJob(): Job = JobBuilder("feedImportJob", jobRepository)
         .start(feedImportStep())
+        .next(agencyProcessingStep())
         .next(routeVariantProcessingStep())
         .build()
 
@@ -38,6 +47,14 @@ class FeedImportJobConfig(
         .chunk<ParsedGtfsData, ParsedGtfsData>(1, transactionManager)
         .reader(feedImportReader)
         .writer(feedImportWriter)
+        .build()
+
+    @Bean
+    fun agencyProcessingStep(): Step = StepBuilder("agencyProcessingStep", jobRepository)
+        .chunk<ParsedAgency, Agency>(50, transactionManager)
+        .reader(agencyReader)
+        .processor(agencyProcessor)
+        .writer(agencyWriter)
         .build()
 
     @Bean
