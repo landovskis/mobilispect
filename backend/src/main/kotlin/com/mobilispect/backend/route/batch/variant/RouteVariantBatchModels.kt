@@ -2,8 +2,8 @@ package com.mobilispect.backend.route.batch.variant
 
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteVariant
-import com.mobilispect.backend.feed.gtfs.ParsedTrip
-import com.mobilispect.backend.feed.gtfs.ParsedStop
+import com.mobilispect.backend.feed.api.ParsedTrip
+import com.mobilispect.backend.feed.api.ParsedStop
 
 /**
  * Input data for the RouteVariantProcessor.

@@ -1,5 +1,6 @@
 package com.mobilispect.backend.route.batch.frequency
 
+import com.mobilispect.backend.feed.api.ParsedTrip
 import com.mobilispect.backend.route.domain.model.Frequency
 import com.mobilispect.backend.route.domain.model.TimePeriod
 import com.mobilispect.backend.route.domain.service.FrequencyCalculationService
@@ -78,7 +79,7 @@ class FrequencyProcessor(
 
     private fun calculateWeekdayFrequencies(
         variant: com.mobilispect.backend.route.domain.model.RouteVariant,
-        trips: List<com.mobilispect.backend.feed.gtfs.ParsedTrip>,
+        trips: List<ParsedTrip>,
         serviceDate: LocalDate,
         frequencies: MutableList<Frequency>
     ) {
@@ -128,10 +129,10 @@ class FrequencyProcessor(
     }
 
     private fun filterTripsByTimeRange(
-        trips: List<com.mobilispect.backend.feed.gtfs.ParsedTrip>,
+        trips: List<ParsedTrip>,
         startTime: LocalTime,
         endTime: LocalTime
-    ): List<com.mobilispect.backend.feed.gtfs.ParsedTrip> {
+    ): List<ParsedTrip> {
         return trips.filter { trip ->
             val departureTime = trip.stopTimes.firstOrNull()?.departureTime ?: return@filter false
             isInTimeRange(departureTime, startTime, endTime)
@@ -142,7 +143,7 @@ class FrequencyProcessor(
         return time >= start && time < end
     }
 
-    private fun extractDepartureTimes(trips: List<com.mobilispect.backend.feed.gtfs.ParsedTrip>): List<LocalTime> {
+    private fun extractDepartureTimes(trips: List<ParsedTrip>): List<LocalTime> {
         return trips.mapNotNull { trip ->
             trip.stopTimes.firstOrNull()?.departureTime
         }

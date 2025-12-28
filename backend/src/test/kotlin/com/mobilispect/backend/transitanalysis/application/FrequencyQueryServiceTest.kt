@@ -10,7 +10,6 @@ import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
-import com.mobilispect.backend.route.application.HourlyFrequencyCalculationService
 import com.mobilispect.backend.route.application.FrequencyQueryService
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -25,8 +24,7 @@ class FrequencyQueryServiceTest {
     private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
     private val variantRepository: RouteVariantRepository = mock(RouteVariantRepository::class.java)
     private val frequencyRepository: FrequencyRepository = mock(FrequencyRepository::class.java)
-    private val hourlyFrequencyCalculationService: HourlyFrequencyCalculationService = mock(HourlyFrequencyCalculationService::class.java)
-    private val service = FrequencyQueryService(routeRepository, variantRepository, frequencyRepository, hourlyFrequencyCalculationService)
+    private val service = FrequencyQueryService(routeRepository, variantRepository, frequencyRepository)
 
     @Test
     fun `getVariantsByRoute maps variants`() {

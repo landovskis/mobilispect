@@ -2,7 +2,7 @@ package com.mobilispect.backend.feed.service
 
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.domain.FeedImport
-import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
+import com.mobilispect.backend.feed.api.ParsedGtfsData
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType

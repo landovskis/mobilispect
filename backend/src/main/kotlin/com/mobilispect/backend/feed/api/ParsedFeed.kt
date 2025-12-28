@@ -1,29 +1,7 @@
-package com.mobilispect.backend.feed.gtfs
+package com.mobilispect.backend.feed.api
 
-import java.nio.file.Path
 import java.time.LocalTime
 
-/**
- * GTFS feed parser interface.
- *
- * Responsible for parsing GTFS ZIP archives and extracting transit data
- * using the OneBusAway GTFS library.
- *
- * Constitutional Requirements:
- * - FR-002: Parse and extract route, trip, stop, and schedule information
- *
- * Module Boundary: Infrastructure layer in transit-analysis module
- */
-interface GtfsParser {
-
-    /**
-     * Parse a GTFS feed archive.
-     *
-     * @param feedPath Path to the GTFS ZIP file
-     * @return Result containing parsed data on success, or error on failure
-     */
-    fun parse(feedPath: Path): Result<ParsedGtfsData>
-}
 
 /**
  * Parsed GTFS payload distilled for variant identification and frequency

@@ -4,7 +4,7 @@ import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.gtfs.ParsedRoute
+import com.mobilispect.backend.feed.api.ParsedRoute
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.route.domain.model.ids.RouteId
@@ -21,9 +21,15 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
+import org.springframework.batch.core.scope.context.StepSynchronizationManager
+import org.springframework.batch.test.context.SpringBatchTest
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
+import org.springframework.test.context.TestExecutionListeners
 import org.springframework.test.context.TestPropertySource
+import org.springframework.test.context.support.DependencyInjectionTestExecutionListener
+import org.springframework.test.context.support.DirtiesContextTestExecutionListener
+import org.springframework.test.context.transaction.TransactionalTestExecutionListener
 import org.springframework.transaction.annotation.Transactional
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -42,6 +48,7 @@ import java.time.Instant
  * - Event-driven architecture: Verifies RouteImported events
  */
 @SpringBootTest
+@SpringBatchTest
 @Transactional
 @Testcontainers
 @TestPropertySource(properties = ["spring.batch.job.enabled=false"])

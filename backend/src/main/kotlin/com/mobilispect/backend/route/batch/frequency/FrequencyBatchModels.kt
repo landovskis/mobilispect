@@ -1,6 +1,6 @@
 package com.mobilispect.backend.route.batch.frequency
 
-import com.mobilispect.backend.feed.gtfs.ParsedTrip
+import com.mobilispect.backend.feed.api.ParsedTrip
 import com.mobilispect.backend.route.domain.model.Frequency
 import com.mobilispect.backend.route.domain.model.RouteVariant
 

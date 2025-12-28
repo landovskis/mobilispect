@@ -1,7 +1,7 @@
 package com.mobilispect.backend.route.batch.import
 
-import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
-import com.mobilispect.backend.feed.gtfs.ParsedRoute
+import com.mobilispect.backend.feed.api.ParsedGtfsData
+import com.mobilispect.backend.feed.api.ParsedRoute
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.step.StepExecution
 import org.springframework.batch.core.annotation.BeforeStep

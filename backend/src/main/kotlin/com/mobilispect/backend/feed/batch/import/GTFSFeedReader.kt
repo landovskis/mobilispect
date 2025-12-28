@@ -5,14 +5,13 @@ import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.events.FeedImportFailed
 import com.mobilispect.backend.feed.events.FeedImportStepCompleted
 import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
-import com.mobilispect.backend.feed.gtfs.GtfsParser
-import com.mobilispect.backend.feed.gtfs.ParsedAgency
-import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
-import com.mobilispect.backend.feed.gtfs.ParsedRoute
-import com.mobilispect.backend.feed.gtfs.ParsedShapePoint
-import com.mobilispect.backend.feed.gtfs.ParsedStop
-import com.mobilispect.backend.feed.gtfs.ParsedStopTime
-import com.mobilispect.backend.feed.gtfs.ParsedTrip
+import com.mobilispect.backend.feed.api.ParsedAgency
+import com.mobilispect.backend.feed.api.ParsedGtfsData
+import com.mobilispect.backend.feed.api.ParsedRoute
+import com.mobilispect.backend.feed.api.ParsedShapePoint
+import com.mobilispect.backend.feed.api.ParsedStop
+import com.mobilispect.backend.feed.api.ParsedStopTime
+import com.mobilispect.backend.feed.api.ParsedTrip
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
@@ -42,7 +41,7 @@ class GTFSFeedReader(
     @Qualifier("curlDownloader") private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
     private val eventPublisher: ApplicationEventPublisher,
-) : ItemReader<ParsedGtfsData>, GtfsParser {
+) : ItemReader<ParsedGtfsData> {
     private val logger = LoggerFactory.getLogger(GTFSFeedReader::class.java)
 
 
@@ -159,7 +158,7 @@ class GTFSFeedReader(
      * @param feedPath Path to the GTFS feed ZIP file
      * @return Result containing parsed data on success, or error on failure
      */
-    override fun parse(feedPath: Path): Result<ParsedGtfsData> = runCatching {
+    fun parse(feedPath: Path): Result<ParsedGtfsData> = runCatching {
         logger.info("Parsing GTFS feed at: {}", feedPath)
         val feed = GTFSFeed.fromFile(feedPath.toString())
         feed.use { feed ->

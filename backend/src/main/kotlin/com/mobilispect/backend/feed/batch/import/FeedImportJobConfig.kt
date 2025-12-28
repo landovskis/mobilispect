@@ -4,9 +4,8 @@ import com.mobilispect.backend.agency.batch.import.AgencyProcessor
 import com.mobilispect.backend.agency.batch.import.AgencyReader
 import com.mobilispect.backend.agency.batch.import.AgencyWriter
 import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.feed.gtfs.ParsedAgency
-import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
-import com.mobilispect.backend.feed.batch.import.GTFSFeedReader
+import com.mobilispect.backend.feed.api.ParsedAgency
+import com.mobilispect.backend.feed.api.ParsedGtfsData
 import com.mobilispect.backend.route.batch.import.RouteBatch
 import com.mobilispect.backend.route.batch.import.RouteInput
 import com.mobilispect.backend.route.batch.import.RouteProcessor

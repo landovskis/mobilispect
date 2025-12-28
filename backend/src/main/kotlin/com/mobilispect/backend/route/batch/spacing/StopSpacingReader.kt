@@ -1,7 +1,7 @@
 package com.mobilispect.backend.route.batch.spacing
 
-import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
-import com.mobilispect.backend.feed.gtfs.ParsedStop
+import com.mobilispect.backend.feed.api.ParsedGtfsData
+import com.mobilispect.backend.feed.api.ParsedStop
 import com.mobilispect.backend.route.domain.model.RouteVariant
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import org.slf4j.LoggerFactory

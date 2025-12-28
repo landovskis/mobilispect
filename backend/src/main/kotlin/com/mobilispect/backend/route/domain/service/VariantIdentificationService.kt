@@ -2,9 +2,9 @@ package com.mobilispect.backend.route.domain.service
 
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteVariant
-import com.mobilispect.backend.feed.gtfs.ParsedTrip
-import com.mobilispect.backend.feed.gtfs.ParsedStop
-import com.mobilispect.backend.feed.gtfs.ParsedShapePoint
+import com.mobilispect.backend.feed.api.ParsedTrip
+import com.mobilispect.backend.feed.api.ParsedStop
+import com.mobilispect.backend.feed.api.ParsedShapePoint
 import org.springframework.stereotype.Service
 import java.time.Instant
 import kotlin.math.atan2
