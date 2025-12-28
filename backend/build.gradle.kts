@@ -68,6 +68,59 @@ dependencies {
     implementation("org.postgresql:postgresql")
 }
 
+// Define source sets for different test types (Constitutional TDD Requirement)
+sourceSets {
+    create("integrationTest") {
+        kotlin {
+            srcDir("src/integrationTest/kotlin")
+            compileClasspath += sourceSets.main.get().output + configurations.testRuntimeClasspath.get()
+            runtimeClasspath += output + compileClasspath
+        }
+        resources {
+            srcDir("src/integrationTest/resources")
+        }
+    }
+    create("e2eTest") {
+        kotlin {
+            srcDir("src/e2eTest/kotlin")
+            compileClasspath += sourceSets.main.get().output + configurations.testRuntimeClasspath.get()
+            runtimeClasspath += output + compileClasspath
+        }
+        resources {
+            srcDir("src/e2eTest/resources")
+        }
+    }
+}
+
+// Integration test task
+tasks.register<Test>("integrationTest") {
+    description = "Runs integration tests with Testcontainers"
+    group = "verification"
+
+    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
+    classpath = sourceSets["integrationTest"].runtimeClasspath
+    shouldRunAfter("test")
+
+    useJUnitPlatform()
+}
+
+// E2E test task
+tasks.register<Test>("e2eTest") {
+    description = "Runs end-to-end tests"
+    group = "verification"
+
+    testClassesDirs = sourceSets["e2eTest"].output.classesDirs
+    classpath = sourceSets["e2eTest"].runtimeClasspath
+    shouldRunAfter("integrationTest")
+
+    useJUnitPlatform()
+}
+
+// Make check task depend on all test types
+tasks.named("check") {
+    dependsOn("integrationTest", "e2eTest")
+}
+
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll(
