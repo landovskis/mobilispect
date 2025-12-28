@@ -6,18 +6,18 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { MetropolitanRegion, Feed, RegionUtils } from '../models';
-import { AgencyFeedGroup, FeedGroupingUtils } from '../models/agency-feed-group.model';
-import { RegionService } from '../services/region.service';
-import { ImportService } from '../services/import.service';
-import { FeedsMetricsService } from '../services/feeds-metrics.service';
-import { FeedsEventsService } from '../services/feeds-events.service';
-import { RegionSelectorComponent } from '../../regions/components/region-selector.component';
-import { AgencyFeedCardComponent } from '../components/agency-feed-card.component';
+import { MetropolitanRegion, Feed, RegionUtils } from '../../feeds/models';
+import { AgencyFeedGroup, FeedGroupingUtils } from '../../feeds/models/agency-feed-group.model';
+import { RegionService } from '../../feeds/services/region.service';
+import { ImportService } from '../../feeds/services/import.service';
+import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
+import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
+import { RegionSelectorComponent } from '../components/region-selector.component';
+import { AgencyFeedCardComponent } from '../../feeds/components/agency-feed-card.component';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 @Component({
-  selector: 'app-discover-feeds-page',
+  selector: 'app-discover-regions-page',
   standalone: true,
   imports: [
     MatSnackBarModule,
@@ -29,7 +29,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
 ],
   template: `
     <app-brand-section
-      title="Discover Feeds"
+      title="Discover Regions"
       subtitle="Choose a metropolitan region to explore its agencies and feeds"
       icon="travel_explore">
       <app-region-selector
@@ -58,7 +58,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
         } @else {
           <div class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center">
             <mat-icon class="empty-icon mb-4 text-[64px] text-[rgba(0,0,0,0.3)]">inbox</mat-icon>
-            <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">No feeds found</h3>
+            <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">No regions found</h3>
             <p class="max-w-[400px] text-sm text-[rgba(0,0,0,0.6)]">
               @if (selectedRegionId) {
                 No feeds are available for the selected region yet.
@@ -94,7 +94,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     }
   `]
 })
-export class DiscoverFeedsPageComponent implements OnInit, OnDestroy {
+export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   regions: MetropolitanRegion[] = [];

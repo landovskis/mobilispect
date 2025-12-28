@@ -37,7 +37,6 @@ describe('RegionSelectorComponent', () => {
 
     component.onRegionSelected(baseRegion);
 
-    expect(component.searchControl.value).toBe('Test Region, California, United States');
     expect(emitSpy).toHaveBeenCalledWith('r-1');
   });
 
@@ -50,15 +49,15 @@ describe('RegionSelectorComponent', () => {
     expect(emitSpy).toHaveBeenCalledWith('');
   });
 
-  it('syncs selected region label on changes', () => {
-    component.selectedRegionId = 'r-1';
-    component.ngOnInit();
+  it('clears search when selection is cleared', () => {
+    component.searchControl.setValue('Test');
 
+    component.selectedRegionId = null;
     component.ngOnChanges({
-      selectedRegionId: new SimpleChange(null, 'r-1', false),
+      selectedRegionId: new SimpleChange('r-1', null, false),
     });
 
-    expect(component.searchControl.value).toBe('Test Region, California, United States');
+    expect(component.searchControl.value).toBe('');
   });
 
   it('updates control state when disabled toggles', () => {

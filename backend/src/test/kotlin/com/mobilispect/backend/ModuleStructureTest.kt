@@ -92,7 +92,7 @@ class ModuleStructureTest {
      */
     @Test
     fun `verify Spring Modulith module boundaries`() {
-        val modules = ApplicationModules.of(FeedManagementApplication::class.java)
+        val modules = ApplicationModules.of(MobilispectApplication::class.java)
 
         // Print module structure for visibility
         println("\n=== Spring Modulith Module Structure ===")
@@ -124,7 +124,7 @@ class ModuleStructureTest {
      */
     @Test
     fun `generate module documentation`() {
-        val modules = ApplicationModules.of(FeedManagementApplication::class.java)
+        val modules = ApplicationModules.of(MobilispectApplication::class.java)
 
         org.springframework.modulith.docs.Documenter(modules)
             .writeModulesAsPlantUml()

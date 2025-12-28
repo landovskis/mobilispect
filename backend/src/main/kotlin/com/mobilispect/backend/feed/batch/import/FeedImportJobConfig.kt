@@ -57,7 +57,8 @@ class FeedImportJobConfig(
     private val frequencyReader: FrequencyReader,
     private val frequencyProcessor: FrequencyProcessor,
     private val frequencyWriter: FrequencyWriter,
-    private val stepExecutionListener: FeedImportStepExecutionListener
+    private val stepExecutionListener: FeedImportStepExecutionListener,
+    private val jobExecutionListener: FeedImportJobExecutionListener
 ) {
 
     @Bean
@@ -68,58 +69,65 @@ class FeedImportJobConfig(
         .next(routeVariantProcessingStep())
         .next(stopSpacingProcessingStep())
         .next(frequencyProcessingStep())
+        .listener(jobExecutionListener)
         .build()
 
     @Bean
     fun feedImportStep(): Step = StepBuilder("feedImportStep", jobRepository)
-        .chunk<ParsedGtfsData, ParsedGtfsData>(1, transactionManager)
+        .chunk<ParsedGtfsData, ParsedGtfsData>(1)
         .reader(feedImportReader)
         .writer(feedImportWriter)
         .listener(stepExecutionListener)
+        .transactionManager(transactionManager)
         .build()
 
     @Bean
     fun agencyProcessingStep(): Step = StepBuilder("agencyProcessingStep", jobRepository)
-        .chunk<ParsedAgency, Agency>(50, transactionManager)
+        .chunk<ParsedAgency, Agency>(50)
         .reader(agencyReader)
         .processor(agencyProcessor)
         .writer(agencyWriter)
         .listener(stepExecutionListener)
+        .transactionManager(transactionManager)
         .build()
 
     @Bean
     fun routeProcessingStep(): Step = StepBuilder("routeProcessingStep", jobRepository)
-        .chunk<RouteInput, RouteBatch>(50, transactionManager)
+        .chunk<RouteInput, RouteBatch>(50)
         .reader(routeReader)
         .processor(routeProcessor)
         .writer(routeWriter)
         .listener(stepExecutionListener)
+        .transactionManager(transactionManager)
         .build()
 
     @Bean
     fun routeVariantProcessingStep(): Step = StepBuilder("routeVariantProcessingStep", jobRepository)
-        .chunk<RouteVariantInput, RouteVariantBatch>(10, transactionManager)
+        .chunk<RouteVariantInput, RouteVariantBatch>(10)
         .reader(routeVariantReader)
         .processor(routeVariantProcessor)
         .writer(routeVariantWriter)
         .listener(stepExecutionListener)
+        .transactionManager(transactionManager)
         .build()
 
     @Bean
     fun stopSpacingProcessingStep(): Step = StepBuilder("stopSpacingProcessingStep", jobRepository)
-        .chunk<StopSpacingInput, StopSpacingBatch>(20, transactionManager)
+        .chunk<StopSpacingInput, StopSpacingBatch>(20)
         .reader(stopSpacingReader)
         .processor(stopSpacingProcessor)
         .writer(stopSpacingWriter)
         .listener(stepExecutionListener)
+        .transactionManager(transactionManager)
         .build()
 
     @Bean
     fun frequencyProcessingStep(): Step = StepBuilder("frequencyProcessingStep", jobRepository)
-        .chunk<FrequencyInput, FrequencyBatch>(10, transactionManager)
+        .chunk<FrequencyInput, FrequencyBatch>(10)
         .reader(frequencyReader)
         .processor(frequencyProcessor)
         .writer(frequencyWriter)
         .listener(stepExecutionListener)
+        .transactionManager(transactionManager)
         .build()
 }

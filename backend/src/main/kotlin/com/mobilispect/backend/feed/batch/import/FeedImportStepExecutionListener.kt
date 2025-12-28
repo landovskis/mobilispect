@@ -3,7 +3,7 @@ package com.mobilispect.backend.feed.batch.import
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.events.FeedImportFailed
 import com.mobilispect.backend.feed.events.FeedImportStepCompleted
-import com.mobilispect.backend.feed.events.FeedImportStepStarted
+import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.ExitStatus
 import org.springframework.batch.core.listener.StepExecutionListener
@@ -40,7 +40,7 @@ class FeedImportStepExecutionListener(
         )
 
         feedId?.let { id ->
-            eventPublisher.publishEvent(FeedImportStepStarted(id, stepName))
+            eventPublisher.publishEvent(FeedImportStepStartedEvent(id, stepName))
             logger.debug(
                 "Published FeedStepStarted event for feed: {}, step: {}",
                 id.value,

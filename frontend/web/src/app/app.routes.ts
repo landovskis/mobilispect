@@ -10,7 +10,7 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: '/feeds/discover',
+        redirectTo: '/regions/discover',
         pathMatch: 'full'
       },
       {
@@ -51,7 +51,7 @@ export const routes: Routes = [
       },
       {
         path: '**',
-        redirectTo: '/feeds/discover'
+        redirectTo: '/regions/discover'
       }
     ]
   }

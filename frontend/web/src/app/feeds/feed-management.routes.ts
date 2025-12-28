@@ -1,12 +1,10 @@
 import { Routes } from '@angular/router';
-import { DiscoverFeedsPageComponent } from './pages/discover-feeds.page';
 import { FeedImportsPageComponent } from './pages/feed-imports.page';
-import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 
 export const FEED_MANAGEMENT_ROUTES: Routes = [
   {
     path: '',
-    redirectTo: 'discover',
+    redirectTo: '/regions/discover',
     pathMatch: 'full'
   },
   {
@@ -15,23 +13,13 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
     children: [
       {
         path: 'discover/:regionId',
-        component: DiscoverFeedsPageComponent,
-        resolve: {
-          breadcrumb: RegionBreadcrumbResolver
-        },
-        data: {
-          title: 'Discover Feeds',
-          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-        }
+        redirectTo: '/regions/discover/:regionId',
+        pathMatch: 'full'
       },
       {
         path: 'discover',
-        component: DiscoverFeedsPageComponent,
-        data: {
-          title: 'Discover Feeds',
-          breadcrumb: 'Discover',
-          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-        }
+        redirectTo: '/regions/discover',
+        pathMatch: 'full'
       },
       {
         path: 'regions',

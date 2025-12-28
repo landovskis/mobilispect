@@ -7,16 +7,13 @@ import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.ids.ImportId
-import com.mobilispect.backend.feed.repository.AdministratorRepository
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
-import com.mobilispect.backend.websocket.ProgressTrackingService
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
 import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,16 +21,12 @@ import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Clock
 
-class FeedImportStarted(val importId: ImportId, val feedId: FeedId)
-
-class FeedImportJobFailed(val importId: ImportId, val message: String)
-
 @Service
+@Suppress("DEPRECATION")
 class FeedImportService(
     @Qualifier("feedManagementFeedRepository")
     private val feedRepository: FeedRepository,
     private val feedImportRepository: FeedImportRepository,
-    private val eventPublisher: ApplicationEventPublisher,
     private val jobLauncher: JobLauncher,
     @Qualifier("feedImportJob")
     private val feedImportJob: Job,
@@ -97,7 +90,6 @@ class FeedImportService(
         importLaunchExecutor.execute {
             runCatching {
                 jobLauncher.run(feedImportJob, params)
-                eventPublisher.publishEvent(FeedImportStarted(importId, feedId))
             }.onFailure { throwable ->
                 logger.error("Failed to launch feed import job for {}", feedId, throwable)
                 failImport(importId, throwable.message ?: "Failed to start import job")
@@ -136,7 +128,6 @@ class FeedImportService(
         feedImport.completedAt = clock.instant()
         feedImport.errorMessage = message
         feedImportRepository.save(feedImport)
-        eventPublisher.publishEvent(FeedImportJobFailed(importId, message))
     }
 
     private fun FeedImport.requireId(): ImportId = id

@@ -78,7 +78,7 @@ kotlin {
 }
 
 springBoot {
-    mainClass.set("com.mobilispect.backend.FeedManagementApplicationKt")
+    mainClass.set("com.mobilispect.backend.MobilispectApplicationKt")
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {

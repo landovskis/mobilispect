@@ -19,7 +19,7 @@ import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.feed.service.ImportHistoryService
-import com.mobilispect.backend.websocket.ProgressTrackingService
+import com.mobilispect.backend.feed.service.ImportProgressService
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -56,7 +56,7 @@ class FeedImportController(
     private val feedImportService: FeedImportService,
     private val feedImportRepository: FeedImportRepository,
     private val feedRepository: FeedRepository,
-    private val progressTrackingService: ProgressTrackingService,
+    private val importProgressService: ImportProgressService,
     private val importHistoryService: ImportHistoryService
 ) {
     private val activeStatuses = listOf(ImportStatus.RUNNING, ImportStatus.PENDING)
@@ -106,7 +106,7 @@ class FeedImportController(
         val imports = feedImportRepository.findAllByStatusIn(activeStatuses)
             .sortedByDescending { it.startedAt ?: it.createdAt }
         val summaries = imports.map { import ->
-            val progress = progressTrackingService.getProgress(import.requireIdAsString())?.toDto()
+            val progress = importProgressService.getProgress(import.requireIdAsString())?.toDto()
             import.toSummary(progress)
         }
         return ActiveImportsResponse(
@@ -121,7 +121,7 @@ class FeedImportController(
     @GetMapping("/imports/{importId}/progress")
     @Transactional(readOnly = true)
     fun getImportProgress(@PathVariable importId: String): ImportProgressDTO {
-        progressTrackingService.getProgress(importId)?.let { return it.toDto() }
+        importProgressService.getProgress(importId)?.let { return it.toDto() }
 
         val uuid = runCatching { UUID.fromString(importId) }
             .getOrElse { throw ResponseStatusException(HttpStatus.NOT_FOUND, "Import not found: $importId") }
@@ -169,7 +169,7 @@ class FeedImportController(
             ?: throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Feed missing for import ${import.id}")
         val regionName = feed.regions.firstOrNull()?.name
 
-        val progress = progressTrackingService.getProgress(importId)?.toDto()
+        val progress = importProgressService.getProgress(importId)?.toDto()
 
         return FeedImportDetailDTO(
             id = import.requireIdAsString(),

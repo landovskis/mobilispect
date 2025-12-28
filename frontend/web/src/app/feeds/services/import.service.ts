@@ -218,14 +218,27 @@ export class ImportService {
       })
     );
 
-    // WebSocket real-time updates
+    // WebSocket real-time updates (STOMP protocol)
     const webSocket$ = this.webSocketService.subscribeToImportProgress(importId).pipe(
-      map(msg => ({
-        progressPercentage: msg.data.progressPercentage,
-        totalSteps: 100, // Will be provided by backend later
-        currentStep: msg.data.currentStep,
-        estimatedTimeRemainingSeconds: msg.data.estimatedTimeRemainingSeconds || null
-      } as ImportProgress)),
+      map(msg => {
+        // Backend sends ProgressUpdate: { progress?: ImportProgress, completed?: boolean, error?: string }
+        if (!msg.progress) {
+          console.warn('Received WebSocket message without progress field:', msg);
+          return null;
+        }
+
+        const progress = msg.progress;
+        return {
+          importId: progress.importId,
+          progressPercentage: progress.progressPercentage,
+          totalSteps: progress.totalSteps || 8,
+          currentStep: progress.currentStep,
+          estimatedTimeRemainingSeconds: progress.estimatedTimeRemainingSeconds || null,
+          startedAt: progress.startedAt,
+          lastUpdatedAt: progress.lastUpdatedAt
+        } as ImportProgress;
+      }),
+      filter((progress): progress is ImportProgress => progress !== null),
       catchError(error => {
         console.warn('WebSocket progress updates failed, using HTTP polling only', error);
         return of(null);

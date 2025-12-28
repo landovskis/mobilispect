@@ -3,8 +3,6 @@ package com.mobilispect.backend
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
-import org.springframework.context.annotation.ComponentScan
-import org.springframework.context.annotation.FilterType
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 
 import org.springframework.scheduling.annotation.EnableAsync
@@ -38,8 +36,8 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @EnableScheduling
 @EnableAsync
 @EnableBatchProcessing
-class FeedManagementApplication
+class MobilispectApplication
 
 fun main(args: Array<String>) {
-    runApplication<FeedManagementApplication>(*args)
+    runApplication<MobilispectApplication>(*args)
 }

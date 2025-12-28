@@ -1,6 +1,8 @@
 package com.mobilispect.backend.route.batch.import
 
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.domain.repository.AgencyRepository
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.route.domain.model.ids.RouteId
@@ -14,20 +16,32 @@ import org.springframework.stereotype.Component
  *
  * This processor:
  * 1. Takes RouteInput containing ParsedRoute and feed context
- * 2. Uses feed onestop ID to construct route onestop IDs
- * 3. Converts GTFS route types to RouteType enum
- * 4. Returns RouteBatch containing Route domain models
+ * 2. Resolves agency onestop ID from GTFS agency ID
+ * 3. Uses feed onestop ID to construct route onestop IDs
+ * 4. Converts GTFS route types to RouteType enum
+ * 5. Returns RouteBatch containing Route domain models
  *
  * Route onestop IDs follow TransitLand format retrieved from the API.
  */
 @Component
 @StepScope
-class RouteProcessor : ItemProcessor<RouteInput, RouteBatch> {
+class RouteProcessor(
+    private val agencyRepository: AgencyRepository
+) : ItemProcessor<RouteInput, RouteBatch> {
 
     private val logger = LoggerFactory.getLogger(RouteProcessor::class.java)
 
     override fun process(item: RouteInput): RouteBatch {
         val (parsedRoute, feedOnestopId) = item
+
+        // Resolve agency onestop ID from GTFS agency ID
+        val gtfsAgencyId = parsedRoute.agencyId ?: "default-agency"
+        val agency = agencyRepository.findByFeedIdAndGtfsAgencyId(
+            FeedId(feedOnestopId),
+            gtfsAgencyId
+        ) ?: throw IllegalStateException(
+            "Agency not found for feed=$feedOnestopId, gtfsAgencyId=$gtfsAgencyId"
+        )
 
         // Use feed onestop ID as base for route ID
         // TransitLand format: route IDs from their API
@@ -35,7 +49,7 @@ class RouteProcessor : ItemProcessor<RouteInput, RouteBatch> {
 
         val route = Route(
             id = RouteId(routeOnestopId),
-            agencyId = AgencyId(parsedRoute.agencyId ?: "default-agency"),
+            agencyId = agency.agencyOnestopId,
             gtfsRouteId = parsedRoute.routeId,
             shortName = parsedRoute.shortName,
             longName = parsedRoute.longName ?: parsedRoute.shortName ?: parsedRoute.routeId,
@@ -46,10 +60,11 @@ class RouteProcessor : ItemProcessor<RouteInput, RouteBatch> {
         )
 
         logger.debug(
-            "Processed route: {} ({}) -> {}",
+            "Processed route: {} ({}) -> {} (agency: {})",
             parsedRoute.shortName ?: parsedRoute.routeId,
             parsedRoute.longName,
-            routeOnestopId
+            routeOnestopId,
+            agency.agencyOnestopId.value
         )
 
         return RouteBatch(listOf(route))

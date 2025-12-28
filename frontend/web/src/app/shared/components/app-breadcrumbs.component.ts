@@ -108,7 +108,7 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
     const crumbs = this.breadcrumbService.getBreadcrumbs(this.router.routerState.root.snapshot);
     this.breadcrumbs = crumbs.length
       ? crumbs
-      : [{ id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] }];
+      : [{ id: 'regions', label: 'Regions', link: ['/regions/discover'] }];
     this.cdr.markForCheck();
   }
 

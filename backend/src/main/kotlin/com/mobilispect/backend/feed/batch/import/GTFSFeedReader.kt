@@ -4,7 +4,7 @@ import com.conveyal.gtfs.GTFSFeed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.events.FeedImportFailed
 import com.mobilispect.backend.feed.events.FeedImportStepCompleted
-import com.mobilispect.backend.feed.events.FeedImportStepStarted
+import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
 import com.mobilispect.backend.feed.gtfs.GtfsParser
 import com.mobilispect.backend.feed.gtfs.ParsedAgency
 import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
@@ -81,7 +81,7 @@ class GTFSFeedReader(
             validateGtfsFiles(extractedDir)
         }.getOrNull() ?: return Result.failure(IllegalStateException("Validation failed"))
 
-        return doStep(feedId, "parse") { parse(extractedDir) }
+        return doStep(feedId, "parse") { parse(archive) }
     }
 
     override fun read(): ParsedGtfsData? {
@@ -95,7 +95,7 @@ class GTFSFeedReader(
     }
 
     private fun <T> doStep(feedId: FeedId, step: String, function: () -> Result<T>): Result<T> {
-        eventPublisher.publishEvent(FeedImportStepStarted(feedId, step))
+        eventPublisher.publishEvent(FeedImportStepStartedEvent(feedId, step))
         val res = function()
         if (res.isFailure) {
             eventPublisher.publishEvent(
@@ -156,7 +156,7 @@ class GTFSFeedReader(
      * - Modern Java/Kotlin compatibility
      * - Active maintenance
      *
-     * @param feedPath Path to the GTFS feed directory
+     * @param feedPath Path to the GTFS feed ZIP file
      * @return Result containing parsed data on success, or error on failure
      */
     override fun parse(feedPath: Path): Result<ParsedGtfsData> = runCatching {
