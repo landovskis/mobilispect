@@ -14,6 +14,7 @@ import com.mobilispect.backend.feed.api.ParsedStopTime
 import com.mobilispect.backend.feed.api.ParsedTrip
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
@@ -226,7 +227,7 @@ class GTFSFeedReader(
 
                 ParsedTrip(
                     routeId = GTFSRouteId(trip.route_id),
-                    tripId = trip.trip_id,
+                    tripId = GTFSTripId(trip.trip_id),
                     directionId = trip.direction_id,
                     headsign = trip.trip_headsign,
                     shapeId = trip.shape_id,

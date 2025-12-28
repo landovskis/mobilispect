@@ -2,6 +2,7 @@ package com.mobilispect.backend.feed.api
 
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import java.time.LocalTime
 
 
@@ -36,7 +37,7 @@ data class ParsedRoute(
 
 data class ParsedTrip(
     val routeId: GTFSRouteId,
-    val tripId: String,
+    val tripId: GTFSTripId,
     val directionId: Int?,
     val headsign: String?,
     val shapeId: String?,
