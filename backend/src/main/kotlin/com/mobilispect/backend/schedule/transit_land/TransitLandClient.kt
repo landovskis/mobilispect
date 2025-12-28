@@ -4,7 +4,7 @@ import com.mobilispect.backend.AgencyResult
 import com.mobilispect.backend.AgencyResultItem
 
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.FeedVersion
 import com.mobilispect.backend.util.GenericError
 import com.mobilispect.backend.TransitLandFeedResponse
@@ -104,7 +104,7 @@ class TransitLandClient(
                 val latestVersion = remote.feed_versions.firstOrNull() ?: return@mapNotNull null
                 ScheduledFeed(
                     feed = FeedEntity(
-                        feedOnestopId = feedID, downloadUrl = latestVersion.url
+                        feedId = feedID, downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(
                         uid = latestVersion.sha1,
@@ -131,7 +131,7 @@ class TransitLandClient(
 
                 ScheduledFeed(
                     feed = FeedEntity(
-                        feedOnestopId = feedOnestopId,
+                        feedId = feedOnestopId,
                         downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(
@@ -165,7 +165,7 @@ class TransitLandClient(
 
                 ScheduledFeed(
                     feed = FeedEntity(
-                        feedOnestopId = feedOnestopId,
+                        feedId = feedOnestopId,
                         downloadUrl = latestVersion.url
                     ),
                     version = FeedVersion(

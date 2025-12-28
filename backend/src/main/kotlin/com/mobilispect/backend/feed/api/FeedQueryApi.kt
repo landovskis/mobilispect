@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.api
 
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.RegionId
 
 /**

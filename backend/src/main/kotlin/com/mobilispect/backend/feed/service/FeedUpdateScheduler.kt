@@ -58,10 +58,9 @@ class FeedUpdateScheduler(
                 result.feedsWithUpdates.forEach { feedOnestopId ->
                     try {
                         feedImportService.startImport(
-                            feedOnestopId = feedOnestopId.value,
-                            administratorUsername = null, // System-triggered
-                            triggerType = ImportTriggerType.AUTOMATIC,
-                            force = false
+                            feedId = feedOnestopId,
+                            // System-triggered
+                            triggerType = ImportTriggerType.AUTOMATIC
                         )
                         totalImportsTriggered++
                         logger.info("Triggered automatic import for feed: {}", feedOnestopId)

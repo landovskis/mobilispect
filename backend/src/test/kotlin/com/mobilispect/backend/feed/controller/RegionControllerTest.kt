@@ -6,7 +6,7 @@ import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.region.domain.MetropolitanRegion
 import com.mobilispect.backend.region.controller.RegionController
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
@@ -63,7 +63,7 @@ class RegionControllerTest {
         every { feedRepository.findAllByRegionRegionOnestopId(RegionId("r-region-2")) } returns emptyList()
 
         // When
-        val response = controller.listRegions(autoUpdateEnabled = null)
+        val response = controller.listRegions(autoUpdateEnabled = null, hasImportedFeeds = null)
 
         // Then
         assertThat(response.regions).hasSize(2)
@@ -81,7 +81,7 @@ class RegionControllerTest {
         every { feedRepository.findAllByRegionRegionOnestopId(any()) } returns emptyList()
 
         // When
-        val response = controller.listRegions(autoUpdateEnabled = true)
+        val response = controller.listRegions(autoUpdateEnabled = true, hasImportedFeeds = null)
 
         // Then
         assertThat(response.regions).hasSize(2)
@@ -101,11 +101,120 @@ class RegionControllerTest {
         every { feedRepository.findAllByRegionRegionOnestopId(RegionId(testRegionId)) } returns feeds
 
         // When
-        val response = controller.listRegions(autoUpdateEnabled = null)
+        val response = controller.listRegions(autoUpdateEnabled = null, hasImportedFeeds = null)
 
         // Then
         assertThat(response.regions).hasSize(1)
         assertThat(response.regions.first().feedCount).isEqualTo(2)
+    }
+
+    @Test
+    fun `listRegions filters by hasImportedFeeds`() {
+        // Given
+        val regionWithImport = createRegion("r-region-1", "Region 1", autoUpdate = true)
+        val regionNoImport = createRegion("r-region-2", "Region 2", autoUpdate = true)
+
+        every { regionRepository.findAllWithCompletedImports() } returns listOf(regionWithImport)
+        every { feedRepository.findAllByRegionRegionOnestopId(RegionId("r-region-1")) } returns emptyList()
+
+        // When
+        val response = controller.listRegions(
+            autoUpdateEnabled = null,
+            hasImportedFeeds = true
+        )
+
+        // Then
+        assertThat(response.regions).hasSize(1)
+        assertThat(response.regions[0].regionOnestopId).isEqualTo("r-region-1")
+        verify { regionRepository.findAllWithCompletedImports() }
+    }
+
+    @Test
+    fun `listRegions combines hasImportedFeeds and autoUpdateEnabled filters`() {
+        // Given
+        val region = createRegion("r-region-1", "Region 1", autoUpdate = true)
+
+        every {
+            regionRepository.findAllByAutoUpdateEnabledWithCompletedImports(true)
+        } returns listOf(region)
+        every { feedRepository.findAllByRegionRegionOnestopId(any()) } returns emptyList()
+
+        // When
+        val response = controller.listRegions(
+            autoUpdateEnabled = true,
+            hasImportedFeeds = true
+        )
+
+        // Then
+        assertThat(response.regions).hasSize(1)
+        assertThat(response.regions[0].autoUpdateEnabled).isTrue()
+        assertThat(response.regions[0].regionOnestopId).isEqualTo("r-region-1")
+        verify { regionRepository.findAllByAutoUpdateEnabledWithCompletedImports(true) }
+    }
+
+    @Test
+    fun `listRegions with hasImportedFeeds false returns all regions`() {
+        // Given
+        val regions = listOf(
+            createRegion("r-region-1", "Region 1", autoUpdate = true),
+            createRegion("r-region-2", "Region 2", autoUpdate = true)
+        )
+
+        every { regionRepository.findAll() } returns regions
+        every { feedRepository.findAllByRegionRegionOnestopId(any()) } returns emptyList()
+
+        // When
+        val response = controller.listRegions(
+            autoUpdateEnabled = null,
+            hasImportedFeeds = false
+        )
+
+        // Then
+        assertThat(response.regions).hasSize(2)
+        verify { regionRepository.findAll() }
+    }
+
+    @Test
+    fun `listRegions with hasImportedFeeds null uses default behavior`() {
+        // Given
+        val regions = listOf(
+            createRegion("r-region-1", "Region 1", autoUpdate = true)
+        )
+
+        every { regionRepository.findAll() } returns regions
+        every { feedRepository.findAllByRegionRegionOnestopId(any()) } returns emptyList()
+
+        // When
+        val response = controller.listRegions(
+            autoUpdateEnabled = null,
+            hasImportedFeeds = null
+        )
+
+        // Then
+        assertThat(response.regions).hasSize(1)
+        verify { regionRepository.findAll() }
+    }
+
+    @Test
+    fun `listRegions with autoUpdateEnabled true and hasImportedFeeds false uses only autoUpdate filter`() {
+        // Given
+        val regions = listOf(
+            createRegion("r-region-1", "Region 1", autoUpdate = true)
+        )
+
+        every { regionRepository.findAllByAutoUpdateEnabled(true) } returns regions
+        every { feedRepository.findAllByRegionRegionOnestopId(any()) } returns emptyList()
+
+        // When
+        val response = controller.listRegions(
+            autoUpdateEnabled = true,
+            hasImportedFeeds = false
+        )
+
+        // Then
+        assertThat(response.regions).hasSize(1)
+        assertThat(response.regions[0].autoUpdateEnabled).isTrue()
+        verify { regionRepository.findAllByAutoUpdateEnabled(true) }
     }
 
     @Test
@@ -357,7 +466,7 @@ class RegionControllerTest {
         status: FeedStatus = FeedStatus.ACTIVE
     ): FeedEntity {
         return FeedEntity(
-            feedOnestopId = id,
+            feedId = id,
             regions = mutableSetOf(region),
             name = id.substringAfterLast("-").uppercase(),
             specType = specType,
@@ -366,10 +475,9 @@ class RegionControllerTest {
             lastCheckedAt = fixedInstant,
             lastUpdatedAt = fixedInstant,
             lastDiscoveredAt = fixedInstant,
-            status = status
-        ).apply {
-            createdAt = fixedInstant
+            status = status,
+            createdAt = fixedInstant,
             updatedAt = fixedInstant
-        }
+        )
     }
 }

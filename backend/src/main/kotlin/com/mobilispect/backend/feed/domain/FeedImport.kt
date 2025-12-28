@@ -29,7 +29,7 @@ class FeedImport(
     var id: ImportId = ImportId.random(),
 
     @Column(name = "feed_onestop_id", nullable = false, length = 512)
-    var feedOnestopId: String = "",
+    var feedId: String = "",
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "administrator_id")
@@ -69,7 +69,7 @@ class FeedImport(
     // Explicit no-arg constructor for Hibernate instantiation
     constructor() : this(
         id = ImportId(),
-        feedOnestopId = "",
+        feedId = "",
         administrator = null,
         triggerType = ImportTriggerType.MANUAL,
         status = ImportStatus.PENDING,

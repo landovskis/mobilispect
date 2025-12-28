@@ -27,7 +27,7 @@ describe('AgencyService', () => {
       expect(response.totalElements).toBe(1);
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/api/regions/r-1/agencies`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/regions/r-1/agencies`);
     expect(req.request.params.get('page')).toBe('2');
     expect(req.request.params.get('size')).toBe('50');
 
@@ -53,7 +53,7 @@ describe('AgencyService', () => {
       expect(response.totalPages).toBe(2);
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/api/agencies`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/agencies`);
     expect(req.request.params.get('page')).toBe('0');
     expect(req.request.params.get('size')).toBe('20');
 
@@ -69,7 +69,7 @@ describe('AgencyService', () => {
       expect(agency.id).toBe('a-2');
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/agencies/a-2`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/agencies/a-2`);
     expect(req.request.method).toBe('GET');
 
     req.flush({
@@ -88,7 +88,7 @@ describe('AgencyService', () => {
       expect(response.number).toBe(1);
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/api/agencies/a-3/routes`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/agencies/a-3/routes`);
     expect(req.request.params.get('page')).toBe('1');
     expect(req.request.params.get('size')).toBe('25');
 

@@ -41,11 +41,24 @@ class RegionController(
     @GetMapping
     @Transactional(readOnly = true)
     fun listRegions(
-        @RequestParam(required = false) autoUpdateEnabled: Boolean?
+        @RequestParam(required = false) autoUpdateEnabled: Boolean?,
+        @RequestParam(required = false) hasImportedFeeds: Boolean?
     ): RegionsResponse {
-        val regions = when (autoUpdateEnabled) {
-            null -> regionRepository.findAll()
-            else -> regionRepository.findAllByAutoUpdateEnabled(autoUpdateEnabled)
+        val regions = when {
+            // Both filters applied
+            autoUpdateEnabled != null && hasImportedFeeds == true ->
+                regionRepository.findAllByAutoUpdateEnabledWithCompletedImports(autoUpdateEnabled)
+
+            // Only hasImportedFeeds filter
+            hasImportedFeeds == true && autoUpdateEnabled == null ->
+                regionRepository.findAllWithCompletedImports()
+
+            // Only autoUpdateEnabled filter (existing behavior)
+            autoUpdateEnabled != null && hasImportedFeeds != true ->
+                regionRepository.findAllByAutoUpdateEnabled(autoUpdateEnabled)
+
+            // No filters (existing behavior)
+            else -> regionRepository.findAll()
         }
 
         val regionDtos = regions.map { region ->
@@ -138,9 +151,9 @@ class RegionController(
     }
 
     private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {
-        val hasAuthentication = feedAuthenticationRepository.findById(feed.feedOnestopId).isPresent
+        val hasAuthentication = feedAuthenticationRepository.findById(feed.feedId).isPresent
         return FeedDTO(
-            feedOnestopId = feed.feedOnestopId,
+            feedOnestopId = feed.feedId,
             regionOnestopId = regionOnestopId,
             name = feed.name,
             specType = feed.specType.toDto(),

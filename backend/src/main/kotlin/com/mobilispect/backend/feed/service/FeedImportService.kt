@@ -1,6 +1,8 @@
 package com.mobilispect.backend.feed.service
 
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.domain.FeedImport
+import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
@@ -14,6 +16,7 @@ import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
 import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -21,13 +24,16 @@ import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.Clock
 
+class FeedImportStarted(val importId: ImportId, val feedId: FeedId)
+
+class FeedImportJobFailed(val importId: ImportId, val message: String)
+
 @Service
 class FeedImportService(
     @Qualifier("feedManagementFeedRepository")
     private val feedRepository: FeedRepository,
     private val feedImportRepository: FeedImportRepository,
-    private val administratorRepository: AdministratorRepository,
-    private val progressTrackingService: ProgressTrackingService,
+    private val eventPublisher: ApplicationEventPublisher,
     private val jobLauncher: JobLauncher,
     @Qualifier("feedImportJob")
     private val feedImportJob: Job,
@@ -38,50 +44,34 @@ class FeedImportService(
     private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
     fun startImport(
-        feedOnestopId: String,
-        administratorUsername: String?,
-        triggerType: ImportTriggerType,
-        force: Boolean
+        feedId: FeedId,
+        triggerType: ImportTriggerType
     ): FeedImport {
-        val feed = feedRepository.findByFeedOnestopId(feedOnestopId)
-            .orElseThrow { IllegalArgumentException("Feed not found: $feedOnestopId") }
-
-        val administrator = administratorUsername?.let { adminUsername ->
-            administratorRepository.findByUsername(adminUsername).orElse(null)
-        }
+        val feed = feedRepository.findByFeedOnestopId(feedId.value)
+            .orElseThrow { IllegalArgumentException("Feed not found: $feedId") }
 
         val now = clock.instant()
         val feedImport = feedImportRepository.save(
             FeedImport().apply {
-                this.feedOnestopId = feed.feedOnestopId
-                this.administrator = administrator
+                this.feedId = feed.feedId
+                this.administrator = null
                 this.triggerType = triggerType
                 this.status = ImportStatus.RUNNING
                 this.startedAt = now
-                this.versionSha1 = if (force) feed.currentVersionSha1 else null
+                this.versionSha1 = null
             }
-        )
-
-        progressTrackingService.updateProgress(
-            importId = feedImport.requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
-            progressPercentage = 0,
-            currentStep = "Starting import",
-            currentStepNumber = 0,
-            totalSteps = 8,
-            startedAt = now
         )
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(
                 object : TransactionSynchronization {
                     override fun afterCommit() {
-                        launchImportJob(feedImport.requireId(), feed.feedOnestopId)
+                        launchImportJob(feedImport.requireId(), FeedId(feed.feedId))
                     }
                 }
             )
         } else {
-            launchImportJob(feedImport.requireId(), feed.feedOnestopId)
+            launchImportJob(feedImport.requireId(), FeedId(feed.feedId))
         }
 
         return feedImport
@@ -95,12 +85,11 @@ class FeedImportService(
         feedImport.status = ImportStatus.CANCELLED
         feedImport.completedAt = clock.instant()
         feedImportRepository.save(feedImport)
-        progressTrackingService.markFailed(importId.value.toString(), "Import cancelled by user")
     }
 
-    private fun launchImportJob(importId: ImportId, feedOnestopId: String) {
+    private fun launchImportJob(importId: ImportId, feedId: FeedId) {
         val params = JobParametersBuilder()
-            .addString("feedOnestopId", feedOnestopId)
+            .addString("feedOnestopId", feedId.value)
             .addString("importId", importId.value.toString())
             .addLong("timestamp", System.currentTimeMillis())
             .toJobParameters()
@@ -108,35 +97,34 @@ class FeedImportService(
         importLaunchExecutor.execute {
             runCatching {
                 jobLauncher.run(feedImportJob, params)
+                eventPublisher.publishEvent(FeedImportStarted(importId, feedId))
             }.onFailure { throwable ->
-                logger.error("Failed to launch feed import job for {}", feedOnestopId, throwable)
+                logger.error("Failed to launch feed import job for {}", feedId, throwable)
                 failImport(importId, throwable.message ?: "Failed to start import job")
             }
         }
     }
 
     @Transactional
-    fun completeImport(importId: ImportId, versionSha1: String?) {
+    fun completeImport(importId: ImportId, parsedData: ParsedGtfsData) {
         val feedImport = feedImportRepository.findByImportId(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
         val now = clock.instant()
         feedImport.status = ImportStatus.COMPLETED
         feedImport.completedAt = now
-        feedImport.versionSha1 = versionSha1 ?: feedImport.versionSha1
+        // TODO: Generate version SHA1 from parsed data or feed archive
         feedImportRepository.save(feedImport)
 
-        if (feedImport.feedOnestopId.isNotBlank()) {
-            feedRepository.findByFeedOnestopId(feedImport.feedOnestopId)
+        if (feedImport.feedId.isNotBlank()) {
+            feedRepository.findByFeedOnestopId(feedImport.feedId)
                 .ifPresent { feed ->
                     feed.status = FeedStatus.ACTIVE
                     feed.lastUpdatedAt = now
-                    feed.currentVersionSha1 = feedImport.versionSha1
+                    // TODO: Set currentVersionSha1 from parsed data
                     feedRepository.save(feed)
                 }
         }
-
-        progressTrackingService.markCompleted(importId.value.toString())
     }
 
     @Transactional
@@ -148,8 +136,7 @@ class FeedImportService(
         feedImport.completedAt = clock.instant()
         feedImport.errorMessage = message
         feedImportRepository.save(feedImport)
-
-        progressTrackingService.markFailed(importId.value.toString(), message)
+        eventPublisher.publishEvent(FeedImportJobFailed(importId, message))
     }
 
     private fun FeedImport.requireId(): ImportId = id

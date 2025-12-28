@@ -1,6 +1,6 @@
 package com.mobilispect.backend.stop.internal
 
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.stop.api.StopDTO
 import com.mobilispect.backend.stop.api.StopQueryApi
 import com.mobilispect.backend.stop.domain.model.ids.StopId

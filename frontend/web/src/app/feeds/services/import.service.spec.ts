@@ -83,7 +83,7 @@ describe('ImportService', () => {
       expect(result.id).toBe('imp-1');
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/feeds/feeds/f-1/import`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/feeds/f-1/import`);
     expect(req.request.method).toBe('POST');
     req.flush({ ...baseImport });
 
@@ -100,7 +100,7 @@ describe('ImportService', () => {
       },
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/feeds/feeds/f-1/import`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/feeds/f-1/import`);
     req.flush({ message: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
   });
 
@@ -121,7 +121,7 @@ describe('ImportService', () => {
         expect(result.imports[0].id).toBe('imp-1');
       });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/api/feeds/feeds/f-1/imports`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/feeds/f-1/imports`);
     expect(req.request.params.get('page')).toBe('1');
     expect(req.request.params.get('size')).toBe('10');
     expect(req.request.params.get('status')).toBe(ImportStatus.FAILED);
@@ -136,7 +136,7 @@ describe('ImportService', () => {
       expect(result.totalElements).toBe(0);
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/api/feeds/feeds/f-1/imports`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/feeds/f-1/imports`);
     expect(req.request.params.keys().length).toBe(0);
     req.flush({
       imports: [],
@@ -151,7 +151,7 @@ describe('ImportService', () => {
       expect(result.id).toBe('imp-1');
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/feeds/imports/imp-1`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/imports/imp-1`);
     expect(req.request.method).toBe('DELETE');
     req.flush({ ...baseImport, status: ImportStatus.CANCELLED });
 
@@ -163,7 +163,7 @@ describe('ImportService', () => {
       expect(imports.length).toBe(1);
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/feeds/imports/active`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/imports/active`);
     req.flush({ imports: [{ ...baseImportSummary }], total: 1 });
 
     service.getActiveImportsObservable().subscribe(imports => {
@@ -293,7 +293,7 @@ describe('ImportService', () => {
         expect(result.totalElements).toBe(1);
       });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/api/feeds/imports`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/imports`);
     expect(req.request.params.get('page')).toBe('2');
     expect(req.request.params.get('size')).toBe('5');
     expect(req.request.params.get('status')).toBe(ImportStatus.RUNNING);

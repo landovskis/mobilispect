@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.service
 
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.transit_land.TransitLandAPI
@@ -106,11 +106,11 @@ class FeedVersionService(
 
         feeds.forEach { feed ->
             try {
-                if (hasUpdate(FeedId(feed.feedOnestopId))) {
-                    feedsWithUpdates.add(FeedId(feed.feedOnestopId))
+                if (hasUpdate(FeedId(feed.feedId))) {
+                    feedsWithUpdates.add(FeedId(feed.feedId))
                 }
             } catch (ex: Exception) {
-                logger.error("Error checking feed: {}", feed.feedOnestopId, ex)
+                logger.error("Error checking feed: {}", feed.feedId, ex)
                 errors++
             }
         }

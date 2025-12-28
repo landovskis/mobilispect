@@ -52,7 +52,8 @@ class HourlyFrequencyCalculationServiceTest {
 
         // Setup test entities
         val feed = com.mobilispect.backend.feed.model.FeedEntity(
-            feedOnestopId = "f-test",
+            feedId = "f-test",
+            regions = mutableSetOf(),
             name = "Test Feed",
             specType = com.mobilispect.backend.feed.model.FeedSpecType.GTFS,
             downloadUrl = "https://example.com/feed.zip"
@@ -60,7 +61,7 @@ class HourlyFrequencyCalculationServiceTest {
 
         mockAgency = Agency(
             agencyOnestopId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-test-agency"),
-            feedId = com.mobilispect.backend.feed.model.ids.FeedId(feed.feedOnestopId),
+            feedId = com.mobilispect.backend.feed.domain.model.ids.FeedId(feed.feedId),
             gtfsAgencyId = "A1",
             name = "Test Agency",
             active = true

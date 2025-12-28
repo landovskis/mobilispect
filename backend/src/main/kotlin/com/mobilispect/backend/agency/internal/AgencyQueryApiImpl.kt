@@ -5,7 +5,7 @@ import com.mobilispect.backend.agency.api.AgencyQueryApi
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 

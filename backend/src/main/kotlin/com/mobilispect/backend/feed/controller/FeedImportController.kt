@@ -5,12 +5,12 @@ import com.mobilispect.backend.api.dto.FeedImportDTO
 import com.mobilispect.backend.api.dto.FeedImportDetailDTO
 import com.mobilispect.backend.api.dto.FeedImportSummaryDTO
 import com.mobilispect.backend.api.dto.ImportProgressDTO
-import com.mobilispect.backend.api.dto.ImportRequest
-import com.mobilispect.backend.api.dto.ImportResponse
+import com.mobilispect.backend.feed.domain.ImportResponse
 import com.mobilispect.backend.api.dto.ImportsResponse
-import com.mobilispect.backend.api.dto.ImportStatus as ImportStatusDto
+import com.mobilispect.backend.feed.domain.ImportStatus as ImportStatusDto
 import com.mobilispect.backend.api.dto.PageInfo
-import com.mobilispect.backend.api.dto.TriggerType as TriggerTypeDto
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.TriggerType as TriggerTypeDto
 import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -67,20 +66,21 @@ class FeedImportController(
     /**
      * Start a new feed import.
      */
-    @PostMapping("/{feedOnestopId}/import")
+    @PostMapping("/{feedId}/import")
     fun startImport(
-        @PathVariable feedOnestopId: String,
-        @RequestBody(required = false) request: ImportRequest?
+        @PathVariable feedId: String,
     ): ImportResponse {
-        val import = feedImportService.startImport(
-            feedOnestopId = feedOnestopId,
-            administratorUsername = null,
-            triggerType = ImportTriggerType.MANUAL,
-            force = request?.force == true
-        )
+        try {
+            val import = feedImportService.startImport(
+                feedId = FeedId(feedId),
+                triggerType = ImportTriggerType.MANUAL
+            )
 
-        val message = "Import started successfully"
-        return import.toResponse(message)
+            val message = "Import started successfully"
+            return import.toResponse(message)
+        } catch (e: IllegalArgumentException) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message, e)
+        }
     }
 
     /**
@@ -137,7 +137,7 @@ class FeedImportController(
 
         return ImportProgressDTO(
             importId = importId,
-            feedOnestopId = import.feedOnestopId,
+            feedOnestopId = import.feedId,
             progressPercentage = progressPercentage,
             currentStep = when (import.status) {
                 ImportStatus.COMPLETED -> "Completed"
@@ -173,7 +173,7 @@ class FeedImportController(
 
         return FeedImportDetailDTO(
             id = import.requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
+            feedOnestopId = feed.feedId,
             administratorId = import.administrator?.id?.value?.toString(),
             administratorUsername = import.administrator?.username,
             triggerType = import.triggerType.toDto(),
@@ -247,9 +247,9 @@ class FeedImportController(
         val statuses = status?.let { listOf(it.toEntity()) }
 
         val pageResult = if (statuses != null) {
-            feedImportRepository.findAllByFeedOnestopIdAndStatusInOrderByStartedAtDesc(feedOnestopId, statuses, pageable)
+            feedImportRepository.findAllByFeedIdAndStatusInOrderByStartedAtDesc(feedOnestopId, statuses, pageable)
         } else {
-            feedImportRepository.findAllByFeedOnestopIdOrderByStartedAtDesc(feedOnestopId, pageable)
+            feedImportRepository.findAllByFeedIdOrderByStartedAtDesc(feedOnestopId, pageable)
         }
 
         return ImportsResponse(
@@ -327,9 +327,7 @@ class FeedImportController(
         return ImportResponse(
             id = requireIdAsString(),
             importId = requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
-            administratorId = administrator?.id?.value?.toString(),
-            administratorUsername = administrator?.username,
+            feedOnestopId = feed.feedId,
             triggerType = triggerType.toDto(),
             status = status.toDto(),
             versionSha1 = versionSha1,
@@ -349,7 +347,7 @@ class FeedImportController(
         val region = feed.regions.firstOrNull()
         return FeedImportSummaryDTO(
             id = requireIdAsString(),
-            feedOnestopId = feed.feedOnestopId,
+            feedOnestopId = feed.feedId,
             feedName = feed.name,
             regionOnestopId = region?.regionOnestopId?.value,
             regionName = region?.name ?: "",
@@ -363,7 +361,7 @@ class FeedImportController(
 
     private fun FeedImport.toFeedImportDTO(): FeedImportDTO = FeedImportDTO(
         id = requireIdAsString(),
-        feedOnestopId = feedOnestopId,
+        feedOnestopId = feedId,
         administratorId = administrator?.id?.value?.toString(),
         administratorUsername = administrator?.username,
         triggerType = triggerType.toDto(),
@@ -378,7 +376,7 @@ class FeedImportController(
     )
 
     private fun findFeed(import: FeedImport) =
-        import.feedOnestopId.takeIf { it.isNotBlank() }
+        import.feedId.takeIf { it.isNotBlank() }
             ?.let { feedRepository.findByFeedOnestopId(it).orElse(null) }
 
     private fun com.mobilispect.backend.websocket.ImportProgress.toDto(): ImportProgressDTO = ImportProgressDTO(

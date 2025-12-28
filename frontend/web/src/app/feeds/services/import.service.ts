@@ -32,7 +32,7 @@ import { environment } from '../../../environments/environment';
   providedIn: 'root'
 })
 export class ImportService {
-  private readonly apiUrl = `${environment.apiUrl}/api/feeds`;
+  private readonly apiUrl = `${environment.apiUrl}/feeds`;
 
   // Active imports cache for real-time updates
   private activeImports$ = new BehaviorSubject<FeedImportSummary[]>([]);

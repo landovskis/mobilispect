@@ -1,7 +1,7 @@
 package com.mobilispect.backend.stop.data.repository
 
 import com.mobilispect.backend.feed.api.FeedQueryApi
-import com.mobilispect.backend.feed.model.ids.FeedId
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.stop.data.mapper.StopMapper
 import com.mobilispect.backend.stop.domain.model.Stop
 import com.mobilispect.backend.stop.domain.model.ids.StopId

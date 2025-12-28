@@ -2,7 +2,6 @@ package com.mobilispect.backend.feed.batch.discovery
 
 import com.mobilispect.backend.feed.events.RegionDiscoveredEvent
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.region.domain.MetropolitanRegion
 import com.mobilispect.backend.feed.repository.FeedRepository
@@ -149,7 +148,7 @@ class FeedDiscoveryWriter(
                         ?: error("Region entity not found for ${result.region.regionOnestopId}")
 
                     FeedEntity(
-                        feedOnestopId = feedId.value,
+                        feedId = feedId.value,
                         name = result.name,
                         specType = result.specType,
                         downloadUrl = result.downloadUrl,

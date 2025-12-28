@@ -40,7 +40,7 @@ describe('RegionService', () => {
       expect(regions[0].regionOnestopId).toBe('r-can');
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/api/feeds/regions`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/regions`);
     expect(req.request.params.get('autoUpdateEnabled')).toBe('true');
     req.flush({
       regions: [
@@ -63,7 +63,7 @@ describe('RegionService', () => {
       expect(regions[0].regionOnestopId).toBe('r-2');
     });
 
-    httpMock.expectNone(`${environment.apiUrl}/api/feeds/regions`);
+    httpMock.expectNone(`${environment.apiUrl}/feeds/regions`);
   });
 
   it('updates cache on region update', () => {
@@ -76,7 +76,7 @@ describe('RegionService', () => {
       expect(updated.autoUpdateEnabled).toBeTrue();
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/feeds/regions/r-1`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/regions/r-1`);
     expect(req.request.method).toBe('PATCH');
     req.flush({ ...baseRegion, regionOnestopId: 'r-1', autoUpdateEnabled: true });
 
@@ -90,7 +90,7 @@ describe('RegionService', () => {
         expect(feeds.length).toBe(1);
       });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/api/feeds/regions/r-1/feeds`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/regions/r-1/feeds`);
     expect(req.request.params.get('specType')).toBe(FeedSpecType.GTFS);
     expect(req.request.params.get('status')).toBe(FeedStatus.ACTIVE);
     req.flush({
@@ -119,7 +119,7 @@ describe('RegionService', () => {
       expect(result.feedsDiscovered).toBe(2);
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/api/feeds/regions/r-1/discover`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/regions/r-1/discover`);
     expect(req.request.method).toBe('POST');
     req.flush({
       regionOnestopId: 'r-1',

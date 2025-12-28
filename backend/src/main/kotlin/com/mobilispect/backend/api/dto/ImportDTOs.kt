@@ -1,38 +1,8 @@
 package com.mobilispect.backend.api.dto
 
+import com.mobilispect.backend.feed.domain.ImportStatus
+import com.mobilispect.backend.feed.domain.TriggerType
 import java.time.Instant
-
-/**
- * Import Request
- *
- * Request to start a feed import.
- */
-data class ImportRequest(
-    val force: Boolean = false
-)
-
-/**
- * Import Response
- *
- * Response when starting an import.
- */
-data class ImportResponse(
-    val id: String,
-    val importId: String,
-    val feedOnestopId: String,
-    val administratorId: String? = null,
-    val administratorUsername: String? = null,
-    val triggerType: TriggerType,
-    val status: ImportStatus,
-    val versionSha1: String? = null,
-    val startedAt: Instant,
-    val completedAt: Instant? = null,
-    val fileSizeBytes: Long? = null,
-    val errorMessage: String? = null,
-    val createdAt: Instant,
-    val updatedAt: Instant,
-    val message: String? = null
-)
 
 /**
  * Feed Import Summary DTO
@@ -85,25 +55,6 @@ data class FeedImportDetailDTO(
     val regionName: String?,
     val progress: ImportProgressDTO?
 )
-
-/**
- * Import Status
- */
-enum class ImportStatus {
-    PENDING,
-    RUNNING,
-    COMPLETED,
-    FAILED,
-    CANCELLED
-}
-
-/**
- * Import Trigger Type
- */
-enum class TriggerType {
-    MANUAL,
-    AUTOMATIC
-}
 
 /**
  * Active Imports Response
