@@ -91,7 +91,7 @@ class FrequencyReader(
     private fun matchesTripPattern(trip: ParsedTrip, stopPattern: String): Boolean {
         val tripPattern = trip.stopTimes
             .sortedBy { it.stopSequence }
-            .joinToString("|") { it.stopId }
+            .joinToString("|") { it.stopId.value }
         return tripPattern == stopPattern
     }
 }

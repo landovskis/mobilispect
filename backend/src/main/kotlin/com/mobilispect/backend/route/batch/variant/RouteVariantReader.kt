@@ -55,7 +55,7 @@ class RouteVariantReader(
         )
 
         // Create stop lookup map
-        stopsById = data.stops.associateBy { it.stopId }
+        stopsById = data.stops.associateBy { it.stopId.value }
 
         // Group trips by GTFS route ID
         val tripsByGtfsRouteId = data.trips.groupBy { it.routeId }

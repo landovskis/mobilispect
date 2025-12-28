@@ -14,6 +14,7 @@ import com.mobilispect.backend.feed.api.ParsedStopTime
 import com.mobilispect.backend.feed.api.ParsedTrip
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.GTFSStopId
 import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.repository.FeedRepository
@@ -187,7 +188,7 @@ class GTFSFeedReader(
 
             val stops = feed.stops.values.map { stop ->
                 ParsedStop(
-                    stopId = stop.stop_id,
+                    stopId = GTFSStopId(stop.stop_id),
                     name = stop.stop_name,
                     latitude = stop.stop_lat,
                     longitude = stop.stop_lon,
@@ -214,7 +215,7 @@ class GTFSFeedReader(
             val trips = feed.trips.values.map { trip ->
                 val stopTimes = feed.getOrderedStopTimesForTrip(trip.trip_id).map { stopTime ->
                     ParsedStopTime(
-                        stopId = stopTime.stop_id,
+                        stopId = GTFSStopId(stopTime.stop_id),
                         stopSequence = stopTime.stop_sequence,
                         departureTime = stopTime.departure_time.takeIf { it >= 0 }?.let { seconds ->
                             // GTFS allows times >= 24:00:00 for overnight service

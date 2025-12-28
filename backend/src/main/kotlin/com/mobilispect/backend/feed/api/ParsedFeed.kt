@@ -2,6 +2,7 @@ package com.mobilispect.backend.feed.api
 
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.GTFSStopId
 import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import java.time.LocalTime
 
@@ -45,14 +46,14 @@ data class ParsedTrip(
 )
 
 data class ParsedStopTime(
-    val stopId: String,
+    val stopId: GTFSStopId,
     val stopSequence: Int,
     val departureTime: LocalTime?,
     val shapeDistTraveledKm: Double?
 )
 
 data class ParsedStop(
-    val stopId: String,
+    val stopId: GTFSStopId,
     val name: String?,
     val latitude: Double?,
     val longitude: Double?,

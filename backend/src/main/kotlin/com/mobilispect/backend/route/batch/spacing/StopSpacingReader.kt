@@ -51,7 +51,7 @@ class StopSpacingReader(
         )
 
         // Create stop lookup map
-        stopsById = data.stops.associateBy { it.stopId }
+        stopsById = data.stops.associateBy { it.stopId.value }
 
         // Fetch all persisted route variants from database
         val persistedVariants = routeVariantRepository.findAll()
