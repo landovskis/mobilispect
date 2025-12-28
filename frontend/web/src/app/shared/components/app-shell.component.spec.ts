@@ -75,12 +75,12 @@ describe('AppShellComponent', () => {
         expect(mockEventsService.triggerRefresh).toHaveBeenCalled();
     });
 
-    it('navigates when feeds breadcrumb is selected', () => {
+    it('navigates when regions breadcrumb is selected', () => {
         const preventDefault = jasmine.createSpy('preventDefault');
         const stopPropagation = jasmine.createSpy('stopPropagation');
 
         component.onBreadcrumbSelected({
-            breadcrumb: { id: 'feeds', label: 'Feeds', link: ['/feeds/discover'] },
+            breadcrumb: { id: 'regions', label: 'Regions', link: ['/regions/discover'] },
             originalEvent: { preventDefault, stopPropagation } as unknown as MouseEvent
         });
 
@@ -89,12 +89,12 @@ describe('AppShellComponent', () => {
         expect(mockMetricsService.resetSelectedRegion).toHaveBeenCalled();
     });
 
-    it('ignores breadcrumb selections outside feeds', () => {
+    it('ignores breadcrumb selections outside regions', () => {
         const preventDefault = jasmine.createSpy('preventDefault');
         const stopPropagation = jasmine.createSpy('stopPropagation');
 
         component.onBreadcrumbSelected({
-            breadcrumb: { id: 'regions', label: 'Regions', link: ['/regions'] },
+            breadcrumb: { id: 'feeds', label: 'Feeds', link: ['/feeds/imports'] },
             originalEvent: { preventDefault, stopPropagation } as unknown as MouseEvent
         });
 

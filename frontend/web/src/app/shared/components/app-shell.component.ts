@@ -62,11 +62,11 @@ import { ThemeToggleComponent } from './theme-toggle.component';
             <button
               type="button"
               class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
-              routerLink="/feeds/discover"
+              routerLink="/regions/discover"
               routerLinkActive="active"
               [routerLinkActiveOptions]="{ exact: true }">
               <mat-icon class="text-[20px] text-[#0B4F8A]">rss_feed</mat-icon>
-              <span>Discover Feeds</span>
+              <span>Discover Regions</span>
               @let discoverCount = discoverFeedCount$ | async;
               @if ((discoverCount ?? 0) > 0) {
                 <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ discoverCount }}</span>
@@ -279,11 +279,11 @@ export class AppShellComponent implements OnDestroy {
   }
 
   onBreadcrumbSelected(selection: BreadcrumbSelection): void {
-    if (selection.breadcrumb.id === 'feeds') {
+    if (selection.breadcrumb.id === 'regions') {
       selection.originalEvent.preventDefault();
       selection.originalEvent.stopPropagation();
       this.metrics.resetSelectedRegion();
-      this.router.navigate(['/feeds/discover']);
+      this.router.navigate(['/regions/discover']);
     }
   }
 

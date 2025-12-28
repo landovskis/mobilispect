@@ -1,15 +1,15 @@
 import { Subject, of, throwError } from 'rxjs';
-import { DiscoverFeedsPageComponent } from './discover-feeds.page';
-import { RegionService } from '../services/region.service';
-import { ImportService } from '../services/import.service';
-import { FeedsMetricsService } from '../services/feeds-metrics.service';
-import { FeedsEventsService } from '../services/feeds-events.service';
+import { DiscoverRegionsPageComponent } from './discover-regions.page';
+import { RegionService } from '../../feeds/services/region.service';
+import { ImportService } from '../../feeds/services/import.service';
+import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
+import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Feed, FeedSpecType, FeedStatus, MetropolitanRegion } from '../models';
+import { Feed, FeedSpecType, FeedStatus, MetropolitanRegion } from '../../feeds/models';
 
-describe('DiscoverFeedsPageComponent', () => {
-  let component: DiscoverFeedsPageComponent;
+describe('DiscoverRegionsPageComponent', () => {
+  let component: DiscoverRegionsPageComponent;
   let regionService: jasmine.SpyObj<RegionService>;
   let importService: jasmine.SpyObj<ImportService>;
   let metrics: jasmine.SpyObj<FeedsMetricsService>;
@@ -81,7 +81,7 @@ describe('DiscoverFeedsPageComponent', () => {
     regionService.listFeedsForRegion.and.returnValue(of([baseFeed]));
     importService.startImport.and.returnValue(of({ id: 'imp-1' } as any));
 
-    component = new DiscoverFeedsPageComponent(
+    component = new DiscoverRegionsPageComponent(
       regionService,
       importService,
       snackBar,
@@ -192,7 +192,7 @@ describe('DiscoverFeedsPageComponent', () => {
       queryParamMap: queryParamMap$.asObservable(),
     } as unknown as ActivatedRoute;
 
-    component = new DiscoverFeedsPageComponent(
+    component = new DiscoverRegionsPageComponent(
       regionService,
       importService,
       snackBar,
