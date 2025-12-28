@@ -1,5 +1,9 @@
 package com.mobilispect.backend.feed.api
 
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.GTFSStopId
+import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import java.time.LocalTime
 
 
@@ -8,48 +12,48 @@ import java.time.LocalTime
  * calculations. The structure intentionally stays lightweight and decoupled
  * from the OneBusAway classes.
  */
-data class ParsedGtfsData(
-    val agencies: List<ParsedAgency>,
-    val routes: List<ParsedRoute>,
-    val trips: List<ParsedTrip>,
-    val stops: List<ParsedStop>,
-    val shapes: Map<String, List<ParsedShapePoint>>
+data class GTFSData(
+    val agencies: List<GTFSAgency>,
+    val routes: List<GTFSRoute>,
+    val trips: List<GTFSTrip>,
+    val stops: List<GTFSStop>,
+    val shapes: Map<String, List<GTFSShapePoint>>
 )
 
-data class ParsedAgency(
-    val agencyId: String,
+data class GTFSAgency(
+    val agencyId: GTFSAgencyId,
     val name: String,
     val url: String?,
     val timezone: String?,
     val phone: String?
 )
 
-data class ParsedRoute(
-    val routeId: String,
-    val agencyId: String?,
+data class GTFSRoute(
+    val routeId: GTFSRouteId,
+    val agencyId: GTFSAgencyId?,
     val shortName: String?,
     val longName: String?,
     val type: Int?
 )
 
-data class ParsedTrip(
-    val routeId: String,
-    val tripId: String,
+data class GTFSTrip(
+    val routeId: GTFSRouteId,
+    val tripId: GTFSTripId,
     val directionId: Int?,
     val headsign: String?,
     val shapeId: String?,
-    val stopTimes: List<ParsedStopTime>
+    val stopTimes: List<GTFSStopTime>
 )
 
-data class ParsedStopTime(
-    val stopId: String,
+data class GTFSStopTime(
+    val stopId: GTFSStopId,
     val stopSequence: Int,
     val departureTime: LocalTime?,
     val shapeDistTraveledKm: Double?
 )
 
-data class ParsedStop(
-    val stopId: String,
+data class GTFSStop(
+    val stopId: GTFSStopId,
     val name: String?,
     val latitude: Double?,
     val longitude: Double?,
@@ -61,7 +65,7 @@ data class ParsedStop(
     val parentStation: String? = null
 )
 
-data class ParsedShapePoint(
+data class GTFSShapePoint(
     val latitude: Double,
     val longitude: Double,
     val sequence: Int,

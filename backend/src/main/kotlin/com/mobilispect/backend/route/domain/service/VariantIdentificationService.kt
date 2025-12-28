@@ -2,9 +2,9 @@ package com.mobilispect.backend.route.domain.service
 
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteVariant
-import com.mobilispect.backend.feed.api.ParsedTrip
-import com.mobilispect.backend.feed.api.ParsedStop
-import com.mobilispect.backend.feed.api.ParsedShapePoint
+import com.mobilispect.backend.feed.api.GTFSTrip
+import com.mobilispect.backend.feed.api.GTFSStop
+import com.mobilispect.backend.feed.api.GTFSShapePoint
 import org.springframework.stereotype.Service
 import java.time.Instant
 import kotlin.math.atan2
@@ -26,14 +26,14 @@ import kotlin.math.sqrt
 interface VariantIdentificationService {
     fun identifyVariants(
         route: Route,
-        trips: List<ParsedTrip>,
-        stopsById: Map<String, ParsedStop>,
-        shapesById: Map<String, List<ParsedShapePoint>>
+        trips: List<GTFSTrip>,
+        stopsById: Map<String, GTFSStop>,
+        shapesById: Map<String, List<GTFSShapePoint>>
     ): List<RouteVariant>
     fun identifyVariants(
-        tripsByRoute: Map<Route, List<ParsedTrip>>,
-        stopsById: Map<String, ParsedStop>,
-        shapesById: Map<String, List<ParsedShapePoint>>
+        tripsByRoute: Map<Route, List<GTFSTrip>>,
+        stopsById: Map<String, GTFSStop>,
+        shapesById: Map<String, List<GTFSShapePoint>>
     ): List<RouteVariant>
 }
 
@@ -43,16 +43,16 @@ class VariantIdentificationServiceImpl(
 ) : VariantIdentificationService {
     override fun identifyVariants(
         route: Route,
-        trips: List<ParsedTrip>,
-        stopsById: Map<String, ParsedStop>,
-        shapesById: Map<String, List<ParsedShapePoint>>
+        trips: List<GTFSTrip>,
+        stopsById: Map<String, GTFSStop>,
+        shapesById: Map<String, List<GTFSShapePoint>>
     ): List<RouteVariant> {
         val variants = mutableMapOf<String, RouteVariant>()
         trips.forEach { trip ->
             val stopIds = trip.stopTimes.sortedBy { it.stopSequence }.map { it.stopId }
             if (stopIds.size < 2) return@forEach
-            val stopNames = stopIds.map { stopId -> stopsById[stopId]?.name ?: stopId }
-            val hash = variantHashGenerator.fromStops(stopIds)
+            val stopNames = stopIds.map { stopId -> stopsById[stopId.value]?.name ?: stopId.value }
+            val hash = variantHashGenerator.fromStops(stopIds.map { it.value })
             if (!variants.containsKey(hash.value)) {
                 val now = Instant.now()
                 val variant = RouteVariant(
@@ -60,11 +60,11 @@ class VariantIdentificationServiceImpl(
                     routeId = route.id,
                     directionId = trip.directionId,
                     headsign = trip.headsign,
-                    stopPattern = stopIds.joinToString("|"),
+                    stopPattern = stopIds.joinToString("|") { it.value },
                     stopNamePattern = stopNames.joinToString("|"),
                     stopCount = stopIds.size,
-                    firstStopId = stopIds.first(),
-                    lastStopId = stopIds.last(),
+                    firstStopId = stopIds.first().value,
+                    lastStopId = stopIds.last().value,
                     firstSeen = now,
                     lastSeen = now
                 )
@@ -79,9 +79,9 @@ class VariantIdentificationServiceImpl(
     }
 
     override fun identifyVariants(
-        tripsByRoute: Map<Route, List<ParsedTrip>>,
-        stopsById: Map<String, ParsedStop>,
-        shapesById: Map<String, List<ParsedShapePoint>>
+        tripsByRoute: Map<Route, List<GTFSTrip>>,
+        stopsById: Map<String, GTFSStop>,
+        shapesById: Map<String, List<GTFSShapePoint>>
     ): List<RouteVariant> =
         tripsByRoute.flatMap { (route, trips) -> identifyVariants(route, trips, stopsById, shapesById) }
 
@@ -90,13 +90,13 @@ class VariantIdentificationServiceImpl(
      * Returns average distance in kilometers, or null if cannot be calculated.
      */
     private fun calculateAverageStopSpacingKm(
-        trip: ParsedTrip,
-        stopsById: Map<String, ParsedStop>
+        trip: GTFSTrip,
+        stopsById: Map<String, GTFSStop>
     ): Double? {
         val stopCoordinates = trip.stopTimes
             .sortedBy { it.stopSequence }
             .mapNotNull { stopTime ->
-                stopsById[stopTime.stopId]?.let { stop ->
+                stopsById[stopTime.stopId.value]?.let { stop ->
                     if (stop.latitude != null && stop.longitude != null) {
                         Pair(stop.latitude, stop.longitude)
                     } else null

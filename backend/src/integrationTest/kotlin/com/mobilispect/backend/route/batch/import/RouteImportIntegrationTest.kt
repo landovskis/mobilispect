@@ -3,8 +3,10 @@ package com.mobilispect.backend.route.batch.import
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSRouteId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.api.ParsedRoute
+import com.mobilispect.backend.feed.api.GTFSRoute
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.route.domain.model.ids.RouteId
@@ -21,15 +23,10 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
-import org.springframework.batch.core.scope.context.StepSynchronizationManager
 import org.springframework.batch.test.context.SpringBatchTest
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
-import org.springframework.test.context.TestExecutionListeners
 import org.springframework.test.context.TestPropertySource
-import org.springframework.test.context.support.DependencyInjectionTestExecutionListener
-import org.springframework.test.context.support.DirtiesContextTestExecutionListener
-import org.springframework.test.context.transaction.TransactionalTestExecutionListener
 import org.springframework.transaction.annotation.Transactional
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -112,7 +109,7 @@ class RouteImportIntegrationTest {
         val agency = Agency(
             agencyOnestopId = AgencyId("o-$feedOnestopId-$agencyGtfsId"),
             feedId = FeedId(feedOnestopId),
-            gtfsAgencyId = agencyGtfsId,
+            gtfsAgencyId = GTFSAgencyId(agencyGtfsId),
             name = "Test Transit Agency",
             website = "https://example.com",
             active = true
@@ -124,9 +121,9 @@ class RouteImportIntegrationTest {
     fun `should successfully process and write new routes from GTFS data`() {
         // Given: Parsed routes to process
         val routeInput1 = RouteInput(
-            parsedRoute = ParsedRoute(
-                routeId = "1",
-                agencyId = agencyGtfsId,
+            parsedRoute = GTFSRoute(
+                routeId = GTFSRouteId("1"),
+                agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "1",
                 longName = "Gare Vaudreuil/Parc Industriel",
                 type = 3 // Bus
@@ -135,9 +132,9 @@ class RouteImportIntegrationTest {
         )
 
         val routeInput2 = RouteInput(
-            parsedRoute = ParsedRoute(
-                routeId = "T1",
-                agencyId = agencyGtfsId,
+            parsedRoute = GTFSRoute(
+                routeId = GTFSRouteId("T1"),
+                agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "T1",
                 longName = "Express Route",
                 type = 3
@@ -158,7 +155,7 @@ class RouteImportIntegrationTest {
         assertThat(routes).hasSize(2)
 
         // Verify first route
-        val route1 = routes.find { it.gtfsRouteId == "1" }
+        val route1 = routes.find { it.gtfsRouteId == GTFSRouteId("1") }
         assertThat(route1).isNotNull
         assertThat(route1!!.id.value).isEqualTo("r-test-feed-1")
         assertThat(route1.agencyId.value).isEqualTo("o-$feedOnestopId-$agencyGtfsId")
@@ -168,7 +165,7 @@ class RouteImportIntegrationTest {
         assertThat(route1.active).isTrue()
 
         // Verify second route
-        val route2 = routes.find { it.gtfsRouteId == "T1" }
+        val route2 = routes.find { it.gtfsRouteId == GTFSRouteId("T1") }
         assertThat(route2).isNotNull
         assertThat(route2!!.id.value).isEqualTo("r-test-feed-T1")
         assertThat(route2.shortName).isEqualTo("T1")
@@ -177,7 +174,7 @@ class RouteImportIntegrationTest {
         // Verify RouteImported events were published
         assertThat(eventListener.routeImportedEvents).hasSize(2)
         assertThat(eventListener.routeImportedEvents.map { it.gtfsRouteId })
-            .containsExactlyInAnyOrder("1", "T1")
+            .containsExactlyInAnyOrder(GTFSRouteId("1"), GTFSRouteId("T1"))
     }
 
     @Test
@@ -186,7 +183,7 @@ class RouteImportIntegrationTest {
         val existingRoute = Route(
             id = RouteId("r-test-feed-1"),
             agencyId = AgencyId("o-$feedOnestopId-$agencyGtfsId"),
-            gtfsRouteId = "1",
+            gtfsRouteId = GTFSRouteId("1"),
             shortName = "1",
             longName = "Old Name",
             routeType = RouteType.BUS,
@@ -198,9 +195,9 @@ class RouteImportIntegrationTest {
 
         // And: Updated route input
         val routeInput = RouteInput(
-            parsedRoute = ParsedRoute(
-                routeId = "1",
-                agencyId = agencyGtfsId,
+            parsedRoute = GTFSRoute(
+                routeId = GTFSRouteId("1"),
+                agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "1",
                 longName = "New Updated Name",
                 type = 3
@@ -225,7 +222,7 @@ class RouteImportIntegrationTest {
 
         // Verify RouteImported event was published
         assertThat(eventListener.routeImportedEvents).hasSize(1)
-        assertThat(eventListener.routeImportedEvents.first().gtfsRouteId).isEqualTo("1")
+        assertThat(eventListener.routeImportedEvents.first().gtfsRouteId).isEqualTo(GTFSRouteId("1"))
     }
 
     @Test
@@ -234,7 +231,7 @@ class RouteImportIntegrationTest {
         val defaultAgency = Agency(
             agencyOnestopId = AgencyId("o-$feedOnestopId-default-agency"),
             feedId = FeedId(feedOnestopId),
-            gtfsAgencyId = "default-agency",
+            gtfsAgencyId = GTFSAgencyId("default-agency"),
             name = "Default Agency",
             website = "https://example.com",
             active = true
@@ -243,8 +240,8 @@ class RouteImportIntegrationTest {
 
         // And: Route input with no agency ID
         val routeInput = RouteInput(
-            parsedRoute = ParsedRoute(
-                routeId = "R1",
+            parsedRoute = GTFSRoute(
+                routeId = GTFSRouteId("R1"),
                 agencyId = null, // No agency ID
                 shortName = "R1",
                 longName = "Route without Agency",
@@ -264,16 +261,16 @@ class RouteImportIntegrationTest {
 
         val route = routes.first()
         assertThat(route.agencyId.value).isEqualTo("o-$feedOnestopId-default-agency")
-        assertThat(route.gtfsRouteId).isEqualTo("R1")
+        assertThat(route.gtfsRouteId).isEqualTo(GTFSRouteId("R1"))
     }
 
     @Test
     fun `should handle route with missing short name and long name`() {
         // Given: Route input with missing short and long names
         val routeInput = RouteInput(
-            parsedRoute = ParsedRoute(
-                routeId = "ROUTE_1",
-                agencyId = agencyGtfsId,
+            parsedRoute = GTFSRoute(
+                routeId = GTFSRouteId("ROUTE_1"),
+                agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = null,
                 longName = null,
                 type = 3
@@ -293,18 +290,18 @@ class RouteImportIntegrationTest {
         val route = routes.first()
         assertThat(route.shortName).isNull()
         assertThat(route.longName).isEqualTo("ROUTE_1") // Falls back to route ID
-        assertThat(route.gtfsRouteId).isEqualTo("ROUTE_1")
+        assertThat(route.gtfsRouteId).isEqualTo(GTFSRouteId("ROUTE_1"))
     }
 
     @Test
     fun `should correctly convert different GTFS route types`() {
         // Given: Route inputs with various route types
         val routeInputs = listOf(
-            RouteInput(ParsedRoute("R_TRAM", agencyGtfsId, "T", "Tram", 0), feedOnestopId),
-            RouteInput(ParsedRoute("R_SUBWAY", agencyGtfsId, "S", "Subway", 1), feedOnestopId),
-            RouteInput(ParsedRoute("R_RAIL", agencyGtfsId, "R", "Rail", 2), feedOnestopId),
-            RouteInput(ParsedRoute("R_BUS", agencyGtfsId, "B", "Bus", 3), feedOnestopId),
-            RouteInput(ParsedRoute("R_FERRY", agencyGtfsId, "F", "Ferry", 4), feedOnestopId)
+            RouteInput(GTFSRoute(GTFSRouteId("R_TRAM"), GTFSAgencyId(agencyGtfsId), "T", "Tram", 0), feedOnestopId),
+            RouteInput(GTFSRoute(GTFSRouteId("R_SUBWAY"), GTFSAgencyId(agencyGtfsId), "S", "Subway", 1), feedOnestopId),
+            RouteInput(GTFSRoute(GTFSRouteId("R_RAIL"), GTFSAgencyId(agencyGtfsId), "R", "Rail", 2), feedOnestopId),
+            RouteInput(GTFSRoute(GTFSRouteId("R_BUS"), GTFSAgencyId(agencyGtfsId), "B", "Bus", 3), feedOnestopId),
+            RouteInput(GTFSRoute(GTFSRouteId("R_FERRY"), GTFSAgencyId(agencyGtfsId), "F", "Ferry", 4), feedOnestopId)
         )
 
         // When: Process and write routes
@@ -316,20 +313,20 @@ class RouteImportIntegrationTest {
         val routes = routeRepository.findAll()
         assertThat(routes).hasSize(5)
 
-        assertThat(routes.find { it.gtfsRouteId == "R_TRAM" }?.routeType).isEqualTo(RouteType.TRAM)
-        assertThat(routes.find { it.gtfsRouteId == "R_SUBWAY" }?.routeType).isEqualTo(RouteType.SUBWAY)
-        assertThat(routes.find { it.gtfsRouteId == "R_RAIL" }?.routeType).isEqualTo(RouteType.RAIL)
-        assertThat(routes.find { it.gtfsRouteId == "R_BUS" }?.routeType).isEqualTo(RouteType.BUS)
-        assertThat(routes.find { it.gtfsRouteId == "R_FERRY" }?.routeType).isEqualTo(RouteType.FERRY)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_TRAM") }?.routeType).isEqualTo(RouteType.TRAM)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_SUBWAY") }?.routeType).isEqualTo(RouteType.SUBWAY)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_RAIL") }?.routeType).isEqualTo(RouteType.RAIL)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_BUS") }?.routeType).isEqualTo(RouteType.BUS)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_FERRY") }?.routeType).isEqualTo(RouteType.FERRY)
     }
 
     @Test
     fun `should throw exception when agency not found`() {
         // Given: Route input with non-existent agency
         val routeInput = RouteInput(
-            parsedRoute = ParsedRoute(
-                routeId = "R1",
-                agencyId = "NON_EXISTENT_AGENCY",
+            parsedRoute = GTFSRoute(
+                routeId = GTFSRouteId("R1"),
+                agencyId = GTFSAgencyId("NON_EXISTENT_AGENCY"),
                 shortName = "R1",
                 longName = "Route with Missing Agency",
                 type = 3

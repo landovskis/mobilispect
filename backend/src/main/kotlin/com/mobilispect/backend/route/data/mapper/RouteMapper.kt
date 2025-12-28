@@ -1,6 +1,7 @@
 package com.mobilispect.backend.route.data.mapper
 
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSRouteId
 import com.mobilispect.backend.route.data.entity.RouteEntity
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
@@ -24,7 +25,7 @@ class RouteMapper {
         Route(
             id = RouteId(entity.id),
             agencyId = AgencyId(entity.agencyOnestopId),
-            gtfsRouteId = entity.gtfsRouteId,
+            gtfsRouteId = GTFSRouteId(entity.gtfsRouteId),
             shortName = entity.shortName,
             longName = entity.longName,
             routeType = RouteType.fromValue(entity.routeType),
@@ -45,7 +46,7 @@ class RouteMapper {
         RouteEntity(
             id = domain.id.value,
             agencyOnestopId = domain.agencyId.value,
-            gtfsRouteId = domain.gtfsRouteId,
+            gtfsRouteId = domain.gtfsRouteId.value,
             shortName = domain.shortName,
             longName = domain.longName,
             routeType = domain.routeType.value,

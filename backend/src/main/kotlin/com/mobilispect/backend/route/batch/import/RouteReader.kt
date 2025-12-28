@@ -1,7 +1,7 @@
 package com.mobilispect.backend.route.batch.import
 
-import com.mobilispect.backend.feed.api.ParsedGtfsData
-import com.mobilispect.backend.feed.api.ParsedRoute
+import com.mobilispect.backend.feed.api.GTFSData
+import com.mobilispect.backend.feed.api.GTFSRoute
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.step.StepExecution
 import org.springframework.batch.core.annotation.BeforeStep
@@ -32,13 +32,13 @@ class RouteReader : ItemReader<RouteInput> {
     @Value("#{jobParameters['feedOnestopId']}")
     private lateinit var feedOnestopId: String
 
-    private var parsedData: ParsedGtfsData? = null
-    private var routeIterator: Iterator<ParsedRoute>? = null
+    private var parsedData: GTFSData? = null
+    private var routeIterator: Iterator<GTFSRoute>? = null
 
     @BeforeStep
     fun beforeStep(stepExecution: StepExecution) {
         // Retrieve parsed data from job execution context
-        parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? ParsedGtfsData
+        parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
             ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
 
         val data = parsedData!!

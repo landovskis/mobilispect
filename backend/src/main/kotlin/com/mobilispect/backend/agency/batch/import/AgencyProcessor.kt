@@ -3,8 +3,9 @@ package com.mobilispect.backend.agency.batch.import
 import com.mobilispect.backend.AgencyResultItem
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.api.ParsedAgency
+import com.mobilispect.backend.feed.api.GTFSAgency
 import com.mobilispect.backend.schedule.transit_land.TransitLandAPI
 import com.mobilispect.backend.schedule.transit_land.api.TransitLandCredentialsRepository
 import org.slf4j.LoggerFactory
@@ -18,16 +19,16 @@ import org.springframework.stereotype.Component
 class AgencyProcessor(
     private val transitLandAPI: TransitLandAPI,
     private val credentialsRepository: TransitLandCredentialsRepository
-) : ItemProcessor<ParsedAgency, Agency> {
+) : ItemProcessor<GTFSAgency, Agency> {
 
     private val logger = LoggerFactory.getLogger(AgencyProcessor::class.java)
 
     @Value("#{jobParameters['feedOnestopId']}")
     lateinit var feedOnestopId: String
 
-    private var agencyIdLookup: Map<String, String>? = null
+    private var agencyIdLookup: Map<GTFSAgencyId, String>? = null
 
-    override fun process(item: ParsedAgency): Agency {
+    override fun process(item: GTFSAgency): Agency {
         val onestopId = resolveOnestopId(item.agencyId)
         return Agency(
             agencyOnestopId = AgencyId(onestopId),
@@ -39,7 +40,7 @@ class AgencyProcessor(
         )
     }
 
-    private fun resolveOnestopId(gtfsAgencyId: String): String {
+    private fun resolveOnestopId(gtfsAgencyId: GTFSAgencyId): String {
         val lookup = agencyIdLookup ?: loadAgencyLookup().also { agencyIdLookup = it }
         return lookup[gtfsAgencyId]
             ?: throw IllegalStateException(
@@ -47,7 +48,7 @@ class AgencyProcessor(
             )
     }
 
-    private fun loadAgencyLookup(): Map<String, String> {
+    private fun loadAgencyLookup(): Map<GTFSAgencyId, String> {
         val apiKey = credentialsRepository.get()
             ?: throw IllegalStateException("Missing Transitland API key")
         val feedId = feedOnestopId.ifBlank {
@@ -58,7 +59,7 @@ class AgencyProcessor(
 
         val lookup = result.agencies
             .filter { it.agencyID != null }
-            .associate { item: AgencyResultItem -> item.agencyID!! to item.id }
+            .associate { item: AgencyResultItem -> GTFSAgencyId(item.agencyID!!) to item.id }
 
         logger.info("Loaded {} agency onestop IDs from Transitland for feed {}", lookup.size, feedId)
         return lookup

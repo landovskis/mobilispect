@@ -1,8 +1,8 @@
 package com.mobilispect.backend.route.batch.variant
 
-import com.mobilispect.backend.feed.api.ParsedGtfsData
-import com.mobilispect.backend.feed.api.ParsedStop
-import com.mobilispect.backend.feed.api.ParsedTrip
+import com.mobilispect.backend.feed.api.GTFSData
+import com.mobilispect.backend.feed.api.GTFSStop
+import com.mobilispect.backend.feed.api.GTFSTrip
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import org.slf4j.LoggerFactory
@@ -36,14 +36,14 @@ class RouteVariantReader(
 
     private val logger = LoggerFactory.getLogger(RouteVariantReader::class.java)
 
-    private var parsedData: ParsedGtfsData? = null
-    private var routeIterator: Iterator<Map.Entry<Route, List<ParsedTrip>>>? = null
-    private var stopsById: Map<String, ParsedStop> = emptyMap()
+    private var parsedData: GTFSData? = null
+    private var routeIterator: Iterator<Map.Entry<Route, List<GTFSTrip>>>? = null
+    private var stopsById: Map<String, GTFSStop> = emptyMap()
 
     @BeforeStep
     fun beforeStep(stepExecution: StepExecution) {
         // Retrieve parsed data from job execution context
-        parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? ParsedGtfsData
+        parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
             ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
 
         val data = parsedData!!
@@ -55,7 +55,7 @@ class RouteVariantReader(
         )
 
         // Create stop lookup map
-        stopsById = data.stops.associateBy { it.stopId }
+        stopsById = data.stops.associateBy { it.stopId.value }
 
         // Group trips by GTFS route ID
         val tripsByGtfsRouteId = data.trips.groupBy { it.routeId }

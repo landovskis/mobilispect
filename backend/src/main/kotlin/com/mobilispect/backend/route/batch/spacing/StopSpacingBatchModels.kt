@@ -1,6 +1,6 @@
 package com.mobilispect.backend.route.batch.spacing
 
-import com.mobilispect.backend.feed.api.ParsedStop
+import com.mobilispect.backend.feed.api.GTFSStop
 import com.mobilispect.backend.route.domain.model.RouteVariant
 import com.mobilispect.backend.route.domain.model.StopSpacing
 
@@ -12,7 +12,7 @@ import com.mobilispect.backend.route.domain.model.StopSpacing
  */
 data class StopSpacingInput(
     val variant: RouteVariant,
-    val stopsById: Map<String, ParsedStop>
+    val stopsById: Map<String, GTFSStop>
 )
 
 /**

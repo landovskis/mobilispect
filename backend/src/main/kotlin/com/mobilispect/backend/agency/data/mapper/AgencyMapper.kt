@@ -3,6 +3,7 @@ package com.mobilispect.backend.agency.data.mapper
 import com.mobilispect.backend.agency.data.entity.AgencyEntity
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import org.springframework.stereotype.Component
 
@@ -23,7 +24,7 @@ class AgencyMapper {
         Agency(
             agencyOnestopId = AgencyId(entity.agencyOnestopId),
             feedId = FeedId(entity.feedId),
-            gtfsAgencyId = entity.gtfsId,
+            gtfsAgencyId = GTFSAgencyId(entity.gtfsId),
             name = entity.name,
             website = entity.website,
             phone = entity.phone,
@@ -43,7 +44,7 @@ class AgencyMapper {
         AgencyEntity(
             agencyOnestopId = domain.agencyOnestopId.value,
             feedId = domain.feedId.value,
-            gtfsId = domain.gtfsAgencyId,
+            gtfsId = domain.gtfsAgencyId.value,
             name = domain.name,
             website = domain.website,
             phone = domain.phone,

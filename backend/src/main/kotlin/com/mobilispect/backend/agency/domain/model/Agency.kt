@@ -1,6 +1,7 @@
 package com.mobilispect.backend.agency.domain.model
 
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import java.time.Instant
 
@@ -26,7 +27,7 @@ import java.time.Instant
 data class Agency(
     val agencyOnestopId: AgencyId,
     val feedId: FeedId,
-    val gtfsAgencyId: String,
+    val gtfsAgencyId: GTFSAgencyId,
     val name: String,
     val website: String? = null,
     val phone: String? = null,

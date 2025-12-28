@@ -48,8 +48,8 @@ class RouteVariantProcessor : ItemProcessor<RouteVariantInput, RouteVariantBatch
                 return@forEach
             }
 
-            val stopNames = stopIds.map { stopId -> stopsById[stopId]?.name ?: stopId }
-            val hash = generateVariantHash(stopIds)
+            val stopNames = stopIds.map { stopId -> stopsById[stopId.value]?.name ?: stopId.value }
+            val hash = generateVariantHash(stopIds.map { it.value })
 
             if (!variants.containsKey(hash.value)) {
                 // New variant - create it
@@ -59,11 +59,11 @@ class RouteVariantProcessor : ItemProcessor<RouteVariantInput, RouteVariantBatch
                     routeId = route.id,
                     directionId = trip.directionId,
                     headsign = trip.headsign,
-                    stopPattern = stopIds.joinToString("|"),
+                    stopPattern = stopIds.joinToString("|") { it.value },
                     stopNamePattern = stopNames.joinToString("|"),
                     stopCount = stopIds.size,
-                    firstStopId = stopIds.first(),
-                    lastStopId = stopIds.last(),
+                    firstStopId = stopIds.first().value,
+                    lastStopId = stopIds.last().value,
                     firstSeen = now,
                     lastSeen = now
                 )

@@ -5,13 +5,17 @@ import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.events.FeedImportFailed
 import com.mobilispect.backend.feed.events.FeedImportStepCompleted
 import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
-import com.mobilispect.backend.feed.api.ParsedAgency
-import com.mobilispect.backend.feed.api.ParsedGtfsData
-import com.mobilispect.backend.feed.api.ParsedRoute
-import com.mobilispect.backend.feed.api.ParsedShapePoint
-import com.mobilispect.backend.feed.api.ParsedStop
-import com.mobilispect.backend.feed.api.ParsedStopTime
-import com.mobilispect.backend.feed.api.ParsedTrip
+import com.mobilispect.backend.feed.api.GTFSAgency
+import com.mobilispect.backend.feed.api.GTFSData
+import com.mobilispect.backend.feed.api.GTFSRoute
+import com.mobilispect.backend.feed.api.GTFSShapePoint
+import com.mobilispect.backend.feed.api.GTFSStop
+import com.mobilispect.backend.feed.api.GTFSStopTime
+import com.mobilispect.backend.feed.api.GTFSTrip
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.GTFSStopId
+import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
@@ -41,7 +45,7 @@ class GTFSFeedReader(
     @Qualifier("curlDownloader") private val downloader: Downloader,
     private val archiveExtractor: ArchiveExtractor,
     private val eventPublisher: ApplicationEventPublisher,
-) : ItemReader<ParsedGtfsData> {
+) : ItemReader<GTFSData> {
     private val logger = LoggerFactory.getLogger(GTFSFeedReader::class.java)
 
 
@@ -58,7 +62,7 @@ class GTFSFeedReader(
      * @param feedId The onestop ID of the feed to import
      * @return Result containing the version SHA1 hash of the imported feed on success
      */
-    fun importFeedById(feedId: FeedId): Result<ParsedGtfsData> {
+    fun importFeedById(feedId: FeedId): Result<GTFSData> {
         logger.info("Starting PostgreSQL-based import for feed: {}", feedId)
 
         val feed = feedRepository.findByFeedOnestopId(feedId.value).orElse(null)
@@ -83,7 +87,7 @@ class GTFSFeedReader(
         return doStep(feedId, "parse") { parse(archive) }
     }
 
-    override fun read(): ParsedGtfsData? {
+    override fun read(): GTFSData? {
         if (hasRun) return null
         hasRun = true
 
@@ -158,13 +162,13 @@ class GTFSFeedReader(
      * @param feedPath Path to the GTFS feed ZIP file
      * @return Result containing parsed data on success, or error on failure
      */
-    fun parse(feedPath: Path): Result<ParsedGtfsData> = runCatching {
+    fun parse(feedPath: Path): Result<GTFSData> = runCatching {
         logger.info("Parsing GTFS feed at: {}", feedPath)
         val feed = GTFSFeed.fromFile(feedPath.toString())
         feed.use { feed ->
             val agencies = feed.agency.values.map { agency ->
-                ParsedAgency(
-                    agencyId = agency.agency_id,
+                GTFSAgency(
+                    agencyId = GTFSAgencyId(agency.agency_id),
                     name = agency.agency_name,
                     url = agency.agency_url?.toString(),
                     timezone = agency.agency_timezone,
@@ -173,9 +177,9 @@ class GTFSFeedReader(
             }
 
             val routes = feed.routes.values.map { route ->
-                ParsedRoute(
-                    routeId = route.route_id,
-                    agencyId = route.agency_id,
+                GTFSRoute(
+                    routeId = GTFSRouteId(route.route_id),
+                    agencyId = GTFSAgencyId.from(route.agency_id),
                     shortName = route.route_short_name,
                     longName = route.route_long_name,
                     type = route.route_type
@@ -183,8 +187,8 @@ class GTFSFeedReader(
             }
 
             val stops = feed.stops.values.map { stop ->
-                ParsedStop(
-                    stopId = stop.stop_id,
+                GTFSStop(
+                    stopId = GTFSStopId(stop.stop_id),
                     name = stop.stop_name,
                     latitude = stop.stop_lat,
                     longitude = stop.stop_lon,
@@ -199,7 +203,7 @@ class GTFSFeedReader(
 
             val shapes = feed.shape_points.values.groupBy { it.shape_id }.mapValues { (_, points) ->
                     points.sortedBy { it.shape_pt_sequence }.map { point ->
-                        ParsedShapePoint(
+                        GTFSShapePoint(
                             latitude = point.shape_pt_lat,
                             longitude = point.shape_pt_lon,
                             sequence = point.shape_pt_sequence,
@@ -210,8 +214,8 @@ class GTFSFeedReader(
 
             val trips = feed.trips.values.map { trip ->
                 val stopTimes = feed.getOrderedStopTimesForTrip(trip.trip_id).map { stopTime ->
-                    ParsedStopTime(
-                        stopId = stopTime.stop_id,
+                    GTFSStopTime(
+                        stopId = GTFSStopId(stopTime.stop_id),
                         stopSequence = stopTime.stop_sequence,
                         departureTime = stopTime.departure_time.takeIf { it >= 0 }?.let { seconds ->
                             // GTFS allows times >= 24:00:00 for overnight service
@@ -222,9 +226,9 @@ class GTFSFeedReader(
                     )
                     }
 
-                ParsedTrip(
-                    routeId = trip.route_id,
-                    tripId = trip.trip_id,
+                GTFSTrip(
+                    routeId = GTFSRouteId(trip.route_id),
+                    tripId = GTFSTripId(trip.trip_id),
                     directionId = trip.direction_id,
                     headsign = trip.trip_headsign,
                     shapeId = trip.shape_id,
@@ -239,7 +243,7 @@ class GTFSFeedReader(
                 routes.size,
                 trips.size
             )
-            ParsedGtfsData(
+            GTFSData(
                 agencies = agencies, routes = routes, trips = trips, stops = stops, shapes = shapes
             )
         }

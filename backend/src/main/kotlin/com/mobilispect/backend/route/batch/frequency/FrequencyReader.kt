@@ -1,7 +1,7 @@
 package com.mobilispect.backend.route.batch.frequency
 
-import com.mobilispect.backend.feed.api.ParsedGtfsData
-import com.mobilispect.backend.feed.api.ParsedTrip
+import com.mobilispect.backend.feed.api.GTFSData
+import com.mobilispect.backend.feed.api.GTFSTrip
 import com.mobilispect.backend.route.domain.model.RouteVariant
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import org.slf4j.LoggerFactory
@@ -34,13 +34,13 @@ class FrequencyReader(
 
     private val logger = LoggerFactory.getLogger(FrequencyReader::class.java)
 
-    private var parsedData: ParsedGtfsData? = null
-    private var variantIterator: Iterator<Map.Entry<RouteVariant, List<ParsedTrip>>>? = null
+    private var parsedData: GTFSData? = null
+    private var variantIterator: Iterator<Map.Entry<RouteVariant, List<GTFSTrip>>>? = null
 
     @BeforeStep
     fun beforeStep(stepExecution: StepExecution) {
         // Retrieve parsed data from job execution context
-        parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? ParsedGtfsData
+        parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
             ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
 
         val data = parsedData!!
@@ -88,10 +88,10 @@ class FrequencyReader(
      *
      * Reconstructs trip's stop pattern from stop times and compares with variant's pattern.
      */
-    private fun matchesTripPattern(trip: ParsedTrip, stopPattern: String): Boolean {
+    private fun matchesTripPattern(trip: GTFSTrip, stopPattern: String): Boolean {
         val tripPattern = trip.stopTimes
             .sortedBy { it.stopSequence }
-            .joinToString("|") { it.stopId }
+            .joinToString("|") { it.stopId.value }
         return tripPattern == stopPattern
     }
 }

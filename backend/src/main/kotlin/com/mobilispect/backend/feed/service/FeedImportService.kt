@@ -2,7 +2,7 @@ package com.mobilispect.backend.feed.service
 
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.domain.FeedImport
-import com.mobilispect.backend.feed.api.ParsedGtfsData
+import com.mobilispect.backend.feed.api.GTFSData
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
@@ -98,7 +98,7 @@ class FeedImportService(
     }
 
     @Transactional
-    fun completeImport(importId: ImportId, parsedData: ParsedGtfsData) {
+    fun completeImport(importId: ImportId, parsedData: GTFSData) {
         val feedImport = feedImportRepository.findByImportId(importId)
             .orElseThrow { IllegalArgumentException("Import not found: $importId") }
 
