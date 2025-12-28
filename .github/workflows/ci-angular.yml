@@ -1,0 +1,296 @@
+name: Angular CI (Frontend Web)
+
+on:
+  pull_request:
+    branches: ["**"]
+    paths:
+      - 'frontend/web/**'
+      - '.github/workflows/ci-angular.yml'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'frontend/web/**'
+      - '.github/workflows/ci-angular.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  angular-build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          cd frontend/web && npm ci
+
+      - name: Build Development
+        run: |
+          echo "🔧 Building Angular app (development)..."
+          cd frontend/web && npm run build
+
+      - name: Build Production
+        run: |
+          echo "🔧 Building Angular app (production)..."
+          cd frontend/web && npm run build:prod
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: angular-build
+          path: frontend/web/dist/
+
+  angular-test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: angular-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          cd frontend/web && npm ci
+
+      - name: Run Unit Tests
+        run: |
+          echo "🧪 Running unit tests..."
+          cd frontend/web && npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: angular-test-results
+          path: |
+            frontend/web/coverage/
+            frontend/web/test-results/
+
+  angular-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: angular-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          cd frontend/web && npm ci
+
+      - name: Install Playwright Browsers
+        run: |
+          echo "🎭 Installing Playwright browsers..."
+          cd frontend/web && npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run E2E Tests
+        run: |
+          echo "🎭 Running E2E tests..."
+          cd frontend/web && npm run e2e
+
+      - name: Upload E2E Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: angular-e2e-results
+          path: |
+            frontend/web/playwright-report/
+            frontend/web/test-results/
+
+  angular-lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          cd frontend/web && npm ci
+
+      - name: Run ESLint
+        run: |
+          echo "✨ Running ESLint..."
+          cd frontend/web && npx ng lint
+
+      - name: Check Formatting (Prettier)
+        run: |
+          echo "✨ Checking code formatting..."
+          cd frontend/web && npx prettier --check "src/**/*.{ts,html,css,scss}"
+
+  angular-accessibility:
+    name: Accessibility
+    runs-on: ubuntu-latest
+    needs: angular-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          cd frontend/web && npm ci
+
+      - name: WCAG Compliance Check
+        run: |
+          echo "♿ Checking WCAG 2.1 AA compliance..."
+          cd frontend/web
+          # Placeholder for axe-core or similar accessibility testing
+          echo "⚠️ Accessibility testing framework to be configured"
+
+  angular-security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          cd frontend/web && npm ci
+
+      - name: Security Audit
+        run: |
+          echo "🔒 Running npm security audit..."
+          cd frontend/web && npm audit --production || echo "⚠️ Security vulnerabilities found"
+
+      - name: Dependency Check
+        run: |
+          echo "📦 Checking dependencies..."
+          cd frontend/web && npm outdated || true
+
+  angular-coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: angular-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Test Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: angular-test-results
+          path: frontend/web/coverage/
+
+      - name: Verify 80% Coverage (Constitutional Requirement)
+        run: |
+          echo "📊 Verifying 80% coverage constitutional requirement..."
+          # Coverage verification will be based on karma/jasmine output
+          echo "⚠️ Coverage verification to be configured"
+
+  angular-sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    needs: [angular-test, angular-coverage]
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          cd frontend/web && npm ci
+
+      - name: Run Tests with Coverage
+        run: |
+          echo "🧪 Running tests with coverage for SonarCloud..."
+          cd frontend/web && npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: frontend/web
+          args: >
+            -Dsonar.projectKey=mobilispect_angular
+            -Dsonar.organization=mobilispect
+
+  angular-summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [angular-build, angular-test, angular-e2e, angular-lint, angular-security]
+    if: always()
+    steps:
+      - name: Angular CI Summary
+        run: |
+          echo "🏛️ ANGULAR CI SUMMARY"
+          echo "====================="
+          echo "Build: ${{ needs.angular-build.result }}"
+          echo "Tests: ${{ needs.angular-test.result }}"
+          echo "E2E: ${{ needs.angular-e2e.result }}"
+          echo "Lint: ${{ needs.angular-lint.result }}"
+          echo "Security: ${{ needs.angular-security.result }}"
+          echo ""
+
+          if [[ "${{ needs.angular-build.result }}" == "failure" ]] || \
+             [[ "${{ needs.angular-test.result }}" == "failure" ]] || \
+             [[ "${{ needs.angular-lint.result }}" == "failure" ]]; then
+            echo "❌ Angular CI failed"
+            exit 1
+          else
+            echo "✅ Angular CI passed"
+          fi
