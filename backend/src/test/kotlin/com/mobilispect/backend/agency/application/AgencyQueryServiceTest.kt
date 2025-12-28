@@ -3,6 +3,7 @@ package com.mobilispect.backend.agency.application
 import com.mobilispect.backend.feed.api.FeedDTO
 import com.mobilispect.backend.feed.api.FeedQueryApi
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSRouteId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -63,7 +64,7 @@ class AgencyQueryServiceTest {
             Route(
                 id = RouteId("r-1"),
                 agencyId = agency.agencyOnestopId,
-                gtfsRouteId = "R1",
+                gtfsRouteId = GTFSRouteId("R1"),
                 shortName = "1",
                 longName = "Route 1",
                 routeType = RouteType.BUS,
@@ -72,7 +73,7 @@ class AgencyQueryServiceTest {
             Route(
                 id = RouteId("r-2"),
                 agencyId = agency.agencyOnestopId,
-                gtfsRouteId = "R2",
+                gtfsRouteId = GTFSRouteId("R2"),
                 shortName = "2",
                 longName = "Route 2",
                 routeType = RouteType.BUS,

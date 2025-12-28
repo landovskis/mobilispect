@@ -4,6 +4,7 @@ import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
+import com.mobilispect.backend.feed.api.ids.GTFSRouteId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.api.ParsedRoute
 import com.mobilispect.backend.route.domain.model.Route
@@ -126,7 +127,7 @@ class RouteImportIntegrationTest {
         // Given: Parsed routes to process
         val routeInput1 = RouteInput(
             parsedRoute = ParsedRoute(
-                routeId = "1",
+                routeId = GTFSRouteId("1"),
                 agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "1",
                 longName = "Gare Vaudreuil/Parc Industriel",
@@ -137,7 +138,7 @@ class RouteImportIntegrationTest {
 
         val routeInput2 = RouteInput(
             parsedRoute = ParsedRoute(
-                routeId = "T1",
+                routeId = GTFSRouteId("T1"),
                 agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "T1",
                 longName = "Express Route",
@@ -159,7 +160,7 @@ class RouteImportIntegrationTest {
         assertThat(routes).hasSize(2)
 
         // Verify first route
-        val route1 = routes.find { it.gtfsRouteId == "1" }
+        val route1 = routes.find { it.gtfsRouteId == GTFSRouteId("1") }
         assertThat(route1).isNotNull
         assertThat(route1!!.id.value).isEqualTo("r-test-feed-1")
         assertThat(route1.agencyId.value).isEqualTo("o-$feedOnestopId-$agencyGtfsId")
@@ -169,7 +170,7 @@ class RouteImportIntegrationTest {
         assertThat(route1.active).isTrue()
 
         // Verify second route
-        val route2 = routes.find { it.gtfsRouteId == "T1" }
+        val route2 = routes.find { it.gtfsRouteId == GTFSRouteId("T1") }
         assertThat(route2).isNotNull
         assertThat(route2!!.id.value).isEqualTo("r-test-feed-T1")
         assertThat(route2.shortName).isEqualTo("T1")
@@ -178,7 +179,7 @@ class RouteImportIntegrationTest {
         // Verify RouteImported events were published
         assertThat(eventListener.routeImportedEvents).hasSize(2)
         assertThat(eventListener.routeImportedEvents.map { it.gtfsRouteId })
-            .containsExactlyInAnyOrder("1", "T1")
+            .containsExactlyInAnyOrder(GTFSRouteId("1"), GTFSRouteId("T1"))
     }
 
     @Test
@@ -187,7 +188,7 @@ class RouteImportIntegrationTest {
         val existingRoute = Route(
             id = RouteId("r-test-feed-1"),
             agencyId = AgencyId("o-$feedOnestopId-$agencyGtfsId"),
-            gtfsRouteId = "1",
+            gtfsRouteId = GTFSRouteId("1"),
             shortName = "1",
             longName = "Old Name",
             routeType = RouteType.BUS,
@@ -200,7 +201,7 @@ class RouteImportIntegrationTest {
         // And: Updated route input
         val routeInput = RouteInput(
             parsedRoute = ParsedRoute(
-                routeId = "1",
+                routeId = GTFSRouteId("1"),
                 agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "1",
                 longName = "New Updated Name",
@@ -226,7 +227,7 @@ class RouteImportIntegrationTest {
 
         // Verify RouteImported event was published
         assertThat(eventListener.routeImportedEvents).hasSize(1)
-        assertThat(eventListener.routeImportedEvents.first().gtfsRouteId).isEqualTo("1")
+        assertThat(eventListener.routeImportedEvents.first().gtfsRouteId).isEqualTo(GTFSRouteId("1"))
     }
 
     @Test
@@ -245,7 +246,7 @@ class RouteImportIntegrationTest {
         // And: Route input with no agency ID
         val routeInput = RouteInput(
             parsedRoute = ParsedRoute(
-                routeId = "R1",
+                routeId = GTFSRouteId("R1"),
                 agencyId = null, // No agency ID
                 shortName = "R1",
                 longName = "Route without Agency",
@@ -265,7 +266,7 @@ class RouteImportIntegrationTest {
 
         val route = routes.first()
         assertThat(route.agencyId.value).isEqualTo("o-$feedOnestopId-default-agency")
-        assertThat(route.gtfsRouteId).isEqualTo("R1")
+        assertThat(route.gtfsRouteId).isEqualTo(GTFSRouteId("R1"))
     }
 
     @Test
@@ -273,7 +274,7 @@ class RouteImportIntegrationTest {
         // Given: Route input with missing short and long names
         val routeInput = RouteInput(
             parsedRoute = ParsedRoute(
-                routeId = "ROUTE_1",
+                routeId = GTFSRouteId("ROUTE_1"),
                 agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = null,
                 longName = null,
@@ -294,18 +295,18 @@ class RouteImportIntegrationTest {
         val route = routes.first()
         assertThat(route.shortName).isNull()
         assertThat(route.longName).isEqualTo("ROUTE_1") // Falls back to route ID
-        assertThat(route.gtfsRouteId).isEqualTo("ROUTE_1")
+        assertThat(route.gtfsRouteId).isEqualTo(GTFSRouteId("ROUTE_1"))
     }
 
     @Test
     fun `should correctly convert different GTFS route types`() {
         // Given: Route inputs with various route types
         val routeInputs = listOf(
-            RouteInput(ParsedRoute("R_TRAM", GTFSAgencyId(agencyGtfsId), "T", "Tram", 0), feedOnestopId),
-            RouteInput(ParsedRoute("R_SUBWAY", GTFSAgencyId(agencyGtfsId), "S", "Subway", 1), feedOnestopId),
-            RouteInput(ParsedRoute("R_RAIL", GTFSAgencyId(agencyGtfsId), "R", "Rail", 2), feedOnestopId),
-            RouteInput(ParsedRoute("R_BUS", GTFSAgencyId(agencyGtfsId), "B", "Bus", 3), feedOnestopId),
-            RouteInput(ParsedRoute("R_FERRY", GTFSAgencyId(agencyGtfsId), "F", "Ferry", 4), feedOnestopId)
+            RouteInput(ParsedRoute(GTFSRouteId("R_TRAM"), GTFSAgencyId(agencyGtfsId), "T", "Tram", 0), feedOnestopId),
+            RouteInput(ParsedRoute(GTFSRouteId("R_SUBWAY"), GTFSAgencyId(agencyGtfsId), "S", "Subway", 1), feedOnestopId),
+            RouteInput(ParsedRoute(GTFSRouteId("R_RAIL"), GTFSAgencyId(agencyGtfsId), "R", "Rail", 2), feedOnestopId),
+            RouteInput(ParsedRoute(GTFSRouteId("R_BUS"), GTFSAgencyId(agencyGtfsId), "B", "Bus", 3), feedOnestopId),
+            RouteInput(ParsedRoute(GTFSRouteId("R_FERRY"), GTFSAgencyId(agencyGtfsId), "F", "Ferry", 4), feedOnestopId)
         )
 
         // When: Process and write routes
@@ -317,11 +318,11 @@ class RouteImportIntegrationTest {
         val routes = routeRepository.findAll()
         assertThat(routes).hasSize(5)
 
-        assertThat(routes.find { it.gtfsRouteId == "R_TRAM" }?.routeType).isEqualTo(RouteType.TRAM)
-        assertThat(routes.find { it.gtfsRouteId == "R_SUBWAY" }?.routeType).isEqualTo(RouteType.SUBWAY)
-        assertThat(routes.find { it.gtfsRouteId == "R_RAIL" }?.routeType).isEqualTo(RouteType.RAIL)
-        assertThat(routes.find { it.gtfsRouteId == "R_BUS" }?.routeType).isEqualTo(RouteType.BUS)
-        assertThat(routes.find { it.gtfsRouteId == "R_FERRY" }?.routeType).isEqualTo(RouteType.FERRY)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_TRAM") }?.routeType).isEqualTo(RouteType.TRAM)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_SUBWAY") }?.routeType).isEqualTo(RouteType.SUBWAY)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_RAIL") }?.routeType).isEqualTo(RouteType.RAIL)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_BUS") }?.routeType).isEqualTo(RouteType.BUS)
+        assertThat(routes.find { it.gtfsRouteId == GTFSRouteId("R_FERRY") }?.routeType).isEqualTo(RouteType.FERRY)
     }
 
     @Test
@@ -329,7 +330,7 @@ class RouteImportIntegrationTest {
         // Given: Route input with non-existent agency
         val routeInput = RouteInput(
             parsedRoute = ParsedRoute(
-                routeId = "R1",
+                routeId = GTFSRouteId("R1"),
                 agencyId = GTFSAgencyId("NON_EXISTENT_AGENCY"),
                 shortName = "R1",
                 longName = "Route with Missing Agency",

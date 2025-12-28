@@ -46,14 +46,14 @@ class RouteProcessor(
 
         // Use feed onestop ID as base for route ID
         // TransitLand format: route IDs from their API
-        val routeOnestopId = "r-${feedOnestopId.substringAfter("f-")}-${parsedRoute.routeId}"
+        val routeOnestopId = "r-${feedOnestopId.substringAfter("f-")}-${parsedRoute.routeId.value}"
 
         val route = Route(
             id = RouteId(routeOnestopId),
             agencyId = agency.agencyOnestopId,
             gtfsRouteId = parsedRoute.routeId,
             shortName = parsedRoute.shortName,
-            longName = parsedRoute.longName ?: parsedRoute.shortName ?: parsedRoute.routeId,
+            longName = parsedRoute.longName ?: parsedRoute.shortName ?: parsedRoute.routeId.value,
             routeType = RouteType.fromGtfsValue(parsedRoute.type ?: 3),
             color = null,
             textColor = null,
@@ -62,7 +62,7 @@ class RouteProcessor(
 
         logger.debug(
             "Processed route: {} ({}) -> {} (agency: {})",
-            parsedRoute.shortName ?: parsedRoute.routeId,
+            parsedRoute.shortName ?: parsedRoute.routeId.value,
             parsedRoute.longName,
             routeOnestopId,
             agency.agencyOnestopId.value
