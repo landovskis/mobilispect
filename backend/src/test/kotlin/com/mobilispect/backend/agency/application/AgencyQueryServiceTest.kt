@@ -2,6 +2,7 @@ package com.mobilispect.backend.agency.application
 
 import com.mobilispect.backend.feed.api.FeedDTO
 import com.mobilispect.backend.feed.api.FeedQueryApi
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -53,7 +54,7 @@ class AgencyQueryServiceTest {
         val agency = Agency(
             agencyOnestopId = AgencyId("o-123"),
             feedId = FeedId("f-abc"),
-            gtfsAgencyId = "gtfs-agency",
+            gtfsAgencyId = GTFSAgencyId("gtfs-agency"),
             name = "Test Agency",
             createdAt = Instant.now(),
             updatedAt = Instant.now()
@@ -95,8 +96,8 @@ class AgencyQueryServiceTest {
 
     @Test
     fun `getAgencySummary returns null when agency missing`() {
-        `when`(agencyRepository.findById(AgencyId("missing"))).thenReturn(null)
-        val result = service.getAgencySummary(AgencyId("missing"))
+        `when`(agencyRepository.findById(AgencyId("o-missing"))).thenReturn(null)
+        val result = service.getAgencySummary(AgencyId("o-missing"))
         assertThat(result).isNull()
     }
 
@@ -120,7 +121,7 @@ class AgencyQueryServiceTest {
         val agency = Agency(
             agencyOnestopId = AgencyId("o-1"),
             feedId = FeedId("f-abc"),
-            gtfsAgencyId = "a1",
+            gtfsAgencyId = GTFSAgencyId("a1"),
             name = "A1",
             createdAt = Instant.now(),
             updatedAt = Instant.now()

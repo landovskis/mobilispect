@@ -115,6 +115,28 @@ This project includes Spec-Kit commands for structured development:
 4. **Documentation**: Create ADRs for all architectural decisions
 5. **Review**: Ensure constitutional compliance in all code reviews
 
+### Testing Commands
+
+**IMPORTANT**: Run unit tests only during development to avoid long test
+suite execution times.
+
+```bash
+# Backend - Run unit tests only (fast)
+./backend/gradlew -p backend test --tests '*Test' --tests '*Tests'
+
+# Backend - Skip integration tests (use this for quick verification)
+./backend/gradlew -p backend test -x integrationTest
+
+# Backend - Run specific test class
+./backend/gradlew -p backend test --tests 'com.mobilispect.backend.agency.application.AgencyQueryServiceTest'
+
+# Full test suite (includes integration tests with Testcontainers - SLOW)
+./backend/gradlew -p backend test
+```
+
+Integration tests use Testcontainers and can take several minutes. Reserve
+full test runs for pre-commit/pre-push validation.
+
 ### Enforcement
 
 - Constitution violations require explicit justification and team approval

@@ -2,6 +2,7 @@ package com.mobilispect.backend.route.batch.import
 
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
@@ -35,7 +36,7 @@ class RouteProcessor(
         val (parsedRoute, feedOnestopId) = item
 
         // Resolve agency onestop ID from GTFS agency ID
-        val gtfsAgencyId = parsedRoute.agencyId ?: "default-agency"
+        val gtfsAgencyId = parsedRoute.agencyId ?: GTFSAgencyId("default-agency")
         val agency = agencyRepository.findByFeedIdAndGtfsAgencyId(
             FeedId(feedOnestopId),
             gtfsAgencyId

@@ -3,6 +3,7 @@ package com.mobilispect.backend.route.batch.import
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.api.ParsedRoute
 import com.mobilispect.backend.route.domain.model.Route
@@ -112,7 +113,7 @@ class RouteImportIntegrationTest {
         val agency = Agency(
             agencyOnestopId = AgencyId("o-$feedOnestopId-$agencyGtfsId"),
             feedId = FeedId(feedOnestopId),
-            gtfsAgencyId = agencyGtfsId,
+            gtfsAgencyId = GTFSAgencyId(agencyGtfsId),
             name = "Test Transit Agency",
             website = "https://example.com",
             active = true
@@ -126,7 +127,7 @@ class RouteImportIntegrationTest {
         val routeInput1 = RouteInput(
             parsedRoute = ParsedRoute(
                 routeId = "1",
-                agencyId = agencyGtfsId,
+                agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "1",
                 longName = "Gare Vaudreuil/Parc Industriel",
                 type = 3 // Bus
@@ -137,7 +138,7 @@ class RouteImportIntegrationTest {
         val routeInput2 = RouteInput(
             parsedRoute = ParsedRoute(
                 routeId = "T1",
-                agencyId = agencyGtfsId,
+                agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "T1",
                 longName = "Express Route",
                 type = 3
@@ -200,7 +201,7 @@ class RouteImportIntegrationTest {
         val routeInput = RouteInput(
             parsedRoute = ParsedRoute(
                 routeId = "1",
-                agencyId = agencyGtfsId,
+                agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "1",
                 longName = "New Updated Name",
                 type = 3
@@ -234,7 +235,7 @@ class RouteImportIntegrationTest {
         val defaultAgency = Agency(
             agencyOnestopId = AgencyId("o-$feedOnestopId-default-agency"),
             feedId = FeedId(feedOnestopId),
-            gtfsAgencyId = "default-agency",
+            gtfsAgencyId = GTFSAgencyId("default-agency"),
             name = "Default Agency",
             website = "https://example.com",
             active = true
@@ -273,7 +274,7 @@ class RouteImportIntegrationTest {
         val routeInput = RouteInput(
             parsedRoute = ParsedRoute(
                 routeId = "ROUTE_1",
-                agencyId = agencyGtfsId,
+                agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = null,
                 longName = null,
                 type = 3
@@ -300,11 +301,11 @@ class RouteImportIntegrationTest {
     fun `should correctly convert different GTFS route types`() {
         // Given: Route inputs with various route types
         val routeInputs = listOf(
-            RouteInput(ParsedRoute("R_TRAM", agencyGtfsId, "T", "Tram", 0), feedOnestopId),
-            RouteInput(ParsedRoute("R_SUBWAY", agencyGtfsId, "S", "Subway", 1), feedOnestopId),
-            RouteInput(ParsedRoute("R_RAIL", agencyGtfsId, "R", "Rail", 2), feedOnestopId),
-            RouteInput(ParsedRoute("R_BUS", agencyGtfsId, "B", "Bus", 3), feedOnestopId),
-            RouteInput(ParsedRoute("R_FERRY", agencyGtfsId, "F", "Ferry", 4), feedOnestopId)
+            RouteInput(ParsedRoute("R_TRAM", GTFSAgencyId(agencyGtfsId), "T", "Tram", 0), feedOnestopId),
+            RouteInput(ParsedRoute("R_SUBWAY", GTFSAgencyId(agencyGtfsId), "S", "Subway", 1), feedOnestopId),
+            RouteInput(ParsedRoute("R_RAIL", GTFSAgencyId(agencyGtfsId), "R", "Rail", 2), feedOnestopId),
+            RouteInput(ParsedRoute("R_BUS", GTFSAgencyId(agencyGtfsId), "B", "Bus", 3), feedOnestopId),
+            RouteInput(ParsedRoute("R_FERRY", GTFSAgencyId(agencyGtfsId), "F", "Ferry", 4), feedOnestopId)
         )
 
         // When: Process and write routes
@@ -329,7 +330,7 @@ class RouteImportIntegrationTest {
         val routeInput = RouteInput(
             parsedRoute = ParsedRoute(
                 routeId = "R1",
-                agencyId = "NON_EXISTENT_AGENCY",
+                agencyId = GTFSAgencyId("NON_EXISTENT_AGENCY"),
                 shortName = "R1",
                 longName = "Route with Missing Agency",
                 type = 3

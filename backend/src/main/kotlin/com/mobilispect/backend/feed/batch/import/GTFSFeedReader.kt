@@ -12,6 +12,7 @@ import com.mobilispect.backend.feed.api.ParsedShapePoint
 import com.mobilispect.backend.feed.api.ParsedStop
 import com.mobilispect.backend.feed.api.ParsedStopTime
 import com.mobilispect.backend.feed.api.ParsedTrip
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
@@ -164,7 +165,7 @@ class GTFSFeedReader(
         feed.use { feed ->
             val agencies = feed.agency.values.map { agency ->
                 ParsedAgency(
-                    agencyId = agency.agency_id,
+                    agencyId = GTFSAgencyId(agency.agency_id),
                     name = agency.agency_name,
                     url = agency.agency_url?.toString(),
                     timezone = agency.agency_timezone,
@@ -175,7 +176,7 @@ class GTFSFeedReader(
             val routes = feed.routes.values.map { route ->
                 ParsedRoute(
                     routeId = route.route_id,
-                    agencyId = route.agency_id,
+                    agencyId = GTFSAgencyId.from(route.agency_id),
                     shortName = route.route_short_name,
                     longName = route.route_long_name,
                     type = route.route_type

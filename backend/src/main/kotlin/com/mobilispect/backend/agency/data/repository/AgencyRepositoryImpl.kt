@@ -5,6 +5,7 @@ import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.api.FeedQueryApi
+import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -44,8 +45,8 @@ class AgencyRepositoryImpl(
             .map { mapper.toDomain(it) }
     }
 
-    override fun findByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: String): Agency? =
-        jpaRepository.findByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId)
+    override fun findByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: GTFSAgencyId): Agency? =
+        jpaRepository.findByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId.value)
             ?.let { mapper.toDomain(it) }
 
     override fun findByActive(active: Boolean, pageable: Pageable): Page<Agency> =
@@ -72,8 +73,8 @@ class AgencyRepositoryImpl(
         return jpaRepository.countActiveByFeedId(feedId.value)
     }
 
-    override fun existsByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: String): Boolean =
-        jpaRepository.existsByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId)
+    override fun existsByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: GTFSAgencyId): Boolean =
+        jpaRepository.existsByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId.value)
 
     override fun save(agency: Agency): Agency {
         // Validate feed exists via API
