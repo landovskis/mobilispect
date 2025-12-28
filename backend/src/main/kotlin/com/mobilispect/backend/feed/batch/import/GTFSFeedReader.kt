@@ -81,7 +81,7 @@ class GTFSFeedReader(
             validateGtfsFiles(extractedDir)
         }.getOrNull() ?: return Result.failure(IllegalStateException("Validation failed"))
 
-        return doStep(feedId, "parse") { parse(extractedDir) }
+        return doStep(feedId, "parse") { parse(archive) }
     }
 
     override fun read(): ParsedGtfsData? {
@@ -156,7 +156,7 @@ class GTFSFeedReader(
      * - Modern Java/Kotlin compatibility
      * - Active maintenance
      *
-     * @param feedPath Path to the GTFS feed directory
+     * @param feedPath Path to the GTFS feed ZIP file
      * @return Result containing parsed data on success, or error on failure
      */
     override fun parse(feedPath: Path): Result<ParsedGtfsData> = runCatching {
