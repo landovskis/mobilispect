@@ -17,17 +17,6 @@ kotlin {
                 }
             }
         }
-        ksp {
-            arg("room.schemaLocation", "$projectDir/schemas")
-        }
-        dependencies {
-            api(libs.appcompat)
-            implementation(libs.koin.android)
-            testImplementation(libs.kotlinx.coroutines.test)
-            testImplementation(libs.mockWebServer)
-            ksp(libs.room.compiler)
-            implementation(libs.room.ktx)
-        }
     }
 
     listOf(
@@ -42,6 +31,12 @@ kotlin {
     }
 
     sourceSets {
+        androidMain.dependencies {
+            api(libs.appcompat)
+            implementation(libs.koin.android)
+            implementation(libs.room.ktx)
+        }
+
         commonMain.dependencies {
             api(libs.javax.inject)
             implementation(libs.koin.core)
@@ -58,6 +53,12 @@ kotlin {
             implementation(libs.sqlite.driver)
 
         }
+
+        androidUnitTest.dependencies {
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.mockWebServer)
+        }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.ktor.client.mock)
@@ -65,6 +66,14 @@ kotlin {
             implementation(libs.truth)
         }
     }
+}
+
+dependencies {
+    add("kspAndroid", libs.room.compiler)
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 android {

@@ -3,7 +3,7 @@ package com.mobilispect.backend.feed.batch.import
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.service.FeedImportService
-import com.mobilispect.backend.feed.service.GTFSFeedReader
+import com.mobilispect.backend.feed.batch.import.GTFSFeedReader
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.ExitStatus

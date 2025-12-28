@@ -67,9 +67,7 @@ class FrequencyApiContractTest {
                     stopPattern = "s1|s2|s3|s4|s5",
                     stopNames = listOf("Stop 1", "Stop 2", "Stop 3", "Stop 4", "Stop 5"),
                     firstStopId = "s1",
-                    lastStopId = "s5",
-                    averageStopSpacingKm = null,
-                    stopSpacingClassification = null
+                    lastStopId = "s5"
                 )
             )
         )

@@ -64,7 +64,6 @@ class RouteVariantProcessor : ItemProcessor<RouteVariantInput, RouteVariantBatch
                     stopCount = stopIds.size,
                     firstStopId = stopIds.first(),
                     lastStopId = stopIds.last(),
-                    averageStopSpacingKm = null,
                     firstSeen = now,
                     lastSeen = now
                 )
