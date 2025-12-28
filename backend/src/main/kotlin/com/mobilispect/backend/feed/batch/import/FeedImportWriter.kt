@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.batch.import
 
-import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
+import com.mobilispect.backend.feed.api.ParsedGtfsData
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.service.FeedImportService
 import org.slf4j.LoggerFactory

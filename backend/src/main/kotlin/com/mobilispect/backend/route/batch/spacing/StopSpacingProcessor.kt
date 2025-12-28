@@ -1,5 +1,6 @@
 package com.mobilispect.backend.route.batch.spacing
 
+import com.mobilispect.backend.feed.api.ParsedStop
 import com.mobilispect.backend.route.domain.model.StopSpacing
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.configuration.annotation.StepScope
@@ -59,7 +60,7 @@ class StopSpacingProcessor : ItemProcessor<StopSpacingInput, StopSpacingBatch> {
      */
     private fun calculateStopSpacings(
         variant: com.mobilispect.backend.route.domain.model.RouteVariant,
-        stopsById: Map<String, com.mobilispect.backend.feed.gtfs.ParsedStop>
+        stopsById: Map<String, ParsedStop>
     ): List<StopSpacing> {
         // Extract stop IDs from stop pattern
         val stopIds = variant.stopPattern.split("|")

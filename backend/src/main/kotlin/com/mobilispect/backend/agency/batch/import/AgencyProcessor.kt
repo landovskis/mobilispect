@@ -4,7 +4,7 @@ import com.mobilispect.backend.AgencyResultItem
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.gtfs.ParsedAgency
+import com.mobilispect.backend.feed.api.ParsedAgency
 import com.mobilispect.backend.schedule.transit_land.TransitLandAPI
 import com.mobilispect.backend.schedule.transit_land.api.TransitLandCredentialsRepository
 import org.slf4j.LoggerFactory

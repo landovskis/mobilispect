@@ -1,7 +1,8 @@
 package com.mobilispect.backend.route.batch.variant
 
-import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
-import com.mobilispect.backend.feed.gtfs.ParsedTrip
+import com.mobilispect.backend.feed.api.ParsedGtfsData
+import com.mobilispect.backend.feed.api.ParsedStop
+import com.mobilispect.backend.feed.api.ParsedTrip
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import org.slf4j.LoggerFactory
@@ -37,7 +38,7 @@ class RouteVariantReader(
 
     private var parsedData: ParsedGtfsData? = null
     private var routeIterator: Iterator<Map.Entry<Route, List<ParsedTrip>>>? = null
-    private var stopsById: Map<String, com.mobilispect.backend.feed.gtfs.ParsedStop> = emptyMap()
+    private var stopsById: Map<String, ParsedStop> = emptyMap()
 
     @BeforeStep
     fun beforeStep(stepExecution: StepExecution) {
