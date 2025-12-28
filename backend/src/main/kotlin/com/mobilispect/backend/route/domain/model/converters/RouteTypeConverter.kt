@@ -15,9 +15,8 @@ import jakarta.persistence.Converter
 @Converter(autoApply = true)
 class RouteTypeConverter : AttributeConverter<RouteType, String> {
 
-    override fun convertToDatabaseColumn(attribute: RouteType?): String? =
-        attribute?.value
+  override fun convertToDatabaseColumn(attribute: RouteType?): String? = attribute?.value
 
-    override fun convertToEntityAttribute(dbData: String?): RouteType? =
-        dbData?.let { RouteType.fromValue(it) }
+  override fun convertToEntityAttribute(dbData: String?): RouteType? =
+    dbData?.let { RouteType.fromValue(it) }
 }

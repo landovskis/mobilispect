@@ -4,7 +4,6 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
-
 import org.springframework.scheduling.annotation.EnableAsync
 import org.springframework.scheduling.annotation.EnableScheduling
 
@@ -17,27 +16,27 @@ import org.springframework.scheduling.annotation.EnableScheduling
  * - Observability: Structured logging and metrics collection
  * - Architecture: Clean DDD architecture with proper separation
  */
-@SpringBootApplication(
-    scanBasePackages = ["com.mobilispect.backend"]
+@SpringBootApplication(scanBasePackages = ["com.mobilispect.backend"])
+@EnableJpaRepositories(
+  basePackages =
+    [
+      "com.mobilispect.backend.agency.domain.repository",
+      "com.mobilispect.backend.agency.data.repository",
+      "com.mobilispect.backend.feed.repository",
+      "com.mobilispect.backend.feed.data.repository",
+      "com.mobilispect.backend.region.data.repository",
+      "com.mobilispect.backend.route.data.repository",
+      "com.mobilispect.backend.route.domain.repository",
+      "com.mobilispect.backend.stop.data.repository",
+      "com.mobilispect.backend.transitanalysis.domain.repository",
+      "com.mobilispect.backend.transitanalysis.data.repository",
+    ]
 )
-
-@EnableJpaRepositories(basePackages = [
-    "com.mobilispect.backend.agency.domain.repository",
-    "com.mobilispect.backend.agency.data.repository",
-    "com.mobilispect.backend.feed.repository",
-    "com.mobilispect.backend.feed.data.repository",
-    "com.mobilispect.backend.region.data.repository",
-    "com.mobilispect.backend.route.data.repository",
-    "com.mobilispect.backend.route.domain.repository",
-    "com.mobilispect.backend.stop.data.repository",
-    "com.mobilispect.backend.transitanalysis.domain.repository",
-    "com.mobilispect.backend.transitanalysis.data.repository"
-])
 @EnableScheduling
 @EnableAsync
 @EnableBatchProcessing
 class MobilispectApplication
 
 fun main(args: Array<String>) {
-    runApplication<MobilispectApplication>(*args)
+  runApplication<MobilispectApplication>(*args)
 }

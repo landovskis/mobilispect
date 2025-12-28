@@ -7,8 +7,9 @@ import java.time.LocalDate
 /**
  * Represents a complete feed discovery result combining feed metadata with region information.
  *
- * This data class aggregates information from both the operator parsing stage (region data)
- * and Transit.land metadata fetches (feed details) to provide a comprehensive view of a discovered feed.
+ * This data class aggregates information from both the operator parsing stage (region data) and
+ * Transit.land metadata fetches (feed details) to provide a comprehensive view of a discovered
+ * feed.
  *
  * @property feedOnestopId The Transit.land onestop ID for the feed
  * @property name Human-readable name of the feed/operator
@@ -24,25 +25,25 @@ import java.time.LocalDate
  * @property authorizationInfoUrl URL with authorization instructions (if required)
  */
 data class FeedDiscoveryResult(
-    val feedOnestopId: FeedId,
-    val name: String,
-    val downloadUrl: String,
-    val specType: FeedSpecType,
-    val versionSha1: String,
-    val earliestCalendarDate: LocalDate,
-    val latestCalendarDate: LocalDate,
-    val region: RegionMetadata,
-    val staticFeedUrl: String? = null,
-    val realtimeFeedUrl: String? = null,
-    val authorizationType: String? = null,
-    val authorizationInfoUrl: String? = null
+  val feedOnestopId: FeedId,
+  val name: String,
+  val downloadUrl: String,
+  val specType: FeedSpecType,
+  val versionSha1: String,
+  val earliestCalendarDate: LocalDate,
+  val latestCalendarDate: LocalDate,
+  val region: RegionMetadata,
+  val staticFeedUrl: String? = null,
+  val realtimeFeedUrl: String? = null,
+  val authorizationType: String? = null,
+  val authorizationInfoUrl: String? = null,
 )
 
 /**
  * Represents a batch of feed discovery results.
  *
- * This is the output type for the FeedDiscoveryProcessor, containing all feeds
- * that were successfully matched with both metadata and region information.
+ * This is the output type for the FeedDiscoveryProcessor, containing all feeds that were
+ * successfully matched with both metadata and region information.
  *
  * @property results List of feed discovery results
  * @property totalFeeds Total number of feeds processed
@@ -50,64 +51,50 @@ data class FeedDiscoveryResult(
  * @property missingMetadata Number of feeds missing metadata
  * @property missingRegion Number of feeds missing region information
  */
-data class FeedDiscoveryBatch(
-    val results: List<FeedDiscoveryResult>
-) {
-    val totalFeeds: Int
-        get() = results.size
+data class FeedDiscoveryBatch(val results: List<FeedDiscoveryResult>) {
+  val totalFeeds: Int
+    get() = results.size
 
-    val successfulMatches: Int
-        get() = results.size
+  val successfulMatches: Int
+    get() = results.size
 
-    /**
-     * Groups results by region.
-     */
-    fun groupByRegion(): Map<String, List<FeedDiscoveryResult>> {
-        return results.groupBy { it.region.regionOnestopId }
-    }
+  /** Groups results by region. */
+  fun groupByRegion(): Map<String, List<FeedDiscoveryResult>> {
+    return results.groupBy { it.region.regionOnestopId }
+  }
 
-    /**
-     * Groups results by spec type.
-     */
-    fun groupBySpecType(): Map<FeedSpecType, List<FeedDiscoveryResult>> {
-        return results.groupBy { it.specType }
-    }
+  /** Groups results by spec type. */
+  fun groupBySpecType(): Map<FeedSpecType, List<FeedDiscoveryResult>> {
+    return results.groupBy { it.specType }
+  }
 
-    /**
-     * Gets all unique regions in this batch.
-     */
-    fun regions(): Set<RegionMetadata> {
-        return results.map { it.region }.toSet()
-    }
+  /** Gets all unique regions in this batch. */
+  fun regions(): Set<RegionMetadata> {
+    return results.map { it.region }.toSet()
+  }
 
-    /**
-     * Gets all feed IDs in this batch.
-     */
-    fun feedIds(): List<FeedId> {
-        return results.map { it.feedOnestopId }
-    }
+  /** Gets all feed IDs in this batch. */
+  fun feedIds(): List<FeedId> {
+    return results.map { it.feedOnestopId }
+  }
 
-    /**
-     * Returns true if this batch contains no results.
-     */
-    fun isEmpty(): Boolean = results.isEmpty()
+  /** Returns true if this batch contains no results. */
+  fun isEmpty(): Boolean = results.isEmpty()
 
-    /**
-     * Returns true if this batch contains at least one result.
-     */
-    fun isNotEmpty(): Boolean = results.isNotEmpty()
+  /** Returns true if this batch contains at least one result. */
+  fun isNotEmpty(): Boolean = results.isNotEmpty()
 }
 
 /**
  * Input data for the FeedDiscoveryProcessor.
  *
- * Combines the outputs from operator parsing and Transit.land metadata fetching
- * to enable joining feed metadata with region information.
+ * Combines the outputs from operator parsing and Transit.land metadata fetching to enable joining
+ * feed metadata with region information.
  *
  * @property feedRegionMap Map of feed IDs to region metadata
  * @property feedMetadataMap Map of feed IDs to feed metadata
  */
 data class FeedDiscoveryInput(
-    val feedRegionMap: FeedRegionMap,
-    val feedMetadataMap: FeedMetadataMap
+  val feedRegionMap: FeedRegionMap,
+  val feedMetadataMap: FeedMetadataMap,
 )

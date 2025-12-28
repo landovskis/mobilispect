@@ -8,18 +8,18 @@ import java.time.Instant
 /**
  * Data Transfer Object for Agency.
  *
- * Exposes agency data across module boundaries without exposing internal entities.
- * Part of the Agency module's public API.
+ * Exposes agency data across module boundaries without exposing internal entities. Part of the
+ * Agency module's public API.
  */
 data class AgencyDTO(
-    val agencyId: AgencyId,
-    val feedId: FeedId,
-    val gtfsAgencyId: GTFSAgencyId,
-    val name: String,
-    val website: String?,
-    val phone: String?,
-    val lastFeedImport: Instant?,
-    val active: Boolean,
-    val createdAt: Instant,
-    val updatedAt: Instant
+  val agencyId: AgencyId,
+  val feedId: FeedId,
+  val gtfsAgencyId: GTFSAgencyId,
+  val name: String,
+  val website: String?,
+  val phone: String?,
+  val lastFeedImport: Instant?,
+  val active: Boolean,
+  val createdAt: Instant,
+  val updatedAt: Instant,
 )

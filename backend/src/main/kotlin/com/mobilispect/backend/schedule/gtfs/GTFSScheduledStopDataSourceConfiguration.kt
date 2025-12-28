@@ -6,6 +6,5 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 class GTFSScheduledStopDataSourceConfiguration {
-    @Bean
-    fun scheduledStopDataSource(): ScheduledStopDataSource = GTFSScheduledStopDataSource()
+  @Bean fun scheduledStopDataSource(): ScheduledStopDataSource = GTFSScheduledStopDataSource()
 }

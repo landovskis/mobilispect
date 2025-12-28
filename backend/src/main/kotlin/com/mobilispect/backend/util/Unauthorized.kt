@@ -1,5 +1,3 @@
 package com.mobilispect.backend.util
 
-object Unauthorized : Throwable() {
-
-}
+object Unauthorized : Throwable() {}

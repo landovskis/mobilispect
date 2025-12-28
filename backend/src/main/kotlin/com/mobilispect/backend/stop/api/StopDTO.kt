@@ -8,41 +8,42 @@ import java.time.Instant
 /**
  * Data Transfer Object for Stop.
  *
- * Exposes stop data across module boundaries without exposing internal entities.
- * Part of the Stop module's public API.
+ * Exposes stop data across module boundaries without exposing internal entities. Part of the Stop
+ * module's public API.
  */
 data class StopDTO(
-    val stopId: StopId,
-    val feedId: FeedId,
-    val gtfsStopId: String,
-    val name: String,
-    val latitude: Double,
-    val longitude: Double,
-    val locationType: Int?,
-    val parentStationId: String?,
-    val wheelchairBoarding: Int?,
-    val platformCode: String?,
-    val zoneId: String?,
-    val createdAt: Instant,
-    val updatedAt: Instant
+  val stopId: StopId,
+  val feedId: FeedId,
+  val gtfsStopId: String,
+  val name: String,
+  val latitude: Double,
+  val longitude: Double,
+  val locationType: Int?,
+  val parentStationId: String?,
+  val wheelchairBoarding: Int?,
+  val platformCode: String?,
+  val zoneId: String?,
+  val createdAt: Instant,
+  val updatedAt: Instant,
 ) {
-    companion object {
-        fun fromDomain(stop: Stop): StopDTO = StopDTO(
-            stopId = stop.stopOnestopId,
-            feedId = stop.feedId,
-            gtfsStopId = stop.gtfsStopId,
-            name = stop.name,
-            latitude = stop.latitude,
-            longitude = stop.longitude,
-            locationType = stop.locationType,
-            parentStationId = stop.parentStation,
-            wheelchairBoarding = null,  // Not in domain model
-            platformCode = null,  // Not in domain model
-            zoneId = stop.zoneId,
-            createdAt = stop.createdAt,
-            updatedAt = stop.updatedAt
-        )
-    }
+  companion object {
+    fun fromDomain(stop: Stop): StopDTO =
+      StopDTO(
+        stopId = stop.stopOnestopId,
+        feedId = stop.feedId,
+        gtfsStopId = stop.gtfsStopId,
+        name = stop.name,
+        latitude = stop.latitude,
+        longitude = stop.longitude,
+        locationType = stop.locationType,
+        parentStationId = stop.parentStation,
+        wheelchairBoarding = null, // Not in domain model
+        platformCode = null, // Not in domain model
+        zoneId = stop.zoneId,
+        createdAt = stop.createdAt,
+        updatedAt = stop.updatedAt,
+      )
+  }
 }
 
 /**
@@ -51,23 +52,24 @@ data class StopDTO(
  * Provides essential stop information for paginated lists without full details.
  */
 data class StopSummaryDTO(
-    val stopId: StopId,
-    val feedId: FeedId,
-    val gtfsStopId: String,
-    val name: String,
-    val latitude: Double,
-    val longitude: Double,
-    val locationType: Int?
+  val stopId: StopId,
+  val feedId: FeedId,
+  val gtfsStopId: String,
+  val name: String,
+  val latitude: Double,
+  val longitude: Double,
+  val locationType: Int?,
 ) {
-    companion object {
-        fun fromDomain(stop: Stop): StopSummaryDTO = StopSummaryDTO(
-            stopId = stop.stopOnestopId,
-            feedId = stop.feedId,
-            gtfsStopId = stop.gtfsStopId,
-            name = stop.name,
-            latitude = stop.latitude,
-            longitude = stop.longitude,
-            locationType = stop.locationType
-        )
-    }
+  companion object {
+    fun fromDomain(stop: Stop): StopSummaryDTO =
+      StopSummaryDTO(
+        stopId = stop.stopOnestopId,
+        feedId = stop.feedId,
+        gtfsStopId = stop.gtfsStopId,
+        name = stop.name,
+        latitude = stop.latitude,
+        longitude = stop.longitude,
+        locationType = stop.locationType,
+      )
+  }
 }

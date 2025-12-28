@@ -11,12 +11,12 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 @Suppress("unused")
 internal class GTFSAgencyDataSourceConfiguration {
-    @Bean
-    fun agencyDataSource(
-        transitLandAPI: TransitLandAPI,
-        transitLandCredentialsRepository: TransitLandCredentialsRepository
-    ): AgencyDataSource =
-        GTFSAgencyDataSource(
-            TransitLandAgencyIDDataSource(transitLandAPI, transitLandCredentialsRepository)
-        )
+  @Bean
+  fun agencyDataSource(
+    transitLandAPI: TransitLandAPI,
+    transitLandCredentialsRepository: TransitLandCredentialsRepository,
+  ): AgencyDataSource =
+    GTFSAgencyDataSource(
+      TransitLandAgencyIDDataSource(transitLandAPI, transitLandCredentialsRepository)
+    )
 }

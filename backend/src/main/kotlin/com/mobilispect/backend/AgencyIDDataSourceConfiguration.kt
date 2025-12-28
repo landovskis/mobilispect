@@ -7,9 +7,9 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 internal class AgencyIDDataSourceConfiguration {
-    @Bean
-    fun oneStopAgencyIDDataSource(
-        transitLandAPI: TransitLandAPI,
-        credentialRepository: TransitLandCredentialsRepository
-    ): AgencyIDDataSource = TransitLandAgencyIDDataSource(transitLandAPI, credentialRepository)
+  @Bean
+  fun oneStopAgencyIDDataSource(
+    transitLandAPI: TransitLandAPI,
+    credentialRepository: TransitLandCredentialsRepository,
+  ): AgencyIDDataSource = TransitLandAgencyIDDataSource(transitLandAPI, credentialRepository)
 }

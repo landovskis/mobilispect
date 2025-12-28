@@ -6,7 +6,4 @@ import kotlinx.serialization.json.JsonNames
 
 @ExperimentalSerializationApi
 @Serializable
-class TransitLandFeedVersionRef (
-    @JsonNames("sha1")
-    val id: String
-)
+class TransitLandFeedVersionRef(@JsonNames("sha1") val id: String)
