@@ -33,7 +33,7 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
           type="text"
           class="region-input flex-1 border-0 bg-transparent text-base outline-none"
           [formControl]="searchControl"
-          placeholder="Type to search regions..."
+          placeholder="Filter regions..."
           [attr.disabled]="disabled ? true : null"
           autocomplete="off">
         @if (searchControl.value) {
@@ -49,28 +49,32 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
 
       @if (filteredRegions$ | async; as regions) {
         @if (regions.length > 0) {
-          <ul class="region-results m-0 list-none p-0 max-h-[360px] overflow-y-auto rounded-2xl border bg-white shadow-[0_12px_24px_rgba(15,23,42,0.08)]" role="listbox">
+          <div class="region-results grid gap-3 sm:grid-cols-2" role="list">
             @for (region of regions; track region.regionOnestopId) {
-              <li>
-                <button
-                  type="button"
-                  class="region-option flex w-full items-center gap-3 px-[18px] py-3 text-left"
-                  [class.selected]="region.regionOnestopId === selectedRegionId"
-                  (click)="onRegionSelected(region)"
-                  [disabled]="disabled">
-                  <mat-icon class="region-icon">place</mat-icon>
-                  <div class="region-details flex flex-1 flex-col gap-1">
-                    <span class="region-name">{{ getDisplayName(region) }}</span>
-                    @if (region.feedCount > 0) {
-                      <span class="region-feed-count inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-[0.78rem] font-semibold">
-                        {{ region.feedCount }} feed{{ region.feedCount !== 1 ? 's' : '' }}
-                      </span>
-                    }
-                  </div>
-                </button>
-              </li>
+              <button
+                type="button"
+                class="region-card flex w-full items-center gap-3 rounded-2xl border px-[18px] py-4 text-left"
+                [class.selected]="region.regionOnestopId === selectedRegionId"
+                (click)="onRegionSelected(region)"
+                [disabled]="disabled"
+                role="listitem">
+                <mat-icon class="region-icon">place</mat-icon>
+                <div class="region-details flex flex-1 flex-col gap-1">
+                  <span class="region-name">{{ getDisplayName(region) }}</span>
+                  @if (region.feedCount > 0) {
+                    <span class="region-feed-count inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-[0.78rem] font-semibold">
+                      {{ region.feedCount }} feed{{ region.feedCount !== 1 ? 's' : '' }}
+                    </span>
+                  }
+                </div>
+              </button>
             }
-          </ul>
+          </div>
+        } @else {
+          <div class="empty-results flex items-center gap-2 rounded-2xl border border-dashed px-4 py-3 text-sm">
+            <mat-icon>search_off</mat-icon>
+            <span>No matching regions</span>
+          </div>
         }
       }
     </div>
@@ -125,24 +129,26 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
       color: #1e3a8a;
     }
 
-    .region-option {
-      border: none;
-      background: transparent;
+    .region-card {
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: #fff;
       cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
     }
 
-    .region-option:hover:not(:disabled) {
-      background: rgba(15, 23, 42, 0.04);
+    .region-card:hover:not(:disabled) {
+      border-color: rgba(30, 58, 138, 0.35);
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
     }
 
-    .region-option.selected {
-      background: rgba(30, 58, 138, 0.08);
+    .region-card.selected {
+      border-color: rgba(30, 58, 138, 0.6);
+      background: rgba(30, 58, 138, 0.06);
       color: #1e3a8a;
       font-weight: 600;
     }
 
-    .region-option:disabled {
+    .region-card:disabled {
       cursor: not-allowed;
       opacity: 0.6;
     }
@@ -187,18 +193,19 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
       color: rgba(255, 255, 255, 0.45);
     }
 
-    :host-context(.dark-theme) .region-results {
-      background: rgba(15, 23, 42, 0.85);
+    :host-context(.dark-theme) .region-card {
+      background: rgba(15, 23, 42, 0.6);
       border-color: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 18px 40px rgba(2, 6, 23, 0.6);
     }
 
-    :host-context(.dark-theme) .region-option:hover:not(:disabled) {
-      background: rgba(59, 130, 246, 0.15);
+    :host-context(.dark-theme) .region-card:hover:not(:disabled) {
+      border-color: rgba(147, 197, 253, 0.5);
+      box-shadow: 0 16px 30px rgba(2, 6, 23, 0.6);
     }
 
-    :host-context(.dark-theme) .region-option.selected {
+    :host-context(.dark-theme) .region-card.selected {
       background: rgba(59, 130, 246, 0.18);
+      border-color: rgba(147, 197, 253, 0.7);
       color: #bfdbfe;
     }
 
@@ -237,7 +244,6 @@ export class RegionSelectorComponent implements OnInit, OnDestroy, OnChanges {
     );
 
     this.updateControlState();
-    this.syncSelectedRegionLabel();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -245,14 +251,8 @@ export class RegionSelectorComponent implements OnInit, OnDestroy, OnChanges {
       this.updateControlState();
     }
 
-    if (changes['selectedRegionId']) {
-      if (this.selectedRegionId) {
-        this.syncSelectedRegionLabel();
-      } else {
-        this.searchControl.setValue('', { emitEvent: false });
-      }
-    } else if (changes['regions'] && this.selectedRegionId) {
-      this.syncSelectedRegionLabel();
+    if (changes['selectedRegionId'] && !this.selectedRegionId) {
+      this.searchControl.setValue('', { emitEvent: false });
     }
   }
 
@@ -279,24 +279,12 @@ export class RegionSelectorComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   onRegionSelected(region: MetropolitanRegion): void {
-    this.searchControl.setValue(this.getDisplayName(region), { emitEvent: false });
     this.regionChange.emit(region.regionOnestopId);
   }
 
   clearSearch(): void {
     this.searchControl.setValue('');
     this.regionChange.emit('');
-  }
-
-  private syncSelectedRegionLabel(): void {
-    if (!this.selectedRegionId) {
-      return;
-    }
-
-    const selectedRegion = this.regions.find(r => r.regionOnestopId === this.selectedRegionId);
-    if (selectedRegion) {
-      this.searchControl.setValue(this.getDisplayName(selectedRegion), { emitEvent: false });
-    }
   }
 
   private updateControlState(): void {
