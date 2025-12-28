@@ -4,7 +4,7 @@ import com.conveyal.gtfs.GTFSFeed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.events.FeedImportFailed
 import com.mobilispect.backend.feed.events.FeedImportStepCompleted
-import com.mobilispect.backend.feed.events.FeedImportStepStarted
+import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
 import com.mobilispect.backend.feed.gtfs.GtfsParser
 import com.mobilispect.backend.feed.gtfs.ParsedAgency
 import com.mobilispect.backend.feed.gtfs.ParsedGtfsData
@@ -95,7 +95,7 @@ class GTFSFeedReader(
     }
 
     private fun <T> doStep(feedId: FeedId, step: String, function: () -> Result<T>): Result<T> {
-        eventPublisher.publishEvent(FeedImportStepStarted(feedId, step))
+        eventPublisher.publishEvent(FeedImportStepStartedEvent(feedId, step))
         val res = function()
         if (res.isFailure) {
             eventPublisher.publishEvent(
