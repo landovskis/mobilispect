@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.batch.import
 
-import com.mobilispect.backend.feed.api.ParsedGtfsData
+import com.mobilispect.backend.feed.api.GTFSData
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.service.FeedImportService
 import org.slf4j.LoggerFactory
@@ -17,7 +17,7 @@ import java.util.UUID
 @StepScope
 class FeedImportWriter(
     private val feedImportService: FeedImportService
-) : ItemWriter<ParsedGtfsData> {
+) : ItemWriter<GTFSData> {
     private val logger = LoggerFactory.getLogger(FeedImportWriter::class.java)
 
     @Value("#{jobParameters['importId']}")
@@ -30,7 +30,7 @@ class FeedImportWriter(
         this.stepExecution = stepExecution
     }
 
-    override fun write(chunk: Chunk<out ParsedGtfsData>) {
+    override fun write(chunk: Chunk<out GTFSData>) {
         val parsedData = chunk.items.firstOrNull() ?: return
         val importUuid = runCatching { UUID.fromString(importId) }
             .getOrElse { throw IllegalArgumentException("importId job parameter is required", it) }

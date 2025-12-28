@@ -1,6 +1,6 @@
 package com.mobilispect.backend.route.batch.import
 
-import com.mobilispect.backend.feed.api.ParsedRoute
+import com.mobilispect.backend.feed.api.GTFSRoute
 import com.mobilispect.backend.route.domain.model.Route
 
 /**
@@ -13,7 +13,7 @@ import com.mobilispect.backend.route.domain.model.Route
  * @property feedOnestopId The onestop ID of the feed this route belongs to
  */
 data class RouteInput(
-    val parsedRoute: ParsedRoute,
+    val parsedRoute: GTFSRoute,
     val feedOnestopId: String
 )
 

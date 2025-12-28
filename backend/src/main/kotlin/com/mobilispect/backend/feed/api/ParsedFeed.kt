@@ -12,15 +12,15 @@ import java.time.LocalTime
  * calculations. The structure intentionally stays lightweight and decoupled
  * from the OneBusAway classes.
  */
-data class ParsedGtfsData(
-    val agencies: List<ParsedAgency>,
-    val routes: List<ParsedRoute>,
-    val trips: List<ParsedTrip>,
-    val stops: List<ParsedStop>,
-    val shapes: Map<String, List<ParsedShapePoint>>
+data class GTFSData(
+    val agencies: List<GTFSAgency>,
+    val routes: List<GTFSRoute>,
+    val trips: List<GTFSTrip>,
+    val stops: List<GTFSStop>,
+    val shapes: Map<String, List<GTFSShapePoint>>
 )
 
-data class ParsedAgency(
+data class GTFSAgency(
     val agencyId: GTFSAgencyId,
     val name: String,
     val url: String?,
@@ -28,7 +28,7 @@ data class ParsedAgency(
     val phone: String?
 )
 
-data class ParsedRoute(
+data class GTFSRoute(
     val routeId: GTFSRouteId,
     val agencyId: GTFSAgencyId?,
     val shortName: String?,
@@ -36,23 +36,23 @@ data class ParsedRoute(
     val type: Int?
 )
 
-data class ParsedTrip(
+data class GTFSTrip(
     val routeId: GTFSRouteId,
     val tripId: GTFSTripId,
     val directionId: Int?,
     val headsign: String?,
     val shapeId: String?,
-    val stopTimes: List<ParsedStopTime>
+    val stopTimes: List<GTFSStopTime>
 )
 
-data class ParsedStopTime(
+data class GTFSStopTime(
     val stopId: GTFSStopId,
     val stopSequence: Int,
     val departureTime: LocalTime?,
     val shapeDistTraveledKm: Double?
 )
 
-data class ParsedStop(
+data class GTFSStop(
     val stopId: GTFSStopId,
     val name: String?,
     val latitude: Double?,
@@ -65,7 +65,7 @@ data class ParsedStop(
     val parentStation: String? = null
 )
 
-data class ParsedShapePoint(
+data class GTFSShapePoint(
     val latitude: Double,
     val longitude: Double,
     val sequence: Int,

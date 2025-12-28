@@ -1,7 +1,7 @@
 package com.mobilispect.backend.route.batch.spacing
 
-import com.mobilispect.backend.feed.api.ParsedGtfsData
-import com.mobilispect.backend.feed.api.ParsedStop
+import com.mobilispect.backend.feed.api.GTFSData
+import com.mobilispect.backend.feed.api.GTFSStop
 import com.mobilispect.backend.route.domain.model.RouteVariant
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import org.slf4j.LoggerFactory
@@ -33,14 +33,14 @@ class StopSpacingReader(
 
     private val logger = LoggerFactory.getLogger(StopSpacingReader::class.java)
 
-    private var parsedData: ParsedGtfsData? = null
+    private var parsedData: GTFSData? = null
     private var variantIterator: Iterator<RouteVariant>? = null
-    private var stopsById: Map<String, ParsedStop> = emptyMap()
+    private var stopsById: Map<String, GTFSStop> = emptyMap()
 
     @BeforeStep
     fun beforeStep(stepExecution: StepExecution) {
         // Retrieve parsed data from job execution context
-        parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? ParsedGtfsData
+        parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
             ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
 
         val data = parsedData!!

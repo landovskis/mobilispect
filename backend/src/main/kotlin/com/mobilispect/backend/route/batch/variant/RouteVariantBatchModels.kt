@@ -2,8 +2,8 @@ package com.mobilispect.backend.route.batch.variant
 
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteVariant
-import com.mobilispect.backend.feed.api.ParsedTrip
-import com.mobilispect.backend.feed.api.ParsedStop
+import com.mobilispect.backend.feed.api.GTFSTrip
+import com.mobilispect.backend.feed.api.GTFSStop
 
 /**
  * Input data for the RouteVariantProcessor.
@@ -17,8 +17,8 @@ import com.mobilispect.backend.feed.api.ParsedStop
  */
 data class RouteVariantInput(
     val route: Route,
-    val trips: List<ParsedTrip>,
-    val stopsById: Map<String, ParsedStop>
+    val trips: List<GTFSTrip>,
+    val stopsById: Map<String, GTFSStop>
 )
 
 /**

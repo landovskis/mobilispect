@@ -6,7 +6,7 @@ import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.api.ids.GTFSRouteId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.api.ParsedRoute
+import com.mobilispect.backend.feed.api.GTFSRoute
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.route.domain.model.ids.RouteId
@@ -23,15 +23,10 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
-import org.springframework.batch.core.scope.context.StepSynchronizationManager
 import org.springframework.batch.test.context.SpringBatchTest
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
-import org.springframework.test.context.TestExecutionListeners
 import org.springframework.test.context.TestPropertySource
-import org.springframework.test.context.support.DependencyInjectionTestExecutionListener
-import org.springframework.test.context.support.DirtiesContextTestExecutionListener
-import org.springframework.test.context.transaction.TransactionalTestExecutionListener
 import org.springframework.transaction.annotation.Transactional
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
@@ -126,7 +121,7 @@ class RouteImportIntegrationTest {
     fun `should successfully process and write new routes from GTFS data`() {
         // Given: Parsed routes to process
         val routeInput1 = RouteInput(
-            parsedRoute = ParsedRoute(
+            parsedRoute = GTFSRoute(
                 routeId = GTFSRouteId("1"),
                 agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "1",
@@ -137,7 +132,7 @@ class RouteImportIntegrationTest {
         )
 
         val routeInput2 = RouteInput(
-            parsedRoute = ParsedRoute(
+            parsedRoute = GTFSRoute(
                 routeId = GTFSRouteId("T1"),
                 agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "T1",
@@ -200,7 +195,7 @@ class RouteImportIntegrationTest {
 
         // And: Updated route input
         val routeInput = RouteInput(
-            parsedRoute = ParsedRoute(
+            parsedRoute = GTFSRoute(
                 routeId = GTFSRouteId("1"),
                 agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = "1",
@@ -245,7 +240,7 @@ class RouteImportIntegrationTest {
 
         // And: Route input with no agency ID
         val routeInput = RouteInput(
-            parsedRoute = ParsedRoute(
+            parsedRoute = GTFSRoute(
                 routeId = GTFSRouteId("R1"),
                 agencyId = null, // No agency ID
                 shortName = "R1",
@@ -273,7 +268,7 @@ class RouteImportIntegrationTest {
     fun `should handle route with missing short name and long name`() {
         // Given: Route input with missing short and long names
         val routeInput = RouteInput(
-            parsedRoute = ParsedRoute(
+            parsedRoute = GTFSRoute(
                 routeId = GTFSRouteId("ROUTE_1"),
                 agencyId = GTFSAgencyId(agencyGtfsId),
                 shortName = null,
@@ -302,11 +297,11 @@ class RouteImportIntegrationTest {
     fun `should correctly convert different GTFS route types`() {
         // Given: Route inputs with various route types
         val routeInputs = listOf(
-            RouteInput(ParsedRoute(GTFSRouteId("R_TRAM"), GTFSAgencyId(agencyGtfsId), "T", "Tram", 0), feedOnestopId),
-            RouteInput(ParsedRoute(GTFSRouteId("R_SUBWAY"), GTFSAgencyId(agencyGtfsId), "S", "Subway", 1), feedOnestopId),
-            RouteInput(ParsedRoute(GTFSRouteId("R_RAIL"), GTFSAgencyId(agencyGtfsId), "R", "Rail", 2), feedOnestopId),
-            RouteInput(ParsedRoute(GTFSRouteId("R_BUS"), GTFSAgencyId(agencyGtfsId), "B", "Bus", 3), feedOnestopId),
-            RouteInput(ParsedRoute(GTFSRouteId("R_FERRY"), GTFSAgencyId(agencyGtfsId), "F", "Ferry", 4), feedOnestopId)
+            RouteInput(GTFSRoute(GTFSRouteId("R_TRAM"), GTFSAgencyId(agencyGtfsId), "T", "Tram", 0), feedOnestopId),
+            RouteInput(GTFSRoute(GTFSRouteId("R_SUBWAY"), GTFSAgencyId(agencyGtfsId), "S", "Subway", 1), feedOnestopId),
+            RouteInput(GTFSRoute(GTFSRouteId("R_RAIL"), GTFSAgencyId(agencyGtfsId), "R", "Rail", 2), feedOnestopId),
+            RouteInput(GTFSRoute(GTFSRouteId("R_BUS"), GTFSAgencyId(agencyGtfsId), "B", "Bus", 3), feedOnestopId),
+            RouteInput(GTFSRoute(GTFSRouteId("R_FERRY"), GTFSAgencyId(agencyGtfsId), "F", "Ferry", 4), feedOnestopId)
         )
 
         // When: Process and write routes
@@ -329,7 +324,7 @@ class RouteImportIntegrationTest {
     fun `should throw exception when agency not found`() {
         // Given: Route input with non-existent agency
         val routeInput = RouteInput(
-            parsedRoute = ParsedRoute(
+            parsedRoute = GTFSRoute(
                 routeId = GTFSRouteId("R1"),
                 agencyId = GTFSAgencyId("NON_EXISTENT_AGENCY"),
                 shortName = "R1",

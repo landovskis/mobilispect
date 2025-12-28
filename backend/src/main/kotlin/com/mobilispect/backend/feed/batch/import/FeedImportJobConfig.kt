@@ -4,8 +4,8 @@ import com.mobilispect.backend.agency.batch.import.AgencyProcessor
 import com.mobilispect.backend.agency.batch.import.AgencyReader
 import com.mobilispect.backend.agency.batch.import.AgencyWriter
 import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.feed.api.ParsedAgency
-import com.mobilispect.backend.feed.api.ParsedGtfsData
+import com.mobilispect.backend.feed.api.GTFSAgency
+import com.mobilispect.backend.feed.api.GTFSData
 import com.mobilispect.backend.route.batch.import.RouteBatch
 import com.mobilispect.backend.route.batch.import.RouteInput
 import com.mobilispect.backend.route.batch.import.RouteProcessor
@@ -73,7 +73,7 @@ class FeedImportJobConfig(
 
     @Bean
     fun feedImportStep(): Step = StepBuilder("feedImportStep", jobRepository)
-        .chunk<ParsedGtfsData, ParsedGtfsData>(1)
+        .chunk<GTFSData, GTFSData>(1)
         .reader(feedImportReader)
         .writer(feedImportWriter)
         .listener(stepExecutionListener)
@@ -82,7 +82,7 @@ class FeedImportJobConfig(
 
     @Bean
     fun agencyProcessingStep(): Step = StepBuilder("agencyProcessingStep", jobRepository)
-        .chunk<ParsedAgency, Agency>(50)
+        .chunk<GTFSAgency, Agency>(50)
         .reader(agencyReader)
         .processor(agencyProcessor)
         .writer(agencyWriter)
