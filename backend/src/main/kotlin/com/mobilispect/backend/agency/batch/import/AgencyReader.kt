@@ -12,21 +12,22 @@ import org.springframework.stereotype.Component
 @Component
 @StepScope
 class AgencyReader() : ItemReader<GTFSAgency> {
-    private val logger = LoggerFactory.getLogger(AgencyReader::class.java)
+  private val logger = LoggerFactory.getLogger(AgencyReader::class.java)
 
-    private var agencyIterator: Iterator<GTFSAgency>? = null
+  private var agencyIterator: Iterator<GTFSAgency>? = null
 
-    @BeforeStep
-    fun beforeStep(stepExecution: StepExecution) {
-        val parsedData = stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
-            ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
+  @BeforeStep
+  fun beforeStep(stepExecution: StepExecution) {
+    val parsedData =
+      stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
+        ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
 
-        agencyIterator = parsedData.agencies.iterator()
-        logger.info("Initializing AgencyReader with {} agencies", parsedData.agencies.size)
-    }
+    agencyIterator = parsedData.agencies.iterator()
+    logger.info("Initializing AgencyReader with {} agencies", parsedData.agencies.size)
+  }
 
-    override fun read(): GTFSAgency? {
-        val iterator = agencyIterator ?: return null
-        return if (iterator.hasNext()) iterator.next() else null
-    }
+  override fun read(): GTFSAgency? {
+    val iterator = agencyIterator ?: return null
+    return if (iterator.hasNext()) iterator.next() else null
+  }
 }

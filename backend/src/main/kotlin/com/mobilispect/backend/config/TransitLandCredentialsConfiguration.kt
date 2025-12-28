@@ -9,15 +9,15 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 @EnableConfigurationProperties(TransitLandProperties::class)
 class TransitLandCredentialsConfiguration {
-    @Bean
-    fun transitLandCredentialsRepository(properties: TransitLandProperties): TransitLandCredentialsRepository {
-        return object : TransitLandCredentialsRepository {
-            override fun get(): String? = properties.apiKey
-        }
+  @Bean
+  fun transitLandCredentialsRepository(
+    properties: TransitLandProperties
+  ): TransitLandCredentialsRepository {
+    return object : TransitLandCredentialsRepository {
+      override fun get(): String? = properties.apiKey
     }
+  }
 }
 
 @ConfigurationProperties(prefix = "app.transit-land")
-data class TransitLandProperties(
-    val apiKey: String? = null
-)
+data class TransitLandProperties(val apiKey: String? = null)

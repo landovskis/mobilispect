@@ -5,8 +5,8 @@ import org.springframework.modulith.ApplicationModule
 /**
  * Stop Management Module
  *
- * Responsible for managing transit stop locations and metadata.
- * Extracted from transitanalysis module as part of modular monolith refactoring.
+ * Responsible for managing transit stop locations and metadata. Extracted from transitanalysis
+ * module as part of modular monolith refactoring.
  *
  * This module:
  * - Manages stop entities (physical locations where passengers board/alight)
@@ -22,8 +22,5 @@ import org.springframework.modulith.ApplicationModule
  * - Communication via ports (StopQueryApi) only
  * - Module boundaries enforced by Spring Modulith
  */
-@ApplicationModule(
-    displayName = "Stop Management",
-    allowedDependencies = ["feed"]
-)
+@ApplicationModule(displayName = "Stop Management", allowedDependencies = ["feed"])
 class StopModule

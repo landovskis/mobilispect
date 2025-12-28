@@ -10,37 +10,31 @@ import org.springframework.stereotype.Service
 /**
  * Implementation of the Region module's public query API.
  *
- * This service provides cross-module access to region data while maintaining
- * proper module boundaries. It converts internal entities to public DTOs.
+ * This service provides cross-module access to region data while maintaining proper module
+ * boundaries. It converts internal entities to public DTOs.
  */
 @Service
-internal class RegionQueryApiImpl(
-    private val regionRepository: MetropolitanRegionRepository
-) : RegionQueryApi {
+internal class RegionQueryApiImpl(private val regionRepository: MetropolitanRegionRepository) :
+  RegionQueryApi {
 
-    override fun findRegionById(regionId: RegionId): RegionDTO? {
-        return regionRepository.findByRegionOnestopId(regionId)
-            .map { it.toDTO() }
-            .orElse(null)
-    }
+  override fun findRegionById(regionId: RegionId): RegionDTO? {
+    return regionRepository.findByRegionOnestopId(regionId).map { it.toDTO() }.orElse(null)
+  }
 
-    override fun findAllRegions(): List<RegionDTO> {
-        return regionRepository.findAll()
-            .map { it.toDTO() }
-    }
+  override fun findAllRegions(): List<RegionDTO> {
+    return regionRepository.findAll().map { it.toDTO() }
+  }
 
-    /**
-     * Converts internal entity to public DTO.
-     */
-    private fun MetropolitanRegion.toDTO(): RegionDTO {
-        return RegionDTO(
-            regionId = this.regionOnestopId,
-            name = this.name,
-            country = this.adm0Name,
-            provinceState = this.adm1Name,
-            autoUpdateEnabled = this.autoUpdateEnabled,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
+  /** Converts internal entity to public DTO. */
+  private fun MetropolitanRegion.toDTO(): RegionDTO {
+    return RegionDTO(
+      regionId = this.regionOnestopId,
+      name = this.name,
+      country = this.adm0Name,
+      provinceState = this.adm1Name,
+      autoUpdateEnabled = this.autoUpdateEnabled,
+      createdAt = this.createdAt,
+      updatedAt = this.updatedAt,
+    )
+  }
 }

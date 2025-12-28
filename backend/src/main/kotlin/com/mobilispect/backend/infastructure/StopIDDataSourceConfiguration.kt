@@ -8,9 +8,10 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 internal class StopIDDataSourceConfiguration {
-    @Bean
-    fun oneStopStopIDDataSource(
-        transitLandAPI: TransitLandAPI,
-        transitLandCredentialsRepository: TransitLandCredentialsRepository
-    ): StopIDDataSource = TransitLandStopIDDataSource(transitLandAPI, transitLandCredentialsRepository)
+  @Bean
+  fun oneStopStopIDDataSource(
+    transitLandAPI: TransitLandAPI,
+    transitLandCredentialsRepository: TransitLandCredentialsRepository,
+  ): StopIDDataSource =
+    TransitLandStopIDDataSource(transitLandAPI, transitLandCredentialsRepository)
 }

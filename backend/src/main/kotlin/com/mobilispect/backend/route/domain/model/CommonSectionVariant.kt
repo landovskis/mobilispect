@@ -14,8 +14,8 @@ import java.util.UUID
 /**
  * Junction entity linking common sections to route variants.
  *
- * Represents the many-to-many relationship between common sections and route variants,
- * tracking which variants traverse which common sections and at what sequence positions.
+ * Represents the many-to-many relationship between common sections and route variants, tracking
+ * which variants traverse which common sections and at what sequence positions.
  *
  * @property id Unique identifier (UUID)
  * @property commonSection Common section this variant traverses
@@ -26,43 +26,32 @@ import java.util.UUID
 @Entity
 @Table(name = "common_section_variants")
 class CommonSectionVariant(
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", nullable = false, updatable = false)
-    val id: UUID? = null,
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "common_section_id", nullable = false)
-    val commonSection: CommonSection,
-
-    @Column(name = "variant_id", nullable = false, length = 64)
-    val variantId: String,
-
-    @Column(name = "start_sequence", nullable = false)
-    val startSequence: Int,
-
-    @Column(name = "end_sequence", nullable = false)
-    val endSequence: Int
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  @Column(name = "id", nullable = false, updatable = false)
+  val id: UUID? = null,
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "common_section_id", nullable = false)
+  val commonSection: CommonSection,
+  @Column(name = "variant_id", nullable = false, length = 64) val variantId: String,
+  @Column(name = "start_sequence", nullable = false) val startSequence: Int,
+  @Column(name = "end_sequence", nullable = false) val endSequence: Int,
 ) {
-    constructor() : this(
-        commonSection = CommonSection(),
-        variantId = "",
-        startSequence = 0,
-        endSequence = 0
-    )
+  constructor() :
+    this(commonSection = CommonSection(), variantId = "", startSequence = 0, endSequence = 0)
 
-    // Validation removed from init block to allow JPA no-arg constructor instantiation
-    // Database constraints enforce these requirements (see migration V027)
-    // Application-level validation should be done before calling the constructor
+  // Validation removed from init block to allow JPA no-arg constructor instantiation
+  // Database constraints enforce these requirements (see migration V027)
+  // Application-level validation should be done before calling the constructor
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is CommonSectionVariant) return false
-        return id != null && id == other.id
-    }
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is CommonSectionVariant) return false
+    return id != null && id == other.id
+  }
 
-    override fun hashCode(): Int = id?.hashCode() ?: 0
+  override fun hashCode(): Int = id?.hashCode() ?: 0
 
-    override fun toString(): String =
-        "CommonSectionVariant(id=$id, startSequence=$startSequence, endSequence=$endSequence)"
+  override fun toString(): String =
+    "CommonSectionVariant(id=$id, startSequence=$startSequence, endSequence=$endSequence)"
 }

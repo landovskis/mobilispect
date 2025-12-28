@@ -7,8 +7,8 @@ import java.time.Instant
 /**
  * Domain model representing a transit stop or station.
  *
- * Stops are physical locations where passengers board or alight from transit vehicles.
- * Each stop is uniquely identified by its Transitland Onestop ID (s-geohash-name format).
+ * Stops are physical locations where passengers board or alight from transit vehicles. Each stop is
+ * uniquely identified by its Transitland Onestop ID (s-geohash-name format).
  *
  * Per GTFS specification, a stop can represent:
  * - location_type 0: A stop/platform where passengers board
@@ -36,45 +36,39 @@ import java.time.Instant
  * @property updatedAt When this record was last updated
  */
 data class Stop(
-    val stopOnestopId: StopId,
-    val feedId: FeedId,
-    val gtfsStopId: String,
-    val name: String,
-    val latitude: Double,
-    val longitude: Double,
-    val stopCode: String? = null,
-    val stopDesc: String? = null,
-    val zoneId: String? = null,
-    val stopUrl: String? = null,
-    val locationType: Int? = null,
-    val parentStation: String? = null,
-    val active: Boolean = true,
-    val firstSeen: Instant,
-    val lastSeen: Instant,
-    val createdAt: Instant = Instant.now(),
-    val updatedAt: Instant = Instant.now()
+  val stopOnestopId: StopId,
+  val feedId: FeedId,
+  val gtfsStopId: String,
+  val name: String,
+  val latitude: Double,
+  val longitude: Double,
+  val stopCode: String? = null,
+  val stopDesc: String? = null,
+  val zoneId: String? = null,
+  val stopUrl: String? = null,
+  val locationType: Int? = null,
+  val parentStation: String? = null,
+  val active: Boolean = true,
+  val firstSeen: Instant,
+  val lastSeen: Instant,
+  val createdAt: Instant = Instant.now(),
+  val updatedAt: Instant = Instant.now(),
 ) {
-    init {
-        require(name.isNotBlank()) { "Stop name cannot be blank" }
-        require(latitude in -90.0..90.0) { "Latitude must be between -90 and 90, got $latitude" }
-        require(longitude in -180.0..180.0) { "Longitude must be between -180 and 180, got $longitude" }
-        require(locationType == null || locationType in 0..4) {
-            "Location type must be null or 0-4 (0=stop, 1=station, 2=entrance, 3=node, 4=boarding area), got $locationType"
-        }
+  init {
+    require(name.isNotBlank()) { "Stop name cannot be blank" }
+    require(latitude in -90.0..90.0) { "Latitude must be between -90 and 90, got $latitude" }
+    require(longitude in -180.0..180.0) { "Longitude must be between -180 and 180, got $longitude" }
+    require(locationType == null || locationType in 0..4) {
+      "Location type must be null or 0-4 (0=stop, 1=station, 2=entrance, 3=node, 4=boarding area), got $locationType"
     }
+  }
 
-    /**
-     * Returns whether this stop is a station (container for multiple stops).
-     */
-    fun isStation(): Boolean = locationType == 1
+  /** Returns whether this stop is a station (container for multiple stops). */
+  fun isStation(): Boolean = locationType == 1
 
-    /**
-     * Returns whether this stop is a platform/stop where passengers board.
-     */
-    fun isPlatform(): Boolean = locationType == null || locationType == 0
+  /** Returns whether this stop is a platform/stop where passengers board. */
+  fun isPlatform(): Boolean = locationType == null || locationType == 0
 
-    /**
-     * Returns whether this stop requires a parent station reference.
-     */
-    fun requiresParentStation(): Boolean = locationType != null && locationType in 2..4
+  /** Returns whether this stop requires a parent station reference. */
+  fun requiresParentStation(): Boolean = locationType != null && locationType in 2..4
 }

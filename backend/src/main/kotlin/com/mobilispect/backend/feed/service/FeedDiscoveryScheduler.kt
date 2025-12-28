@@ -19,35 +19,30 @@ import org.springframework.stereotype.Service
  * - Restartability for failed jobs
  */
 @Service
-class FeedDiscoveryScheduler(
-    private val feedDiscoveryBatchService: FeedDiscoveryBatchService
-) {
-    private val logger = LoggerFactory.getLogger(FeedDiscoveryScheduler::class.java)
+class FeedDiscoveryScheduler(private val feedDiscoveryBatchService: FeedDiscoveryBatchService) {
+  private val logger = LoggerFactory.getLogger(FeedDiscoveryScheduler::class.java)
 
-    /**
-     * Discover all feeds from Transit.land globally.
-     * The batch job automatically assigns feeds to appropriate regions based on operator geography.
-     * Default schedule: 01:15 AM server time.
-     */
-    @Scheduled(cron = "\${feed-management.scheduler.discovery-cron:0 15 1 * * *}")
-    fun runDailyDiscovery() = runBlocking {
-        logger.info("Starting daily global feed discovery via Spring Batch")
+  /**
+   * Discover all feeds from Transit.land globally. The batch job automatically assigns feeds to
+   * appropriate regions based on operator geography. Default schedule: 01:15 AM server time.
+   */
+  @Scheduled(cron = "\${feed-management.scheduler.discovery-cron:0 15 1 * * *}")
+  fun runDailyDiscovery() = runBlocking {
+    logger.info("Starting daily global feed discovery via Spring Batch")
 
-        runCatching {
-            feedDiscoveryBatchService.discoverAll(specType = FeedSpecType.GTFS)
-        }.onSuccess { result ->
-            logger.info(
-                "Global feed discovery completed (feeds={}, created={}, updated={}, errors={})",
-                result.feedsDiscovered,
-                result.feedsCreated,
-                result.feedsUpdated,
-                result.errors.size
-            )
-            if (result.errors.isNotEmpty()) {
-                logger.warn("Feed discovery errors: {}", result.errors.joinToString("; "))
-            }
-        }.onFailure { throwable ->
-            logger.error("Global feed discovery failed", throwable)
+    runCatching { feedDiscoveryBatchService.discoverAll(specType = FeedSpecType.GTFS) }
+      .onSuccess { result ->
+        logger.info(
+          "Global feed discovery completed (feeds={}, created={}, updated={}, errors={})",
+          result.feedsDiscovered,
+          result.feedsCreated,
+          result.feedsUpdated,
+          result.errors.size,
+        )
+        if (result.errors.isNotEmpty()) {
+          logger.warn("Feed discovery errors: {}", result.errors.joinToString("; "))
         }
-    }
+      }
+      .onFailure { throwable -> logger.error("Global feed discovery failed", throwable) }
+  }
 }

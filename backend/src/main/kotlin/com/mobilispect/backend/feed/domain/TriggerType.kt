@@ -1,9 +1,7 @@
 package com.mobilispect.backend.feed.domain
 
-/**
- * Import Trigger Type
- */
+/** Import Trigger Type */
 enum class TriggerType {
-    MANUAL,
-    AUTOMATIC
+  MANUAL,
+  AUTOMATIC,
 }

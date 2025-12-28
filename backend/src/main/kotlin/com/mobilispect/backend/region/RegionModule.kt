@@ -5,8 +5,8 @@ import org.springframework.modulith.ApplicationModule
 /**
  * Region Management Module.
  *
- * This module is responsible for managing metropolitan regions and their metadata.
- * It is a foundational module with no dependencies on other domain modules.
+ * This module is responsible for managing metropolitan regions and their metadata. It is a
+ * foundational module with no dependencies on other domain modules.
  *
  * Public API:
  * - region.api.RegionQueryApi: Query interface for region data
@@ -20,8 +20,4 @@ import org.springframework.modulith.ApplicationModule
  * - Communication via ports/events only
  * - This module has no domain dependencies
  */
-@ApplicationModule(
-    displayName = "Region Management",
-    allowedDependencies = []
-)
-class RegionModule
+@ApplicationModule(displayName = "Region Management", allowedDependencies = []) class RegionModule
