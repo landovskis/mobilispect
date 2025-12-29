@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.model.ids
 
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import jakarta.persistence.AttributeConverter
 import jakarta.persistence.Converter
 

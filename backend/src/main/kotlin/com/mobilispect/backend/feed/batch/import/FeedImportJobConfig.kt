@@ -6,6 +6,7 @@ import com.mobilispect.backend.agency.batch.import.AgencyWriter
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.feed.api.GTFSAgency
 import com.mobilispect.backend.feed.api.GTFSData
+import com.mobilispect.backend.feed.service.FeedImportProgressService
 import com.mobilispect.backend.route.batch.frequency.FrequencyBatch
 import com.mobilispect.backend.route.batch.frequency.FrequencyInput
 import com.mobilispect.backend.route.batch.frequency.FrequencyProcessor
@@ -57,7 +58,7 @@ class FeedImportJobConfig(
   private val frequencyProcessor: FrequencyProcessor,
   private val frequencyWriter: FrequencyWriter,
   private val stepExecutionListener: FeedImportStepExecutionListener,
-  private val jobExecutionListener: FeedImportJobExecutionListener,
+  private val progressService: FeedImportProgressService,
 ) {
 
   @Bean
@@ -69,7 +70,7 @@ class FeedImportJobConfig(
       .next(routeVariantProcessingStep())
       .next(stopSpacingProcessingStep())
       .next(frequencyProcessingStep())
-      .listener(jobExecutionListener)
+      .listener(progressService)
       .build()
 
   @Bean

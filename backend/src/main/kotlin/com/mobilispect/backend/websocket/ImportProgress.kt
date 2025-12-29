@@ -1,19 +1,15 @@
 package com.mobilispect.backend.websocket
 
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.ImportId
 import java.time.Instant
 
 /** Real-time import progress data sent to clients via WebSocket */
 data class ImportProgress(
-  val importId: String,
-  val feedOnestopId: String,
-  val progressPercentage: Int,
+  val importId: ImportId,
+  val feedId: FeedId,
   val currentStep: String,
-  val currentStepNumber: Int,
-  val totalSteps: Int,
-  val startedAt: Instant,
-  val lastUpdatedAt: Instant,
-  val estimatedTimeRemainingSeconds: Long? = null,
-  val processingRate: Double? = null,
+  val error: String? = null,
 )
 
 /** Progress update message wrapper */

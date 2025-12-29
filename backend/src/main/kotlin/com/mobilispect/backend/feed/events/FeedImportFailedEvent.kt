@@ -1,5 +1,11 @@
 package com.mobilispect.backend.feed.events
 
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.ImportId
 
-class FeedImportFailedEvent(val feedId: FeedId, val step: String, val message: String)
+class FeedImportFailedEvent(
+  val feedId: FeedId,
+  val step: String,
+  val message: String,
+  val importId: ImportId,
+)

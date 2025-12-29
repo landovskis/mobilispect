@@ -17,10 +17,11 @@ import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
+import com.mobilispect.backend.feed.service.FeedImportProgressService
 import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.feed.service.ImportHistoryService
-import com.mobilispect.backend.feed.service.ImportProgressService
 import java.util.UUID
+import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -56,9 +57,11 @@ class FeedImportController(
   private val feedImportService: FeedImportService,
   private val feedImportRepository: FeedImportRepository,
   private val feedRepository: FeedRepository,
-  private val importProgressService: ImportProgressService,
+  private val importProgressService: FeedImportProgressService,
   private val importHistoryService: ImportHistoryService,
 ) {
+  private val logger = LoggerFactory.getLogger(FeedImportController::class.java)
+
   private val activeStatuses = listOf(ImportStatus.RUNNING, ImportStatus.PENDING)
 
   // ========== Import Operations ==========
@@ -67,16 +70,16 @@ class FeedImportController(
   @PostMapping("/{feedId}/import")
   fun startImport(@PathVariable feedId: String): ImportResponse {
     try {
-      val import =
+      val importId =
         feedImportService.startImport(
           feedId = FeedId(feedId),
           triggerType = ImportTriggerType.MANUAL,
         )
-
-      val message = "Import started successfully"
-      return import.toResponse(message)
+      return ImportResponse(importId = importId.toString(), feedId = feedId)
     } catch (e: IllegalArgumentException) {
       throw ResponseStatusException(HttpStatus.BAD_REQUEST, e.message, e)
+    } catch (e: Exception) {
+      throw ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.message, e)
     }
   }
 
@@ -98,13 +101,14 @@ class FeedImportController(
   @GetMapping("/imports/active")
   @Transactional(readOnly = true)
   fun getActiveImports(): ActiveImportsResponse {
+    logger.info("Getting active imports")
     val imports =
       feedImportRepository.findAllByStatusIn(activeStatuses).sortedByDescending {
         it.startedAt ?: it.createdAt
       }
     val summaries =
       imports.map { import ->
-        val progress = importProgressService.getProgress(import.requireIdAsString())?.toDto()
+        val progress = importProgressService.getProgress(import.requireId())?.toDto()
         import.toSummary(progress)
       }
     return ActiveImportsResponse(imports = summaries, total = summaries.size)
@@ -114,18 +118,19 @@ class FeedImportController(
   @GetMapping("/imports/{importId}/progress")
   @Transactional(readOnly = true)
   fun getImportProgress(@PathVariable importId: String): ImportProgressDTO {
-    importProgressService.getProgress(importId)?.let {
-      return it.toDto()
-    }
-
-    val uuid =
-      runCatching { UUID.fromString(importId) }
+    logger.info("Getting import progress")
+    val importIdValue =
+      runCatching { ImportId.fromString(importId) }
         .getOrElse {
           throw ResponseStatusException(HttpStatus.NOT_FOUND, "Import not found: $importId")
         }
 
+    importProgressService.getProgress(importIdValue)?.let {
+      return it.toDto()
+    }
+
     val import =
-      feedImportRepository.findByImportId(ImportId(uuid)).orElseThrow {
+      feedImportRepository.findByImportId(importIdValue).orElseThrow {
         notFound("Import", importId)
       }
 
@@ -162,6 +167,7 @@ class FeedImportController(
   @GetMapping("/imports/{importId}")
   @Transactional(readOnly = true)
   fun getImport(@PathVariable importId: String): FeedImportDetailDTO {
+    logger.info("Get import")
     val uuid = parseImportId(importId)
     val import =
       feedImportRepository.findByImportId(ImportId(uuid)).orElseThrow {
@@ -176,7 +182,7 @@ class FeedImportController(
         )
     val regionName = feed.regions.firstOrNull()?.name
 
-    val progress = importProgressService.getProgress(importId)?.toDto()
+    val progress = importProgressService.getProgress(ImportId.fromString(importId))?.toDto()
 
     return FeedImportDetailDTO(
       id = import.requireIdAsString(),
@@ -332,30 +338,6 @@ class FeedImportController(
 
   // ========== Helper Methods ==========
 
-  private fun FeedImport.toResponse(message: String?): ImportResponse {
-    val feed =
-      findFeed(this)
-        ?: throw ResponseStatusException(
-          HttpStatus.INTERNAL_SERVER_ERROR,
-          "Feed missing for import $id",
-        )
-    return ImportResponse(
-      id = requireIdAsString(),
-      importId = requireIdAsString(),
-      feedOnestopId = feed.feedId,
-      triggerType = triggerType.toDto(),
-      status = status.toDto(),
-      versionSha1 = versionSha1,
-      startedAt = startedAt ?: createdAt,
-      completedAt = completedAt,
-      fileSizeBytes = fileSizeBytes,
-      errorMessage = errorMessage,
-      createdAt = createdAt,
-      updatedAt = updatedAt,
-      message = message,
-    )
-  }
-
   private fun FeedImport.toSummary(progress: ImportProgressDTO?): FeedImportSummaryDTO {
     val feed =
       findFeed(this)
@@ -402,15 +384,15 @@ class FeedImportController(
 
   private fun com.mobilispect.backend.websocket.ImportProgress.toDto(): ImportProgressDTO =
     ImportProgressDTO(
-      importId = importId,
-      feedOnestopId = feedOnestopId,
-      progressPercentage = progressPercentage,
+      importId = importId.toString(),
+      feedOnestopId = feedId.value,
+      progressPercentage = 0,
       currentStep = currentStep,
-      currentStepNumber = currentStepNumber,
-      totalSteps = totalSteps,
-      startedAt = startedAt,
-      estimatedTimeRemainingSeconds = estimatedTimeRemainingSeconds,
-      processingRate = processingRate,
+      currentStepNumber = 0,
+      totalSteps = 6,
+      startedAt = java.time.Instant.now(),
+      estimatedTimeRemainingSeconds = null,
+      processingRate = null,
     )
 
   private fun ImportStatus.toDto(): ImportStatusDto =

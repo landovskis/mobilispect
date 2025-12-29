@@ -13,10 +13,11 @@ import com.mobilispect.backend.feed.api.ids.GTFSRouteId
 import com.mobilispect.backend.feed.api.ids.GTFSStopId
 import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.events.FeedImportFailed
-import com.mobilispect.backend.feed.events.FeedImportStepCompleted
+import com.mobilispect.backend.feed.events.FeedImportFailedEvent
+import com.mobilispect.backend.feed.events.FeedImportStepCompletedEvent
 import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
 import com.mobilispect.backend.feed.model.FeedEntity
+import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.schedule.download.DownloadRequest
 import com.mobilispect.backend.schedule.download.Downloader
@@ -49,6 +50,7 @@ class GTFSFeedReader(
   private val logger = LoggerFactory.getLogger(GTFSFeedReader::class.java)
 
   @Value("#{jobParameters['feedOnestopId']}") lateinit var feedOnestopId: String
+  @Value("#{jobParameters['importId']}") lateinit var importIdString: String
 
   private var hasRun = false
 
@@ -97,15 +99,21 @@ class GTFSFeedReader(
   }
 
   private fun <T> doStep(feedId: FeedId, step: String, function: () -> Result<T>): Result<T> {
-    eventPublisher.publishEvent(FeedImportStepStartedEvent(feedId, step))
+    val importId = ImportId.fromString(importIdString)
+    eventPublisher.publishEvent(FeedImportStepStartedEvent(feedId, importId, step))
     val res = function()
     if (res.isFailure) {
       eventPublisher.publishEvent(
-        FeedImportFailed(feedId, step, res.exceptionOrNull()?.message ?: "Unknown error")
+        FeedImportFailedEvent(
+          feedId,
+          step,
+          res.exceptionOrNull()?.message ?: "Unknown error",
+          importId,
+        )
       )
       return Result.failure(res.exceptionOrNull()!!)
     }
-    eventPublisher.publishEvent(FeedImportStepCompleted(feedId, step))
+    eventPublisher.publishEvent(FeedImportStepCompletedEvent(feedId, step, importId))
     return res
   }
 

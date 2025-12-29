@@ -1,9 +1,10 @@
 package com.mobilispect.backend.feed.batch.import
 
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.events.FeedImportFailed
-import com.mobilispect.backend.feed.events.FeedImportStepCompleted
+import com.mobilispect.backend.feed.events.FeedImportFailedEvent
+import com.mobilispect.backend.feed.events.FeedImportStepCompletedEvent
 import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
+import com.mobilispect.backend.feed.model.ids.ImportId
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.ExitStatus
 import org.springframework.batch.core.listener.StepExecutionListener
@@ -31,18 +32,20 @@ class FeedImportStepExecutionListener(private val eventPublisher: ApplicationEve
   override fun beforeStep(stepExecution: StepExecution) {
     val stepName = stepExecution.stepName
     val feedId = extractFeedId(stepExecution)
+    val importId = extractImportId(stepExecution)
 
     logger.info("Starting feed import step: {} for feed: {}", stepName, feedId?.value ?: "unknown")
 
-    feedId?.let { id ->
-      eventPublisher.publishEvent(FeedImportStepStartedEvent(id, stepName))
-      logger.debug("Published FeedStepStarted event for feed: {}, step: {}", id.value, stepName)
+    if (feedId != null && importId != null) {
+      eventPublisher.publishEvent(FeedImportStepStartedEvent(feedId, importId, stepName))
+      logger.debug("Published FeedStepStarted event for feed: {}, step: {}", feedId.value, stepName)
     }
   }
 
   override fun afterStep(stepExecution: StepExecution): ExitStatus {
     val stepName = stepExecution.stepName
     val feedId = extractFeedId(stepExecution)
+    val importId = extractImportId(stepExecution)
     val exitStatus = stepExecution.exitStatus
 
     val readCount = stepExecution.readCount
@@ -64,23 +67,25 @@ class FeedImportStepExecutionListener(private val eventPublisher: ApplicationEve
       rollbackCount,
     )
 
-    feedId?.let { id ->
+    if (feedId != null && importId != null) {
       when {
         exitStatus.exitCode == ExitStatus.COMPLETED.exitCode -> {
-          eventPublisher.publishEvent(FeedImportStepCompleted(id, stepExecution.stepName))
+          eventPublisher.publishEvent(FeedImportStepCompletedEvent(feedId, stepName, importId))
           logger.debug(
             "Published FeedStepCompleted event for feed: {}, step: {}",
-            id.value,
-            stepExecution.stepName,
+            feedId.value,
+            stepName,
           )
         }
         exitStatus.exitCode == ExitStatus.FAILED.exitCode -> {
           val errorMessage = exitStatus.exitDescription ?: "Step failed without description"
-          eventPublisher.publishEvent(FeedImportFailed(id, stepExecution.stepName, errorMessage))
+          eventPublisher.publishEvent(
+            FeedImportFailedEvent(feedId, stepName, errorMessage, importId)
+          )
           logger.error(
             "Published FeedImportFailed event for feed: {}, step: {}, error: {}",
-            id.value,
-            stepExecution.stepName,
+            feedId.value,
+            stepName,
             errorMessage,
           )
         }
@@ -88,8 +93,8 @@ class FeedImportStepExecutionListener(private val eventPublisher: ApplicationEve
           logger.warn(
             "Step completed with unexpected status: {} for feed: {}, step: {}",
             exitStatus.exitCode,
-            id.value,
-            stepExecution.stepName,
+            feedId.value,
+            stepName,
           )
         }
       }
@@ -119,5 +124,11 @@ class FeedImportStepExecutionListener(private val eventPublisher: ApplicationEve
         null
       }
     }
+  }
+
+  /** Extract ImportId from job parameters. */
+  private fun extractImportId(stepExecution: StepExecution): ImportId? {
+    val importIdString = stepExecution.jobParameters.getString("importId")
+    return importIdString?.let { ImportId.fromString(it) }
   }
 }
