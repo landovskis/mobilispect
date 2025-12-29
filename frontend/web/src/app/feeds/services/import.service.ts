@@ -62,9 +62,9 @@ export class ImportService {
   /**
    * Starts a new feed import
    */
-  startImport(feedOnestopId: string, request?: ImportRequest): Observable<FeedImport> {
+  startImport(feedId: string, request?: ImportRequest): Observable<FeedImport> {
     const body = request || { force: false };
-    return this.http.post<FeedImport>(`${this.apiUrl}/${feedOnestopId}/import`, body).pipe(
+    return this.http.post<FeedImport>(`${this.apiUrl}/${feedId}/import`, body).pipe(
       tap(importResult => {
         // Start polling for active imports to update UI
         this.startPollingActiveImports();

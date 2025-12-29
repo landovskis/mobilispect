@@ -25,8 +25,8 @@ import org.springframework.stereotype.Service
  * Task T032: Create ImportProgressService for Redis-based progress tracking
  *
  * This service listens to FeedImport events, publishes WebSocket progress updates, and monitors
- * Spring Batch job execution lifecycle. It provides a clean interface to progress tracking for
- * both the feed domain and WebSocket controllers.
+ * Spring Batch job execution lifecycle. It provides a clean interface to progress tracking for both
+ * the feed domain and WebSocket controllers.
  *
  * Constitutional Requirement: Observability & Operational Insight
  * - Provides real-time progress visibility via WebSocket broadcasting
@@ -82,7 +82,7 @@ class FeedImportProgressService(
     activeImports.remove(event.importId)
     messagingTemplate.convertAndSend(
       "/topic/import/progress/${event.importId}",
-      ImportProgress(event.importId, event.feedId, "Finished import",),
+      ImportProgress(event.importId, event.feedId, "Finished import"),
     )
   }
 
@@ -127,8 +127,11 @@ class FeedImportProgressService(
   // JobExecutionListener methods
 
   override fun beforeJob(jobExecution: JobExecution) {
-    val feedId = extractFeedId(jobExecution) ?: throw IllegalStateException("Missing feedId parameter")
-    val importIdString = jobExecution.jobParameters.getString("importId") ?: throw IllegalStateException("Missing importId parameter")
+    val feedId =
+      extractFeedId(jobExecution) ?: throw IllegalStateException("Missing feedId parameter")
+    val importIdString =
+      jobExecution.jobParameters.getString("importId")
+        ?: throw IllegalStateException("Missing importId parameter")
     val importId = ImportId.fromString(importIdString)
 
     logger.info("Starting feed import job for feed: {}", feedId.value)

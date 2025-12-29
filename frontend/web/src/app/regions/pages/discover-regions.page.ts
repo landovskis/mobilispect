@@ -135,7 +135,7 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
     this.metrics.setSelectedRegion(this.selectedRegionId, this.getRegionDisplayName(this.selectedRegion));
     this.updateUrlWithRegion(regionId);
     this.loadFeedsForRegion(regionId);
-    this.router.navigate(['/feeds/discover', regionId]);
+    this.router.navigate(['/regions/discover', regionId]);
   }
 
   importMultipleFeeds(feeds: Feed[]): void {

@@ -33,7 +33,7 @@ class FeedImportService(
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
-  fun startImport(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
+  fun startImport(feedId: FeedId, triggerType: ImportTriggerType): ImportId {
     val feed =
       feedRepository.findByFeedOnestopId(feedId.value).orElseThrow {
         IllegalArgumentException("Feed not found: $feedId")
@@ -43,6 +43,7 @@ class FeedImportService(
     val feedImport =
       feedImportRepository.save(
         FeedImport().apply {
+          this.id = ImportId()
           this.feedId = feed.feedId
           this.administrator = null
           this.triggerType = triggerType
@@ -56,15 +57,15 @@ class FeedImportService(
       TransactionSynchronizationManager.registerSynchronization(
         object : TransactionSynchronization {
           override fun afterCommit() {
-            launchImportJob(feedImport.requireId(), FeedId(feed.feedId))
+            launchImportJob(feedImport.id, FeedId(feed.feedId))
           }
         }
       )
     } else {
-      launchImportJob(feedImport.requireId(), FeedId(feed.feedId))
+      launchImportJob(feedImport.id, FeedId(feed.feedId))
     }
 
-    return feedImport
+    return feedImport.id
   }
 
   @Transactional
@@ -119,7 +120,6 @@ class FeedImportService(
     }
   }
 
-  @Transactional
   fun failImport(importId: ImportId, message: String) {
     val feedImport =
       feedImportRepository.findByImportId(importId).orElseThrow {
