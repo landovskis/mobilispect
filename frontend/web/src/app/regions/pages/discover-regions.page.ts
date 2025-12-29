@@ -15,6 +15,7 @@ import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionSelectorComponent } from '../components/region-selector.component';
 import { AgencyFeedCardComponent } from '../../feeds/components/agency-feed-card.component';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
 
 @Component({
   selector: 'app-discover-regions-page',
@@ -24,6 +25,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     MatProgressSpinnerModule,
     MatIconModule,
     BrandSectionComponent,
+    BrandCardComponent,
     RegionSelectorComponent,
     AgencyFeedCardComponent
 ],
@@ -39,9 +41,10 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
       ></app-region-selector>
 
       @if (loadingFeeds) {
-        <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12" role="status" aria-live="polite">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Loading feeds...</p>
+        <div class="feeds-grid mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          @for (placeholder of loadingPlaceholders; track $index) {
+            <app-brand-card [loading]="true"></app-brand-card>
+          }
         </div>
       } @else {
         @if (agencyGroups.length > 0) {
@@ -103,6 +106,7 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
   regionFeeds: Feed[] = [];
   agencyGroups: AgencyFeedGroup[] = [];
   loadingFeeds = false;
+  loadingPlaceholders = Array.from({ length: 6 });
 
   constructor(
     private readonly regionService: RegionService,

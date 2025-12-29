@@ -21,7 +21,13 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
           </p>
       </app-brand-card>
 
-      @if (regions?.length) {
+      @if (loading) {
+        <div class="regions-grid mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          @for (placeholder of loadingPlaceholders; track $index) {
+            <app-brand-card [loading]="true"></app-brand-card>
+          }
+        </div>
+      } @else if (regions?.length) {
         <div class="regions-grid mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           @for (region of regions!; track region.regionOnestopId) {
             <app-brand-card
@@ -73,5 +79,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 })
 export class FeedRegionsTabComponent {
   @Input() regions: MetropolitanRegion[] | null = [];
+  @Input() loading = false;
   @Output() importRegion = new EventEmitter<MetropolitanRegion>();
+  loadingPlaceholders = Array.from({ length: 6 });
 }

@@ -24,7 +24,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
   template: `
     @if (importId) {
       <div class="progress-monitor w-full max-w-[600px]">
-        <app-brand-card class="progress-card mb-4" [ngClass]="'status-' + progressStatus">
+        <app-brand-card
+          class="progress-card mb-4"
+          [ngClass]="'status-' + progressStatus"
+          [loading]="isLoading$ | async">
           <div card-header>
             <div class="flex items-center gap-2 text-white font-semibold">
               <mat-icon [ngClass]="getIconClass()">{{ getStatusIcon() }}</mat-icon>

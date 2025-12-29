@@ -7,39 +7,60 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [MatIconModule],
   template: `
-    <section class="brand-card block rounded-2xl p-6" [class.border]="border">
-      @if (title || badge) {
+    <section class="brand-card block rounded-2xl p-6" [class.border]="border" [class.is-loading]="loading">
+      @if (loading) {
         <header class="card-header mb-3 flex items-start gap-2">
-          @if (titleIcon) {
-            <mat-icon
-              class="card-title-icon"
-              [attr.aria-label]="titleIconLabel || title"
-              [attr.aria-hidden]="titleIconLabel || title ? null : true">
-              {{ titleIcon }}
-            </mat-icon>
-          }
-          <div class="card-titles flex flex-col gap-0.5">
-            @if (title) {
-              <h3 class="card-title m-0">{{ title }}</h3>
-            }
-            @if (subtitle) {
-              <p class="card-subtitle m-0">{{ subtitle }}</p>
-            }
+          <span class="skeleton skeleton-icon"></span>
+          <div class="card-titles flex flex-1 flex-col gap-2">
+            <span class="skeleton skeleton-title"></span>
+            <span class="skeleton skeleton-subtitle"></span>
           </div>
-          @if (badge) {
-            <span class="card-badge ml-auto rounded-full px-3 py-1 text-[0.85rem] font-bold">{{ badge }}</span>
-          }
+          <span class="skeleton skeleton-badge"></span>
         </header>
-      }
+        <div class="card-body text-inherit">
+          <div class="skeleton-row skeleton"></div>
+          <div class="skeleton-row skeleton"></div>
+          <div class="skeleton-row skeleton short"></div>
+        </div>
+        @if (hasFooter) {
+          <footer class="card-footer mt-4 flex items-center gap-3 border-t border-[var(--ms-color-border,#d1d5db)] pt-3">
+            <span class="skeleton skeleton-footer"></span>
+          </footer>
+        }
+      } @else {
+        @if (title || badge) {
+          <header class="card-header mb-3 flex items-start gap-2">
+            @if (titleIcon) {
+              <mat-icon
+                class="card-title-icon"
+                [attr.aria-label]="titleIconLabel || title"
+                [attr.aria-hidden]="titleIconLabel || title ? null : true">
+                {{ titleIcon }}
+              </mat-icon>
+            }
+            <div class="card-titles flex flex-col gap-0.5">
+              @if (title) {
+                <h3 class="card-title m-0">{{ title }}</h3>
+              }
+              @if (subtitle) {
+                <p class="card-subtitle m-0">{{ subtitle }}</p>
+              }
+            </div>
+            @if (badge) {
+              <span class="card-badge ml-auto rounded-full px-3 py-1 text-[0.85rem] font-bold">{{ badge }}</span>
+            }
+          </header>
+        }
 
-      <div class="card-body text-inherit">
-        <ng-content></ng-content>
-      </div>
+        <div class="card-body text-inherit">
+          <ng-content></ng-content>
+        </div>
 
-      @if (hasFooter) {
-        <footer class="card-footer mt-4 flex items-center gap-3 border-t border-[var(--ms-color-border,#d1d5db)] pt-3">
-          <ng-content select="[card-footer]"></ng-content>
-        </footer>
+        @if (hasFooter) {
+          <footer class="card-footer mt-4 flex items-center gap-3 border-t border-[var(--ms-color-border,#d1d5db)] pt-3">
+            <ng-content select="[card-footer]"></ng-content>
+          </footer>
+        }
       }
     </section>
     `,
@@ -108,6 +129,78 @@ import { MatIconModule } from '@angular/material/icon';
       color: inherit;
     }
 
+    .is-loading .card-body,
+    .is-loading .card-header,
+    .is-loading .card-footer {
+      pointer-events: none;
+    }
+
+    .skeleton {
+      display: block;
+      position: relative;
+      overflow: hidden;
+      border-radius: 999px;
+      background: linear-gradient(
+        90deg,
+        rgba(203, 213, 225, 0.35) 0%,
+        rgba(203, 213, 225, 0.7) 45%,
+        rgba(203, 213, 225, 0.35) 100%
+      );
+      background-size: 220% 100%;
+      animation: skeleton-shimmer 1.4s ease-in-out infinite;
+    }
+
+    .skeleton-row {
+      height: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    .skeleton-row.short {
+      width: 60%;
+    }
+
+    .skeleton-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      margin-top: 2px;
+    }
+
+    .skeleton-title {
+      height: 16px;
+      width: 60%;
+      border-radius: 8px;
+    }
+
+    .skeleton-subtitle {
+      height: 12px;
+      width: 45%;
+      border-radius: 8px;
+    }
+
+    .skeleton-badge {
+      height: 22px;
+      width: 72px;
+      margin-left: auto;
+      border-radius: 999px;
+    }
+
+    .skeleton-footer {
+      height: 14px;
+      width: 30%;
+      border-radius: 8px;
+    }
+
+    @keyframes skeleton-shimmer {
+      0% {
+        background-position: 0% 0%;
+      }
+      100% {
+        background-position: 200% 0%;
+      }
+    }
+
     :host-context(.dark-theme) .brand-card {
       background: var(--mat-sys-surface, var(--ms-color-surface-elevated, #0f172a));
       color: var(--mat-sys-on-surface, var(--ms-color-text-primary, #e5f1ff));
@@ -131,6 +224,15 @@ import { MatIconModule } from '@angular/material/icon';
     :host-context(.dark-theme) .card-footer {
       border-top-color: rgba(148, 163, 184, 0.24);
     }
+
+    :host-context(.dark-theme) .skeleton {
+      background: linear-gradient(
+        90deg,
+        rgba(30, 41, 59, 0.8) 0%,
+        rgba(51, 65, 85, 0.9) 45%,
+        rgba(30, 41, 59, 0.8) 100%
+      );
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -142,4 +244,5 @@ export class BrandCardComponent {
   @Input() titleIconLabel?: string;
   @Input() border = true;
   @Input() hasFooter = false;
+  @Input() loading = false;
 }

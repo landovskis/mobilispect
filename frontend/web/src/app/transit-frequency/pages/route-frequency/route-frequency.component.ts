@@ -14,7 +14,8 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
   template: `
     <app-brand-card
       [title]="route?.longName"
-      [subtitle]="route?.shortName || undefined">
+      [subtitle]="route?.shortName || undefined"
+      [loading]="isLoading">
       @if (directionTabs.length > 1) {
         <div class="mb-4 flex flex-wrap gap-2">
           @for (tab of directionTabs; track tab.key) {
@@ -56,6 +57,10 @@ export class RouteFrequencyComponent implements OnInit {
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
   lastVariantId?: string;
   selectedDirectionId: number | null = null;
+  isLoading = true;
+  private routeLoaded = false;
+  private variantsLoaded = false;
+  private sectionsLoaded = false;
 
   constructor(
     private readonly routeParams: ActivatedRoute,
@@ -72,8 +77,14 @@ export class RouteFrequencyComponent implements OnInit {
 
   private loadRoute(): void {
     if (!this.routeId) return;
+    this.routeLoaded = false;
+    this.variantsLoaded = false;
+    this.sectionsLoaded = false;
+    this.updateLoading();
     this.frequencyService.getRoute(this.routeId).subscribe(route => {
       this.route = route;
+      this.routeLoaded = true;
+      this.updateLoading();
     });
     this.frequencyService.getVariants(this.routeId).subscribe(variants => {
       this.variants = variants;
@@ -81,6 +92,8 @@ export class RouteFrequencyComponent implements OnInit {
         this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
       }
       this.loadFirstVariantForDirection();
+      this.variantsLoaded = true;
+      this.updateLoading();
     });
     this.commonSectionService.getCommonSectionsForRoute(this.routeId).subscribe(sections => {
       this.commonSections = sections;
@@ -89,6 +102,8 @@ export class RouteFrequencyComponent implements OnInit {
           if (freq) this.combinedBySection[section.id] = freq;
         });
       });
+      this.sectionsLoaded = true;
+      this.updateLoading();
     });
   }
 
@@ -132,5 +147,9 @@ export class RouteFrequencyComponent implements OnInit {
       return;
     }
     this.loadFrequencies(this.filteredVariants[0].id);
+  }
+
+  private updateLoading(): void {
+    this.isLoading = !(this.routeLoaded && this.variantsLoaded && this.sectionsLoaded);
   }
 }

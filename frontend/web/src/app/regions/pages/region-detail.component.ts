@@ -9,6 +9,7 @@ import { map } from 'rxjs/operators';
 import { AgencyListResponse } from '../../transit-frequency/services/agency.service';
 import { AgencyCardComponent } from '../../transit-frequency/components/agency-card/agency-card.component';
 import { AgencyService } from "../../agencies/services/agency.service";
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
 
 interface RegionSummary {
   name: string;
@@ -19,7 +20,7 @@ interface RegionSummary {
 @Component({
   selector: 'app-region-detail',
   standalone: true,
-  imports: [CommonModule, BrandSectionComponent, AgencyCardComponent],
+  imports: [CommonModule, BrandSectionComponent, AgencyCardComponent, BrandCardComponent],
   template: `
     <div class="flex flex-col gap-6">
       <app-brand-section
@@ -60,7 +61,11 @@ interface RegionSummary {
             </p>
           }
         } @else {
-          <p>Loading agencies...</p>
+          <div class="agencies-grid grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            @for (placeholder of loadingPlaceholders; track $index) {
+              <app-brand-card [loading]="true"></app-brand-card>
+            }
+          </div>
         }
       </app-brand-section>
     </div>
@@ -94,6 +99,7 @@ export class RegionDetailComponent implements OnInit {
   region$!: Observable<MetropolitanRegionDetail>;
   agencies$!: Observable<AgencyListResponse>;
   summary$!: Observable<RegionSummary>;
+  loadingPlaceholders = Array.from({ length: 6 });
 
   constructor(
     private readonly route: ActivatedRoute,

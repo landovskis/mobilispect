@@ -43,4 +43,7 @@ sessions/
 .DS_Store
 Thumbs.db
 
+# Xcode user data
+**/xcuserdata/
+
 /.envrc

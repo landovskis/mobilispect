@@ -92,9 +92,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
       <!-- Loading State -->
       @if (isLoading$ | async) {
-        <div class="loading-container flex flex-col items-center justify-center px-4 py-12 text-center">
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Loading regions...</p>
+        <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3">
+          @for (placeholder of loadingPlaceholders; track $index) {
+            <app-brand-card class="region-card" [loading]="true" [hasFooter]="true"></app-brand-card>
+          }
         </div>
       }
 
@@ -394,6 +395,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
   activeImports$ = new BehaviorSubject<FeedImportSummary[]>([]);
   isLoading$ = new BehaviorSubject<boolean>(true);
   error$ = new BehaviorSubject<string | null>(null);
+  loadingPlaceholders = Array.from({ length: 6 });
 
   // Auto-update control state
   isUpdatingAutoUpdate = new Set<string>();

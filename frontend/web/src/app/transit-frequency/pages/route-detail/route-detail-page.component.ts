@@ -20,11 +20,10 @@ import {BrandSectionComponent} from '../../../shared/components/brand-section.co
     BrandSectionComponent
   ],
   template: `
-    @if (route$ | async; as route) {
-      <app-route-summary-card [route]="route"></app-route-summary-card>
-    } @else {
-      <p>Loading route details...</p>
-    }
+    <app-brand-section
+      title="Route Summary">
+      <app-route-summary-card [route]="route" [loading]="routeLoading"></app-route-summary-card>
+    </app-brand-section>
 
     <app-brand-section
       class="mt-6 block"
@@ -65,6 +64,7 @@ import {BrandSectionComponent} from '../../../shared/components/brand-section.co
 export class RouteDetailPageComponent implements OnInit {
   route$!: Observable<RouteDto>;
   route?: RouteDto;
+  routeLoading = true;
   variants: RouteVariantDto[] = [];
   frequencies: FrequencyDto[] = [];
   commonSections: CommonSectionDto[] = [];
@@ -81,9 +81,11 @@ export class RouteDetailPageComponent implements OnInit {
   ngOnInit(): void {
     const routeId = this.activatedRoute.snapshot.paramMap.get('routeId');
     if (routeId) {
+      this.routeLoading = true;
       this.route$ = this.frequencyService.getRoute(routeId).pipe(
         tap(route => {
           this.route = route;
+          this.routeLoading = false;
         })
       );
       this.frequencyService.getVariants(routeId).subscribe(variants => {

@@ -12,7 +12,7 @@ import { RegionSelectorComponent } from '../components/region-selector.component
   standalone: true,
   imports: [RouterModule, BrandCardComponent, BrandButtonComponent, RegionSelectorComponent],
   template: `
-    <app-brand-card title="Regions" subtitle="All regions with imported feeds">
+    <app-brand-card title="Regions" subtitle="All regions with imported feeds" [loading]="isLoading">
       <app-region-selector
         [regions]="regions"
         [selectedRegionId]="selectedRegionId"
@@ -52,6 +52,7 @@ export class RegionListComponent implements OnInit {
   regions: MetropolitanRegion[] = [];
   filteredRegions: MetropolitanRegion[] = [];
   selectedRegionId: string | null = null;
+  isLoading = true;
 
   constructor(
     private readonly regionService: RegionService,
@@ -59,9 +60,11 @@ export class RegionListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.isLoading = true;
     this.regionService.listRegions().subscribe(regions => {
       this.regions = [...regions].sort((a, b) => a.name.localeCompare(b.name));
       this.filteredRegions = this.regions;
+      this.isLoading = false;
     });
   }
 

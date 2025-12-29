@@ -11,7 +11,10 @@ import { BrandButtonComponent } from '../../../shared/components/brand-button.co
   standalone: true,
   imports: [BrandCardComponent, BrandButtonComponent],
   template: `
-    <app-brand-card title="Select a Region" subtitle="Showing regions with at least one imported feed">
+    <app-brand-card
+      title="Select a Region"
+      subtitle="Showing regions with at least one imported feed"
+      [loading]="isLoading">
       <div class="regions flex flex-col gap-3" role="list">
         @for (region of regions; track region.regionOnestopId) {
           <div class="region flex items-center justify-between border-b py-2" role="listitem">
@@ -39,6 +42,7 @@ import { BrandButtonComponent } from '../../../shared/components/brand-button.co
 })
 export class RegionSelectComponent implements OnInit {
   regions: MetropolitanRegion[] = [];
+  isLoading = true;
 
   constructor(
     private readonly regionService: RegionService,
@@ -46,8 +50,10 @@ export class RegionSelectComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.isLoading = true;
     this.regionService.listRegions().subscribe(regions => {
       this.regions = regions.filter(region => region.feedCount > 0);
+      this.isLoading = false;
     });
   }
 

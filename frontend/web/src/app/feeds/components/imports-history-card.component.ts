@@ -56,13 +56,10 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
 
       <!-- Loading State -->
       @if (loading) {
-        <div
-          class="loading-container flex flex-col items-center justify-center gap-3 p-6 text-center"
-          role="status"
-          aria-live="polite"
-        >
-          <mat-spinner diameter="40"></mat-spinner>
-          <p>Loading import history...</p>
+        <div class="history-list grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          @for (placeholder of loadingPlaceholders; track $index) {
+            <app-brand-card class="history-item-card" [loading]="true"></app-brand-card>
+          }
         </div>
       }
 
@@ -149,6 +146,7 @@ export class ImportsHistoryCardComponent {
   @Input() pageSizeOptions: number[] = [10, 20, 50, 100];
   @Input() displayedColumns: string[] = ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'fileSize'];
   @Input() showHeader = true;
+  loadingPlaceholders = Array.from({ length: 6 });
 
   @Output() pageChange = new EventEmitter<number>();
 

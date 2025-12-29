@@ -7,7 +7,8 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
   standalone: true,
   template: `
     <app-brand-card
-      [title]="route.shortName && route.longName ? (route.shortName + ': ' + route.longName) : (route.longName || route.shortName || 'Route Details')"
+      [loading]="loading"
+      [title]="route?.shortName && route?.longName ? (route?.shortName + ': ' + route?.longName) : (route?.longName || route?.shortName || 'Route Details')"
     >
     </app-brand-card>
   `,
@@ -18,5 +19,6 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteSummaryCardComponent {
-  @Input({ required: true }) route!: RouteDto;
+  @Input() route?: RouteDto;
+  @Input() loading = false;
 }
