@@ -6,6 +6,7 @@ import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
@@ -18,6 +19,11 @@ import org.springframework.stereotype.Component
  * installations get populated with feed data.
  */
 @Component
+@ConditionalOnProperty(
+  name = ["feed.discovery.startup.enabled"],
+  havingValue = "true",
+  matchIfMissing = true,
+)
 class FeedDiscoveryStartup(
   private val regionRepository: MetropolitanRegionRepository,
   private val feedRepository: FeedRepository,

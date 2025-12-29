@@ -117,6 +117,11 @@ tasks.register<Test>("e2eTest") {
     useJUnitPlatform()
 }
 
+// Configure duplicate handling for e2eTest resources
+tasks.named<ProcessResources>("processE2eTestResources") {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 // Make check task depend on all test types
 tasks.named("check") {
     dependsOn("integrationTest", "e2eTest")

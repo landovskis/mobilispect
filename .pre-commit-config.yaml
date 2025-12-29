@@ -15,6 +15,7 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: ['--maxkb=1000']
+        exclude: 'backend/src/e2eTest/resources/.*\.zip$'
       - id: detect-private-key
 
   # Router hooks to delegate to project configs
