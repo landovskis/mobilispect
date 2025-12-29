@@ -1,6 +1,7 @@
 package com.mobilispect.backend.schedule.gtfs
 
 import com.mobilispect.backend.AgencyIDDataSource
+import com.mobilispect.backend.infastructure.transit_land.cache.TransitLandOnestopIdMappingRepository
 import com.mobilispect.backend.schedule.route.RouteDataSource
 import com.mobilispect.backend.schedule.route.RouteIDDataSource
 import com.mobilispect.backend.schedule.transit_land.TransitLandAPI
@@ -15,8 +16,13 @@ internal class GTFSRouteDataSourceConfiguration {
   fun routeIDDataSource(
     transitLandAPI: TransitLandAPI,
     transitLandCredentialsRepository: TransitLandCredentialsRepository,
+    mappingRepository: TransitLandOnestopIdMappingRepository,
   ): RouteIDDataSource =
-    TransitLandRouteIDDataSource(transitLandAPI, transitLandCredentialsRepository)
+    TransitLandRouteIDDataSource(
+      transitLandAPI,
+      transitLandCredentialsRepository,
+      mappingRepository,
+    )
 
   @Bean
   fun routeDataSource(

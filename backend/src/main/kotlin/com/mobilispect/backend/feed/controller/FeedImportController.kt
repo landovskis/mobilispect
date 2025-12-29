@@ -1,12 +1,12 @@
 package com.mobilispect.backend.feed.controller
 
-import com.mobilispect.backend.api.dto.ActiveImportsResponse
-import com.mobilispect.backend.api.dto.FeedImportDTO
-import com.mobilispect.backend.api.dto.FeedImportDetailDTO
-import com.mobilispect.backend.api.dto.FeedImportSummaryDTO
-import com.mobilispect.backend.api.dto.ImportProgressDTO
-import com.mobilispect.backend.api.dto.ImportsResponse
-import com.mobilispect.backend.api.dto.PageInfo
+import com.mobilispect.backend.feed.api.ActiveImportsResponse
+import com.mobilispect.backend.feed.api.FeedImportDTO
+import com.mobilispect.backend.feed.api.FeedImportDetailDTO
+import com.mobilispect.backend.feed.api.FeedImportSummaryDTO
+import com.mobilispect.backend.feed.api.ImportProgressDTO
+import com.mobilispect.backend.feed.api.ImportsResponse
+import com.mobilispect.backend.feed.api.PageInfo
 import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.domain.ImportResponse
 import com.mobilispect.backend.feed.domain.ImportStatus as ImportStatusDto
@@ -20,8 +20,8 @@ import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.service.FeedImportProgressService
 import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.feed.service.ImportHistoryService
+import java.time.Instant
 import java.util.UUID
-import org.slf4j.LoggerFactory
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
@@ -60,8 +60,6 @@ class FeedImportController(
   private val importProgressService: FeedImportProgressService,
   private val importHistoryService: ImportHistoryService,
 ) {
-  private val logger = LoggerFactory.getLogger(FeedImportController::class.java)
-
   private val activeStatuses = listOf(ImportStatus.RUNNING, ImportStatus.PENDING)
 
   // ========== Import Operations ==========
@@ -101,7 +99,6 @@ class FeedImportController(
   @GetMapping("/imports/active")
   @Transactional(readOnly = true)
   fun getActiveImports(): ActiveImportsResponse {
-    logger.info("Getting active imports")
     val imports =
       feedImportRepository.findAllByStatusIn(activeStatuses).sortedByDescending {
         it.startedAt ?: it.createdAt
@@ -118,7 +115,6 @@ class FeedImportController(
   @GetMapping("/imports/{importId}/progress")
   @Transactional(readOnly = true)
   fun getImportProgress(@PathVariable importId: String): ImportProgressDTO {
-    logger.info("Getting import progress")
     val importIdValue =
       runCatching { ImportId.fromString(importId) }
         .getOrElse {
@@ -167,7 +163,6 @@ class FeedImportController(
   @GetMapping("/imports/{importId}")
   @Transactional(readOnly = true)
   fun getImport(@PathVariable importId: String): FeedImportDetailDTO {
-    logger.info("Get import")
     val uuid = parseImportId(importId)
     val import =
       feedImportRepository.findByImportId(ImportId(uuid)).orElseThrow {
@@ -390,7 +385,7 @@ class FeedImportController(
       currentStep = currentStep,
       currentStepNumber = 0,
       totalSteps = 6,
-      startedAt = java.time.Instant.now(),
+      startedAt = Instant.now(),
       estimatedTimeRemainingSeconds = null,
       processingRate = null,
     )

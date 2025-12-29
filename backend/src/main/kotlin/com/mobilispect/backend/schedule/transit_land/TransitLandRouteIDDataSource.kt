@@ -1,21 +1,50 @@
 package com.mobilispect.backend.schedule.transit_land
 
 import com.mobilispect.backend.infastructure.transit_land.RouteResultItem
+import com.mobilispect.backend.infastructure.transit_land.cache.TransitLandEntityType
+import com.mobilispect.backend.infastructure.transit_land.cache.TransitLandOnestopIdMappingEntity
+import com.mobilispect.backend.infastructure.transit_land.cache.TransitLandOnestopIdMappingRepository
 import com.mobilispect.backend.schedule.route.RouteIDDataSource
 import com.mobilispect.backend.schedule.transit_land.api.TransitLandCredentialsRepository
 import com.mobilispect.backend.transit_land.PagingParameters
+import org.slf4j.LoggerFactory
+import org.springframework.dao.DataIntegrityViolationException
 
 /** A [RouteIDDataSource] uses transit land for route IDs. */
 internal class TransitLandRouteIDDataSource(
   private val transitLandAPI: TransitLandAPI,
   private val transitLandCredentialsRepository: TransitLandCredentialsRepository,
+  private val mappingRepository: TransitLandOnestopIdMappingRepository,
+  private val sleepMillisProvider: () -> Long = { 2000L + (Math.random() * 2000).toLong() },
+  private val sleep: (Long) -> Unit = { Thread.sleep(it) },
 ) : RouteIDDataSource {
+  private val logger = LoggerFactory.getLogger(TransitLandRouteIDDataSource::class.java)
+
   override fun routeIDs(feedID: String): Result<Map<String, String>> {
+    val cachedMappings =
+      mappingRepository.findAllByFeedOnestopIdAndEntityType(feedID, TransitLandEntityType.ROUTE)
+    if (cachedMappings.isNotEmpty()) {
+      return Result.success(cachedMappings.associate { it.gtfsId to it.onestopId })
+    }
+
     return findRouteIDs(feedID).map { routes ->
-      routes.fold(mutableMapOf()) { acc, item ->
-        acc[item.routeID] = item.id
-        acc
+      val mappings =
+        routes.map { item ->
+          TransitLandOnestopIdMappingEntity(
+            feedOnestopId = feedID,
+            entityType = TransitLandEntityType.ROUTE,
+            gtfsId = item.routeID,
+            onestopId = item.id,
+          )
+        }
+      if (mappings.isNotEmpty()) {
+        try {
+          mappingRepository.saveAll(mappings)
+        } catch (e: DataIntegrityViolationException) {
+          logger.warn("Route onestop ID mapping already exists for feed {}", feedID)
+        }
       }
+      mappings.associate { it.gtfsId to it.onestopId }
     }
   }
 
@@ -41,7 +70,7 @@ internal class TransitLandRouteIDDataSource(
       after = routeResult.after
       lastRoutes = routeResult.routes
       allRoutes += lastRoutes
-      Thread.sleep(2000 + (Math.random() * 2000).toLong())
+      sleep(sleepMillisProvider())
     } while (lastRoutes.isNotEmpty() && after != null)
     return Result.success(allRoutes)
   }

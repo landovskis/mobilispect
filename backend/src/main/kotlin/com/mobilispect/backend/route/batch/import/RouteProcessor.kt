@@ -31,19 +31,19 @@ class RouteProcessor(private val agencyRepository: AgencyRepository) :
   private val logger = LoggerFactory.getLogger(RouteProcessor::class.java)
 
   override fun process(item: RouteInput): RouteBatch {
-    val (parsedRoute, feedOnestopId) = item
+    val (parsedRoute, feedId) = item
 
     // Resolve agency onestop ID from GTFS agency ID
     val gtfsAgencyId = parsedRoute.agencyId ?: GTFSAgencyId("default-agency")
     val agency =
-      agencyRepository.findByFeedIdAndGtfsAgencyId(FeedId(feedOnestopId), gtfsAgencyId)
+      agencyRepository.findByFeedIdAndGtfsAgencyId(FeedId(feedId), gtfsAgencyId)
         ?: throw IllegalStateException(
-          "Agency not found for feed=$feedOnestopId, gtfsAgencyId=$gtfsAgencyId"
+          "Agency not found for feed=$feedId, gtfsAgencyId=$gtfsAgencyId"
         )
 
     // Use feed onestop ID as base for route ID
     // TransitLand format: route IDs from their API
-    val routeOnestopId = "r-${feedOnestopId.substringAfter("f-")}-${parsedRoute.routeId.value}"
+    val routeOnestopId = "r-${feedId.substringAfter("f-")}-${parsedRoute.routeId.value}"
 
     val route =
       Route(
