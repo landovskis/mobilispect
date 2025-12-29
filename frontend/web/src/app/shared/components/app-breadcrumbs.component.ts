@@ -1,7 +1,6 @@
 import { Component, Output, EventEmitter, ChangeDetectionStrategy, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MatIconModule } from '@angular/material/icon';
-import { RouterModule, Params, Router, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { AppBreadcrumbService, Breadcrumb } from '../services/app-breadcrumb.service';
 export type { Breadcrumb };
 import { Subject } from 'rxjs';
@@ -10,75 +9,24 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
 @Component({
   selector: 'app-toolbar-breadcrumbs',
   standalone: true,
-  imports: [CommonModule, MatIconModule, RouterModule],
+  imports: [CommonModule],
   template: `
-    <nav class="flex flex-wrap items-center gap-1.5 text-[0.85rem] text-[#0b3558] mt-0.5 max-md:text-xs">
-      @for (breadcrumb of breadcrumbs; track breadcrumb.id ?? breadcrumb.label; let first = $first; let last = $last) {
-        @if (!first) {
-          <mat-icon
-            class="breadcrumb-icon text-[18px] h-[18px] w-[18px] text-[#0b3558]"
-            aria-hidden="true"
-          >
-            chevron_right
-          </mat-icon>
-        }
-
-        @if (breadcrumb.link) {
-          <a
-            class="breadcrumb-link flex items-center text-[#0b3558] no-underline"
-            [routerLink]="breadcrumb.link"
-            [queryParams]="breadcrumb.queryParams || null"
-            [attr.aria-label]="'Go to ' + breadcrumb.label"
-            (click)="onBreadcrumbClick($event, breadcrumb)"
-          >
-            <span
-              [ngClass]="{
-                'breadcrumb-item': !last,
-                'breadcrumb-region': last,
-                'breadcrumb-active': last
-              }"
-            >
-              {{ breadcrumb.label }}
-            </span>
-          </a>
-        } @else {
-          <span
-            class="breadcrumb-item"
-            [ngClass]="{
-              'breadcrumb-region': last,
-              'breadcrumb-active': last
-            }"
-            (click)="onBreadcrumbClick($event, breadcrumb)"
-          >
-            {{ breadcrumb.label }}
-          </span>
-        }
-      }
-    </nav>
+    <div class="page-title mt-0.5 text-[#0b3558]">
+      {{ pageTitle }}
+    </div>
   `,
   styles: [`
-    .breadcrumb-item {
-      font-weight: 400;
-    }
-
-    .breadcrumb-icon {
-      color: #0b3558;
-    }
-
-    .breadcrumb-region {
-      font-weight: 500;
-      color: #0b3558;
-    }
-
-    .breadcrumb-active {
-      text-decoration: none;
+    .page-title {
+      font-size: 1.15rem;
       font-weight: 700;
+      letter-spacing: 0.01em;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
   breadcrumbs: Breadcrumb[] = [];
+  pageTitle = '';
   @Output() breadcrumbSelected = new EventEmitter<BreadcrumbSelection>();
 
   private readonly destroy$ = new Subject<void>();
@@ -109,6 +57,7 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
     this.breadcrumbs = crumbs.length
       ? crumbs
       : [{ id: 'regions', label: 'Regions', link: ['/regions/discover'] }];
+    this.pageTitle = this.breadcrumbs[this.breadcrumbs.length - 1]?.label ?? 'Regions';
     this.cdr.markForCheck();
   }
 
