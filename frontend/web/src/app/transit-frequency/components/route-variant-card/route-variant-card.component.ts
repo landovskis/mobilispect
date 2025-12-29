@@ -13,30 +13,33 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       class="variant"
       role="button"
       tabindex="0"
-      (click)="select.emit(variant.id)"
-      (keydown.enter)="$event.preventDefault(); select.emit(variant.id)"
-      (keydown.space)="$event.preventDefault(); select.emit(variant.id)">
-      <app-brand-card>
-        <div class="title flex flex-col gap-0.5">
-          <div class="variant-header flex flex-wrap items-center gap-2">
-            <span>{{ variant.headsign || 'Variant' }}</span>
-            <span class="spacing-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold">
-              {{ formatSpacing(variant) }}
-            </span>
-          </div>
-          <ul class="stop-list m-0 ml-4 list-none">
-            @for (stopName of stopNames; track stopName) {
-              <li class="stop-name">{{ stopName }}</li>
-            }
-          </ul>
-          <div class="meta flex flex-wrap items-center gap-2 text-sm">
-            @if (variant.stopSpacingClassification) {
-              <span class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold" [ngClass]="classificationClass(variant.stopSpacingClassification)">
-                {{ formatClassification(variant.stopSpacingClassification) }}
+      [class.pointer-events-none]="loading"
+      (click)="onSelect()"
+      (keydown.enter)="$event.preventDefault(); onSelect()"
+      (keydown.space)="$event.preventDefault(); onSelect()">
+      <app-brand-card [loading]="loading">
+        @if (!loading && variant) {
+          <div class="title flex flex-col gap-0.5">
+            <div class="variant-header flex flex-wrap items-center gap-2">
+              <span>{{ variant.headsign || 'Variant' }}</span>
+              <span class="spacing-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold">
+                {{ formatSpacing(variant) }}
               </span>
-            }
+            </div>
+            <ul class="stop-list m-0 ml-4 list-none">
+              @for (stopName of stopNames; track stopName) {
+                <li class="stop-name">{{ stopName }}</li>
+              }
+            </ul>
+            <div class="meta flex flex-wrap items-center gap-2 text-sm">
+              @if (variant.stopSpacingClassification) {
+                <span class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold" [ngClass]="classificationClass(variant.stopSpacingClassification)">
+                  {{ formatClassification(variant.stopSpacingClassification) }}
+                </span>
+              }
+            </div>
           </div>
-        </div>
+        }
       </app-brand-card>
     </div>
   `,
@@ -96,11 +99,15 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteVariantCardComponent {
-  @Input({ required: true }) variant!: RouteVariantDto;
+  @Input() variant?: RouteVariantDto;
   @Input() frequencies: FrequencyDto[] = [];
+  @Input() loading = false;
   @Output() select = new EventEmitter<string>();
 
   get stopNames(): string[] {
+    if (!this.variant) {
+      return [];
+    }
     if (this.variant.stopNames && this.variant.stopNames.length > 0) {
       return this.variant.stopNames.filter(Boolean);
     }
@@ -116,6 +123,11 @@ export class RouteVariantCardComponent {
 
   formatClassification(classification: 'local' | 'rapid' | 'express'): string {
     return classification.charAt(0).toUpperCase() + classification.slice(1);
+  }
+
+  onSelect(): void {
+    if (this.loading || !this.variant) return;
+    this.select.emit(this.variant.id);
   }
 
   classificationClass(classification: 'local' | 'rapid' | 'express'): string {

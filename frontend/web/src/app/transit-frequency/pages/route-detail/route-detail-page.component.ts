@@ -43,12 +43,16 @@ import {BrandSectionComponent} from '../../../shared/components/brand-section.co
         </div>
       }
       <div class="grid gap-4 md:grid-cols-2" role="list">
-        @for (variant of filteredVariants; track variant.id) {
-          <app-route-variant-card
-            [variant]="variant"
-            [frequencies]="variant.id === lastVariantId ? frequencies : []"
-            (select)="loadFrequencies($event)">
-          </app-route-variant-card>
+        @if (isVariantsLoading) {
+          <app-route-variant-card [loading]="true"></app-route-variant-card>
+        } @else {
+          @for (variant of filteredVariants; track variant.id) {
+            <app-route-variant-card
+              [variant]="variant"
+              [frequencies]="variant.id === lastVariantId ? frequencies : []"
+              (select)="loadFrequencies($event)">
+            </app-route-variant-card>
+          }
         }
       </div>
 
@@ -65,6 +69,7 @@ export class RouteDetailPageComponent implements OnInit {
   route$!: Observable<RouteDto>;
   route?: RouteDto;
   routeLoading = true;
+  variantsLoading = true;
   variants: RouteVariantDto[] = [];
   frequencies: FrequencyDto[] = [];
   commonSections: CommonSectionDto[] = [];
@@ -94,6 +99,7 @@ export class RouteDetailPageComponent implements OnInit {
           this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
         }
         this.loadFirstVariantForDirection();
+        this.variantsLoading = false;
       });
       this.commonSectionService.getCommonSectionsForRoute(routeId).subscribe(sections => {
         this.commonSections = sections;
@@ -146,6 +152,10 @@ export class RouteDetailPageComponent implements OnInit {
       return;
     }
     this.loadFrequencies(this.filteredVariants[0].id);
+  }
+
+  get isVariantsLoading(): boolean {
+    return this.routeLoading || this.variantsLoading;
   }
 
   private getMostCommonHeadsign(directionId: number | null): string | null {

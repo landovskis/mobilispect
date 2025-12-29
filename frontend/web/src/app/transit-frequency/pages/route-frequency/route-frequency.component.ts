@@ -31,12 +31,16 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
         </div>
       }
       <div class="grid gap-4 md:grid-cols-2" role="list">
-        @for (variant of filteredVariants; track variant.id) {
-          <app-route-variant-card
-            [variant]="variant"
-            [frequencies]="variant.id === lastVariantId ? frequencies : []"
-            (select)="loadFrequencies($event)">
-          </app-route-variant-card>
+        @if (isLoading) {
+          <app-route-variant-card [loading]="true"></app-route-variant-card>
+        } @else {
+          @for (variant of filteredVariants; track variant.id) {
+            <app-route-variant-card
+              [variant]="variant"
+              [frequencies]="variant.id === lastVariantId ? frequencies : []"
+              (select)="loadFrequencies($event)">
+            </app-route-variant-card>
+          }
         }
       </div>
 
