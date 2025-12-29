@@ -19,8 +19,11 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
     >
       <div class="toolbar-left flex items-center gap-3 relative">
         <img [src]="logoUrl" [alt]="appName + ' Logo'" class="h-[88px] w-auto max-w-[480px] object-contain max-md:h-[72px] max-md:max-w-[400px]" />
+      </div>
+
+      <div class="toolbar-title">
         <app-toolbar-breadcrumbs
-          class="toolbar-breadcrumbs ml-2"
+          class="toolbar-breadcrumbs"
           (breadcrumbSelected)="breadcrumbSelected.emit($event)"
         ></app-toolbar-breadcrumbs>
       </div>
@@ -35,10 +38,24 @@ import { AppBreadcrumbsComponent, Breadcrumb, BreadcrumbSelection } from './app-
       background: #ffffff !important;
       color: #0B3558 !important;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      position: relative;
+    }
+
+    .toolbar-title {
+      left: 50%;
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      pointer-events: none;
     }
 
     app-toolbar-breadcrumbs {
       color: #0B3558;
+    }
+
+    .toolbar-title app-toolbar-breadcrumbs {
+      pointer-events: auto;
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
