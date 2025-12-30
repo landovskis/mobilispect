@@ -27,19 +27,17 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
               </span>
             </div>
             <ul class="stop-list m-0 ml-4 list-none">
-              @for (stopName of stopNames; track stopName) {
+              @for (stopName of stopNames; track $index) {
                 <li class="stop-name">{{ stopName }}</li>
-              }
-            </ul>
-            @if (spacingSegments.length > 0) {
-              <ul class="spacing-list m-0 ml-4 mt-2 list-none text-sm">
-                @for (segment of spacingSegments; track segment.key) {
-                  <li class="spacing-item">
-                    {{ segment.label }}: {{ segment.meters }} m
+                @if (spacingByIndex[$index]) {
+                  <li class="spacing-inline">
+                    <span class="spacing-segment rounded-full px-2 py-0.5 text-[0.75rem] font-semibold">
+                      {{ spacingByIndex[$index] }} m
+                    </span>
                   </li>
                 }
-              </ul>
-            }
+              }
+            </ul>
             <div class="meta flex flex-wrap items-center gap-2 text-sm">
               @if (variant.stopSpacingClassification) {
                 <span class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold" [ngClass]="classificationClass(variant.stopSpacingClassification)">
@@ -80,11 +78,12 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       top: 0.45em;
       width: 8px;
     }
-    .spacing-list {
-      color: var(--mat-sys-on-surface-variant, #64748b);
+    .spacing-inline {
+      margin: 2px 0 6px;
     }
-    .spacing-item {
-      margin: 4px 0;
+    .spacing-segment {
+      background: rgba(11, 79, 138, 0.08);
+      color: var(--mat-sys-primary, #0b4f8a);
     }
     .spacing-badge {
       background: rgba(11, 79, 138, 0.12);
@@ -106,8 +105,9 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       background: rgba(59, 130, 246, 0.2);
       color: var(--mat-sys-on-surface, #e2e8f0);
     }
-    :host-context(.dark-theme) .spacing-list {
-      color: var(--mat-sys-on-surface-variant, #cbd5e1);
+    :host-context(.dark-theme) .spacing-segment {
+      background: rgba(59, 130, 246, 0.2);
+      color: var(--mat-sys-on-surface, #e2e8f0);
     }
     :host-context(.dark-theme) .classification { background: rgba(59, 130, 246, 0.2); color: #e2e8f0; }
     :host-context(.dark-theme) .classification.local { background: rgba(76, 175, 80, 0.2); color: #bbf7d0; }
@@ -147,6 +147,10 @@ export class RouteVariantCardComponent {
         meters: meters.toFixed(0)
       };
     });
+  }
+
+  get spacingByIndex(): string[] {
+    return this.variant?.stopSpacingMeters?.map(meters => meters.toFixed(0)) ?? [];
   }
 
   formatSpacing(variant: RouteVariantDto): string {
