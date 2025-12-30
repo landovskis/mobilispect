@@ -9,4 +9,5 @@ data class RouteDTO(
   val longName: String,
   val routeType: RouteType,
   val active: Boolean,
+  val variants: List<RouteVariantDTO>,
 )

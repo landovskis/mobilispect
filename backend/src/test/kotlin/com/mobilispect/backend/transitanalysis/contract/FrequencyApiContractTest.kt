@@ -48,6 +48,7 @@ class FrequencyApiContractTest {
           longName = "Route 1",
           routeType = RouteType.BUS,
           active = true,
+          variants = emptyList(),
         )
       )
 

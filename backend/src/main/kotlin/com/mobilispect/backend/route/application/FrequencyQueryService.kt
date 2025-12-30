@@ -20,6 +20,7 @@ class FrequencyQueryService(
 ) {
   fun getRoute(routeId: RouteId): RouteDTO? =
     routeRepository.findById(routeId)?.let {
+      val variants = getVariantsByRoute(routeId)
       RouteDTO(
         id = it.id.value,
         agencyId = it.agencyId.value,
@@ -27,6 +28,7 @@ class FrequencyQueryService(
         longName = it.longName,
         routeType = it.routeType,
         active = it.active,
+        variants = variants,
       )
     }
 

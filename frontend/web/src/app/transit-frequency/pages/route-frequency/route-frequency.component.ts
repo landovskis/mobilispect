@@ -87,15 +87,12 @@ export class RouteFrequencyComponent implements OnInit {
     this.updateLoading();
     this.frequencyService.getRoute(this.routeId).subscribe(route => {
       this.route = route;
-      this.routeLoaded = true;
-      this.updateLoading();
-    });
-    this.frequencyService.getVariants(this.routeId).subscribe(variants => {
-      this.variants = variants;
-      if (variants.length > 0 && this.selectedDirectionId === null) {
+      this.variants = route.variants;
+      if (this.variants.length > 0 && this.selectedDirectionId === null) {
         this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
       }
       this.loadFirstVariantForDirection();
+      this.routeLoaded = true;
       this.variantsLoaded = true;
       this.updateLoading();
     });

@@ -91,15 +91,13 @@ export class RouteDetailPageComponent implements OnInit {
         .pipe(finalize(() => (this.routeLoading = false)))
         .subscribe(route => {
           this.route = route;
+          this.variants = route.variants;
+          if (this.variants.length > 0 && this.selectedDirectionId === null) {
+            this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
+          }
+          this.loadFirstVariantForDirection();
+          this.variantsLoading = false;
         });
-      this.frequencyService.getVariants(routeId).subscribe(variants => {
-        this.variants = variants;
-        if (variants.length > 0 && this.selectedDirectionId === null) {
-          this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
-        }
-        this.loadFirstVariantForDirection();
-        this.variantsLoading = false;
-      });
       this.commonSectionService.getCommonSectionsForRoute(routeId).subscribe(sections => {
         this.commonSections = sections;
         sections.forEach(section => {

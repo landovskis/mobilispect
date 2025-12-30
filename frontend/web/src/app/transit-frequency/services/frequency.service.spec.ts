@@ -23,6 +23,7 @@ describe('FrequencyService', () => {
   it('loads route details', () => {
     service.getRoute('route-1').subscribe(route => {
       expect(route.id).toBe('route-1');
+      expect(route.variants.length).toBe(1);
     });
 
     const req = httpMock.expectOne('/api/v1/routes/route-1');
@@ -33,28 +34,20 @@ describe('FrequencyService', () => {
       shortName: '10',
       longName: 'Main St',
       routeType: 'BUS',
-      active: true
+      active: true,
+      variants: [
+        {
+          id: 'variant-1',
+          routeId: 'route-1',
+          directionId: 0,
+          headsign: 'North',
+          stopCount: 12,
+          stopPattern: 'A-B-C',
+          firstStopId: 'stop-1',
+          lastStopId: 'stop-12'
+        }
+      ]
     });
-  });
-
-  it('loads route variants', () => {
-    service.getVariants('route-2').subscribe(variants => {
-      expect(variants.length).toBe(1);
-    });
-
-    const req = httpMock.expectOne('/api/v1/routes/route-2/variants');
-    req.flush([
-      {
-        id: 'variant-1',
-        routeId: 'route-2',
-        directionId: 0,
-        headsign: 'North',
-        stopCount: 12,
-        stopPattern: 'A-B-C',
-        firstStopId: 'stop-1',
-        lastStopId: 'stop-12'
-      }
-    ]);
   });
 
   it('requests frequencies with optional date', () => {

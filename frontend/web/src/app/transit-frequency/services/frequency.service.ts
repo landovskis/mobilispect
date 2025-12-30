@@ -36,6 +36,7 @@ export interface RouteDto {
   longName: string;
   routeType: string;
   active: boolean;
+  variants: RouteVariantDto[];
 }
 
 export interface HourlyFrequencyDto {
@@ -69,10 +70,6 @@ export class FrequencyService {
 
   getRoute(routeId: string): Observable<RouteDto> {
     return this.http.get<RouteDto>(`${this.baseUrl}/${routeId}`);
-  }
-
-  getVariants(routeId: string): Observable<RouteVariantDto[]> {
-    return this.http.get<RouteVariantDto[]>(`${this.baseUrl}/${routeId}/variants`);
   }
 
   getFrequencies(variantId: string, date?: string): Observable<FrequencyDto[]> {

@@ -29,6 +29,7 @@ class RouteQueryService(
         longName = route.longName,
         routeType = route.routeType,
         active = route.active,
+        variants = emptyList(),
       )
     }
   }
