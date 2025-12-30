@@ -18,13 +18,10 @@ import { StatsBadgeComponent } from '../../../shared/components/stats-badge.comp
       (click)="onSelect()"
       (keydown.enter)="$event.preventDefault(); onSelect()"
       (keydown.space)="$event.preventDefault(); onSelect()">
-      <app-brand-card [loading]="loading">
+      <app-brand-card [loading]="loading"
+        title="{{ stopRangeLabel }}">
         @if (!loading && variant) {
           <div class="title flex flex-col gap-0.5">
-            <div class="variant-header flex flex-wrap items-center gap-2">
-              <span>{{ variant.headsign || 'Variant' }}</span>
-            </div>
-
             <app-stats-badge
               title="Avg spacing"
               [number]="averageSpacingMeters"
@@ -127,6 +124,17 @@ export class RouteVariantCardComponent {
       return this.variant.stopNames.filter(Boolean);
     }
     return this.variant.stopPattern.split('|').filter(Boolean);
+  }
+
+  get stopRangeLabel(): string {
+    const names = this.stopNames;
+    if (names.length === 0) {
+      return this.variant?.headsign || 'Variant';
+    }
+    if (names.length === 1) {
+      return names[0];
+    }
+    return `${names[0]} → ${names[names.length - 1]}`;
   }
 
   get spacingByIndex(): string[] {
