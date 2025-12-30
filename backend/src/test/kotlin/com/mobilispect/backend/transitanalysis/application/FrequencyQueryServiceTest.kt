@@ -43,7 +43,7 @@ class FrequencyQueryServiceTest {
       RouteVariant(
         id = VariantHash("a".repeat(64)),
         routeId = route.id,
-        stopPattern = "s1|s2",
+        stops = listOf("s1", "s2"),
         stopCount = 2,
         firstStopId = "s1",
         lastStopId = "s2",
@@ -78,7 +78,7 @@ class FrequencyQueryServiceTest {
       RouteVariant(
         id = VariantHash("c".repeat(64)),
         routeId = route.id,
-        stopPattern = "s1|s2",
+        stops = listOf("s1", "s2"),
         stopCount = 2,
         firstStopId = "s1",
         lastStopId = "s2",

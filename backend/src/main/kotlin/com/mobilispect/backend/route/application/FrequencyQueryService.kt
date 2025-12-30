@@ -1,6 +1,5 @@
 package com.mobilispect.backend.route.application
 
-import com.mobilispect.backend.config.RedisConfiguration
 import com.mobilispect.backend.route.api.dto.FrequencyDTO
 import com.mobilispect.backend.route.api.dto.RouteDTO
 import com.mobilispect.backend.route.api.dto.RouteVariantDTO
@@ -10,22 +9,15 @@ import com.mobilispect.backend.route.domain.repository.FrequencyRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import java.time.LocalDate
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 
-/**
- * Query service for frequency-related operations with Redis caching (T123).
- *
- * All query methods are cached with 1-hour TTL to improve performance. Cache is invalidated when
- * feed imports complete (T124).
- */
+/** Query service for frequency-related operations. */
 @Service
 class FrequencyQueryService(
   private val routeRepository: RouteRepository,
   private val routeVariantRepository: RouteVariantRepository,
   private val frequencyRepository: FrequencyRepository,
 ) {
-  @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'route_' + #routeId")
   fun getRoute(routeId: RouteId): RouteDTO? =
     routeRepository.findById(routeId)?.let {
       RouteDTO(
@@ -38,7 +30,6 @@ class FrequencyQueryService(
       )
     }
 
-  @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'variants_' + #routeId")
   fun getVariantsByRoute(routeId: RouteId): List<RouteVariantDTO> =
     routeVariantRepository.findByRouteId(routeId).map {
       RouteVariantDTO(
@@ -48,21 +39,17 @@ class FrequencyQueryService(
         headsign = it.headsign,
         stopCount = it.stopCount,
         stopPattern = it.stopPattern,
-        stopNames = extractStopNames(it.stopNamePattern, it.stopPattern),
+        stopNames = extractStopNames(it.stopNamePattern, it.stops),
         firstStopId = it.firstStopId,
         lastStopId = it.lastStopId,
       )
     }
 
-  private fun extractStopNames(stopNamePattern: String?, stopPattern: String): List<String> {
-    val pattern = stopNamePattern?.takeIf { it.isNotBlank() } ?: stopPattern
-    return pattern.split("|").filter { it.isNotBlank() }
+  private fun extractStopNames(stopNamePattern: String?, stops: List<String>): List<String> {
+    val pattern = stopNamePattern?.takeIf { it.isNotBlank() }
+    return pattern?.split("|")?.filter { it.isNotBlank() } ?: stops
   }
 
-  @Cacheable(
-    value = [RedisConfiguration.FREQUENCY_CACHE],
-    key = "'freq_' + #variantHash + '_' + (#serviceDate != null ? #serviceDate : 'all')",
-  )
   fun getFrequenciesForVariant(
     variantHash: VariantHash,
     serviceDate: LocalDate?,

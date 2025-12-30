@@ -48,7 +48,7 @@ class CommonSectionServiceTest {
       RouteVariant(
         id = VariantHash("d".repeat(64)),
         routeId = route.id,
-        stopPattern = "s1|s2|s3",
+        stops = listOf("s1", "s2", "s3"),
         stopCount = 3,
         firstStopId = "s1",
         lastStopId = "s3",
@@ -99,7 +99,7 @@ class CommonSectionServiceTest {
       RouteVariant(
         id = VariantHash("e".repeat(64)),
         routeId = RouteId("r-2"),
-        stopPattern = "s1|s2|s3",
+        stops = listOf("s1", "s2", "s3"),
         stopCount = 3,
         firstStopId = "s1",
         lastStopId = "s3",

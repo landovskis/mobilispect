@@ -30,9 +30,9 @@ class CommonSectionDetectionServiceImpl : CommonSectionDetectionService {
     val sectionVariants = mutableListOf<CommonSectionVariant>()
 
     variants.forEachIndexed { index, a ->
-      val stopsA = a.stopPattern.split("|")
+      val stopsA = a.stops
       variants.drop(index + 1).forEach { b ->
-        val stopsB = b.stopPattern.split("|")
+        val stopsB = b.stops
         val common = longestCommonSubsequence(stopsA, stopsB).filter { it.size >= 3 }
         common.forEach { seq ->
           val startA = stopsA.indexOf(seq.first())

@@ -24,7 +24,7 @@ class RouteVariantMapper {
       routeId = RouteId(entity.route.id),
       directionId = entity.directionId,
       headsign = entity.headsign,
-      stopPattern = entity.stopPattern,
+      stops = splitStopPattern(entity.stopPattern),
       stopNamePattern = entity.stopNamePattern,
       stopCount = entity.stopCount,
       firstStopId = entity.firstStopId,
@@ -60,4 +60,7 @@ class RouteVariantMapper {
       createdAt = domain.createdAt,
       updatedAt = domain.updatedAt,
     )
+
+  private fun splitStopPattern(stopPattern: String): List<String> =
+    stopPattern.split("|").filter { it.isNotBlank() }
 }

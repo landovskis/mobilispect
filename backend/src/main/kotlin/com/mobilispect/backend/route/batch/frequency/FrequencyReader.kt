@@ -55,7 +55,7 @@ class FrequencyReader(private val routeVariantRepository: RouteVariantRepository
     val variantMap =
       persistedVariants
         .associateWith { variant ->
-          data.trips.filter { trip -> matchesTripPattern(trip, variant.stopPattern) }
+          data.trips.filter { trip -> matchesTripPattern(trip, variant.stops) }
         }
         .filterValues { it.isNotEmpty() } // Only include variants with trips
 
@@ -83,9 +83,8 @@ class FrequencyReader(private val routeVariantRepository: RouteVariantRepository
    *
    * Reconstructs trip's stop pattern from stop times and compares with variant's pattern.
    */
-  private fun matchesTripPattern(trip: GTFSTrip, stopPattern: String): Boolean {
-    val tripPattern =
-      trip.stopTimes.sortedBy { it.stopSequence }.joinToString("|") { it.stopId.value }
-    return tripPattern == stopPattern
+  private fun matchesTripPattern(trip: GTFSTrip, variantStops: List<String>): Boolean {
+    val tripPattern = trip.stopTimes.sortedBy { it.stopSequence }.map { it.stopId.value }
+    return tripPattern == variantStops
   }
 }

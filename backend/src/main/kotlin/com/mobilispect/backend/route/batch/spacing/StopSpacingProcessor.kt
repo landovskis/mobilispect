@@ -62,8 +62,8 @@ class StopSpacingProcessor : ItemProcessor<StopSpacingInput, StopSpacingBatch> {
     variant: com.mobilispect.backend.route.domain.model.RouteVariant,
     stopsById: Map<String, GTFSStop>,
   ): List<StopSpacing> {
-    // Extract stop IDs from stop pattern
-    val stopIds = variant.stopPattern.split("|")
+    // Extract stop IDs from stored list
+    val stopIds = variant.stops
 
     if (stopIds.size < 2) {
       logger.debug("Variant {} has insufficient stops ({} stops)", variant.id.value, stopIds.size)
