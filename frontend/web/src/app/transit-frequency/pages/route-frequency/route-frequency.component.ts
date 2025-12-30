@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, RouteDto, RouteVariantDto, FrequencyDto } from '../../services/frequency.service';
@@ -6,6 +6,7 @@ import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '..
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-route-frequency',
@@ -69,7 +70,8 @@ export class RouteFrequencyComponent implements OnInit {
   constructor(
     private readonly routeParams: ActivatedRoute,
     private readonly frequencyService: FrequencyService,
-    private readonly commonSectionService: CommonSectionService
+    private readonly commonSectionService: CommonSectionService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -85,26 +87,36 @@ export class RouteFrequencyComponent implements OnInit {
     this.variantsLoaded = false;
     this.sectionsLoaded = false;
     this.updateLoading();
-    this.frequencyService.getRoute(this.routeId).subscribe(route => {
-      this.route = route;
-      this.variants = route.variants;
-      if (this.variants.length > 0 && this.selectedDirectionId === null) {
-        this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
-      }
-      this.loadFirstVariantForDirection();
-      this.routeLoaded = true;
-      this.variantsLoaded = true;
-      this.updateLoading();
-    });
+    this.frequencyService
+      .getRoute(this.routeId)
+      .pipe(
+        finalize(() => {
+          this.routeLoaded = true;
+          this.variantsLoaded = true;
+          this.updateLoading();
+          this.cdr.markForCheck();
+        })
+      )
+      .subscribe(route => {
+        this.route = route;
+        this.variants = route.variants ?? [];
+        if (this.variants.length > 0 && this.selectedDirectionId === null) {
+          this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
+        }
+        this.loadFirstVariantForDirection();
+        this.cdr.markForCheck();
+      });
     this.commonSectionService.getCommonSectionsForRoute(this.routeId).subscribe(sections => {
       this.commonSections = sections;
       sections.forEach(section => {
         this.commonSectionService.getCombinedFrequency(section.id, 'WEEKDAY_AM_PEAK').subscribe(freq => {
           if (freq) this.combinedBySection[section.id] = freq;
+          this.cdr.markForCheck();
         });
       });
       this.sectionsLoaded = true;
       this.updateLoading();
+      this.cdr.markForCheck();
     });
   }
 

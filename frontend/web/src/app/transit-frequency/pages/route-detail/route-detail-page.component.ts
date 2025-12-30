@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto } from '../../services/frequency.service';
@@ -79,7 +79,8 @@ export class RouteDetailPageComponent implements OnInit {
   constructor(
     private readonly activatedRoute: ActivatedRoute,
     private readonly frequencyService: FrequencyService,
-    private readonly commonSectionService: CommonSectionService
+    private readonly commonSectionService: CommonSectionService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -88,23 +89,31 @@ export class RouteDetailPageComponent implements OnInit {
       this.routeLoading = true;
       this.frequencyService
         .getRoute(routeId)
-        .pipe(finalize(() => (this.routeLoading = false)))
+        .pipe(
+          finalize(() => {
+            this.routeLoading = false;
+            this.variantsLoading = false;
+            this.cdr.markForCheck();
+          })
+        )
         .subscribe(route => {
           this.route = route;
-          this.variants = route.variants;
+          this.variants = route.variants ?? [];
           if (this.variants.length > 0 && this.selectedDirectionId === null) {
             this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
           }
           this.loadFirstVariantForDirection();
-          this.variantsLoading = false;
+          this.cdr.markForCheck();
         });
       this.commonSectionService.getCommonSectionsForRoute(routeId).subscribe(sections => {
         this.commonSections = sections;
         sections.forEach(section => {
           this.commonSectionService.getCombinedFrequency(section.id, 'WEEKDAY_AM_PEAK').subscribe(freq => {
             if (freq) this.combinedBySection[section.id] = freq;
+            this.cdr.markForCheck();
           });
         });
+        this.cdr.markForCheck();
       });
     }
   }
