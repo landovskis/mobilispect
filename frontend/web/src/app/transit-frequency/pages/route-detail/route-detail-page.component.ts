@@ -19,13 +19,14 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
     CommonSectionDisplayComponent,
     BrandTabsComponent,
     BrandSectionComponent,
-    BrandCardComponent
+    BrandCardComponent,
   ],
   template: `
     <app-brand-section title="Summary">
       <app-brand-card
         [loading]="routeLoading"
-        [title]="route?.shortName && route?.longName ? (route?.shortName + ': ' + route?.longName) : (route?.longName || route?.shortName || 'Route Details')">
+        [title]="route?.shortName && route?.longName ? (route?.shortName + ': ' + route?.longName) : (route?.longName || route?.shortName || 'Route Details')"
+        [badge]="routeClassificationLabel">
       </app-brand-card>
     </app-brand-section>
 
@@ -146,6 +147,64 @@ export class RouteDetailPageComponent implements OnInit {
 
   get directionTabLabels(): string[] {
     return this.directionTabs.map(tab => tab.label);
+  }
+
+  get routeClassificationLabel(): string | undefined {
+    const variants = this.route?.variants ?? [];
+    const classified = variants
+      .map(variant => variant.stopSpacingClassification)
+      .filter((value): value is NonNullable<RouteVariantDto['stopSpacingClassification']> =>
+        value !== null && value !== undefined
+      );
+    if (classified.length > 0) {
+      const counts = new Map<NonNullable<RouteVariantDto['stopSpacingClassification']>, number>();
+      classified.forEach(value => counts.set(value, (counts.get(value) ?? 0) + 1));
+      const [top] = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+      return top ? this.formatClassificationLabel(top[0]) : undefined;
+    }
+    const averages = variants
+      .map(variant => variant.averageStopSpacingMeters)
+      .filter((value): value is number => value !== null && value !== undefined);
+    if (averages.length === 0) {
+      return undefined;
+    }
+    const averageMeters = averages.reduce((sum, value) => sum + value, 0) / averages.length;
+    const classification = this.classifyStopSpacingMeters(averageMeters);
+    return classification ? this.formatClassificationLabel(classification) : undefined;
+  }
+
+  private classifyStopSpacingMeters(
+    averageStopSpacingMeters: number
+  ): NonNullable<RouteVariantDto['stopSpacingClassification']> | null {
+    if (averageStopSpacingMeters >= 300 && averageStopSpacingMeters <= 700) {
+      return 'local';
+    }
+    if (averageStopSpacingMeters >= 700 && averageStopSpacingMeters <= 1500) {
+      return 'rapid';
+    }
+    if (averageStopSpacingMeters >= 1500 && averageStopSpacingMeters <= 3000) {
+      return 'region-local';
+    }
+    if (averageStopSpacingMeters >= 3000 && averageStopSpacingMeters <= 10000) {
+      return 'region-rapid';
+    }
+    if (averageStopSpacingMeters >= 10000 && averageStopSpacingMeters <= 15000) {
+      return 'region-express';
+    }
+    return null;
+  }
+
+  private formatClassificationLabel(classification: string): string {
+    switch (classification) {
+      case 'region-local':
+        return 'Region Local';
+      case 'region-rapid':
+        return 'Region Rapid';
+      case 'region-express':
+        return 'Region Express';
+      default:
+        return classification.charAt(0).toUpperCase() + classification.slice(1);
+    }
   }
 
   selectDirection(directionId: number | null): void {

@@ -90,6 +90,9 @@ import { StatsBadgeComponent } from '../../../shared/components/stats-badge.comp
     .classification { background: rgba(11, 79, 138, 0.12); color: #0b4f8a; }
     .classification.local { background: rgba(76, 175, 80, 0.15); color: #2e7d32; }
     .classification.rapid { background: rgba(255, 152, 0, 0.15); color: #ef6c00; }
+    .classification.region-local { background: rgba(14, 165, 233, 0.15); color: #0369a1; }
+    .classification.region-rapid { background: rgba(37, 99, 235, 0.18); color: #1e3a8a; }
+    .classification.region-express { background: rgba(147, 51, 234, 0.18); color: #6b21a8; }
     .classification.express { background: rgba(244, 67, 54, 0.15); color: #c62828; }
     :host-context(.dark-theme) .variant {
       border-bottom-color: rgba(148, 163, 184, 0.3);
@@ -106,6 +109,9 @@ import { StatsBadgeComponent } from '../../../shared/components/stats-badge.comp
     :host-context(.dark-theme) .classification { background: rgba(59, 130, 246, 0.2); color: #e2e8f0; }
     :host-context(.dark-theme) .classification.local { background: rgba(76, 175, 80, 0.2); color: #bbf7d0; }
     :host-context(.dark-theme) .classification.rapid { background: rgba(255, 152, 0, 0.2); color: #fed7aa; }
+    :host-context(.dark-theme) .classification.region-local { background: rgba(56, 189, 248, 0.25); color: #bae6fd; }
+    :host-context(.dark-theme) .classification.region-rapid { background: rgba(96, 165, 250, 0.25); color: #bfdbfe; }
+    :host-context(.dark-theme) .classification.region-express { background: rgba(192, 132, 252, 0.25); color: #e9d5ff; }
     :host-context(.dark-theme) .classification.express { background: rgba(244, 67, 54, 0.2); color: #fecaca; }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -138,7 +144,7 @@ export class RouteVariantCardComponent {
   }
 
   get spacingByIndex(): string[] {
-    return this.variant?.stopSpacingMeters?.map(meters => meters.toFixed(0)) ?? [];
+    return this.variant?.stopSpacingMeters?.map((meters: number) => meters.toFixed(0)) ?? [];
   }
 
   get averageSpacingMeters(): string {
@@ -153,11 +159,36 @@ export class RouteVariantCardComponent {
     this.select.emit(this.variant.id);
   }
 
-  formatClassification(classification: 'local' | 'rapid' | 'express'): string {
-    return classification.charAt(0).toUpperCase() + classification.slice(1);
+  formatClassification(
+    classification:
+      | 'local'
+      | 'rapid'
+      | 'region-local'
+      | 'region-rapid'
+      | 'region-express'
+      | 'express'
+  ): string {
+    switch (classification) {
+      case 'region-local':
+        return 'Region Local';
+      case 'region-rapid':
+        return 'Region Rapid';
+      case 'region-express':
+        return 'Region Express';
+      default:
+        return classification.charAt(0).toUpperCase() + classification.slice(1);
+    }
   }
 
-  classificationClass(classification: 'local' | 'rapid' | 'express'): string {
+  classificationClass(
+    classification:
+      | 'local'
+      | 'rapid'
+      | 'region-local'
+      | 'region-rapid'
+      | 'region-express'
+      | 'express'
+  ): string {
     return classification;
   }
 }
