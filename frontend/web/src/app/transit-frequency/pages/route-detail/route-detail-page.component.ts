@@ -5,9 +5,10 @@ import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto } from '../..
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
 import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
-import { RouteSummaryCardComponent } from '../../components/route-summary-card/route-summary-card.component';
+import { BrandTabsComponent } from '../../../shared/components/brand-tabs.component';
 import { finalize } from 'rxjs';
-import {BrandSectionComponent} from '../../../shared/components/brand-section.component';
+import { BrandSectionComponent } from '../../../shared/components/brand-section.component';
+import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 
 @Component({
   selector: 'app-route-detail-page',
@@ -16,31 +17,28 @@ import {BrandSectionComponent} from '../../../shared/components/brand-section.co
     CommonModule,
     RouteVariantCardComponent,
     CommonSectionDisplayComponent,
-    RouteSummaryCardComponent,
-    BrandSectionComponent
+    BrandTabsComponent,
+    BrandSectionComponent,
+    BrandCardComponent
   ],
   template: `
-    <app-brand-section
-      title="Route Summary">
-      <app-route-summary-card [route]="route" [loading]="routeLoading"></app-route-summary-card>
+    <app-brand-section title="Summary">
+      <app-brand-card
+        [loading]="routeLoading"
+        [title]="route?.shortName && route?.longName ? (route?.shortName + ': ' + route?.longName) : (route?.longName || route?.shortName || 'Route Details')">
+      </app-brand-card>
     </app-brand-section>
 
     <app-brand-section
       class="mt-6 block"
       title="Variants">
       @if (directionTabs.length > 1) {
-        <div class="mb-4 flex flex-wrap gap-2">
-          @for (tab of directionTabs; track tab.key) {
-            <button
-              type="button"
-              class="rounded-full border px-3 py-1 text-sm font-semibold"
-              [class.border-[var(--mat-sys-primary,#0b4f8a)]]="tab.id === selectedDirectionId"
-              [class.text-[var(--mat-sys-primary,#0b4f8a)]]="tab.id === selectedDirectionId"
-              (click)="selectDirection(tab.id)">
-              {{ tab.label }}
-            </button>
-          }
-        </div>
+        <app-brand-tabs
+          class="mb-4 block"
+          [tabs]="directionTabLabels"
+          [selectedIndex]="selectedDirectionIndex"
+          (selectedIndexChange)="selectDirectionByIndex($event)">
+        </app-brand-tabs>
       }
       <div class="grid gap-4 md:grid-cols-2" role="list">
         @if (isVariantsLoading) {
@@ -146,10 +144,27 @@ export class RouteDetailPageComponent implements OnInit {
     return this.variants.filter(variant => variant.directionId === this.selectedDirectionId);
   }
 
+  get directionTabLabels(): string[] {
+    return this.directionTabs.map(tab => tab.label);
+  }
+
   selectDirection(directionId: number | null): void {
     if (this.selectedDirectionId === directionId) return;
     this.selectedDirectionId = directionId;
     this.loadFirstVariantForDirection();
+    this.cdr.markForCheck();
+  }
+
+  get selectedDirectionIndex(): number {
+    const tabs = this.directionTabs;
+    const matchIndex = tabs.findIndex(tab => tab.id === this.selectedDirectionId);
+    return matchIndex >= 0 ? matchIndex : 0;
+  }
+
+  selectDirectionByIndex(index: number): void {
+    const tab = this.directionTabs[index];
+    if (!tab) return;
+    this.selectDirection(tab.id);
   }
 
   private loadFirstVariantForDirection(): void {
