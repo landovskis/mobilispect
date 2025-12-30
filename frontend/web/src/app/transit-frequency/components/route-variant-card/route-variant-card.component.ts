@@ -3,11 +3,12 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
 
 import { FrequencyDto, RouteVariantDto } from '../../services/frequency.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
+import { StatsBadgeComponent } from '../../../shared/components/stats-badge.component';
 
 @Component({
   selector: 'app-route-variant-card',
   standalone: true,
-  imports: [CommonModule, BrandCardComponent],
+  imports: [CommonModule, BrandCardComponent, StatsBadgeComponent],
   template: `
     <div
       class="variant"
@@ -22,10 +23,14 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
           <div class="title flex flex-col gap-0.5">
             <div class="variant-header flex flex-wrap items-center gap-2">
               <span>{{ variant.headsign || 'Variant' }}</span>
-              <span class="spacing-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold">
-                {{ formatSpacing(variant) }}
-              </span>
             </div>
+
+            <app-stats-badge
+              title="Avg spacing"
+              [number]="averageSpacingMeters"
+              unit="m">
+            </app-stats-badge>
+
             <ul class="stop-list m-0 ml-4 list-none">
               @for (stopName of stopNames; track $index) {
                 <li class="stop-name">{{ stopName }}</li>
@@ -85,10 +90,6 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       background: rgba(11, 79, 138, 0.08);
       color: var(--mat-sys-primary, #0b4f8a);
     }
-    .spacing-badge {
-      background: rgba(11, 79, 138, 0.12);
-      color: var(--mat-sys-primary, #0b4f8a);
-    }
     .classification { background: rgba(11, 79, 138, 0.12); color: #0b4f8a; }
     .classification.local { background: rgba(76, 175, 80, 0.15); color: #2e7d32; }
     .classification.rapid { background: rgba(255, 152, 0, 0.15); color: #ef6c00; }
@@ -100,10 +101,6 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
     :host-context(.dark-theme) .stop-list {
       border-left-color: var(--mat-sys-primary, #0b4f8a);
       color: var(--mat-sys-on-surface-variant, #cbd5e1);
-    }
-    :host-context(.dark-theme) .spacing-badge {
-      background: rgba(59, 130, 246, 0.2);
-      color: var(--mat-sys-on-surface, #e2e8f0);
     }
     :host-context(.dark-theme) .spacing-segment {
       background: rgba(59, 130, 246, 0.2);
@@ -132,32 +129,15 @@ export class RouteVariantCardComponent {
     return this.variant.stopPattern.split('|').filter(Boolean);
   }
 
-  get spacingSegments(): { key: string; label: string; meters: string }[] {
-    if (!this.variant || !this.variant.stopSpacingMeters?.length) {
-      return [];
-    }
-    const names = this.stopNames;
-    const spacings = this.variant.stopSpacingMeters;
-    return spacings.map((meters, index) => {
-      const from = names[index] ?? `Stop ${index + 1}`;
-      const to = names[index + 1] ?? `Stop ${index + 2}`;
-      return {
-        key: `${index}-${from}-${to}`,
-        label: `${from} → ${to}`,
-        meters: meters.toFixed(0)
-      };
-    });
-  }
-
   get spacingByIndex(): string[] {
     return this.variant?.stopSpacingMeters?.map(meters => meters.toFixed(0)) ?? [];
   }
 
-  formatSpacing(variant: RouteVariantDto): string {
-    if (variant.averageStopSpacingMeters === null || variant.averageStopSpacingMeters === undefined) {
-      return 'Avg spacing: Not available';
+  get averageSpacingMeters(): string {
+    if (!this.variant || this.variant.averageStopSpacingMeters === null || this.variant.averageStopSpacingMeters === undefined) {
+      return '—';
     }
-    return `Avg spacing: ${variant.averageStopSpacingMeters.toFixed(0)} m`;
+    return this.variant.averageStopSpacingMeters.toFixed(0);
   }
 
   onSelect(): void {
