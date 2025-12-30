@@ -6,7 +6,7 @@ import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '..
 import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
 import { RouteSummaryCardComponent } from '../../components/route-summary-card/route-summary-card.component';
-import { Observable, tap } from 'rxjs';
+import { finalize } from 'rxjs';
 import {BrandSectionComponent} from '../../../shared/components/brand-section.component';
 
 @Component({
@@ -66,7 +66,6 @@ import {BrandSectionComponent} from '../../../shared/components/brand-section.co
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteDetailPageComponent implements OnInit {
-  route$!: Observable<RouteDto>;
   route?: RouteDto;
   routeLoading = true;
   variantsLoading = true;
@@ -87,12 +86,12 @@ export class RouteDetailPageComponent implements OnInit {
     const routeId = this.activatedRoute.snapshot.paramMap.get('routeId');
     if (routeId) {
       this.routeLoading = true;
-      this.route$ = this.frequencyService.getRoute(routeId).pipe(
-        tap(route => {
+      this.frequencyService
+        .getRoute(routeId)
+        .pipe(finalize(() => (this.routeLoading = false)))
+        .subscribe(route => {
           this.route = route;
-          this.routeLoading = false;
-        })
-      );
+        });
       this.frequencyService.getVariants(routeId).subscribe(variants => {
         this.variants = variants;
         if (variants.length > 0 && this.selectedDirectionId === null) {
