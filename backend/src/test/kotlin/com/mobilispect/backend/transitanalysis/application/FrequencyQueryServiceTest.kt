@@ -2,31 +2,37 @@ package com.mobilispect.backend.transitanalysis.application
 
 import com.mobilispect.backend.feed.api.ids.GTFSRouteId
 import com.mobilispect.backend.route.application.FrequencyQueryService
-import com.mobilispect.backend.route.domain.model.Frequency
 import com.mobilispect.backend.route.domain.model.Route
+import com.mobilispect.backend.route.domain.model.RouteHourlyStat
 import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.route.domain.model.RouteVariant
-import com.mobilispect.backend.route.domain.model.TimePeriod
+import com.mobilispect.backend.route.domain.model.ServiceDayType
 import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
-import com.mobilispect.backend.route.domain.repository.FrequencyRepository
+import com.mobilispect.backend.route.domain.repository.RouteHourlyStatRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.domain.repository.StopSpacingRepository
 import java.time.Instant
 import java.time.LocalDate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.Pageable
 
 class FrequencyQueryServiceTest {
   private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
   private val variantRepository: RouteVariantRepository = mock(RouteVariantRepository::class.java)
-  private val frequencyRepository: FrequencyRepository = mock(FrequencyRepository::class.java)
+  private val stopSpacingRepository: StopSpacingRepository = mock(StopSpacingRepository::class.java)
+  private val routeHourlyStatRepository: RouteHourlyStatRepository =
+    mock(RouteHourlyStatRepository::class.java)
   private val service =
-    FrequencyQueryService(routeRepository, variantRepository, frequencyRepository)
+    FrequencyQueryService(
+      routeRepository,
+      variantRepository,
+      stopSpacingRepository,
+      routeHourlyStatRepository,
+    )
 
   @Test
   fun `getVariantsByRoute maps variants`() {
@@ -49,6 +55,8 @@ class FrequencyQueryServiceTest {
         lastStopId = "s2",
       )
     `when`(variantRepository.findByRouteId(RouteId("r-1"))).thenReturn(listOf(variant))
+    `when`(stopSpacingRepository.findByVariantOrderBySequence(variant.id.value))
+      .thenReturn(emptyList())
     val result = service.getVariantsByRoute(RouteId("r-1"))
     assertThat(result).hasSize(1)
     assertThat(result.first().id).isEqualTo("a".repeat(64))
@@ -56,15 +64,7 @@ class FrequencyQueryServiceTest {
   }
 
   @Test
-  fun `getFrequenciesForVariant returns empty when variant missing`() {
-    `when`(frequencyRepository.findByVariant("b".repeat(64), Pageable.unpaged()))
-      .thenReturn(PageImpl(emptyList()))
-    val result = service.getFrequenciesForVariant(VariantHash("b".repeat(64)), null)
-    assertThat(result).isEmpty()
-  }
-
-  @Test
-  fun `getFrequenciesForVariant maps frequencies`() {
+  fun `getRoute includes hourly stats when available`() {
     val route =
       Route(
         id = RouteId("r-1"),
@@ -74,32 +74,33 @@ class FrequencyQueryServiceTest {
         routeType = RouteType.BUS,
         active = true,
       )
-    val variant =
-      RouteVariant(
-        id = VariantHash("c".repeat(64)),
-        routeId = route.id,
-        stops = listOf("s1", "s2"),
-        stopCount = 2,
-        firstStopId = "s1",
-        lastStopId = "s2",
-      )
-    val freq =
-      Frequency(
-        variantId = variant.id.value,
+    val stat =
+      RouteHourlyStat(
+        routeId = route.id.value,
+        dayType = ServiceDayType.WEEKDAY,
         serviceDate = LocalDate.of(2025, 1, 1),
-        timePeriod = TimePeriod.WEEKDAY_AM_PEAK,
-        averageHeadway = 10.0,
-        minHeadway = 10.0,
-        maxHeadway = 10.0,
-        tripCount = 3,
-        isIrregular = false,
+        hourOfDay = 9,
+        tripCount = 4,
+        averageSpeedKph = 22.5,
         calculatedAt = Instant.now(),
         createdAt = Instant.now(),
       )
-    `when`(frequencyRepository.findByVariant(variant.id.value, Pageable.unpaged()))
-      .thenReturn(PageImpl(listOf(freq)))
-    val result = service.getFrequenciesForVariant(VariantHash("c".repeat(64)), null)
-    assertThat(result).hasSize(1)
-    assertThat(result.first().timePeriod).isEqualTo(TimePeriod.WEEKDAY_AM_PEAK)
+    `when`(routeRepository.findById(route.id)).thenReturn(route)
+    `when`(variantRepository.findByRouteId(route.id)).thenReturn(emptyList())
+    `when`(routeHourlyStatRepository.findLatestServiceDate(route.id.value))
+      .thenReturn(stat.serviceDate)
+    `when`(
+        routeHourlyStatRepository
+          .findByRouteIdAndServiceDateOrderByDayTypeAscDirectionIdAscHourOfDayAsc(
+            route.id.value,
+            stat.serviceDate,
+          )
+      )
+      .thenReturn(listOf(stat))
+
+    val result = service.getRoute(route.id)
+
+    assertThat(result?.hourlyStats).hasSize(1)
+    assertThat(result?.hourlyStats?.first()?.averageSpeedKph).isEqualTo(22.5)
   }
 }

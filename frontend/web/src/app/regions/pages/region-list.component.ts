@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
 import { Router, RouterModule } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
@@ -56,15 +56,23 @@ export class RegionListComponent implements OnInit {
 
   constructor(
     private readonly regionService: RegionService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     this.isLoading = true;
-    this.regionService.listRegions().subscribe(regions => {
-      this.regions = [...regions].sort((a, b) => a.name.localeCompare(b.name));
-      this.filteredRegions = this.regions;
-      this.isLoading = false;
+    this.regionService.listRegions().subscribe({
+      next: regions => {
+        this.regions = [...regions].sort((a, b) => a.name.localeCompare(b.name));
+        this.filteredRegions = this.regions;
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -75,10 +83,12 @@ export class RegionListComponent implements OnInit {
   onRegionChange(regionId: string): void {
     this.selectedRegionId = regionId;
     this.filteredRegions = this.regions.filter(r => r.regionOnestopId === regionId);
+    this.cdr.markForCheck();
   }
 
   clearSelection(): void {
     this.selectedRegionId = null;
     this.filteredRegions = this.regions;
+    this.cdr.markForCheck();
   }
 }

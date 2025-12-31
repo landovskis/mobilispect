@@ -30,6 +30,7 @@ class RouteQueryService(
         routeType = route.routeType,
         active = route.active,
         variants = emptyList(),
+        hourlyStats = emptyList(),
       )
     }
   }

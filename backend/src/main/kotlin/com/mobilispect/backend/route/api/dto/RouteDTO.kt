@@ -10,4 +10,5 @@ data class RouteDTO(
   val routeType: RouteType,
   val active: Boolean,
   val variants: List<RouteVariantDTO>,
+  val hourlyStats: List<RouteHourlyStatsDTO>,
 )

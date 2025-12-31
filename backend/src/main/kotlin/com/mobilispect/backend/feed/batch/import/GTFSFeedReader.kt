@@ -2,6 +2,8 @@ package com.mobilispect.backend.feed.batch.import
 
 import com.conveyal.gtfs.GTFSFeed
 import com.mobilispect.backend.feed.api.GTFSAgency
+import com.mobilispect.backend.feed.api.GTFSCalendar
+import com.mobilispect.backend.feed.api.GTFSCalendarDate
 import com.mobilispect.backend.feed.api.GTFSData
 import com.mobilispect.backend.feed.api.GTFSRoute
 import com.mobilispect.backend.feed.api.GTFSShapePoint
@@ -248,11 +250,41 @@ class GTFSFeedReader(
           GTFSTrip(
             routeId = GTFSRouteId(trip.route_id),
             tripId = GTFSTripId(trip.trip_id),
+            serviceId = trip.service_id,
             directionId = trip.direction_id,
             headsign = trip.trip_headsign,
             shapeId = trip.shape_id,
             stopTimes = stopTimes,
           )
+        }
+
+      val calendars =
+        feed.services.values.mapNotNull { service ->
+          service.calendar?.let { calendar ->
+            GTFSCalendar(
+              serviceId = calendar.service_id,
+              monday = calendar.monday,
+              tuesday = calendar.tuesday,
+              wednesday = calendar.wednesday,
+              thursday = calendar.thursday,
+              friday = calendar.friday,
+              saturday = calendar.saturday,
+              sunday = calendar.sunday,
+              startDate = calendar.start_date,
+              endDate = calendar.end_date,
+            )
+          }
+        }
+
+      val calendarDates =
+        feed.services.values.flatMap { service ->
+          service.calendar_dates.values.map { calendarDate ->
+            GTFSCalendarDate(
+              serviceId = calendarDate.service_id,
+              date = calendarDate.date,
+              exceptionType = calendarDate.exception_type,
+            )
+          }
         }
 
       logger.info(
@@ -262,7 +294,16 @@ class GTFSFeedReader(
         routes.size,
         trips.size,
       )
-      GTFSData(agencies = agencies, routes = routes, trips = trips, stops = stops, shapes = shapes)
+      GTFSData(
+        agencies = agencies,
+        routes = routes,
+        trips = trips,
+        stops = stops,
+        shapes = shapes,
+        calendars = calendars,
+        calendarDates = calendarDates,
+      )
     }
   }
+
 }

@@ -4,7 +4,6 @@ import com.mobilispect.backend.route.api.CommonSectionController
 import com.mobilispect.backend.route.api.FrequencyController
 import com.mobilispect.backend.route.api.dto.CombinedFrequencyDTO
 import com.mobilispect.backend.route.api.dto.CommonSectionDTO
-import com.mobilispect.backend.route.api.dto.FrequencyDTO
 import com.mobilispect.backend.route.api.dto.RouteDTO
 import com.mobilispect.backend.route.api.dto.RouteVariantDTO
 import com.mobilispect.backend.route.application.CommonSectionService
@@ -16,7 +15,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.eq
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
@@ -49,6 +47,7 @@ class FrequencyApiContractTest {
           routeType = RouteType.BUS,
           active = true,
           variants = emptyList(),
+          hourlyStats = emptyList(),
         )
       )
 
@@ -74,6 +73,9 @@ class FrequencyApiContractTest {
             stopNames = listOf("Stop 1", "Stop 2", "Stop 3", "Stop 4", "Stop 5"),
             firstStopId = "s1",
             lastStopId = "s5",
+            averageStopSpacingMeters = 420.0,
+            stopSpacingMeters = listOf(400.0, 410.0, 430.0, 440.0),
+            stopSpacingClassification = "local",
           )
         )
       )
@@ -86,37 +88,6 @@ class FrequencyApiContractTest {
 
     assertThat(response.status).isEqualTo(200)
     assertThat(response.contentAsString).contains("Downtown")
-  }
-
-  @Test
-  fun `GET variant frequencies matches contract`() {
-    `when`(frequencyQueryService.getFrequenciesForVariant(any(), anyOrNull()))
-      .thenReturn(
-        listOf(
-          FrequencyDTO(
-            id = UUID.randomUUID().toString(),
-            variantId = "a".repeat(64),
-            serviceDate = "2025-01-01",
-            timePeriod = TimePeriod.WEEKDAY_AM_PEAK,
-            averageHeadwayMinutes = 10.0,
-            minHeadwayMinutes = 8.0,
-            maxHeadwayMinutes = 12.0,
-            tripCount = 5,
-            isIrregular = false,
-          )
-        )
-      )
-
-    val response =
-      mockMvc
-        .get("/api/v1/routes/variants/${"a".repeat(64)}/frequencies") {
-          accept(MediaType.APPLICATION_JSON)
-        }
-        .andReturn()
-        .response
-
-    assertThat(response.status).isEqualTo(200)
-    assertThat(response.contentAsString).contains("WEEKDAY_AM_PEAK")
   }
 
   @Test

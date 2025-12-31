@@ -12,6 +12,11 @@ import com.mobilispect.backend.route.batch.frequency.FrequencyInput
 import com.mobilispect.backend.route.batch.frequency.FrequencyProcessor
 import com.mobilispect.backend.route.batch.frequency.FrequencyReader
 import com.mobilispect.backend.route.batch.frequency.FrequencyWriter
+import com.mobilispect.backend.route.batch.hourly.RouteHourlyStatsBatch
+import com.mobilispect.backend.route.batch.hourly.RouteHourlyStatsInput
+import com.mobilispect.backend.route.batch.hourly.RouteHourlyStatsProcessor
+import com.mobilispect.backend.route.batch.hourly.RouteHourlyStatsReader
+import com.mobilispect.backend.route.batch.hourly.RouteHourlyStatsWriter
 import com.mobilispect.backend.route.batch.import.RouteBatch
 import com.mobilispect.backend.route.batch.import.RouteInput
 import com.mobilispect.backend.route.batch.import.RouteProcessor
@@ -57,6 +62,9 @@ class FeedImportJobConfig(
   private val frequencyReader: FrequencyReader,
   private val frequencyProcessor: FrequencyProcessor,
   private val frequencyWriter: FrequencyWriter,
+  private val routeHourlyStatsReader: RouteHourlyStatsReader,
+  private val routeHourlyStatsProcessor: RouteHourlyStatsProcessor,
+  private val routeHourlyStatsWriter: RouteHourlyStatsWriter,
   private val stepExecutionListener: FeedImportStepExecutionListener,
   private val progressService: FeedImportProgressService,
 ) {
@@ -69,6 +77,7 @@ class FeedImportJobConfig(
       .next(routeProcessingStep())
       .next(routeVariantProcessingStep())
       .next(stopSpacingProcessingStep())
+      .next(routeHourlyStatsProcessingStep())
       .next(frequencyProcessingStep())
       .listener(progressService)
       .build()
@@ -134,6 +143,17 @@ class FeedImportJobConfig(
       .reader(frequencyReader)
       .processor(frequencyProcessor)
       .writer(frequencyWriter)
+      .listener(stepExecutionListener)
+      .transactionManager(transactionManager)
+      .build()
+
+  @Bean
+  fun routeHourlyStatsProcessingStep(): Step =
+    StepBuilder("routeHourlyStatsProcessingStep", jobRepository)
+      .chunk<RouteHourlyStatsInput, RouteHourlyStatsBatch>(10)
+      .reader(routeHourlyStatsReader)
+      .processor(routeHourlyStatsProcessor)
+      .writer(routeHourlyStatsWriter)
       .listener(stepExecutionListener)
       .transactionManager(transactionManager)
       .build()

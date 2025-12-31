@@ -31,6 +31,7 @@ class FrequencyControllerTest {
           routeType = RouteType.BUS,
           active = true,
           variants = emptyList(),
+          hourlyStats = emptyList(),
         )
       )
 

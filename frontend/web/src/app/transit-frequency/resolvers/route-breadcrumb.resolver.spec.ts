@@ -14,7 +14,8 @@ describe('RouteBreadcrumbResolver', () => {
         longName: 'Sainte-Catherine',
         routeType: 'BUS',
         active: true,
-        variants: []
+        variants: [],
+        hourlyStats: []
     };
 
     beforeEach(() => {

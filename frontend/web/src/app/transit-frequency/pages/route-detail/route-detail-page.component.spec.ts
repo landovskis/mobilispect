@@ -14,9 +14,7 @@ describe('RouteDetailPageComponent', () => {
 
   beforeEach(async () => {
     mockFrequencyService = jasmine.createSpyObj('FrequencyService', [
-      'getRoute',
-      'getVariants',
-      'getFrequencies'
+      'getRoute'
     ]);
     mockCommonSectionService = jasmine.createSpyObj('CommonSectionService', [
       'getCommonSectionsForRoute',
@@ -55,21 +53,10 @@ describe('RouteDetailPageComponent', () => {
       shortName: '5',
       longName: 'Test Route',
       routeType: 'BUS',
-      active: true
+      active: true,
+      variants: [],
+      hourlyStats: []
     };
-
-    const mockVariants = [
-      {
-        id: 'variant-1',
-        routeId: 'test-route-id',
-        directionId: 0,
-        headsign: 'Downtown',
-        stopCount: 10,
-        stopPattern: 'stop1|stop2|stop3',
-        firstStopId: 'stop1',
-        lastStopId: 'stop3'
-      }
-    ];
 
     const mockSections = [
       {
@@ -83,7 +70,6 @@ describe('RouteDetailPageComponent', () => {
     ];
 
     mockFrequencyService.getRoute.and.returnValue(of(mockRoute));
-    mockFrequencyService.getVariants.and.returnValue(of(mockVariants));
     mockCommonSectionService.getCommonSectionsForRoute.and.returnValue(of(mockSections));
     mockCommonSectionService.getCombinedFrequency.and.returnValue(of({
       commonSectionId: 'section-1',
@@ -96,13 +82,6 @@ describe('RouteDetailPageComponent', () => {
     fixture.detectChanges();
 
     expect(mockFrequencyService.getRoute).toHaveBeenCalledWith('test-route-id');
-    expect(mockFrequencyService.getVariants).toHaveBeenCalledWith('test-route-id');
     expect(mockCommonSectionService.getCommonSectionsForRoute).toHaveBeenCalledWith('test-route-id');
-  });
-
-  it('should return route type label', () => {
-    expect(component.getRouteTypeLabel('BUS')).toBe('Bus');
-    expect(component.getRouteTypeLabel('SUBWAY')).toBe('Subway/Metro');
-    expect(component.getRouteTypeLabel('UNKNOWN')).toBe('UNKNOWN');
   });
 });

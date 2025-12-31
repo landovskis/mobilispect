@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto, RouteHourlyFrequencyDto } from '../../services/frequency.service';
+import { FrequencyService, RouteDto, RouteHourlyStatsDto, RouteVariantDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
 import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
@@ -31,17 +31,53 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
     </app-brand-section>
 
     <app-brand-section class="mt-6 block" title="Hourly Trips">
-      <app-brand-card [loading]="hourlyLoading" title="Trips per hour">
-        @if (!hourlyLoading) {
+      <app-brand-card [loading]="routeLoading" title="Trips per hour">
+        @if (!routeLoading) {
+          @if (dayTypeTabs.length > 1) {
+            <app-brand-tabs
+              class="mb-4 block"
+              [tabs]="dayTypeTabLabels"
+              [selectedIndex]="selectedDayTypeIndex"
+              (selectedIndexChange)="selectDayTypeByIndex($event)">
+            </app-brand-tabs>
+          }
           <div class="hourly-chart mt-4">
             <div class="hourly-bars grid grid-cols-12 gap-2 md:grid-cols-24">
-              @for (bar of hourlyBars; track bar.hour) {
+              @for (bar of hourlyTripBars; track bar.hour) {
                 <div class="hour-bar flex flex-col items-center gap-2">
                   <div class="bar-track">
                     <div class="bar-fill" [style.height.%]="bar.heightPercent"></div>
                   </div>
                   <span class="bar-label text-[0.7rem] font-semibold">{{ bar.hour }}</span>
                   <span class="bar-value text-[0.7rem]">{{ bar.tripCount }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </app-brand-card>
+    </app-brand-section>
+
+    <app-brand-section class="mt-6 block" title="Average Speed">
+      <app-brand-card [loading]="routeLoading" title="Speed per hour">
+        @if (!routeLoading) {
+          @if (dayTypeTabs.length > 1) {
+            <app-brand-tabs
+              class="mb-4 block"
+              [tabs]="dayTypeTabLabels"
+              [selectedIndex]="selectedDayTypeIndex"
+              (selectedIndexChange)="selectDayTypeByIndex($event)">
+            </app-brand-tabs>
+          }
+          <div class="hourly-chart mt-4">
+            <div class="hourly-bars grid grid-cols-12 gap-2 md:grid-cols-24">
+              @for (bar of hourlySpeedBars; track bar.hour) {
+                <div class="hour-bar flex flex-col items-center gap-2">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.height.%]="bar.heightPercent"></div>
+                  </div>
+                  <span class="bar-label text-[0.7rem] font-semibold">{{ bar.hour }}</span>
+                  <span class="bar-value text-[0.7rem]">{{ bar.speedLabel }}</span>
                 </div>
               }
             </div>
@@ -67,9 +103,7 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
         } @else {
           @for (variant of filteredVariants; track variant.id) {
             <app-route-variant-card
-              [variant]="variant"
-              [frequencies]="variant.id === lastVariantId ? frequencies : []"
-              (select)="loadFrequencies($event)">
+              [variant]="variant">
             </app-route-variant-card>
           }
         }
@@ -118,13 +152,11 @@ export class RouteDetailPageComponent implements OnInit {
   routeLoading = true;
   variantsLoading = true;
   variants: RouteVariantDto[] = [];
-  frequencies: FrequencyDto[] = [];
-  hourlyFrequencies: RouteHourlyFrequencyDto[] = [];
-  hourlyLoading = true;
+  hourlyStats: RouteHourlyStatsDto[] = [];
   commonSections: CommonSectionDto[] = [];
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
-  lastVariantId?: string;
   selectedDirectionId: number | null = null;
+  selectedDayType: RouteHourlyStatsDto['dayType'] | null = null;
 
   constructor(
     private readonly activatedRoute: ActivatedRoute,
@@ -149,10 +181,13 @@ export class RouteDetailPageComponent implements OnInit {
         .subscribe(route => {
           this.route = route;
           this.variants = route.variants ?? [];
+          this.hourlyStats = route.hourlyStats ?? [];
+          if (!this.selectedDayType && this.dayTypeTabs.length > 0) {
+            this.selectedDayType = this.dayTypeTabs[0].id;
+          }
           if (this.variants.length > 0 && this.selectedDirectionId === null) {
             this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
           }
-          this.loadFirstVariantForDirection();
           this.cdr.markForCheck();
         });
       this.commonSectionService.getCommonSectionsForRoute(routeId).subscribe(sections => {
@@ -165,15 +200,7 @@ export class RouteDetailPageComponent implements OnInit {
         });
         this.cdr.markForCheck();
       });
-      this.loadHourlyFrequencies(routeId);
     }
-  }
-
-  loadFrequencies(variantId: string): void {
-    this.lastVariantId = variantId;
-    this.frequencyService.getFrequencies(variantId).subscribe(freqs => {
-      this.frequencies = freqs;
-    });
   }
 
   get directionTabs(): { id: number | null; label: string; key: string }[] {
@@ -199,6 +226,37 @@ export class RouteDetailPageComponent implements OnInit {
 
   get directionTabLabels(): string[] {
     return this.directionTabs.map(tab => tab.label);
+  }
+
+  get dayTypeTabs(): { id: NonNullable<RouteHourlyStatsDto['dayType']>; label: string }[] {
+    const ordered: Array<NonNullable<RouteHourlyStatsDto['dayType']>> = [
+      'WEEKDAY',
+      'SATURDAY',
+      'SUNDAY',
+      'HOLIDAY'
+    ];
+    return ordered.map(dayType => ({
+      id: dayType,
+      label: this.formatDayTypeLabel(dayType)
+    }));
+  }
+
+  get dayTypeTabLabels(): string[] {
+    return this.dayTypeTabs.map(tab => tab.label);
+  }
+
+  get selectedDayTypeIndex(): number {
+    const tabs = this.dayTypeTabs;
+    const matchIndex = tabs.findIndex(tab => tab.id === this.selectedDayType);
+    return matchIndex >= 0 ? matchIndex : 0;
+  }
+
+  selectDayTypeByIndex(index: number): void {
+    const tab = this.dayTypeTabs[index];
+    if (!tab) return;
+    if (this.selectedDayType === tab.id) return;
+    this.selectedDayType = tab.id;
+    this.cdr.markForCheck();
   }
 
   get routeClassificationLabel(): string | undefined {
@@ -259,10 +317,28 @@ export class RouteDetailPageComponent implements OnInit {
     }
   }
 
+  private formatDayTypeLabel(dayType: NonNullable<RouteHourlyStatsDto['dayType']>): string {
+    switch (dayType) {
+      case 'WEEKDAY':
+        return 'Weekday';
+      case 'SATURDAY':
+        return 'Saturday';
+      case 'SUNDAY':
+        return 'Sunday';
+      case 'HOLIDAY':
+        return 'Holiday';
+    }
+  }
+
+  private normalizeDayType(
+    dayType: RouteHourlyStatsDto['dayType']
+  ): NonNullable<RouteHourlyStatsDto['dayType']> {
+    return dayType ?? 'WEEKDAY';
+  }
+
   selectDirection(directionId: number | null): void {
     if (this.selectedDirectionId === directionId) return;
     this.selectedDirectionId = directionId;
-    this.loadFirstVariantForDirection();
     this.cdr.markForCheck();
   }
 
@@ -278,27 +354,9 @@ export class RouteDetailPageComponent implements OnInit {
     this.selectDirection(tab.id);
   }
 
-  private loadFirstVariantForDirection(): void {
-    if (this.filteredVariants.length === 0) return;
-    if (this.lastVariantId && this.filteredVariants.some(variant => variant.id === this.lastVariantId)) {
-      return;
-    }
-    this.loadFrequencies(this.filteredVariants[0].id);
-  }
-
-  private loadHourlyFrequencies(routeId: string): void {
-    this.hourlyLoading = true;
-    const today = new Date().toISOString().slice(0, 10);
-    this.frequencyService.getRouteHourlyFrequencies(routeId, today).subscribe(frequencies => {
-      this.hourlyFrequencies = frequencies;
-      this.hourlyLoading = false;
-      this.cdr.markForCheck();
-    });
-  }
-
-  get hourlyBars(): { hour: number; tripCount: number; heightPercent: number }[] {
+  get hourlyTripBars(): { hour: number; tripCount: number; heightPercent: number }[] {
     const byHour = new Map<number, number>();
-    this.hourlyFrequencies.forEach(item => {
+    this.filteredHourlyStats.forEach(item => {
       byHour.set(item.hourOfDay, item.tripCount);
     });
     const values = Array.from(byHour.values());
@@ -310,8 +368,43 @@ export class RouteDetailPageComponent implements OnInit {
     });
   }
 
+  get hourlySpeedBars(): { hour: number; speedLabel: string; heightPercent: number }[] {
+    const byHour = new Map<number, number>();
+    this.filteredHourlyStats.forEach(item => {
+      if (item.averageSpeedKph !== null && item.averageSpeedKph !== undefined) {
+        byHour.set(item.hourOfDay, item.averageSpeedKph);
+      }
+    });
+    const values = Array.from(byHour.values());
+    const max = values.length > 0 ? Math.max(...values) : 0;
+    return Array.from({ length: 24 }).map((_, hour) => {
+      const speed = byHour.get(hour) ?? 0;
+      const heightPercent = max > 0 ? Math.round((speed / max) * 100) : 0;
+      return {
+        hour,
+        speedLabel: speed > 0 ? `${speed.toFixed(1)} km/h` : '—',
+        heightPercent,
+      };
+    });
+  }
+
   get isVariantsLoading(): boolean {
     return this.routeLoading || this.variantsLoading;
+  }
+
+  get filteredHourlyStats(): RouteHourlyStatsDto[] {
+    const targetDayType =
+      this.selectedDayType ?? this.dayTypeTabs[0]?.id ?? this.normalizeDayType(undefined);
+    if (this.selectedDirectionId === null) {
+      return this.hourlyStats.filter(stat =>
+        (stat.directionId === null || stat.directionId === undefined) &&
+        this.normalizeDayType(stat.dayType) === targetDayType
+      );
+    }
+    return this.hourlyStats.filter(stat =>
+      stat.directionId === this.selectedDirectionId &&
+      this.normalizeDayType(stat.dayType) === targetDayType
+    );
   }
 
   private getMostCommonHeadsign(directionId: number | null): string | null {

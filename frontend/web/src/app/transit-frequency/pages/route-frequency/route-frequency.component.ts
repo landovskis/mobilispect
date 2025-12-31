@@ -1,35 +1,30 @@
 import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
 import { ActivatedRoute } from '@angular/router';
-import { FrequencyService, RouteDto, RouteVariantDto, FrequencyDto } from '../../services/frequency.service';
+import { FrequencyService, RouteDto, RouteVariantDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
 import { finalize } from 'rxjs';
+import { BrandTabsComponent } from '../../../shared/components/brand-tabs.component';
 
 @Component({
   selector: 'app-route-frequency',
   standalone: true,
-  imports: [BrandCardComponent, RouteVariantCardComponent, CommonSectionDisplayComponent],
+  imports: [BrandCardComponent, RouteVariantCardComponent, CommonSectionDisplayComponent, BrandTabsComponent],
   template: `
     <app-brand-card
       [title]="route?.longName"
       [subtitle]="route?.shortName || undefined"
       [loading]="isLoading">
       @if (directionTabs.length > 1) {
-        <div class="mb-4 flex flex-wrap gap-2">
-          @for (tab of directionTabs; track tab.key) {
-            <button
-              type="button"
-              class="rounded-full border px-3 py-1 text-sm font-semibold"
-              [class.border-[var(--mat-sys-primary,#0b4f8a)]]="tab.id === selectedDirectionId"
-              [class.text-[var(--mat-sys-primary,#0b4f8a)]]="tab.id === selectedDirectionId"
-              (click)="selectDirection(tab.id)">
-              {{ tab.label }}
-            </button>
-          }
-        </div>
+        <app-brand-tabs
+          class="mb-4 block"
+          [tabs]="directionTabLabels"
+          [selectedIndex]="selectedDirectionIndex"
+          (selectedIndexChange)="selectDirectionByIndex($event)">
+        </app-brand-tabs>
       }
       <div class="grid gap-4 md:grid-cols-2" role="list">
         @if (isLoading) {
@@ -37,9 +32,7 @@ import { finalize } from 'rxjs';
         } @else {
           @for (variant of filteredVariants; track variant.id) {
             <app-route-variant-card
-              [variant]="variant"
-              [frequencies]="variant.id === lastVariantId ? frequencies : []"
-              (select)="loadFrequencies($event)">
+              [variant]="variant">
             </app-route-variant-card>
           }
         }
@@ -57,10 +50,8 @@ export class RouteFrequencyComponent implements OnInit {
   routeId!: string;
   route?: RouteDto;
   variants: RouteVariantDto[] = [];
-  frequencies: FrequencyDto[] = [];
   commonSections: CommonSectionDto[] = [];
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
-  lastVariantId?: string;
   selectedDirectionId: number | null = null;
   isLoading = true;
   private routeLoaded = false;
@@ -103,7 +94,6 @@ export class RouteFrequencyComponent implements OnInit {
         if (this.variants.length > 0 && this.selectedDirectionId === null) {
           this.selectedDirectionId = this.directionTabs[0]?.id ?? null;
         }
-        this.loadFirstVariantForDirection();
         this.cdr.markForCheck();
       });
     this.commonSectionService.getCommonSectionsForRoute(this.routeId).subscribe(sections => {
@@ -117,13 +107,6 @@ export class RouteFrequencyComponent implements OnInit {
       this.sectionsLoaded = true;
       this.updateLoading();
       this.cdr.markForCheck();
-    });
-  }
-
-  loadFrequencies(variantId: string): void {
-    this.lastVariantId = variantId;
-    this.frequencyService.getFrequencies(variantId).subscribe(freqs => {
-      this.frequencies = freqs;
     });
   }
 
@@ -148,18 +131,26 @@ export class RouteFrequencyComponent implements OnInit {
     return this.variants.filter(variant => variant.directionId === this.selectedDirectionId);
   }
 
+  get directionTabLabels(): string[] {
+    return this.directionTabs.map(tab => tab.label);
+  }
+
   selectDirection(directionId: number | null): void {
     if (this.selectedDirectionId === directionId) return;
     this.selectedDirectionId = directionId;
-    this.loadFirstVariantForDirection();
+    this.cdr.markForCheck();
   }
 
-  private loadFirstVariantForDirection(): void {
-    if (this.filteredVariants.length === 0) return;
-    if (this.lastVariantId && this.filteredVariants.some(variant => variant.id === this.lastVariantId)) {
-      return;
-    }
-    this.loadFrequencies(this.filteredVariants[0].id);
+  get selectedDirectionIndex(): number {
+    const tabs = this.directionTabs;
+    const matchIndex = tabs.findIndex(tab => tab.id === this.selectedDirectionId);
+    return matchIndex >= 0 ? matchIndex : 0;
+  }
+
+  selectDirectionByIndex(index: number): void {
+    const tab = this.directionTabs[index];
+    if (!tab) return;
+    this.selectDirection(tab.id);
   }
 
   private updateLoading(): void {

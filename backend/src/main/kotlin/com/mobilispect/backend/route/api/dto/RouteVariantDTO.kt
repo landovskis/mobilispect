@@ -10,4 +10,7 @@ data class RouteVariantDTO(
   val stopNames: List<String>,
   val firstStopId: String,
   val lastStopId: String,
+  val averageStopSpacingMeters: Double?,
+  val stopSpacingMeters: List<Double>,
+  val stopSpacingClassification: String?,
 )

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 
-import { FrequencyDto, RouteVariantDto } from '../../services/frequency.service';
+import { RouteVariantDto } from '../../services/frequency.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 import { StatsBadgeComponent } from '../../../shared/components/stats-badge.component';
 
@@ -118,7 +118,6 @@ import { StatsBadgeComponent } from '../../../shared/components/stats-badge.comp
 })
 export class RouteVariantCardComponent {
   @Input() variant?: RouteVariantDto;
-  @Input() frequencies: FrequencyDto[] = [];
   @Input() loading = false;
   @Output() select = new EventEmitter<string>();
 
@@ -191,4 +190,5 @@ export class RouteVariantCardComponent {
   ): string {
     return classification;
   }
+
 }

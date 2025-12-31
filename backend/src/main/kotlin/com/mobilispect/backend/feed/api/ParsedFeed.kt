@@ -16,6 +16,8 @@ data class GTFSData(
   val trips: List<GTFSTrip>,
   val stops: List<GTFSStop>,
   val shapes: Map<String, List<GTFSShapePoint>>,
+  val calendars: List<GTFSCalendar>,
+  val calendarDates: List<GTFSCalendarDate>,
 )
 
 data class GTFSAgency(
@@ -37,11 +39,36 @@ data class GTFSRoute(
 data class GTFSTrip(
   val routeId: GTFSRouteId,
   val tripId: GTFSTripId,
+  val serviceId: String,
   val directionId: Int?,
   val headsign: String?,
   val shapeId: String?,
   val stopTimes: List<GTFSStopTime>,
 )
+
+data class GTFSCalendar(
+  val serviceId: String,
+  val monday: Int,
+  val tuesday: Int,
+  val wednesday: Int,
+  val thursday: Int,
+  val friday: Int,
+  val saturday: Int,
+  val sunday: Int,
+  val startDate: java.time.LocalDate,
+  val endDate: java.time.LocalDate,
+)
+
+data class GTFSCalendarDate(
+  val serviceId: String,
+  val date: java.time.LocalDate,
+  val exceptionType: Int?,
+) {
+  companion object {
+    const val ADDED: Int = 1
+    const val REMOVED: Int = 2
+  }
+}
 
 data class GTFSStopTime(
   val stopId: GTFSStopId,
