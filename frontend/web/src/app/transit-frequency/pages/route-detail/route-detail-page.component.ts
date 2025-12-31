@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto } from '../../services/frequency.service';
+import { FrequencyService, FrequencyDto, RouteDto, RouteVariantDto, RouteHourlyFrequencyDto } from '../../services/frequency.service';
 import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
 import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
@@ -27,6 +27,26 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
         [loading]="routeLoading"
         [title]="route?.shortName && route?.longName ? (route?.shortName + ': ' + route?.longName) : (route?.longName || route?.shortName || 'Route Details')"
         [badge]="routeClassificationLabel">
+      </app-brand-card>
+    </app-brand-section>
+
+    <app-brand-section class="mt-6 block" title="Hourly Trips">
+      <app-brand-card [loading]="hourlyLoading" title="Trips per hour">
+        @if (!hourlyLoading) {
+          <div class="hourly-chart mt-4">
+            <div class="hourly-bars grid grid-cols-12 gap-2 md:grid-cols-24">
+              @for (bar of hourlyBars; track bar.hour) {
+                <div class="hour-bar flex flex-col items-center gap-2">
+                  <div class="bar-track">
+                    <div class="bar-fill" [style.height.%]="bar.heightPercent"></div>
+                  </div>
+                  <span class="bar-label text-[0.7rem] font-semibold">{{ bar.hour }}</span>
+                  <span class="bar-value text-[0.7rem]">{{ bar.tripCount }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
       </app-brand-card>
     </app-brand-section>
 
@@ -61,7 +81,36 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       </app-common-section-display>
     </app-brand-section>
     `,
-  styles: [],
+  styles: [`
+    .hourly-bars {
+      align-items: end;
+    }
+    .bar-track {
+      align-items: flex-end;
+      background: rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      display: flex;
+      height: 84px;
+      width: 12px;
+    }
+    .bar-fill {
+      background: var(--mat-sys-primary, #0b4f8a);
+      border-radius: 999px;
+      width: 100%;
+    }
+    .bar-label {
+      color: var(--mat-sys-on-surface-variant, #64748b);
+    }
+    .bar-value {
+      color: var(--mat-sys-on-surface, #0f172a);
+    }
+    :host-context(.dark-theme) .bar-track {
+      background: rgba(148, 163, 184, 0.25);
+    }
+    :host-context(.dark-theme) .bar-value {
+      color: var(--mat-sys-on-surface, #e2e8f0);
+    }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RouteDetailPageComponent implements OnInit {
@@ -70,6 +119,8 @@ export class RouteDetailPageComponent implements OnInit {
   variantsLoading = true;
   variants: RouteVariantDto[] = [];
   frequencies: FrequencyDto[] = [];
+  hourlyFrequencies: RouteHourlyFrequencyDto[] = [];
+  hourlyLoading = true;
   commonSections: CommonSectionDto[] = [];
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
   lastVariantId?: string;
@@ -114,6 +165,7 @@ export class RouteDetailPageComponent implements OnInit {
         });
         this.cdr.markForCheck();
       });
+      this.loadHourlyFrequencies(routeId);
     }
   }
 
@@ -232,6 +284,30 @@ export class RouteDetailPageComponent implements OnInit {
       return;
     }
     this.loadFrequencies(this.filteredVariants[0].id);
+  }
+
+  private loadHourlyFrequencies(routeId: string): void {
+    this.hourlyLoading = true;
+    const today = new Date().toISOString().slice(0, 10);
+    this.frequencyService.getRouteHourlyFrequencies(routeId, today).subscribe(frequencies => {
+      this.hourlyFrequencies = frequencies;
+      this.hourlyLoading = false;
+      this.cdr.markForCheck();
+    });
+  }
+
+  get hourlyBars(): { hour: number; tripCount: number; heightPercent: number }[] {
+    const byHour = new Map<number, number>();
+    this.hourlyFrequencies.forEach(item => {
+      byHour.set(item.hourOfDay, item.tripCount);
+    });
+    const values = Array.from(byHour.values());
+    const max = values.length > 0 ? Math.max(...values) : 0;
+    return Array.from({ length: 24 }).map((_, hour) => {
+      const tripCount = byHour.get(hour) ?? 0;
+      const heightPercent = max > 0 ? Math.round((tripCount / max) * 100) : 0;
+      return { hour, tripCount, heightPercent };
+    });
   }
 
   get isVariantsLoading(): boolean {
