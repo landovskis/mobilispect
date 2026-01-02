@@ -126,6 +126,19 @@ describe('ImportService', () => {
     );
   });
 
+  it('starts a region feed import with a force request payload', () => {
+    service.startImport('r-1-feed-1', { force: true }).subscribe((result) => {
+      expect(result.id).toBe('imp-1');
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiUrl}/feeds/r-1-feed-1/import`,
+    );
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ force: true });
+    req.flush({ ...baseImport, feedOnestopId: 'r-1-feed-1' });
+  });
+
   it('formats backend error messages for common statuses', () => {
     const getErrorMessage = (
       service as unknown as {
