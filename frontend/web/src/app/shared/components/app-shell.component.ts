@@ -14,6 +14,7 @@ import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service'
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
 import { ThemeToggleComponent } from './theme-toggle.component';
+import { WindowSizeClass } from '../models/window-size-class';
 
 
 @Component({
@@ -31,89 +32,170 @@ import { ThemeToggleComponent } from './theme-toggle.component';
     ThemeToggleComponent
   ],
   template: `
+    @let sizeClass = windowSizeClass$ | async;
+
     <div class="flex min-h-screen flex-col">
       <app-bar
         (refresh)="onRefresh()"
         (breadcrumbSelected)="onBreadcrumbSelected($event)"
         >
         <div toolbar-actions>
-          @if (isHandset$ | async) {
-            <button
-              mat-icon-button
-              type="button"
-              aria-label="Toggle navigation"
-              (click)="toggleSidenav()">
-              <mat-icon>menu</mat-icon>
-            </button>
-          }
           <app-theme-toggle></app-theme-toggle>
         </div>
       </app-bar>
 
-      <mat-sidenav-container class="flex-1 bg-transparent md:h-[calc(100vh-64px)] max-md:h-auto">
-        <mat-sidenav
-          class="app-sidenav w-60 border-r border-[#E1F3FF] bg-white px-[18px] pb-8 pt-7 text-[#0B3558] max-md:w-full max-md:border-b max-md:border-r-0"
-          [mode]="(isHandset$ | async) ? 'over' : 'side'"
-          [opened]="(isHandset$ | async) ? sidebarOpened : true"
-          (openedChange)="onSidenavOpenedChange($event)">
-          <nav class="flex flex-col gap-4 sticky top-24 max-md:static" aria-label="Feed navigation">
-            <div class="mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Inspect</div>
-
-            <button
-              type="button"
-              class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
-              routerLink="/regions/discover"
-              routerLinkActive="active"
-              [routerLinkActiveOptions]="{ exact: true }">
-              <mat-icon class="text-[20px] text-[#0B4F8A]">rss_feed</mat-icon>
-              <span>Discover Regions</span>
-              @let discoverCount = discoverFeedCount$ | async;
-              @if ((discoverCount ?? 0) > 0) {
-                <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ discoverCount }}</span>
-              }
-            </button>
-
-            <button
-              type="button"
-              class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
-              routerLink="/feeds/imports"
-              routerLinkActive="active">
-              <mat-icon class="text-[20px] text-[#0B4F8A]">history</mat-icon>
-              <span>Feed Imports</span>
-              @let totalImports = totalImportElements$ | async;
-              @if ((totalImports ?? 0) > 0) {
-                <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ totalImports }}</span>
-              }
-              @let activeImports = activeImportCount$ | async;
-              @if ((activeImports ?? 0) > 0) {
-                <span class="nav-count active ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ activeImports }} active</span>
-              }
-            </button>
-
-            <button
-              type="button"
-              class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
-              routerLink="/regions"
-              routerLinkActive="active">
-              <mat-icon class="text-[20px] text-[#0B4F8A]">map</mat-icon>
-              <span>Regions</span>
-            </button>
-          </nav>
-        </mat-sidenav>
-
-        <mat-sidenav-content>
-          <div class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-6 max-md:p-4">
+      <!-- COMPACT: Bottom Navigation (< 600px) -->
+      @if (sizeClass === WindowSizeClass.COMPACT) {
+        <div class="flex-1 pb-16">
+          <div class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-4">
             <div class="mx-auto max-w-[1200px]">
-              <section class="view-content min-h-[calc(100vh-160px)] rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)] max-md:p-4">
+              <section class="view-content min-h-[calc(100vh-160px)] rounded-2xl bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
                 <router-outlet></router-outlet>
               </section>
             </div>
           </div>
-        </mat-sidenav-content>
-      </mat-sidenav-container>
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 z-10 flex justify-around border-t border-[#E1F3FF] bg-white px-2 py-2 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]" aria-label="Bottom navigation">
+          <button
+            type="button"
+            class="nav-item flex flex-col items-center gap-1 rounded-lg px-4 py-2 text-xs font-medium text-[#0B4F8A] transition-colors"
+            routerLink="/regions/discover"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: true }">
+            <mat-icon class="text-[24px]">rss_feed</mat-icon>
+            <span>Discover</span>
+          </button>
+          <button
+            type="button"
+            class="nav-item flex flex-col items-center gap-1 rounded-lg px-4 py-2 text-xs font-medium text-[#0B4F8A] transition-colors"
+            routerLink="/feeds/imports"
+            routerLinkActive="active">
+            <mat-icon class="text-[24px]">history</mat-icon>
+            <span>Imports</span>
+          </button>
+          <button
+            type="button"
+            class="nav-item flex flex-col items-center gap-1 rounded-lg px-4 py-2 text-xs font-medium text-[#0B4F8A] transition-colors"
+            routerLink="/regions"
+            routerLinkActive="active">
+            <mat-icon class="text-[24px]">map</mat-icon>
+            <span>Regions</span>
+          </button>
+        </nav>
+      }
+
+      <!-- MEDIUM: Navigation Rail (600-840px) -->
+      @if (sizeClass === WindowSizeClass.MEDIUM) {
+        <div class="flex flex-1">
+          <nav class="nav-rail flex w-20 flex-col items-center gap-4 border-r border-[#E1F3FF] bg-white px-3 py-6" aria-label="Navigation rail">
+            <button
+              type="button"
+              class="rail-item flex flex-col items-center gap-1 rounded-xl px-3 py-3 text-xs font-medium text-[#0B4F8A] transition-all"
+              routerLink="/regions/discover"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: true }">
+              <mat-icon class="text-[24px]">rss_feed</mat-icon>
+              <span class="text-center">Discover</span>
+            </button>
+            <button
+              type="button"
+              class="rail-item flex flex-col items-center gap-1 rounded-xl px-3 py-3 text-xs font-medium text-[#0B4F8A] transition-all"
+              routerLink="/feeds/imports"
+              routerLinkActive="active">
+              <mat-icon class="text-[24px]">history</mat-icon>
+              <span class="text-center">Imports</span>
+            </button>
+            <button
+              type="button"
+              class="rail-item flex flex-col items-center gap-1 rounded-xl px-3 py-3 text-xs font-medium text-[#0B4F8A] transition-all"
+              routerLink="/regions"
+              routerLinkActive="active">
+              <mat-icon class="text-[24px]">map</mat-icon>
+              <span class="text-center">Regions</span>
+            </button>
+          </nav>
+
+          <div class="flex-1">
+            <div class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-6">
+              <div class="mx-auto max-w-[1200px]">
+                <section class="view-content min-h-[calc(100vh-160px)] rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                  <router-outlet></router-outlet>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- EXPANDED: Full Sidenav (≥ 840px) -->
+      @if (sizeClass === WindowSizeClass.EXPANDED) {
+        <mat-sidenav-container class="flex-1 bg-transparent">
+          <mat-sidenav
+            class="app-sidenav w-60 border-r border-[#E1F3FF] bg-white px-[18px] pb-8 pt-7 text-[#0B3558]"
+            mode="side"
+            opened="true">
+            <nav class="flex flex-col gap-4 sticky top-24" aria-label="Feed navigation">
+              <div class="mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Inspect</div>
+
+              <button
+                type="button"
+                class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
+                routerLink="/regions/discover"
+                routerLinkActive="active"
+                [routerLinkActiveOptions]="{ exact: true }">
+                <mat-icon class="text-[20px] text-[#0B4F8A]">rss_feed</mat-icon>
+                <span>Discover Regions</span>
+                @let discoverCount = discoverFeedCount$ | async;
+                @if ((discoverCount ?? 0) > 0) {
+                  <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ discoverCount }}</span>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
+                routerLink="/feeds/imports"
+                routerLinkActive="active">
+                <mat-icon class="text-[20px] text-[#0B4F8A]">history</mat-icon>
+                <span>Feed Imports</span>
+                @let totalImports = totalImportElements$ | async;
+                @if ((totalImports ?? 0) > 0) {
+                  <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ totalImports }}</span>
+                }
+                @let activeImports = activeImportCount$ | async;
+                @if ((activeImports ?? 0) > 0) {
+                  <span class="nav-count active ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{ activeImports }} active</span>
+                }
+              </button>
+
+              <button
+                type="button"
+                class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
+                routerLink="/regions"
+                routerLinkActive="active">
+                <mat-icon class="text-[20px] text-[#0B4F8A]">map</mat-icon>
+                <span>Regions</span>
+              </button>
+            </nav>
+          </mat-sidenav>
+
+          <mat-sidenav-content>
+            <div class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-6">
+              <div class="mx-auto max-w-[1200px]">
+                <section class="view-content min-h-[calc(100vh-160px)] rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                  <router-outlet></router-outlet>
+                </section>
+              </div>
+            </div>
+          </mat-sidenav-content>
+        </mat-sidenav-container>
+      }
     </div>
     `,
   styles: [`
+    /* Full Sidenav (Expanded) */
     .app-sidenav {
       background: #ffffff;
       color: #0B3558;
@@ -167,11 +249,63 @@ import { ThemeToggleComponent } from './theme-toggle.component';
       color: #E5F1FF;
     }
 
+    /* Bottom Navigation (Compact) */
+    .bottom-nav {
+      background: #ffffff;
+      border-top-color: #E1F3FF;
+    }
+
+    .nav-item {
+      color: #0B4F8A;
+    }
+
+    .nav-item:hover {
+      background: rgba(11, 79, 138, 0.05);
+      color: #0B3558;
+    }
+
+    .nav-item.active {
+      background: rgba(11, 79, 138, 0.1);
+      color: #0B4F8A;
+      font-weight: 600;
+    }
+
+    .nav-item.active mat-icon {
+      color: #00A7C4;
+    }
+
+    /* Navigation Rail (Medium) */
+    .nav-rail {
+      background: #ffffff;
+      border-right-color: #E1F3FF;
+    }
+
+    .rail-item {
+      color: #0B4F8A;
+    }
+
+    .rail-item:hover {
+      background: rgba(11, 79, 138, 0.05);
+      color: #0B3558;
+    }
+
+    .rail-item.active {
+      background: rgba(11, 79, 138, 0.1);
+      color: #0B4F8A;
+      font-weight: 600;
+    }
+
+    .rail-item.active mat-icon {
+      color: #00A7C4;
+    }
+
+    /* Common */
     .view-content {
       background: #fff;
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     }
 
+    /* Dark theme */
     :host-context(.dark-theme) .drawer-container {
       background: #0b1220;
     }
@@ -223,6 +357,42 @@ import { ThemeToggleComponent } from './theme-toggle.component';
       color: #0b1220;
     }
 
+    :host-context(.dark-theme) .bottom-nav {
+      background: #0f172a;
+      border-top-color: rgba(148, 163, 184, 0.24);
+    }
+
+    :host-context(.dark-theme) .nav-item {
+      color: #e5f1ff;
+    }
+
+    :host-context(.dark-theme) .nav-item:hover {
+      background: rgba(148, 163, 184, 0.15);
+      color: #e5f1ff;
+    }
+
+    :host-context(.dark-theme) .nav-item.active mat-icon {
+      color: #00A7C4;
+    }
+
+    :host-context(.dark-theme) .nav-rail {
+      background: #0f172a;
+      border-right-color: rgba(148, 163, 184, 0.24);
+    }
+
+    :host-context(.dark-theme) .rail-item {
+      color: #e5f1ff;
+    }
+
+    :host-context(.dark-theme) .rail-item:hover {
+      background: rgba(148, 163, 184, 0.15);
+      color: #e5f1ff;
+    }
+
+    :host-context(.dark-theme) .rail-item.active mat-icon {
+      color: #00A7C4;
+    }
+
     :host-context(.dark-theme) .content-area {
       background-color: #0b1220;
     }
@@ -238,8 +408,12 @@ import { ThemeToggleComponent } from './theme-toggle.component';
 export class AppShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
+  // Expose enum to template
+  readonly WindowSizeClass = WindowSizeClass;
+
   sidebarOpened = false;
 
+  readonly windowSizeClass$: Observable<WindowSizeClass>;
   readonly isHandset$: Observable<boolean>;
   readonly discoverFeedCount$: Observable<number>;
   readonly totalImportElements$: Observable<number>;
@@ -255,10 +429,32 @@ export class AppShellComponent implements OnDestroy {
     private readonly events: FeedsEventsService,
     private readonly regionService: RegionService
   ) {
-    this.isHandset$ = breakpointObserver.observe('(max-width: 768px)').pipe(
-      map(result => result.matches),
+    // Material Design window size classes
+    // Compact: < 600px (phones in portrait) - Bottom navigation
+    // Medium: 600-840px (tablets in portrait, foldables) - Navigation rail
+    // Expanded: ≥ 840px (tablets in landscape, desktops) - Full sidenav
+    this.windowSizeClass$ = breakpointObserver.observe([
+      '(max-width: 599px)',
+      '(min-width: 600px) and (max-width: 839px)',
+      '(min-width: 840px)'
+    ]).pipe(
+      map(result => {
+        if (result.breakpoints['(max-width: 599px)']) {
+          return WindowSizeClass.COMPACT;
+        } else if (result.breakpoints['(min-width: 600px) and (max-width: 839px)']) {
+          return WindowSizeClass.MEDIUM;
+        } else {
+          return WindowSizeClass.EXPANDED;
+        }
+      }),
       shareReplay({ bufferSize: 1, refCount: true })
     );
+
+    // Legacy handset observable for backward compatibility
+    this.isHandset$ = this.windowSizeClass$.pipe(
+      map(sizeClass => sizeClass === WindowSizeClass.COMPACT)
+    );
+
     this.discoverFeedCount$ = this.metrics.discoverFeedCount$;
     this.totalImportElements$ = this.metrics.totalImportElements$;
     this.activeImportCount$ = this.importService.getActiveImportsObservable().pipe(
