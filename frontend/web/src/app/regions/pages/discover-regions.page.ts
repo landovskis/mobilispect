@@ -4,9 +4,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatIconModule } from '@angular/material/icon';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { MetropolitanRegion, Feed, RegionUtils } from '../../feeds/models';
+import { Subject, forkJoin, of } from 'rxjs';
+import { catchError, map, takeUntil } from 'rxjs/operators';
+import { MetropolitanRegion, Feed, FeedStatus, RegionUtils } from '../../feeds/models';
 import { AgencyFeedGroup, FeedGroupingUtils } from '../../feeds/models/agency-feed-group.model';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
@@ -16,6 +16,11 @@ import { RegionSelectorComponent } from '../components/region-selector.component
 import { AgencyFeedCardComponent } from '../../feeds/components/agency-feed-card.component';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandButtonComponent } from '../../shared/components/brand-button.component';
+
+type RegionImportResult =
+  | { feed: Feed; ok: true }
+  | { feed: Feed; ok: false; error: unknown };
 
 @Component({
   selector: 'app-discover-regions-page',
@@ -26,6 +31,7 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
     MatIconModule,
     BrandSectionComponent,
     BrandCardComponent,
+    BrandButtonComponent,
     RegionSelectorComponent,
     AgencyFeedCardComponent
 ],
@@ -40,6 +46,21 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
         (regionChange)="onRegionChange($event)"
       ></app-region-selector>
 
+      @if (selectedRegionId && !loadingFeeds) {
+        <div class="region-actions mt-6 flex flex-wrap items-center gap-3">
+          <app-brand-button
+            variant="primary"
+            [disabled]="activeRegionFeeds.length === 0"
+            (click)="importRegion()">
+            <mat-icon>download</mat-icon>
+            <span>Import Region ({{ activeRegionFeeds.length }} feeds)</span>
+          </app-brand-button>
+          <span class="text-sm text-[rgba(0,0,0,0.6)]">
+            Imports all active feeds for this region.
+          </span>
+        </div>
+      }
+
       @if (loadingFeeds) {
         <div class="feeds-grid mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           @for (placeholder of loadingPlaceholders; track $index) {
@@ -52,8 +73,7 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
             @for (group of agencyGroups; track group.agencyName) {
               <app-agency-feed-card
                 [agencyGroup]="group"
-                (importFeed)="importFeed($event)"
-                (importAllFeeds)="importMultipleFeeds($event)"
+                [showImportAction]="false"
                 (viewDetails)="viewFeedDetails($event)">
               </app-agency-feed-card>
             }
@@ -142,30 +162,43 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
     this.router.navigate(['/regions/discover', regionId]);
   }
 
-  importMultipleFeeds(feeds: Feed[]): void {
-    feeds.forEach(feed => this.importFeed(feed));
-  }
+  importRegion(): void {
+    const feeds = this.activeRegionFeeds;
+    const regionName = this.getRegionDisplayName(this.selectedRegion) || this.selectedRegionId || 'region';
 
-  importFeed(feed: Feed): void {
-    this.snackBar.open(`Starting import for ${feed.name}...`, 'Close', { duration: 2000 });
+    if (feeds.length === 0) {
+      this.snackBar.open(`No active feeds available for ${regionName}`, 'Close', { duration: 3000 });
+      return;
+    }
 
-    this.importService.startImport(feed.feedOnestopId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (result) => {
-        this.snackBar.open(`Import started for ${feed.name}`, 'Close', { duration: 3000 });
+    this.snackBar.open(`Starting import for ${feeds.length} feeds in ${regionName}...`, 'Close', { duration: 2000 });
+
+    const requests = feeds.map(feed =>
+      this.importService.startImport(feed.feedOnestopId).pipe(
+        map((): RegionImportResult => ({ feed, ok: true })),
+        catchError(error => of({ feed, ok: false, error } as RegionImportResult))
+      )
+    );
+
+    forkJoin(requests)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(results => {
+        const failed = results.filter((result): result is RegionImportResult & { ok: false } => !result.ok);
+        const successCount = results.length - failed.length;
+        if (failed.length > 0) {
+          const errorPayload = failed[0].error as { message?: string; error?: { message?: string } } | undefined;
+          const firstError = errorPayload?.message || errorPayload?.error?.message || 'Unknown error occurred';
+          this.snackBar.open(
+            `Started ${successCount} imports, ${failed.length} failed. ${firstError}`,
+            'Close',
+            { duration: 8000, panelClass: ['error-snackbar'] }
+          );
+        } else {
+          this.snackBar.open(`Imports started for ${feeds.length} feeds in ${regionName}`, 'Close', { duration: 3000 });
+        }
         this.importService.refreshActiveImports();
         this.router.navigate(['/feeds/imports']);
-      },
-      error: (error) => {
-        console.error('Failed to start import:', error);
-        const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
-        this.snackBar.open(`❌ Import failed: ${errorMessage}`, 'Retry', {
-          duration: 8000,
-          panelClass: ['error-snackbar']
-        }).onAction().subscribe(() => this.importFeed(feed));
-      }
-    });
+      });
   }
 
   viewFeedDetails(feed: Feed): void {
@@ -293,5 +326,9 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
       return null;
     }
     return RegionUtils.getDisplayName(region);
+  }
+
+  get activeRegionFeeds(): Feed[] {
+    return this.regionFeeds.filter(feed => feed.status === FeedStatus.ACTIVE);
   }
 }

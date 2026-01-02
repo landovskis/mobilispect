@@ -117,29 +117,38 @@ describe('DiscoverRegionsPageComponent', () => {
 
     expect(component.selectedRegionId).toBe('r-1');
     expect(regionService.listFeedsForRegion).toHaveBeenCalledWith('r-1');
-    expect(router.navigate).toHaveBeenCalledWith(['/feeds/discover', 'r-1']);
+    expect(router.navigate).toHaveBeenCalledWith(['/regions/discover', 'r-1']);
   });
 
-  it('starts imports and navigates to imports view', () => {
-    component.importFeed(baseFeed);
+  it('starts region imports and navigates to imports view', () => {
+    component.regionFeeds = [baseFeed];
+    component.selectedRegion = baseRegion;
+    component.selectedRegionId = baseRegion.regionOnestopId;
+    component.importRegion();
 
     expect(importService.startImport).toHaveBeenCalledWith('f-1');
     expect(importService.refreshActiveImports).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/feeds/imports']);
   });
 
-  it('handles import failures with retry action', () => {
+  it('handles import failures with error toast', () => {
     importService.startImport.and.returnValue(throwError(() => ({ message: 'fail' })));
+    component.regionFeeds = [baseFeed];
+    component.selectedRegion = baseRegion;
+    component.selectedRegionId = baseRegion.regionOnestopId;
 
-    component.importFeed(baseFeed);
+    component.importRegion();
 
     expect(snackBar.open).toHaveBeenCalled();
   });
 
   it('surfaces backend error details on import failure', () => {
     importService.startImport.and.returnValue(throwError(() => ({ error: { message: 'backend down' } })));
+    component.regionFeeds = [baseFeed];
+    component.selectedRegion = baseRegion;
+    component.selectedRegionId = baseRegion.regionOnestopId;
 
-    component.importFeed(baseFeed);
+    component.importRegion();
 
     const message = (snackBar.open.calls.mostRecent().args[0] as string) || '';
     expect(message).toContain('backend down');

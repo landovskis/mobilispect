@@ -45,17 +45,19 @@ import { Feed, FeedStatus, FeedSpecType } from '../models';
           </mat-chip-listbox>
         </div>
 
-        <div card-footer class="w-full">
-          <app-brand-button
-            variant="primary"
-            [block]="true"
-            (click)="onImport()"
-            [disabled]="!agencyGroup.hasActiveFeeds"
-            [matTooltip]="getImportTooltip()">
-            <mat-icon>download</mat-icon>
-            <span>Import{{ getActiveFeedsCount() > 1 ? ' All' : '' }}</span>
-          </app-brand-button>
-        </div>
+        @if (showImportAction) {
+          <div card-footer class="w-full">
+            <app-brand-button
+              variant="primary"
+              [block]="true"
+              (click)="onImport()"
+              [disabled]="!agencyGroup.hasActiveFeeds"
+              [matTooltip]="getImportTooltip()">
+              <mat-icon>download</mat-icon>
+              <span>Import{{ getActiveFeedsCount() > 1 ? ' All' : '' }}</span>
+            </app-brand-button>
+          </div>
+        }
       </app-brand-card>
     }
   `,
@@ -63,6 +65,7 @@ import { Feed, FeedStatus, FeedSpecType } from '../models';
 })
 export class AgencyFeedCardComponent {
   @Input() agencyGroup!: AgencyFeedGroup;
+  @Input() showImportAction = true;
 
   @Output() importFeed = new EventEmitter<Feed>();
   @Output() importAllFeeds = new EventEmitter<Feed[]>();

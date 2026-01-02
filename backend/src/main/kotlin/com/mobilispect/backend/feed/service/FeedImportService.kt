@@ -10,6 +10,7 @@ import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import java.time.Clock
+import java.util.UUID
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
@@ -86,6 +87,7 @@ class FeedImportService(
         .addString("feedOnestopId", feedId.value)
         .addString("importId", importId.value.toString())
         .addLong("timestamp", System.currentTimeMillis())
+        .addString("runId", UUID.randomUUID().toString())
         .toJobParameters()
 
     importLaunchExecutor.execute {

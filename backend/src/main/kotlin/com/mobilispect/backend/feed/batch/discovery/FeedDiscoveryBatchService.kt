@@ -4,6 +4,7 @@ import com.mobilispect.backend.feed.model.FeedSpecType
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.util.UUID
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.JobExecution
@@ -160,6 +161,7 @@ class FeedDiscoveryBatchService(
       JobParametersBuilder()
         .addString("specType", specType)
         .addLong("timestamp", System.currentTimeMillis()) // Make each run unique
+        .addString("runId", UUID.randomUUID().toString())
 
     apiKey?.let { builder.addString("apiKey", it.value) }
     regionId?.let { builder.addString("regionId", it) }
