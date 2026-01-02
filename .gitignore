@@ -50,3 +50,7 @@ Thumbs.db
 java-25/
 
 /.envrc
+
+# Git worktrees (Crystal)
+/worktrees/
+/worktree-*/
