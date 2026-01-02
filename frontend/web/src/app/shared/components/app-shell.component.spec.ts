@@ -7,14 +7,12 @@ import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service'
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
 import { BehaviorSubject, firstValueFrom, of } from 'rxjs';
-import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('AppShellComponent', () => {
     let component: AppShellComponent;
     let fixture: ComponentFixture<AppShellComponent>;
-    let router: Router;
 
     const mockImportService = {
         getActiveImportsObservable: () => of([]),
@@ -59,7 +57,6 @@ describe('AppShellComponent', () => {
 
         fixture = TestBed.createComponent(AppShellComponent);
         component = fixture.componentInstance;
-        router = TestBed.inject(Router);
         fixture.detectChanges();
     });
 
@@ -117,7 +114,7 @@ describe('AppShellComponent', () => {
     });
 
     it('falls back to zero active imports when data is missing', async () => {
-        mockImportService.getActiveImportsObservable = () => of(null as any);
+        mockImportService.getActiveImportsObservable = () => of(null);
 
         const testFixture = TestBed.createComponent(AppShellComponent);
         const testComponent = testFixture.componentInstance;

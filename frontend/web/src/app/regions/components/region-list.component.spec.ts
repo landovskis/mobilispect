@@ -1,4 +1,5 @@
-import { fakeAsync, tick } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { RegionListComponent } from './region-list.component';
 import { RegionService } from '../../feeds/services/region.service';
@@ -12,7 +13,7 @@ describe('RegionListComponent', () => {
   let regionService: jasmine.SpyObj<RegionService>;
   let importService: jasmine.SpyObj<ImportService>;
   let schedulerService: jasmine.SpyObj<SchedulerService>;
-  let snackBar: { open: jasmine.Spy };
+  let snackBar: jasmine.SpyObj<MatSnackBar>;
 
   const baseRegion: MetropolitanRegion = {
     regionOnestopId: 'r-test',
@@ -60,7 +61,7 @@ describe('RegionListComponent', () => {
       'checkFeedUpdate',
       'getAllFeedVersions',
     ]);
-    snackBar = { open: jasmine.createSpy('open') };
+    snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
 
     regionService.listRegions.and.returnValue(of([baseRegion]));
     regionService.sortWithCanadianPriority.and.callFake(regions => regions);
@@ -71,12 +72,15 @@ describe('RegionListComponent', () => {
     schedulerService.checkFeedUpdate.and.returnValue(of(true));
     schedulerService.getAllFeedVersions.and.returnValue(of([]));
 
-    component = new RegionListComponent(
-      regionService,
-      importService,
-      schedulerService,
-      snackBar as any
-    );
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: RegionService, useValue: regionService },
+        { provide: ImportService, useValue: importService },
+        { provide: SchedulerService, useValue: schedulerService },
+        { provide: MatSnackBar, useValue: snackBar }
+      ]
+    });
+    component = TestBed.runInInjectionContext(() => new RegionListComponent());
   });
 
   it('loads regions and active imports on init', () => {
@@ -105,7 +109,10 @@ describe('RegionListComponent', () => {
       { ...baseRegion, regionOnestopId: 'r-2', name: 'Austin', autoUpdateEnabled: false },
     ];
 
-    const filtered = (component as any).filterRegions(regions, 'tor', true) as MetropolitanRegion[];
+    const filterRegions = (component as unknown as {
+      filterRegions: (items: MetropolitanRegion[], term: string, autoUpdate: boolean | undefined) => MetropolitanRegion[];
+    }).filterRegions;
+    const filtered = filterRegions.call(component, regions, 'tor', true);
     expect(filtered.length).toBe(1);
     expect(filtered[0].regionOnestopId).toBe('r-1');
   });

@@ -53,8 +53,8 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
   importHistory: FeedImportSummary[] = [];
   importHistoryPage = 0;
   importHistorySize = 20;
-  pageSizeOptions: number[] = [10, 20, 50, 100];
-  displayedColumns: string[] = ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'fileSize'];
+  readonly pageSizeOptions = [10, 20, 50, 100];
+  readonly displayedColumns = ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'fileSize'];
   totalImportPages = 0;
   totalImportElements = 0;
   loadingHistory = false;
@@ -73,11 +73,9 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  get hasActiveImports(): boolean {
-    return false;
-  }
+  readonly hasActiveImports = false;
 
-  loadImportHistory(page: number = 0): void {
+  loadImportHistory(page = 0): void {
     this.loadingHistory = true;
     this.importHistoryPage = page;
 
@@ -88,7 +86,7 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
-        this.importHistory = response.imports as any[];
+        this.importHistory = response.imports as FeedImportSummary[];
         this.totalImportPages = response.totalPages;
         this.totalImportElements = response.totalElements;
         this.metrics.setTotalImportElements(response.totalElements);

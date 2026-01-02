@@ -4,7 +4,7 @@ import { ActivatedRouteSnapshot, Params } from '@angular/router';
 export interface Breadcrumb {
     id?: string;
     label: string;
-    link?: string | any[];
+    link?: string | string[];
     queryParams?: Params | null;
 }
 
@@ -19,7 +19,7 @@ export class AppBreadcrumbService {
 
     private buildBreadcrumbsFromRoute(
         route: ActivatedRouteSnapshot,
-        url: string = '',
+        url = '',
         crumbs: Breadcrumb[] = []
     ): Breadcrumb[] {
         const children = route.children.filter(child => child.outlet === 'primary');

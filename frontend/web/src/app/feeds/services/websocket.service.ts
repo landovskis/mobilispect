@@ -1,5 +1,5 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, timer } from 'rxjs';
+import { Observable, Subject, BehaviorSubject } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -7,7 +7,7 @@ import { environment } from '../../../environments/environment';
 
 export interface WebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: string;
 }
 
@@ -46,7 +46,7 @@ export interface SystemAlertMessage extends WebSocketMessage {
   data: {
     level: 'INFO' | 'WARNING' | 'ERROR';
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }
 
@@ -63,12 +63,10 @@ export interface SystemAlertMessage extends WebSocketMessage {
 })
 export class WebSocketService implements OnDestroy {
   private stompClient: Client | null = null;
-  private messagesSubject$ = new Subject<any>();
+  private messagesSubject$ = new Subject<WebSocketMessage>();
   private connectionStatus$ = new BehaviorSubject<'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'>('DISCONNECTED');
   private destroy$ = new Subject<void>();
   private subscriptions = new Map<string, StompSubscription>();
-
-  constructor() {}
 
   private buildStompClient(config: ConstructorParameters<typeof Client>[0]): Client {
     return new Client(config);
@@ -151,7 +149,7 @@ export class WebSocketService implements OnDestroy {
   /**
    * Sends a message to the STOMP server
    */
-  send(destination: string, body: any): void {
+  send(destination: string, body: unknown): void {
     if (this.stompClient && this.stompClient.connected) {
       this.stompClient.publish({
         destination: destination,
@@ -314,7 +312,7 @@ export class WebSocketService implements OnDestroy {
   /**
    * Gets all WebSocket messages (for debugging)
    */
-  getAllMessages(): Observable<any> {
+  getAllMessages(): Observable<WebSocketMessage> {
     return this.messagesSubject$.asObservable();
   }
 

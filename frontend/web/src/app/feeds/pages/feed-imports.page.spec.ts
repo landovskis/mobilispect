@@ -1,10 +1,11 @@
+import { TestBed } from '@angular/core/testing';
+import { MatSnackBar, MatSnackBarRef, SimpleSnackBar } from '@angular/material/snack-bar';
 import { Subject, of, throwError } from 'rxjs';
 import { FeedImportsPageComponent } from './feed-imports.page';
 import { ImportService } from '../services/import.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
-import { FeedImport, FeedImportSummary, ImportStatus, TriggerType } from '../models';
+import { FeedImport, ImportStatus, TriggerType } from '../models';
 
 describe('FeedImportsPageComponent', () => {
   let component: FeedImportsPageComponent;
@@ -48,15 +49,20 @@ describe('FeedImportsPageComponent', () => {
       totalElements: 1,
       totalPages: 1,
     }));
-    importService.cancelImport.and.returnValue(of(baseImport as any));
-    snackBar.open.and.returnValue({ onAction: () => new Subject<void>() } as any);
+    importService.cancelImport.and.returnValue(of(baseImport));
+    snackBar.open.and.returnValue({
+      onAction: () => new Subject<void>()
+    } as MatSnackBarRef<SimpleSnackBar>);
 
-    component = new FeedImportsPageComponent(
-      importService,
-      snackBar,
-      metrics,
-      events
-    );
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ImportService, useValue: importService },
+        { provide: MatSnackBar, useValue: snackBar },
+        { provide: FeedsMetricsService, useValue: metrics },
+        { provide: FeedsEventsService, useValue: events }
+      ]
+    });
+    component = TestBed.runInInjectionContext(() => new FeedImportsPageComponent());
   });
 
   it('loads history and refreshes active imports on init', () => {

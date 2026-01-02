@@ -26,7 +26,8 @@ describe('RegionSelectorComponent', () => {
   });
 
   it('filters regions by search term', () => {
-    const result = (component as any)._filterRegions('aus') as MetropolitanRegion[];
+    const filterRegions = component as unknown as { _filterRegions: (term: string) => MetropolitanRegion[] };
+    const result = filterRegions._filterRegions('aus');
 
     expect(result.length).toBe(1);
     expect(result[0].regionOnestopId).toBe('r-2');

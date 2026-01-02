@@ -73,66 +73,72 @@ export class TypeGuards {
   /**
    * Checks if an object is a valid MetropolitanRegion
    */
-  static isMetropolitanRegion(obj: any): obj is MetropolitanRegion {
-    return obj &&
-           typeof obj.regionOnestopId === 'string' &&
-           typeof obj.name === 'string' &&
-           typeof obj.autoUpdateEnabled === 'boolean' &&
-           typeof obj.feedCount === 'number';
+  static isMetropolitanRegion(obj: unknown): obj is MetropolitanRegion {
+    if (!obj || typeof obj !== 'object') return false;
+    const candidate = obj as Record<string, unknown>;
+    return typeof candidate.regionOnestopId === 'string' &&
+           typeof candidate.name === 'string' &&
+           typeof candidate.autoUpdateEnabled === 'boolean' &&
+           typeof candidate.feedCount === 'number';
   }
 
   /**
    * Checks if an object is a valid Feed
    */
-  static isFeed(obj: any): obj is Feed {
-    return obj &&
-           typeof obj.feedOnestopId === 'string' &&
-           typeof obj.regionOnestopId === 'string' &&
-           typeof obj.name === 'string' &&
-           Object.values(FeedSpecType).includes(obj.specType) &&
-           Object.values(FeedStatus).includes(obj.status);
+  static isFeed(obj: unknown): obj is Feed {
+    if (!obj || typeof obj !== 'object') return false;
+    const candidate = obj as Record<string, unknown>;
+    return typeof candidate.feedOnestopId === 'string' &&
+           typeof candidate.regionOnestopId === 'string' &&
+           typeof candidate.name === 'string' &&
+           Object.values(FeedSpecType).includes(candidate.specType as FeedSpecType) &&
+           Object.values(FeedStatus).includes(candidate.status as FeedStatus);
   }
 
   /**
    * Checks if an object is a valid FeedImport
    */
-  static isFeedImport(obj: any): obj is FeedImport {
-    return obj &&
-           typeof obj.id === 'string' &&
-           typeof obj.feedOnestopId === 'string' &&
-           Object.values(ImportStatus).includes(obj.status) &&
-           Object.values(TriggerType).includes(obj.triggerType);
+  static isFeedImport(obj: unknown): obj is FeedImport {
+    if (!obj || typeof obj !== 'object') return false;
+    const candidate = obj as Record<string, unknown>;
+    return typeof candidate.id === 'string' &&
+           typeof candidate.feedOnestopId === 'string' &&
+           Object.values(ImportStatus).includes(candidate.status as ImportStatus) &&
+           Object.values(TriggerType).includes(candidate.triggerType as TriggerType);
   }
 
   /**
    * Checks if an object is a valid ImportProgress
    */
-  static isImportProgress(obj: any): obj is ImportProgress {
-    return obj &&
-           typeof obj.progressPercentage === 'number' &&
-           typeof obj.totalSteps === 'number' &&
-           typeof obj.currentStep === 'string';
+  static isImportProgress(obj: unknown): obj is ImportProgress {
+    if (!obj || typeof obj !== 'object') return false;
+    const candidate = obj as Record<string, unknown>;
+    return typeof candidate.progressPercentage === 'number' &&
+           typeof candidate.totalSteps === 'number' &&
+           typeof candidate.currentStep === 'string';
   }
 
   /**
    * Checks if an object is a valid ProgressUpdateMessage
    */
-  static isProgressUpdateMessage(obj: any): obj is ProgressUpdateMessage {
-    return obj &&
-           typeof obj.importId === 'string' &&
-           typeof obj.feedOnestopId === 'string' &&
-           typeof obj.progressPercentage === 'number' &&
-           typeof obj.currentStep === 'string';
+  static isProgressUpdateMessage(obj: unknown): obj is ProgressUpdateMessage {
+    if (!obj || typeof obj !== 'object') return false;
+    const candidate = obj as Record<string, unknown>;
+    return typeof candidate.importId === 'string' &&
+           typeof candidate.feedOnestopId === 'string' &&
+           typeof candidate.progressPercentage === 'number' &&
+           typeof candidate.currentStep === 'string';
   }
 
   /**
    * Checks if an object is a valid SystemAlertMessage
    */
-  static isSystemAlertMessage(obj: any): obj is SystemAlertMessage {
-    return obj &&
-           ['info', 'warning', 'error'].includes(obj.type) &&
-           typeof obj.title === 'string' &&
-           typeof obj.message === 'string';
+  static isSystemAlertMessage(obj: unknown): obj is SystemAlertMessage {
+    if (!obj || typeof obj !== 'object') return false;
+    const candidate = obj as Record<string, unknown>;
+    return ['info', 'warning', 'error'].includes(candidate.type as string) &&
+           typeof candidate.title === 'string' &&
+           typeof candidate.message === 'string';
   }
 }
 
@@ -170,8 +176,8 @@ export const FEED_MANAGEMENT_CONSTANTS = {
     MAX_FEED_NAME_LENGTH: 255,
     MIN_PASSWORD_LENGTH: 8,
     ONESTOP_ID_PATTERN: {
-      REGION: /^r-[0-9a-z]+-[a-z0-9\-]+$/,
-      FEED: /^f-[0-9a-z]+(~[a-z]+)?-[a-z0-9\-]+$/
+      REGION: /^r-[0-9a-z]+-[a-z0-9-]+$/,
+      FEED: /^f-[0-9a-z]+(~[a-z]+)?-[a-z0-9-]+$/
     }
   }
 } as const;

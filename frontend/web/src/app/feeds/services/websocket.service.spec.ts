@@ -1,40 +1,53 @@
 import { TestBed } from '@angular/core/testing';
-import { WebSocketService } from './websocket.service';
+import { IMessage, StompSubscription } from '@stomp/stompjs';
+import { ImportStatusMessage, ProgressUpdateMessage, SystemAlertMessage, WebSocketService } from './websocket.service';
+
+interface StompConfig {
+  onConnect?: (frame: unknown) => void;
+  onStompError?: (frame: unknown) => void;
+  onWebSocketClose?: (event: unknown) => void;
+  onWebSocketError?: (event: unknown) => void;
+  onDisconnect?: (frame: unknown) => void;
+}
+
+interface MockSubscription {
+  unsubscribe: jasmine.Spy;
+}
 
 class MockStompClient {
   connected = false;
   activate = jasmine.createSpy('activate');
   deactivate = jasmine.createSpy('deactivate');
   publish = jasmine.createSpy('publish');
-  subscribe = jasmine.createSpy('subscribe').and.callFake((_topic: string, callback: (message: any) => void) => {
+  subscribe = jasmine.createSpy('subscribe').and.callFake((_topic: string, callback: (message: IMessage) => void) => {
     this.lastSubscriptionCallback = callback;
-    const subscription = { unsubscribe: jasmine.createSpy('unsubscribe') };
+    const subscription: MockSubscription = { unsubscribe: jasmine.createSpy('unsubscribe') };
     this.subscriptions.push(subscription);
-    return subscription as any;
+    return subscription as StompSubscription;
   });
-  lastSubscriptionCallback?: (message: any) => void;
-  subscriptions: Array<{ unsubscribe: jasmine.Spy }> = [];
+  lastSubscriptionCallback?: (message: IMessage) => void;
+  subscriptions: MockSubscription[] = [];
 
-  constructor(public config: any) {}
+  constructor(public config: StompConfig) {}
 
-  triggerConnect(frame: any = {}): void {
+  triggerConnect(frame: unknown = {}): void {
     this.connected = true;
     this.config.onConnect?.(frame);
   }
 
-  triggerStompError(frame: any = {}): void {
+  triggerStompError(frame: unknown = {}): void {
     this.config.onStompError?.(frame);
   }
 
-  triggerWebSocketClose(event: any = {}): void {
+  triggerWebSocketClose(event: unknown = {}): void {
     this.config.onWebSocketClose?.(event);
   }
 
-  triggerWebSocketError(event: any = {}): void {
+  triggerWebSocketError(event: unknown = {}): void {
     this.config.onWebSocketError?.(event);
   }
 
-  triggerDisconnect(frame: any = {}): void {
+  triggerDisconnect(frame: unknown = {}): void {
     this.config.onDisconnect?.(frame);
   }
 }
@@ -48,9 +61,12 @@ describe('WebSocketService', () => {
     service = TestBed.inject(WebSocketService);
     createdClient = null;
 
-    spyOn(service as any, 'buildStompClient').and.callFake((config: any) => {
+    const serviceHarness = service as unknown as {
+      buildStompClient: (config: StompConfig) => MockStompClient;
+    };
+    spyOn(serviceHarness, 'buildStompClient').and.callFake((config: StompConfig) => {
       createdClient = new MockStompClient(config);
-      return createdClient as any;
+      return createdClient;
     });
 
     spyOn(console, 'log');
@@ -62,29 +78,32 @@ describe('WebSocketService', () => {
     service.connect();
 
     expect(createdClient).not.toBeNull();
-    expect((service as any).connectionStatus$.value).toBe('CONNECTING');
+    expect((service as unknown as { connectionStatus$: { value: string } }).connectionStatus$.value).toBe('CONNECTING');
     expect(createdClient?.activate).toHaveBeenCalled();
 
     createdClient?.triggerConnect();
 
-    expect((service as any).connectionStatus$.value).toBe('CONNECTED');
+    expect((service as unknown as { connectionStatus$: { value: string } }).connectionStatus$.value).toBe('CONNECTED');
   });
 
   it('skips connect when already connected', () => {
-    (service as any).stompClient = { connected: true, deactivate: jasmine.createSpy('deactivate') };
+    (service as unknown as { stompClient: { connected: boolean; deactivate: jasmine.Spy } | null }).stompClient = {
+      connected: true,
+      deactivate: jasmine.createSpy('deactivate')
+    };
 
     service.connect();
 
-    expect((service as any).buildStompClient).not.toHaveBeenCalled();
+    expect((service as unknown as { buildStompClient: jasmine.Spy }).buildStompClient).not.toHaveBeenCalled();
   });
 
   it('disconnects and clears subscriptions', () => {
     const mockClient = new MockStompClient({});
     mockClient.connected = true;
-    (service as any).stompClient = mockClient as any;
-    const progressSub = { unsubscribe: jasmine.createSpy('unsubscribe') };
-    const statusSub = { unsubscribe: jasmine.createSpy('unsubscribe') };
-    (service as any).subscriptions = new Map([
+    (service as unknown as { stompClient: MockStompClient | null }).stompClient = mockClient;
+    const progressSub: MockSubscription = { unsubscribe: jasmine.createSpy('unsubscribe') };
+    const statusSub: MockSubscription = { unsubscribe: jasmine.createSpy('unsubscribe') };
+    (service as unknown as { subscriptions: Map<string, MockSubscription> }).subscriptions = new Map([
       ['/topic/import/progress/import-1', progressSub],
       ['/topic/import/status/import-1', statusSub]
     ]);
@@ -94,14 +113,14 @@ describe('WebSocketService', () => {
     expect(progressSub.unsubscribe).toHaveBeenCalled();
     expect(statusSub.unsubscribe).toHaveBeenCalled();
     expect(mockClient.deactivate).toHaveBeenCalled();
-    expect((service as any).stompClient).toBeNull();
-    expect((service as any).connectionStatus$.value).toBe('DISCONNECTED');
+    expect((service as unknown as { stompClient: MockStompClient | null }).stompClient).toBeNull();
+    expect((service as unknown as { connectionStatus$: { value: string } }).connectionStatus$.value).toBe('DISCONNECTED');
   });
 
   it('publishes messages when connected', () => {
     const mockClient = new MockStompClient({});
     mockClient.connected = true;
-    (service as any).stompClient = mockClient as any;
+    (service as unknown as { stompClient: MockStompClient | null }).stompClient = mockClient;
 
     service.send('/app/ping', { type: 'PING' });
 
@@ -113,7 +132,7 @@ describe('WebSocketService', () => {
 
   it('warns when sending while disconnected', () => {
     const mockClient = new MockStompClient({});
-    (service as any).stompClient = mockClient as any;
+    (service as unknown as { stompClient: MockStompClient | null }).stompClient = mockClient;
 
     service.send('/app/ping', { type: 'PING' });
 
@@ -122,16 +141,17 @@ describe('WebSocketService', () => {
 
   it('subscribes to import progress after connection', () => {
     const mockClient = new MockStompClient({});
-    (service as any).stompClient = mockClient as any;
-    (service as any).connectionStatus$.next('CONNECTED');
-    const received: any[] = [];
+    (service as unknown as { stompClient: MockStompClient | null }).stompClient = mockClient;
+    (service as unknown as { connectionStatus$: { next: (value: string) => void } }).connectionStatus$.next('CONNECTED');
+    const received: ProgressUpdateMessage[] = [];
 
     service.subscribeToImportProgress('import-1').subscribe(message => received.push(message));
 
     expect(mockClient.subscribe).toHaveBeenCalledWith('/topic/import/progress/import-1', jasmine.any(Function));
 
     const callback = mockClient.subscribe.calls.mostRecent().args[1];
-    callback({ body: JSON.stringify({ progress: { importId: 'import-1' } }) });
+    const message = { body: JSON.stringify({ progress: { importId: 'import-1' } }) } as IMessage;
+    callback(message);
 
     expect(received.length).toBe(1);
     expect(received[0].progress.importId).toBe('import-1');
@@ -139,16 +159,19 @@ describe('WebSocketService', () => {
 
   it('subscribes to import status after connection', () => {
     const mockClient = new MockStompClient({});
-    (service as any).stompClient = mockClient as any;
-    (service as any).connectionStatus$.next('CONNECTED');
-    const received: any[] = [];
+    (service as unknown as { stompClient: MockStompClient | null }).stompClient = mockClient;
+    (service as unknown as { connectionStatus$: { next: (value: string) => void } }).connectionStatus$.next('CONNECTED');
+    const received: ImportStatusMessage[] = [];
 
     service.subscribeToImportStatus('import-3').subscribe(message => received.push(message));
 
     expect(mockClient.subscribe).toHaveBeenCalledWith('/topic/import/status/import-3', jasmine.any(Function));
 
     const callback = mockClient.subscribe.calls.mostRecent().args[1];
-    callback({ body: JSON.stringify({ type: 'IMPORT_STATUS', data: { importId: 'import-3', status: 'COMPLETED' } }) });
+    const message = {
+      body: JSON.stringify({ type: 'IMPORT_STATUS', data: { importId: 'import-3', status: 'COMPLETED' } })
+    } as IMessage;
+    callback(message);
 
     expect(received.length).toBe(1);
     expect(received[0].data.importId).toBe('import-3');
@@ -156,25 +179,28 @@ describe('WebSocketService', () => {
 
   it('subscribes to system alerts after connection', () => {
     const mockClient = new MockStompClient({});
-    (service as any).stompClient = mockClient as any;
-    (service as any).connectionStatus$.next('CONNECTED');
-    const received: any[] = [];
+    (service as unknown as { stompClient: MockStompClient | null }).stompClient = mockClient;
+    (service as unknown as { connectionStatus$: { next: (value: string) => void } }).connectionStatus$.next('CONNECTED');
+    const received: SystemAlertMessage[] = [];
 
     service.subscribeToSystemAlerts().subscribe(message => received.push(message));
 
     expect(mockClient.subscribe).toHaveBeenCalledWith('/topic/system/alerts', jasmine.any(Function));
 
     const callback = mockClient.subscribe.calls.mostRecent().args[1];
-    callback({ body: JSON.stringify({ type: 'SYSTEM_ALERT', data: { level: 'INFO', message: 'Ready' } }) });
+    const message = {
+      body: JSON.stringify({ type: 'SYSTEM_ALERT', data: { level: 'INFO', message: 'Ready' } })
+    } as IMessage;
+    callback(message);
 
     expect(received.length).toBe(1);
     expect(received[0].type).toBe('SYSTEM_ALERT');
   });
 
   it('unsubscribes from import topics', () => {
-    const progressSub = { unsubscribe: jasmine.createSpy('unsubscribe') };
-    const statusSub = { unsubscribe: jasmine.createSpy('unsubscribe') };
-    (service as any).subscriptions = new Map([
+    const progressSub: MockSubscription = { unsubscribe: jasmine.createSpy('unsubscribe') };
+    const statusSub: MockSubscription = { unsubscribe: jasmine.createSpy('unsubscribe') };
+    (service as unknown as { subscriptions: Map<string, MockSubscription> }).subscriptions = new Map([
       ['/topic/import/progress/import-1', progressSub],
       ['/topic/import/status/import-1', statusSub]
     ]);
@@ -188,7 +214,7 @@ describe('WebSocketService', () => {
   it('returns connection status from isConnected', () => {
     const mockClient = new MockStompClient({});
     mockClient.connected = true;
-    (service as any).stompClient = mockClient as any;
+    (service as unknown as { stompClient: MockStompClient | null }).stompClient = mockClient;
 
     expect(service.isConnected()).toBe(true);
   });

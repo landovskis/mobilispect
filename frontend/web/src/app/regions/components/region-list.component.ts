@@ -21,6 +21,11 @@ import { FeedImportSummary } from '../../feeds/models/import.models';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandButtonComponent } from '../../shared/components/brand-button.component';
 
+interface FeedVersionStatus {
+  lastChecked: Date | string | null | undefined;
+  hasUpdate: boolean;
+}
+
 /**
  * Region List Component
  *
@@ -408,7 +413,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
   // Auto-update control state
   isUpdatingAutoUpdate = new Set<string>();
   isCheckingUpdates = new Set<string>();
-  feedVersions = new Map<string, any>();
+  feedVersions = new Map<string, FeedVersionStatus>();
 
   // Computed streams
   filteredRegions$ = combineLatest([
@@ -530,6 +535,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
   }
 
   handleDiscoveryCompleted(region: MetropolitanRegion, result: FeedDiscoveryResult): void {
+    void result;
     // Refresh UI to reflect new feed counts and timestamps
     this.refreshRegions();
 
@@ -652,7 +658,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
   /**
    * Get version status for a region
    */
-  getVersionStatus(region: MetropolitanRegion): any {
+  getVersionStatus(region: MetropolitanRegion): FeedVersionStatus {
     const regionId = region.regionOnestopId;
     const versionInfo = this.feedVersions.get(regionId);
 

@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, timer, combineLatest } from 'rxjs';
+import { Subject, BehaviorSubject, timer, combineLatest } from 'rxjs';
 import { takeUntil, map, startWith, switchMap, catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';

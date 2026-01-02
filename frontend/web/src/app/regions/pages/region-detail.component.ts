@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
-import { MetropolitanRegionDetail, FeedStatus } from '../../feeds/models/region.models';
+import { MetropolitanRegionDetail } from '../../feeds/models/region.models';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';

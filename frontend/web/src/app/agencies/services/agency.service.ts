@@ -13,7 +13,7 @@ export class AgencyService {
   private readonly apiUrl = `${environment.apiUrl}`;
   private readonly http = inject(HttpClient);
 
-  listAgencies(page: number = 0, size: number = 20, regionId?: string): Observable<AgencyListResponse> {
+  listAgencies(page = 0, size = 20, regionId?: string): Observable<AgencyListResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
@@ -27,7 +27,7 @@ export class AgencyService {
     return this.http.get<AgencySummary>(`${this.apiUrl}/agencies/${agencyId}`);
   }
 
-  listRoutesByAgency(agencyId: string, page: number = 0, size: number = 500): Observable<RouteListResponse> {
+  listRoutesByAgency(agencyId: string, page = 0, size = 500): Observable<RouteListResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());

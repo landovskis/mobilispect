@@ -203,7 +203,7 @@ export class RouteDetailPageComponent implements OnInit {
 
   get directionTabs(): { id: number | null; label: string; key: string }[] {
     const ids = Array.from(new Set(this.variants.map(variant => variant.directionId ?? null)));
-    const ordered: Array<number | null> = [];
+    const ordered: (number | null)[] = [];
     if (ids.includes(0)) ordered.push(0);
     if (ids.includes(1)) ordered.push(1);
     ids.filter(id => id !== 0 && id !== 1 && id !== null).forEach(id => ordered.push(id));
@@ -227,7 +227,7 @@ export class RouteDetailPageComponent implements OnInit {
   }
 
   get dayTypeTabs(): { id: NonNullable<RouteHourlyStatsDto['dayType']>; label: string }[] {
-    const ordered: Array<NonNullable<RouteHourlyStatsDto['dayType']>> = [
+    const ordered: NonNullable<RouteHourlyStatsDto['dayType']>[] = [
       'WEEKDAY',
       'SATURDAY',
       'SUNDAY',

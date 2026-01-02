@@ -62,7 +62,7 @@ export class ImportService implements OnDestroy {
   startImport(feedId: string, request?: ImportRequest): Observable<FeedImport> {
     const body = request || { force: false };
     return this.http.post<FeedImport>(`${this.apiUrl}/${feedId}/import`, body).pipe(
-      tap(importResult => {
+      tap(() => {
         // Start polling for active imports to update UI
         this.startPollingActiveImports();
       }),
@@ -78,19 +78,24 @@ export class ImportService implements OnDestroy {
     );
   }
 
-  private getErrorMessage(error: any): string {
-    if (error.status === 0) {
+  private getErrorMessage(error: unknown): string {
+    const candidate = error as {
+      status?: number;
+      statusText?: string;
+      error?: { message?: string };
+    };
+    if (candidate.status === 0) {
       return 'Cannot connect to backend server. Please check if the backend is running.';
-    } else if (error.status === 403) {
+    } else if (candidate.status === 403) {
       return 'Authentication required. Please log in to perform imports.';
-    } else if (error.status === 404) {
+    } else if (candidate.status === 404) {
       return 'Feed not found or import endpoint not available.';
-    } else if (error.status === 503) {
+    } else if (candidate.status === 503) {
       return 'Backend service is temporarily unavailable. Database connection issues detected.';
-    } else if (error.error?.message) {
-      return error.error.message;
+    } else if (candidate.error?.message) {
+      return candidate.error.message;
     } else {
-      return `Backend error (${error.status}): ${error.statusText || 'Unknown error'}`;
+      return `Backend error (${candidate.status ?? 'unknown'}): ${candidate.statusText || 'Unknown error'}`;
     }
   }
 
@@ -384,7 +389,12 @@ export class ImportService implements OnDestroy {
   /**
    * Bulk cancel multiple imports
    */
-  bulkCancelImports(importIds: string[]): Promise<any[]> {
+  bulkCancelImports(importIds: string[]): Promise<{
+    id: string;
+    status: 'COMPLETED' | 'FAILED';
+    result?: FeedImport;
+    error?: string;
+  }[]> {
     const cancelRequests = importIds.map(id =>
       this.cancelImport(id).toPromise().then(
         result => ({ id, status: 'COMPLETED', result }),

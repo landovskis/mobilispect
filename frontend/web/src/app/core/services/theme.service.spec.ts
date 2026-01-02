@@ -10,9 +10,9 @@ const buildMediaQueryStub = (
   onchange: null,
   addEventListener: (_eventName: string, handler: EventListenerOrEventListenerObject) =>
     registerHandler?.(handler as (event: MediaQueryListEvent) => void),
-  removeEventListener: () => {},
+  removeEventListener: () => undefined,
   addListener: (handler: (event: MediaQueryListEvent) => void) => registerHandler?.(handler),
-  removeListener: () => {},
+  removeListener: () => undefined,
   dispatchEvent: () => false
 });
 

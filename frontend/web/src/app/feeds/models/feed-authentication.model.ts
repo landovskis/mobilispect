@@ -27,7 +27,7 @@ export interface FeedAuthenticationRequest {
   authType: AuthType;
   primaryCredential?: string;
   secondaryCredential?: string;
-  authParameters?: Record<string, any>;
+  authParameters?: Record<string, unknown>;
   expiresAt?: string;
   notes?: string;
 }

@@ -1,14 +1,15 @@
-import { Component, Input, OnDestroy, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, NavigationEnd, RouterModule, ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { BreakpointObserver, LayoutModule } from '@angular/cdk/layout';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable, Subject, firstValueFrom } from 'rxjs';
-import { filter, map, shareReplay, startWith, takeUntil } from 'rxjs/operators';
-import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from './app-bar.component';
+import { map, shareReplay } from 'rxjs/operators';
+import { AppBarComponent, BreadcrumbSelection } from './app-bar.component';
+import { FeedImportSummary } from '../../feeds/models/import.models';
 import { ImportService } from '../../feeds/services/import.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
@@ -408,7 +409,6 @@ import { WindowSizeClass } from '../models/window-size-class';
 export class AppShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly router = inject(Router);
-  private readonly activatedRoute = inject(ActivatedRoute);
   private readonly snackBar = inject(MatSnackBar);
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly importService = inject(ImportService);
@@ -443,7 +443,7 @@ export class AppShellComponent implements OnDestroy {
   readonly discoverFeedCount$: Observable<number> = this.metrics.discoverFeedCount$;
   readonly totalImportElements$: Observable<number> = this.metrics.totalImportElements$;
   readonly activeImportCount$: Observable<number> = this.importService.getActiveImportsObservable().pipe(
-    map((imports: any[] | null | undefined) => imports?.length ?? 0)
+    map((imports: FeedImportSummary[] | null | undefined) => imports?.length ?? 0)
   );
 
   ngOnDestroy(): void {

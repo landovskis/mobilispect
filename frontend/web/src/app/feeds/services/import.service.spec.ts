@@ -4,7 +4,8 @@ import { of, EMPTY } from 'rxjs';
 import { ImportService } from './import.service';
 import { environment } from '../../../environments/environment';
 import { WebSocketService } from './websocket.service';
-import { FeedImport, FeedImportDetail, FeedImportSummary, ImportStatus, TriggerType } from '../models/import.models';
+import { FeedImport, FeedImportDetail, FeedImportSummary, ImportProgress, ImportStatus, TriggerType } from '../models/import.models';
+import { ImportStatusMessage, ProgressUpdateMessage } from './websocket.service';
 
 describe('ImportService', () => {
   let service: ImportService;
@@ -105,7 +106,9 @@ describe('ImportService', () => {
   });
 
   it('formats backend error messages for common statuses', () => {
-    const getErrorMessage = (service as any).getErrorMessage.bind(service);
+    const getErrorMessage = (service as unknown as {
+      getErrorMessage: (error: unknown) => string;
+    }).getErrorMessage.bind(service);
 
     expect(getErrorMessage({ status: 0 })).toContain('Cannot connect');
     expect(getErrorMessage({ status: 404 })).toContain('Feed not found');
@@ -250,7 +253,7 @@ describe('ImportService', () => {
 
   it('polls active imports on interval', fakeAsync(() => {
     spyOn(service, 'getActiveImports').and.returnValue(of([]));
-    (service as any).pollingInterval = 10;
+    (service as unknown as { pollingInterval: number }).pollingInterval = 10;
 
     service.startPollingActiveImports();
     tick(0);
@@ -261,7 +264,7 @@ describe('ImportService', () => {
   }));
 
   it('skips polling when already active', () => {
-    (service as any).isPolling = true;
+    (service as unknown as { isPolling: boolean }).isPolling = true;
     spyOn(service, 'getActiveImports');
 
     service.startPollingActiveImports();
@@ -312,15 +315,22 @@ describe('ImportService', () => {
       estimatedTimeRemainingSeconds: null,
     }));
 
-    mockWebSocketService.subscribeToImportProgress.and.returnValue(of({
-      data: {
+    const progressMessage: ProgressUpdateMessage = {
+      progress: {
+        importId: 'imp-1',
+        feedOnestopId: 'f-1',
         progressPercentage: 20,
         currentStep: 'Step',
-        estimatedTimeRemainingSeconds: 5,
-      },
-    } as any));
+        currentStepNumber: 1,
+        totalSteps: 8,
+        startedAt: '2024-01-01T00:00:00Z',
+        lastUpdatedAt: '2024-01-01T00:00:05Z',
+        estimatedTimeRemainingSeconds: 5
+      }
+    };
+    mockWebSocketService.subscribeToImportProgress.and.returnValue(of(progressMessage));
 
-    const results: any[] = [];
+    const results: ImportProgress[] = [];
     service.monitorImportProgress('imp-1').subscribe(value => results.push(value));
 
     tick(0);
@@ -332,9 +342,17 @@ describe('ImportService', () => {
   it('merges status updates from polling and websocket', fakeAsync(() => {
     const detail = { ...baseImportDetail, status: ImportStatus.RUNNING };
     spyOn(service, 'getImport').and.returnValue(of(detail));
-    mockWebSocketService.subscribeToImportStatus.and.returnValue(of({} as any));
+    const statusMessage: ImportStatusMessage = {
+      type: 'IMPORT_STATUS',
+      data: {
+        importId: 'imp-1',
+        status: ImportStatus.RUNNING
+      },
+      timestamp: '2024-01-01T00:00:00Z'
+    };
+    mockWebSocketService.subscribeToImportStatus.and.returnValue(of(statusMessage));
 
-    const results: any[] = [];
+    const results: FeedImportDetail[] = [];
     service.monitorImportStatus('imp-1').subscribe(value => results.push(value));
 
     tick(0);

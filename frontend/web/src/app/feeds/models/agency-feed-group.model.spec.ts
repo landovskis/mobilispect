@@ -1,4 +1,4 @@
-import { FeedGroupingUtils } from './agency-feed-group.model';
+import { AgencyFeedGroup, FeedGroupingUtils } from './agency-feed-group.model';
 import { Feed, FeedSpecType, FeedStatus } from './region.models';
 
 describe('FeedGroupingUtils', () => {
@@ -66,9 +66,19 @@ describe('FeedGroupingUtils', () => {
   });
 
   it('sorts groups alphabetically and maps feed type metadata', () => {
+    const baseGroup: AgencyFeedGroup = {
+      agencyName: 'Zeta Transit',
+      agencyId: 'zeta',
+      feeds: [],
+      primaryFeed: buildFeed(),
+      hasActiveFeeds: false,
+      hasAuthentication: false,
+      lastUpdatedAt: null,
+      feedsByType: { gtfs: 0, gtfsRt: 0 }
+    };
     const groups = FeedGroupingUtils.sortAgencyGroups([
-      { agencyName: 'Zeta Transit' } as any,
-      { agencyName: 'Alpha Transit' } as any,
+      baseGroup,
+      { ...baseGroup, agencyName: 'Alpha Transit', agencyId: 'alpha' }
     ]);
 
     expect(groups[0].agencyName).toBe('Alpha Transit');

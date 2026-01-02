@@ -1,13 +1,11 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, EMPTY } from 'rxjs';
-import { filter, map, catchError, takeUntil } from 'rxjs/operators';
+import { Observable, Subject, BehaviorSubject, Observer } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/operators';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import {
   ImportProgress,
-  ImportProgressUpdate,
   ActiveImportsResponse,
-  ProgressSubscriptionResponse
 } from '../models/import-progress.model';
 
 @Injectable({
@@ -102,7 +100,7 @@ export class ProgressWebSocketService implements OnDestroy {
     });
   }
 
-  private performProgressSubscription(importId: string, observer: any): void {
+  private performProgressSubscription(importId: string, observer: Observer<ImportProgress>): void {
     if (!this.stompClient) return;
 
     const topic = `/topic/import/progress/${importId}`;
@@ -111,7 +109,11 @@ export class ProgressWebSocketService implements OnDestroy {
     try {
       const subscription = this.stompClient.subscribe(topic, (message: IMessage) => {
         try {
-          const data = JSON.parse(message.body);
+          const data = JSON.parse(message.body) as {
+            progress?: ImportProgress;
+            completed?: boolean;
+            error?: string;
+          };
 
           if (data.progress) {
             observer.next(data.progress);

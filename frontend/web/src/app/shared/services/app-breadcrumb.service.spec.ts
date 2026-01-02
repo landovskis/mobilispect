@@ -26,7 +26,7 @@ describe('AppBreadcrumbService', () => {
                 children: [],
                 paramMap: { get: () => null },
                 routeConfig: { path: 'regions' }
-            }] as any
+            }] as unknown as ActivatedRouteSnapshot[]
         } as ActivatedRouteSnapshot;
 
         const crumbs = service.getBreadcrumbs(root);
@@ -45,7 +45,7 @@ describe('AppBreadcrumbService', () => {
             children: [],
             paramMap: { get: () => null },
             routeConfig: { path: ':id' }
-        };
+        } as ActivatedRouteSnapshot;
 
         const root = {
             children: [{
@@ -55,7 +55,7 @@ describe('AppBreadcrumbService', () => {
                 children: [childRoute],
                 paramMap: { get: () => null },
                 routeConfig: { path: 'regions' }
-            }] as any
+            }] as unknown as ActivatedRouteSnapshot[]
         } as ActivatedRouteSnapshot;
 
         const crumbs = service.getBreadcrumbs(root);
@@ -75,7 +75,7 @@ describe('AppBreadcrumbService', () => {
             children: [],
             paramMap: { get: () => null },
             routeConfig: { path: 'discover' }
-        };
+        } as ActivatedRouteSnapshot;
 
         const emptyRoute = {
             outlet: 'primary',
@@ -84,7 +84,7 @@ describe('AppBreadcrumbService', () => {
             children: [discoverRoute],
             paramMap: { get: () => null },
             routeConfig: { path: '' }
-        };
+        } as ActivatedRouteSnapshot;
 
         const root = {
             children: [{
@@ -94,7 +94,7 @@ describe('AppBreadcrumbService', () => {
                 children: [emptyRoute],
                 paramMap: { get: () => null },
                 routeConfig: { path: 'regions' }
-            }] as any
+            }] as unknown as ActivatedRouteSnapshot[]
         } as ActivatedRouteSnapshot;
 
         const crumbs = service.getBreadcrumbs(root);
@@ -115,7 +115,7 @@ describe('AppBreadcrumbService', () => {
                 children: [],
                 paramMap: { get: () => null },
                 routeConfig: { path: 'feeds' }
-            }] as any
+            }] as unknown as ActivatedRouteSnapshot[]
         } as ActivatedRouteSnapshot;
 
         const crumbs = service.getBreadcrumbs(root);

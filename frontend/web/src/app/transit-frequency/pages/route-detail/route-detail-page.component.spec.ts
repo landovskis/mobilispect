@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 import { RouteDetailPageComponent } from './route-detail-page.component';
 import { FrequencyService } from '../../services/frequency.service';
@@ -9,7 +9,7 @@ describe('RouteDetailPageComponent', () => {
   let component: RouteDetailPageComponent;
   let fixture: ComponentFixture<RouteDetailPageComponent>;
   let mockFrequencyService: jasmine.SpyObj<FrequencyService>;
-  let mockActivatedRoute: any;
+  let mockActivatedRoute: ActivatedRoute;
   let mockCommonSectionService: jasmine.SpyObj<CommonSectionService>;
 
   beforeEach(async () => {
@@ -23,11 +23,9 @@ describe('RouteDetailPageComponent', () => {
 
     mockActivatedRoute = {
       snapshot: {
-        paramMap: {
-          get: jasmine.createSpy('get').and.returnValue('test-route-id')
-        }
+        paramMap: convertToParamMap({ routeId: 'test-route-id' })
       }
-    };
+    } as ActivatedRoute;
 
     await TestBed.configureTestingModule({
       imports: [RouteDetailPageComponent],
