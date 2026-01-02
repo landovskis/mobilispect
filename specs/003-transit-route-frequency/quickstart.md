@@ -12,7 +12,7 @@ This quickstart guide provides step-by-step instructions for implementing the tr
 
 - JDK 21+ installed
 - Kotlin 2.0+ configured
-- PostgreSQL 17 running locally (or via Docker)
+- PostgreSQL 18 running locally (or via Docker)
 - Redis 8.2 running locally (or via Docker)
 - Node.js 20+ for frontend development
 - Angular CLI 19 installed globally
@@ -161,7 +161,7 @@ value class VariantHash(val value: String) {
 @Testcontainers
 class RouteVariantRepositoryTest {
     @Container
-    val postgres = PostgreSQLContainer<Nothing>("postgres:17-alpine")
+    val postgres = PostgreSQLContainer<Nothing>("postgres:18-alpine")
 
     @Autowired
     lateinit var routeVariantRepository: RouteVariantRepository
@@ -583,7 +583,7 @@ tail -f backend-dev.log | jq '.'
 
 ### Issue: Database Migration Fails
 
-**Solution**: Ensure PostgreSQL 17 is running and connection details are correct
+**Solution**: Ensure PostgreSQL 18 is running and connection details are correct
 
 ```bash
 docker ps | grep postgres

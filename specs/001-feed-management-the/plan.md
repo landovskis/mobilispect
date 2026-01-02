@@ -12,8 +12,8 @@ Implement a comprehensive feed management system enabling administrators to impo
 ## Technical Context
 
 **Language/Version**: Kotlin 2.0+ (Spring Boot backend), TypeScript (Angular frontend)
-**Primary Dependencies**: Spring Boot, Spring Security, PostgreSQL 17, Redis 8.2, Retrofit/OkHttp (transit.land integration), Jackson (JSON processing), Angular 19 LTS, RxJS, Grafana Cloud (observability)
-**Storage**: PostgreSQL 17 for feed metadata, import history, content hashes; Redis 8.2 for transient progress; File system/S3 for GTFS archives
+**Primary Dependencies**: Spring Boot, Spring Security, PostgreSQL 18, Redis 8.2, Retrofit/OkHttp (transit.land integration), Jackson (JSON processing), Angular 19 LTS, RxJS, Grafana Cloud (observability)
+**Storage**: PostgreSQL 18 for feed metadata, import history, content hashes; Redis 8.2 for transient progress; File system/S3 for GTFS archives
 **Testing**: JUnit 5, Testcontainers, Mockito (backend); Jest, Cypress (frontend)
 **Target Platform**: Linux server deployment, web-based admin interface
 **Project Type**: Web application (Spring Boot backend + Angular frontend)
@@ -53,7 +53,7 @@ Implement a comprehensive feed management system enabling administrators to impo
 ### Performance Standards ✅
 
 - **API Response**: 200ms p95 requirement maintained with async processing and Redis caching
-- **Database Optimization**: Proper indexing strategy for PostgreSQL 17 with performance-focused queries
+- **Database Optimization**: Proper indexing strategy for PostgreSQL 18 with performance-focused queries
 - **Background Processing**: Spring async processing with controlled thread pools for imports
 - **Efficient Progress Tracking**: Redis 8.2-based transient data storage to reduce database load
 
@@ -70,7 +70,7 @@ Implement a comprehensive feed management system enabling administrators to impo
 
 - **External Integration**: Transit.land API v2 with rate limiting and SHA1-based change detection
 - **Feed Discovery**: Automated sync from transit.land API to populate database with region feeds
-- **Data Storage**: PostgreSQL 17 for persistent data, Redis 8.2 for transient progress, file system/S3 for GTFS archives
+- **Data Storage**: PostgreSQL 18 for persistent data, Redis 8.2 for transient progress, file system/S3 for GTFS archives
 - **Authentication Strategy**: Role-based access control with three distinct permission levels
 - **Progress Architecture**: Clean separation of persistent state vs. transient progress data
 

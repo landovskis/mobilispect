@@ -629,7 +629,7 @@ export class SocketService {
 class FeedManagementIntegrationTest {
 
     @Container
-    static val postgres = PostgreSQLContainer("postgres:17-alpine")
+    static val postgres = PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("test")
         .withUsername("test")
         .withPassword("test")
@@ -764,7 +764,7 @@ class FeedUpdateServiceTest {
 
 ### Development Environment
 
-- [ ] PostgreSQL 17 database running with migrations applied
+- [ ] PostgreSQL 18 database running with migrations applied
 - [ ] Redis 8.2 instance running for progress tracking
 - [ ] Transit.land API key configured
 - [ ] JWT authentication configured with role mapping

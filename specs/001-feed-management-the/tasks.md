@@ -34,7 +34,7 @@ implementation and testing of each story.
   backend/src/main/kotlin/com/mobilispect/backend/feed/
 - [X] T002 Create Angular feed-management module in
   frontend/src/app/feed-management/
-- [X] T003 [P] Configure PostgreSQL 17 schema migrations for feed management
+- [X] T003 [P] Configure PostgreSQL 18 schema migrations for feed management
   entities
 - [X] T004 [P] Add Grafana Cloud configuration for feed import monitoring
 

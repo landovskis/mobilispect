@@ -34,7 +34,7 @@ constitution. Core principles:
 
 ### Technology Stack (Constitutional)
 
-- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 17, Redis 8.2, Spring Modulith
+- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 18, Redis 8.2, Spring Modulith
 - **Frontend**: Angular 19 LTS with TypeScript, RxJS for state management
 - **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
 - **Android**: Compose UI with Material Design 3

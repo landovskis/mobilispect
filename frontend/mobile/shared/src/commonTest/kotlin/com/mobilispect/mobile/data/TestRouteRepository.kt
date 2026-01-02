@@ -27,8 +27,7 @@ class TestRouteRepository : RouteRepository {
 
     fun insert(route: Route) {
         routes.add(route)
-        routesByAgency.putIfAbsent(route.agencyID, mutableListOf())
-        routesByAgency[route.agencyID]!!.add(route)
+        routesByAgency.getOrPut(route.agencyID) { mutableListOf() }.add(route)
         operatedByFlow.tryEmit(routes)
     }
 }

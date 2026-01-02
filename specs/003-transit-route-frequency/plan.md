@@ -26,7 +26,7 @@ This feature enables transit planners to analyze service frequency patterns acro
 
 **Storage**:
 
-- PostgreSQL 17 for persistent data (regions, agencies, routes, variants, frequencies, imported feeds)
+- PostgreSQL 18 for persistent data (regions, agencies, routes, variants, frequencies, imported feeds)
 - Redis 8.2 for caching feed data and frequency calculations
 
 **Testing**:
