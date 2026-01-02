@@ -30,6 +30,8 @@ describe('FeedImportsPageComponent', () => {
   };
 
   beforeEach(() => {
+    spyOn(console, 'error');
+
     importService = jasmine.createSpyObj<ImportService>('ImportService', [
       'getActiveImportsObservable',
       'getAllImportHistory',

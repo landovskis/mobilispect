@@ -41,6 +41,8 @@ describe('RegionListComponent', () => {
   };
 
   beforeEach(() => {
+    spyOn(console, 'error');
+
     regionService = jasmine.createSpyObj<RegionService>('RegionService', [
       'listRegions',
       'clearCache',

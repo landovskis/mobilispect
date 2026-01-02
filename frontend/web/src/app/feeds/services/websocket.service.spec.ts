@@ -71,7 +71,7 @@ describe('WebSocketService', () => {
   });
 
   it('skips connect when already connected', () => {
-    (service as any).stompClient = { connected: true };
+    (service as any).stompClient = { connected: true, deactivate: jasmine.createSpy('deactivate') };
 
     service.connect();
 

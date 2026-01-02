@@ -46,6 +46,8 @@ describe('DiscoverRegionsPageComponent', () => {
   };
 
   beforeEach(() => {
+    spyOn(console, 'error');
+
     regionService = jasmine.createSpyObj<RegionService>('RegionService', [
       'listRegions',
       'listFeedsForRegion',
