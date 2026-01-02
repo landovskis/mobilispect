@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy } from '@angular/core';
+import { Component, Inject, Input, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule, ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
 import { BreakpointObserver, LayoutModule } from '@angular/cdk/layout';
@@ -250,7 +250,7 @@ export class AppShellComponent implements OnDestroy {
     private readonly activatedRoute: ActivatedRoute,
     private readonly snackBar: MatSnackBar,
     breakpointObserver: BreakpointObserver,
-    private readonly importService: ImportService,
+    @Inject(ImportService) private readonly importService: ImportService,
     private readonly metrics: FeedsMetricsService,
     private readonly events: FeedsEventsService,
     private readonly regionService: RegionService

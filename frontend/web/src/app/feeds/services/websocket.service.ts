@@ -70,6 +70,10 @@ export class WebSocketService implements OnDestroy {
 
   constructor() {}
 
+  private buildStompClient(config: ConstructorParameters<typeof Client>[0]): Client {
+    return new Client(config);
+  }
+
   /**
    * Connects to the STOMP WebSocket endpoint
    */
@@ -82,7 +86,7 @@ export class WebSocketService implements OnDestroy {
     this.connectionStatus$.next('CONNECTING');
     console.log('Connecting to STOMP WebSocket:', `${environment.wsUrl}/ws/feeds`);
 
-    this.stompClient = new Client({
+    this.stompClient = this.buildStompClient({
       webSocketFactory: () => new SockJS(`${environment.wsUrl}/ws/feeds`),
 
       connectHeaders: {},
