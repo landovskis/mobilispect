@@ -61,10 +61,11 @@ jobs:
           echo "🍎 Building iOS shared framework..."
           cd frontend/mobile && ./gradlew shared:linkDebugFrameworkIosSimulatorArm64 --info
 
-      - name: Install CocoaPods dependencies
-        run: |
-          echo "📦 Installing CocoaPods dependencies..."
-          cd frontend/mobile/iosApp && pod install
+      # Re-enable once Podfile is used
+      #- name: Install CocoaPods dependencies
+      #  run: |
+      #    echo "📦 Installing CocoaPods dependencies..."
+      #    cd frontend/mobile/iosApp && pod install
 
       - name: Build iOS App (Debug)
         run: |
