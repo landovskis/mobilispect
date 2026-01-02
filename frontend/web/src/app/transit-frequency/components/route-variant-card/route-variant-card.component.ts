@@ -119,7 +119,7 @@ import { StatsBadgeComponent } from '../../../shared/components/stats-badge.comp
 export class RouteVariantCardComponent {
   @Input() variant?: RouteVariantDto;
   @Input() loading = false;
-  @Output() select = new EventEmitter<string>();
+  @Output() variantSelected = new EventEmitter<string>();
 
   get stopNames(): string[] {
     if (!this.variant) {
@@ -155,7 +155,7 @@ export class RouteVariantCardComponent {
 
   onSelect(): void {
     if (this.loading || !this.variant) return;
-    this.select.emit(this.variant.id);
+    this.variantSelected.emit(this.variant.id);
   }
 
   formatClassification(

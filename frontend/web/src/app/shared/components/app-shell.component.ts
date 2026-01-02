@@ -1,4 +1,4 @@
-import { Component, Inject, Input, OnDestroy } from '@angular/core';
+import { Component, Input, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd, RouterModule, ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
 import { BreakpointObserver, LayoutModule } from '@angular/cdk/layout';
@@ -407,60 +407,44 @@ import { WindowSizeClass } from '../models/window-size-class';
 })
 export class AppShellComponent implements OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  private readonly router = inject(Router);
+  private readonly activatedRoute = inject(ActivatedRoute);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly importService = inject(ImportService);
+  private readonly metrics = inject(FeedsMetricsService);
+  private readonly events = inject(FeedsEventsService);
+  private readonly regionService = inject(RegionService);
 
   // Expose enum to template
   readonly WindowSizeClass = WindowSizeClass;
 
   sidebarOpened = false;
 
-  readonly windowSizeClass$: Observable<WindowSizeClass>;
-  readonly isHandset$: Observable<boolean>;
-  readonly discoverFeedCount$: Observable<number>;
-  readonly totalImportElements$: Observable<number>;
-  readonly activeImportCount$: Observable<number>;
-
-  constructor(
-    private readonly router: Router,
-    private readonly activatedRoute: ActivatedRoute,
-    private readonly snackBar: MatSnackBar,
-    breakpointObserver: BreakpointObserver,
-    @Inject(ImportService) private readonly importService: ImportService,
-    private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService,
-    private readonly regionService: RegionService
-  ) {
-    // Material Design window size classes
-    // Compact: < 600px (phones in portrait) - Bottom navigation
-    // Medium: 600-840px (tablets in portrait, foldables) - Navigation rail
-    // Expanded: ≥ 840px (tablets in landscape, desktops) - Full sidenav
-    this.windowSizeClass$ = breakpointObserver.observe([
-      '(max-width: 599px)',
-      '(min-width: 600px) and (max-width: 839px)',
-      '(min-width: 840px)'
-    ]).pipe(
-      map(result => {
-        if (result.breakpoints['(max-width: 599px)']) {
-          return WindowSizeClass.COMPACT;
-        } else if (result.breakpoints['(min-width: 600px) and (max-width: 839px)']) {
-          return WindowSizeClass.MEDIUM;
-        } else {
-          return WindowSizeClass.EXPANDED;
-        }
-      }),
-      shareReplay({ bufferSize: 1, refCount: true })
-    );
-
-    // Legacy handset observable for backward compatibility
-    this.isHandset$ = this.windowSizeClass$.pipe(
-      map(sizeClass => sizeClass === WindowSizeClass.COMPACT)
-    );
-
-    this.discoverFeedCount$ = this.metrics.discoverFeedCount$;
-    this.totalImportElements$ = this.metrics.totalImportElements$;
-    this.activeImportCount$ = this.importService.getActiveImportsObservable().pipe(
-      map((imports: any[] | null | undefined) => imports?.length ?? 0)
-    );
-  }
+  readonly windowSizeClass$: Observable<WindowSizeClass> = this.breakpointObserver.observe([
+    '(max-width: 599px)',
+    '(min-width: 600px) and (max-width: 839px)',
+    '(min-width: 840px)'
+  ]).pipe(
+    map(result => {
+      if (result.breakpoints['(max-width: 599px)']) {
+        return WindowSizeClass.COMPACT;
+      } else if (result.breakpoints['(min-width: 600px) and (max-width: 839px)']) {
+        return WindowSizeClass.MEDIUM;
+      } else {
+        return WindowSizeClass.EXPANDED;
+      }
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+  readonly isHandset$: Observable<boolean> = this.windowSizeClass$.pipe(
+    map(sizeClass => sizeClass === WindowSizeClass.COMPACT)
+  );
+  readonly discoverFeedCount$: Observable<number> = this.metrics.discoverFeedCount$;
+  readonly totalImportElements$: Observable<number> = this.metrics.totalImportElements$;
+  readonly activeImportCount$: Observable<number> = this.importService.getActiveImportsObservable().pipe(
+    map((imports: any[] | null | undefined) => imports?.length ?? 0)
+  );
 
   ngOnDestroy(): void {
     this.destroy$.next();

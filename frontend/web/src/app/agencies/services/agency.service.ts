@@ -1,4 +1,4 @@
-import {Injectable} from "@angular/core";
+import {Injectable, inject} from "@angular/core";
 import {environment} from "../../../environments/environment";
 import {HttpClient, HttpParams} from "@angular/common/http";
 import {Observable} from "rxjs";
@@ -11,9 +11,7 @@ import {RouteListResponse} from "../models/route.model";
 })
 export class AgencyService {
   private readonly apiUrl = `${environment.apiUrl}`;
-
-  constructor(private readonly http: HttpClient) {
-  }
+  private readonly http = inject(HttpClient);
 
   listAgencies(page: number = 0, size: number = 20, regionId?: string): Observable<AgencyListResponse> {
     const params = new HttpParams()

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -6,7 +6,7 @@ import { FrequencyService } from '../services/frequency.service';
 
 @Injectable({ providedIn: 'root' })
 export class RouteBreadcrumbResolver implements Resolve<string> {
-    constructor(private readonly frequencyService: FrequencyService) { }
+    private readonly frequencyService = inject(FrequencyService);
 
     resolve(route: ActivatedRouteSnapshot): Observable<string> {
         const routeId = route.paramMap.get('routeId');

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -119,6 +119,13 @@ type RegionImportResult =
 })
 export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  private readonly regionService = inject(RegionService);
+  private readonly importService = inject(ImportService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly metrics = inject(FeedsMetricsService);
+  private readonly events = inject(FeedsEventsService);
 
   regions: MetropolitanRegion[] = [];
   selectedRegionId: string | null = null;
@@ -127,16 +134,6 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
   agencyGroups: AgencyFeedGroup[] = [];
   loadingFeeds = false;
   loadingPlaceholders = Array.from({ length: 6 });
-
-  constructor(
-    private readonly regionService: RegionService,
-    private readonly importService: ImportService,
-    private readonly snackBar: MatSnackBar,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService
-  ) {}
 
   ngOnInit(): void {
     this.loadRegions();

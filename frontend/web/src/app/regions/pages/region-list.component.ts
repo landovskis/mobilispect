@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 
 import { Router, RouterModule } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
@@ -54,11 +54,9 @@ export class RegionListComponent implements OnInit {
   selectedRegionId: string | null = null;
   isLoading = true;
 
-  constructor(
-    private readonly regionService: RegionService,
-    private readonly router: Router,
-    private readonly cdr: ChangeDetectorRef
-  ) {}
+  private readonly regionService = inject(RegionService);
+  private readonly router = inject(Router);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.isLoading = true;

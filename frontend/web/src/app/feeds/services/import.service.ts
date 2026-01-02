@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, timer, of, merge } from 'rxjs';
 import { map, tap, switchMap, takeUntil, distinctUntilChanged, catchError, startWith, filter } from 'rxjs/operators';
@@ -31,18 +31,15 @@ import { environment } from '../../../environments/environment';
 @Injectable({
   providedIn: 'root'
 })
-export class ImportService {
+export class ImportService implements OnDestroy {
   private readonly apiUrl = `${environment.apiUrl}/feeds`;
+  private readonly http = inject(HttpClient);
+  private readonly webSocketService = inject(WebSocketService);
 
   // Active imports cache for real-time updates
   private activeImports$ = new BehaviorSubject<FeedImportSummary[]>([]);
   private pollingInterval = 5000; // 5 seconds
   private isPolling = false;
-
-  constructor(
-    private http: HttpClient,
-    private webSocketService: WebSocketService
-  ) {}
 
   /**
    * Initializes WebSocket connection for real-time updates

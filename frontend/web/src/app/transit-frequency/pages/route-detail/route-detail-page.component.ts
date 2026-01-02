@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, RouteDto, RouteHourlyStatsDto, RouteVariantDto } from '../../services/frequency.service';
@@ -158,12 +158,10 @@ export class RouteDetailPageComponent implements OnInit {
   selectedDirectionId: number | null = null;
   selectedDayType: RouteHourlyStatsDto['dayType'] | null = null;
 
-  constructor(
-    private readonly activatedRoute: ActivatedRoute,
-    private readonly frequencyService: FrequencyService,
-    private readonly commonSectionService: CommonSectionService,
-    private readonly cdr: ChangeDetectorRef
-  ) {}
+  private readonly activatedRoute = inject(ActivatedRoute);
+  private readonly frequencyService = inject(FrequencyService);
+  private readonly commonSectionService = inject(CommonSectionService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     const routeId = this.activatedRoute.snapshot.paramMap.get('routeId');

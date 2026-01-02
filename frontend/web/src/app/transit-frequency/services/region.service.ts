@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
@@ -15,8 +15,7 @@ export interface RegionSummary {
 })
 export class RegionService {
   private readonly baseUrl = '/api/v1/frequency';
-
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   listRegions(): Observable<RegionSummary[]> {
     return this.http.get<RegionSummary[]>(`${this.baseUrl}/regions`);

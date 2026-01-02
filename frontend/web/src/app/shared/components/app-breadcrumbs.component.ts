@@ -1,4 +1,4 @@
-import { Component, Output, EventEmitter, ChangeDetectionStrategy, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectionStrategy, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
 import { AppBreadcrumbService, Breadcrumb } from '../services/app-breadcrumb.service';
@@ -29,13 +29,10 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
   pageTitle = '';
   @Output() breadcrumbSelected = new EventEmitter<BreadcrumbSelection>();
 
+  private readonly router = inject(Router);
+  private readonly breadcrumbService = inject(AppBreadcrumbService);
+  private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroy$ = new Subject<void>();
-
-  constructor(
-    private readonly router: Router,
-    private readonly breadcrumbService: AppBreadcrumbService,
-    private readonly cdr: ChangeDetectorRef
-  ) { }
 
   ngOnInit(): void {
     this.router.events.pipe(

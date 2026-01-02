@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -112,7 +112,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       }
 
       <!-- Regions Grid -->
-      @if (!(isLoading$ | async) && !(error$ | async)) {
+      @if ((isLoading$ | async) === false && (error$ | async) === null) {
         @if (filteredRegions$ | async; as regions) {
           <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3">
             @for (region of regions; track region.regionOnestopId) {
@@ -178,7 +178,11 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                   <mat-menu #autoUpdateMenu="matMenu">
                     <div
                       class="auto-update-controls min-w-[280px] p-4 max-md:min-w-[240px] max-md:p-3"
+                      role="button"
+                      tabindex="0"
                       (click)="$event.stopPropagation()"
+                      (keydown.enter)="$event.stopPropagation()"
+                      (keydown.space)="$event.stopPropagation()"
                     >
                       <div class="control-header mb-4 flex items-center gap-2 font-semibold text-[var(--mdc-theme-primary)]">
                         <mat-icon>sync</mat-icon>
@@ -258,7 +262,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       }
 
       <!-- Quick Stats -->
-      @if (!(isLoading$ | async) && !(error$ | async)) {
+      @if ((isLoading$ | async) === false && (error$ | async) === null) {
         <div class="quick-stats flex flex-wrap justify-center gap-4 rounded-lg bg-[var(--mdc-theme-surface-variant)] p-4 max-md:gap-3 max-md:p-3">
           <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
             <span class="stat-number">{{ (filteredRegions$ | async)?.length || 0 }}</span>
@@ -382,6 +386,10 @@ export class RegionListComponent implements OnInit, OnDestroy {
   @Output() regionSelected = new EventEmitter<MetropolitanRegion>();
   @Output() regionDetailsRequested = new EventEmitter<MetropolitanRegion>();
 
+  private readonly regionService = inject(RegionService);
+  private readonly importService = inject(ImportService);
+  private readonly schedulerService = inject(SchedulerService);
+  private readonly snackBar = inject(MatSnackBar);
   private destroy$ = new Subject<void>();
 
   // Search and filtering
@@ -403,14 +411,17 @@ export class RegionListComponent implements OnInit, OnDestroy {
   feedVersions = new Map<string, any>();
 
   // Computed streams
-  filteredRegions$: Observable<MetropolitanRegion[]>;
+  filteredRegions$ = combineLatest([
+    this.regions$,
+    this.searchTerm$.pipe(startWith('')),
+    this.autoUpdateFilter$.pipe(startWith(undefined))
+  ]).pipe(
+    map(([regions, searchTerm, autoUpdateFilter]) =>
+      this.filterRegions(regions, searchTerm, autoUpdateFilter)
+    )
+  );
 
-  constructor(
-    private regionService: RegionService,
-    private importService: ImportService,
-    private schedulerService: SchedulerService,
-    private snackBar: MatSnackBar
-  ) {
+  ngOnInit(): void {
     // Setup search term observable
     this.searchTerm$.pipe(
       debounceTime(300),
@@ -420,19 +431,6 @@ export class RegionListComponent implements OnInit, OnDestroy {
       this.searchTerm = term;
     });
 
-    // Setup filtered regions stream
-    this.filteredRegions$ = combineLatest([
-      this.regions$,
-      this.searchTerm$.pipe(startWith('')),
-      this.autoUpdateFilter$.pipe(startWith(undefined))
-    ]).pipe(
-      map(([regions, searchTerm, autoUpdateFilter]) =>
-        this.filterRegions(regions, searchTerm, autoUpdateFilter)
-      )
-    );
-  }
-
-  ngOnInit(): void {
     this.loadRegions();
     this.loadActiveImports();
 

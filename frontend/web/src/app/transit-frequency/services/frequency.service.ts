@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 export interface RouteVariantDto {
@@ -46,8 +46,7 @@ export interface RouteDto {
 @Injectable({ providedIn: 'root' })
 export class FrequencyService {
   private readonly baseUrl = '/api/v1/routes';
-
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getRoute(routeId: string): Observable<RouteDto> {
     return this.http.get<RouteDto>(`${this.baseUrl}/${routeId}`);

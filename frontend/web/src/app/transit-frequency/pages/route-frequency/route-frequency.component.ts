@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, RouteDto, RouteVariantDto } from '../../services/frequency.service';
@@ -58,12 +58,10 @@ export class RouteFrequencyComponent implements OnInit {
   private variantsLoaded = false;
   private sectionsLoaded = false;
 
-  constructor(
-    private readonly routeParams: ActivatedRoute,
-    private readonly frequencyService: FrequencyService,
-    private readonly commonSectionService: CommonSectionService,
-    private readonly cdr: ChangeDetectorRef
-  ) {}
+  private readonly routeParams = inject(ActivatedRoute);
+  private readonly frequencyService = inject(FrequencyService);
+  private readonly commonSectionService = inject(CommonSectionService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.routeParams.paramMap.subscribe(params => {

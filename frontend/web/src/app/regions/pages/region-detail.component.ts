@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
@@ -101,11 +101,9 @@ export class RegionDetailComponent implements OnInit {
   summary$!: Observable<RegionSummary>;
   loadingPlaceholders = Array.from({ length: 6 });
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly regionService: RegionService,
-    private readonly agencyService: AgencyService
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly regionService = inject(RegionService);
+  private readonly agencyService = inject(AgencyService);
 
   ngOnInit(): void {
     const regionId = this.route.snapshot.paramMap.get('regionId');

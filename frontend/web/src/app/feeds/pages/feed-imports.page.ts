@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -43,8 +43,12 @@ import { FeedsEventsService } from '../services/feeds-events.service';
 })
 export class FeedImportsPageComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
+  private readonly importService = inject(ImportService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly metrics = inject(FeedsMetricsService);
+  private readonly events = inject(FeedsEventsService);
 
-  activeImports$: Observable<FeedImportSummary[]>;
+  activeImports$: Observable<FeedImportSummary[]> = this.importService.getActiveImportsObservable();
 
   importHistory: FeedImportSummary[] = [];
   importHistoryPage = 0;
@@ -54,15 +58,6 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
   totalImportPages = 0;
   totalImportElements = 0;
   loadingHistory = false;
-
-  constructor(
-    private readonly importService: ImportService,
-    private readonly snackBar: MatSnackBar,
-    private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService
-  ) {
-    this.activeImports$ = this.importService.getActiveImportsObservable();
-  }
 
   ngOnInit(): void {
     this.loadImportHistory();

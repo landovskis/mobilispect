@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -16,8 +16,7 @@ import {
 })
 export class SchedulerService {
   private readonly apiUrl = `${environment.apiUrl}/feeds/scheduler`;
-
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   /**
    * Get current scheduler status

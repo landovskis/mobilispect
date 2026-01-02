@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Observable, Subject, BehaviorSubject, timer, combineLatest } from 'rxjs';
 import { takeUntil, map, startWith, switchMap, catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
@@ -191,27 +191,22 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
 
   @Output() cancelRequested = new EventEmitter<string>();
 
+  private readonly progressWebSocketService = inject(ProgressWebSocketService);
+
   progress$ = new BehaviorSubject<ImportProgress | null>(null);
   error$ = new BehaviorSubject<string | null>(null);
   isLoading$ = new BehaviorSubject<boolean>(true);
-  connectionStatus$: Observable<string>;
-
-  displayData$: Observable<ProgressDisplayData | null>;
+  connectionStatus$ = this.progressWebSocketService.getConnectionStatus();
+  displayData$ = combineLatest([
+    this.progress$,
+    timer(0, 1000) // Update every second for timing
+  ]).pipe(
+    map(([progress]) => progress ? this.calculateDisplayData(progress) : null)
+  );
   progressStatus: ProgressStatus = 'pending';
 
   private destroy$ = new Subject<void>();
   private refreshTrigger$ = new Subject<void>();
-
-  constructor(private progressWebSocketService: ProgressWebSocketService) {
-    this.connectionStatus$ = this.progressWebSocketService.getConnectionStatus();
-
-    this.displayData$ = combineLatest([
-      this.progress$,
-      timer(0, 1000) // Update every second for timing
-    ]).pipe(
-      map(([progress]) => progress ? this.calculateDisplayData(progress) : null)
-    );
-  }
 
   ngOnInit(): void {
     if (!this.importId) {

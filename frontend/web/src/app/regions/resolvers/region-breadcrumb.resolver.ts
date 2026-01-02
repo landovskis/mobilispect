@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -7,7 +7,7 @@ import { RegionUtils } from '../../feeds/models/region.models';
 
 @Injectable({ providedIn: 'root' })
 export class RegionBreadcrumbResolver implements Resolve<string> {
-  constructor(private readonly regionService: RegionService) {}
+  private readonly regionService = inject(RegionService);
 
   resolve(route: ActivatedRouteSnapshot): Observable<string> {
     const regionId = route.paramMap.get('regionId');

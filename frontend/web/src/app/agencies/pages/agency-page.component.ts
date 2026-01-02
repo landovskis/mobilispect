@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { AgencyService } from '../services/agency.service';
@@ -89,10 +89,8 @@ export class AgencyPageComponent implements OnInit {
   agency$!: Observable<AgencySummary>;
   routes$!: Observable<any>;
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly agencyService: AgencyService
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly agencyService = inject(AgencyService);
 
   ngOnInit(): void {
     const agencyId = this.route.snapshot.paramMap.get('agencyId');
