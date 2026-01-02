@@ -27,7 +27,7 @@ export const TRANSIT_FREQUENCY_ROUTES: Routes = [
     component: DiscoverRegionsPageComponent,
     data: {
       title: 'Discover Regions',
-      breadcrumb: 'Discover',
+      breadcrumb: 'Discover Regions',
       permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
     }
   },
