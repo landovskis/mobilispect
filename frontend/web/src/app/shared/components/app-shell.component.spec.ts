@@ -9,13 +9,14 @@ import { RegionService } from '../../feeds/services/region.service';
 import { BehaviorSubject, firstValueFrom, of } from 'rxjs';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { FeedImportSummary } from '../../feeds/models';
 
 describe('AppShellComponent', () => {
   let component: AppShellComponent;
   let fixture: ComponentFixture<AppShellComponent>;
 
   const mockImportService = {
-    getActiveImportsObservable: () => of([] as any),
+    getActiveImportsObservable: () => of<FeedImportSummary[]>([]),
     refreshActiveImports: jasmine.createSpy('refreshActiveImports'),
   };
 
@@ -137,8 +138,9 @@ describe('AppShellComponent', () => {
     expect(component.sidebarOpened).toBeTrue();
   });
 
-  it('falls back to zero active imports when data is missing', async () => {
-    mockImportService.getActiveImportsObservable = () => of(null);
+  it('falls back to zero active imports when list is empty', async () => {
+    mockImportService.getActiveImportsObservable = () =>
+      of<FeedImportSummary[]>([]);
 
     const testFixture = TestBed.createComponent(AppShellComponent);
     const testComponent = testFixture.componentInstance;

@@ -64,7 +64,9 @@ describe('FeedImportsPageComponent', () => {
     ]);
     events = new FeedsEventsService();
 
-    importService.getActiveImportsObservable.and.returnValue(of([] as any));
+    importService.getActiveImportsObservable.and.returnValue(
+      of<FeedImportSummary[]>([]),
+    );
     importService.getAllImportHistory.and.returnValue(
       of({
         imports: [baseImportSummary],
