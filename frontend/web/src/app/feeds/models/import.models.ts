@@ -48,6 +48,8 @@ export interface FeedImportSummary {
   fileSizeBytes: number | null;
   errorMessage: string | null;
   progress: ImportProgress | null;
+  createdAt: string;
+  updatedAt: string;
   currentStep?: string; // For backward compatibility
 }
 
@@ -69,7 +71,7 @@ export enum ImportStatus {
   RUNNING = 'running',
   COMPLETED = 'completed',
   FAILED = 'failed',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 /**
@@ -77,7 +79,7 @@ export enum ImportStatus {
  */
 export enum TriggerType {
   MANUAL = 'manual',
-  AUTOMATIC = 'automatic'
+  AUTOMATIC = 'automatic',
 }
 
 /**
@@ -102,8 +104,8 @@ export interface PageInfo {
 /**
  * Response wrapper for imports list
  */
-export interface ImportsResponse {
-  imports: FeedImport[];
+export interface ImportsResponse<T = FeedImport> {
+  imports: T[];
   page: PageInfo;
 }
 
@@ -164,17 +166,21 @@ export class ImportUtils {
    * Checks if an import is currently active
    */
   static isActive(importRecord: FeedImport): boolean {
-    return importRecord.status === ImportStatus.PENDING ||
-           importRecord.status === ImportStatus.RUNNING;
+    return (
+      importRecord.status === ImportStatus.PENDING ||
+      importRecord.status === ImportStatus.RUNNING
+    );
   }
 
   /**
    * Checks if an import is completed (successfully or failed)
    */
   static isCompleted(importRecord: FeedImport): boolean {
-    return importRecord.status === ImportStatus.COMPLETED ||
-           importRecord.status === ImportStatus.FAILED ||
-           importRecord.status === ImportStatus.CANCELLED;
+    return (
+      importRecord.status === ImportStatus.COMPLETED ||
+      importRecord.status === ImportStatus.FAILED ||
+      importRecord.status === ImportStatus.CANCELLED
+    );
   }
 
   /**
@@ -188,8 +194,10 @@ export class ImportUtils {
    * Checks if an import can be cancelled
    */
   static isCancellable(importRecord: FeedImport): boolean {
-    return importRecord.status === ImportStatus.PENDING ||
-           importRecord.status === ImportStatus.RUNNING;
+    return (
+      importRecord.status === ImportStatus.PENDING ||
+      importRecord.status === ImportStatus.RUNNING
+    );
   }
 
   /**

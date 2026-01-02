@@ -18,8 +18,8 @@ import { FeedsEventsService } from '../services/feeds-events.service';
     MatSnackBarModule,
     MatDialogModule,
     ActiveImportsCardComponent,
-    ImportsHistoryCardComponent
-],
+    ImportsHistoryCardComponent,
+  ],
   template: `
     <div class="tab-content py-6 max-md:py-4">
       <app-active-imports-card
@@ -39,7 +39,7 @@ import { FeedsEventsService } from '../services/feeds-events.service';
         (pageChange)="loadImportHistory($event)"
       ></app-imports-history-card>
     </div>
-  `
+  `,
 })
 export class FeedImportsPageComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
@@ -48,13 +48,21 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
   private readonly metrics = inject(FeedsMetricsService);
   private readonly events = inject(FeedsEventsService);
 
-  activeImports$: Observable<FeedImportSummary[]> = this.importService.getActiveImportsObservable();
+  activeImports$: Observable<FeedImportSummary[]> =
+    this.importService.getActiveImportsObservable();
 
   importHistory: FeedImportSummary[] = [];
   importHistoryPage = 0;
   importHistorySize = 20;
   readonly pageSizeOptions = [10, 20, 50, 100];
-  readonly displayedColumns = ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'fileSize'];
+  readonly displayedColumns = [
+    'feedName',
+    'region',
+    'status',
+    'startedAt',
+    'completedAt',
+    'fileSize',
+  ];
   totalImportPages = 0;
   totalImportElements = 0;
   loadingHistory = false;
@@ -79,46 +87,56 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
     this.loadingHistory = true;
     this.importHistoryPage = page;
 
-    this.importService.getAllImportHistory({
-      page,
-      size: this.importHistorySize
-    }).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (response) => {
-        this.importHistory = response.imports as FeedImportSummary[];
-        this.totalImportPages = response.totalPages;
-        this.totalImportElements = response.totalElements;
-        this.metrics.setTotalImportElements(response.totalElements);
-        this.loadingHistory = false;
-      },
-      error: (error) => {
-        console.error('Failed to load import history:', error);
-        this.loadingHistory = false;
-        this.snackBar.open('Failed to load import history', 'Close', { duration: 4000 });
-      }
-    });
+    this.importService
+      .getAllImportHistory({
+        page,
+        size: this.importHistorySize,
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.importHistory = response.imports;
+          this.totalImportPages = response.totalPages;
+          this.totalImportElements = response.totalElements;
+          this.metrics.setTotalImportElements(response.totalElements);
+          this.loadingHistory = false;
+        },
+        error: (error) => {
+          console.error('Failed to load import history:', error);
+          this.loadingHistory = false;
+          this.snackBar.open('Failed to load import history', 'Close', {
+            duration: 4000,
+          });
+        },
+      });
   }
 
   cancelImport(importId: string): void {
     this.snackBar.open('Cancelling import...', 'Close', { duration: 2000 });
 
-    this.importService.cancelImport(importId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.snackBar.open('✅ Import cancelled successfully', 'Close', { duration: 4000 });
-        this.importService.refreshActiveImports();
-        this.loadImportHistory(this.importHistoryPage);
-      },
-      error: (error) => {
-        console.error('Failed to cancel import:', error);
-        const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
-        this.snackBar.open(`❌ Failed to cancel import: ${errorMessage}`, 'Retry', {
-          duration: 8000,
-          panelClass: ['error-snackbar']
-        }).onAction().subscribe(() => this.cancelImport(importId));
-      }
-    });
+    this.importService
+      .cancelImport(importId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.snackBar.open('✅ Import cancelled successfully', 'Close', {
+            duration: 4000,
+          });
+          this.importService.refreshActiveImports();
+          this.loadImportHistory(this.importHistoryPage);
+        },
+        error: (error) => {
+          console.error('Failed to cancel import:', error);
+          const errorMessage =
+            error.message || error.error?.message || 'Unknown error occurred';
+          this.snackBar
+            .open(`❌ Failed to cancel import: ${errorMessage}`, 'Retry', {
+              duration: 8000,
+              panelClass: ['error-snackbar'],
+            })
+            .onAction()
+            .subscribe(() => this.cancelImport(importId));
+        },
+      });
   }
 }
