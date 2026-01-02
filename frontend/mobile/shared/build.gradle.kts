@@ -37,6 +37,10 @@ kotlin {
             implementation(libs.room.ktx)
         }
 
+        commonMain.apply {
+            kotlin.srcDir("build/generated/ksp/metadata/commonMain/kotlin")
+        }
+
         commonMain.dependencies {
             implementation(libs.koin.core)
             implementation(libs.koin.compose.viewmodel)
@@ -70,6 +74,9 @@ kotlin {
 dependencies {
     add("kspCommonMainMetadata", libs.room.compiler)
     add("kspAndroid", libs.room.compiler)
+    add("kspIosX64", libs.room.compiler)
+    add("kspIosSimulatorArm64", libs.room.compiler)
+    add("kspIosArm64", libs.room.compiler)
 }
 
 ksp {
