@@ -35,8 +35,7 @@ data class ProgressUpdate(
 data class ActiveImportsResponse(val activeImports: List<String>, val error: String? = null)
 
 /** Progress request message */
-@Serializable
-data class ProgressRequest(val importId: String)
+@Serializable data class ProgressRequest(val importId: String)
 
 object ImportIdSerializer : KSerializer<ImportId> {
   override val descriptor: SerialDescriptor =
@@ -46,8 +45,7 @@ object ImportIdSerializer : KSerializer<ImportId> {
     encoder.encodeString(value.toString())
   }
 
-  override fun deserialize(decoder: Decoder): ImportId =
-    ImportId.fromString(decoder.decodeString())
+  override fun deserialize(decoder: Decoder): ImportId = ImportId.fromString(decoder.decodeString())
 }
 
 object FeedIdSerializer : KSerializer<FeedId> {
