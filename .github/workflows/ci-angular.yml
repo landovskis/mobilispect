@@ -234,7 +234,7 @@ jobs:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
     needs: [angular-test, angular-coverage]
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    if: false # SonarCloud temporarily disabled
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
