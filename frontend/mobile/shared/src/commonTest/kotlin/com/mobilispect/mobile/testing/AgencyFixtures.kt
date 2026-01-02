@@ -4,25 +4,11 @@ const val AGENCIES_SUCCESSFUL_FIXTURE = """
                         {
                           "_embedded" : {
                             "agencies" : [ {
-                              "name" : "A",
-                              "_links" : {
-                                "self" : {
-                                  "href" : "http://localhost:49336/agencies/o-abcd-a"
-                                },
-                                "agency" : {
-                                  "href" : "http://localhost:49336/agencies/o-abcd-a"
-                                }
-                              }
+                              "uid" : "o-abcd-a",
+                              "name" : "A"
                             }, {
-                              "name" : "B",
-                              "_links" : {
-                                "self" : {
-                                  "href" : "http://localhost:49336/agencies/o-abcd-b"
-                                },
-                                "agency" : {
-                                  "href" : "http://localhost:49336/agencies/o-abcd-b"
-                                }
-                              }
+                              "uid" : "o-abcd-b",
+                              "name" : "B"
                             } ]
                           },
                           "_links" : {

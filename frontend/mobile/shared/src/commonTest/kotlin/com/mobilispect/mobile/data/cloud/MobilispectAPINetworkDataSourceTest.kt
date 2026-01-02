@@ -2,12 +2,17 @@ package com.mobilispect.mobile.data.cloud
 
 import com.mobilispect.mobile.testing.AGENCIES_SUCCESSFUL_FIXTURE
 import com.mobilispect.mobile.testing.ROUTES_SUCCESSFUL_FIXTURE
+import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.*
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.resources.Resources
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.*
 import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -21,7 +26,7 @@ class MobilispectAPINetworkDataSourceTest {
             throw IOException("Failed to connect")
         }
 
-        val networkDataSource = MobilispectAPINetworkDataSource(mockEngine)
+        val networkDataSource = MobilispectAPINetworkDataSource(buildClient(mockEngine))
 
         val actual = networkDataSource.agencies()
 
@@ -41,16 +46,16 @@ class MobilispectAPINetworkDataSourceTest {
             )
         }
 
-        val networkDataSource = MobilispectAPINetworkDataSource(mockEngine)
+        val networkDataSource = MobilispectAPINetworkDataSource(buildClient(mockEngine))
 
         val actual = networkDataSource.agencies().getOrNull()!!
 
         with(actual.first()) {
-            assertEquals("http://localhost:49336/agencies/o-abcd-a", _links.self.href)
+            assertEquals("o-abcd-a", id)
             assertEquals("A", name)
         }
         with(actual.last()) {
-            assertEquals("http://localhost:49336/agencies/o-abcd-b", _links.self.href)
+            assertEquals("o-abcd-b", id)
             assertEquals("B", name)
         }
     }
@@ -59,11 +64,11 @@ class MobilispectAPINetworkDataSourceTest {
     fun routesOperatedBy_networkError() = runTest {
         val mockEngine = MockEngine { request ->
             assertEquals("/routes/search/findAllByAgencyID", request.url.encodedPath)
-            assertEquals("id=o-abcd-a", request.url.encodedQuery)
+            assertEquals("agencyID=o-abcd-a", request.url.encodedQuery)
             throw IOException("Failed to connect")
         }
 
-        val networkDataSource = MobilispectAPINetworkDataSource(mockEngine)
+        val networkDataSource = MobilispectAPINetworkDataSource(buildClient(mockEngine))
 
         val actual = networkDataSource.routesOperatedBy("o-abcd-a")
 
@@ -74,7 +79,7 @@ class MobilispectAPINetworkDataSourceTest {
     fun routesOperatedBy_returnsList() = runTest {
         val mockEngine = MockEngine { request ->
             assertEquals("/routes/search/findAllByAgencyID", request.url.encodedPath)
-            assertEquals("id=o-abcd-a", request.url.encodedQuery)
+            assertEquals("agencyID=o-abcd-a", request.url.encodedQuery)
             respond(
                 content = ByteReadChannel(
                     ROUTES_SUCCESSFUL_FIXTURE.trimIndent()
@@ -84,7 +89,7 @@ class MobilispectAPINetworkDataSourceTest {
             )
         }
 
-        val networkDataSource = MobilispectAPINetworkDataSource(mockEngine)
+        val networkDataSource = MobilispectAPINetworkDataSource(buildClient(mockEngine))
 
         val actual = networkDataSource.routesOperatedBy("o-abcd-a").getOrNull()!!
 
@@ -101,4 +106,12 @@ class MobilispectAPINetworkDataSourceTest {
             assertEquals("o-abcd-a", agencyID)
         }
     }
+
+    private fun buildClient(engine: MockEngine): HttpClient =
+        HttpClient(engine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+            install(Resources)
+        }
 }

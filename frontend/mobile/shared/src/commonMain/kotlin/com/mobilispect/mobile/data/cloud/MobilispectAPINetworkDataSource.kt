@@ -2,6 +2,7 @@ package com.mobilispect.mobile.data.cloud
 
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -18,17 +19,23 @@ import kotlinx.serialization.json.Json
 /**
  * A [NetworkDataSource] that access the Mobilispect API.
  */
-class MobilispectAPINetworkDataSource() : NetworkDataSource {
-    private val client: HttpClient = HttpClient(CIO.create()) {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-            })
-        }
-        install(Resources)
-        defaultRequest {
-            host = "34.152.51.155"
-            url { protocol = URLProtocol.HTTP }
+class MobilispectAPINetworkDataSource(
+    private val client: HttpClient = buildClient(),
+) : NetworkDataSource {
+
+    companion object {
+        fun buildClient(engine: HttpClientEngine? = null): HttpClient =
+            HttpClient(engine ?: CIO.create()) {
+            install(ContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                })
+            }
+            install(Resources)
+            defaultRequest {
+                host = "34.152.51.155"
+                url { protocol = URLProtocol.HTTP }
+            }
         }
     }
 
