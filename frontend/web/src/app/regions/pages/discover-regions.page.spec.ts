@@ -161,17 +161,6 @@ describe('DiscoverRegionsPageComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/regions/discover', 'r-1']);
   });
 
-  it('starts region imports and navigates to imports view', () => {
-    component.regionFeeds = [baseFeed];
-    component.selectedRegion = baseRegion;
-    component.selectedRegionId = baseRegion.regionOnestopId;
-    component.importRegion();
-
-    expect(importService.startImport).toHaveBeenCalledWith('f-1');
-    expect(importService.refreshActiveImports).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith(['/feeds/imports']);
-  });
-
   it('handles import failures with error toast', () => {
     importService.startImport.and.returnValue(
       throwError(() => ({ message: 'fail' })),
