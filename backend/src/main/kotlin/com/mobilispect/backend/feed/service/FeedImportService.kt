@@ -14,7 +14,7 @@ import java.util.UUID
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
-import org.springframework.batch.core.launch.JobLauncher
+import org.springframework.batch.core.launch.JobOperator
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.TaskExecutor
 import org.springframework.stereotype.Service
@@ -23,11 +23,10 @@ import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Service
-@Suppress("DEPRECATION")
 class FeedImportService(
   @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
   private val feedImportRepository: FeedImportRepository,
-  private val jobLauncher: JobLauncher,
+  private val jobOperator: JobOperator,
   @Qualifier("feedImportJob") private val feedImportJob: Job,
   @Qualifier("taskExecutor") private val importLaunchExecutor: TaskExecutor,
   private val clock: Clock = Clock.systemUTC(),
@@ -91,7 +90,7 @@ class FeedImportService(
         .toJobParameters()
 
     importLaunchExecutor.execute {
-      runCatching { jobLauncher.run(feedImportJob, params) }
+      runCatching { jobOperator.run(feedImportJob, params) }
         .onFailure { throwable ->
           logger.error("Failed to launch feed import job for {}", feedId, throwable)
           failImport(importId, throwable.message ?: "Failed to start import job")

@@ -305,5 +305,4 @@ class GTFSFeedReader(
       )
     }
   }
-
 }
