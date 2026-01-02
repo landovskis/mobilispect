@@ -44,10 +44,10 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x backend/gradlew
 
-      - name: Build
+      - name: Build (Assemble)
         run: |
           echo "🔧 Building Backend..."
-          cd backend && ./gradlew build -x test --info
+          cd backend && ./gradlew assemble --info
 
   backend-test:
     name: Tests
