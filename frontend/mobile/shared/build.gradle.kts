@@ -38,7 +38,6 @@ kotlin {
         }
 
         commonMain.dependencies {
-            api(libs.javax.inject)
             implementation(libs.koin.core)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.kotlinx.serialization)

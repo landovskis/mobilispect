@@ -15,7 +15,7 @@ data object NoAgencyFound : AgenciesUIState
 class AgenciesFound(val agencies: List<AgencyUIState>) : AgenciesUIState
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class AgenciesViewModel @javax.inject.Inject constructor(
+class AgenciesViewModel(
     private val agencyRepository: AgencyRepository
 ) :
     ViewModel() {
