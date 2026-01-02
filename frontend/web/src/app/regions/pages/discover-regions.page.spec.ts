@@ -34,6 +34,7 @@ describe('DiscoverRegionsPageComponent', () => {
   let events: FeedsEventsService;
   let router: jasmine.SpyObj<Router>;
   let route: ActivatedRoute;
+  let queryParamMap$: Subject<ParamMap>;
   let snackBar: jasmine.SpyObj<MatSnackBar>;
 
   const baseRegion: MetropolitanRegion = {
@@ -84,7 +85,7 @@ describe('DiscoverRegionsPageComponent', () => {
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
 
-    const queryParamMap$ = new Subject<ParamMap>();
+    queryParamMap$ = new Subject<ParamMap>();
     route = {
       snapshot: {
         queryParamMap: convertToParamMap({ region: 'r-1' }),
@@ -92,9 +93,11 @@ describe('DiscoverRegionsPageComponent', () => {
       queryParamMap: queryParamMap$.asObservable(),
     } as ActivatedRoute;
 
-    snackBar.open.and.returnValue({
-      onAction: () => new Subject<void>(),
-    } as MatSnackBarRef<SimpleSnackBar>);
+    snackBar.open.and.returnValue(
+      {
+        onAction: () => new Subject<void>(),
+      } as unknown as MatSnackBarRef<SimpleSnackBar>,
+    );
 
     regionService.listRegions.and.returnValue(of([baseRegion]));
     regionService.getCachedRegions.and.returnValue(of([baseRegion]));
@@ -232,9 +235,11 @@ describe('DiscoverRegionsPageComponent', () => {
 
   it('retries loading feeds when the snackbar action fires', () => {
     const action$ = new Subject<void>();
-    snackBar.open.and.returnValue({
-      onAction: () => action$,
-    } as MatSnackBarRef<SimpleSnackBar>);
+    snackBar.open.and.returnValue(
+      {
+        onAction: () => action$,
+      } as unknown as MatSnackBarRef<SimpleSnackBar>,
+    );
     regionService.listFeedsForRegion.and.returnValue(
       throwError(() => new Error('fail')),
     );
@@ -251,34 +256,9 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('clears selection when query param is removed', () => {
-    const queryParamMap$ = new Subject<ParamMap>();
-    route = {
-      snapshot: {
-        queryParamMap: convertToParamMap({}),
-      },
-      queryParamMap: queryParamMap$.asObservable(),
-    } as unknown as ActivatedRoute;
-
-    TestBed.configureTestingModule({
-      providers: [
-        { provide: RegionService, useValue: regionService },
-        { provide: ImportService, useValue: importService },
-        { provide: MatSnackBar, useValue: snackBar },
-        { provide: Router, useValue: router },
-        { provide: ActivatedRoute, useValue: route },
-        { provide: FeedsMetricsService, useValue: metrics },
-        { provide: FeedsEventsService, useValue: events },
-      ],
-    });
-    component = TestBed.runInInjectionContext(
-      () => new DiscoverRegionsPageComponent(),
-    );
-
     component.ngOnInit();
-    expect(component.selectedRegionId).toBeNull();
 
-    component.selectedRegionId = 'r-1';
-    queryParamMap$.next({ get: () => null });
+    queryParamMap$.next(convertToParamMap({}));
 
     expect(component.selectedRegionId).toBeNull();
   });

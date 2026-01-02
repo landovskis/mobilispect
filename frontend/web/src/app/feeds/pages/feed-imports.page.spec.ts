@@ -9,7 +9,7 @@ import { FeedImportsPageComponent } from './feed-imports.page';
 import { ImportService } from '../services/import.service';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
-import { FeedImport, ImportStatus, TriggerType } from '../models';
+import { FeedImport, FeedImportSummary, ImportStatus, TriggerType } from '../models';
 
 describe('FeedImportsPageComponent', () => {
   let component: FeedImportsPageComponent;
@@ -18,6 +18,21 @@ describe('FeedImportsPageComponent', () => {
   let metrics: jasmine.SpyObj<FeedsMetricsService>;
   let events: FeedsEventsService;
 
+  const baseImportSummary: FeedImportSummary = {
+    id: 'imp-1',
+    feedOnestopId: 'f-1',
+    feedName: 'Feed 1',
+    regionName: 'Region 1',
+    status: ImportStatus.COMPLETED,
+    triggerType: TriggerType.MANUAL,
+    startedAt: '2024-01-01T00:00:00Z',
+    completedAt: '2024-01-01T00:10:00Z',
+    fileSizeBytes: null,
+    errorMessage: null,
+    progress: null,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:10:00Z',
+  };
   const baseImport: FeedImport = {
     id: 'imp-1',
     feedOnestopId: 'f-1',
@@ -49,18 +64,20 @@ describe('FeedImportsPageComponent', () => {
     ]);
     events = new FeedsEventsService();
 
-    importService.getActiveImportsObservable.and.returnValue(of([]));
+    importService.getActiveImportsObservable.and.returnValue(of([] as any));
     importService.getAllImportHistory.and.returnValue(
       of({
-        imports: [baseImport],
+        imports: [baseImportSummary],
         totalElements: 1,
         totalPages: 1,
       }),
     );
     importService.cancelImport.and.returnValue(of(baseImport));
-    snackBar.open.and.returnValue({
-      onAction: () => new Subject<void>(),
-    } as MatSnackBarRef<SimpleSnackBar>);
+    snackBar.open.and.returnValue(
+      {
+        onAction: () => new Subject<void>(),
+      } as unknown as MatSnackBarRef<SimpleSnackBar>,
+    );
 
     TestBed.configureTestingModule({
       providers: [

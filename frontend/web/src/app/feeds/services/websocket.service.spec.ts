@@ -16,6 +16,7 @@ interface StompConfig {
 }
 
 interface MockSubscription {
+  id: string;
   unsubscribe: jasmine.Spy;
 }
 
@@ -29,6 +30,7 @@ class MockStompClient {
     .and.callFake((_topic: string, callback: (message: IMessage) => void) => {
       this.lastSubscriptionCallback = callback;
       const subscription: MockSubscription = {
+        id: `sub-${this.subscriptions.length + 1}`,
         unsubscribe: jasmine.createSpy('unsubscribe'),
       };
       this.subscriptions.push(subscription);
@@ -128,9 +130,11 @@ describe('WebSocketService', () => {
       service as unknown as { stompClient: MockStompClient | null }
     ).stompClient = mockClient;
     const progressSub: MockSubscription = {
+      id: 'sub-progress',
       unsubscribe: jasmine.createSpy('unsubscribe'),
     };
     const statusSub: MockSubscription = {
+      id: 'sub-status',
       unsubscribe: jasmine.createSpy('unsubscribe'),
     };
     (
@@ -209,7 +213,7 @@ describe('WebSocketService', () => {
     callback(message);
 
     expect(received.length).toBe(1);
-    expect(received[0].progress.importId).toBe('import-1');
+    expect(received[0].progress?.importId).toBe('import-1');
   });
 
   it('subscribes to import status after connection', () => {
@@ -282,9 +286,11 @@ describe('WebSocketService', () => {
 
   it('unsubscribes from import topics', () => {
     const progressSub: MockSubscription = {
+      id: 'sub-progress',
       unsubscribe: jasmine.createSpy('unsubscribe'),
     };
     const statusSub: MockSubscription = {
+      id: 'sub-status',
       unsubscribe: jasmine.createSpy('unsubscribe'),
     };
     (

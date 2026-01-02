@@ -15,7 +15,7 @@ describe('AppShellComponent', () => {
   let fixture: ComponentFixture<AppShellComponent>;
 
   const mockImportService = {
-    getActiveImportsObservable: () => of([]),
+    getActiveImportsObservable: () => of([] as any),
     refreshActiveImports: jasmine.createSpy('refreshActiveImports'),
   };
 
@@ -33,7 +33,14 @@ describe('AppShellComponent', () => {
     clearCache: jasmine.createSpy('clearCache'),
   };
 
-  const breakpointState$ = new BehaviorSubject({ matches: false });
+  const breakpointState$ = new BehaviorSubject({
+    matches: false,
+    breakpoints: {
+      '(max-width: 599px)': false,
+      '(min-width: 600px) and (max-width: 839px)': false,
+      '(min-width: 840px)': true,
+    },
+  });
   const mockBreakpointObserver = {
     observe: () => breakpointState$.asObservable(),
   };
@@ -113,7 +120,14 @@ describe('AppShellComponent', () => {
     await component.toggleSidenav();
     expect(component.sidebarOpened).toBeFalse();
 
-    breakpointState$.next({ matches: true });
+    breakpointState$.next({
+      matches: true,
+      breakpoints: {
+        '(max-width: 599px)': true,
+        '(min-width: 600px) and (max-width: 839px)': false,
+        '(min-width: 840px)': false,
+      },
+    });
     await component.toggleSidenav();
     expect(component.sidebarOpened).toBeTrue();
   });

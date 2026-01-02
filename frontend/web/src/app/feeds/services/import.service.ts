@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, timer, of, merge } from 'rxjs';
+import { Observable, BehaviorSubject, timer, of, merge, Subscription } from 'rxjs';
 import {
   map,
   tap,
@@ -49,6 +49,7 @@ export class ImportService implements OnDestroy {
   private activeImports$ = new BehaviorSubject<FeedImportSummary[]>([]);
   private pollingInterval = 5000; // 5 seconds
   private isPolling = false;
+  private pollingSubscription: Subscription | null = null;
 
   /**
    * Initializes WebSocket connection for real-time updates
@@ -209,7 +210,7 @@ export class ImportService implements OnDestroy {
     if (this.isPolling) return;
 
     this.isPolling = true;
-    timer(0, this.pollingInterval)
+    this.pollingSubscription = timer(0, this.pollingInterval)
       .pipe(
         switchMap(() => this.getActiveImports()),
         distinctUntilChanged(
@@ -224,6 +225,8 @@ export class ImportService implements OnDestroy {
    */
   stopPollingActiveImports(): void {
     this.isPolling = false;
+    this.pollingSubscription?.unsubscribe();
+    this.pollingSubscription = null;
   }
 
   /**

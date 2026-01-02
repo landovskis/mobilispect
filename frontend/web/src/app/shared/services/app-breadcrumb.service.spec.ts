@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { AppBreadcrumbService } from './app-breadcrumb.service';
-import { ActivatedRouteSnapshot } from '@angular/router';
+import { ActivatedRouteSnapshot, convertToParamMap } from '@angular/router';
 
 describe('AppBreadcrumbService', () => {
   let service: AppBreadcrumbService;
@@ -25,11 +25,11 @@ describe('AppBreadcrumbService', () => {
           url: [{ path: 'regions' }],
           data: { breadcrumb: 'Regions' },
           children: [],
-          paramMap: { get: () => null },
+          paramMap: convertToParamMap({}),
           routeConfig: { path: 'regions' },
         },
       ] as unknown as ActivatedRouteSnapshot[],
-    } as ActivatedRouteSnapshot;
+    } as unknown as ActivatedRouteSnapshot;
 
     const crumbs = service.getBreadcrumbs(root);
 
@@ -45,9 +45,9 @@ describe('AppBreadcrumbService', () => {
       url: [{ path: '123' }],
       data: { breadcrumb: 'Specific Region' },
       children: [],
-      paramMap: { get: () => null },
+      paramMap: convertToParamMap({}),
       routeConfig: { path: ':id' },
-    } as ActivatedRouteSnapshot;
+    } as unknown as ActivatedRouteSnapshot;
 
     const root = {
       children: [
@@ -56,11 +56,11 @@ describe('AppBreadcrumbService', () => {
           url: [{ path: 'regions' }],
           data: { breadcrumb: 'Regions' },
           children: [childRoute],
-          paramMap: { get: () => null },
+          paramMap: convertToParamMap({}),
           routeConfig: { path: 'regions' },
         },
       ] as unknown as ActivatedRouteSnapshot[],
-    } as ActivatedRouteSnapshot;
+    } as unknown as ActivatedRouteSnapshot;
 
     const crumbs = service.getBreadcrumbs(root);
 
@@ -77,18 +77,18 @@ describe('AppBreadcrumbService', () => {
       url: [{ path: 'discover' }],
       data: { breadcrumb: 'Discover' },
       children: [],
-      paramMap: { get: () => null },
+      paramMap: convertToParamMap({}),
       routeConfig: { path: 'discover' },
-    } as ActivatedRouteSnapshot;
+    } as unknown as ActivatedRouteSnapshot;
 
     const emptyRoute = {
       outlet: 'primary',
       url: [], // empty path
       data: {}, // no breadcrumb
       children: [discoverRoute],
-      paramMap: { get: () => null },
+      paramMap: convertToParamMap({}),
       routeConfig: { path: '' },
-    } as ActivatedRouteSnapshot;
+    } as unknown as ActivatedRouteSnapshot;
 
     const root = {
       children: [
@@ -97,11 +97,11 @@ describe('AppBreadcrumbService', () => {
           url: [{ path: 'regions' }],
           data: { breadcrumb: 'Regions' },
           children: [emptyRoute],
-          paramMap: { get: () => null },
+          paramMap: convertToParamMap({}),
           routeConfig: { path: 'regions' },
         },
       ] as unknown as ActivatedRouteSnapshot[],
-    } as ActivatedRouteSnapshot;
+    } as unknown as ActivatedRouteSnapshot;
 
     const crumbs = service.getBreadcrumbs(root);
 
@@ -120,11 +120,11 @@ describe('AppBreadcrumbService', () => {
           url: [{ path: 'feeds' }],
           data: {},
           children: [],
-          paramMap: { get: () => null },
+          paramMap: convertToParamMap({}),
           routeConfig: { path: 'feeds' },
         },
       ] as unknown as ActivatedRouteSnapshot[],
-    } as ActivatedRouteSnapshot;
+    } as unknown as ActivatedRouteSnapshot;
 
     const crumbs = service.getBreadcrumbs(root);
 
