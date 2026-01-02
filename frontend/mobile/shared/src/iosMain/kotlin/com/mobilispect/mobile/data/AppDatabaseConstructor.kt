@@ -3,5 +3,5 @@ package com.mobilispect.mobile.data
 import androidx.room.RoomDatabaseConstructor
 
 actual object AppDatabaseConstructor : RoomDatabaseConstructor<AppDatabase> {
-    override fun initialize(): AppDatabase = AppDatabase_Impl()
+    actual override fun initialize(): AppDatabase = AppDatabase_Impl()
 }
