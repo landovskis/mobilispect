@@ -3,17 +3,20 @@ import { ThemeService, ThemePreference } from './theme.service';
 
 const buildMediaQueryStub = (
   matches: boolean,
-  registerHandler?: (handler: (event: MediaQueryListEvent) => void) => void
+  registerHandler?: (handler: (event: MediaQueryListEvent) => void) => void,
 ): MediaQueryList => ({
   matches,
   media: '(prefers-color-scheme: dark)',
   onchange: null,
-  addEventListener: (_eventName: string, handler: EventListenerOrEventListenerObject) =>
-    registerHandler?.(handler as (event: MediaQueryListEvent) => void),
+  addEventListener: (
+    _eventName: string,
+    handler: EventListenerOrEventListenerObject,
+  ) => registerHandler?.(handler as (event: MediaQueryListEvent) => void),
   removeEventListener: () => undefined,
-  addListener: (handler: (event: MediaQueryListEvent) => void) => registerHandler?.(handler),
+  addListener: (handler: (event: MediaQueryListEvent) => void) =>
+    registerHandler?.(handler),
   removeListener: () => undefined,
-  dispatchEvent: () => false
+  dispatchEvent: () => false,
 });
 
 describe('ThemeService', () => {
@@ -38,11 +41,15 @@ describe('ThemeService', () => {
     const service = TestBed.inject(ThemeService);
 
     service.setPreference('dark');
-    expect(localStorage.getItem('mobilispect-theme')).toBe('dark' as ThemePreference);
+    expect(localStorage.getItem('mobilispect-theme')).toBe(
+      'dark' as ThemePreference,
+    );
     expect(document.body.classList.contains('dark-theme')).toBeTrue();
 
     service.setPreference('light');
-    expect(localStorage.getItem('mobilispect-theme')).toBe('light' as ThemePreference);
+    expect(localStorage.getItem('mobilispect-theme')).toBe(
+      'light' as ThemePreference,
+    );
     expect(document.body.classList.contains('dark-theme')).toBeFalse();
     expect(document.body.classList.contains('light-theme')).toBeTrue();
   });
@@ -50,9 +57,9 @@ describe('ThemeService', () => {
   it('reacts to system preference changes while in system mode', () => {
     let changeHandler: ((event: MediaQueryListEvent) => void) | undefined;
     spyOn(window, 'matchMedia').and.returnValue(
-      buildMediaQueryStub(false, handler => {
+      buildMediaQueryStub(false, (handler) => {
         changeHandler = handler;
-      })
+      }),
     );
 
     TestBed.inject(ThemeService);

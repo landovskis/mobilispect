@@ -98,7 +98,7 @@ export enum RouteType {
   PRIVATE_HIRE_SERVICE_VEHICLE = 'PRIVATE_HIRE_SERVICE_VEHICLE',
   ALL_TAXI_SERVICES = 'ALL_TAXI_SERVICES',
   MISCELLANEOUS_SERVICE = 'MISCELLANEOUS_SERVICE',
-  HORSE_DRAWN_CARRIAGE = 'HORSE_DRAWN_CARRIAGE'
+  HORSE_DRAWN_CARRIAGE = 'HORSE_DRAWN_CARRIAGE',
 }
 
 /**
@@ -195,7 +195,7 @@ export const RouteTypeGtfsValues: Record<RouteType, number> = {
   [RouteType.PRIVATE_HIRE_SERVICE_VEHICLE]: 1506,
   [RouteType.ALL_TAXI_SERVICES]: 1507,
   [RouteType.MISCELLANEOUS_SERVICE]: 1700,
-  [RouteType.HORSE_DRAWN_CARRIAGE]: 1702
+  [RouteType.HORSE_DRAWN_CARRIAGE]: 1702,
 };
 
 /**
@@ -292,7 +292,7 @@ export const GtfsValuesToRouteType: Record<number, RouteType> = {
   1506: RouteType.PRIVATE_HIRE_SERVICE_VEHICLE,
   1507: RouteType.ALL_TAXI_SERVICES,
   1700: RouteType.MISCELLANEOUS_SERVICE,
-  1702: RouteType.HORSE_DRAWN_CARRIAGE
+  1702: RouteType.HORSE_DRAWN_CARRIAGE,
 };
 
 const routeTypeValues = new Set<string>(Object.values(RouteType));
@@ -310,7 +310,7 @@ export const RouteTypeLabels: Partial<Record<RouteType, string>> = {
   [RouteType.AERIAL_LIFT]: 'Aerial Lift',
   [RouteType.FUNICULAR]: 'Funicular',
   [RouteType.TROLLEYBUS]: 'Trolleybus',
-  [RouteType.MONORAIL]: 'Monorail'
+  [RouteType.MONORAIL]: 'Monorail',
 };
 
 /**
@@ -326,14 +326,14 @@ export const RouteTypeIcons: Partial<Record<RouteType, string>> = {
   [RouteType.AERIAL_LIFT]: 'cable_car',
   [RouteType.FUNICULAR]: 'trending_up',
   [RouteType.TROLLEYBUS]: 'electric_bus',
-  [RouteType.MONORAIL]: 'train'
+  [RouteType.MONORAIL]: 'train',
 };
 
 const titleCase = (value: string): string =>
   value
     .toLowerCase()
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
 const formatRouteTypeLabel = (value: string): string => {
@@ -387,7 +387,7 @@ export function getRouteTypeFromGtfsValue(gtfsValue: number): RouteType {
   const routeType = GtfsValuesToRouteType[gtfsValue];
   if (!routeType) {
     throw new Error(
-      `Unknown GTFS route type: ${gtfsValue}. Valid values: ${Object.keys(GtfsValuesToRouteType).join(', ')}`
+      `Unknown GTFS route type: ${gtfsValue}. Valid values: ${Object.keys(GtfsValuesToRouteType).join(', ')}`,
     );
   }
   return routeType;

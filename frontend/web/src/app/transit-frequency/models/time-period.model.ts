@@ -36,7 +36,7 @@ export enum TimePeriod {
    * Holiday service (based on calendar_dates.txt from GTFS).
    * Includes federal holidays and observed days off.
    */
-  HOLIDAY = 'HOLIDAY'
+  HOLIDAY = 'HOLIDAY',
 }
 
 /**
@@ -47,7 +47,7 @@ export const TimePeriodLabels: Record<TimePeriod, string> = {
   [TimePeriod.WEEKDAY_PM_PEAK]: 'Weekday PM Peak',
   [TimePeriod.WEEKDAY_OFF_PEAK]: 'Weekday Off-Peak',
   [TimePeriod.WEEKEND]: 'Weekend',
-  [TimePeriod.HOLIDAY]: 'Holiday'
+  [TimePeriod.HOLIDAY]: 'Holiday',
 };
 
 /**

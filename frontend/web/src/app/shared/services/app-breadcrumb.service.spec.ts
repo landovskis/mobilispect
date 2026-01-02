@@ -3,123 +3,131 @@ import { AppBreadcrumbService } from './app-breadcrumb.service';
 import { ActivatedRouteSnapshot } from '@angular/router';
 
 describe('AppBreadcrumbService', () => {
-    let service: AppBreadcrumbService;
+  let service: AppBreadcrumbService;
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
-            providers: [AppBreadcrumbService]
-        });
-        service = TestBed.inject(AppBreadcrumbService);
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [AppBreadcrumbService],
     });
+    service = TestBed.inject(AppBreadcrumbService);
+  });
 
-    it('should be created', () => {
-        expect(service).toBeTruthy();
-    });
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
 
-    it('should build breadcrumbs from route data', () => {
-        // Mock the route tree structure
-        const root = {
-            children: [{
-                outlet: 'primary',
-                url: [{ path: 'regions' }],
-                data: { breadcrumb: 'Regions' },
-                children: [],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'regions' }
-            }] as unknown as ActivatedRouteSnapshot[]
-        } as ActivatedRouteSnapshot;
+  it('should build breadcrumbs from route data', () => {
+    // Mock the route tree structure
+    const root = {
+      children: [
+        {
+          outlet: 'primary',
+          url: [{ path: 'regions' }],
+          data: { breadcrumb: 'Regions' },
+          children: [],
+          paramMap: { get: () => null },
+          routeConfig: { path: 'regions' },
+        },
+      ] as unknown as ActivatedRouteSnapshot[],
+    } as ActivatedRouteSnapshot;
 
-        const crumbs = service.getBreadcrumbs(root);
+    const crumbs = service.getBreadcrumbs(root);
 
-        expect(crumbs.length).toBe(1);
-        expect(crumbs[0].label).toBe('Regions');
-        expect(crumbs[0].link).toEqual(['/regions']);
-    });
+    expect(crumbs.length).toBe(1);
+    expect(crumbs[0].label).toBe('Regions');
+    expect(crumbs[0].link).toEqual(['/regions']);
+  });
 
-    it('should handle nested breadcrumbs', () => {
-        // Mock nested route tree
-        const childRoute = {
-            outlet: 'primary',
-            url: [{ path: '123' }],
-            data: { breadcrumb: 'Specific Region' },
-            children: [],
-            paramMap: { get: () => null },
-            routeConfig: { path: ':id' }
-        } as ActivatedRouteSnapshot;
+  it('should handle nested breadcrumbs', () => {
+    // Mock nested route tree
+    const childRoute = {
+      outlet: 'primary',
+      url: [{ path: '123' }],
+      data: { breadcrumb: 'Specific Region' },
+      children: [],
+      paramMap: { get: () => null },
+      routeConfig: { path: ':id' },
+    } as ActivatedRouteSnapshot;
 
-        const root = {
-            children: [{
-                outlet: 'primary',
-                url: [{ path: 'regions' }],
-                data: { breadcrumb: 'Regions' },
-                children: [childRoute],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'regions' }
-            }] as unknown as ActivatedRouteSnapshot[]
-        } as ActivatedRouteSnapshot;
+    const root = {
+      children: [
+        {
+          outlet: 'primary',
+          url: [{ path: 'regions' }],
+          data: { breadcrumb: 'Regions' },
+          children: [childRoute],
+          paramMap: { get: () => null },
+          routeConfig: { path: 'regions' },
+        },
+      ] as unknown as ActivatedRouteSnapshot[],
+    } as ActivatedRouteSnapshot;
 
-        const crumbs = service.getBreadcrumbs(root);
+    const crumbs = service.getBreadcrumbs(root);
 
-        expect(crumbs.length).toBe(2);
-        expect(crumbs[0].label).toBe('Regions');
-        expect(crumbs[1].label).toBe('Specific Region');
-        expect(crumbs[1].link).toEqual(['/regions/123']);
-    });
+    expect(crumbs.length).toBe(2);
+    expect(crumbs[0].label).toBe('Regions');
+    expect(crumbs[1].label).toBe('Specific Region');
+    expect(crumbs[1].link).toEqual(['/regions/123']);
+  });
 
-    it('should handle empty path intermediate routes correctly', () => {
-        // Mock structure: feeds -> empty -> discover
-        const discoverRoute = {
-            outlet: 'primary',
-            url: [{ path: 'discover' }],
-            data: { breadcrumb: 'Discover' },
-            children: [],
-            paramMap: { get: () => null },
-            routeConfig: { path: 'discover' }
-        } as ActivatedRouteSnapshot;
+  it('should handle empty path intermediate routes correctly', () => {
+    // Mock structure: feeds -> empty -> discover
+    const discoverRoute = {
+      outlet: 'primary',
+      url: [{ path: 'discover' }],
+      data: { breadcrumb: 'Discover' },
+      children: [],
+      paramMap: { get: () => null },
+      routeConfig: { path: 'discover' },
+    } as ActivatedRouteSnapshot;
 
-        const emptyRoute = {
-            outlet: 'primary',
-            url: [], // empty path
-            data: {}, // no breadcrumb
-            children: [discoverRoute],
-            paramMap: { get: () => null },
-            routeConfig: { path: '' }
-        } as ActivatedRouteSnapshot;
+    const emptyRoute = {
+      outlet: 'primary',
+      url: [], // empty path
+      data: {}, // no breadcrumb
+      children: [discoverRoute],
+      paramMap: { get: () => null },
+      routeConfig: { path: '' },
+    } as ActivatedRouteSnapshot;
 
-        const root = {
-            children: [{
-                outlet: 'primary',
-                url: [{ path: 'regions' }],
-                data: { breadcrumb: 'Regions' },
-                children: [emptyRoute],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'regions' }
-            }] as unknown as ActivatedRouteSnapshot[]
-        } as ActivatedRouteSnapshot;
+    const root = {
+      children: [
+        {
+          outlet: 'primary',
+          url: [{ path: 'regions' }],
+          data: { breadcrumb: 'Regions' },
+          children: [emptyRoute],
+          paramMap: { get: () => null },
+          routeConfig: { path: 'regions' },
+        },
+      ] as unknown as ActivatedRouteSnapshot[],
+    } as ActivatedRouteSnapshot;
 
-        const crumbs = service.getBreadcrumbs(root);
+    const crumbs = service.getBreadcrumbs(root);
 
-        expect(crumbs.length).toBe(2);
-        expect(crumbs[0].label).toBe('Regions');
-        expect(crumbs[0].link).toEqual(['/regions']);
-        expect(crumbs[1].label).toBe('Discover');
-        expect(crumbs[1].link).toEqual(['/regions/discover']);
-    });
+    expect(crumbs.length).toBe(2);
+    expect(crumbs[0].label).toBe('Regions');
+    expect(crumbs[0].link).toEqual(['/regions']);
+    expect(crumbs[1].label).toBe('Discover');
+    expect(crumbs[1].link).toEqual(['/regions/discover']);
+  });
 
-    it('skips routes without breadcrumb labels', () => {
-        const root = {
-            children: [{
-                outlet: 'primary',
-                url: [{ path: 'feeds' }],
-                data: {},
-                children: [],
-                paramMap: { get: () => null },
-                routeConfig: { path: 'feeds' }
-            }] as unknown as ActivatedRouteSnapshot[]
-        } as ActivatedRouteSnapshot;
+  it('skips routes without breadcrumb labels', () => {
+    const root = {
+      children: [
+        {
+          outlet: 'primary',
+          url: [{ path: 'feeds' }],
+          data: {},
+          children: [],
+          paramMap: { get: () => null },
+          routeConfig: { path: 'feeds' },
+        },
+      ] as unknown as ActivatedRouteSnapshot[],
+    } as ActivatedRouteSnapshot;
 
-        const crumbs = service.getBreadcrumbs(root);
+    const crumbs = service.getBreadcrumbs(root);
 
-        expect(crumbs.length).toBe(0);
-    });
+    expect(crumbs.length).toBe(0);
+  });
 });

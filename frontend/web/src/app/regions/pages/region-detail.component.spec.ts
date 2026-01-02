@@ -5,7 +5,7 @@ import { RegionDetailComponent } from './region-detail.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { MetropolitanRegionDetail } from '../../feeds/models/region.models';
 import { AgencyDTO } from '../../transit-frequency/models/agency.model';
-import {AgencyService} from "../../agencies/services/agency.service";
+import { AgencyService } from '../../agencies/services/agency.service';
 
 describe('RegionDetailComponent', () => {
   let component: RegionDetailComponent;
@@ -23,7 +23,7 @@ describe('RegionDetailComponent', () => {
     lastCheckAt: null,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
-    feeds: []
+    feeds: [],
   };
 
   const mockAgencies: AgencyDTO[] = [
@@ -34,7 +34,7 @@ describe('RegionDetailComponent', () => {
       regionIds: ['r-test-region'],
       routeCount: 10,
       activeRouteCount: 8,
-      routesByType: { BUS: 10 }
+      routesByType: { BUS: 10 },
     },
     {
       id: 'agency-2',
@@ -43,8 +43,8 @@ describe('RegionDetailComponent', () => {
       regionIds: ['r-test-region'],
       routeCount: 8,
       activeRouteCount: 6,
-      routesByType: { RAIL: 8 }
-    }
+      routesByType: { RAIL: 8 },
+    },
   ];
 
   beforeEach(async () => {
@@ -53,9 +53,9 @@ describe('RegionDetailComponent', () => {
     const routeSpy = jasmine.createSpyObj('ActivatedRoute', [], {
       snapshot: {
         paramMap: {
-          get: (key: string) => key === 'regionId' ? 'r-test-region' : null
-        }
-      }
+          get: (key: string) => (key === 'regionId' ? 'r-test-region' : null),
+        },
+      },
     });
 
     await TestBed.configureTestingModule({
@@ -63,12 +63,16 @@ describe('RegionDetailComponent', () => {
       providers: [
         { provide: RegionService, useValue: regionSpy },
         { provide: AgencyService, useValue: agencySpy },
-        { provide: ActivatedRoute, useValue: routeSpy }
-      ]
+        { provide: ActivatedRoute, useValue: routeSpy },
+      ],
     }).compileComponents();
 
-    regionServiceSpy = TestBed.inject(RegionService) as jasmine.SpyObj<RegionService>;
-    agencyServiceSpy = TestBed.inject(AgencyService) as jasmine.SpyObj<AgencyService>;
+    regionServiceSpy = TestBed.inject(
+      RegionService,
+    ) as jasmine.SpyObj<RegionService>;
+    agencyServiceSpy = TestBed.inject(
+      AgencyService,
+    ) as jasmine.SpyObj<AgencyService>;
     fixture = TestBed.createComponent(RegionDetailComponent);
     component = fixture.componentInstance;
   });
@@ -79,25 +83,33 @@ describe('RegionDetailComponent', () => {
 
   it('should load region data and agencies on init', () => {
     regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
-    agencyServiceSpy.listAgencies.and.returnValue(of({
-      content: mockAgencies,
-      totalElements: 2,
-      totalPages: 1
-    }));
+    agencyServiceSpy.listAgencies.and.returnValue(
+      of({
+        content: mockAgencies,
+        totalElements: 2,
+        totalPages: 1,
+      }),
+    );
 
     fixture.detectChanges();
 
     expect(regionServiceSpy.getRegion).toHaveBeenCalledWith('r-test-region');
-    expect(agencyServiceSpy.listAgencies).toHaveBeenCalledWith(0, 100, 'r-test-region');
+    expect(agencyServiceSpy.listAgencies).toHaveBeenCalledWith(
+      0,
+      100,
+      'r-test-region',
+    );
   });
 
   it('should display region information', () => {
     regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
-    agencyServiceSpy.listAgencies.and.returnValue(of({
-      content: mockAgencies,
-      totalElements: 2,
-      totalPages: 1
-    }));
+    agencyServiceSpy.listAgencies.and.returnValue(
+      of({
+        content: mockAgencies,
+        totalElements: 2,
+        totalPages: 1,
+      }),
+    );
 
     fixture.detectChanges();
 
@@ -110,28 +122,34 @@ describe('RegionDetailComponent', () => {
 
   it('should display agencies list when agencies are available', () => {
     regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
-    agencyServiceSpy.listAgencies.and.returnValue(of({
-      content: mockAgencies,
-      totalElements: 2,
-      totalPages: 1
-    }));
+    agencyServiceSpy.listAgencies.and.returnValue(
+      of({
+        content: mockAgencies,
+        totalElements: 2,
+        totalPages: 1,
+      }),
+    );
 
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement;
     expect(compiled.textContent).toContain('Agencies');
-    expect(compiled.textContent).toContain('Transit agencies serving this region');
+    expect(compiled.textContent).toContain(
+      'Transit agencies serving this region',
+    );
     const agencyCards = compiled.querySelectorAll('app-agency-card');
     expect(agencyCards.length).toBe(2);
   });
 
   it('should display message when no agencies are available', () => {
     regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
-    agencyServiceSpy.listAgencies.and.returnValue(of({
-      content: [],
-      totalElements: 0,
-      totalPages: 0
-    }));
+    agencyServiceSpy.listAgencies.and.returnValue(
+      of({
+        content: [],
+        totalElements: 0,
+        totalPages: 0,
+      }),
+    );
 
     fixture.detectChanges();
 
@@ -143,9 +161,9 @@ describe('RegionDetailComponent', () => {
     const routeWithoutId = jasmine.createSpyObj('ActivatedRoute', [], {
       snapshot: {
         paramMap: {
-          get: () => null
-        }
-      }
+          get: () => null,
+        },
+      },
     });
 
     TestBed.resetTestingModule();
@@ -154,8 +172,8 @@ describe('RegionDetailComponent', () => {
       providers: [
         { provide: RegionService, useValue: regionServiceSpy },
         { provide: AgencyService, useValue: agencyServiceSpy },
-        { provide: ActivatedRoute, useValue: routeWithoutId }
-      ]
+        { provide: ActivatedRoute, useValue: routeWithoutId },
+      ],
     });
 
     fixture = TestBed.createComponent(RegionDetailComponent);

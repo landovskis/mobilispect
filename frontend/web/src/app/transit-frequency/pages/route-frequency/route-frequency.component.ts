@@ -1,8 +1,22 @@
-import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 
 import { ActivatedRoute } from '@angular/router';
-import { FrequencyService, RouteDto, RouteVariantDto } from '../../services/frequency.service';
-import { CommonSectionService, CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
+import {
+  FrequencyService,
+  RouteDto,
+  RouteVariantDto,
+} from '../../services/frequency.service';
+import {
+  CommonSectionService,
+  CommonSectionDto,
+  CombinedFrequencyDto,
+} from '../../services/common-section.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 import { RouteVariantCardComponent } from '../../components/route-variant-card/route-variant-card.component';
 import { CommonSectionDisplayComponent } from '../../components/common-section-display/common-section-display.component';
@@ -12,18 +26,25 @@ import { BrandTabsComponent } from '../../../shared/components/brand-tabs.compon
 @Component({
   selector: 'app-route-frequency',
   standalone: true,
-  imports: [BrandCardComponent, RouteVariantCardComponent, CommonSectionDisplayComponent, BrandTabsComponent],
+  imports: [
+    BrandCardComponent,
+    RouteVariantCardComponent,
+    CommonSectionDisplayComponent,
+    BrandTabsComponent,
+  ],
   template: `
     <app-brand-card
       [title]="route?.longName"
       [subtitle]="route?.shortName || undefined"
-      [loading]="isLoading">
+      [loading]="isLoading"
+    >
       @if (directionTabs.length > 1) {
         <app-brand-tabs
           class="mb-4 block"
           [tabs]="directionTabLabels"
           [selectedIndex]="selectedDirectionIndex"
-          (selectedIndexChange)="selectDirectionByIndex($event)">
+          (selectedIndexChange)="selectDirectionByIndex($event)"
+        >
         </app-brand-tabs>
       }
       <div class="grid gap-4 md:grid-cols-2" role="list">
@@ -31,8 +52,7 @@ import { BrandTabsComponent } from '../../../shared/components/brand-tabs.compon
           <app-route-variant-card [loading]="true"></app-route-variant-card>
         } @else {
           @for (variant of filteredVariants; track variant.id) {
-            <app-route-variant-card
-              [variant]="variant">
+            <app-route-variant-card [variant]="variant">
             </app-route-variant-card>
           }
         }
@@ -40,11 +60,12 @@ import { BrandTabsComponent } from '../../../shared/components/brand-tabs.compon
 
       <app-common-section-display
         [sections]="commonSections"
-        [combined]="combinedBySection">
+        [combined]="combinedBySection"
+      >
       </app-common-section-display>
     </app-brand-card>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RouteFrequencyComponent implements OnInit {
   routeId!: string;
@@ -64,7 +85,7 @@ export class RouteFrequencyComponent implements OnInit {
   private readonly cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
-    this.routeParams.paramMap.subscribe(params => {
+    this.routeParams.paramMap.subscribe((params) => {
       this.routeId = params.get('routeId') ?? '';
       this.loadRoute();
     });
@@ -84,9 +105,9 @@ export class RouteFrequencyComponent implements OnInit {
           this.variantsLoaded = true;
           this.updateLoading();
           this.cdr.markForCheck();
-        })
+        }),
       )
-      .subscribe(route => {
+      .subscribe((route) => {
         this.route = route;
         this.variants = route.variants ?? [];
         if (this.variants.length > 0 && this.selectedDirectionId === null) {
@@ -94,43 +115,56 @@ export class RouteFrequencyComponent implements OnInit {
         }
         this.cdr.markForCheck();
       });
-    this.commonSectionService.getCommonSectionsForRoute(this.routeId).subscribe(sections => {
-      this.commonSections = sections;
-      sections.forEach(section => {
-        this.commonSectionService.getCombinedFrequency(section.id, 'WEEKDAY_AM_PEAK').subscribe(freq => {
-          if (freq) this.combinedBySection[section.id] = freq;
-          this.cdr.markForCheck();
+    this.commonSectionService
+      .getCommonSectionsForRoute(this.routeId)
+      .subscribe((sections) => {
+        this.commonSections = sections;
+        sections.forEach((section) => {
+          this.commonSectionService
+            .getCombinedFrequency(section.id, 'WEEKDAY_AM_PEAK')
+            .subscribe((freq) => {
+              if (freq) this.combinedBySection[section.id] = freq;
+              this.cdr.markForCheck();
+            });
         });
+        this.sectionsLoaded = true;
+        this.updateLoading();
+        this.cdr.markForCheck();
       });
-      this.sectionsLoaded = true;
-      this.updateLoading();
-      this.cdr.markForCheck();
-    });
   }
 
   get directionTabs(): { id: number | null; label: string; key: string }[] {
-    const ids = Array.from(new Set(this.variants.map(variant => variant.directionId ?? null)));
+    const ids = Array.from(
+      new Set(this.variants.map((variant) => variant.directionId ?? null)),
+    );
     const ordered: (number | null)[] = [];
     if (ids.includes(0)) ordered.push(0);
     if (ids.includes(1)) ordered.push(1);
-    ids.filter(id => id !== 0 && id !== 1 && id !== null).forEach(id => ordered.push(id));
+    ids
+      .filter((id) => id !== 0 && id !== 1 && id !== null)
+      .forEach((id) => ordered.push(id));
     if (ids.includes(null)) ordered.push(null);
-    return ordered.map(id => ({
+    return ordered.map((id) => ({
       id,
       label: id === null ? 'Unknown' : `Direction ${id}`,
-      key: id === null ? 'unknown' : String(id)
+      key: id === null ? 'unknown' : String(id),
     }));
   }
 
   get filteredVariants(): RouteVariantDto[] {
     if (this.selectedDirectionId === null) {
-      return this.variants.filter(variant => variant.directionId === null || variant.directionId === undefined);
+      return this.variants.filter(
+        (variant) =>
+          variant.directionId === null || variant.directionId === undefined,
+      );
     }
-    return this.variants.filter(variant => variant.directionId === this.selectedDirectionId);
+    return this.variants.filter(
+      (variant) => variant.directionId === this.selectedDirectionId,
+    );
   }
 
   get directionTabLabels(): string[] {
-    return this.directionTabs.map(tab => tab.label);
+    return this.directionTabs.map((tab) => tab.label);
   }
 
   selectDirection(directionId: number | null): void {
@@ -141,7 +175,9 @@ export class RouteFrequencyComponent implements OnInit {
 
   get selectedDirectionIndex(): number {
     const tabs = this.directionTabs;
-    const matchIndex = tabs.findIndex(tab => tab.id === this.selectedDirectionId);
+    const matchIndex = tabs.findIndex(
+      (tab) => tab.id === this.selectedDirectionId,
+    );
     return matchIndex >= 0 ? matchIndex : 0;
   }
 
@@ -152,6 +188,10 @@ export class RouteFrequencyComponent implements OnInit {
   }
 
   private updateLoading(): void {
-    this.isLoading = !(this.routeLoaded && this.variantsLoaded && this.sectionsLoaded);
+    this.isLoading = !(
+      this.routeLoaded &&
+      this.variantsLoaded &&
+      this.sectionsLoaded
+    );
   }
 }

@@ -13,8 +13,8 @@ export class AgencyBreadcrumbResolver implements Resolve<string> {
     if (!agencyId) return of('Agencies');
 
     return this.agencyService.getAgency(agencyId).pipe(
-      map(agency => agency.name || this.humanize(agencyId)),
-      catchError(() => of(this.humanize(agencyId)))
+      map((agency) => agency.name || this.humanize(agencyId)),
+      catchError(() => of(this.humanize(agencyId))),
     );
   }
 
@@ -24,7 +24,7 @@ export class AgencyBreadcrumbResolver implements Resolve<string> {
     return cleaned
       .split(/[\s-]+/)
       .filter(Boolean)
-      .map(piece => piece.charAt(0).toUpperCase() + piece.slice(1))
+      .map((piece) => piece.charAt(0).toUpperCase() + piece.slice(1))
       .join(' ');
   }
 }

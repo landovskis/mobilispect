@@ -10,7 +10,7 @@ describe('AgencyCardComponent', () => {
       regionIds: ['r-1'],
       routeCount: 2,
       activeRouteCount: 2,
-      routesByType: { bus: 2, tram: 0 }
+      routesByType: { bus: 2, tram: 0 },
     };
 
     expect(component.hasRoutes).toBeTrue();
@@ -27,7 +27,7 @@ describe('AgencyCardComponent', () => {
       regionIds: [],
       routeCount: 0,
       activeRouteCount: 0,
-      routesByType: {}
+      routesByType: {},
     };
 
     expect(component.hasRoutes).toBeFalse();

@@ -1,4 +1,12 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, Input, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  Output,
+  EventEmitter,
+  Input,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,8 +20,18 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, Subject, BehaviorSubject, combineLatest } from 'rxjs';
-import { map, takeUntil, debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
-import { MetropolitanRegion, RegionUtils, FeedDiscoveryResult } from '../../feeds/models/region.models';
+import {
+  map,
+  takeUntil,
+  debounceTime,
+  distinctUntilChanged,
+  startWith,
+} from 'rxjs/operators';
+import {
+  MetropolitanRegion,
+  RegionUtils,
+  FeedDiscoveryResult,
+} from '../../feeds/models/region.models';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { SchedulerService } from '../../feeds/services/scheduler.service';
@@ -54,25 +72,31 @@ interface FeedVersionStatus {
     MatSlideToggleModule,
     MatMenuModule,
     BrandCardComponent,
-    BrandButtonComponent
+    BrandButtonComponent,
   ],
   template: `
     <div class="region-list-container mx-auto max-w-[1200px] p-4 max-md:p-3">
       <!-- Search and Filters -->
       <div class="search-section mb-6 flex flex-col gap-4 max-md:mb-4">
-        <mat-form-field class="search-field w-full max-w-[400px]" appearance="outline">
+        <mat-form-field
+          class="search-field w-full max-w-[400px]"
+          appearance="outline"
+        >
           <mat-label>Search regions</mat-label>
           <input
             matInput
             [(ngModel)]="searchTerm"
             placeholder="Search by name or ID..."
             [attr.aria-label]="'Search regions by name or ID'"
-          >
+          />
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
         <div class="filter-chips flex flex-wrap gap-2">
-          <mat-chip-listbox [multiple]="false" [hideSingleSelectionIndicator]="true">
+          <mat-chip-listbox
+            [multiple]="false"
+            [hideSingleSelectionIndicator]="true"
+          >
             <mat-chip-option
               [selected]="autoUpdateFilter === undefined"
               (click)="setAutoUpdateFilter(undefined)"
@@ -97,19 +121,31 @@ interface FeedVersionStatus {
 
       <!-- Loading State -->
       @if (isLoading$ | async) {
-        <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div
+          class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3"
+        >
           @for (placeholder of loadingPlaceholders; track $index) {
-            <app-brand-card class="region-card" [loading]="true" [hasFooter]="true"></app-brand-card>
+            <app-brand-card
+              class="region-card"
+              [loading]="true"
+              [hasFooter]="true"
+            ></app-brand-card>
           }
         </div>
       }
 
       <!-- Error State -->
       @if (error$ | async; as error) {
-        <div class="error-container flex flex-col items-center justify-center px-4 py-12 text-center">
+        <div
+          class="error-container flex flex-col items-center justify-center px-4 py-12 text-center"
+        >
           <mat-icon class="mb-4" color="warn">error</mat-icon>
           <p>{{ error }}</p>
-          <app-brand-button variant="primary" size="sm" (click)="refreshRegions()">
+          <app-brand-button
+            variant="primary"
+            size="sm"
+            (click)="refreshRegions()"
+          >
             <mat-icon>refresh</mat-icon>
             <span>Retry</span>
           </app-brand-button>
@@ -119,17 +155,27 @@ interface FeedVersionStatus {
       <!-- Regions Grid -->
       @if ((isLoading$ | async) === false && (error$ | async) === null) {
         @if (filteredRegions$ | async; as regions) {
-          <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3"
+          >
             @for (region of regions; track region.regionOnestopId) {
               <app-brand-card
                 class="region-card cursor-pointer transition-all"
-                [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
+                [class.selected]="
+                  selectedRegion?.regionOnestopId === region.regionOnestopId
+                "
                 [title]="getDisplayName(region)"
                 [subtitle]="region.regionOnestopId"
-                [badge]="getActiveImportCount(region) > 0 ? getActiveImportCount(region) + ' active' : undefined"
+                [badge]="
+                  getActiveImportCount(region) > 0
+                    ? getActiveImportCount(region) + ' active'
+                    : undefined
+                "
                 [hasFooter]="true"
                 (click)="selectRegion(region)"
-                [attr.aria-label]="'Select ' + getDisplayName(region) + ' region'"
+                [attr.aria-label]="
+                  'Select ' + getDisplayName(region) + ' region'
+                "
                 tabindex="0"
                 (keydown.enter)="selectRegion(region)"
                 (keydown.space)="selectRegion(region)"
@@ -142,13 +188,19 @@ interface FeedVersionStatus {
                     </div>
 
                     <div class="stat-item flex items-center gap-2 text-sm">
-                      <mat-icon [ngClass]="{
-                        'auto-update-enabled': region.autoUpdateEnabled,
-                        'auto-update-disabled': !region.autoUpdateEnabled
-                      }">
-                        {{ region.autoUpdateEnabled ? 'sync' : 'sync_disabled' }}
+                      <mat-icon
+                        [ngClass]="{
+                          'auto-update-enabled': region.autoUpdateEnabled,
+                          'auto-update-disabled': !region.autoUpdateEnabled,
+                        }"
+                      >
+                        {{
+                          region.autoUpdateEnabled ? 'sync' : 'sync_disabled'
+                        }}
                       </mat-icon>
-                      <span>{{ region.autoUpdateEnabled ? 'Auto-update' : 'Manual only' }}</span>
+                      <span>{{
+                        region.autoUpdateEnabled ? 'Auto-update' : 'Manual only'
+                      }}</span>
                     </div>
 
                     @if (region.lastCheckAt) {
@@ -164,8 +216,12 @@ interface FeedVersionStatus {
                   <app-brand-button
                     variant="accent"
                     size="sm"
-                    (click)="$event.stopPropagation(); viewRegionDetails(region)"
-                    [attr.aria-label]="'View details for ' + getDisplayName(region)"
+                    (click)="
+                      $event.stopPropagation(); viewRegionDetails(region)
+                    "
+                    [attr.aria-label]="
+                      'View details for ' + getDisplayName(region)
+                    "
                   >
                     <mat-icon>info</mat-icon>
                     <span>Details</span>
@@ -176,8 +232,11 @@ interface FeedVersionStatus {
                     mat-icon-button
                     [matMenuTriggerFor]="autoUpdateMenu"
                     (click)="$event.stopPropagation()"
-                    [attr.aria-label]="'Auto-update settings for ' + getDisplayName(region)"
-                    matTooltip="Auto-update settings">
+                    [attr.aria-label]="
+                      'Auto-update settings for ' + getDisplayName(region)
+                    "
+                    matTooltip="Auto-update settings"
+                  >
                     <mat-icon>settings</mat-icon>
                   </button>
                   <mat-menu #autoUpdateMenu="matMenu">
@@ -189,28 +248,40 @@ interface FeedVersionStatus {
                       (keydown.enter)="$event.stopPropagation()"
                       (keydown.space)="$event.stopPropagation()"
                     >
-                      <div class="control-header mb-4 flex items-center gap-2 font-semibold text-[var(--mdc-theme-primary)]">
+                      <div
+                        class="control-header mb-4 flex items-center gap-2 font-semibold text-[var(--mdc-theme-primary)]"
+                      >
                         <mat-icon>sync</mat-icon>
                         <span>Automatic Updates</span>
                       </div>
 
-                      <div class="control-item flex items-center justify-between border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0">
+                      <div
+                        class="control-item flex items-center justify-between border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0"
+                      >
                         <span>Enable auto-update</span>
                         <mat-slide-toggle
                           [checked]="region.autoUpdateEnabled"
                           (change)="toggleAutoUpdate(region, $event.checked)"
-                          [disabled]="isUpdatingAutoUpdate.has(region.regionOnestopId)">
+                          [disabled]="
+                            isUpdatingAutoUpdate.has(region.regionOnestopId)
+                          "
+                        >
                         </mat-slide-toggle>
                       </div>
 
                       @if (region.autoUpdateEnabled) {
-                        <div class="control-item flex items-center justify-between border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0">
+                        <div
+                          class="control-item flex items-center justify-between border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0"
+                        >
                           <span>Check for updates now</span>
                           <button
                             mat-icon-button
                             (click)="checkForUpdates(region)"
-                            [disabled]="isCheckingUpdates.has(region.regionOnestopId)"
-                            matTooltip="Check for feed updates">
+                            [disabled]="
+                              isCheckingUpdates.has(region.regionOnestopId)
+                            "
+                            matTooltip="Check for feed updates"
+                          >
                             <mat-icon>update</mat-icon>
                           </button>
                         </div>
@@ -220,15 +291,30 @@ interface FeedVersionStatus {
                         <div
                           class="control-item version-info flex flex-col items-start gap-2 border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0"
                         >
-                          <div class="version-item flex w-full items-center gap-2">
-                            <span class="version-label min-w-[100px] font-medium">Last checked:</span>
-                            <span class="version-value font-mono text-xs text-[var(--mdc-theme-on-surface-variant)]">
-                              {{ versionStatus.lastChecked ? (versionStatus.lastChecked | date:'short') : 'Never' }}
+                          <div
+                            class="version-item flex w-full items-center gap-2"
+                          >
+                            <span
+                              class="version-label min-w-[100px] font-medium"
+                              >Last checked:</span
+                            >
+                            <span
+                              class="version-value font-mono text-xs text-[var(--mdc-theme-on-surface-variant)]"
+                            >
+                              {{
+                                versionStatus.lastChecked
+                                  ? (versionStatus.lastChecked | date: 'short')
+                                  : 'Never'
+                              }}
                             </span>
                           </div>
                           @if (versionStatus.hasUpdate) {
-                            <div class="version-item flex w-full items-center gap-2">
-                              <mat-icon class="update-available">new_releases</mat-icon>
+                            <div
+                              class="version-item flex w-full items-center gap-2"
+                            >
+                              <mat-icon class="update-available"
+                                >new_releases</mat-icon
+                              >
                               <span class="update-text">Update available</span>
                             </div>
                           }
@@ -242,7 +328,9 @@ interface FeedVersionStatus {
                     size="sm"
                     (click)="$event.stopPropagation(); selectRegion(region)"
                     [disabled]="region.feedCount === 0"
-                    [attr.aria-label]="'Select ' + getDisplayName(region) + ' for import'"
+                    [attr.aria-label]="
+                      'Select ' + getDisplayName(region) + ' for import'
+                    "
                   >
                     <mat-icon>play_arrow</mat-icon>
                     <span>Select</span>
@@ -252,9 +340,13 @@ interface FeedVersionStatus {
             }
 
             @if (regions.length === 0) {
-              <div class="empty-state col-span-full flex flex-col items-center justify-center px-4 py-12 text-center">
+              <div
+                class="empty-state col-span-full flex flex-col items-center justify-center px-4 py-12 text-center"
+              >
                 <mat-icon class="mb-4">location_off</mat-icon>
-                <h3>{{ searchTerm ? 'No regions found' : 'No region selected' }}</h3>
+                <h3>
+                  {{ searchTerm ? 'No regions found' : 'No region selected' }}
+                </h3>
                 @if (searchTerm) {
                   <p>Try adjusting your search criteria.</p>
                 } @else {
@@ -268,123 +360,140 @@ interface FeedVersionStatus {
 
       <!-- Quick Stats -->
       @if ((isLoading$ | async) === false && (error$ | async) === null) {
-        <div class="quick-stats flex flex-wrap justify-center gap-4 rounded-lg bg-[var(--mdc-theme-surface-variant)] p-4 max-md:gap-3 max-md:p-3">
-          <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
-            <span class="stat-number">{{ (filteredRegions$ | async)?.length || 0 }}</span>
+        <div
+          class="quick-stats flex flex-wrap justify-center gap-4 rounded-lg bg-[var(--mdc-theme-surface-variant)] p-4 max-md:gap-3 max-md:p-3"
+        >
+          <div
+            class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3"
+          >
+            <span class="stat-number">{{
+              (filteredRegions$ | async)?.length || 0
+            }}</span>
             <span class="stat-label">Regions</span>
           </div>
 
-          <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
+          <div
+            class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3"
+          >
             <span class="stat-number">{{ getTotalFeeds() | async }}</span>
             <span class="stat-label">Total Feeds</span>
           </div>
 
-          <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
-            <span class="stat-number">{{ (activeImports$ | async)?.length || 0 }}</span>
+          <div
+            class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3"
+          >
+            <span class="stat-number">{{
+              (activeImports$ | async)?.length || 0
+            }}</span>
             <span class="stat-label">Active Imports</span>
           </div>
         </div>
       }
     </div>
   `,
-  styles: [`
-    .error-container {
-      color: var(--mdc-theme-error);
-    }
+  styles: [
+    `
+      .error-container {
+        color: var(--mdc-theme-error);
+      }
 
-    .error-container mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-    }
+      .error-container mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+      }
 
-    .region-card {
-      border: 1px solid var(--ms-color-border, #d1d5db);
-    }
+      .region-card {
+        border: 1px solid var(--ms-color-border, #d1d5db);
+      }
 
-    .region-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 18px rgba(11, 79, 138, 0.16);
-    }
+      .region-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px rgba(11, 79, 138, 0.16);
+      }
 
-    .region-card.selected {
-      border-color: var(--ms-color-primary, #0b4f8a);
-      box-shadow: 0 12px 24px rgba(11, 79, 138, 0.22);
-    }
+      .region-card.selected {
+        border-color: var(--ms-color-primary, #0b4f8a);
+        box-shadow: 0 12px 24px rgba(11, 79, 138, 0.22);
+      }
 
-    .region-card:focus {
-      outline: 2px solid var(--ms-color-primary, #0b4f8a);
-      outline-offset: 2px;
-    }
+      .region-card:focus {
+        outline: 2px solid var(--ms-color-primary, #0b4f8a);
+        outline-offset: 2px;
+      }
 
-    .active-import-icon {
-      animation: spin 2s linear infinite;
-      color: var(--ms-color-primary-cyan, #00a7c4);
-    }
+      .active-import-icon {
+        animation: spin 2s linear infinite;
+        color: var(--ms-color-primary-cyan, #00a7c4);
+      }
 
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-    .stat-item {
-      color: var(--mdc-theme-on-surface-variant);
-    }
+      .stat-item {
+        color: var(--mdc-theme-on-surface-variant);
+      }
 
-    .stat-item mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
+      .stat-item mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
 
-    .auto-update-enabled {
-      color: var(--mdc-theme-tertiary);
-    }
+      .auto-update-enabled {
+        color: var(--mdc-theme-tertiary);
+      }
 
-    .auto-update-disabled {
-      color: var(--mdc-theme-outline);
-    }
+      .auto-update-disabled {
+        color: var(--mdc-theme-outline);
+      }
 
-    .empty-state {
-      color: var(--mdc-theme-on-surface-variant);
-    }
+      .empty-state {
+        color: var(--mdc-theme-on-surface-variant);
+      }
 
-    .empty-state mat-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      opacity: 0.5;
-    }
+      .empty-state mat-icon {
+        font-size: 64px;
+        width: 64px;
+        height: 64px;
+        opacity: 0.5;
+      }
 
-    .stat-number {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--mdc-theme-primary);
-    }
+      .stat-number {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--mdc-theme-primary);
+      }
 
-    .stat-label {
-      font-size: 12px;
-      color: var(--mdc-theme-on-surface-variant);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+      .stat-label {
+        font-size: 12px;
+        color: var(--mdc-theme-on-surface-variant);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
 
-    /* Auto-Update Controls */
-    .control-item span {
-      font-size: 14px;
-    }
+      /* Auto-Update Controls */
+      .control-item span {
+        font-size: 14px;
+      }
 
-    .update-available {
-      color: #ff9800;
-      animation: pulse 2s infinite;
-    }
+      .update-available {
+        color: #ff9800;
+        animation: pulse 2s infinite;
+      }
 
-    .update-text {
-      color: #ff9800;
-      font-weight: 500;
-    }
-
-  `]
+      .update-text {
+        color: #ff9800;
+        font-weight: 500;
+      }
+    `,
+  ],
 })
 export class RegionListComponent implements OnInit, OnDestroy {
   @Input() selectedRegion: MetropolitanRegion | null = null;
@@ -401,7 +510,9 @@ export class RegionListComponent implements OnInit, OnDestroy {
   searchTerm = '';
   private searchTerm$ = new BehaviorSubject<string>('');
   autoUpdateFilter: boolean | undefined = undefined;
-  private autoUpdateFilter$ = new BehaviorSubject<boolean | undefined>(undefined);
+  private autoUpdateFilter$ = new BehaviorSubject<boolean | undefined>(
+    undefined,
+  );
 
   // Data streams
   regions$ = new BehaviorSubject<MetropolitanRegion[]>([]);
@@ -419,22 +530,20 @@ export class RegionListComponent implements OnInit, OnDestroy {
   filteredRegions$ = combineLatest([
     this.regions$,
     this.searchTerm$.pipe(startWith('')),
-    this.autoUpdateFilter$.pipe(startWith(undefined))
+    this.autoUpdateFilter$.pipe(startWith(undefined)),
   ]).pipe(
     map(([regions, searchTerm, autoUpdateFilter]) =>
-      this.filterRegions(regions, searchTerm, autoUpdateFilter)
-    )
+      this.filterRegions(regions, searchTerm, autoUpdateFilter),
+    ),
   );
 
   ngOnInit(): void {
     // Setup search term observable
-    this.searchTerm$.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(term => {
-      this.searchTerm = term;
-    });
+    this.searchTerm$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((term) => {
+        this.searchTerm = term;
+      });
 
     this.loadRegions();
     this.loadActiveImports();
@@ -443,11 +552,12 @@ export class RegionListComponent implements OnInit, OnDestroy {
     this.importService.startPollingActiveImports();
 
     // Subscribe to active imports updates
-    this.importService.getActiveImportsObservable().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe(imports => {
-      this.activeImports$.next(imports);
-    });
+    this.importService
+      .getActiveImportsObservable()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((imports) => {
+        this.activeImports$.next(imports);
+      });
   }
 
   ngOnDestroy(): void {
@@ -460,59 +570,63 @@ export class RegionListComponent implements OnInit, OnDestroy {
     this.isLoading$.next(true);
     this.error$.next(null);
 
-    this.regionService.listRegions().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (regions) => {
-        this.regions$.next(regions);
-        this.isLoading$.next(false);
-      },
-      error: (error) => {
-        console.error('Failed to load regions:', error);
-        this.error$.next('Failed to load regions. Please try again.');
-        this.isLoading$.next(false);
-      }
-    });
+    this.regionService
+      .listRegions()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (regions) => {
+          this.regions$.next(regions);
+          this.isLoading$.next(false);
+        },
+        error: (error) => {
+          console.error('Failed to load regions:', error);
+          this.error$.next('Failed to load regions. Please try again.');
+          this.isLoading$.next(false);
+        },
+      });
   }
 
   private loadActiveImports(): void {
-    this.importService.getActiveImports().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (imports) => {
-        this.activeImports$.next(imports);
-      },
-      error: (error) => {
-        console.error('Failed to load active imports:', error);
-      }
-    });
+    this.importService
+      .getActiveImports()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (imports) => {
+          this.activeImports$.next(imports);
+        },
+        error: (error) => {
+          console.error('Failed to load active imports:', error);
+        },
+      });
   }
 
   private filterRegions(
     regions: MetropolitanRegion[],
     searchTerm: string,
-    autoUpdateFilter: boolean | undefined
+    autoUpdateFilter: boolean | undefined,
   ): MetropolitanRegion[] {
     let filtered = regions;
 
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(region => {
+      filtered = filtered.filter((region) => {
         const haystack = [
           region.name,
           region.regionOnestopId,
           region.adm1Name ?? '',
-          region.adm0Name ?? ''
-        ].join(' ').toLowerCase();
+          region.adm0Name ?? '',
+        ]
+          .join(' ')
+          .toLowerCase();
         return haystack.includes(term);
       });
     }
 
     // Apply auto-update filter
     if (autoUpdateFilter !== undefined) {
-      filtered = filtered.filter(region =>
-        region.autoUpdateEnabled === autoUpdateFilter
+      filtered = filtered.filter(
+        (region) => region.autoUpdateEnabled === autoUpdateFilter,
       );
     }
 
@@ -534,12 +648,18 @@ export class RegionListComponent implements OnInit, OnDestroy {
     this.loadRegions();
   }
 
-  handleDiscoveryCompleted(region: MetropolitanRegion, result: FeedDiscoveryResult): void {
+  handleDiscoveryCompleted(
+    region: MetropolitanRegion,
+    result: FeedDiscoveryResult,
+  ): void {
     void result;
     // Refresh UI to reflect new feed counts and timestamps
     this.refreshRegions();
 
-    if (this.selectedRegion && this.selectedRegion.regionOnestopId === region.regionOnestopId) {
+    if (
+      this.selectedRegion &&
+      this.selectedRegion.regionOnestopId === region.regionOnestopId
+    ) {
       this.regionSelected.emit(this.selectedRegion);
     }
   }
@@ -563,23 +683,31 @@ export class RegionListComponent implements OnInit, OnDestroy {
 
   hasActiveImport(region: MetropolitanRegion): boolean {
     const activeImports = this.activeImports$.value;
-    return activeImports.some(imp =>
-      imp.regionName === region.name ||
-      activeImports.some(imp2 => imp2.feedOnestopId.includes(region.regionOnestopId))
+    return activeImports.some(
+      (imp) =>
+        imp.regionName === region.name ||
+        activeImports.some((imp2) =>
+          imp2.feedOnestopId.includes(region.regionOnestopId),
+        ),
     );
   }
 
   getActiveImportCount(region: MetropolitanRegion): number {
     const activeImports = this.activeImports$.value;
-    return activeImports.filter(imp =>
-      imp.regionName === region.name ||
-      activeImports.some(imp2 => imp2.feedOnestopId.includes(region.regionOnestopId))
+    return activeImports.filter(
+      (imp) =>
+        imp.regionName === region.name ||
+        activeImports.some((imp2) =>
+          imp2.feedOnestopId.includes(region.regionOnestopId),
+        ),
     ).length;
   }
 
   getTotalFeeds(): Observable<number> {
     return this.filteredRegions$.pipe(
-      map(regions => regions.reduce((total, region) => total + region.feedCount, 0))
+      map((regions) =>
+        regions.reduce((total, region) => total + region.feedCount, 0),
+      ),
     );
   }
 
@@ -612,8 +740,10 @@ export class RegionListComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.isUpdatingAutoUpdate.delete(regionId);
         console.error('Error toggling auto-update:', error);
-        this.snackBar.open('Failed to update auto-update setting', 'Close', { duration: 3000 });
-      }
+        this.snackBar.open('Failed to update auto-update setting', 'Close', {
+          duration: 3000,
+        });
+      },
     });
   }
 
@@ -628,7 +758,8 @@ export class RegionListComponent implements OnInit, OnDestroy {
     // In a real implementation, you might want to check all feeds
     const firstFeedId = `${regionId}-sample-feed`; // This would be a real feed ID
 
-    this.schedulerService.checkFeedUpdate(firstFeedId)
+    this.schedulerService
+      .checkFeedUpdate(firstFeedId)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (hasUpdate) => {
@@ -644,14 +775,16 @@ export class RegionListComponent implements OnInit, OnDestroy {
           // Update version status
           this.feedVersions.set(regionId, {
             lastChecked: new Date(),
-            hasUpdate: hasUpdate
+            hasUpdate: hasUpdate,
           });
         },
         error: (error) => {
           this.isCheckingUpdates.delete(regionId);
           console.error('Error checking for updates:', error);
-          this.snackBar.open('Failed to check for updates', 'Close', { duration: 3000 });
-        }
+          this.snackBar.open('Failed to check for updates', 'Close', {
+            duration: 3000,
+          });
+        },
       });
   }
 
@@ -664,7 +797,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
 
     return {
       lastChecked: versionInfo?.lastChecked || region.lastCheckAt,
-      hasUpdate: versionInfo?.hasUpdate || false
+      hasUpdate: versionInfo?.hasUpdate || false,
     };
   }
 
@@ -672,22 +805,23 @@ export class RegionListComponent implements OnInit, OnDestroy {
    * Load feed version information for all regions
    */
   private loadFeedVersions(): void {
-    this.schedulerService.getAllFeedVersions()
+    this.schedulerService
+      .getAllFeedVersions()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (versions) => {
-          versions.forEach(version => {
+          versions.forEach((version) => {
             // Map feed versions to regions (simplified mapping)
             const regionId = version.feedOnestopId.split('-')[0]; // Simplified mapping
             this.feedVersions.set(regionId, {
               lastChecked: version.lastCheckedAt,
-              hasUpdate: version.hasUpdate
+              hasUpdate: version.hasUpdate,
             });
           });
         },
         error: (error) => {
           console.error('Error loading feed versions:', error);
-        }
+        },
       });
   }
 

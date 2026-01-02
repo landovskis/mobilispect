@@ -23,9 +23,15 @@ describe('FeedGroupingUtils', () => {
     expect(FeedGroupingUtils.extractAgencyId('f-dr5-nyct~rt')).toBe('nyct');
     expect(FeedGroupingUtils.extractAgencyId('invalid')).toBe('invalid');
 
-    expect(FeedGroupingUtils.extractAgencyName('Metro Transit GTFS')).toBe('Metro Transit');
-    expect(FeedGroupingUtils.extractAgencyName('Metro Transit - RT')).toBe('Metro Transit');
-    expect(FeedGroupingUtils.extractAgencyName('Metro Transit Realtime')).toBe('Metro Transit Realtime');
+    expect(FeedGroupingUtils.extractAgencyName('Metro Transit GTFS')).toBe(
+      'Metro Transit',
+    );
+    expect(FeedGroupingUtils.extractAgencyName('Metro Transit - RT')).toBe(
+      'Metro Transit',
+    );
+    expect(FeedGroupingUtils.extractAgencyName('Metro Transit Realtime')).toBe(
+      'Metro Transit Realtime',
+    );
   });
 
   it('groups feeds by agency and computes metadata', () => {
@@ -55,7 +61,7 @@ describe('FeedGroupingUtils', () => {
     const groups = FeedGroupingUtils.groupFeedsByAgency(feeds);
     expect(groups.length).toBe(2);
 
-    const bartGroup = groups.find(group => group.agencyId === 'bart');
+    const bartGroup = groups.find((group) => group.agencyId === 'bart');
     expect(bartGroup).toBeDefined();
     expect(bartGroup!.feedsByType.gtfs).toBe(1);
     expect(bartGroup!.feedsByType.gtfsRt).toBe(1);
@@ -74,20 +80,30 @@ describe('FeedGroupingUtils', () => {
       hasActiveFeeds: false,
       hasAuthentication: false,
       lastUpdatedAt: null,
-      feedsByType: { gtfs: 0, gtfsRt: 0 }
+      feedsByType: { gtfs: 0, gtfsRt: 0 },
     };
     const groups = FeedGroupingUtils.sortAgencyGroups([
       baseGroup,
-      { ...baseGroup, agencyName: 'Alpha Transit', agencyId: 'alpha' }
+      { ...baseGroup, agencyName: 'Alpha Transit', agencyId: 'alpha' },
     ]);
 
     expect(groups[0].agencyName).toBe('Alpha Transit');
 
-    expect(FeedGroupingUtils.getFeedTypeLabel(FeedSpecType.GTFS)).toBe('Static');
-    expect(FeedGroupingUtils.getFeedTypeLabel('UNKNOWN' as FeedSpecType)).toBe('UNKNOWN');
-    expect(FeedGroupingUtils.getFeedTypeIcon(FeedSpecType.GTFS_RT)).toBe('real_time_tracking');
-    expect(FeedGroupingUtils.getFeedTypeIcon('UNKNOWN' as FeedSpecType)).toBe('feed');
-    expect(FeedGroupingUtils.getFeedTypeColorClass('UNKNOWN' as FeedSpecType)).toBe('feed-type-default');
+    expect(FeedGroupingUtils.getFeedTypeLabel(FeedSpecType.GTFS)).toBe(
+      'Static',
+    );
+    expect(FeedGroupingUtils.getFeedTypeLabel('UNKNOWN' as FeedSpecType)).toBe(
+      'UNKNOWN',
+    );
+    expect(FeedGroupingUtils.getFeedTypeIcon(FeedSpecType.GTFS_RT)).toBe(
+      'real_time_tracking',
+    );
+    expect(FeedGroupingUtils.getFeedTypeIcon('UNKNOWN' as FeedSpecType)).toBe(
+      'feed',
+    );
+    expect(
+      FeedGroupingUtils.getFeedTypeColorClass('UNKNOWN' as FeedSpecType),
+    ).toBe('feed-type-default');
   });
 
   it('handles agencies with inactive feeds and missing timestamps', () => {

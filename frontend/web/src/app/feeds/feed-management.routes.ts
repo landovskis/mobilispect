@@ -5,7 +5,7 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
   {
     path: '',
     redirectTo: '/regions/discover',
-    pathMatch: 'full'
+    pathMatch: 'full',
   },
   {
     path: '',
@@ -14,17 +14,17 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
       {
         path: 'discover/:regionId',
         redirectTo: '/regions/discover/:regionId',
-        pathMatch: 'full'
+        pathMatch: 'full',
       },
       {
         path: 'discover',
         redirectTo: '/regions/discover',
-        pathMatch: 'full'
+        pathMatch: 'full',
       },
       {
         path: 'regions',
         redirectTo: 'discover',
-        pathMatch: 'full'
+        pathMatch: 'full',
       },
       {
         path: 'imports',
@@ -32,13 +32,13 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
         data: {
           title: 'Imports',
           breadcrumb: 'Imports',
-          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-        }
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
+        },
       },
       {
         path: 'history',
         redirectTo: 'imports',
-        pathMatch: 'full'
+        pathMatch: 'full',
       },
       {
         path: 'import/:importId',
@@ -46,9 +46,9 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
         data: {
           title: 'Import Details',
           breadcrumb: 'Import Details',
-          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-        }
-      }
-    ]
-  }
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
+        },
+      },
+    ],
+  },
 ];

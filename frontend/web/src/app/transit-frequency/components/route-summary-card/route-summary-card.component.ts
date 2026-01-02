@@ -8,15 +8,17 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
   template: `
     <app-brand-card
       [loading]="loading"
-      [title]="route?.shortName && route?.longName ? (route?.shortName + ': ' + route?.longName) : (route?.longName || route?.shortName || 'Route Details')"
+      [title]="
+        route?.shortName && route?.longName
+          ? route?.shortName + ': ' + route?.longName
+          : route?.longName || route?.shortName || 'Route Details'
+      "
     >
     </app-brand-card>
   `,
   styles: [],
-  imports: [
-    BrandCardComponent
-  ],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  imports: [BrandCardComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RouteSummaryCardComponent {
   @Input() route?: RouteDto;

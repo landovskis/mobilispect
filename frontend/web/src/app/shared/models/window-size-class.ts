@@ -11,5 +11,5 @@
 export enum WindowSizeClass {
   COMPACT = 'COMPACT',
   MEDIUM = 'MEDIUM',
-  EXPANDED = 'EXPANDED'
+  EXPANDED = 'EXPANDED',
 }

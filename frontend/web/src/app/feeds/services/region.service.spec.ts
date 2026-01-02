@@ -1,8 +1,15 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { RegionService } from './region.service';
 import { environment } from '../../../environments/environment';
-import { FeedSpecType, FeedStatus, MetropolitanRegion } from '../models/region.models';
+import {
+  FeedSpecType,
+  FeedStatus,
+  MetropolitanRegion,
+} from '../models/region.models';
 
 describe('RegionService', () => {
   let service: RegionService;
@@ -34,23 +41,36 @@ describe('RegionService', () => {
     httpMock.verify();
   });
 
-  const cacheState = () => service as unknown as {
-    regionsCache$: { next: (value: MetropolitanRegion[] | null) => void };
-    lastCacheUpdate: number;
-  };
+  const cacheState = () =>
+    service as unknown as {
+      regionsCache$: { next: (value: MetropolitanRegion[] | null) => void };
+      lastCacheUpdate: number;
+    };
 
   it('loads regions, updates cache, and applies filters', () => {
-    service.listRegions(true).subscribe(regions => {
+    service.listRegions(true).subscribe((regions) => {
       expect(regions.length).toBe(1);
       expect(regions[0].regionOnestopId).toBe('r-can');
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/regions`);
+    const req = httpMock.expectOne(
+      (request) => request.url === `${environment.apiUrl}/feeds/regions`,
+    );
     expect(req.request.params.get('autoUpdateEnabled')).toBe('true');
     req.flush({
       regions: [
-        { ...baseRegion, regionOnestopId: 'r-can', name: 'Toronto', autoUpdateEnabled: true },
-        { ...baseRegion, regionOnestopId: 'r-us', name: 'Austin', autoUpdateEnabled: false },
+        {
+          ...baseRegion,
+          regionOnestopId: 'r-can',
+          name: 'Toronto',
+          autoUpdateEnabled: true,
+        },
+        {
+          ...baseRegion,
+          regionOnestopId: 'r-us',
+          name: 'Austin',
+          autoUpdateEnabled: false,
+        },
       ],
       total: 2,
     });
@@ -63,7 +83,7 @@ describe('RegionService', () => {
     ]);
     cacheState().lastCacheUpdate = Date.now();
 
-    service.listRegions(false).subscribe(regions => {
+    service.listRegions(false).subscribe((regions) => {
       expect(regions.length).toBe(1);
       expect(regions[0].regionOnestopId).toBe('r-2');
     });
@@ -77,25 +97,38 @@ describe('RegionService', () => {
       { ...baseRegion, regionOnestopId: 'r-2', autoUpdateEnabled: false },
     ]);
 
-    service.updateRegion('r-1', { autoUpdateEnabled: true }).subscribe(updated => {
-      expect(updated.autoUpdateEnabled).toBeTrue();
-    });
+    service
+      .updateRegion('r-1', { autoUpdateEnabled: true })
+      .subscribe((updated) => {
+        expect(updated.autoUpdateEnabled).toBeTrue();
+      });
 
     const req = httpMock.expectOne(`${environment.apiUrl}/feeds/regions/r-1`);
     expect(req.request.method).toBe('PATCH');
-    req.flush({ ...baseRegion, regionOnestopId: 'r-1', autoUpdateEnabled: true });
+    req.flush({
+      ...baseRegion,
+      regionOnestopId: 'r-1',
+      autoUpdateEnabled: true,
+    });
 
     const cached = service.getCachedRegion('r-1');
     expect(cached?.autoUpdateEnabled).toBeTrue();
   });
 
   it('lists feeds for a region with query params', () => {
-    service.listFeedsForRegion('r-1', { specType: FeedSpecType.GTFS, status: FeedStatus.ACTIVE })
-      .subscribe(feeds => {
+    service
+      .listFeedsForRegion('r-1', {
+        specType: FeedSpecType.GTFS,
+        status: FeedStatus.ACTIVE,
+      })
+      .subscribe((feeds) => {
         expect(feeds.length).toBe(1);
       });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/regions/r-1/feeds`);
+    const req = httpMock.expectOne(
+      (request) =>
+        request.url === `${environment.apiUrl}/feeds/regions/r-1/feeds`,
+    );
     expect(req.request.params.get('specType')).toBe(FeedSpecType.GTFS);
     expect(req.request.params.get('status')).toBe(FeedStatus.ACTIVE);
     req.flush({
@@ -120,11 +153,13 @@ describe('RegionService', () => {
   });
 
   it('triggers feed discovery requests', () => {
-    service.discoverFeedsForRegion('r-1').subscribe(result => {
+    service.discoverFeedsForRegion('r-1').subscribe((result) => {
       expect(result.feedsDiscovered).toBe(2);
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/regions/r-1/discover`);
+    const req = httpMock.expectOne(
+      `${environment.apiUrl}/feeds/regions/r-1/discover`,
+    );
     expect(req.request.method).toBe('POST');
     req.flush({
       regionOnestopId: 'r-1',
@@ -142,12 +177,12 @@ describe('RegionService', () => {
     ]);
     cacheState().lastCacheUpdate = Date.now();
 
-    service.searchRegions('tor').subscribe(regions => {
+    service.searchRegions('tor').subscribe((regions) => {
       expect(regions.length).toBe(1);
       expect(regions[0].regionOnestopId).toBe('r-1');
     });
 
-    service.getTopRegionsByFeedCount(1).subscribe(regions => {
+    service.getTopRegionsByFeedCount(1).subscribe((regions) => {
       expect(regions[0].regionOnestopId).toBe('r-1');
     });
   });
@@ -157,19 +192,36 @@ describe('RegionService', () => {
     jasmine.clock().mockDate(new Date('2024-06-02T12:00:00Z'));
 
     cacheState().regionsCache$.next([
-      { ...baseRegion, regionOnestopId: 'r-can', name: 'Toronto', lastCheckAt: null, feedCount: 5 },
-      { ...baseRegion, regionOnestopId: 'r-us', name: 'Austin', lastCheckAt: '2024-06-02T11:00:00Z', feedCount: 2 },
+      {
+        ...baseRegion,
+        regionOnestopId: 'r-can',
+        name: 'Toronto',
+        lastCheckAt: null,
+        feedCount: 5,
+      },
+      {
+        ...baseRegion,
+        regionOnestopId: 'r-us',
+        name: 'Austin',
+        lastCheckAt: '2024-06-02T11:00:00Z',
+        feedCount: 2,
+      },
     ]);
     cacheState().lastCacheUpdate = Date.now();
 
-    service.getRegionsNeedingAttention().subscribe(regions => {
+    service.getRegionsNeedingAttention().subscribe((regions) => {
       expect(regions.length).toBe(1);
       expect(regions[0].regionOnestopId).toBe('r-can');
     });
 
     const sorted = service.sortWithCanadianPriority([
       { ...baseRegion, regionOnestopId: 'r-us', name: 'Austin', feedCount: 20 },
-      { ...baseRegion, regionOnestopId: 'r-can', name: 'Toronto', feedCount: 1 },
+      {
+        ...baseRegion,
+        regionOnestopId: 'r-can',
+        name: 'Toronto',
+        feedCount: 1,
+      },
     ]);
 
     expect(sorted[0].regionOnestopId).toBe('r-can');

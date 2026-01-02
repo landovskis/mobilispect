@@ -9,18 +9,18 @@ export const TRANSIT_FREQUENCY_ROUTES: Routes = [
   {
     path: '',
     component: RegionListComponent,
-    data: {}
+    data: {},
   },
   {
     path: 'discover/:regionId',
     component: DiscoverRegionsPageComponent,
     resolve: {
-      breadcrumb: RegionBreadcrumbResolver
+      breadcrumb: RegionBreadcrumbResolver,
     },
     data: {
       title: 'Discover Regions',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
+      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
+    },
   },
   {
     path: 'discover',
@@ -28,21 +28,24 @@ export const TRANSIT_FREQUENCY_ROUTES: Routes = [
     data: {
       title: 'Discover Regions',
       breadcrumb: 'Discover Regions',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
+      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
+    },
   },
   {
     path: ':regionId',
     component: RegionDetailComponent,
     resolve: {
-      breadcrumb: RegionBreadcrumbResolver
-    }
+      breadcrumb: RegionBreadcrumbResolver,
+    },
   },
   {
     path: 'routes/:routeId',
-    loadComponent: () => import('./pages/route-frequency/route-frequency.component').then(m => m.RouteFrequencyComponent),
+    loadComponent: () =>
+      import('./pages/route-frequency/route-frequency.component').then(
+        (m) => m.RouteFrequencyComponent,
+      ),
     resolve: {
-      breadcrumb: RouteBreadcrumbResolver
-    }
-  }
+      breadcrumb: RouteBreadcrumbResolver,
+    },
+  },
 ];

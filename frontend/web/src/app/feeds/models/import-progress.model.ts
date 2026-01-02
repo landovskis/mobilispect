@@ -32,7 +32,10 @@ export interface ProgressSubscriptionResponse {
 
 export interface ProgressWebSocketMessage {
   type: 'progress' | 'completion' | 'error' | 'subscription';
-  data: ImportProgressUpdate | ActiveImportsResponse | ProgressSubscriptionResponse;
+  data:
+    | ImportProgressUpdate
+    | ActiveImportsResponse
+    | ProgressSubscriptionResponse;
 }
 
 export interface ProgressDisplayData {
@@ -43,7 +46,12 @@ export interface ProgressDisplayData {
 }
 
 // Utility type for progress status
-export type ProgressStatus = 'pending' | 'active' | 'completed' | 'error' | 'cancelled';
+export type ProgressStatus =
+  | 'pending'
+  | 'active'
+  | 'completed'
+  | 'error'
+  | 'cancelled';
 
 export interface ProgressSummary {
   importId: string;

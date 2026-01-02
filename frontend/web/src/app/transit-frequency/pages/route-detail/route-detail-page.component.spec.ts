@@ -14,17 +14,17 @@ describe('RouteDetailPageComponent', () => {
 
   beforeEach(async () => {
     mockFrequencyService = jasmine.createSpyObj('FrequencyService', [
-      'getRoute'
+      'getRoute',
     ]);
     mockCommonSectionService = jasmine.createSpyObj('CommonSectionService', [
       'getCommonSectionsForRoute',
-      'getCombinedFrequency'
+      'getCombinedFrequency',
     ]);
 
     mockActivatedRoute = {
       snapshot: {
-        paramMap: convertToParamMap({ routeId: 'test-route-id' })
-      }
+        paramMap: convertToParamMap({ routeId: 'test-route-id' }),
+      },
     } as ActivatedRoute;
 
     await TestBed.configureTestingModule({
@@ -32,8 +32,8 @@ describe('RouteDetailPageComponent', () => {
       providers: [
         { provide: FrequencyService, useValue: mockFrequencyService },
         { provide: CommonSectionService, useValue: mockCommonSectionService },
-        { provide: ActivatedRoute, useValue: mockActivatedRoute }
-      ]
+        { provide: ActivatedRoute, useValue: mockActivatedRoute },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RouteDetailPageComponent);
@@ -53,7 +53,7 @@ describe('RouteDetailPageComponent', () => {
       routeType: 'BUS',
       active: true,
       variants: [],
-      hourlyStats: []
+      hourlyStats: [],
     };
 
     const mockSections = [
@@ -63,23 +63,29 @@ describe('RouteDetailPageComponent', () => {
         stopCount: 3,
         firstStopId: 'stop1',
         lastStopId: 'stop3',
-        variants: ['variant-1']
-      }
+        variants: ['variant-1'],
+      },
     ];
 
     mockFrequencyService.getRoute.and.returnValue(of(mockRoute));
-    mockCommonSectionService.getCommonSectionsForRoute.and.returnValue(of(mockSections));
-    mockCommonSectionService.getCombinedFrequency.and.returnValue(of({
-      commonSectionId: 'section-1',
-      timePeriod: 'WEEKDAY_AM_PEAK',
-      averageHeadwayMinutes: 10,
-      tripCount: 12,
-      isIrregular: false
-    }));
+    mockCommonSectionService.getCommonSectionsForRoute.and.returnValue(
+      of(mockSections),
+    );
+    mockCommonSectionService.getCombinedFrequency.and.returnValue(
+      of({
+        commonSectionId: 'section-1',
+        timePeriod: 'WEEKDAY_AM_PEAK',
+        averageHeadwayMinutes: 10,
+        tripCount: 12,
+        isIrregular: false,
+      }),
+    );
 
     fixture.detectChanges();
 
     expect(mockFrequencyService.getRoute).toHaveBeenCalledWith('test-route-id');
-    expect(mockCommonSectionService.getCommonSectionsForRoute).toHaveBeenCalledWith('test-route-id');
+    expect(
+      mockCommonSectionService.getCommonSectionsForRoute,
+    ).toHaveBeenCalledWith('test-route-id');
   });
 });

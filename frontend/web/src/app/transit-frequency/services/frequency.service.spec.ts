@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { FrequencyService } from './frequency.service';
 
 describe('FrequencyService', () => {
@@ -9,7 +12,7 @@ describe('FrequencyService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [FrequencyService]
+      providers: [FrequencyService],
     });
 
     service = TestBed.inject(FrequencyService);
@@ -21,7 +24,7 @@ describe('FrequencyService', () => {
   });
 
   it('loads route details', () => {
-    service.getRoute('route-1').subscribe(route => {
+    service.getRoute('route-1').subscribe((route) => {
       expect(route.id).toBe('route-1');
       expect(route.variants.length).toBe(1);
       expect(route.hourlyStats.length).toBe(1);
@@ -45,8 +48,8 @@ describe('FrequencyService', () => {
           stopCount: 12,
           stopPattern: 'A-B-C',
           firstStopId: 'stop-1',
-          lastStopId: 'stop-12'
-        }
+          lastStopId: 'stop-12',
+        },
       ],
       hourlyStats: [
         {
@@ -55,9 +58,9 @@ describe('FrequencyService', () => {
           dayType: 'WEEKDAY',
           hourOfDay: 9,
           tripCount: 12,
-          averageSpeedKph: 24.5
-        }
-      ]
+          averageSpeedKph: 24.5,
+        },
+      ],
     });
   });
 });

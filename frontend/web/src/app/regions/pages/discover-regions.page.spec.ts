@@ -1,13 +1,30 @@
 import { TestBed } from '@angular/core/testing';
-import { MatSnackBar, MatSnackBarRef, SimpleSnackBar } from '@angular/material/snack-bar';
-import { ActivatedRoute, ParamMap, Router, convertToParamMap } from '@angular/router';
+import {
+  MatSnackBar,
+  MatSnackBarRef,
+  SimpleSnackBar,
+} from '@angular/material/snack-bar';
+import {
+  ActivatedRoute,
+  ParamMap,
+  Router,
+  convertToParamMap,
+} from '@angular/router';
 import { Subject, of, throwError } from 'rxjs';
 import { DiscoverRegionsPageComponent } from './discover-regions.page';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
-import { Feed, FeedImport, FeedSpecType, FeedStatus, ImportStatus, MetropolitanRegion, TriggerType } from '../../feeds/models';
+import {
+  Feed,
+  FeedImport,
+  FeedSpecType,
+  FeedStatus,
+  ImportStatus,
+  MetropolitanRegion,
+  TriggerType,
+} from '../../feeds/models';
 
 describe('DiscoverRegionsPageComponent', () => {
   let component: DiscoverRegionsPageComponent;
@@ -76,7 +93,7 @@ describe('DiscoverRegionsPageComponent', () => {
     } as ActivatedRoute;
 
     snackBar.open.and.returnValue({
-      onAction: () => new Subject<void>()
+      onAction: () => new Subject<void>(),
     } as MatSnackBarRef<SimpleSnackBar>);
 
     regionService.listRegions.and.returnValue(of([baseRegion]));
@@ -95,7 +112,7 @@ describe('DiscoverRegionsPageComponent', () => {
       fileSizeBytes: null,
       errorMessage: null,
       createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z'
+      updatedAt: '2024-01-01T00:00:00Z',
     };
     importService.startImport.and.returnValue(of(baseImport));
 
@@ -107,10 +124,12 @@ describe('DiscoverRegionsPageComponent', () => {
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: route },
         { provide: FeedsMetricsService, useValue: metrics },
-        { provide: FeedsEventsService, useValue: events }
-      ]
+        { provide: FeedsEventsService, useValue: events },
+      ],
     });
-    component = TestBed.runInInjectionContext(() => new DiscoverRegionsPageComponent());
+    component = TestBed.runInInjectionContext(
+      () => new DiscoverRegionsPageComponent(),
+    );
   });
 
   it('loads regions and bootstraps selection from query params', () => {
@@ -153,7 +172,9 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('handles import failures with error toast', () => {
-    importService.startImport.and.returnValue(throwError(() => ({ message: 'fail' })));
+    importService.startImport.and.returnValue(
+      throwError(() => ({ message: 'fail' })),
+    );
     component.regionFeeds = [baseFeed];
     component.selectedRegion = baseRegion;
     component.selectedRegionId = baseRegion.regionOnestopId;
@@ -164,7 +185,9 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('surfaces backend error details on import failure', () => {
-    importService.startImport.and.returnValue(throwError(() => ({ error: { message: 'backend down' } })));
+    importService.startImport.and.returnValue(
+      throwError(() => ({ error: { message: 'backend down' } })),
+    );
     component.regionFeeds = [baseFeed];
     component.selectedRegion = baseRegion;
     component.selectedRegionId = baseRegion.regionOnestopId;
@@ -176,8 +199,14 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('refreshes data when events fire', () => {
-    const loadRegionsSpy = spyOn(component as unknown as { loadRegions: () => void }, 'loadRegions');
-    const loadFeedsSpy = spyOn(component as unknown as { loadFeedsForRegion: (id: string) => void }, 'loadFeedsForRegion');
+    const loadRegionsSpy = spyOn(
+      component as unknown as { loadRegions: () => void },
+      'loadRegions',
+    );
+    const loadFeedsSpy = spyOn(
+      component as unknown as { loadFeedsForRegion: (id: string) => void },
+      'loadFeedsForRegion',
+    );
     component.selectedRegionId = 'r-1';
     component.ngOnInit();
 
@@ -188,19 +217,27 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('shows an error toast when regions fail to load', () => {
-    regionService.listRegions.and.returnValue(throwError(() => new Error('fail')));
+    regionService.listRegions.and.returnValue(
+      throwError(() => new Error('fail')),
+    );
 
     component.ngOnInit();
 
-    expect(snackBar.open).toHaveBeenCalledWith('Failed to load regions', 'Close', { duration: 3000 });
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Failed to load regions',
+      'Close',
+      { duration: 3000 },
+    );
   });
 
   it('retries loading feeds when the snackbar action fires', () => {
     const action$ = new Subject<void>();
     snackBar.open.and.returnValue({
-      onAction: () => action$
+      onAction: () => action$,
     } as MatSnackBarRef<SimpleSnackBar>);
-    regionService.listFeedsForRegion.and.returnValue(throwError(() => new Error('fail')));
+    regionService.listFeedsForRegion.and.returnValue(
+      throwError(() => new Error('fail')),
+    );
 
     component.onRegionChange('r-1');
 
@@ -230,10 +267,12 @@ describe('DiscoverRegionsPageComponent', () => {
         { provide: Router, useValue: router },
         { provide: ActivatedRoute, useValue: route },
         { provide: FeedsMetricsService, useValue: metrics },
-        { provide: FeedsEventsService, useValue: events }
-      ]
+        { provide: FeedsEventsService, useValue: events },
+      ],
     });
-    component = TestBed.runInInjectionContext(() => new DiscoverRegionsPageComponent());
+    component = TestBed.runInInjectionContext(
+      () => new DiscoverRegionsPageComponent(),
+    );
 
     component.ngOnInit();
     expect(component.selectedRegionId).toBeNull();
@@ -245,13 +284,23 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('formats region display names', () => {
-    const displayName = (component as unknown as {
-      getRegionDisplayName: (region: MetropolitanRegion | null | undefined) => string | null;
-    }).getRegionDisplayName(baseRegion);
+    const displayName = (
+      component as unknown as {
+        getRegionDisplayName: (
+          region: MetropolitanRegion | null | undefined,
+        ) => string | null;
+      }
+    ).getRegionDisplayName(baseRegion);
     expect(displayName).toBe('Test Region, California, United States');
 
-    expect((component as unknown as {
-      getRegionDisplayName: (region: MetropolitanRegion | null | undefined) => string | null;
-    }).getRegionDisplayName(null)).toBeNull();
+    expect(
+      (
+        component as unknown as {
+          getRegionDisplayName: (
+            region: MetropolitanRegion | null | undefined,
+          ) => string | null;
+        }
+      ).getRegionDisplayName(null),
+    ).toBeNull();
   });
 });

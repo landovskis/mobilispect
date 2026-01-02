@@ -5,7 +5,7 @@ const makeEvent = (pageIndex: number): PageEvent => ({
   pageIndex,
   pageSize: 10,
   length: 0,
-  previousPageIndex: 0
+  previousPageIndex: 0,
 });
 
 describe('ImportsHistoryCardComponent', () => {
