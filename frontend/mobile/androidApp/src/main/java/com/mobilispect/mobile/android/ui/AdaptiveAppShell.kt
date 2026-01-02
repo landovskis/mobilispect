@@ -1,7 +1,9 @@
 package com.mobilispect.mobile.android.ui
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -66,7 +68,9 @@ private fun CompactAppShell(
             AppBottomNavigation(navController)
         }
     ) { paddingValues ->
-        content()
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            content()
+        }
     }
 }
 

@@ -1,8 +1,8 @@
 package com.mobilispect.mobile.android.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -23,7 +23,7 @@ enum class TopLevelDestination(
         route = "agencies_list"
     ),
     ROUTES(
-        icon = Icons.Default.List,
+        icon = Icons.AutoMirrored.Filled.List,
         label = "Routes",
         route = "routes"
     ),
