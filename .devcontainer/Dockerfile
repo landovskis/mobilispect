@@ -2,7 +2,7 @@
 
 FROM mcr.microsoft.com/devcontainers/java:21-bookworm
 
-ARG NODE_VERSION=20
+ARG NODE_VERSION=24
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
