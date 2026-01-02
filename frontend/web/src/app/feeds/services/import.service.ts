@@ -1,6 +1,13 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, timer, of, merge, Subscription } from 'rxjs';
+import {
+  Observable,
+  BehaviorSubject,
+  timer,
+  of,
+  merge,
+  Subscription,
+} from 'rxjs';
 import {
   map,
   tap,

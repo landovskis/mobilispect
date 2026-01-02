@@ -9,7 +9,12 @@ import { FeedImportsPageComponent } from './feed-imports.page';
 import { ImportService } from '../services/import.service';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
-import { FeedImport, FeedImportSummary, ImportStatus, TriggerType } from '../models';
+import {
+  FeedImport,
+  FeedImportSummary,
+  ImportStatus,
+  TriggerType,
+} from '../models';
 
 describe('FeedImportsPageComponent', () => {
   let component: FeedImportsPageComponent;
@@ -75,11 +80,9 @@ describe('FeedImportsPageComponent', () => {
       }),
     );
     importService.cancelImport.and.returnValue(of(baseImport));
-    snackBar.open.and.returnValue(
-      {
-        onAction: () => new Subject<void>(),
-      } as unknown as MatSnackBarRef<SimpleSnackBar>,
-    );
+    snackBar.open.and.returnValue({
+      onAction: () => new Subject<void>(),
+    } as unknown as MatSnackBarRef<SimpleSnackBar>);
 
     TestBed.configureTestingModule({
       providers: [

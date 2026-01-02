@@ -93,11 +93,9 @@ describe('DiscoverRegionsPageComponent', () => {
       queryParamMap: queryParamMap$.asObservable(),
     } as ActivatedRoute;
 
-    snackBar.open.and.returnValue(
-      {
-        onAction: () => new Subject<void>(),
-      } as unknown as MatSnackBarRef<SimpleSnackBar>,
-    );
+    snackBar.open.and.returnValue({
+      onAction: () => new Subject<void>(),
+    } as unknown as MatSnackBarRef<SimpleSnackBar>);
 
     regionService.listRegions.and.returnValue(of([baseRegion]));
     regionService.getCachedRegions.and.returnValue(of([baseRegion]));
@@ -235,11 +233,9 @@ describe('DiscoverRegionsPageComponent', () => {
 
   it('retries loading feeds when the snackbar action fires', () => {
     const action$ = new Subject<void>();
-    snackBar.open.and.returnValue(
-      {
-        onAction: () => action$,
-      } as unknown as MatSnackBarRef<SimpleSnackBar>,
-    );
+    snackBar.open.and.returnValue({
+      onAction: () => action$,
+    } as unknown as MatSnackBarRef<SimpleSnackBar>);
     regionService.listFeedsForRegion.and.returnValue(
       throwError(() => new Error('fail')),
     );
