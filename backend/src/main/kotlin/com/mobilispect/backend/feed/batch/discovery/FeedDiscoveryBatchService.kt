@@ -9,7 +9,7 @@ import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.JobExecution
 import org.springframework.batch.core.job.parameters.JobParameters
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
-import org.springframework.batch.core.launch.JobLauncher
+import org.springframework.batch.core.launch.JobOperator
 import org.springframework.stereotype.Service
 
 /**
@@ -19,9 +19,8 @@ import org.springframework.stereotype.Service
  * job parameter construction and execution.
  */
 @Service
-@Suppress("DEPRECATION")
 class FeedDiscoveryBatchService(
-  private val jobLauncher: JobLauncher,
+  private val jobOperator: JobOperator,
   private val simplifiedFeedDiscoveryJob: Job,
 ) {
 
@@ -43,7 +42,7 @@ class FeedDiscoveryBatchService(
     val jobParameters = buildJobParameters(specType = specType.dbValue, apiKey = apiKey)
 
     return try {
-      val jobExecution = jobLauncher.run(simplifiedFeedDiscoveryJob, jobParameters)
+      val jobExecution = jobOperator.run(simplifiedFeedDiscoveryJob, jobParameters)
 
       val feedsFound = extractFeedsFound(jobExecution)
       val regionsFound = extractRegionsFound(jobExecution)
@@ -113,7 +112,7 @@ class FeedDiscoveryBatchService(
       )
 
     return try {
-      val jobExecution = jobLauncher.run(simplifiedFeedDiscoveryJob, jobParameters)
+      val jobExecution = jobOperator.run(simplifiedFeedDiscoveryJob, jobParameters)
 
       val feedsFound = extractFeedsFound(jobExecution)
       val regionsFound = extractRegionsFound(jobExecution)
