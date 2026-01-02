@@ -1,66 +1,79 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: 2.2.0 -> 2.3.0
+- Modified principles: Accessibility & UX Parity -> Accessibility & UX Parity (adaptive layouts added)
+- Added sections: UI & Frontend Standards; Development Workflow & Quality Gates
+- Removed sections: None
+- Templates requiring updates:
+  - ✅ .specify/templates/plan-template.md
+  - ✅ .specify/templates/spec-template.md
+  - ✅ .specify/templates/tasks-template.md
+  - ⚠ .specify/templates/commands/*.md (directory not found)
+- Follow-up TODOs: TODO(RATIFICATION_DATE) (original adoption date not found)
+-->
+# Mobilispect Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be
-self-contained, independently testable, documented; Clear purpose required - no
-organizational-only libraries -->
+### Principle I: Modular Monolith Ownership
+Spring Modulith boundaries are mandatory. Modules own their data and MAY NOT
+perform cross-module database access. Communication must flow through module
+ports and published events only.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out
-protocol: stdin/args -> stdout, errors -> stderr; Support JSON + human-readable
-formats -->
+### Principle II: Test-Driven Quality (NON-NEGOTIABLE)
+Tests must be written first, fail first, then implementation follows. Each
+component must maintain at least 80% coverage. Contract and integration tests
+are required for data-intensive flows using Testcontainers.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written -> User approved -> Tests fail ->
-Then implement; Red-Green-Refactor cycle strictly enforced -->
+### Principle III: Observability
+All new flows must emit structured logs, metrics, and traces with dashboards
+and alerts updated to match the new behavior. Observability is required before
+feature completion.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract
-tests, Contract changes, Inter-service communication, Shared schemas -->
+### Principle IV: Performance & Reliability
+APIs must meet p95 <= 200ms, ingestion flows must meet defined SLAs, and UX
+must sustain 60fps with graceful degradation when limits are exceeded.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes,
-VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or:
-MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### Principle V: Security by Default
+Secrets must stay out of VCS and live in environment-specific configuration.
+OWASP dependency checks, authentication/authorization, and audit logging are
+mandatory for sensitive paths.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance
-Standards, etc. -->
+### Principle VI: Accessibility & UX Parity
+Meet WCAG 2.1 AA and provide light/dark parity across Android, iOS, and web
+(Chromium/Firefox/WebKit). All frontends must ship adaptive layouts for
+mobile, tablet, and desktop viewports.
 
-[SECTION_2_CONTENT]
-UI Styling: Use Tailwind CSS for layout/spacing; use Angular Material
-components for UI controls. Avoid overriding Material component internals with
-Tailwind utilities.
+### Principle VII: Documentation & Traceability
+Significant decisions require ADRs. Work must follow the spec -> plan -> tasks
+chain with explicit assumptions recorded.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## UI & Frontend Standards
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval
-process, etc. -->
+- Use Tailwind CSS for layout and spacing, and Angular Material for UI
+  controls.
+- Avoid overriding Angular Material component internals with Tailwind
+  utilities.
+- Implement responsive layouts across mobile, tablet, and desktop breakpoints
+  with functional parity and accessibility preserved.
+
+## Development Workflow & Quality Gates
+
+- Run `./scripts/pre-merge-gates.sh` before opening a PR.
+- Backend: `cd backend && ./gradlew test jacocoTestReport ktlintCheck detekt`.
+- Mobile: `cd frontend/mobile && ./gradlew shared:assembleDebug shared:testDebugUnitTest`.
+- Web: `cd frontend/web && npm install && npm run test`.
+- Run `./scripts/security-scan.sh` before tagging releases or promoting builds.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require
-documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be
-justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This constitution supersedes other guidance. Exceptions require an ADR and a
+  plan to return to compliance.
+- Amendments must update this document, record rationale, and follow semantic
+  versioning (MAJOR for breaking governance changes, MINOR for new requirements,
+  PATCH for clarifications).
+- Plans and reviews must explicitly verify constitutional compliance; any
+  violations must be documented with mitigations.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] |
-**Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16
--->
+**Version**: 2.3.0 | **Ratified**: TODO(RATIFICATION_DATE): original adoption
+unknown | **Last Amended**: 2026-01-02

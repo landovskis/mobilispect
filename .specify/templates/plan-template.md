@@ -31,7 +31,13 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- Modular monolith boundaries respected; no cross-module DB access.
+- TDD enforced; tests fail first; target >=80% coverage per component.
+- Observability plan covers logs, metrics, traces, dashboards, alerts.
+- Performance targets met (API p95 <= 200ms; UX 60fps; ingestion SLAs).
+- Security controls include OWASP checks, authn/authz, audit logging.
+- Accessibility meets WCAG 2.1 AA with adaptive layouts and theme parity.
+- ADRs and spec -> plan -> tasks traceability recorded.
 
 ## Project Structure
 

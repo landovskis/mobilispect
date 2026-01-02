@@ -95,6 +95,17 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
+### Constitutional Requirements *(mandatory)*
+
+- Tests MUST be defined before implementation with fail-first validation.
+- New flows MUST include structured logs, metrics, traces, dashboards, and alerts.
+- Frontend work MUST satisfy WCAG 2.1 AA and deliver adaptive layouts for
+  mobile/tablet/desktop with light/dark parity.
+- Performance targets MUST be defined (API p95 <= 200ms; UX 60fps; ingestion SLAs).
+- Security controls MUST include OWASP dependency checks and audit logging on
+  sensitive paths.
+- Significant decisions MUST capture ADRs and traceability to plan/tasks.
+
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]

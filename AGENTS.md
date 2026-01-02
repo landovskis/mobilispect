@@ -12,7 +12,7 @@
 - Supporting assets: `docs` for architecture and ADRs, `scripts` for automation
   gates, and `specs` for constitutional product definitions.
 
-## Constitution (v2.2.0) — Core Principles
+## Constitution (v2.3.0) — Core Principles
 
 - Modular monolith ownership: Spring Modulith boundaries, no cross-module DB
   access; ports/events only.
@@ -25,7 +25,8 @@
 - Security by default: secrets outside VCS; OWASP dependency checks; authn/authz
   and audit logging on sensitive paths.
 - Accessibility & UX parity: WCAG 2.1 AA plus light/dark parity across
-  Android/iOS/web (Chromium/Firefox/WebKit).
+  Android/iOS/web (Chromium/Firefox/WebKit) and adaptive layouts for
+  mobile/tablet/desktop.
 - Documentation & traceability: ADRs required for significant decisions; spec →
   plan → tasks chain with recorded assumptions.
 

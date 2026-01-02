@@ -3,7 +3,7 @@
 ## Project Constitution
 
 This project follows the Mobilispect Constitution which defines core principles,
-standards, and governance for development (v2.2.0).
+standards, and governance for development (v2.3.0).
 
 **Constitution Location**: `.specify/memory/constitution.md`
 
@@ -27,7 +27,7 @@ constitution. Core principles:
    transit/at-rest.
 6. **Accessibility & UX Parity** — WCAG 2.1 AA with automated + manual checks;
    light/dark parity across Android/iOS/web with Playwright coverage
-   (Chromium/Firefox/WebKit).
+   (Chromium/Firefox/WebKit) plus adaptive layouts for mobile/tablet/desktop.
 7. **Documentation & Traceability** — ADRs for significant decisions; spec →
    plan → tasks chain records assumptions/risks/NFRs; release notes include
    coverage, security, performance, accessibility, observability results.
