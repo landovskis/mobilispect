@@ -43,4 +43,14 @@ sessions/
 .DS_Store
 Thumbs.db
 
+# Xcode user data
+**/xcuserdata/
+
+# Local tool artifacts
+java-25/
+
 /.envrc
+
+# Git worktrees (Crystal)
+/worktrees/
+/worktree-*/
