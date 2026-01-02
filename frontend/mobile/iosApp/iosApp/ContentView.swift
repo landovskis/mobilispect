@@ -1,11 +1,16 @@
 import SwiftUI
-import shared
 
 struct ContentView: View {
-	let greet = Greeting().greet()
-
 	var body: some View {
-		Text(greet)
+		VStack(spacing: 12) {
+			Text("Mobilispect")
+				.font(.title2)
+				.fontWeight(.semibold)
+			Text("iOS app scaffold")
+				.font(.subheadline)
+				.foregroundStyle(.secondary)
+		}
+		.padding()
 	}
 }
 
