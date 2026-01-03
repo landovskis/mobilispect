@@ -77,11 +77,10 @@ interface RegionSummary {
               >
                 @if (isImportingAll) {
                   <mat-spinner diameter="20" class="mr-2 inline-block"></mat-spinner>
-                  <span>Importing...</span>
                 } @else {
                   <mat-icon class="mr-1">cloud_download</mat-icon>
-                  <span>Import All Feeds</span>
                 }
+                <span>{{ isImportingAll ? 'Importing...' : 'Import All Feeds' }}</span>
               </button>
             }
           </div>
