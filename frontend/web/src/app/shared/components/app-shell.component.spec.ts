@@ -1,12 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppShellComponent } from './app-shell.component';
-import { BreakpointObserver } from '@angular/cdk/layout';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { ImportService } from '../../feeds/services/import.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
-import { BehaviorSubject, firstValueFrom, of } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -35,10 +34,6 @@ describe('AppShellComponent', () => {
         clearCache: jasmine.createSpy('clearCache')
     };
 
-    const breakpointState$ = new BehaviorSubject({ matches: false });
-    const mockBreakpointObserver = {
-        observe: () => breakpointState$.asObservable()
-    };
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
@@ -52,8 +47,7 @@ describe('AppShellComponent', () => {
                 { provide: ImportService, useValue: mockImportService },
                 { provide: FeedsMetricsService, useValue: mockMetricsService },
                 { provide: FeedsEventsService, useValue: mockEventsService },
-                { provide: RegionService, useValue: mockRegionService },
-                { provide: BreakpointObserver, useValue: mockBreakpointObserver }
+                { provide: RegionService, useValue: mockRegionService }
             ]
         }).compileComponents();
 
@@ -100,20 +94,6 @@ describe('AppShellComponent', () => {
 
         expect(preventDefault).not.toHaveBeenCalled();
         expect(stopPropagation).not.toHaveBeenCalled();
-    });
-
-    it('toggles the sidenav only on handset layouts', async () => {
-        await component.toggleSidenav();
-        expect(component.sidebarOpened).toBeFalse();
-
-        breakpointState$.next({ matches: true });
-        await component.toggleSidenav();
-        expect(component.sidebarOpened).toBeTrue();
-    });
-
-    it('updates sidebar state on opened change', () => {
-        component.onSidenavOpenedChange(true);
-        expect(component.sidebarOpened).toBeTrue();
     });
 
     it('falls back to zero active imports when data is missing', async () => {
