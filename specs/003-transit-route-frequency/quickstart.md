@@ -10,7 +10,7 @@ This quickstart guide provides step-by-step instructions for implementing the tr
 
 ## Prerequisites
 
-- JDK 21+ installed
+- JDK 25+ installed
 - Kotlin 2.0+ configured
 - PostgreSQL 17 running locally (or via Docker)
 - Redis 8.2 running locally (or via Docker)
