@@ -12,7 +12,8 @@ import {
   TriggerType,
   ImportsResponse,
   ActiveImportsResponse,
-  FeedImportSummary
+  FeedImportSummary,
+  BulkImportResponse
 } from '../models/import.models';
 import { environment } from '../../../environments/environment';
 
@@ -71,6 +72,30 @@ export class ImportService {
       }),
       catchError(error => {
         console.error('Import API error:', error);
+        // Re-throw the error with enhanced information
+        throw {
+          ...error,
+          message: this.getErrorMessage(error),
+          isBackendError: true
+        };
+      })
+    );
+  }
+
+  /**
+   * Starts bulk import for all active feeds in a region
+   */
+  importAllFeedsForRegion(regionOnestopId: string): Observable<BulkImportResponse> {
+    return this.http.post<BulkImportResponse>(
+      `${this.apiUrl}/regions/${regionOnestopId}/import-all`,
+      {}
+    ).pipe(
+      tap(result => {
+        // Start polling for active imports to update UI
+        this.startPollingActiveImports();
+      }),
+      catchError(error => {
+        console.error('Bulk import API error:', error);
         // Re-throw the error with enhanced information
         throw {
           ...error,

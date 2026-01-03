@@ -157,6 +157,38 @@ export interface SystemAlertMessage {
 }
 
 /**
+ * Bulk import response for region-level imports
+ */
+export interface BulkImportResponse {
+  regionOnestopId: string;
+  totalFeeds: number;
+  startedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  results: FeedImportResult[];
+}
+
+/**
+ * Individual feed result within a bulk import operation
+ */
+export interface FeedImportResult {
+  feedOnestopId: string;
+  feedName: string;
+  status: FeedImportResultStatus;
+  message: string | null;
+  importId?: string;
+}
+
+/**
+ * Status values for individual feed import results
+ */
+export enum FeedImportResultStatus {
+  STARTED = 'STARTED',
+  FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED'
+}
+
+/**
  * Utility functions for import models
  */
 export class ImportUtils {

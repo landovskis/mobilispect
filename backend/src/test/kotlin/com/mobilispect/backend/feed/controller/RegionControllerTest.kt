@@ -1,5 +1,8 @@
 package com.mobilispect.backend.feed.controller
 
+import com.mobilispect.backend.api.dto.BulkImportResponse
+import com.mobilispect.backend.api.dto.FeedImportResult
+import com.mobilispect.backend.api.dto.FeedImportResultStatus
 import com.mobilispect.backend.api.dto.FeedSpecType as FeedSpecTypeDto
 import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
 import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
@@ -10,6 +13,7 @@ import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
+import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.region.controller.RegionController
 import com.mobilispect.backend.region.domain.MetropolitanRegion
 import io.mockk.coEvery
@@ -30,6 +34,7 @@ class RegionControllerTest {
   private lateinit var feedRepository: FeedRepository
   private lateinit var feedAuthenticationRepository: FeedAuthenticationRepository
   private lateinit var feedDiscoveryBatchService: FeedDiscoveryBatchService
+  private lateinit var feedImportService: FeedImportService
   private lateinit var controller: RegionController
 
   private val testRegionId = "r-san-francisco-bay-area"
@@ -42,6 +47,7 @@ class RegionControllerTest {
     feedRepository = mockk()
     feedAuthenticationRepository = mockk()
     feedDiscoveryBatchService = mockk()
+    feedImportService = mockk()
 
     controller =
       RegionController(
@@ -49,6 +55,7 @@ class RegionControllerTest {
         feedRepository = feedRepository,
         feedAuthenticationRepository = feedAuthenticationRepository,
         feedDiscoveryBatchService = feedDiscoveryBatchService,
+        feedImportService = feedImportService,
       )
   }
 
@@ -443,6 +450,136 @@ class RegionControllerTest {
     assertThat(result.errors).hasSize(1)
     assertThat(result.errors.first()).contains("f-feed-3")
     assertThat(result.feedsCreated).isEqualTo(2)
+  }
+
+  @Test
+  fun `importAllFeedsForRegion starts bulk import for all active feeds`() {
+    // Given
+    val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
+    val bulkImportResponse =
+      BulkImportResponse(
+        regionOnestopId = testRegionId,
+        totalFeeds = 3,
+        startedCount = 3,
+        failedCount = 0,
+        skippedCount = 0,
+        results =
+          listOf(
+            FeedImportResult(
+              feedOnestopId = "f-bart",
+              feedName = "BART",
+              status = FeedImportResultStatus.STARTED,
+              message = "Import started successfully",
+              importId = "import-1",
+            ),
+            FeedImportResult(
+              feedOnestopId = "f-muni",
+              feedName = "MUNI",
+              status = FeedImportResultStatus.STARTED,
+              message = "Import started successfully",
+              importId = "import-2",
+            ),
+            FeedImportResult(
+              feedOnestopId = "f-caltrain",
+              feedName = "Caltrain",
+              status = FeedImportResultStatus.STARTED,
+              message = "Import started successfully",
+              importId = "import-3",
+            ),
+          ),
+      )
+
+    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
+      Optional.of(region)
+    every { feedImportService.startBulkImportForRegion(any(), any()) } returns bulkImportResponse
+
+    // When
+    val result = controller.importAllFeedsForRegion(testRegionId)
+
+    // Then
+    assertThat(result.regionOnestopId).isEqualTo(testRegionId)
+    assertThat(result.totalFeeds).isEqualTo(3)
+    assertThat(result.startedCount).isEqualTo(3)
+    assertThat(result.failedCount).isEqualTo(0)
+    assertThat(result.skippedCount).isEqualTo(0)
+    assertThat(result.results).hasSize(3)
+    verify { feedImportService.startBulkImportForRegion(RegionId(testRegionId), any()) }
+  }
+
+  @Test
+  fun `importAllFeedsForRegion handles mixed results with failures and skips`() {
+    // Given
+    val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
+    val bulkImportResponse =
+      BulkImportResponse(
+        regionOnestopId = testRegionId,
+        totalFeeds = 4,
+        startedCount = 2,
+        failedCount = 1,
+        skippedCount = 1,
+        results =
+          listOf(
+            FeedImportResult(
+              feedOnestopId = "f-bart",
+              feedName = "BART",
+              status = FeedImportResultStatus.STARTED,
+              message = "Import started successfully",
+              importId = "import-1",
+            ),
+            FeedImportResult(
+              feedOnestopId = "f-muni",
+              feedName = "MUNI",
+              status = FeedImportResultStatus.SKIPPED,
+              message = "Import already in progress",
+            ),
+            FeedImportResult(
+              feedOnestopId = "f-caltrain",
+              feedName = "Caltrain",
+              status = FeedImportResultStatus.FAILED,
+              message = "Feed not found",
+            ),
+            FeedImportResult(
+              feedOnestopId = "f-samtrans",
+              feedName = "SamTrans",
+              status = FeedImportResultStatus.STARTED,
+              message = "Import started successfully",
+              importId = "import-2",
+            ),
+          ),
+      )
+
+    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
+      Optional.of(region)
+    every { feedImportService.startBulkImportForRegion(any(), any()) } returns bulkImportResponse
+
+    // When
+    val result = controller.importAllFeedsForRegion(testRegionId)
+
+    // Then
+    assertThat(result.totalFeeds).isEqualTo(4)
+    assertThat(result.startedCount).isEqualTo(2)
+    assertThat(result.failedCount).isEqualTo(1)
+    assertThat(result.skippedCount).isEqualTo(1)
+    assertThat(result.results).hasSize(4)
+    assertThat(result.results).anyMatch { it.status == FeedImportResultStatus.STARTED }
+    assertThat(result.results).anyMatch { it.status == FeedImportResultStatus.FAILED }
+    assertThat(result.results).anyMatch { it.status == FeedImportResultStatus.SKIPPED }
+  }
+
+  @Test
+  fun `importAllFeedsForRegion throws not found when region does not exist`() {
+    // Given
+    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
+      Optional.empty()
+
+    // When/Then
+    try {
+      controller.importAllFeedsForRegion(testRegionId)
+      throw AssertionError("Expected ResponseStatusException")
+    } catch (e: ResponseStatusException) {
+      assertThat(e.statusCode.value()).isEqualTo(404)
+      assertThat(e.reason).contains("Region not found")
+    }
   }
 
   private fun createRegion(id: String, name: String, autoUpdate: Boolean): MetropolitanRegion {

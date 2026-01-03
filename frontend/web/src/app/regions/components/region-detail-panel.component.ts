@@ -1,12 +1,12 @@
 import { Component, Input, OnChanges, SimpleChanges, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { MatTabsModule } from '@angular/material/tabs';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { Subject, Observable, combineLatest } from 'rxjs';
-import { map, takeUntil } from 'rxjs/operators';
+import { Subject, Observable, combineLatest, of } from 'rxjs';
+import { map, takeUntil, catchError, tap } from 'rxjs/operators';
 import { MetropolitanRegion, MetropolitanRegionDetail, Feed, RegionUtils } from '../../feeds/models/region.models';
 import { AgencyFeedGroup, FeedGroupingUtils } from '../../feeds/models/agency-feed-group.model';
 import { RegionService } from '../../feeds/services/region.service';
@@ -15,8 +15,8 @@ import { AgencyService } from '../../agencies/services/agency.service';
 import { AgencyListResponse } from '../../transit-frequency/services/agency.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
-import { AgencyFeedCardComponent } from '../../feeds/components/agency-feed-card.component';
 import { AgencyCardComponent } from '../../transit-frequency/components/agency-card/agency-card.component';
+import { BulkImportResponse } from '../../feeds/models/import.models';
 
 interface RegionSummary {
   name: string;
@@ -42,11 +42,10 @@ interface RegionSummary {
   standalone: true,
   imports: [
     CommonModule,
-    MatTabsModule,
     MatIconModule,
+    MatButtonModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    AgencyFeedCardComponent,
     AgencyCardComponent
   ],
   template: `
@@ -63,9 +62,29 @@ interface RegionSummary {
       } @else {
         <!-- Region Header -->
         <div class="region-header mb-6">
-          <h2 class="text-2xl font-semibold text-[var(--mdc-theme-on-surface)]">
-            {{ getDisplayName(region) }}
-          </h2>
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-semibold text-[var(--mdc-theme-on-surface)]">
+              {{ getDisplayName(region) }}
+            </h2>
+            <!-- Import All Feeds Button -->
+            @if (region.feedCount && region.feedCount > 0) {
+              <button
+                mat-raised-button
+                color="primary"
+                [disabled]="isImportingAll"
+                (click)="confirmAndImportAllFeeds()"
+                class="import-all-button"
+              >
+                @if (isImportingAll) {
+                  <mat-spinner diameter="20" class="mr-2 inline-block"></mat-spinner>
+                  <span>Importing...</span>
+                } @else {
+                  <mat-icon class="mr-1">cloud_download</mat-icon>
+                  <span>Import All Feeds</span>
+                }
+              </button>
+            }
+          </div>
           <div class="region-meta mt-2 flex flex-wrap gap-4 text-sm text-[var(--mdc-theme-on-surface-variant)]">
             <div class="meta-item flex items-center gap-1">
               <mat-icon class="text-[18px]">location_on</mat-icon>
@@ -88,97 +107,53 @@ interface RegionSummary {
           </div>
         </div>
 
-        <!-- Tabbed Interface -->
-        <mat-tab-group>
-          <!-- Feeds Tab -->
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon class="mr-2">feed</mat-icon>
-              Feeds
-            </ng-template>
+        <div class="overview-header flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--mdc-theme-on-surface-variant)]">
+          <mat-icon class="text-[18px]">analytics</mat-icon>
+          Overview
+        </div>
 
-            <div class="tab-content pt-4">
-              @if (loadingFeeds) {
-                <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12" role="status" aria-live="polite">
-                  <mat-spinner diameter="40"></mat-spinner>
-                  <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">Loading feeds...</p>
-                </div>
-              } @else {
-                @if (agencyGroups.length > 0) {
-                  <div class="feeds-grid grid gap-6 md:grid-cols-1 xl:grid-cols-2">
-                    @for (group of agencyGroups; track group.agencyName) {
-                      <app-agency-feed-card
-                        [agencyGroup]="group"
-                        (importFeed)="importFeed($event)"
-                        (importAllFeeds)="importMultipleFeeds($event)"
-                        (viewDetails)="viewFeedDetails($event)">
-                      </app-agency-feed-card>
-                    }
-                  </div>
-                } @else {
-                  <div class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center">
-                    <mat-icon class="empty-icon mb-4 text-[64px] text-[rgba(0,0,0,0.3)]">inbox</mat-icon>
-                    <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">No Feeds Available</h3>
-                    <p class="max-w-[400px] text-sm text-[rgba(0,0,0,0.6)]">
-                      No feeds are available for this region yet.
-                    </p>
-                  </div>
-                }
-              }
+        <div class="tab-content pt-4">
+          @if (loadingOverview) {
+            <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12">
+              <mat-spinner diameter="40"></mat-spinner>
+              <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">Loading overview...</p>
             </div>
-          </mat-tab>
-
-          <!-- Overview Tab -->
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon class="mr-2">analytics</mat-icon>
-              Overview
-            </ng-template>
-
-            <div class="tab-content pt-4">
-              @if (loadingOverview) {
-                <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12">
-                  <mat-spinner diameter="40"></mat-spinner>
-                  <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">Loading overview...</p>
+          } @else {
+            <!-- Summary Statistics -->
+            @if (summary$ | async; as summary) {
+              <div class="summary-section mb-6">
+                <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">Summary</h3>
+                <div class="summary-grid grid gap-4 md:grid-cols-2">
+                  <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
+                    <div class="summary-value">{{ summary.totalAgencies }}</div>
+                    <div class="summary-label mt-2">Transit Agencies</div>
+                  </div>
+                  <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
+                    <div class="summary-value">{{ summary.totalActiveRoutes }}</div>
+                    <div class="summary-label mt-2">Active Routes</div>
+                  </div>
                 </div>
-              } @else {
-                <!-- Summary Statistics -->
-                @if (summary$ | async; as summary) {
-                  <div class="summary-section mb-6">
-                    <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">Summary</h3>
-                    <div class="summary-grid grid gap-4 md:grid-cols-2">
-                      <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
-                        <div class="summary-value">{{ summary.totalAgencies }}</div>
-                        <div class="summary-label mt-2">Transit Agencies</div>
-                      </div>
-                      <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
-                        <div class="summary-value">{{ summary.totalActiveRoutes }}</div>
-                        <div class="summary-label mt-2">Active Routes</div>
-                      </div>
-                    </div>
-                  </div>
-                }
+              </div>
+            }
 
-                <!-- Agencies Grid -->
-                @if (agencies$ | async; as agenciesResponse) {
-                  <div class="agencies-section">
-                    <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">Agencies</h3>
-                    <div class="agencies-grid grid gap-4 md:grid-cols-1 xl:grid-cols-2">
-                      @for (agency of agenciesResponse.content; track agency) {
-                        <app-agency-card [agency]="agency"></app-agency-card>
-                      }
-                    </div>
-                    @if (agenciesResponse.content.length === 0) {
-                      <p class="no-agencies py-4 text-center italic text-[var(--mat-sys-on-surface-variant)]">
-                        No agencies found for this region.
-                      </p>
-                    }
-                  </div>
+            <!-- Agencies Grid -->
+            @if (agencies$ | async; as agenciesResponse) {
+              <div class="agencies-section">
+                <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">Agencies</h3>
+                <div class="agencies-grid grid gap-4 md:grid-cols-1 xl:grid-cols-2">
+                  @for (agency of agenciesResponse.content; track agency) {
+                    <app-agency-card [agency]="agency"></app-agency-card>
+                  }
+                </div>
+                @if (agenciesResponse.content.length === 0) {
+                  <p class="no-agencies py-4 text-center italic text-[var(--mat-sys-on-surface-variant)]">
+                    No agencies found for this region.
+                  </p>
                 }
-              }
-            </div>
-          </mat-tab>
-        </mat-tab-group>
+              </div>
+            }
+          }
+        </div>
       }
     </div>
   `,
@@ -247,8 +222,11 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
   // Overview tab state
   regionDetail$!: Observable<MetropolitanRegionDetail>;
   agencies$!: Observable<AgencyListResponse>;
-  summary$!: Observable<RegionSummary>;
+  summary$!: Observable<RegionSummary | null>;
   loadingOverview = false;
+
+  // Bulk import state
+  isImportingAll = false;
 
   constructor(
     private readonly regionService: RegionService,
@@ -313,23 +291,48 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
   private loadOverviewForRegion(regionId: string): void {
     this.loadingOverview = true;
 
-    this.regionDetail$ = this.regionService.getRegion(regionId);
+    this.regionDetail$ = this.regionService.getRegion(regionId).pipe(
+      catchError((error) => {
+        console.error('Failed to load region details:', error);
+        this.loadingOverview = false;
+        this.snackBar.open('Failed to load region details.', 'Retry', {
+          duration: 5000
+        }).onAction().subscribe(() => this.loadOverviewForRegion(regionId));
+        return of(null as unknown as MetropolitanRegionDetail);
+      })
+    );
     this.agencies$ = this.agencyService.listAgencies(0, 100, regionId).pipe(
       map(response => ({
         ...response,
         content: [...response.content].sort((a, b) => a.name.localeCompare(b.name))
-      }))
+      })),
+      catchError((error) => {
+        console.error('Failed to load agencies:', error);
+        this.loadingOverview = false;
+        this.snackBar.open('Failed to load agencies.', 'Retry', {
+          duration: 5000
+        }).onAction().subscribe(() => this.loadOverviewForRegion(regionId));
+        return of({
+          content: [],
+          totalElements: 0,
+          totalPages: 0
+        } as AgencyListResponse);
+      })
     );
 
     // Compute summary from region and agencies data
     this.summary$ = combineLatest([this.regionDetail$, this.agencies$]).pipe(
+      tap(() => {
+        this.loadingOverview = false;
+      }),
       map(([region, agenciesResponse]) => {
+        if (!region) {
+          return null;
+        }
         const agencies = agenciesResponse.content;
 
         // Sum active route counts across all agencies
         const totalActiveRoutes = agencies.reduce((sum, agency) => sum + agency.activeRouteCount, 0);
-
-        this.loadingOverview = false;
 
         return {
           name: region.name,
@@ -370,6 +373,85 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
    */
   importMultipleFeeds(feeds: Feed[]): void {
     feeds.forEach(feed => this.importFeed(feed));
+  }
+
+  /**
+   * Confirm and start bulk import for all feeds in the region
+   */
+  confirmAndImportAllFeeds(): void {
+    if (!this.region) {
+      return;
+    }
+
+    const feedCount = this.region.feedCount || 0;
+
+    // Show confirmation dialog for large regions (>20 feeds)
+    if (feedCount > 20) {
+      const confirmed = window.confirm(
+        `You are about to import ${feedCount} feeds for ${this.getDisplayName(this.region)}. ` +
+        `This may take some time. Continue?`
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    this.isImportingAll = true;
+    const regionName = this.getDisplayName(this.region) || this.region.regionOnestopId;
+
+    this.snackBar.open(`Starting bulk import for ${regionName}...`, 'Close', { duration: 2000 });
+
+    this.importService.importAllFeedsForRegion(this.region.regionOnestopId).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (result) => {
+        this.isImportingAll = false;
+        this.showBulkImportResults(result, regionName);
+        this.importService.refreshActiveImports();
+        // Navigate to imports page to monitor progress
+        this.router.navigate(['/feeds/imports']);
+      },
+      error: (error) => {
+        console.error('Failed to start bulk import:', error);
+        this.isImportingAll = false;
+        const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
+        this.snackBar.open(`❌ Bulk import failed: ${errorMessage}`, 'Retry', {
+          duration: 8000,
+          panelClass: ['error-snackbar']
+        }).onAction().subscribe(() => this.confirmAndImportAllFeeds());
+      }
+    });
+  }
+
+  /**
+   * Display bulk import results in a snackbar
+   */
+  private showBulkImportResults(result: BulkImportResponse, regionName: string): void {
+    const { totalFeeds, startedCount, failedCount, skippedCount } = result;
+
+    // Build summary message
+    const messageParts = [];
+    if (startedCount > 0) {
+      messageParts.push(`✅ ${startedCount} started`);
+    }
+    if (failedCount > 0) {
+      messageParts.push(`❌ ${failedCount} failed`);
+    }
+    if (skippedCount > 0) {
+      messageParts.push(`⏭️ ${skippedCount} skipped`);
+    }
+
+    const message = `Bulk import for ${regionName}: ${messageParts.join(', ')}`;
+
+    // Show longer duration for results with failures
+    const duration = failedCount > 0 ? 10000 : 5000;
+
+    this.snackBar.open(message, 'View Imports', {
+      duration,
+      panelClass: failedCount > 0 ? ['warning-snackbar'] : []
+    }).onAction().subscribe(() => {
+      this.router.navigate(['/feeds/imports']);
+    });
   }
 
   /**
