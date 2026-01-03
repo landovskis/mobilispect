@@ -17,7 +17,6 @@ import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service'
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { AgencyFeedCardComponent } from '../../feeds/components/agency-feed-card.component';
 import { AgencyCardComponent } from '../../transit-frequency/components/agency-card/agency-card.component';
-import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 
 interface RegionSummary {
   name: string;
@@ -47,7 +46,6 @@ interface RegionSummary {
     MatIconModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    BrandSectionComponent,
     AgencyFeedCardComponent,
     AgencyCardComponent
   ],

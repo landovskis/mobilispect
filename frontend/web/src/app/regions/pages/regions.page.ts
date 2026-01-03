@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, BehaviorSubject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -25,6 +26,7 @@ import { RegionDetailPanelComponent } from '../components/region-detail-panel.co
   selector: 'app-regions-page',
   standalone: true,
   imports: [
+    AsyncPipe,
     RegionMasterPanelComponent,
     RegionDetailPanelComponent
   ],
