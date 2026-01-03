@@ -45,7 +45,7 @@ A ready-to-use Visual Studio Code devcontainer is available under
    (or use `devcontainer` CLI).
 2. Open this repository in VS Code and run **“Reopen in Container”**.
 3. The container provisions:
-   - JDK 21 with Gradle wrapper support
+   - JDK 25 with Gradle wrapper support
    - Node.js 20 with Angular CLI and pnpm via Corepack
    - Local PostgreSQL 17 and Redis 8.2 services (via docker-compose)
 
