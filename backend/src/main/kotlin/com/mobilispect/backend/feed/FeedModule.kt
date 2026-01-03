@@ -31,8 +31,5 @@ import org.springframework.modulith.ApplicationModule
  * - Communication via ports/events only
  * - Depends only on region module
  */
-@ApplicationModule(
-    displayName = "Feed Management",
-    allowedDependencies = ["region"]
-)
+@ApplicationModule(displayName = "Feed Management", allowedDependencies = ["region"])
 class FeedModule

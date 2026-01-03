@@ -7,13 +7,8 @@ import kotlinx.serialization.json.JsonNames
 @ExperimentalSerializationApi
 @Serializable
 class TransitLandVersionedFeed(
-    val feed: TransitLandFeedRef,
-
-    @JsonNames("fetched_at")
-    val fetchedAt: String,
-
-    val id: Int,
-
-    @JsonNames("sha1")
-    val feedVersion: String
+  val feed: TransitLandFeedRef,
+  @JsonNames("fetched_at") val fetchedAt: String,
+  val id: Int,
+  @JsonNames("sha1") val feedVersion: String,
 )

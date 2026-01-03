@@ -7,8 +7,8 @@ import org.springframework.context.annotation.Configuration
  *
  * Task T006: Implement authentication/authorization for feed management roles
  *
- * This configuration defines the security requirements for feed management operations
- * based on the role-based access control model specified in FR-014.
+ * This configuration defines the security requirements for feed management operations based on the
+ * role-based access control model specified in FR-014.
  *
  * Access Control Matrix:
  * - /api/feeds/regions (GET): VIEWER, OPERATOR, MANAGER, ADMIN
@@ -27,44 +27,28 @@ import org.springframework.context.annotation.Configuration
  * 4. @PreAuthorize annotations on controller methods
  * 5. Integration with existing authentication system
  *
- * Implementation of these components should be coordinated with existing security
- * infrastructure to avoid conflicts.
+ * Implementation of these components should be coordinated with existing security infrastructure to
+ * avoid conflicts.
  */
 @Configuration
 class FeedManagementSecurityConfiguration {
 
-    /**
-     * Returns the list of roles that have viewer access.
-     */
-    fun viewerRoles(): List<String> = listOf(
-        FeedManagementRoles.VIEWER,
-        FeedManagementRoles.OPERATOR,
-        FeedManagementRoles.MANAGER,
-        FeedManagementRoles.ADMIN
+  /** Returns the list of roles that have viewer access. */
+  fun viewerRoles(): List<String> =
+    listOf(
+      FeedManagementRoles.VIEWER,
+      FeedManagementRoles.OPERATOR,
+      FeedManagementRoles.MANAGER,
+      FeedManagementRoles.ADMIN,
     )
 
-    /**
-     * Returns the list of roles that have operator access.
-     */
-    fun operatorRoles(): List<String> = listOf(
-        FeedManagementRoles.OPERATOR,
-        FeedManagementRoles.MANAGER,
-        FeedManagementRoles.ADMIN
-    )
+  /** Returns the list of roles that have operator access. */
+  fun operatorRoles(): List<String> =
+    listOf(FeedManagementRoles.OPERATOR, FeedManagementRoles.MANAGER, FeedManagementRoles.ADMIN)
 
-    /**
-     * Returns the list of roles that have manager access.
-     */
-    fun managerRoles(): List<String> = listOf(
-        FeedManagementRoles.MANAGER,
-        FeedManagementRoles.ADMIN
-    )
+  /** Returns the list of roles that have manager access. */
+  fun managerRoles(): List<String> = listOf(FeedManagementRoles.MANAGER, FeedManagementRoles.ADMIN)
 
-    /**
-     * Returns the list of roles that have auditor access.
-     */
-    fun auditorRoles(): List<String> = listOf(
-        FeedManagementRoles.AUDITOR,
-        FeedManagementRoles.ADMIN
-    )
+  /** Returns the list of roles that have auditor access. */
+  fun auditorRoles(): List<String> = listOf(FeedManagementRoles.AUDITOR, FeedManagementRoles.ADMIN)
 }

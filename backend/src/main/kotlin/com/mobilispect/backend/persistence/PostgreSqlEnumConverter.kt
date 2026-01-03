@@ -10,12 +10,11 @@ import jakarta.persistence.AttributeConverter
  * literal (e.g., "gtfs") while keeping the entity field strongly typed.
  */
 abstract class PostgreSqlEnumConverter<T : Enum<T>>(
-    private val toDbValue: (T) -> String,
-    private val fromDbValue: (String?) -> T?
+  private val toDbValue: (T) -> String,
+  private val fromDbValue: (String?) -> T?,
 ) : AttributeConverter<T, String> {
 
-    override fun convertToDatabaseColumn(attribute: T?): String? =
-        attribute?.let(toDbValue)
+  override fun convertToDatabaseColumn(attribute: T?): String? = attribute?.let(toDbValue)
 
-    override fun convertToEntityAttribute(dbData: String?): T? = fromDbValue(dbData)
+  override fun convertToEntityAttribute(dbData: String?): T? = fromDbValue(dbData)
 }

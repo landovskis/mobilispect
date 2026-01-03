@@ -12,40 +12,33 @@ import org.springframework.stereotype.Service
 /**
  * Implementation of the Agency module's public query API.
  *
- * This service provides cross-module access to agency data while maintaining
- * proper module boundaries. It converts internal domain models to public DTOs.
+ * This service provides cross-module access to agency data while maintaining proper module
+ * boundaries. It converts internal domain models to public DTOs.
  */
 @Service
-internal class AgencyQueryApiImpl(
-    private val agencyRepository: AgencyRepository
-) : AgencyQueryApi {
+internal class AgencyQueryApiImpl(private val agencyRepository: AgencyRepository) : AgencyQueryApi {
 
-    override fun findAgencyById(agencyId: AgencyId): AgencyDTO? {
-        return agencyRepository.findById(agencyId)
-            ?.toDTO()
-    }
+  override fun findAgencyById(agencyId: AgencyId): AgencyDTO? {
+    return agencyRepository.findById(agencyId)?.toDTO()
+  }
 
-    override fun findAgenciesByFeed(feedId: FeedId): List<AgencyDTO> {
-        return agencyRepository.findByFeedId(feedId, Pageable.unpaged())
-            .content
-            .map { it.toDTO() }
-    }
+  override fun findAgenciesByFeed(feedId: FeedId): List<AgencyDTO> {
+    return agencyRepository.findByFeedId(feedId, Pageable.unpaged()).content.map { it.toDTO() }
+  }
 
-    /**
-     * Converts internal domain model to public DTO.
-     */
-    private fun Agency.toDTO(): AgencyDTO {
-        return AgencyDTO(
-            agencyId = this.agencyOnestopId,
-            feedId = this.feedId,
-            gtfsAgencyId = this.gtfsAgencyId,
-            name = this.name,
-            website = this.website,
-            phone = this.phone,
-            lastFeedImport = this.lastFeedImport,
-            active = this.active,
-            createdAt = this.createdAt,
-            updatedAt = this.updatedAt
-        )
-    }
+  /** Converts internal domain model to public DTO. */
+  private fun Agency.toDTO(): AgencyDTO {
+    return AgencyDTO(
+      agencyId = this.agencyOnestopId,
+      feedId = this.feedId,
+      gtfsAgencyId = this.gtfsAgencyId,
+      name = this.name,
+      website = this.website,
+      phone = this.phone,
+      lastFeedImport = this.lastFeedImport,
+      active = this.active,
+      createdAt = this.createdAt,
+      updatedAt = this.updatedAt,
+    )
+  }
 }

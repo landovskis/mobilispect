@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration
 
 @Configuration
 internal class GTFSScheduledTripDataSourceConfiguration {
-    @Bean
-    fun scheduledTripDataSource(routeIDDataSource: RouteIDDataSource): ScheduledTripDataSource =
-        GTFSScheduledTripDataSource(routeIDDataSource)
+  @Bean
+  fun scheduledTripDataSource(routeIDDataSource: RouteIDDataSource): ScheduledTripDataSource =
+    GTFSScheduledTripDataSource(routeIDDataSource)
 }

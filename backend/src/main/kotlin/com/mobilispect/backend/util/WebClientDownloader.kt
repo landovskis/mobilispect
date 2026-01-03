@@ -1,5 +1,9 @@
 package com.mobilispect.backend.schedule.download
 
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+import java.time.Duration
+import kotlin.io.path.fileSize
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Primary
 import org.springframework.core.io.buffer.DataBuffer
@@ -12,61 +16,57 @@ import org.springframework.web.reactive.function.client.WebClientException
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import reactor.netty.http.client.HttpClient
 import reactor.util.retry.Retry
-import java.nio.file.Path
-import java.nio.file.StandardOpenOption
-import java.time.Duration
-import kotlin.io.path.fileSize
 
 private const val RETRY_ATTEMPTS = 3L
 
-/**
- * A [Downloader] that uses Spring [WebClient].
- */
+/** A [Downloader] that uses Spring [WebClient]. */
 @Component
 @Primary
 internal class WebClientDownloader(webClientBuilder: WebClient.Builder) : Downloader {
-    private val logger = LoggerFactory.getLogger(WebClientDownloader::class.java)
+  private val logger = LoggerFactory.getLogger(WebClientDownloader::class.java)
 
-    private var webClient: WebClient = webClientBuilder
-        .clientConnector(
-            ReactorClientHttpConnector(
-                HttpClient.create().followRedirect(true)
-            )
-        )
-        .defaultHeader("User-Agent", "Mobilispect/1.0 (+https://mobilispect.com)")
-        .build()
+  private var webClient: WebClient =
+    webClientBuilder
+      .clientConnector(ReactorClientHttpConnector(HttpClient.create().followRedirect(true)))
+      .defaultHeader("User-Agent", "Mobilispect/1.0 (+https://mobilispect.com)")
+      .build()
 
-    override fun download(request: DownloadRequest): Result<Path> {
-        val dest = kotlin.io.path.createTempFile()
-        return try {
-            logger.info("Downloading URL: {}", request.url)
-            var builder = webClient.get()
-                .uri(request.url)
-            for (header in request.headers) {
-                builder = builder.header(header.key, header.value)
+  override fun download(request: DownloadRequest): Result<Path> {
+    val dest = kotlin.io.path.createTempFile()
+    return try {
+      logger.info("Downloading URL: {}", request.url)
+      var builder = webClient.get().uri(request.url)
+      for (header in request.headers) {
+        builder = builder.header(header.key, header.value)
+      }
+      val dataBuffer =
+        builder
+          .retrieve()
+          .bodyToFlux(DataBuffer::class.java)
+          .retryWhen(
+            Retry.backoff(RETRY_ATTEMPTS, Duration.ofSeconds(1)).filter { error ->
+              val responseError = error as? WebClientResponseException
+              val serverError = responseError?.statusCode?.is5xxServerError ?: false
+              val rateLimitedError =
+                responseError?.statusCode?.isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS) ?: false
+              return@filter serverError || rateLimitedError
             }
-            val dataBuffer = builder
-                .retrieve()
-                .bodyToFlux(DataBuffer::class.java)
-                .retryWhen(
-                    Retry.backoff(RETRY_ATTEMPTS, Duration.ofSeconds(1))
-                        .filter { error ->
-                            val responseError = error as? WebClientResponseException
-                            val serverError = responseError?.statusCode?.is5xxServerError ?: false
-                            val rateLimitedError =
-                                responseError?.statusCode?.isSameCodeAs(HttpStatus.TOO_MANY_REQUESTS) ?: false
-                            return@filter serverError || rateLimitedError
-                        })
+          )
 
-            DataBufferUtils.write(
-                dataBuffer, dest, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
-            ).then().block()
+      DataBufferUtils.write(
+          dataBuffer,
+          dest,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING,
+        )
+        .then()
+        .block()
 
-            logger.info("Download complete. File size: {} bytes. Path: {}", dest.fileSize(), dest)
-            Result.success(dest)
-        } catch (e: WebClientException) {
-            logger.error("Download failed for URL: {}", request.url, e)
-            Result.failure(e)
-        }
+      logger.info("Download complete. File size: {} bytes. Path: {}", dest.fileSize(), dest)
+      Result.success(dest)
+    } catch (e: WebClientException) {
+      logger.error("Download failed for URL: {}", request.url, e)
+      Result.failure(e)
     }
+  }
 }

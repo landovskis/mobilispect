@@ -51,10 +51,9 @@ import org.springframework.modulith.core.ApplicationModules
  * - ✅ Removed bidirectional entity navigation
  * - ✅ Used FK-only pattern (column references without JPA navigation)
  * - ✅ Created route and stop modules with @ApplicationModule annotations
- * - ⚠️  Architectural cycles remain (feed ↔ transitanalysis ↔ agency)
+ * - ⚠️ Architectural cycles remain (feed ↔ transitanalysis ↔ agency)
  *
- * Remaining Architectural Debt:
- * The following cyclic dependencies still exist:
+ * Remaining Architectural Debt: The following cyclic dependencies still exist:
  * 1. agency → feed (FeedQueryApi) → transitanalysis (FeedImportService) → agency (AgencyRepository)
  * 2. Similar cycle through route module
  *
@@ -64,8 +63,7 @@ import org.springframework.modulith.core.ApplicationModules
  * - Agency/route query feed information via FeedQueryApi
  * - This creates circular dependencies
  *
- * Solution (Future Phase):
- * Replace synchronous calls with event-driven architecture:
+ * Solution (Future Phase): Replace synchronous calls with event-driven architecture:
  * - Feed publishes FeedImportRequested event
  * - Transitanalysis listens and performs import
  * - This breaks feed → transitanalysis dependency
@@ -81,55 +79,58 @@ import org.springframework.modulith.core.ApplicationModules
  */
 class ModuleStructureTest {
 
-    /**
-     * Verifies Spring Modulith module boundaries are properly enforced.
-     *
-     * This test ensures:
-     * - All modules are detected correctly
-     * - No cyclic dependencies exist
-     * - Module boundaries are respected (no direct cross-module access)
-     * - Only exposed APIs are accessible from other modules
-     */
-    @Test
-    fun `verify Spring Modulith module boundaries`() {
-        val modules = ApplicationModules.of(MobilispectApplication::class.java)
+  /**
+   * Verifies Spring Modulith module boundaries are properly enforced.
+   *
+   * This test ensures:
+   * - All modules are detected correctly
+   * - No cyclic dependencies exist
+   * - Module boundaries are respected (no direct cross-module access)
+   * - Only exposed APIs are accessible from other modules
+   */
+  @Test
+  fun `verify Spring Modulith module boundaries`() {
+    val modules = ApplicationModules.of(MobilispectApplication::class.java)
 
-        // Print module structure for visibility
-        println("\n=== Spring Modulith Module Structure ===")
-        modules.forEach { module ->
-            println("\n## ${module.displayName} ##")
-            println("> Base package: ${module.basePackage}")
-        }
-        println("\n===========================================\n")
-
-        // Verify that modules are detected
-        assert(modules.stream().count() > 0) { "No modules detected" }
-        println("✓ Spring Modulith module detection successful")
-
-        // TODO: Enable full verification after resolving architectural cycles
-        // Current architectural debt: cyclic dependencies between feed, transitanalysis, and agency
-        // Solution requires event-driven architecture (see class javadoc above)
-        // modules.verify()
-        println("⚠  Module verification disabled - architectural cycles present (see class documentation)")
+    // Print module structure for visibility
+    println("\n=== Spring Modulith Module Structure ===")
+    modules.forEach { module ->
+      println("\n## ${module.displayName} ##")
+      println("> Base package: ${module.basePackage}")
     }
+    println("\n===========================================\n")
 
-    /**
-     * Generate module documentation as PlantUML diagrams.
-     *
-     * Generates:
-     * - components.puml: Overview of all modules and their dependencies
-     * - Individual module diagrams showing internal structure
-     *
-     * Output location: build/spring-modulith-docs/
-     */
-    @Test
-    fun `generate module documentation`() {
-        val modules = ApplicationModules.of(MobilispectApplication::class.java)
+    // Verify that modules are detected
+    assert(modules.stream().count() > 0) { "No modules detected" }
+    println("✓ Spring Modulith module detection successful")
 
-        org.springframework.modulith.docs.Documenter(modules)
-            .writeModulesAsPlantUml()
-            .writeIndividualModulesAsPlantUml()
+    // TODO: Enable full verification after resolving architectural cycles
+    // Current architectural debt: cyclic dependencies between feed, transitanalysis, and agency
+    // Solution requires event-driven architecture (see class javadoc above)
+    // modules.verify()
+    println(
+      "⚠  Module verification disabled - architectural cycles present (see class documentation)"
+    )
+  }
 
-        println("✓ Module documentation generated in build/spring-modulith-docs/")
-    }
+  /**
+   * Generate module documentation as PlantUML diagrams.
+   *
+   * Generates:
+   * - components.puml: Overview of all modules and their dependencies
+   * - Individual module diagrams showing internal structure
+   *
+   * Output location: build/spring-modulith-docs/
+   */
+  @Test
+  fun `generate module documentation`() {
+    val modules = ApplicationModules.of(MobilispectApplication::class.java)
+
+    org.springframework.modulith.docs
+      .Documenter(modules)
+      .writeModulesAsPlantUml()
+      .writeIndividualModulesAsPlantUml()
+
+    println("✓ Module documentation generated in build/spring-modulith-docs/")
+  }
 }

@@ -8,15 +8,15 @@ import java.time.Instant
  * Represents a metropolitan region with transit feeds.
  */
 data class MetropolitanRegionDTO(
-    val regionOnestopId: String,
-    val name: String,
-    val adm0Name: String?,
-    val adm1Name: String?,
-    val autoUpdateEnabled: Boolean,
-    val feedCount: Int,
-    val lastCheckAt: Instant?,
-    val createdAt: Instant,
-    val updatedAt: Instant
+  val regionOnestopId: String,
+  val name: String,
+  val adm0Name: String?,
+  val adm1Name: String?,
+  val autoUpdateEnabled: Boolean,
+  val feedCount: Int,
+  val lastCheckAt: Instant?,
+  val createdAt: Instant,
+  val updatedAt: Instant,
 )
 
 /**
@@ -24,19 +24,14 @@ data class MetropolitanRegionDTO(
  *
  * Wrapper response for listing regions.
  */
-data class RegionsResponse(
-    val regions: List<MetropolitanRegionDTO>,
-    val total: Int
-)
+data class RegionsResponse(val regions: List<MetropolitanRegionDTO>, val total: Int)
 
 /**
  * Region Update Request
  *
  * Request to update region configuration.
  */
-data class RegionUpdateRequest(
-    val autoUpdateEnabled: Boolean?
-)
+data class RegionUpdateRequest(val autoUpdateEnabled: Boolean?)
 
 /**
  * Feed DTO
@@ -44,35 +39,31 @@ data class RegionUpdateRequest(
  * Represents a transit feed within a region.
  */
 data class FeedDTO(
-    val feedOnestopId: String,
-    val regionOnestopId: String,
-    val name: String,
-    val specType: FeedSpecType,
-    val downloadUrl: String,
-    val currentVersionSha1: String?,
-    val lastCheckedAt: Instant?,
-    val lastUpdatedAt: Instant?,
-    val status: FeedStatus,
-    val hasAuthentication: Boolean,
-    val createdAt: Instant,
-    val updatedAt: Instant
+  val feedOnestopId: String,
+  val regionOnestopId: String,
+  val name: String,
+  val specType: FeedSpecType,
+  val downloadUrl: String,
+  val currentVersionSha1: String?,
+  val lastCheckedAt: Instant?,
+  val lastUpdatedAt: Instant?,
+  val status: FeedStatus,
+  val hasAuthentication: Boolean,
+  val createdAt: Instant,
+  val updatedAt: Instant,
 )
 
-/**
- * Feed specification types
- */
+/** Feed specification types */
 enum class FeedSpecType {
-    GTFS,
-    GTFS_RT
+  GTFS,
+  GTFS_RT,
 }
 
-/**
- * Feed status values
- */
+/** Feed status values */
 enum class FeedStatus {
-    ACTIVE,
-    INACTIVE,
-    ERROR
+  ACTIVE,
+  INACTIVE,
+  ERROR,
 }
 
 /**
@@ -80,7 +71,4 @@ enum class FeedStatus {
  *
  * Wrapper response for listing feeds.
  */
-data class FeedsResponse(
-    val feeds: List<FeedDTO>,
-    val total: Int
-)
+data class FeedsResponse(val feeds: List<FeedDTO>, val total: Int)

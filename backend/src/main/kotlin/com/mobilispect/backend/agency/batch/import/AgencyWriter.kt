@@ -17,52 +17,50 @@ import org.springframework.stereotype.Component
 @Component
 @StepScope
 class AgencyWriter(
-    private val agencyRepository: AgencyRepository,
-    private val eventPublisher: ApplicationEventPublisher,
+  private val agencyRepository: AgencyRepository,
+  private val eventPublisher: ApplicationEventPublisher,
 ) : ItemWriter<Agency> {
-    private val logger = LoggerFactory.getLogger(AgencyWriter::class.java)
+  private val logger = LoggerFactory.getLogger(AgencyWriter::class.java)
 
-    private var feedId: FeedId? = null
+  private var feedId: FeedId? = null
 
+  @Value("#{jobParameters['feedOnestopId']}") lateinit var feedOnestopId: String
 
-    @Value("#{jobParameters['feedOnestopId']}")
-    lateinit var feedOnestopId: String
+  @AfterStep
+  fun afterStep(stepExecution: StepExecution) {
+    feedId = FeedId(stepExecution.jobExecution.executionContext.get("feedId") as String)
+    eventPublisher.publishEvent(FeedImportStepCompleted(feedId!!, "agency"))
+  }
 
-    @AfterStep
-    fun afterStep(stepExecution: StepExecution) {
-        feedId = FeedId(stepExecution.jobExecution.executionContext.get("feedId") as String)
-        eventPublisher.publishEvent(FeedImportStepCompleted(feedId!!, "agency"))
-    }
+  override fun write(chunk: Chunk<out Agency>) {
+    val feedId = FeedId(feedOnestopId)
+    var created = 0
+    var updated = 0
 
-    override fun write(chunk: Chunk<out Agency>) {
-        val feedId = FeedId(feedOnestopId)
-        var created = 0
-        var updated = 0
-
-        chunk.items.forEach { agency ->
-            val existing = agencyRepository.findByFeedIdAndGtfsAgencyId(feedId, agency.gtfsAgencyId)
-            if (existing == null) {
-                agencyRepository.save(agency)
-                created++
-            } else {
-                agencyRepository.save(
-                    existing.copy(
-                        name = agency.name,
-                        website = agency.website,
-                        phone = agency.phone,
-                        active = agency.active,
-                        lastFeedImport = agency.lastFeedImport
-                    )
-                )
-                updated++
-            }
-        }
-
-        logger.info(
-            "Persisted agencies for feed {} (created={}, updated={})",
-            feedOnestopId,
-            created,
-            updated
+    chunk.items.forEach { agency ->
+      val existing = agencyRepository.findByFeedIdAndGtfsAgencyId(feedId, agency.gtfsAgencyId)
+      if (existing == null) {
+        agencyRepository.save(agency)
+        created++
+      } else {
+        agencyRepository.save(
+          existing.copy(
+            name = agency.name,
+            website = agency.website,
+            phone = agency.phone,
+            active = agency.active,
+            lastFeedImport = agency.lastFeedImport,
+          )
         )
+        updated++
+      }
     }
+
+    logger.info(
+      "Persisted agencies for feed {} (created={}, updated={})",
+      feedOnestopId,
+      created,
+      updated,
+    )
+  }
 }

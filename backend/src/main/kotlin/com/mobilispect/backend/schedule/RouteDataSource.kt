@@ -4,5 +4,5 @@ import com.mobilispect.backend.schedule.Route
 import java.nio.file.Path
 
 interface RouteDataSource {
-    fun routes(root: Path, version: String, feedID: String): Result<Collection<Route>>
+  fun routes(root: Path, version: String, feedID: String): Result<Collection<Route>>
 }

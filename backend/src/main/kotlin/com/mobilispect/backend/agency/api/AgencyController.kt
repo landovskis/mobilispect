@@ -14,22 +14,16 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api")
-class AgencyController(
-    private val agencyQueryService: AgencyQueryService
-) {
+class AgencyController(private val agencyQueryService: AgencyQueryService) {
 
-    @GetMapping("/agencies")
-    fun listAgencies(pageable: Pageable): Page<AgencyDTO> =
-        agencyQueryService.getAgencies(pageable)
+  @GetMapping("/agencies")
+  fun listAgencies(pageable: Pageable): Page<AgencyDTO> = agencyQueryService.getAgencies(pageable)
 
-    @GetMapping("/regions/{regionId}/agencies")
-    fun listAgenciesByRegion(
-        @PathVariable regionId: String,
-        pageable: Pageable
-    ): Page<AgencyDTO> =
-        agencyQueryService.getAgenciesByRegion(RegionId(regionId), pageable)
+  @GetMapping("/regions/{regionId}/agencies")
+  fun listAgenciesByRegion(@PathVariable regionId: String, pageable: Pageable): Page<AgencyDTO> =
+    agencyQueryService.getAgenciesByRegion(RegionId(regionId), pageable)
 
-    @GetMapping("/agencies/{agencyId}")
-    fun getAgency(@PathVariable agencyId: String): AgencySummaryDTO? =
-        agencyQueryService.getAgencySummary(AgencyId(agencyId))
+  @GetMapping("/agencies/{agencyId}")
+  fun getAgency(@PathVariable agencyId: String): AgencySummaryDTO? =
+    agencyQueryService.getAgencySummary(AgencyId(agencyId))
 }

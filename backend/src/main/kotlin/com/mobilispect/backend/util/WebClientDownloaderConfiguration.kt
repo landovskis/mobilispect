@@ -6,6 +6,7 @@ import org.springframework.web.reactive.function.client.WebClient
 
 @Configuration
 internal class WebClientDownloaderConfiguration {
-    @Bean
-    internal fun downloader(webClientBuilder: WebClient.Builder): Downloader = WebClientDownloader(webClientBuilder)
+  @Bean
+  internal fun downloader(webClientBuilder: WebClient.Builder): Downloader =
+    WebClientDownloader(webClientBuilder)
 }

@@ -5,5 +5,9 @@ import com.mobilispect.backend.infastructure.Stop
 import java.nio.file.Path
 
 interface StopDataSource {
-    fun stops(root: Path, version: String, feedID: String): Ior<Collection<Throwable>, Collection<Stop>>
+  fun stops(
+    root: Path,
+    version: String,
+    feedID: String,
+  ): Ior<Collection<Throwable>, Collection<Stop>>
 }
