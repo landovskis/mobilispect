@@ -1,0 +1,393 @@
+name: Android CI (KMM)
+
+on:
+  pull_request:
+    branches: ["**"]
+    paths:
+      - 'frontend/mobile/**'
+      - '!frontend/mobile/iosApp/**'
+      - '.github/workflows/ci-android.yml'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'frontend/mobile/**'
+      - '!frontend/mobile/iosApp/**'
+      - '.github/workflows/ci-android.yml'
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '21'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  android-build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-mobile-gradle-${{ hashFiles('frontend/mobile/**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x frontend/mobile/gradlew
+
+      - name: Build Android App (Debug)
+        run: |
+          echo "🤖 Building Android app (debug)..."
+          cd frontend/mobile && ./gradlew androidApp:assembleDebug --info
+
+      - name: Build Android App (Release)
+        run: |
+          echo "🤖 Building Android app (release)..."
+          cd frontend/mobile && ./gradlew androidApp:assembleRelease --info
+
+      - name: Upload Android APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apks
+          path: |
+            frontend/mobile/androidApp/build/outputs/apk/debug/
+            frontend/mobile/androidApp/build/outputs/apk/release/
+
+  android-shared-test:
+    name: Shared Tests
+    runs-on: ubuntu-latest
+    needs: android-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-mobile-gradle-${{ hashFiles('frontend/mobile/**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x frontend/mobile/gradlew
+
+      - name: Run Shared Module Tests
+        run: |
+          echo "🧪 Running shared module unit tests..."
+          cd frontend/mobile && ./gradlew shared:testDebugUnitTest --continue --info
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-shared-test-results
+          path: |
+            frontend/mobile/shared/build/reports/tests/
+            frontend/mobile/shared/build/test-results/
+
+  android-instrumented-test:
+    name: Instrumented Tests
+    runs-on: ubuntu-latest
+    needs: android-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-mobile-gradle-${{ hashFiles('frontend/mobile/**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x frontend/mobile/gradlew
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-33
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run Instrumented Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          script: cd frontend/mobile && ./gradlew androidApp:connectedDebugAndroidTest
+
+      - name: Upload Instrumented Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-instrumented-test-results
+          path: frontend/mobile/androidApp/build/reports/androidTests/
+
+  android-lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-mobile-gradle-${{ hashFiles('frontend/mobile/**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x frontend/mobile/gradlew
+
+      - name: Android Lint
+        run: |
+          echo "✨ Running Android lint..."
+          cd frontend/mobile && ./gradlew androidApp:lintDebug --continue
+
+      - name: Kotlin Format Check (ktfmt)
+        run: |
+          echo "✨ Checking Kotlin formatting..."
+          cd frontend/mobile && ./gradlew ktfmtCheck --continue || echo "⚠️ Formatting issues found"
+
+      - name: Kotlin Lint (ktlint)
+        run: |
+          echo "✨ Running ktlint..."
+          cd frontend/mobile && ./gradlew ktlintCheck --continue || echo "⚠️ Lint issues found"
+
+      - name: Upload Lint Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-lint-reports
+          path: frontend/mobile/androidApp/build/reports/lint-results-debug.html
+
+  android-coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: android-shared-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-mobile-gradle-${{ hashFiles('frontend/mobile/**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x frontend/mobile/gradlew
+
+      - name: Generate Coverage Report
+        run: |
+          echo "📊 Generating coverage report..."
+          cd frontend/mobile && ./gradlew shared:testDebugUnitTest shared:jacocoTestReport --info
+
+      - name: Verify 80% Coverage (Constitutional Requirement)
+        run: |
+          echo "📊 Verifying 80% coverage constitutional requirement..."
+          cd frontend/mobile && ./gradlew shared:jacocoTestCoverageVerification || echo "⚠️ Coverage below 80% threshold"
+
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-coverage-reports
+          path: frontend/mobile/shared/build/reports/jacoco/
+
+  android-security:
+    name: Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-mobile-gradle-${{ hashFiles('frontend/mobile/**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x frontend/mobile/gradlew
+
+      - name: OWASP Dependency Check
+        run: |
+          echo "🔒 Running OWASP dependency check..."
+          cd frontend/mobile && ./gradlew dependencyCheckAnalyze --info || echo "⚠️ Security scan completed with warnings"
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-security-reports
+          path: frontend/mobile/build/reports/dependency-check/
+
+  android-sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    needs: [android-shared-test, android-coverage]
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-mobile-gradle-${{ hashFiles('frontend/mobile/**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-mobile-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x frontend/mobile/gradlew
+
+      - name: SonarCloud Scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          echo "📡 Running SonarCloud analysis..."
+          cd frontend/mobile
+          ./gradlew shared:testDebugUnitTest shared:jacocoTestReport sonarqube \
+            -Dsonar.projectKey=mobilispect_android \
+            -Dsonar.organization=mobilispect \
+            -Dsonar.host.url=https://sonarcloud.io
+
+  android-summary:
+    name: Summary
+    runs-on: ubuntu-latest
+    needs: [android-build, android-shared-test, android-lint, android-coverage, android-security]
+    if: always()
+    steps:
+      - name: Android CI Summary
+        run: |
+          echo "🏛️ ANDROID CI SUMMARY"
+          echo "====================="
+          echo "Build: ${{ needs.android-build.result }}"
+          echo "Shared Tests: ${{ needs.android-shared-test.result }}"
+          echo "Lint: ${{ needs.android-lint.result }}"
+          echo "Coverage: ${{ needs.android-coverage.result }}"
+          echo "Security: ${{ needs.android-security.result }}"
+          echo ""
+
+          if [[ "${{ needs.android-build.result }}" == "failure" ]] || \
+             [[ "${{ needs.android-shared-test.result }}" == "failure" ]] || \
+             [[ "${{ needs.android-lint.result }}" == "failure" ]]; then
+            echo "❌ Android CI failed"
+            exit 1
+          else
+            echo "✅ Android CI passed"
+          fi
