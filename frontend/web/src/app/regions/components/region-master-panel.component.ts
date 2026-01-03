@@ -162,59 +162,6 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                     }
                   </div>
                 </div>
-
-                <div card-footer class="flex justify-end gap-2">
-                  <app-brand-button
-                    variant="accent"
-                    size="sm"
-                    (click)="$event.stopPropagation(); viewRegionDetails(region)"
-                    [attr.aria-label]="'View details for ' + getDisplayName(region)"
-                  >
-                    <mat-icon>info</mat-icon>
-                    <span>Details</span>
-                  </app-brand-button>
-
-                  <!-- Auto-Update Controls Menu -->
-                  <button
-                    mat-icon-button
-                    [matMenuTriggerFor]="autoUpdateMenu"
-                    (click)="$event.stopPropagation()"
-                    [attr.aria-label]="'Auto-update settings for ' + getDisplayName(region)"
-                    matTooltip="Auto-update settings">
-                    <mat-icon>settings</mat-icon>
-                  </button>
-                  <mat-menu #autoUpdateMenu="matMenu">
-                    <div
-                      class="auto-update-controls min-w-[280px] p-4 max-md:min-w-[240px] max-md:p-3"
-                      (click)="$event.stopPropagation()"
-                    >
-                      <div class="control-header mb-4 flex items-center gap-2 font-semibold text-[var(--mdc-theme-primary)]">
-                        <mat-icon>sync</mat-icon>
-                        <span>Automatic Updates</span>
-                      </div>
-
-                      <div class="control-item flex items-center justify-between border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0">
-                        <span>Enable auto-update</span>
-                        <mat-slide-toggle
-                          [checked]="region.autoUpdateEnabled"
-                          (change)="toggleAutoUpdate(region, $event.checked)"
-                          [disabled]="isUpdatingAutoUpdate.has(region.regionOnestopId)">
-                        </mat-slide-toggle>
-                      </div>
-                    </div>
-                  </mat-menu>
-
-                  <app-brand-button
-                    variant="primary"
-                    size="sm"
-                    (click)="$event.stopPropagation(); selectRegion(region)"
-                    [disabled]="region.feedCount === 0"
-                    [attr.aria-label]="'Select ' + getDisplayName(region) + ' to view feeds'"
-                  >
-                    <mat-icon>arrow_forward</mat-icon>
-                    <span>View</span>
-                  </app-brand-button>
-                </div>
               </app-brand-card>
             }
 
