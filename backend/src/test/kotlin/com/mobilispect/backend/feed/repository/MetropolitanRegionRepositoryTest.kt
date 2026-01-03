@@ -31,7 +31,7 @@ class MetropolitanRegionRepositoryTest {
     @ServiceConnection
     @JvmStatic
     val postgres: PostgreSQLContainer<*> =
-      PostgreSQLContainer("postgres:17-alpine")
+      PostgreSQLContainer("postgres:18-alpine")
         .withDatabaseName("mobilispect_test")
         .withUsername("test")
         .withPassword("test")
