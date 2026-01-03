@@ -13,77 +13,80 @@ import org.springframework.data.domain.PageRequest
 
 class AgencyControllerTest {
 
-    private lateinit var agencyQueryService: AgencyQueryService
-    private lateinit var controller: AgencyController
+  private lateinit var agencyQueryService: AgencyQueryService
+  private lateinit var controller: AgencyController
 
-    @BeforeEach
-    fun setUp() {
-        agencyQueryService = mockk()
-        controller = AgencyController(agencyQueryService)
-    }
+  @BeforeEach
+  fun setUp() {
+    agencyQueryService = mockk()
+    controller = AgencyController(agencyQueryService)
+  }
 
-    @Test
-    fun `listAgencies returns paged agencies`() {
-        val dto = AgencyDTO(
-            id = "o-123",
-            name = "Agency",
-            feedOnestopId = "f-abc",
-            regionIds = emptySet(),
-            routeCount = 2,
-            activeRouteCount = 1,
-            routesByType = emptyMap()
-        )
-        every { agencyQueryService.getAgencies(any()) } returns PageImpl(listOf(dto))
+  @Test
+  fun `listAgencies returns paged agencies`() {
+    val dto =
+      AgencyDTO(
+        id = "o-123",
+        name = "Agency",
+        feedOnestopId = "f-abc",
+        regionIds = emptySet(),
+        routeCount = 2,
+        activeRouteCount = 1,
+        routesByType = emptyMap(),
+      )
+    every { agencyQueryService.getAgencies(any()) } returns PageImpl(listOf(dto))
 
-        val result = controller.listAgencies(PageRequest.of(0, 20))
+    val result = controller.listAgencies(PageRequest.of(0, 20))
 
-        assertThat(result.content).hasSize(1)
-        assertThat(result.content.first().id).isEqualTo("o-123")
-    }
+    assertThat(result.content).hasSize(1)
+    assertThat(result.content.first().id).isEqualTo("o-123")
+  }
 
-    @Test
-    fun `getAgency returns summary`() {
-        val summary = AgencySummaryDTO(
-            id = "o-123",
-            name = "Agency",
-            routeCount = 2,
-            averageHeadwayMinutes = null,
-            minHeadwayMinutes = null,
-            maxHeadwayMinutes = null
-        )
-        every {
-            agencyQueryService.getAgencySummary(
-                com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-123")
-            )
-        } returns summary
+  @Test
+  fun `getAgency returns summary`() {
+    val summary =
+      AgencySummaryDTO(
+        id = "o-123",
+        name = "Agency",
+        routeCount = 2,
+        averageHeadwayMinutes = null,
+        minHeadwayMinutes = null,
+        maxHeadwayMinutes = null,
+      )
+    every {
+      agencyQueryService.getAgencySummary(
+        com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-123")
+      )
+    } returns summary
 
-        val result = controller.getAgency("o-123")
+    val result = controller.getAgency("o-123")
 
-        assertThat(result).isNotNull
-        assertThat(result?.id).isEqualTo("o-123")
-    }
+    assertThat(result).isNotNull
+    assertThat(result?.id).isEqualTo("o-123")
+  }
 
-    @Test
-    fun `listAgenciesByRegion returns paged agencies`() {
-        val dto = AgencyDTO(
-            id = "o-123",
-            name = "Agency",
-            feedOnestopId = "f-abc",
-            regionIds = setOf("r-1"),
-            routeCount = 2,
-            activeRouteCount = 1,
-            routesByType = emptyMap()
-        )
-        every {
-            agencyQueryService.getAgenciesByRegion(
-                com.mobilispect.backend.feed.model.ids.RegionId("r-1"),
-                any()
-            )
-        } returns PageImpl(listOf(dto))
+  @Test
+  fun `listAgenciesByRegion returns paged agencies`() {
+    val dto =
+      AgencyDTO(
+        id = "o-123",
+        name = "Agency",
+        feedOnestopId = "f-abc",
+        regionIds = setOf("r-1"),
+        routeCount = 2,
+        activeRouteCount = 1,
+        routesByType = emptyMap(),
+      )
+    every {
+      agencyQueryService.getAgenciesByRegion(
+        com.mobilispect.backend.feed.model.ids.RegionId("r-1"),
+        any(),
+      )
+    } returns PageImpl(listOf(dto))
 
-        val result = controller.listAgenciesByRegion("r-1", PageRequest.of(0, 20))
+    val result = controller.listAgenciesByRegion("r-1", PageRequest.of(0, 20))
 
-        assertThat(result.content).hasSize(1)
-        assertThat(result.content.first().regionIds).contains("r-1")
-    }
+    assertThat(result.content).hasSize(1)
+    assertThat(result.content.first().regionIds).contains("r-1")
+  }
 }

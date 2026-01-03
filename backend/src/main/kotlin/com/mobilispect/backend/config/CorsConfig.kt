@@ -9,56 +9,47 @@ import org.springframework.web.filter.CorsFilter
 /**
  * CORS Configuration
  *
- * Enables Cross-Origin Resource Sharing (CORS) for the frontend application.
- * Allows requests from localhost development servers.
+ * Enables Cross-Origin Resource Sharing (CORS) for the frontend application. Allows requests from
+ * localhost development servers.
  */
 @Configuration
 class CorsConfig {
 
-    @Bean
-    fun corsFilter(): CorsFilter {
-        val source = UrlBasedCorsConfigurationSource()
-        val config = CorsConfiguration()
+  @Bean
+  fun corsFilter(): CorsFilter {
+    val source = UrlBasedCorsConfigurationSource()
+    val config = CorsConfiguration()
 
-        // Allow credentials (cookies, authorization headers)
-        config.allowCredentials = true
+    // Allow credentials (cookies, authorization headers)
+    config.allowCredentials = true
 
-        // Allow frontend origins
-        config.allowedOriginPatterns = listOf(
-            "http://localhost:*",
-            "http://127.0.0.1:*"
-        )
+    // Allow frontend origins
+    config.allowedOriginPatterns = listOf("http://localhost:*", "http://127.0.0.1:*")
 
-        // Allow all HTTP methods
-        config.allowedMethods = listOf(
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE",
-            "OPTIONS"
-        )
+    // Allow all HTTP methods
+    config.allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
 
-        // Allow all headers
-        config.allowedHeaders = listOf("*")
+    // Allow all headers
+    config.allowedHeaders = listOf("*")
 
-        // Expose headers to frontend
-        config.exposedHeaders = listOf(
-            "Authorization",
-            "Content-Type",
-            "X-Requested-With",
-            "Accept",
-            "Origin",
-            "Access-Control-Request-Method",
-            "Access-Control-Request-Headers"
-        )
+    // Expose headers to frontend
+    config.exposedHeaders =
+      listOf(
+        "Authorization",
+        "Content-Type",
+        "X-Requested-With",
+        "Accept",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+      )
 
-        // Cache preflight response for 1 hour
-        config.maxAge = 3600L
+    // Cache preflight response for 1 hour
+    config.maxAge = 3600L
 
-        // Apply CORS configuration to all endpoints
-        source.registerCorsConfiguration("/**", config)
+    // Apply CORS configuration to all endpoints
+    source.registerCorsConfiguration("/**", config)
 
-        return CorsFilter(source)
-    }
+    return CorsFilter(source)
+  }
 }

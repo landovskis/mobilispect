@@ -1,12 +1,10 @@
 package com.mobilispect.backend.feed.domain
 
-/**
- * Import Status
- */
+/** Import Status */
 enum class ImportStatus {
-    PENDING,
-    RUNNING,
-    COMPLETED,
-    FAILED,
-    CANCELLED
+  PENDING,
+  RUNNING,
+  COMPLETED,
+  FAILED,
+  CANCELLED,
 }

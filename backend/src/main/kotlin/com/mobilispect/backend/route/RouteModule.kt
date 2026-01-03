@@ -23,8 +23,5 @@ import org.springframework.modulith.ApplicationModule
  * - domain: Domain models, repositories, and services
  * - internal: Internal API implementations
  */
-@ApplicationModule(
-    displayName = "Route Management",
-    allowedDependencies = ["feed", "agency"]
-)
+@ApplicationModule(displayName = "Route Management", allowedDependencies = ["feed", "agency"])
 class RouteModule

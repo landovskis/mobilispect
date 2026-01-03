@@ -9,11 +9,11 @@ import java.time.Instant
 /**
  * Transit data feed containing GTFS or GTFS-RT data.
  *
- * A feed provides transit data for one or more metropolitan regions and contains
- * agencies, routes, stops, and schedule information.
+ * A feed provides transit data for one or more metropolitan regions and contains agencies, routes,
+ * stops, and schedule information.
  *
- * This is the domain model representation, separate from the JPA entity.
- * Per ADR 0009, uses FK-only pattern for regions (Set<RegionId>) without entity navigation.
+ * This is the domain model representation, separate from the JPA entity. Per ADR 0009, uses FK-only
+ * pattern for regions (Set<RegionId>) without entity navigation.
  *
  * @property feedId Unique feed identifier using Transitland Onestop ID format
  * @property name Feed display name
@@ -32,19 +32,19 @@ import java.time.Instant
  * @property updatedAt Record last modification timestamp
  */
 data class Feed(
-    val feedId: FeedId,
-    val name: String,
-    val operatorName: String? = null,
-    val specType: FeedSpecType,
-    val downloadUrl: String,
-    val staticFeedUrl: String? = null,
-    val realtimeFeedUrl: String? = null,
-    val currentVersionSha1: String? = null,
-    val status: FeedStatus,
-    val regionIds: Set<RegionId> = emptySet(),
-    val lastCheckedAt: Instant? = null,
-    val lastUpdatedAt: Instant? = null,
-    val lastDiscoveredAt: Instant? = null,
-    val createdAt: Instant = Instant.now(),
-    val updatedAt: Instant = Instant.now()
+  val feedId: FeedId,
+  val name: String,
+  val operatorName: String? = null,
+  val specType: FeedSpecType,
+  val downloadUrl: String,
+  val staticFeedUrl: String? = null,
+  val realtimeFeedUrl: String? = null,
+  val currentVersionSha1: String? = null,
+  val status: FeedStatus,
+  val regionIds: Set<RegionId> = emptySet(),
+  val lastCheckedAt: Instant? = null,
+  val lastUpdatedAt: Instant? = null,
+  val lastDiscoveredAt: Instant? = null,
+  val createdAt: Instant = Instant.now(),
+  val updatedAt: Instant = Instant.now(),
 )

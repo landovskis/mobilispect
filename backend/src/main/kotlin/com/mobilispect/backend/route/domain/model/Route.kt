@@ -8,7 +8,8 @@ import java.time.Instant
 /**
  * Named transit line operated by an agency.
  *
- * @property id Unique route identifier in Transitland Onestop ID format (r-{geohash}-{route_identifier})
+ * @property id Unique route identifier in Transitland Onestop ID format
+ *   (r-{geohash}-{route_identifier})
  * @property agencyId Agency that operates this route
  * @property gtfsRouteId Route ID from GTFS routes.txt file
  * @property shortName Short route name (e.g., "5", "Red Line")
@@ -21,15 +22,15 @@ import java.time.Instant
  * @property updatedAt Record last update timestamp
  */
 data class Route(
-    val id: RouteId,
-    val agencyId: AgencyId,
-    val gtfsRouteId: GTFSRouteId,
-    val shortName: String? = null,
-    val longName: String,
-    val routeType: RouteType,
-    val color: String? = null,
-    val textColor: String? = null,
-    val active: Boolean = true,
-    val createdAt: Instant = Instant.now(),
-    val updatedAt: Instant = Instant.now()
+  val id: RouteId,
+  val agencyId: AgencyId,
+  val gtfsRouteId: GTFSRouteId,
+  val shortName: String? = null,
+  val longName: String,
+  val routeType: RouteType,
+  val color: String? = null,
+  val textColor: String? = null,
+  val active: Boolean = true,
+  val createdAt: Instant = Instant.now(),
+  val updatedAt: Instant = Instant.now(),
 )

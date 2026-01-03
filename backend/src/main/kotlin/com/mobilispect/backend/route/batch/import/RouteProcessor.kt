@@ -1,6 +1,5 @@
 package com.mobilispect.backend.route.batch.import
 
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
@@ -26,48 +25,47 @@ import org.springframework.stereotype.Component
  */
 @Component
 @StepScope
-class RouteProcessor(
-    private val agencyRepository: AgencyRepository
-) : ItemProcessor<RouteInput, RouteBatch> {
+class RouteProcessor(private val agencyRepository: AgencyRepository) :
+  ItemProcessor<RouteInput, RouteBatch> {
 
-    private val logger = LoggerFactory.getLogger(RouteProcessor::class.java)
+  private val logger = LoggerFactory.getLogger(RouteProcessor::class.java)
 
-    override fun process(item: RouteInput): RouteBatch {
-        val (parsedRoute, feedOnestopId) = item
+  override fun process(item: RouteInput): RouteBatch {
+    val (parsedRoute, feedOnestopId) = item
 
-        // Resolve agency onestop ID from GTFS agency ID
-        val gtfsAgencyId = parsedRoute.agencyId ?: GTFSAgencyId("default-agency")
-        val agency = agencyRepository.findByFeedIdAndGtfsAgencyId(
-            FeedId(feedOnestopId),
-            gtfsAgencyId
-        ) ?: throw IllegalStateException(
-            "Agency not found for feed=$feedOnestopId, gtfsAgencyId=$gtfsAgencyId"
+    // Resolve agency onestop ID from GTFS agency ID
+    val gtfsAgencyId = parsedRoute.agencyId ?: GTFSAgencyId("default-agency")
+    val agency =
+      agencyRepository.findByFeedIdAndGtfsAgencyId(FeedId(feedOnestopId), gtfsAgencyId)
+        ?: throw IllegalStateException(
+          "Agency not found for feed=$feedOnestopId, gtfsAgencyId=$gtfsAgencyId"
         )
 
-        // Use feed onestop ID as base for route ID
-        // TransitLand format: route IDs from their API
-        val routeOnestopId = "r-${feedOnestopId.substringAfter("f-")}-${parsedRoute.routeId.value}"
+    // Use feed onestop ID as base for route ID
+    // TransitLand format: route IDs from their API
+    val routeOnestopId = "r-${feedOnestopId.substringAfter("f-")}-${parsedRoute.routeId.value}"
 
-        val route = Route(
-            id = RouteId(routeOnestopId),
-            agencyId = agency.agencyOnestopId,
-            gtfsRouteId = parsedRoute.routeId,
-            shortName = parsedRoute.shortName,
-            longName = parsedRoute.longName ?: parsedRoute.shortName ?: parsedRoute.routeId.value,
-            routeType = RouteType.fromGtfsValue(parsedRoute.type ?: 3),
-            color = null,
-            textColor = null,
-            active = true
-        )
+    val route =
+      Route(
+        id = RouteId(routeOnestopId),
+        agencyId = agency.agencyOnestopId,
+        gtfsRouteId = parsedRoute.routeId,
+        shortName = parsedRoute.shortName,
+        longName = parsedRoute.longName ?: parsedRoute.shortName ?: parsedRoute.routeId.value,
+        routeType = RouteType.fromGtfsValue(parsedRoute.type ?: 3),
+        color = null,
+        textColor = null,
+        active = true,
+      )
 
-        logger.debug(
-            "Processed route: {} ({}) -> {} (agency: {})",
-            parsedRoute.shortName ?: parsedRoute.routeId.value,
-            parsedRoute.longName,
-            routeOnestopId,
-            agency.agencyOnestopId.value
-        )
+    logger.debug(
+      "Processed route: {} ({}) -> {} (agency: {})",
+      parsedRoute.shortName ?: parsedRoute.routeId.value,
+      parsedRoute.longName,
+      routeOnestopId,
+      agency.agencyOnestopId.value,
+    )
 
-        return RouteBatch(listOf(route))
-    }
+    return RouteBatch(listOf(route))
+  }
 }

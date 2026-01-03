@@ -26,8 +26,5 @@ import org.springframework.modulith.ApplicationModule
  * - Communication via ports/events only
  * - Depends only on feed module (via API)
  */
-@ApplicationModule(
-    displayName = "Agency Management",
-    allowedDependencies = ["feed"]
-)
+@ApplicationModule(displayName = "Agency Management", allowedDependencies = ["feed"])
 class AgencyModule

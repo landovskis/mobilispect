@@ -6,6 +6,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     alias(libs.plugins.kotlin.serialization)
     id("org.owasp.dependencycheck") version "11.1.1"
+    id("com.ncorti.ktfmt.gradle") version "0.21.0"
 }
 
 group = "com.mobilispect"
@@ -154,13 +155,10 @@ tasks.register("detekt") {
     }
 }
 
-tasks.register("ktfmtFormat") {
-    group = "formatting"
-    description = "Stub task to satisfy tooling when ktfmt plugin is unavailable"
-
-    doLast {
-        logger.lifecycle("ktfmtFormat stub: no formatting applied (ktfmt plugin unavailable offline)")
-    }
+// ktfmt configuration
+ktfmt {
+    googleStyle()
+    maxWidth.set(100)
 }
 
 tasks.register("ktlintCheck") {

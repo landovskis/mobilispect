@@ -6,9 +6,4 @@ import kotlinx.serialization.json.JsonNames
 
 @ExperimentalSerializationApi
 @Serializable
-class TransitLandFeedRef(
-    val id: Int,
-
-    @JsonNames("onestop_id")
-    val uid: String,
-)
+class TransitLandFeedRef(val id: Int, @JsonNames("onestop_id") val uid: String)
