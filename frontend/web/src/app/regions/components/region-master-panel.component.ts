@@ -122,7 +122,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       <!-- Regions Grid -->
       @if (!(isLoading$ | async) && !(error$ | async)) {
         @if (filteredRegions$ | async; as regions) {
-          <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-1 xl:grid-cols-2">
+          <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 grid-cols-1">
             @for (region of regions; track region.regionOnestopId) {
               <app-brand-card
                 class="region-card cursor-pointer transition-all"
