@@ -1,41 +1,37 @@
 import { Routes } from '@angular/router';
-import { RegionListComponent } from '../regions/pages/region-list.component';
-import { RegionDetailComponent } from '../regions/pages/region-detail.component';
+import { RegionsPageComponent } from '../regions/pages/regions.page';
 import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 import { RouteBreadcrumbResolver } from './resolvers/route-breadcrumb.resolver';
-import { DiscoverRegionsPageComponent } from '../regions/pages/discover-regions.page';
 
 export const TRANSIT_FREQUENCY_ROUTES: Routes = [
   {
     path: '',
-    component: RegionListComponent,
-    data: {}
+    component: RegionsPageComponent,
+    data: {
+      title: 'Regions',
+      breadcrumb: 'Regions',
+      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
+    }
   },
   {
     path: 'discover/:regionId',
-    component: DiscoverRegionsPageComponent,
+    redirectTo: ':regionId',
+    pathMatch: 'full'
+  },
+  {
+    path: 'discover',
+    redirectTo: '',
+    pathMatch: 'full'
+  },
+  {
+    path: ':regionId',
+    component: RegionsPageComponent,
     resolve: {
       breadcrumb: RegionBreadcrumbResolver
     },
     data: {
-      title: 'Discover Regions',
+      title: 'Region Details',
       permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
-  },
-  {
-    path: 'discover',
-    component: DiscoverRegionsPageComponent,
-    data: {
-      title: 'Discover Regions',
-      breadcrumb: 'Discover',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
-  },
-  {
-    path: ':regionId',
-    component: RegionDetailComponent,
-    resolve: {
-      breadcrumb: RegionBreadcrumbResolver
     }
   },
   {
