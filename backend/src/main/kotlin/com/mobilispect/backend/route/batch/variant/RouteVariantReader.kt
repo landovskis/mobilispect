@@ -38,6 +38,7 @@ class RouteVariantReader(private val routeRepository: RouteRepository) :
   private var parsedData: GTFSData? = null
   private var routeIterator: Iterator<Map.Entry<Route, List<GTFSTrip>>>? = null
   private var stopsById: Map<String, GTFSStop> = emptyMap()
+  private var routesByFeedLocalId: Map<String, Route> = emptyMap()
 
   @BeforeStep
   fun beforeStep(stepExecution: StepExecution) {
@@ -45,6 +46,21 @@ class RouteVariantReader(private val routeRepository: RouteRepository) :
     parsedData =
       stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
         ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
+
+    // Retrieve route map from job execution context (populated by RouteWriter)
+    @Suppress("UNCHECKED_CAST")
+    routesByFeedLocalId =
+      stepExecution.jobExecution.executionContext.get("routesByFeedLocalId") as? Map<String, Route>
+        ?: emptyMap()
+
+    if (routesByFeedLocalId.isNotEmpty()) {
+      logger.info(
+        "Retrieved {} routes from job execution context (avoiding database query)",
+        routesByFeedLocalId.size,
+      )
+    } else {
+      logger.warn("Route map not found in job execution context, will fetch from database")
+    }
 
     val data = parsedData!!
 
@@ -60,18 +76,28 @@ class RouteVariantReader(private val routeRepository: RouteRepository) :
     // Group trips by GTFS route ID
     val tripsByGtfsRouteId = data.trips.groupBy { it.routeId }
 
-    // Fetch all persisted routes from database
-    val persistedRoutes = routeRepository.findAll()
-    logger.info("Fetched {} persisted routes from database", persistedRoutes.size)
+    // Use routes from context if available, otherwise fetch from database
+    val persistedRoutes =
+      if (routesByFeedLocalId.isNotEmpty()) {
+        routesByFeedLocalId.values.toList()
+      } else {
+        val dbRoutes = routeRepository.findAll()
+        logger.info("Fetched {} persisted routes from database", dbRoutes.size)
+        dbRoutes
+      }
 
-    // Create lookup map: gtfsRouteId -> Route
-    val routesByGtfsId = persistedRoutes.associateBy { it.gtfsRouteId }
-
-    // Match persisted routes to their trips
+    // Match persisted routes to their trips using GTFS route ID from trip
     val routeMap =
       persistedRoutes
-        .filter { route -> tripsByGtfsRouteId.containsKey(route.gtfsRouteId) }
-        .associateWith { route -> tripsByGtfsRouteId[route.gtfsRouteId] ?: emptyList() }
+        .filter { route ->
+          // Extract GTFS route ID from the route's id (format: agencyId/gtfsRouteId)
+          val gtfsRouteId = route.id.value.substringAfterLast("/")
+          tripsByGtfsRouteId.containsKey(gtfsRouteId)
+        }
+        .associateWith { route ->
+          val gtfsRouteId = route.id.value.substringAfterLast("/")
+          tripsByGtfsRouteId[gtfsRouteId] ?: emptyList()
+        }
 
     routeIterator = routeMap.entries.iterator()
 
@@ -89,6 +115,11 @@ class RouteVariantReader(private val routeRepository: RouteRepository) :
 
     val (route, trips) = routeIterator!!.next()
 
-    return RouteVariantInput(route = route, trips = trips, stopsById = stopsById)
+    return RouteVariantInput(
+      route = route,
+      trips = trips,
+      stopsById = stopsById,
+      routesByFeedLocalId = routesByFeedLocalId,
+    )
   }
 }

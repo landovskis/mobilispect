@@ -14,11 +14,14 @@ import com.mobilispect.backend.route.domain.model.RouteVariant
  * @property route The transit route being processed
  * @property trips List of trips belonging to this route
  * @property stopsById Map of stop IDs to stop metadata for coordinate lookups
+ * @property routesByFeedLocalId Map of GTFS route IDs to persisted Route entities (from
+ *   RouteWriter)
  */
 data class RouteVariantInput(
   val route: Route,
   val trips: List<GTFSTrip>,
   val stopsById: Map<String, GTFSStop>,
+  val routesByFeedLocalId: Map<String, Route>,
 )
 
 /**

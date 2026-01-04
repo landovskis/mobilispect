@@ -58,6 +58,10 @@ class RouteWriter(
     var chunkRoutesCreated = 0
     var chunkRoutesUpdated = 0
 
+    // Build map of FeedLocalRouteId -> Route for RouteVariantProcessor
+    val routesByFeedLocalId =
+      mutableMapOf<String, com.mobilispect.backend.route.domain.model.Route>()
+
     for ((batchIndex, batch) in batches.withIndex()) {
       logger.debug(
         "  Batch {}/{}: Processing {} routes",
@@ -75,7 +79,7 @@ class RouteWriter(
             chunkRoutesUpdated++
             logger.debug(
               "    Updating route {} ({})",
-              route.shortName ?: route.gtfsRouteId,
+              route.shortName ?: route.id.value,
               route.id.value,
             )
             routeRepository.save(
@@ -93,7 +97,7 @@ class RouteWriter(
             chunkRoutesCreated++
             logger.info(
               "    ✓ Creating route {} - {} ({})",
-              route.shortName ?: route.gtfsRouteId,
+              route.shortName ?: route.id,
               route.longName,
               route.routeType.value,
             )
@@ -101,11 +105,14 @@ class RouteWriter(
           }
 
         // Publish domain event
-        eventPublisher.publishEvent(
-          RouteImported(routeId = saved.id, gtfsRouteId = saved.gtfsRouteId)
-        )
+        eventPublisher.publishEvent(RouteImported(routeId = saved.id))
 
         chunkRoutesProcessed++
+      }
+
+      // Merge this batch's routesByFeedLocalId map into cumulative map
+      batch.routesByFeedLocalId.forEach { (feedLocalId, route) ->
+        routesByFeedLocalId[feedLocalId.value] = route
       }
     }
 
@@ -131,6 +138,9 @@ class RouteWriter(
 
     // Record metrics in step execution context
     recordMetrics(chunkRoutesProcessed, chunkRoutesCreated, chunkRoutesUpdated)
+
+    // Store route map in job execution context for RouteVariantProcessor
+    storeRouteMap(routesByFeedLocalId)
   }
 
   private fun recordMetrics(processed: Int, created: Int, updated: Int) {
@@ -149,5 +159,25 @@ class RouteWriter(
       ?.putInt("routesProcessed", cumulativeRoutesProcessed)
     stepExecution?.jobExecution?.executionContext?.putInt("routesCreated", cumulativeRoutesCreated)
     stepExecution?.jobExecution?.executionContext?.putInt("routesUpdated", cumulativeRoutesUpdated)
+  }
+
+  /**
+   * Stores the route map in job execution context for use by RouteVariantProcessor.
+   *
+   * This map allows RouteVariantReader to avoid querying the database and directly access the
+   * routes that were just persisted.
+   */
+  private fun storeRouteMap(
+    routesByFeedLocalId: Map<String, com.mobilispect.backend.route.domain.model.Route>
+  ) {
+    if (routesByFeedLocalId.isEmpty()) {
+      return
+    }
+
+    logger.info(
+      "Storing {} routes in job execution context for variant processing",
+      routesByFeedLocalId.size,
+    )
+    stepExecution?.jobExecution?.executionContext?.put("routesByFeedLocalId", routesByFeedLocalId)
   }
 }

@@ -89,7 +89,7 @@ class RouteVariantProcessor : ItemProcessor<RouteVariantInput, RouteVariantBatch
       "Identified {} variants from {} trips for route {} ({})",
       variants.size,
       trips.size,
-      route.shortName ?: route.gtfsRouteId,
+      route.shortName ?: route.id,
       route.id.value,
     )
 

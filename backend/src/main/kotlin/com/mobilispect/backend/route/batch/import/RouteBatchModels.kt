@@ -1,6 +1,7 @@
 package com.mobilispect.backend.route.batch.import
 
 import com.mobilispect.backend.feed.api.GTFSRoute
+import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.route.domain.model.Route
 
 /**
@@ -21,7 +22,10 @@ data class RouteInput(val parsedRoute: GTFSRoute, val feedOnestopId: String)
  *
  * @property routes List of processed routes ready for persistence
  */
-data class RouteBatch(val routes: List<Route>) {
+data class RouteBatch(
+  val routes: List<Route>,
+  val routesByFeedLocalId: MutableMap<FeedLocalRouteId, Route>,
+) {
   /** Total number of routes in this batch. */
   val size: Int
     get() = routes.size
