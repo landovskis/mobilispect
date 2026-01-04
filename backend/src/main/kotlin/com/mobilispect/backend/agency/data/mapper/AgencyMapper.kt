@@ -2,8 +2,7 @@ package com.mobilispect.backend.agency.data.mapper
 
 import com.mobilispect.backend.agency.data.entity.AgencyEntity
 import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
-import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import org.springframework.stereotype.Component
 

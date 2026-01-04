@@ -2,7 +2,7 @@ package com.mobilispect.backend.agency.application
 
 import com.mobilispect.backend.agency.api.dto.AgencyDTO
 import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.config.RedisConfiguration
 import com.mobilispect.backend.feed.api.FeedQueryApi

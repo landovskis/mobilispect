@@ -1,5 +1,6 @@
 package com.mobilispect.backend.agency.api
 
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.api.dto.AgencyDTO
 import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.agency.application.AgencyQueryService
@@ -55,7 +56,7 @@ class AgencyControllerTest {
       )
     every {
       agencyQueryService.getAgencySummary(
-        com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-123")
+          AgencyId("o-123")
       )
     } returns summary
 

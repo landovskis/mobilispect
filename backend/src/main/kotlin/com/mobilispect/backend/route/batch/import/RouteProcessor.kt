@@ -1,7 +1,6 @@
 package com.mobilispect.backend.route.batch.import
 
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
-import com.mobilispect.backend.agency.domain.repository.AgencyRepository
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
 import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
@@ -23,11 +22,10 @@ import org.springframework.stereotype.Component
  * 4. Converts GTFS route types to RouteType enum
  * 5. Returns RouteBatch containing Route domain models
  *
- * Route onestop IDs follow TransitLand format retrieved from the API.
  */
 @Component
 @StepScope
-class RouteProcessor(private val agencyRepository: AgencyRepository) :
+class RouteProcessor :
   ItemProcessor<RouteInput, RouteBatch> {
 
   private val logger = LoggerFactory.getLogger(RouteProcessor::class.java)

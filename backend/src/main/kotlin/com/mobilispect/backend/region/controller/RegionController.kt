@@ -180,7 +180,7 @@ class RegionController(
     }
 
     return feedImportService.startBulkImportForRegion(
-      regionOnestopId = RegionId(regionOnestopId),
+      regionId = RegionId(regionOnestopId),
       triggerType = ImportTriggerType.MANUAL,
     )
   }

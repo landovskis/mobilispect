@@ -1,7 +1,9 @@
 package com.mobilispect.backend.route.domain.model.ids
 
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
+
+private const val delimiter = "-"
 
 /**
  * Value class for Route identifiers using Transitland Onestop ID format. Ensures type safety and
@@ -24,9 +26,9 @@ class RouteId {
     this.value = value
   }
 
-  constructor(agencyId: AgencyId, routeID: FeedLocalRouteId) : this("${agencyId}/${routeID}")
+  constructor(agencyId: AgencyId, routeID: FeedLocalRouteId) : this("r-${agencyId}${delimiter}${routeID}")
 
   override fun toString(): String = value
 
-  fun feedLocalId() = FeedLocalRouteId(value.substringAfterLast("/"))
+  fun feedLocalId() = FeedLocalRouteId(value.substringAfterLast(delimiter))
 }

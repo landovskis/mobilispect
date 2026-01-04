@@ -1,7 +1,9 @@
-package com.mobilispect.backend.agency.domain.model.ids
+package com.mobilispect.backend.agency
 
 import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
+
+private const val delimiter = "-"
 
 /**
  * Value class for Agency identifiers. Ensures type safety and prevents ID
@@ -17,7 +19,7 @@ class AgencyId {
     this.value = value
   }
 
-  constructor(feedId: FeedId, agencyId: FeedLocalAgencyId) : this( "${feedId.value}-${agencyId.value}")
+  constructor(feedId: FeedId, agencyId: FeedLocalAgencyId) : this( "${feedId.value}$delimiter${agencyId.value}")
 
   override fun toString(): String = value
 }
