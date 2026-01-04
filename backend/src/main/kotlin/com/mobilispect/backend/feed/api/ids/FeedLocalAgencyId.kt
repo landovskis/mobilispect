@@ -14,7 +14,7 @@ package com.mobilispect.backend.feed.api.ids
  * Using @JvmInline for zero-overhead type safety in the domain layer.
  */
 @JvmInline
-value class GTFSAgencyId(val value: String) {
+value class FeedLocalAgencyId(val value: String) {
   init {
     require(value.isNotBlank()) { "GTFS Agency ID cannot be blank" }
   }
@@ -22,7 +22,7 @@ value class GTFSAgencyId(val value: String) {
   override fun toString(): String = value
 
   companion object {
-    fun from(value: String?): GTFSAgencyId? =
-      value?.takeIf { it.isNotBlank() }?.let { GTFSAgencyId(it) }
+    fun from(value: String?): FeedLocalAgencyId? =
+      value?.takeIf { it.isNotBlank() }?.let { FeedLocalAgencyId(it) }
   }
 }

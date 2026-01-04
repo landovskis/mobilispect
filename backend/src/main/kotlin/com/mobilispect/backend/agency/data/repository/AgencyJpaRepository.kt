@@ -26,13 +26,6 @@ interface AgencyJpaRepository : JpaRepository<AgencyEntity, String> {
   )
   fun findByFeedIdAndActive(@Param("feedId") feedId: String, pageable: Pageable): Page<AgencyEntity>
 
-  /** Find agency by feed ID and GTFS agency ID. */
-  @Query("SELECT a FROM AgencyEntity a WHERE a.feedId = :feedId AND a.gtfsId = :gtfsAgencyId")
-  fun findByFeedIdAndGtfsAgencyId(
-    @Param("feedId") feedId: String,
-    @Param("gtfsAgencyId") gtfsAgencyId: String,
-  ): AgencyEntity?
-
   /** Find all agencies with a specific active status. */
   @Query("SELECT a FROM AgencyEntity a WHERE a.active = :active ORDER BY a.name ASC")
   fun findByActive(@Param("active") active: Boolean, pageable: Pageable): Page<AgencyEntity>

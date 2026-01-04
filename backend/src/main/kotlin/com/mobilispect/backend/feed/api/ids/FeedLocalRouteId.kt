@@ -10,7 +10,7 @@ package com.mobilispect.backend.feed.api.ids
  * route IDs follow the format: r-{feedId}-{gtfsRouteId}
  */
 @JvmInline
-value class GTFSRouteId(val value: String) {
+value class FeedLocalRouteId(val value: String) {
   init {
     require(value.isNotBlank()) { "GTFS Route ID cannot be blank" }
   }
@@ -19,7 +19,7 @@ value class GTFSRouteId(val value: String) {
 
   companion object {
     /** Creates a GTFSRouteId from a nullable string. Returns null if the value is null or blank. */
-    fun from(value: String?): GTFSRouteId? =
-      value?.takeIf { it.isNotBlank() }?.let { GTFSRouteId(it) }
+    fun from(value: String?): FeedLocalRouteId? =
+      value?.takeIf { it.isNotBlank() }?.let { FeedLocalRouteId(it) }
   }
 }

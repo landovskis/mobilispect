@@ -1,7 +1,7 @@
 package com.mobilispect.backend.agency.domain.model
 
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
-import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
+import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import java.time.Instant
 
@@ -13,7 +13,7 @@ import java.time.Instant
  *
  * Relationship chain: Agency -> Feed (via feed_onestop_id) -> Regions (via feed_regions table)
  *
- * @property agencyOnestopId Unique agency identifier using Transitland Onestop ID format
+ * @property agencyId Unique agency identifier using Transitland Onestop ID format
  *   (o-geohash-name)
  * @property feedId Feed this agency belongs to
  * @property gtfsAgencyId Agency ID from GTFS agency.txt file
@@ -26,13 +26,9 @@ import java.time.Instant
  * @property updatedAt Record last update timestamp
  */
 data class Agency(
-  val agencyOnestopId: AgencyId,
+  val agencyId: AgencyId,
   val feedId: FeedId,
-  val gtfsAgencyId: GTFSAgencyId,
   val name: String,
-  val website: String? = null,
-  val phone: String? = null,
-  val lastFeedImport: Instant? = null,
   val active: Boolean = true,
   val createdAt: Instant = Instant.now(),
   val updatedAt: Instant = Instant.now(),

@@ -15,13 +15,9 @@ import java.time.Instant
 class AgencyEntity(
   @Id
   @Column(name = "agency_onestop_id", nullable = false, updatable = false, length = 255)
-  val agencyOnestopId: String,
+  val id: String,
   @Column(name = "feed_onestop_id", nullable = false, length = 512) val feedId: String,
-  @Column(name = "gtfs_agency_id", nullable = false, length = 255) val gtfsId: String,
   @Column(name = "name", nullable = false, length = 255) var name: String,
-  @Column(name = "website", length = 512) var website: String? = null,
-  @Column(name = "phone", length = 50) var phone: String? = null,
-  @Column(name = "last_feed_import") var lastFeedImport: Instant? = null,
   @Column(name = "active", nullable = false) var active: Boolean = true,
   @Column(name = "created_at", nullable = false) var createdAt: Instant = Instant.now(),
   @Column(name = "updated_at", nullable = false) var updatedAt: Instant = Instant.now(),
@@ -44,8 +40,8 @@ class AgencyEntity(
   override fun equals(other: Any?): Boolean {
     if (this === other) return true
     if (other !is AgencyEntity) return false
-    return agencyOnestopId == other.agencyOnestopId
+    return id == other.id
   }
 
-  override fun hashCode(): Int = agencyOnestopId.hashCode()
+  override fun hashCode(): Int = id.hashCode()
 }

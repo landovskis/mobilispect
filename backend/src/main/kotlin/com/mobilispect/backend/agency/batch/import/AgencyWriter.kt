@@ -38,7 +38,7 @@ class AgencyWriter(
     var updated = 0
 
     chunk.items.forEach { agency ->
-      val existing = agencyRepository.findByFeedIdAndGtfsAgencyId(feedId, agency.gtfsAgencyId)
+      val existing = agencyRepository.findById(agency.agencyId)
       if (existing == null) {
         agencyRepository.save(agency)
         created++
@@ -46,10 +46,7 @@ class AgencyWriter(
         agencyRepository.save(
           existing.copy(
             name = agency.name,
-            website = agency.website,
-            phone = agency.phone,
             active = agency.active,
-            lastFeedImport = agency.lastFeedImport,
           )
         )
         updated++

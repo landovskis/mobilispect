@@ -29,13 +29,9 @@ internal class AgencyQueryApiImpl(private val agencyRepository: AgencyRepository
   /** Converts internal domain model to public DTO. */
   private fun Agency.toDTO(): AgencyDTO {
     return AgencyDTO(
-      agencyId = this.agencyOnestopId,
+      agencyId = this.agencyId,
       feedId = this.feedId,
-      gtfsAgencyId = this.gtfsAgencyId,
       name = this.name,
-      website = this.website,
-      phone = this.phone,
-      lastFeedImport = this.lastFeedImport,
       active = this.active,
       createdAt = this.createdAt,
       updatedAt = this.updatedAt,
