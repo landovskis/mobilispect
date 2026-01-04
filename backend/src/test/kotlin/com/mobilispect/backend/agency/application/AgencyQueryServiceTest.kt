@@ -5,8 +5,8 @@ import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.api.FeedDTO
 import com.mobilispect.backend.feed.api.FeedQueryApi
-import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
-import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
+import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -55,9 +55,9 @@ class AgencyQueryServiceTest {
       )
     val agency =
       Agency(
-        agencyOnestopId = AgencyId("o-123"),
+        agencyId = AgencyId("o-123"),
         feedId = FeedId("f-abc"),
-        gtfsAgencyId = GTFSAgencyId("gtfs-agency"),
+        gtfsAgencyId = FeedLocalAgencyId("gtfs-agency"),
         name = "Test Agency",
         createdAt = Instant.now(),
         updatedAt = Instant.now(),
@@ -66,8 +66,8 @@ class AgencyQueryServiceTest {
       listOf(
         Route(
           id = RouteId("r-1"),
-          agencyId = agency.agencyOnestopId,
-          gtfsRouteId = GTFSRouteId("R1"),
+          agencyId = agency.agencyId,
+          gtfsRouteId = FeedLocalRouteId("R1"),
           shortName = "1",
           longName = "Route 1",
           routeType = RouteType.BUS,
@@ -75,8 +75,8 @@ class AgencyQueryServiceTest {
         ),
         Route(
           id = RouteId("r-2"),
-          agencyId = agency.agencyOnestopId,
-          gtfsRouteId = GTFSRouteId("R2"),
+          agencyId = agency.agencyId,
+          gtfsRouteId = FeedLocalRouteId("R2"),
           shortName = "2",
           longName = "Route 2",
           routeType = RouteType.BUS,
@@ -85,7 +85,7 @@ class AgencyQueryServiceTest {
       )
 
     `when`(agencyRepository.findAll()).thenReturn(listOf(agency))
-    `when`(routeRepository.findByAgencyId(agency.agencyOnestopId, Pageable.unpaged()))
+    `when`(routeRepository.findByAgencyId(agency.agencyId, Pageable.unpaged()))
       .thenReturn(PageImpl(routes))
     `when`(feedQueryApi.findFeedById(FeedId("f-abc"))).thenReturn(feed)
 
@@ -126,9 +126,9 @@ class AgencyQueryServiceTest {
       )
     val agency =
       Agency(
-        agencyOnestopId = AgencyId("o-1"),
+        agencyId = AgencyId("o-1"),
         feedId = FeedId("f-abc"),
-        gtfsAgencyId = GTFSAgencyId("a1"),
+        gtfsAgencyId = FeedLocalAgencyId("a1"),
         name = "A1",
         createdAt = Instant.now(),
         updatedAt = Instant.now(),
@@ -136,7 +136,7 @@ class AgencyQueryServiceTest {
     `when`(feedQueryApi.findFeedsByRegion(RegionId("r-1"))).thenReturn(listOf(feed))
     `when`(agencyRepository.findByFeedId(any(), any())).thenReturn(PageImpl(listOf(agency)))
     `when`(routeRepository.findByAgencyId(any(), any())).thenReturn(PageImpl(emptyList()))
-    `when`(routeRepository.countByAgencyId(agency.agencyOnestopId)).thenReturn(0)
+    `when`(routeRepository.countByAgencyId(agency.agencyId)).thenReturn(0)
     `when`(feedQueryApi.findFeedById(any())).thenReturn(feed)
     val page = service.getAgenciesByRegion(RegionId("r-1"), PageRequest.of(0, 20))
     assertThat(page.totalElements).isEqualTo(1)

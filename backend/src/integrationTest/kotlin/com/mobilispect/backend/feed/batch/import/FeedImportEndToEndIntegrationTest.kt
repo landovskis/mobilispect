@@ -95,7 +95,7 @@ class FeedImportEndToEndIntegrationTest {
     // Clean up before each test
     feedImportRepository.deleteAll()
     routeRepository.findAll().forEach { routeRepository.deleteById(it.id) }
-    agencyRepository.findAll().forEach { agencyRepository.deleteById(it.agencyOnestopId) }
+    agencyRepository.findAll().forEach { agencyRepository.deleteById(it.agencyId) }
     feedRepository.deleteAll()
     eventListener.clear()
 
@@ -207,7 +207,7 @@ class FeedImportEndToEndIntegrationTest {
     // Verify agency has required fields
     val firstAgency = agencies.first()
     assertThat(firstAgency.name).isNotBlank()
-    assertThat(firstAgency.agencyOnestopId).isNotNull
+    assertThat(firstAgency.agencyId).isNotNull
     assertThat(firstAgency.gtfsAgencyId).isNotNull
   }
 
