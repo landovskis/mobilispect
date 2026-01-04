@@ -31,18 +31,13 @@ class RouteProcessor(private val agencyRepository: AgencyRepository) :
   ItemProcessor<RouteInput, RouteBatch> {
 
   private val logger = LoggerFactory.getLogger(RouteProcessor::class.java)
-  private lateinit var routesByFeedLocalId: MutableMap<FeedLocalRouteId, Route>
+  private val routesByFeedLocalId: MutableMap<FeedLocalRouteId, Route> = mutableMapOf()
 
   override fun process(item: RouteInput): RouteBatch {
     val (parsedRoute, feedId) = item
 
     val gtfsAgencyId = parsedRoute.agencyId ?: FeedLocalAgencyId("default-agency")
     val agencyId = AgencyId(FeedId(feedId), gtfsAgencyId)
-    val agency =
-      agencyRepository.findById(agencyId)
-        ?: throw IllegalStateException(
-          "Agency not found for feed=$feedId, gtfsAgencyId=$gtfsAgencyId"
-        )
     val route =
       Route(
         id = RouteId(agencyId, parsedRoute.routeId),
