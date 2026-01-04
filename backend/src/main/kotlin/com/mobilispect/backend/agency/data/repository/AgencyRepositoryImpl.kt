@@ -5,7 +5,7 @@ import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.api.FeedQueryApi
-import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
+import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import java.time.Instant
 import org.springframework.data.domain.Page
@@ -25,8 +25,8 @@ class AgencyRepositoryImpl(
   private val mapper: AgencyMapper,
 ) : AgencyRepository {
 
-  override fun findById(agencyId: AgencyId): Agency? =
-    jpaRepository.findById(agencyId.value).map { mapper.toDomain(it) }.orElse(null)
+  override fun findById(id: AgencyId): Agency? =
+    jpaRepository.findById(id.value).map { mapper.toDomain(it) }.orElse(null)
 
   override fun findByFeedId(feedId: FeedId, pageable: Pageable): Page<Agency> {
     // Validate feed exists via API
@@ -39,11 +39,6 @@ class AgencyRepositoryImpl(
     feedQueryApi.findFeedById(feedId) ?: throw IllegalArgumentException("Feed not found: $feedId")
     return jpaRepository.findByFeedIdAndActive(feedId.value, pageable).map { mapper.toDomain(it) }
   }
-
-  override fun findByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: GTFSAgencyId): Agency? =
-    jpaRepository.findByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId.value)?.let {
-      mapper.toDomain(it)
-    }
 
   override fun findByActive(active: Boolean, pageable: Pageable): Page<Agency> =
     jpaRepository.findByActive(active, pageable).map { mapper.toDomain(it) }
@@ -66,7 +61,7 @@ class AgencyRepositoryImpl(
     return jpaRepository.countActiveByFeedId(feedId.value)
   }
 
-  override fun existsByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: GTFSAgencyId): Boolean =
+  override fun existsByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: FeedLocalAgencyId): Boolean =
     jpaRepository.existsByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId.value)
 
   override fun save(agency: Agency): Agency {

@@ -9,9 +9,7 @@ import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.route.domain.model.ids.RouteId
 import org.slf4j.LoggerFactory
-import org.springframework.batch.core.annotation.BeforeStep
 import org.springframework.batch.core.configuration.annotation.StepScope
-import org.springframework.batch.core.repository.persistence.StepExecution
 import org.springframework.batch.infrastructure.item.ItemProcessor
 import org.springframework.stereotype.Component
 
@@ -35,22 +33,16 @@ class RouteProcessor(private val agencyRepository: AgencyRepository) :
   private val logger = LoggerFactory.getLogger(RouteProcessor::class.java)
   private lateinit var routesByFeedLocalId: MutableMap<FeedLocalRouteId, Route>
 
-  @BeforeStep
-  fun beforeStep(stepExecution: StepExecution) {
-    routesByFeedLocalId = emptyMap()
-  }
-
   override fun process(item: RouteInput): RouteBatch {
     val (parsedRoute, feedId) = item
 
     val gtfsAgencyId = parsedRoute.agencyId ?: FeedLocalAgencyId("default-agency")
+    val agencyId = AgencyId(FeedId(feedId), gtfsAgencyId)
     val agency =
-      agencyRepository.findByFeedIdAndGtfsAgencyId(FeedId(feedId), gtfsAgencyId)
+      agencyRepository.findById(agencyId)
         ?: throw IllegalStateException(
           "Agency not found for feed=$feedId, gtfsAgencyId=$gtfsAgencyId"
         )
-
-    val agencyId = AgencyId(FeedId(feedId), gtfsAgencyId)
     val route =
       Route(
         id = RouteId(agencyId, parsedRoute.routeId),
@@ -69,7 +61,7 @@ class RouteProcessor(private val agencyRepository: AgencyRepository) :
       parsedRoute.shortName ?: parsedRoute.routeId.value,
       parsedRoute.longName,
       route.id,
-      agency.agencyId,
+      agencyId,
     )
 
     return RouteBatch(listOf(route), routesByFeedLocalId)
