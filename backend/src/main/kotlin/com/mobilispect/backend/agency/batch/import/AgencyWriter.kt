@@ -28,7 +28,7 @@ class AgencyWriter(
 
   @AfterStep
   fun afterStep(stepExecution: StepExecution) {
-    feedId = FeedId(stepExecution.jobExecution.executionContext.get("feedId") as String)
+    feedId = FeedId(feedOnestopId)
     eventPublisher.publishEvent(FeedImportStepCompleted(feedId!!, "agency"))
   }
 
