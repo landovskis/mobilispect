@@ -3,6 +3,7 @@ package com.mobilispect.backend.route.batch.variant
 import com.mobilispect.backend.feed.api.GTFSData
 import com.mobilispect.backend.feed.api.GTFSStop
 import com.mobilispect.backend.feed.api.GTFSTrip
+import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import org.slf4j.LoggerFactory
@@ -74,7 +75,7 @@ class RouteVariantReader(private val routeRepository: RouteRepository) :
     stopsById = data.stops.associateBy { it.stopId.value }
 
     // Group trips by GTFS route ID
-    val tripsByGtfsRouteId = data.trips.groupBy { it.routeId }
+    val tripsByGtfsRouteId: Map<FeedLocalRouteId, List<GTFSTrip>> = data.trips.groupBy { it.routeId }
 
     // Use routes from context if available, otherwise fetch from database
     val persistedRoutes =
@@ -90,13 +91,10 @@ class RouteVariantReader(private val routeRepository: RouteRepository) :
     val routeMap =
       persistedRoutes
         .filter { route ->
-          // Extract GTFS route ID from the route's id (format: agencyId/gtfsRouteId)
-          val gtfsRouteId = route.id.value.substringAfterLast("/")
-          tripsByGtfsRouteId.containsKey(gtfsRouteId)
+          tripsByGtfsRouteId.containsKey(route.id.feedLocalId())
         }
         .associateWith { route ->
-          val gtfsRouteId = route.id.value.substringAfterLast("/")
-          tripsByGtfsRouteId[gtfsRouteId] ?: emptyList()
+          tripsByGtfsRouteId[route.id.feedLocalId()] ?: emptyList()
         }
 
     routeIterator = routeMap.entries.iterator()

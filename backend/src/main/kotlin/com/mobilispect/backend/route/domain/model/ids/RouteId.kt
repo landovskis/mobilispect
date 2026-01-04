@@ -27,4 +27,6 @@ class RouteId {
   constructor(agencyId: AgencyId, routeID: FeedLocalRouteId) : this("${agencyId}/${routeID}")
 
   override fun toString(): String = value
+
+  fun feedLocalId() = FeedLocalRouteId(value.substringAfterLast("/"))
 }
