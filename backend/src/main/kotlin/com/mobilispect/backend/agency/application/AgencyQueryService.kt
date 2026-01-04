@@ -52,10 +52,10 @@ class AgencyQueryService(
     val agencies =
       feeds
         .flatMap { feed -> agencyRepository.findByFeedId(feed.feedId, Pageable.unpaged()).content }
-        .distinctBy { it.agencyOnestopId }
+        .distinctBy { it.agencyId }
     val sorted =
       agencies.sortedByDescending { agency ->
-        routeRepository.countByAgencyId(agency.agencyOnestopId)
+        routeRepository.countByAgencyId(agency.agencyId)
       }
     val mapped = sorted.map { mapAgency(it) }
     return paginate(mapped, pageable)
@@ -65,9 +65,9 @@ class AgencyQueryService(
   @Cacheable(value = [RedisConfiguration.AGENCY_CACHE], key = "'summary_' + #agencyId.toString()")
   fun getAgencySummary(agencyId: AgencyId): AgencySummaryDTO? {
     val agency = agencyRepository.findById(agencyId) ?: return null
-    val routeCount = routeRepository.countByAgencyId(agency.agencyOnestopId)
+    val routeCount = routeRepository.countByAgencyId(agency.agencyId)
     return AgencySummaryDTO(
-      id = agency.agencyOnestopId.value,
+      id = agency.agencyId.value,
       name = agency.name,
       routeCount = routeCount.toInt(),
       averageHeadwayMinutes = null,
@@ -77,12 +77,12 @@ class AgencyQueryService(
   }
 
   private fun mapAgency(agency: com.mobilispect.backend.agency.domain.model.Agency): AgencyDTO {
-    val routes = routeRepository.findByAgencyId(agency.agencyOnestopId, Pageable.unpaged()).content
+    val routes = routeRepository.findByAgencyId(agency.agencyId, Pageable.unpaged()).content
     val routesByType = routes.groupingBy { it.routeType }.eachCount()
     val feed = feedQueryApi.findFeedById(agency.feedId)
     val regionIds = feed?.regionIds?.map { it.value }?.toSet() ?: emptySet()
     return AgencyDTO(
-      id = agency.agencyOnestopId.value,
+      id = agency.agencyId.value,
       name = agency.name,
       feedOnestopId = agency.feedId.value,
       regionIds = regionIds,
@@ -92,15 +92,11 @@ class AgencyQueryService(
     )
   }
 
+  /** Helper function to convert a list into a paginated result. */
   private fun <T : Any> paginate(items: List<T>, pageable: Pageable): Page<T> {
-    if (!pageable.isPaged) {
-      return PageImpl(items, pageable, items.size.toLong())
-    }
-    val start = pageable.offset.toInt()
-    if (start >= items.size) {
-      return PageImpl(emptyList<T>(), pageable, items.size.toLong())
-    }
+    val start = (pageable.pageNumber * pageable.pageSize).coerceAtMost(items.size)
     val end = min(start + pageable.pageSize, items.size)
-    return PageImpl(items.subList(start, end), pageable, items.size.toLong())
+    val pageContent = if (start < items.size) items.subList(start, end) else emptyList()
+    return PageImpl(pageContent, pageable, items.size.toLong())
   }
 }
