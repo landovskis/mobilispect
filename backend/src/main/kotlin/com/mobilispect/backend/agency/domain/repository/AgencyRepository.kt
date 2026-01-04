@@ -31,9 +31,6 @@ interface AgencyRepository {
   /** Find agencies updated since a specific timestamp. */
   fun findByUpdatedAtAfter(since: Instant, pageable: Pageable): Page<Agency>
 
-  /** Find agencies with recent feed imports. */
-  fun findByLastFeedImportAfter(after: Instant, pageable: Pageable): Page<Agency>
-
   /** Count agencies for a specific feed. */
   fun countByFeedId(feedId: FeedId): Long
 

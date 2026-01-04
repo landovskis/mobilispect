@@ -46,9 +46,6 @@ class AgencyRepositoryImpl(
   override fun findByUpdatedAtAfter(since: Instant, pageable: Pageable): Page<Agency> =
     jpaRepository.findByUpdatedAtAfter(since, pageable).map { mapper.toDomain(it) }
 
-  override fun findByLastFeedImportAfter(after: Instant, pageable: Pageable): Page<Agency> =
-    jpaRepository.findByLastFeedImportAfter(after, pageable).map { mapper.toDomain(it) }
-
   override fun countByFeedId(feedId: FeedId): Long {
     // Check if feed exists via API
     feedQueryApi.findFeedById(feedId) ?: return 0
