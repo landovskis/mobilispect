@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,7 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Subject, Observable, combineLatest, of } from 'rxjs';
-import { map, takeUntil, catchError, tap } from 'rxjs/operators';
+import { map, take, takeUntil, catchError } from 'rxjs/operators';
 import { MetropolitanRegion, MetropolitanRegionDetail, Feed, RegionUtils } from '../../feeds/models/region.models';
 import { AgencyFeedGroup, FeedGroupingUtils } from '../../feeds/models/agency-feed-group.model';
 import { RegionService } from '../../feeds/services/region.service';
@@ -234,7 +234,8 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     private readonly snackBar: MatSnackBar,
     private readonly router: Router,
     private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService
+    private readonly events: FeedsEventsService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -294,6 +295,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
       catchError((error) => {
         console.error('Failed to load region details:', error);
         this.loadingOverview = false;
+        this.cdr.markForCheck();
         this.snackBar.open('Failed to load region details.', 'Retry', {
           duration: 5000
         }).onAction().subscribe(() => this.loadOverviewForRegion(regionId));
@@ -308,6 +310,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
       catchError((error) => {
         console.error('Failed to load agencies:', error);
         this.loadingOverview = false;
+        this.cdr.markForCheck();
         this.snackBar.open('Failed to load agencies.', 'Retry', {
           duration: 5000
         }).onAction().subscribe(() => this.loadOverviewForRegion(regionId));
@@ -321,9 +324,6 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
 
     // Compute summary from region and agencies data
     this.summary$ = combineLatest([this.regionDetail$, this.agencies$]).pipe(
-      tap(() => {
-        this.loadingOverview = false;
-      }),
       map(([region, agenciesResponse]) => {
         if (!region) {
           return null;
@@ -340,6 +340,21 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         };
       })
     );
+
+    // Ensure the loading flag is cleared once the first overview emission arrives.
+    this.summary$.pipe(
+      take(1),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: () => {
+        this.loadingOverview = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loadingOverview = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   /**
