@@ -17,7 +17,7 @@ class AgencyId {
     this.value = value
   }
 
-  constructor(feedId: FeedId, agencyId: FeedLocalAgencyId) : this( "${feedId.value}/${agencyId.value}")
+  constructor(feedId: FeedId, agencyId: FeedLocalAgencyId) : this( "${feedId.value}-${agencyId.value}")
 
   override fun toString(): String = value
 }

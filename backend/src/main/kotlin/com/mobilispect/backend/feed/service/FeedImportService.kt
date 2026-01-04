@@ -17,8 +17,10 @@ import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
-import org.springframework.batch.core.launch.JobOperator
+import org.springframework.batch.core.launch.JobExecutionAlreadyRunningException
+import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.core.task.TaskExecutor
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -30,14 +32,29 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 class FeedImportService(
   @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
   private val feedImportRepository: FeedImportRepository,
-  private val jobOperator: JobOperator,
+  private val jobLauncher: JobLauncher,
   @Qualifier("feedImportJob") private val feedImportJob: Job,
   @Qualifier("taskExecutor") private val importLaunchExecutor: TaskExecutor,
+  private val eventPublisher: ApplicationEventPublisher,
   private val clock: Clock = Clock.systemUTC(),
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
   fun startImport(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
+    val activeImport =
+      feedImportRepository
+        .findAllByFeedIdAndStatusInOrderByStartedAtDesc(
+          feedId.value,
+          listOf(ImportStatus.PENDING, ImportStatus.RUNNING),
+          PageRequest.of(0, 1),
+        )
+        .content
+        .firstOrNull()
+    if (activeImport != null) {
+      logger.info("Import already running for feed {}, returning existing import {}", feedId, activeImport.id)
+      return activeImport
+    }
+
     val feed =
       feedRepository.findByFeedOnestopId(feedId.value).orElseThrow {
         IllegalArgumentException("Feed not found: $feedId")
@@ -86,14 +103,22 @@ class FeedImportService(
   private fun launchImportJob(importId: ImportId, feedId: FeedId) {
     val params =
       JobParametersBuilder()
-        .addString("feedOnestopId", feedId.value)
-        .addString("importId", importId.value.toString())
-        .addLong("timestamp", System.currentTimeMillis())
+        .addString("feedOnestopId", feedId.value, true)
+        .addString("importId", importId.value.toString(), true)
+        .addLong("timestamp", System.currentTimeMillis(), true)
         .toJobParameters()
 
     importLaunchExecutor.execute {
-      runCatching { jobOperator.run(feedImportJob, params) }
+      runCatching { jobLauncher.run(feedImportJob, params) }
         .onFailure { throwable ->
+          if (throwable is JobExecutionAlreadyRunningException) {
+            logger.info(
+              "Feed import job already running for {} with import {}",
+              feedId,
+              importId,
+            )
+            return@onFailure
+          }
           logger.error("Failed to launch feed import job for {}", feedId, throwable)
           failImport(importId, throwable.message ?: "Failed to start import job")
         }
@@ -142,28 +167,28 @@ class FeedImportService(
    * Continues on failure - if one feed fails to import, the operation continues with remaining
    * feeds. Automatically skips feeds that already have an active import running.
    *
-   * @param regionOnestopId The region identifier
+   * @param regionId The region identifier
    * @param triggerType How the import was triggered (MANUAL, SCHEDULED, etc.)
    * @return Summary of the bulk import operation with per-feed results
    */
   @Transactional
   fun startBulkImportForRegion(
-    regionOnestopId: RegionId,
+    regionId: RegionId,
     triggerType: ImportTriggerType,
   ): BulkImportResponse {
-    logger.info("Starting bulk import for region: $regionOnestopId")
+    logger.info("Starting bulk import for region: $regionId")
 
     // Fetch all ACTIVE feeds for the region
     val feeds =
       feedRepository.findAllByRegionRegionOnestopIdAndStatusIn(
-        regionOnestopId,
+        regionId,
         listOf(FeedStatus.ACTIVE),
       )
 
     if (feeds.isEmpty()) {
-      logger.warn("No active feeds found for region: $regionOnestopId")
+      logger.warn("No active feeds found for region: $regionId")
       return BulkImportResponse(
-        regionOnestopId = regionOnestopId.value,
+        regionOnestopId = regionId.value,
         totalFeeds = 0,
         startedCount = 0,
         failedCount = 0,
@@ -177,6 +202,7 @@ class FeedImportService(
     var failedCount = 0
     var skippedCount = 0
 
+    eventPublisher.publishEvent(RegionFeedsImportStartedEvent(regionId))
     // Process each feed with continue-on-failure semantics
     feeds.forEach { feed ->
       try {
@@ -191,18 +217,19 @@ class FeedImportService(
             .content
             .isNotEmpty()
 
-        if (hasActiveImport) {
-          logger.debug("Skipping feed ${feed.feedId} - already has active import")
-          results.add(
-            FeedImportResult(
-              feedOnestopId = feed.feedId,
-              feedName = feed.name,
-              status = FeedImportResultStatus.SKIPPED,
-              message = "Import already in progress",
+          if (hasActiveImport) {
+            results.add(
+              FeedImportResult(
+                feedOnestopId = feed.feedId,
+                feedName = feed.name,
+                status = FeedImportResultStatus.SKIPPED,
+                message = "Import already running",
+              )
             )
-          )
-          skippedCount++
-        } else {
+            skippedCount++
+            return@forEach
+          }
+
           // Start import for this feed
           val feedImport = startImport(FeedId(feed.feedId), triggerType)
           logger.debug("Started import for feed ${feed.feedId}: ${feedImport.requireId()}")
@@ -216,7 +243,6 @@ class FeedImportService(
             )
           )
           startedCount++
-        }
       } catch (e: Exception) {
         logger.error("Failed to start import for feed ${feed.feedId}", e)
         results.add(
@@ -232,11 +258,12 @@ class FeedImportService(
     }
 
     logger.info(
-      "Bulk import for region $regionOnestopId completed: $startedCount started, $failedCount failed, $skippedCount skipped"
+      "Bulk import for region $regionId completed: $startedCount started, $failedCount failed, $skippedCount skipped"
     )
 
+    eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(regionId))
     return BulkImportResponse(
-      regionOnestopId = regionOnestopId.value,
+      regionOnestopId = regionId.value,
       totalFeeds = feeds.size,
       startedCount = startedCount,
       failedCount = failedCount,
