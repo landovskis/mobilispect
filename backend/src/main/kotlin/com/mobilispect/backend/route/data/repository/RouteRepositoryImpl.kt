@@ -1,7 +1,7 @@
 package com.mobilispect.backend.route.data.repository
 
 import com.mobilispect.backend.agency.api.AgencyQueryApi
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.route.data.mapper.RouteMapper
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType

@@ -1,6 +1,7 @@
 package com.mobilispect.backend.transitanalysis.application
 
-import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.route.application.FrequencyQueryService
 import com.mobilispect.backend.route.domain.model.Frequency
 import com.mobilispect.backend.route.domain.model.Route
@@ -33,8 +34,8 @@ class FrequencyQueryServiceTest {
     val route =
       Route(
         id = RouteId("r-1"),
-        agencyId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-1"),
-        gtfsRouteId = GTFSRouteId("R1"),
+        agencyId = AgencyId("o-1"),
+        gtfsRouteId = FeedLocalRouteId("R1"),
         longName = "Route 1",
         routeType = RouteType.BUS,
         active = true,
@@ -68,8 +69,8 @@ class FrequencyQueryServiceTest {
     val route =
       Route(
         id = RouteId("r-1"),
-        agencyId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-1"),
-        gtfsRouteId = GTFSRouteId("R1"),
+        agencyId = AgencyId("o-1"),
+        gtfsRouteId = FeedLocalRouteId("R1"),
         longName = "Route 1",
         routeType = RouteType.BUS,
         active = true,
