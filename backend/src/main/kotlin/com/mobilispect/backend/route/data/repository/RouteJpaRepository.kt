@@ -53,7 +53,7 @@ interface RouteJpaRepository : JpaRepository<RouteEntity, String> {
 
   /** Find route by agency ID and GTFS route ID. */
   @Query(
-    "SELECT r FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.gtfsRouteId = :gtfsRouteId"
+    "SELECT r FROM RouteEntity r WHERE r.id = CONCAT(:agencyId, '/', :gtfsRouteId)"
   )
   fun findByAgencyIdAndGtfsRouteId(
     @Param("agencyId") agencyId: String,
@@ -95,7 +95,7 @@ interface RouteJpaRepository : JpaRepository<RouteEntity, String> {
 
   /** Check if a route exists for a specific agency and GTFS ID. */
   @Query(
-    "SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.gtfsRouteId = :gtfsRouteId"
+    "SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM RouteEntity r WHERE r.id = CONCAT(:agencyId, '/', :gtfsRouteId)"
   )
   fun existsByAgencyIdAndGtfsRouteId(
     @Param("agencyId") agencyId: String,
