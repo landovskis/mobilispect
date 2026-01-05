@@ -5,8 +5,8 @@ import com.mobilispect.backend.agency.api.dto.AgencyDTO
 import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.config.RedisConfiguration
-import com.mobilispect.backend.feed.api.FeedQueryApi
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.feed.FeedApi
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import kotlin.math.min
@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service
 class AgencyQueryService(
   private val agencyRepository: AgencyRepository,
   private val routeRepository: RouteRepository,
-  private val feedQueryApi: FeedQueryApi,
+  private val feedQueryApi: FeedApi,
 ) {
   /** Get all agencies with pagination. Cached with 24-hour TTL (T096). */
   @Cacheable(

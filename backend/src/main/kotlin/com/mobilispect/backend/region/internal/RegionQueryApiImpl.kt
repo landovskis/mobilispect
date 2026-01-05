@@ -1,7 +1,7 @@
 package com.mobilispect.backend.region.internal
 
-import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.api.RegionDTO
 import com.mobilispect.backend.region.api.RegionQueryApi
 import com.mobilispect.backend.region.domain.MetropolitanRegion

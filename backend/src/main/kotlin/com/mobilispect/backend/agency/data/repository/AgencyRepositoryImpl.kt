@@ -4,7 +4,7 @@ import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.data.mapper.AgencyMapper
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
-import com.mobilispect.backend.feed.api.FeedQueryApi
+import com.mobilispect.backend.feed.FeedApi
 import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import java.time.Instant
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Repository
 @Repository
 class AgencyRepositoryImpl(
   private val jpaRepository: AgencyJpaRepository,
-  private val feedQueryApi: FeedQueryApi,
+  private val feedQueryApi: FeedApi,
   private val mapper: AgencyMapper,
 ) : AgencyRepository {
 

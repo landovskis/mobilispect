@@ -3,7 +3,7 @@ package com.mobilispect.backend.feed.domain.model
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 import java.time.Instant
 
 /**

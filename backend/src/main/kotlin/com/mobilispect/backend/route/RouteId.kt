@@ -15,6 +15,7 @@ class RouteId {
   var value: String
 
   constructor(value: String) {
+    require(value.isNotBlank()) { "Route ID cannot be blank" }
     this.value = value
   }
 

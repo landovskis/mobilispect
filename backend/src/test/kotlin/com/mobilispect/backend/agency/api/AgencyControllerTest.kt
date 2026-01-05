@@ -4,6 +4,7 @@ import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.api.dto.AgencyDTO
 import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.agency.application.AgencyQueryService
+import com.mobilispect.backend.region.RegionId
 import io.mockk.every
 import io.mockk.mockk
 import org.assertj.core.api.Assertions.assertThat
@@ -74,12 +75,8 @@ class AgencyControllerTest {
         activeRouteCount = 1,
         routesByType = emptyMap(),
       )
-    every {
-      agencyQueryService.getAgenciesByRegion(
-        com.mobilispect.backend.feed.model.ids.RegionId("r-1"),
-        any(),
-      )
-    } returns PageImpl(listOf(dto))
+    every { agencyQueryService.getAgenciesByRegion(RegionId("r-1"), any()) } returns
+      PageImpl(listOf(dto))
 
     val result = controller.listAgenciesByRegion("r-1", PageRequest.of(0, 20))
 

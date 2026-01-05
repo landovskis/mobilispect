@@ -1,6 +1,6 @@
 package com.mobilispect.backend.feed.events
 
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 
 /**
  * Domain event published when a new region is discovered during feed discovery.

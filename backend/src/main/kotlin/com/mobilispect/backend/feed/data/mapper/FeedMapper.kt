@@ -3,7 +3,7 @@ package com.mobilispect.backend.feed.data.mapper
 import com.mobilispect.backend.feed.data.entity.FeedEntity
 import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 import org.springframework.stereotype.Component
 
 /**

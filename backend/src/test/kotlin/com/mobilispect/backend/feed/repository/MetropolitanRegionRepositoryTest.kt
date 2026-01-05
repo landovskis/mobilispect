@@ -7,7 +7,7 @@ import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.ids.ImportId
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.domain.MetropolitanRegion
 import java.time.Instant
 import org.assertj.core.api.Assertions.assertThat

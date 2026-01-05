@@ -1,6 +1,6 @@
 package com.mobilispect.backend.region.service
 
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 
 /**
  * Domain event published when a bulk import operation starts for all feeds in a region.

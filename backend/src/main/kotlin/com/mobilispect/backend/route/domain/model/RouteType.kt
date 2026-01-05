@@ -6,109 +6,45 @@ package com.mobilispect.backend.route.domain.model
  * Route types are hierarchical indicators of service mode and passenger comfort. They influence UI
  * presentation, scheduling analysis, and accessibility considerations.
  *
- * Reference: https://gtfs.org/documentation/schedule/reference/#routestxt Extended types:
- * https://developers.google.com/transit/gtfs/reference/extended-route-types
+ * Reference: https://gtfs.org/documentation/schedule/reference/#routestxt
  *
  * @property gtfsValue The official GTFS numeric route type code
  * @property value Database enum string for persistence
  */
 enum class RouteType(val gtfsValue: Int, val value: String) {
+  /** Tram, Streetcar, Light rail. Lightweight rail transit typically operated at street level. */
   TRAM(0, "TRAM"),
+
+  /** Subway, Metro. Heavy rail transit typically underground with high capacity. */
   SUBWAY(1, "SUBWAY"),
+
+  /** Rail, Intercity rail. Regional or intercity rail service. */
   RAIL(2, "RAIL"),
+
+  /** Bus. Standard bus service (most common transit mode). */
   BUS(3, "BUS"),
+
+  /** Ferry. Water-based passenger service. */
   FERRY(4, "FERRY"),
+
+  /** Cable tram. Cable-driven streetcar system. */
   CABLE_TRAM(5, "CABLE_TRAM"),
+
+  /**
+   * Aerial lift, Suspended cable car. Cable-driven transportation system suspended above ground.
+   */
   AERIAL_LIFT(6, "AERIAL_LIFT"),
+
+  /** Funicular. Rail-based system on steep inclines. */
   FUNICULAR(7, "FUNICULAR"),
+
+  /** Trolleybus, Trackless trolley. Electric bus powered by overhead lines. */
   TROLLEYBUS(11, "TROLLEYBUS"),
-  MONORAIL(12, "MONORAIL"),
-  RAILWAY_SERVICE(100, "RAILWAY_SERVICE"),
-  HIGH_SPEED_RAIL_SERVICE(101, "HIGH_SPEED_RAIL_SERVICE"),
-  LONG_DISTANCE_TRAINS(102, "LONG_DISTANCE_TRAINS"),
-  INTER_REGIONAL_RAIL_SERVICE(103, "INTER_REGIONAL_RAIL_SERVICE"),
-  CAR_TRANSPORT_RAIL_SERVICE(104, "CAR_TRANSPORT_RAIL_SERVICE"),
-  SLEEPER_RAIL_SERVICE(105, "SLEEPER_RAIL_SERVICE"),
-  REGIONAL_RAIL_SERVICE(106, "REGIONAL_RAIL_SERVICE"),
-  TOURIST_RAILWAY_SERVICE(107, "TOURIST_RAILWAY_SERVICE"),
-  RAIL_SHUTTLE_WITHIN_COMPLEX(108, "RAIL_SHUTTLE_WITHIN_COMPLEX"),
-  SUBURBAN_RAILWAY(109, "SUBURBAN_RAILWAY"),
-  REPLACEMENT_RAIL_SERVICE(110, "REPLACEMENT_RAIL_SERVICE"),
-  SPECIAL_RAIL_SERVICE(111, "SPECIAL_RAIL_SERVICE"),
-  LORRY_TRANSPORT_RAIL_SERVICE(112, "LORRY_TRANSPORT_RAIL_SERVICE"),
-  ALL_RAIL_SERVICES(113, "ALL_RAIL_SERVICES"),
-  CROSS_COUNTRY_RAIL_SERVICE(114, "CROSS_COUNTRY_RAIL_SERVICE"),
-  VEHICLE_TRANSPORT_RAIL_SERVICE(115, "VEHICLE_TRANSPORT_RAIL_SERVICE"),
-  RACK_AND_PINION_RAILWAY(116, "RACK_AND_PINION_RAILWAY"),
-  ADDITIONAL_RAIL_SERVICE(117, "ADDITIONAL_RAIL_SERVICE"),
-  COACH_SERVICE(200, "COACH_SERVICE"),
-  INTERNATIONAL_COACH_SERVICE(201, "INTERNATIONAL_COACH_SERVICE"),
-  NATIONAL_COACH_SERVICE(202, "NATIONAL_COACH_SERVICE"),
-  SHUTTLE_COACH_SERVICE(203, "SHUTTLE_COACH_SERVICE"),
-  REGIONAL_COACH_SERVICE(204, "REGIONAL_COACH_SERVICE"),
-  SPECIAL_COACH_SERVICE(205, "SPECIAL_COACH_SERVICE"),
-  SIGHTSEEING_COACH_SERVICE(206, "SIGHTSEEING_COACH_SERVICE"),
-  TOURIST_COACH_SERVICE(207, "TOURIST_COACH_SERVICE"),
-  COMMUTER_COACH_SERVICE(208, "COMMUTER_COACH_SERVICE"),
-  ALL_COACH_SERVICES(209, "ALL_COACH_SERVICES"),
-  URBAN_RAILWAY_SERVICE(400, "URBAN_RAILWAY_SERVICE"),
-  METRO_SERVICE(401, "METRO_SERVICE"),
-  UNDERGROUND_SERVICE(402, "UNDERGROUND_SERVICE"),
-  URBAN_RAILWAY_SERVICE_403(403, "URBAN_RAILWAY_SERVICE_403"),
-  ALL_URBAN_RAILWAY_SERVICES(404, "ALL_URBAN_RAILWAY_SERVICES"),
-  MONORAIL_SERVICE(405, "MONORAIL_SERVICE"),
-  BUS_SERVICE(700, "BUS_SERVICE"),
-  REGIONAL_BUS_SERVICE(701, "REGIONAL_BUS_SERVICE"),
-  EXPRESS_BUS_SERVICE(702, "EXPRESS_BUS_SERVICE"),
-  STOPPING_BUS_SERVICE(703, "STOPPING_BUS_SERVICE"),
-  LOCAL_BUS_SERVICE(704, "LOCAL_BUS_SERVICE"),
-  NIGHT_BUS_SERVICE(705, "NIGHT_BUS_SERVICE"),
-  POST_BUS_SERVICE(706, "POST_BUS_SERVICE"),
-  SPECIAL_NEEDS_BUS(707, "SPECIAL_NEEDS_BUS"),
-  MOBILITY_BUS_SERVICE(708, "MOBILITY_BUS_SERVICE"),
-  MOBILITY_BUS_FOR_REGISTERED_DISABLED(709, "MOBILITY_BUS_FOR_REGISTERED_DISABLED"),
-  SIGHTSEEING_BUS(710, "SIGHTSEEING_BUS"),
-  SHUTTLE_BUS(711, "SHUTTLE_BUS"),
-  SCHOOL_BUS(712, "SCHOOL_BUS"),
-  SCHOOL_AND_PUBLIC_SERVICE_BUS(713, "SCHOOL_AND_PUBLIC_SERVICE_BUS"),
-  RAIL_REPLACEMENT_BUS_SERVICE(714, "RAIL_REPLACEMENT_BUS_SERVICE"),
-  DEMAND_AND_RESPONSE_BUS_SERVICE(715, "DEMAND_AND_RESPONSE_BUS_SERVICE"),
-  ALL_BUS_SERVICES(716, "ALL_BUS_SERVICES"),
-  TROLLEYBUS_SERVICE(800, "TROLLEYBUS_SERVICE"),
-  TRAM_SERVICE(900, "TRAM_SERVICE"),
-  CITY_TRAM_SERVICE(901, "CITY_TRAM_SERVICE"),
-  LOCAL_TRAM_SERVICE(902, "LOCAL_TRAM_SERVICE"),
-  REGIONAL_TRAM_SERVICE(903, "REGIONAL_TRAM_SERVICE"),
-  SIGHTSEEING_TRAM_SERVICE(904, "SIGHTSEEING_TRAM_SERVICE"),
-  SHUTTLE_TRAM_SERVICE(905, "SHUTTLE_TRAM_SERVICE"),
-  ALL_TRAM_SERVICES(906, "ALL_TRAM_SERVICES"),
-  WATER_TRANSPORT_SERVICE(1000, "WATER_TRANSPORT_SERVICE"),
-  AIR_SERVICE(1100, "AIR_SERVICE"),
-  FERRY_SERVICE(1200, "FERRY_SERVICE"),
-  AERIAL_LIFT_SERVICE(1300, "AERIAL_LIFT_SERVICE"),
-  TELECABIN_SERVICE(1301, "TELECABIN_SERVICE"),
-  CABLE_CAR_SERVICE(1302, "CABLE_CAR_SERVICE"),
-  ELEVATOR_SERVICE(1303, "ELEVATOR_SERVICE"),
-  CHAIR_LIFT_SERVICE(1304, "CHAIR_LIFT_SERVICE"),
-  DRAG_LIFT_SERVICE(1305, "DRAG_LIFT_SERVICE"),
-  SMALL_TELECABIN_SERVICE(1306, "SMALL_TELECABIN_SERVICE"),
-  ALL_TELECABIN_SERVICES(1307, "ALL_TELECABIN_SERVICES"),
-  FUNICULAR_SERVICE(1400, "FUNICULAR_SERVICE"),
-  TAXI_SERVICE(1500, "TAXI_SERVICE"),
-  COMMUNAL_TAXI_SERVICE(1501, "COMMUNAL_TAXI_SERVICE"),
-  WATER_TAXI_SERVICE(1502, "WATER_TAXI_SERVICE"),
-  RAIL_TAXI_SERVICE(1503, "RAIL_TAXI_SERVICE"),
-  BIKE_TAXI_SERVICE(1504, "BIKE_TAXI_SERVICE"),
-  LICENSED_TAXI_SERVICE(1505, "LICENSED_TAXI_SERVICE"),
-  PRIVATE_HIRE_SERVICE_VEHICLE(1506, "PRIVATE_HIRE_SERVICE_VEHICLE"),
-  ALL_TAXI_SERVICES(1507, "ALL_TAXI_SERVICES"),
-  MISCELLANEOUS_SERVICE(1700, "MISCELLANEOUS_SERVICE"),
-  HORSE_DRAWN_CARRIAGE(1702, "HORSE_DRAWN_CARRIAGE");
+
+  /** Monorail. Single-rail elevated system. */
+  MONORAIL(12, "MONORAIL");
 
   companion object {
-    private val byValue = entries.associateBy { it.value }
-    private val byGtfsValue = entries.associateBy { it.gtfsValue }
-
     /**
      * Retrieves a RouteType by its database value string.
      *
@@ -117,7 +53,7 @@ enum class RouteType(val gtfsValue: Int, val value: String) {
      * @throws IllegalArgumentException if value does not match any route type
      */
     fun fromValue(value: String): RouteType {
-      return byValue[value]
+      return entries.find { it.value == value }
         ?: throw IllegalArgumentException(
           "Unknown RouteType value: $value. Valid values: ${entries.joinToString { it.value }}"
         )
@@ -131,9 +67,9 @@ enum class RouteType(val gtfsValue: Int, val value: String) {
      * @throws IllegalArgumentException if gtfsValue does not match any route type
      */
     fun fromGtfsValue(gtfsValue: Int): RouteType {
-      return byGtfsValue[gtfsValue]
+      return entries.find { it.gtfsValue == gtfsValue }
         ?: throw IllegalArgumentException(
-          "Unknown GTFS route type: $gtfsValue. Valid values: ${entries.joinToString { it.value + "(" + it.gtfsValue + ")" }}"
+          "Unknown GTFS route type: $gtfsValue. Valid values: ${entries.joinToString { "${it.value}(${it.gtfsValue})" }}"
         )
     }
   }

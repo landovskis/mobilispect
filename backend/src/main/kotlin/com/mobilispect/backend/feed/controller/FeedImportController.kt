@@ -1,12 +1,12 @@
 package com.mobilispect.backend.feed.controller
 
-import com.mobilispect.backend.api.dto.ActiveImportsResponse
-import com.mobilispect.backend.api.dto.FeedImportDTO
-import com.mobilispect.backend.api.dto.FeedImportDetailDTO
-import com.mobilispect.backend.api.dto.FeedImportSummaryDTO
-import com.mobilispect.backend.api.dto.ImportProgressDTO
-import com.mobilispect.backend.api.dto.ImportsResponse
-import com.mobilispect.backend.api.dto.PageInfo
+import com.mobilispect.backend.feed.ActiveImportsResponse
+import com.mobilispect.backend.feed.FeedImportDTO
+import com.mobilispect.backend.feed.FeedImportDetailDTO
+import com.mobilispect.backend.feed.FeedImportSummaryDTO
+import com.mobilispect.backend.feed.ImportProgressDTO
+import com.mobilispect.backend.feed.ImportsResponse
+import com.mobilispect.backend.feed.PageInfo
 import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.domain.ImportResponse
 import com.mobilispect.backend.feed.domain.ImportStatus as ImportStatusDto
