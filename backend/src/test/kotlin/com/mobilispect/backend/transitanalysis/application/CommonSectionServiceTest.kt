@@ -1,7 +1,6 @@
 package com.mobilispect.backend.transitanalysis.application
 
 import com.mobilispect.backend.agency.AgencyId
-import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.application.CommonSectionService
 import com.mobilispect.backend.route.domain.model.CommonSection
@@ -40,7 +39,6 @@ class CommonSectionServiceTest {
       Route(
         id = RouteId("r-1"),
         agencyId = AgencyId("o-1"),
-        gtfsRouteId = FeedLocalRouteId("R1"),
         longName = "Route 1",
         routeType = com.mobilispect.backend.route.domain.model.RouteType.BUS,
         active = true,

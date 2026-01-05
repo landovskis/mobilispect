@@ -3,14 +3,12 @@ package com.mobilispect.backend.agency.application
 import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
+import com.mobilispect.backend.feed.FeedApi
 import com.mobilispect.backend.feed.api.FeedDTO
-import com.mobilispect.backend.feed.api.FeedQueryApi
-import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
-import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
@@ -32,7 +30,7 @@ import org.springframework.data.domain.Pageable
 class AgencyQueryServiceTest {
   private val agencyRepository: AgencyRepository = mock(AgencyRepository::class.java)
   private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
-  private val feedQueryApi: FeedQueryApi = mock(FeedQueryApi::class.java)
+  private val feedQueryApi: FeedApi = mock(FeedApi::class.java)
   private val service = AgencyQueryService(agencyRepository, routeRepository, feedQueryApi)
 
   @Test
@@ -57,7 +55,6 @@ class AgencyQueryServiceTest {
       Agency(
         agencyId = AgencyId("o-123"),
         feedId = FeedId("f-abc"),
-        gtfsAgencyId = FeedLocalAgencyId("gtfs-agency"),
         name = "Test Agency",
         createdAt = Instant.now(),
         updatedAt = Instant.now(),
@@ -67,7 +64,6 @@ class AgencyQueryServiceTest {
         Route(
           id = RouteId("r-1"),
           agencyId = agency.agencyId,
-          gtfsRouteId = FeedLocalRouteId("R1"),
           shortName = "1",
           longName = "Route 1",
           routeType = RouteType.BUS,
@@ -76,7 +72,6 @@ class AgencyQueryServiceTest {
         Route(
           id = RouteId("r-2"),
           agencyId = agency.agencyId,
-          gtfsRouteId = FeedLocalRouteId("R2"),
           shortName = "2",
           longName = "Route 2",
           routeType = RouteType.BUS,
@@ -128,7 +123,6 @@ class AgencyQueryServiceTest {
       Agency(
         agencyId = AgencyId("o-1"),
         feedId = FeedId("f-abc"),
-        gtfsAgencyId = FeedLocalAgencyId("a1"),
         name = "A1",
         createdAt = Instant.now(),
         updatedAt = Instant.now(),

@@ -9,10 +9,10 @@ import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.controller.RegionController
 import com.mobilispect.backend.region.domain.MetropolitanRegion
 import com.mobilispect.backend.region.service.RegionImportService
@@ -382,7 +382,7 @@ class RegionControllerTest {
   }
 
   @Test
-  fun `discoverFeeds uses GTFS as default spec`() = runBlocking {
+  fun `discoverFeeds uses GTFS as default spec`(): Unit = runBlocking {
     // Given
     val expectedResult =
       FeedDiscoveryJobResult(
@@ -405,11 +405,7 @@ class RegionControllerTest {
       expectedResult
 
     // When - providing GTFS as spec parameter
-    val result =
-      controller.discoverFeeds(
-        testRegionId,
-        spec = com.mobilispect.backend.api.dto.FeedSpecType.GTFS,
-      )
+    val result = controller.discoverFeeds(testRegionId, spec = FeedSpecTypeDto.GTFS)
 
     // Then
     coVerify { feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS) }
@@ -417,7 +413,7 @@ class RegionControllerTest {
   }
 
   @Test
-  fun `discoverFeeds returns errors when discovery fails partially`() = runBlocking {
+  fun `discoverFeeds returns errors when discovery fails partially`(): Unit = runBlocking {
     // Given
     val expectedResult =
       FeedDiscoveryJobResult(
@@ -440,11 +436,7 @@ class RegionControllerTest {
       expectedResult
 
     // When
-    val result =
-      controller.discoverFeeds(
-        testRegionId,
-        spec = com.mobilispect.backend.api.dto.FeedSpecType.GTFS,
-      )
+    val result = controller.discoverFeeds(testRegionId, spec = FeedSpecTypeDto.GTFS)
 
     // Then
     assertThat(result.errors).hasSize(1)
@@ -491,7 +483,7 @@ class RegionControllerTest {
 
     every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
       Optional.of(region)
-    every { regionImportService.startBulkImportForRegion(any(), any()) } returns bulkImportResponse
+    every { regionImportService.import(any(), any()) } returns bulkImportResponse
 
     // When
     val result = controller.importAllFeedsForRegion(testRegionId)
@@ -503,7 +495,7 @@ class RegionControllerTest {
     assertThat(result.failedCount).isEqualTo(0)
     assertThat(result.skippedCount).isEqualTo(0)
     assertThat(result.results).hasSize(3)
-    verify { regionImportService.startBulkImportForRegion(RegionId(testRegionId), any()) }
+    verify { regionImportService.import(RegionId(testRegionId), any()) }
   }
 
   @Test
@@ -550,7 +542,7 @@ class RegionControllerTest {
 
     every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
       Optional.of(region)
-    every { regionImportService.startBulkImportForRegion(any(), any()) } returns bulkImportResponse
+    every { regionImportService.import(any(), any()) } returns bulkImportResponse
 
     // When
     val result = controller.importAllFeedsForRegion(testRegionId)

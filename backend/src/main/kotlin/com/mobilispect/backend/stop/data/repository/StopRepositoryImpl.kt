@@ -1,6 +1,6 @@
 package com.mobilispect.backend.stop.data.repository
 
-import com.mobilispect.backend.feed.api.FeedQueryApi
+import com.mobilispect.backend.feed.FeedApi
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.stop.data.mapper.StopMapper
 import com.mobilispect.backend.stop.domain.model.Stop
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Repository
 @Repository
 class StopRepositoryImpl(
   private val jpaRepository: StopJpaRepository,
-  private val feedQueryApi: FeedQueryApi,
+  private val feedQueryApi: FeedApi,
   private val mapper: StopMapper,
 ) : StopRepository {
 

@@ -3,18 +3,19 @@ package com.mobilispect.backend.region.service
 import com.mobilispect.backend.api.BulkImportResponse
 import com.mobilispect.backend.api.FeedImportResult
 import com.mobilispect.backend.api.FeedImportResultStatus
+import com.mobilispect.backend.feed.FeedApi
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.ImportStatus
+import com.mobilispect.backend.feed.events.FeedImportCompletedEvent
+import com.mobilispect.backend.feed.events.FeedImportFailedEvent
+import com.mobilispect.backend.feed.events.FeedImportStartedEvent
+import com.mobilispect.backend.feed.events.FeedImportStepCompletedEvent
+import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
 import com.mobilispect.backend.feed.model.ImportTriggerType
-import com.mobilispect.backend.feed.model.ids.RegionId
-import com.mobilispect.backend.feed.repository.FeedImportRepository
-import com.mobilispect.backend.feed.repository.FeedRepository
-import com.mobilispect.backend.feed.service.FeedImportService
+import com.mobilispect.backend.region.RegionId
+import java.util.concurrent.ConcurrentHashMap
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.data.domain.PageRequest
+import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -31,12 +32,13 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Service
 class RegionImportService(
-  @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
-  private val feedImportRepository: FeedImportRepository,
-  private val feedImportService: FeedImportService,
+  private val feedApi: FeedApi,
   private val eventPublisher: ApplicationEventPublisher,
 ) {
   private val logger = LoggerFactory.getLogger(RegionImportService::class.java)
+  private val feedImportStates = ConcurrentHashMap<FeedId, RegionFeedImportState>()
+
+  private lateinit var lastRegionId: RegionId
 
   /**
    * Start bulk import for all ACTIVE feeds in a region.
@@ -49,16 +51,10 @@ class RegionImportService(
    * @return Summary of the bulk import operation with per-feed results
    */
   @Transactional
-  fun startBulkImportForRegion(
-    regionId: RegionId,
-    triggerType: ImportTriggerType,
-  ): BulkImportResponse {
+  fun import(regionId: RegionId, triggerType: ImportTriggerType): BulkImportResponse {
     logger.info("Starting bulk import for region: $regionId")
 
-    // Fetch all ACTIVE feeds for the region
-    val feeds =
-      feedRepository.findAllByRegionRegionOnestopIdAndStatusIn(regionId, listOf(FeedStatus.ACTIVE))
-
+    val feeds = feedApi.findFeedsByRegion(regionId)
     if (feeds.isEmpty()) {
       logger.warn("No active feeds found for region: $regionId")
       return BulkImportResponse(
@@ -66,7 +62,6 @@ class RegionImportService(
         totalFeeds = 0,
         startedCount = 0,
         failedCount = 0,
-        skippedCount = 0,
         results = emptyList(),
       )
     }
@@ -74,42 +69,19 @@ class RegionImportService(
     val results = mutableListOf<FeedImportResult>()
     var startedCount = 0
     var failedCount = 0
-    var skippedCount = 0
 
     eventPublisher.publishEvent(RegionFeedsImportStartedEvent(regionId))
+    lastRegionId = regionId
+
     // Process each feed with continue-on-failure semantics
     feeds.forEach { feed ->
       try {
-        // Check if feed already has an active import
-        val hasActiveImport =
-          feedImportRepository
-            .findAllByFeedIdAndStatusInOrderByStartedAtDesc(
-              feed.feedId,
-              listOf(ImportStatus.PENDING, ImportStatus.RUNNING),
-              PageRequest.of(0, 1),
-            )
-            .content
-            .isNotEmpty()
-
-        if (hasActiveImport) {
-          results.add(
-            FeedImportResult(
-              feedOnestopId = feed.feedId,
-              feedName = feed.name,
-              status = FeedImportResultStatus.SKIPPED,
-              message = "Import already running",
-            )
-          )
-          skippedCount++
-          return@forEach
-        }
-
         // Start import for this feed
-        val feedImport = feedImportService.startImport(FeedId(feed.feedId), triggerType)
-        logger.debug("Started import for feed ${feed.feedId}: ${feedImport.id}")
+        val feedImport = feedApi.import(feed.feedId, triggerType)
+        logger.debug("Started import for feed {}: {}", feed.feedId, feedImport.id)
         results.add(
           FeedImportResult(
-            feedOnestopId = feed.feedId,
+            feedOnestopId = feed.feedId.value,
             feedName = feed.name,
             status = FeedImportResultStatus.STARTED,
             message = "Import started successfully",
@@ -121,7 +93,7 @@ class RegionImportService(
         logger.error("Failed to start import for feed ${feed.feedId}", e)
         results.add(
           FeedImportResult(
-            feedOnestopId = feed.feedId,
+            feedOnestopId = feed.feedId.value,
             feedName = feed.name,
             status = FeedImportResultStatus.FAILED,
             message = e.message ?: "Unknown error",
@@ -132,17 +104,85 @@ class RegionImportService(
     }
 
     logger.info(
-      "Bulk import for region $regionId completed: $startedCount started, $failedCount failed, $skippedCount skipped"
+      "Bulk import for region $regionId completed: $startedCount started, $failedCount failed"
     )
 
-    eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(regionId))
     return BulkImportResponse(
       regionOnestopId = regionId.value,
       totalFeeds = feeds.size,
       startedCount = startedCount,
       failedCount = failedCount,
-      skippedCount = skippedCount,
       results = results,
     )
+  }
+
+  @EventListener
+  fun onFeedImportStarted(event: FeedImportStartedEvent) {
+    feedImportStates[event.feedId] =
+      RegionFeedImportState(feedId = event.feedId, status = RegionFeedImportStatus.STARTED)
+  }
+
+  @EventListener
+  fun onFeedImportStepStarted(event: FeedImportStepStartedEvent) {
+    feedImportStates[event.feedId] =
+      RegionFeedImportState(
+        feedId = event.feedId,
+        status = RegionFeedImportStatus.IN_PROGRESS,
+        currentStep = event.step,
+      )
+  }
+
+  @EventListener
+  fun onFeedImportStepCompleted(event: FeedImportStepCompletedEvent) {
+    feedImportStates[event.feedId] =
+      RegionFeedImportState(
+        feedId = event.feedId,
+        status = RegionFeedImportStatus.IN_PROGRESS,
+        currentStep = event.step,
+      )
+  }
+
+  @EventListener
+  fun onFeedImportCompleted(event: FeedImportCompletedEvent) {
+    val currentStep = feedImportStates[event.feedId]?.currentStep
+    feedImportStates[event.feedId] =
+      RegionFeedImportState(
+        feedId = event.feedId,
+        status = RegionFeedImportStatus.COMPLETED,
+        currentStep = currentStep,
+      )
+    publishEventsIfNeeded()
+  }
+
+  @EventListener
+  fun onFeedImportFailed(event: FeedImportFailedEvent) {
+    feedImportStates[event.feedId] =
+      RegionFeedImportState(
+        feedId = event.feedId,
+        status = RegionFeedImportStatus.FAILED,
+        currentStep = event.step,
+        errorMessage = event.message,
+      )
+    publishEventsIfNeeded()
+  }
+
+  fun getFeedImportState(feedId: FeedId): RegionFeedImportState? {
+    return feedImportStates[feedId]
+  }
+
+  private fun publishEventsIfNeeded() {
+    if (feedImportStates.all { it.value.status == RegionFeedImportStatus.COMPLETED }) {
+      eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(lastRegionId))
+      return
+    }
+
+    if (
+      feedImportStates.all {
+        it.value.status == RegionFeedImportStatus.COMPLETED ||
+          it.value.status == RegionFeedImportStatus.FAILED
+      }
+    ) {
+      eventPublisher.publishEvent(RegionFeedsImportFailedEvent(lastRegionId))
+    }
   }
 }
