@@ -11,10 +11,10 @@ import java.time.Instant
  * Agency module's public API.
  */
 data class AgencyDTO(
-    val agencyId: AgencyId,
-    val feedId: FeedId,
-    val name: String,
-    val active: Boolean,
-    val createdAt: Instant,
-    val updatedAt: Instant,
+  val agencyId: AgencyId,
+  val feedId: FeedId,
+  val name: String,
+  val active: Boolean,
+  val createdAt: Instant,
+  val updatedAt: Instant,
 )

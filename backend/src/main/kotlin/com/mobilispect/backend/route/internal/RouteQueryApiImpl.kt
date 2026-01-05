@@ -1,9 +1,9 @@
 package com.mobilispect.backend.route.internal
 
 import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.RouteDTO
 import com.mobilispect.backend.route.api.RouteQueryApi
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import org.springframework.stereotype.Component
 

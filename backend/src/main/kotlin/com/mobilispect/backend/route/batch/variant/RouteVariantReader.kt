@@ -75,7 +75,8 @@ class RouteVariantReader(private val routeRepository: RouteRepository) :
     stopsById = data.stops.associateBy { it.stopId.value }
 
     // Group trips by GTFS route ID
-    val tripsByGtfsRouteId: Map<FeedLocalRouteId, List<GTFSTrip>> = data.trips.groupBy { it.routeId }
+    val tripsByGtfsRouteId: Map<FeedLocalRouteId, List<GTFSTrip>> =
+      data.trips.groupBy { it.routeId }
 
     // Use routes from context if available, otherwise fetch from database
     val persistedRoutes =
@@ -90,12 +91,8 @@ class RouteVariantReader(private val routeRepository: RouteRepository) :
     // Match persisted routes to their trips using GTFS route ID from trip
     val routeMap =
       persistedRoutes
-        .filter { route ->
-          tripsByGtfsRouteId.containsKey(route.id.feedLocalId())
-        }
-        .associateWith { route ->
-          tripsByGtfsRouteId[route.id.feedLocalId()] ?: emptyList()
-        }
+        .filter { route -> tripsByGtfsRouteId.containsKey(route.id.feedLocalId()) }
+        .associateWith { route -> tripsByGtfsRouteId[route.id.feedLocalId()] ?: emptyList() }
 
     routeIterator = routeMap.entries.iterator()
 

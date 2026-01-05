@@ -1,7 +1,7 @@
 package com.mobilispect.backend.route.api
 
 import com.mobilispect.backend.agency.AgencyId
-import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.route.RouteId
 
 /**
  * Public API for querying routes.

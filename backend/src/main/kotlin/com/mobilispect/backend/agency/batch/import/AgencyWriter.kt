@@ -43,12 +43,7 @@ class AgencyWriter(
         agencyRepository.save(agency)
         created++
       } else {
-        agencyRepository.save(
-          existing.copy(
-            name = agency.name,
-            active = agency.active,
-          )
-        )
+        agencyRepository.save(existing.copy(name = agency.name, active = agency.active))
         updated++
       }
     }

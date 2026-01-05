@@ -6,8 +6,8 @@ package com.mobilispect.backend.route.domain.model
  * Route types are hierarchical indicators of service mode and passenger comfort. They influence UI
  * presentation, scheduling analysis, and accessibility considerations.
  *
- * Reference: https://gtfs.org/documentation/schedule/reference/#routestxt
- * Extended types: https://developers.google.com/transit/gtfs/reference/extended-route-types
+ * Reference: https://gtfs.org/documentation/schedule/reference/#routestxt Extended types:
+ * https://developers.google.com/transit/gtfs/reference/extended-route-types
  *
  * @property gtfsValue The official GTFS numeric route type code
  * @property value Database enum string for persistence

@@ -52,9 +52,7 @@ interface RouteJpaRepository : JpaRepository<RouteEntity, String> {
   ): Page<RouteEntity>
 
   /** Find route by agency ID and GTFS route ID. */
-  @Query(
-    "SELECT r FROM RouteEntity r WHERE r.id = CONCAT(:agencyId, '/', :gtfsRouteId)"
-  )
+  @Query("SELECT r FROM RouteEntity r WHERE r.id = CONCAT(:agencyId, '/', :gtfsRouteId)")
   fun findByAgencyIdAndGtfsRouteId(
     @Param("agencyId") agencyId: String,
     @Param("gtfsRouteId") gtfsRouteId: String,

@@ -1,11 +1,11 @@
 package com.mobilispect.backend.route.data.repository
 
-import com.mobilispect.backend.agency.api.AgencyQueryApi
 import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.agency.api.AgencyQueryApi
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.data.mapper.RouteMapper
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import java.time.Instant
 import org.springframework.data.domain.Page

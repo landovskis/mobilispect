@@ -19,28 +19,28 @@ data class GTFSData(
 )
 
 data class GTFSAgency(
-    val agencyId: FeedLocalAgencyId,
-    val name: String,
-    val url: String?,
-    val timezone: String?,
-    val phone: String?,
+  val agencyId: FeedLocalAgencyId,
+  val name: String,
+  val url: String?,
+  val timezone: String?,
+  val phone: String?,
 )
 
 data class GTFSRoute(
-    val routeId: FeedLocalRouteId,
-    val agencyId: FeedLocalAgencyId?,
-    val shortName: String?,
-    val longName: String?,
-    val type: Int?,
+  val routeId: FeedLocalRouteId,
+  val agencyId: FeedLocalAgencyId?,
+  val shortName: String?,
+  val longName: String?,
+  val type: Int?,
 )
 
 data class GTFSTrip(
-    val routeId: FeedLocalRouteId,
-    val tripId: GTFSTripId,
-    val directionId: Int?,
-    val headsign: String?,
-    val shapeId: String?,
-    val stopTimes: List<GTFSStopTime>,
+  val routeId: FeedLocalRouteId,
+  val tripId: GTFSTripId,
+  val directionId: Int?,
+  val headsign: String?,
+  val shapeId: String?,
+  val stopTimes: List<GTFSStopTime>,
 )
 
 data class GTFSStopTime(

@@ -1,8 +1,8 @@
 package com.mobilispect.backend.feed.controller
 
-import com.mobilispect.backend.api.dto.BulkImportResponse
-import com.mobilispect.backend.api.dto.FeedImportResult
-import com.mobilispect.backend.api.dto.FeedImportResultStatus
+import com.mobilispect.backend.api.BulkImportResponse
+import com.mobilispect.backend.api.FeedImportResult
+import com.mobilispect.backend.api.FeedImportResultStatus
 import com.mobilispect.backend.api.dto.FeedSpecType as FeedSpecTypeDto
 import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
 import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
@@ -13,9 +13,9 @@ import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
-import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.region.controller.RegionController
 import com.mobilispect.backend.region.domain.MetropolitanRegion
+import com.mobilispect.backend.region.service.RegionImportService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -34,7 +34,7 @@ class RegionControllerTest {
   private lateinit var feedRepository: FeedRepository
   private lateinit var feedAuthenticationRepository: FeedAuthenticationRepository
   private lateinit var feedDiscoveryBatchService: FeedDiscoveryBatchService
-  private lateinit var feedImportService: FeedImportService
+  private lateinit var regionImportService: RegionImportService
   private lateinit var controller: RegionController
 
   private val testRegionId = "r-san-francisco-bay-area"
@@ -47,7 +47,7 @@ class RegionControllerTest {
     feedRepository = mockk()
     feedAuthenticationRepository = mockk()
     feedDiscoveryBatchService = mockk()
-    feedImportService = mockk()
+    regionImportService = mockk()
 
     controller =
       RegionController(
@@ -55,7 +55,7 @@ class RegionControllerTest {
         feedRepository = feedRepository,
         feedAuthenticationRepository = feedAuthenticationRepository,
         feedDiscoveryBatchService = feedDiscoveryBatchService,
-        feedImportService = feedImportService,
+        regionImportService = regionImportService,
       )
   }
 
@@ -491,7 +491,7 @@ class RegionControllerTest {
 
     every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
       Optional.of(region)
-    every { feedImportService.startBulkImportForRegion(any(), any()) } returns bulkImportResponse
+    every { regionImportService.startBulkImportForRegion(any(), any()) } returns bulkImportResponse
 
     // When
     val result = controller.importAllFeedsForRegion(testRegionId)
@@ -503,7 +503,7 @@ class RegionControllerTest {
     assertThat(result.failedCount).isEqualTo(0)
     assertThat(result.skippedCount).isEqualTo(0)
     assertThat(result.results).hasSize(3)
-    verify { feedImportService.startBulkImportForRegion(RegionId(testRegionId), any()) }
+    verify { regionImportService.startBulkImportForRegion(RegionId(testRegionId), any()) }
   }
 
   @Test
@@ -550,7 +550,7 @@ class RegionControllerTest {
 
     every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
       Optional.of(region)
-    every { feedImportService.startBulkImportForRegion(any(), any()) } returns bulkImportResponse
+    every { regionImportService.startBulkImportForRegion(any(), any()) } returns bulkImportResponse
 
     // When
     val result = controller.importAllFeedsForRegion(testRegionId)

@@ -1,8 +1,8 @@
 package com.mobilispect.backend.agency.data.repository
 
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.data.mapper.AgencyMapper
 import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.api.FeedQueryApi
 import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
@@ -58,8 +58,10 @@ class AgencyRepositoryImpl(
     return jpaRepository.countActiveByFeedId(feedId.value)
   }
 
-  override fun existsByFeedIdAndGtfsAgencyId(feedId: FeedId, gtfsAgencyId: FeedLocalAgencyId): Boolean =
-    jpaRepository.existsByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId.value)
+  override fun existsByFeedIdAndGtfsAgencyId(
+    feedId: FeedId,
+    gtfsAgencyId: FeedLocalAgencyId,
+  ): Boolean = jpaRepository.existsByFeedIdAndGtfsAgencyId(feedId.value, gtfsAgencyId.value)
 
   override fun save(agency: Agency): Agency {
     // Validate feed exists via API

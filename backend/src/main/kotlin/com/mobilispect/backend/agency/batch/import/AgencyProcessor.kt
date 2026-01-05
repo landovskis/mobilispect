@@ -1,7 +1,7 @@
 package com.mobilispect.backend.agency.batch.import
 
-import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.feed.api.GTFSAgency
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import org.springframework.batch.core.configuration.annotation.StepScope
