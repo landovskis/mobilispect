@@ -1,12 +1,12 @@
 package com.mobilispect.backend.transitanalysis.api
 
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.CommonSectionController
 import com.mobilispect.backend.route.api.dto.CombinedFrequencyDTO
 import com.mobilispect.backend.route.api.dto.CommonSectionDTO
 import com.mobilispect.backend.route.api.dto.RouteContributionDTO
 import com.mobilispect.backend.route.application.CommonSectionService
 import com.mobilispect.backend.route.domain.model.TimePeriod
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import java.util.UUID
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -24,11 +24,7 @@ class CommonSectionControllerTest {
 
   @Test
   fun `getCommonSectionsForRoute returns 200`() {
-    `when`(
-        service.getCommonSectionsForRoute(
-          com.mobilispect.backend.route.domain.model.ids.RouteId("r-1")
-        )
-      )
+    `when`(service.getCommonSectionsForRoute(RouteId("r-1")))
       .thenReturn(
         listOf(
           CommonSectionDTO(

@@ -54,11 +54,7 @@ class AgencyControllerTest {
         minHeadwayMinutes = null,
         maxHeadwayMinutes = null,
       )
-    every {
-      agencyQueryService.getAgencySummary(
-          AgencyId("o-123")
-      )
-    } returns summary
+    every { agencyQueryService.getAgencySummary(AgencyId("o-123")) } returns summary
 
     val result = controller.getAgency("o-123")
 

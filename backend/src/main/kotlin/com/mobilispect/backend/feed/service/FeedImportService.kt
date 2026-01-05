@@ -13,9 +13,11 @@ import java.time.Clock
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
-import org.springframework.batch.core.launch.JobOperator
+import org.springframework.batch.core.launch.JobExecutionAlreadyRunningException
+import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.TaskExecutor
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionSynchronization
@@ -25,7 +27,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 class FeedImportService(
   @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
   private val feedImportRepository: FeedImportRepository,
-  private val jobOperator: JobOperator,
+  private val jobLauncher: JobLauncher,
   @Qualifier("feedImportJob") private val feedImportJob: Job,
   @Qualifier("taskExecutor") private val importLaunchExecutor: TaskExecutor,
   private val clock: Clock = Clock.systemUTC(),
@@ -33,6 +35,24 @@ class FeedImportService(
   private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
   fun startImport(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
+    val activeImport =
+      feedImportRepository
+        .findAllByFeedIdAndStatusInOrderByStartedAtDesc(
+          feedId.value,
+          listOf(ImportStatus.PENDING, ImportStatus.RUNNING),
+          PageRequest.of(0, 1),
+        )
+        .content
+        .firstOrNull()
+    if (activeImport != null) {
+      logger.info(
+        "Import already running for feed {}, returning existing import {}",
+        feedId,
+        activeImport.id,
+      )
+      return activeImport
+    }
+
     val feed =
       feedRepository.findByFeedOnestopId(feedId.value).orElseThrow {
         IllegalArgumentException("Feed not found: $feedId")
@@ -55,12 +75,12 @@ class FeedImportService(
       TransactionSynchronizationManager.registerSynchronization(
         object : TransactionSynchronization {
           override fun afterCommit() {
-            launchImportJob(feedImport.requireId(), FeedId(feed.feedId))
+            launchImportJob(feedImport.id, FeedId(feed.feedId))
           }
         }
       )
     } else {
-      launchImportJob(feedImport.requireId(), FeedId(feed.feedId))
+      launchImportJob(feedImport.id, FeedId(feed.feedId))
     }
 
     return feedImport
@@ -81,14 +101,18 @@ class FeedImportService(
   private fun launchImportJob(importId: ImportId, feedId: FeedId) {
     val params =
       JobParametersBuilder()
-        .addString("feedOnestopId", feedId.value)
-        .addString("importId", importId.value.toString())
-        .addLong("timestamp", System.currentTimeMillis())
+        .addString("feedOnestopId", feedId.value, true)
+        .addString("importId", importId.value.toString(), true)
+        .addLong("timestamp", System.currentTimeMillis(), true)
         .toJobParameters()
 
     importLaunchExecutor.execute {
-      runCatching { jobOperator.run(feedImportJob, params) }
+      runCatching { jobLauncher.run(feedImportJob, params) }
         .onFailure { throwable ->
+          if (throwable is JobExecutionAlreadyRunningException) {
+            logger.info("Feed import job already running for {} with import {}", feedId, importId)
+            return@onFailure
+          }
           logger.error("Failed to launch feed import job for {}", feedId, throwable)
           failImport(importId, throwable.message ?: "Failed to start import job")
         }
@@ -130,8 +154,4 @@ class FeedImportService(
     feedImport.errorMessage = message
     feedImportRepository.save(feedImport)
   }
-
-  private fun FeedImport.requireId(): ImportId = id
-
-  private fun FeedImport.requireIdAsString(): String = requireId().value.toString()
 }

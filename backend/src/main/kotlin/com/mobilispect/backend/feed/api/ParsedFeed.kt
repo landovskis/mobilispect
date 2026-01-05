@@ -1,7 +1,7 @@
 package com.mobilispect.backend.feed.api
 
-import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
-import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
+import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.feed.api.ids.GTFSStopId
 import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import java.time.LocalTime
@@ -19,7 +19,7 @@ data class GTFSData(
 )
 
 data class GTFSAgency(
-  val agencyId: GTFSAgencyId,
+  val agencyId: FeedLocalAgencyId,
   val name: String,
   val url: String?,
   val timezone: String?,
@@ -27,15 +27,15 @@ data class GTFSAgency(
 )
 
 data class GTFSRoute(
-  val routeId: GTFSRouteId,
-  val agencyId: GTFSAgencyId?,
+  val routeId: FeedLocalRouteId,
+  val agencyId: FeedLocalAgencyId?,
   val shortName: String?,
   val longName: String?,
   val type: Int?,
 )
 
 data class GTFSTrip(
-  val routeId: GTFSRouteId,
+  val routeId: FeedLocalRouteId,
   val tripId: GTFSTripId,
   val directionId: Int?,
   val headsign: String?,

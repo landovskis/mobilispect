@@ -1,5 +1,6 @@
 package com.mobilispect.backend.region.controller
 
+import com.mobilispect.backend.api.BulkImportResponse
 import com.mobilispect.backend.api.dto.BulkImportResponse
 import com.mobilispect.backend.api.dto.FeedDTO
 import com.mobilispect.backend.api.dto.FeedSpecType
@@ -16,8 +17,8 @@ import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
-import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.region.domain.MetropolitanRegion
+import com.mobilispect.backend.region.service.RegionImportService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -38,7 +39,7 @@ class RegionController(
   private val feedRepository: FeedRepository,
   private val feedAuthenticationRepository: FeedAuthenticationRepository,
   private val feedDiscoveryBatchService: FeedDiscoveryBatchService,
-  private val feedImportService: FeedImportService,
+  private val regionImportService: RegionImportService,
 ) {
   private val logger = LoggerFactory.getLogger(RegionController::class.java)
 
@@ -179,7 +180,7 @@ class RegionController(
       notFound("Region", regionOnestopId)
     }
 
-    return feedImportService.startBulkImportForRegion(
+    return regionImportService.startBulkImportForRegion(
       regionId = RegionId(regionOnestopId),
       triggerType = ImportTriggerType.MANUAL,
     )

@@ -1,10 +1,10 @@
 package com.mobilispect.backend.route.data.mapper
 
 import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.data.entity.RouteEntity
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import org.springframework.stereotype.Component
 
 /**

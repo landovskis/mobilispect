@@ -1,9 +1,9 @@
 package com.mobilispect.backend.agency.api
 
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.api.dto.AgencyDTO
 import com.mobilispect.backend.agency.api.dto.AgencySummaryDTO
 import com.mobilispect.backend.agency.application.AgencyQueryService
-import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.feed.model.ids.RegionId
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable

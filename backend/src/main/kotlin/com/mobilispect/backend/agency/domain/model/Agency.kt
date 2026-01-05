@@ -12,8 +12,7 @@ import java.time.Instant
  *
  * Relationship chain: Agency -> Feed (via feed_onestop_id) -> Regions (via feed_regions table)
  *
- * @property agencyId Unique agency identifier using Transitland Onestop ID format
- *   (o-geohash-name)
+ * @property agencyId Unique agency identifier using Transitland Onestop ID format (o-geohash-name)
  * @property feedId Feed this agency belongs to
  * @property gtfsAgencyId Agency ID from GTFS agency.txt file
  * @property name Agency display name

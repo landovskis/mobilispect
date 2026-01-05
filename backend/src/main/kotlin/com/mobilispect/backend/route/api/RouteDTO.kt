@@ -1,8 +1,8 @@
 package com.mobilispect.backend.route.api
 
 import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.domain.model.RouteType
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 
 /**
  * Data Transfer Object for Route.

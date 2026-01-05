@@ -1,10 +1,10 @@
 package com.mobilispect.backend.transitanalysis.api
 
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.FrequencyController
 import com.mobilispect.backend.route.api.dto.RouteDTO
 import com.mobilispect.backend.route.application.FrequencyQueryService
 import com.mobilispect.backend.route.domain.model.RouteType
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
