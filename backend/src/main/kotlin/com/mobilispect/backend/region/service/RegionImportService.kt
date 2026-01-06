@@ -62,6 +62,7 @@ class RegionImportService(
         totalFeeds = 0,
         startedCount = 0,
         failedCount = 0,
+        skippedCount = 0,
         results = emptyList(),
       )
     }
@@ -69,6 +70,7 @@ class RegionImportService(
     val results = mutableListOf<FeedImportResult>()
     var startedCount = 0
     var failedCount = 0
+    var skippedCount = 0
 
     eventPublisher.publishEvent(RegionFeedsImportStartedEvent(regionId))
     lastRegionId = regionId
@@ -112,6 +114,7 @@ class RegionImportService(
       totalFeeds = feeds.size,
       startedCount = startedCount,
       failedCount = failedCount,
+      skippedCount = skippedCount,
       results = results,
     )
   }

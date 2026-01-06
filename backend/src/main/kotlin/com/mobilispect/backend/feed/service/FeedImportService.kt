@@ -34,7 +34,7 @@ class FeedImportService(
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
-  fun startImport(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
+  fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
     val activeImport =
       feedImportRepository
         .findAllByFeedIdAndStatusInOrderByStartedAtDesc(

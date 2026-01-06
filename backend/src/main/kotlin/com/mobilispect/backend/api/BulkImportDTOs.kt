@@ -10,6 +10,7 @@ data class BulkImportResponse(
   val totalFeeds: Int,
   val startedCount: Int,
   val failedCount: Int,
+  val skippedCount: Int,
   val results: List<FeedImportResult>,
 )
 

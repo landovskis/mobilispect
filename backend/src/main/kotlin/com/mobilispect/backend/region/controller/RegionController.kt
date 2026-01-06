@@ -6,10 +6,7 @@ import com.mobilispect.backend.api.dto.FeedSpecType
 import com.mobilispect.backend.api.dto.FeedStatus
 import com.mobilispect.backend.api.dto.FeedsResponse
 import com.mobilispect.backend.api.dto.MetropolitanRegionDTO
-import com.mobilispect.backend.api.dto.RegionUpdateRequest
 import com.mobilispect.backend.api.dto.RegionsResponse
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
@@ -22,10 +19,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -37,7 +32,6 @@ class RegionController(
   private val regionRepository: MetropolitanRegionRepository,
   private val feedRepository: FeedRepository,
   private val feedAuthenticationRepository: FeedAuthenticationRepository,
-  private val feedDiscoveryBatchService: FeedDiscoveryBatchService,
   private val regionImportService: RegionImportService,
 ) {
   private val logger = LoggerFactory.getLogger(RegionController::class.java)
@@ -80,27 +74,10 @@ class RegionController(
   fun getRegion(@PathVariable regionOnestopId: String): MetropolitanRegionDTO {
     val region =
       regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-        notFound("Region", regionOnestopId)
+        ResponseStatusException(HttpStatus.NOT_FOUND, "${"Region"} not found: $regionOnestopId")
       }
     val feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
     return region.toDto(feeds)
-  }
-
-  @PatchMapping("/{regionOnestopId}")
-  @Transactional
-  fun updateRegion(
-    @PathVariable regionOnestopId: String,
-    @RequestBody request: RegionUpdateRequest,
-  ): MetropolitanRegionDTO {
-    val region =
-      regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-        notFound("Region", regionOnestopId)
-      }
-
-    request.autoUpdateEnabled?.let { auto -> region.autoUpdateEnabled = auto }
-    val updated = regionRepository.save(region)
-    val feeds = feedRepository.findAllByRegionRegionOnestopId(RegionId(regionOnestopId))
-    return updated.toDto(feeds)
   }
 
   @GetMapping("/{regionOnestopId}/feeds")
@@ -112,7 +89,7 @@ class RegionController(
   ): FeedsResponse {
     val region =
       regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-        notFound("Region", regionOnestopId)
+        ResponseStatusException(HttpStatus.NOT_FOUND, "${"Region"} not found: $regionOnestopId")
       }
 
     var feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
@@ -134,31 +111,6 @@ class RegionController(
     return FeedsResponse(feeds = feedDtos, total = feedDtos.size)
   }
 
-  @PostMapping("/{regionOnestopId}/discover")
-  suspend fun discoverFeeds(
-    @PathVariable regionOnestopId: String,
-    @RequestParam(required = false, defaultValue = "GTFS") spec: FeedSpecType,
-  ): FeedDiscoveryJobResult {
-    // GTFS-RT feeds are currently disabled
-    if (spec == FeedSpecType.GTFS_RT) {
-      logger.warn("GTFS-RT feed discovery is currently disabled")
-      throw ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "GTFS-RT feed discovery is currently disabled",
-      )
-    }
-
-    logger.info("Discovering feeds for region {} using spec {}", regionOnestopId, spec)
-
-    // Get region name for Transit.land API query
-    val region =
-      regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-        ResponseStatusException(HttpStatus.NOT_FOUND, "Region not found: $regionOnestopId")
-      }
-
-    return feedDiscoveryBatchService.discoverForRegion(regionOnestopId, spec.toEntity())
-  }
-
   /**
    * Start bulk import for all active feeds in a region.
    *
@@ -166,21 +118,21 @@ class RegionController(
    * continue-on-failure approach, so individual feed failures won't stop the entire operation.
    * Feeds that already have active imports will be automatically skipped.
    *
-   * @param regionOnestopId The region identifier
+   * @param regionId The region identifier
    * @return Summary of the bulk import operation including counts and per-feed results
    */
-  @PostMapping("/{regionOnestopId}/import-all")
+  @PostMapping("/{regionId}/import-all")
   @Transactional
-  fun importAllFeedsForRegion(@PathVariable regionOnestopId: String): BulkImportResponse {
-    logger.info("Starting bulk import for all feeds in region: {}", regionOnestopId)
+  fun importAllFeedsForRegion(@PathVariable regionId: String): BulkImportResponse {
+    logger.info("Starting bulk import for all feeds in region: {}", regionId)
 
     // Verify region exists
-    regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-      notFound("Region", regionOnestopId)
+    regionRepository.findByRegionOnestopId(RegionId(regionId)).orElseThrow {
+      ResponseStatusException(HttpStatus.NOT_FOUND, "${"Region"} not found: $regionId")
     }
 
     return regionImportService.import(
-      regionId = RegionId(regionOnestopId),
+      regionId = RegionId(regionId),
       triggerType = ImportTriggerType.MANUAL,
     )
   }
@@ -244,7 +196,4 @@ class RegionController(
       FeedStatus.INACTIVE -> com.mobilispect.backend.feed.model.FeedStatus.INACTIVE
       FeedStatus.ERROR -> com.mobilispect.backend.feed.model.FeedStatus.ERROR
     }
-
-  private fun notFound(entity: String, identifier: String) =
-    ResponseStatusException(HttpStatus.NOT_FOUND, "$entity not found: $identifier")
 }

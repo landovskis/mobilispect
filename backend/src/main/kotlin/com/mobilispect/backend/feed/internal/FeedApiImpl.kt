@@ -36,7 +36,7 @@ internal class FeedApiImpl(
   }
 
   override fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport =
-    feedImportService.startImport(feedId, triggerType)
+    feedImportService.import(feedId, triggerType)
 
   /** Converts the domain model to public DTO. */
   private fun Feed.toDTO(): FeedDTO {
