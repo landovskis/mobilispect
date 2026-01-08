@@ -163,22 +163,16 @@ pre-commit run --all-files
 
 ## Backend-Specific Requirements
 
-### Modular Monolith
-
-- Respect Spring Modulith boundaries
-- No cross-module database access
-- Use ports and events for inter-module communication
-- Module extraction requires ADR + migration plan
-
-### Performance Targets
-
-- API p95 latency ≤200ms
-- Implement backpressure for ingestion
-- Use retries with exponential backoff and jitter
-- Circuit breakers for external dependencies
+See [CLAUDE.md](../CLAUDE.md) for constitutional requirements on modular monolith architecture, performance targets, and quality standards. This section covers backend-specific implementation details.
 
 ### Database Migrations
 
 - All schema changes via versioned migrations
 - Migration validation required before deployment
 - Never modify applied migrations
+
+### Backend-Specific Implementation Notes
+
+- Implement backpressure for ingestion endpoints
+- Use retries with exponential backoff and jitter for external service calls
+- Circuit breakers for external dependencies (e.g., third-party APIs)

@@ -86,14 +86,6 @@ This project includes Spec-Kit commands for structured development:
 - `/speckit.clarify` - Identify spec ambiguities
 - `/speckit.implement` - Execute implementation tasks
 
-### Development Workflow
-
-1. **Feature Planning**: Use `/speckit.specify` → `/speckit.plan` → `/speckit.tasks`
-2. **Quality Assurance**: Use `/speckit.checklist` and `/speckit.analyze`
-3. **Implementation**: Follow TDD, maintain 80%+ test coverage
-4. **Documentation**: Create ADRs for all architectural decisions
-5. **Review**: Ensure constitutional compliance in all code reviews
-
 ### Enforcement
 
 - Constitution violations require explicit justification and team approval

@@ -299,6 +299,8 @@ pre-commit run --all-files
 
 ## Mobile-Specific Requirements
 
+See [CLAUDE.md](../CLAUDE.md) for constitutional requirements on accessibility (WCAG 2.1 AA), performance targets (60fps), light/dark theme parity, and testing standards (≥80% coverage). This section covers mobile-specific implementation details.
+
 ### Kotlin Multiplatform Mobile (KMM)
 
 - Shared business logic in `commonMain`
@@ -306,33 +308,29 @@ pre-commit run --all-files
 - Expect/actual declarations for platform APIs
 - Minimize platform-specific code
 
-### Android Requirements
+### Android Implementation
 
 - **UI**: Jetpack Compose with Material Design 3
-- **Minimum SDK**: Define in constitution
-- **Theme parity**: Light/dark mode support
-- **Performance**: 60fps UI rendering
-- **Accessibility**: TalkBack support, content descriptions
+- **Minimum SDK**: See constitution for version requirements
+- **Accessibility**: TalkBack support with content descriptions
+- **Touch targets**: Minimum 48dp (constitutional requirement)
 
-### iOS Requirements
+### iOS Implementation
 
 - **UI**: SwiftUI following iOS Design Guidelines
-- **Minimum iOS version**: Define in constitution
-- **Theme parity**: Light/dark mode support
-- **Performance**: 60fps UI rendering
-- **Accessibility**: VoiceOver support, accessibility labels
+- **Minimum iOS version**: See constitution for version requirements
+- **Accessibility**: VoiceOver support with accessibility labels
+- **Touch targets**: Minimum 44pt (constitutional requirement)
 
-### Testing Requirements
+### Mobile Testing Requirements
 
 - **Shared logic tests**: Test in `commonTest`
 - **Platform-specific tests**: Android (JUnit/Espresso), iOS (XCTest)
 - **UI tests**: Compose UI Testing, SwiftUI Preview tests
-- **≥80% coverage** across all platforms
+- **Coverage**: ≥80% across all platforms (constitutional requirement)
 
-### Accessibility
+### Mobile Accessibility Implementation
 
-- WCAG 2.1 AA compliance on mobile
-- Screen reader support (TalkBack, VoiceOver)
-- Sufficient touch target sizes (48dp/44pt minimum)
-- Color contrast requirements
-- Light/dark theme parity
+- Screen reader support (TalkBack on Android, VoiceOver on iOS)
+- Color contrast validation for both light/dark themes
+- Sufficient touch target sizes (48dp Android / 44pt iOS minimum)

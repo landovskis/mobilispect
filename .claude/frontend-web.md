@@ -154,26 +154,26 @@ npm run e2e
 
 ## Web-Specific Requirements
 
-### Accessibility (WCAG 2.1 AA)
+See [CLAUDE.md](../CLAUDE.md) for constitutional requirements on accessibility (WCAG 2.1 AA), performance targets (60fps), and testing standards. This section covers web-specific implementation details.
 
-- Automated accessibility checks in CI
+### Web Accessibility Implementation
+
+- Automated accessibility checks in CI (constitutional requirement)
 - Manual testing required for complex interactions
-- Light/dark theme parity required
-- Keyboard navigation support
+- Keyboard navigation support for all interactive elements
 
-### Performance Targets
+### Web Performance Implementation
 
-- 60fps UI rendering
-- Core Web Vitals compliance
+- Core Web Vitals compliance (LCP, FID, CLS)
 - Lazy loading for routes and modules
-- Optimize bundle size
+- Optimize bundle size via code splitting
 
-### Testing Requirements
+### Web Testing Requirements
 
-- **Unit tests**: Jest with ≥80% coverage
+- **Unit tests**: Jest with ≥80% coverage (constitutional requirement)
 - **E2E tests**: Playwright across all browsers (Chromium/Firefox/WebKit)
 - **Visual regression**: Screenshots for critical user flows
-- Test both light and dark themes
+- Test both light and dark themes (constitutional requirement)
 
 ### RxJS Best Practices
 
