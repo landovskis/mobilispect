@@ -6,21 +6,151 @@
 - **State Management**: RxJS for reactive state management
 - **Testing**: Playwright (Chromium/Firefox/WebKit)
 
+## Development Workflow
+
+Follow these steps for every frontend web change (TDD is constitutional requirement):
+
+### Step 1: Create Your Test First
+
+```bash
+# Navigate to component/service directory
+cd frontend/web/src/app/<feature>
+
+# Create your spec file (if new): your-feature.component.spec.ts
+# Write a failing test that describes the behavior you want
+```
+
+### Step 2: Run Test to Verify It Fails
+
+```bash
+# Run specific test in watch mode
+npm test -- --testNamePattern="YourFeature" --watch
+```
+
+Expected: Test fails (red) ✗
+
+### Step 3: Write Minimum Implementation
+
+```bash
+# Edit your component/service file: your-feature.component.ts
+# Write just enough code to make the test pass
+```
+
+### Step 4: Test Auto-Runs and Passes
+
+With Jest in watch mode, it automatically re-runs.
+
+Expected: Test passes (green) ✓
+
+### Step 5: Format Your Code
+
+```bash
+# Auto-format with Prettier
+npm run format
+```
+
+### Step 6: Run ESLint
+
+```bash
+# Check and auto-fix linting issues
+npm run lint -- --fix
+```
+
+Fix any remaining violations manually.
+
+### Step 7: Run Angular Linting
+
+```bash
+# Check Angular-specific rules
+npm run ng lint
+```
+
+### Step 8: Run All Tests with Coverage
+
+```bash
+# Stop watch mode (Ctrl+C), then run all tests
+npm test -- --coverage --watchAll=false
+```
+
+All tests must pass ✓
+
+### Step 9: Verify Coverage
+
+```bash
+# Coverage report is displayed in terminal
+# Should show ≥80% for all metrics
+
+# View detailed HTML report
+open frontend/web/coverage/lcov-report/index.html
+```
+
+If below 80%, add more tests and repeat from Step 1.
+
+### Step 10: Pre-Commit Verification
+
+```bash
+# Run all pre-commit hooks manually
+pre-commit run --all-files
+```
+
+All hooks must pass ✓
+
+### Step 11: Commit Your Changes
+
+```bash
+git add .
+git commit -m "feat: your feature description"
+```
+
+Pre-commit hooks will run automatically. If they fail, fix issues and retry.
+
 ## Pre-Commit Hooks
 
 Web-specific hooks enforced via `.pre-commit-config.yaml`:
 
-- **Prettier**: Code formatting
-- **ESLint**: Linting and code quality
-- **Jest**: Unit tests execution
-- **ng lint**: Angular-specific linting
+- **Prettier**: Code formatting (auto-fixes on commit)
+- **ESLint**: Linting and code quality (blocks commit on errors)
+- **Jest**: Unit tests execution (fast feedback)
+- **ng lint**: Angular-specific linting (template checks)
 - **Coverage validation**: ≥80% threshold
+
+## Quick Reference Commands
+
+```bash
+# Start dev server
+npm start
+
+# Format code
+npm run format
+
+# Lint and fix
+npm run lint -- --fix
+
+# Angular lint
+npm run ng lint
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run tests with coverage
+npm test -- --coverage --watchAll=false
+
+# Run all pre-commit hooks
+pre-commit run --all-files
+
+# Build for production
+npm run build
+
+# Run E2E tests
+npm run e2e
+```
 
 ## IDE Integration
 
 - **VS Code**: Pre-commit extension with real-time validation
 - Enable ESLint and Prettier extensions
 - Configure Angular Language Service
+- Set "Format on Save" with Prettier as default formatter
 
 ## Web-Specific Requirements
 
