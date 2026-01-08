@@ -32,14 +32,6 @@ constitution. Core principles:
    plan → tasks chain records assumptions/risks/NFRs; release notes include
    coverage, security, performance, accessibility, observability results.
 
-### Technology Stack (Constitutional)
-
-- **Backend**: Spring Boot with Kotlin 2.0+, PostgreSQL 18, Redis 8.2, Spring Modulith
-- **Frontend**: Angular 19 LTS with TypeScript, RxJS for state management
-- **Mobile**: Kotlin Multiplatform Mobile (KMM) with shared business logic
-- **Android**: Compose UI with Material Design 3
-- **iOS**: SwiftUI with iOS Design Guidelines
-
 ### Quality Gates
 
 All changes must pass:
@@ -64,15 +56,6 @@ pip install pre-commit
 pre-commit install
 ```
 
-#### Multi-Platform Hook Configuration (`.pre-commit-config.yaml`)
-
-- **Kotlin Backend**: ktlint formatting, detekt static analysis, test execution
-- **Angular Frontend**: Prettier formatting, ESLint linting, Jest tests, ng lint
-- **Android**: ktlint, Android lint, unit tests
-- **iOS**: SwiftFormat, SwiftLint, XCTest execution
-- **Security**: OWASP dependency check, secret scanning
-- **Cross-Platform**: Test coverage validation (80%+ threshold)
-
 #### Enforcement Mechanism
 
 - Hooks **BLOCK** commits that fail constitutional requirements
@@ -80,11 +63,7 @@ pre-commit install
 - Failed hooks display specific remediation commands
 - Developers can run `pre-commit run --all-files` for full validation
 
-#### IDE Integration
-
-- VS Code: Pre-commit extension with real-time validation
-- IntelliJ/Android Studio: Pre-commit plugin configuration
-- Xcode: Build phases for SwiftLint/SwiftFormat integration
+See platform-specific files for detailed hook configuration.
 
 ### ADR Requirements
 
@@ -107,42 +86,20 @@ This project includes Spec-Kit commands for structured development:
 - `/speckit.clarify` - Identify spec ambiguities
 - `/speckit.implement` - Execute implementation tasks
 
-### Development Workflow
-
-1. **Feature Planning**: Use `/speckit.specify` → `/speckit.plan` → `/speckit.tasks`
-2. **Quality Assurance**: Use `/speckit.checklist` and `/speckit.analyze`
-3. **Implementation**: Follow TDD, maintain 80%+ test coverage
-4. **Documentation**: Create ADRs for all architectural decisions
-5. **Review**: Ensure constitutional compliance in all code reviews
-
-### Testing Commands
-
-**IMPORTANT**: Run unit tests only during development to avoid long test
-suite execution times.
-
-```bash
-# Backend - Run unit tests only (fast)
-./backend/gradlew -p backend test --tests '*Test' --tests '*Tests'
-
-# Backend - Skip integration tests (use this for quick verification)
-./backend/gradlew -p backend test -x integrationTest
-
-# Backend - Run specific test class
-./backend/gradlew -p backend test --tests 'com.mobilispect.backend.agency.application.AgencyQueryServiceTest'
-
-# Full test suite (includes integration tests with Testcontainers - SLOW)
-./backend/gradlew -p backend test
-```
-
-Integration tests use Testcontainers and can take several minutes. Reserve
-full test runs for pre-commit/pre-push validation.
-
 ### Enforcement
 
 - Constitution violations require explicit justification and team approval
 - All PRs must verify constitutional compliance
 - Emergency exceptions require immediate follow-up remediation
 - ADRs are living documents and must be updated when decisions change
+
+---
+
+## Platform-Specific Configuration
+
+@.claude/backend.md
+@.claude/frontend-web.md
+@.claude/frontend-mobile.md
 
 ---
 
