@@ -32,6 +32,7 @@ describe('ImportService', () => {
     id: 'imp-1',
     feedOnestopId: 'f-1',
     feedName: 'Feed 1',
+    regionOnestopId: 'r-1',
     regionName: 'Region 1',
     status: ImportStatus.PENDING,
     triggerType: TriggerType.MANUAL,

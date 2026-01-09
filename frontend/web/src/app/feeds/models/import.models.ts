@@ -39,14 +39,15 @@ export interface FeedImportDetail extends FeedImport {
 export interface FeedImportSummary {
   id: string;
   feedOnestopId: string;
-  feedName: string;
-  regionName: string;
+  feedName: string | null;
+  regionOnestopId: string | null;
+  regionName: string | null;
   status: ImportStatus;
   triggerType: TriggerType;
   startedAt: string | null;
   completedAt: string | null;
-  fileSizeBytes: number | null;
-  errorMessage: string | null;
+  fileSizeBytes?: number | null;
+  errorMessage?: string | null;
   progress: ImportProgress | null;
   currentStep?: string; // For backward compatibility
 }
