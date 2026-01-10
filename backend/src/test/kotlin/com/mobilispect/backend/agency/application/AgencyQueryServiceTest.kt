@@ -5,6 +5,7 @@ import com.mobilispect.backend.agency.domain.model.Agency
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.FeedApi
 import com.mobilispect.backend.feed.api.FeedDTO
+import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -105,6 +106,21 @@ class AgencyQueryServiceTest {
   fun `getAgenciesByRegion aggregates agencies from feeds`() {
     val now = Instant.now()
     val feed =
+      Feed(
+        feedId = FeedId("f-abc"),
+        name = "Test Feed",
+        specType = FeedSpecType.GTFS,
+        downloadUrl = "https://example.com/gtfs.zip",
+        currentVersionSha1 = null,
+        status = FeedStatus.ACTIVE,
+        regionIds = setOf(RegionId("r-1")),
+        lastCheckedAt = null,
+        lastUpdatedAt = null,
+        lastDiscoveredAt = null,
+        createdAt = now,
+        updatedAt = now,
+      )
+    val feedDTO =
       FeedDTO(
         feedId = FeedId("f-abc"),
         name = "Test Feed",
@@ -131,7 +147,7 @@ class AgencyQueryServiceTest {
     `when`(agencyRepository.findByFeedId(any(), any())).thenReturn(PageImpl(listOf(agency)))
     `when`(routeRepository.findByAgencyId(any(), any())).thenReturn(PageImpl(emptyList()))
     `when`(routeRepository.countByAgencyId(agency.agencyId)).thenReturn(0)
-    `when`(feedQueryApi.findFeedById(any())).thenReturn(feed)
+    `when`(feedQueryApi.findFeedById(any())).thenReturn(feedDTO)
     val page = service.getAgenciesByRegion(RegionId("r-1"), PageRequest.of(0, 20))
     assertThat(page.totalElements).isEqualTo(1)
   }

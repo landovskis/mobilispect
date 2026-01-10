@@ -15,6 +15,7 @@ import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
 import org.springframework.batch.core.launch.JobExecutionAlreadyRunningException
 import org.springframework.batch.core.launch.JobLauncher
+import org.springframework.batch.core.launch.JobOperator
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.TaskExecutor
 import org.springframework.data.domain.PageRequest
@@ -28,6 +29,7 @@ class FeedImportService(
   @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
   private val feedImportRepository: FeedImportRepository,
   private val jobLauncher: JobLauncher,
+  private val jobOperator: JobOperator,
   @Qualifier("feedImportJob") private val feedImportJob: Job,
   @Qualifier("taskExecutor") private val importLaunchExecutor: TaskExecutor,
   private val clock: Clock = Clock.systemUTC(),
@@ -111,6 +113,8 @@ class FeedImportService(
         .onFailure { throwable ->
           if (throwable is JobExecutionAlreadyRunningException) {
             logger.info("Feed import job already running for {} with import {}", feedId, importId)
+            cancelRunningJobExecution(importId, feedId)
+            cancelImport(importId)
             return@onFailure
           }
           logger.error("Failed to launch feed import job for {}", feedId, throwable)
@@ -153,5 +157,33 @@ class FeedImportService(
     feedImport.completedAt = clock.instant()
     feedImport.errorMessage = message
     feedImportRepository.save(feedImport)
+  }
+
+  private fun cancelRunningJobExecution(importId: ImportId, feedId: FeedId) {
+    val runningExecutionIds = jobOperator.getRunningExecutions(feedImportJob.name)
+
+    if (runningExecutionIds.isEmpty()) {
+      logger.warn(
+        "No running job executions found to cancel for feed {} and import {}",
+        feedId,
+        importId,
+      )
+      return
+    }
+
+    runningExecutionIds.forEach { executionId ->
+      runCatching { jobOperator.stop(executionId) }
+        .onSuccess {
+          logger.info("Stopped running job execution {} for feed {}", executionId, feedId)
+        }
+        .onFailure { error ->
+          logger.warn(
+            "Failed to stop running job execution {} for feed {}",
+            executionId,
+            feedId,
+            error,
+          )
+        }
+    }
   }
 }
