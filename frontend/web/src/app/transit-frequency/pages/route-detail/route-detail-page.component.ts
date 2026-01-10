@@ -167,4 +167,19 @@ export class RouteDetailPageComponent implements OnInit {
     return mostCommon;
   }
 
+  getRouteTypeLabel(routeType: string): string {
+    switch (routeType) {
+      case 'BUS':
+        return 'Bus';
+      case 'SUBWAY':
+        return 'Subway/Metro';
+      case 'TRAM':
+        return 'Tram';
+      case 'RAIL':
+        return 'Rail';
+      default:
+        return routeType;
+    }
+  }
+
 }
