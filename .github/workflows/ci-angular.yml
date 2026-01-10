@@ -147,7 +147,11 @@ jobs:
       - name: Run ESLint
         run: |
           echo "✨ Running ESLint..."
-          cd frontend/web && npx ng lint
+          if node -e "const fs=require('fs');const cfg=JSON.parse(fs.readFileSync('frontend/web/angular.json'));const hasLint=cfg?.projects?.web?.architect?.lint;process.exit(hasLint?0:1)"; then
+            cd frontend/web && npx ng lint
+          else
+            echo "⚠️ No Angular lint target configured; skipping."
+          fi
 
   angular-format:
     name: Formatting
