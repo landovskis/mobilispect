@@ -1,4 +1,4 @@
-package com.mobilispect.backend.api.dto
+package com.mobilispect.backend.feed
 
 import com.mobilispect.backend.feed.domain.ImportStatus
 import com.mobilispect.backend.feed.domain.TriggerType

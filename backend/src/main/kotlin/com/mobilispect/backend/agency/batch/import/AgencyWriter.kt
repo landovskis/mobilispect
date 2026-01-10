@@ -28,7 +28,7 @@ class AgencyWriter(
 
   @AfterStep
   fun afterStep(stepExecution: StepExecution) {
-    feedId = FeedId(stepExecution.jobExecution.executionContext.get("feedId") as String)
+    feedId = FeedId(feedOnestopId)
     eventPublisher.publishEvent(FeedImportStepCompleted(feedId!!, "agency"))
   }
 
@@ -38,20 +38,12 @@ class AgencyWriter(
     var updated = 0
 
     chunk.items.forEach { agency ->
-      val existing = agencyRepository.findByFeedIdAndGtfsAgencyId(feedId, agency.gtfsAgencyId)
+      val existing = agencyRepository.findById(agency.agencyId)
       if (existing == null) {
         agencyRepository.save(agency)
         created++
       } else {
-        agencyRepository.save(
-          existing.copy(
-            name = agency.name,
-            website = agency.website,
-            phone = agency.phone,
-            active = agency.active,
-            lastFeedImport = agency.lastFeedImport,
-          )
-        )
+        agencyRepository.save(existing.copy(name = agency.name, active = agency.active))
         updated++
       }
     }

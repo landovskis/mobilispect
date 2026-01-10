@@ -1,10 +1,10 @@
 package com.mobilispect.backend.route.application
 
 import com.mobilispect.backend.config.RedisConfiguration
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.dto.FrequencyDTO
 import com.mobilispect.backend.route.api.dto.RouteDTO
 import com.mobilispect.backend.route.api.dto.RouteVariantDTO
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository

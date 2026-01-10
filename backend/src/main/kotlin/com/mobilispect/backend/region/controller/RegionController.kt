@@ -10,10 +10,11 @@ import com.mobilispect.backend.api.dto.RegionsResponse
 import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
 import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.domain.MetropolitanRegion
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus

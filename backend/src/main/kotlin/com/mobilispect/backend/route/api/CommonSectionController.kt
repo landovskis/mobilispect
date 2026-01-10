@@ -1,10 +1,10 @@
 package com.mobilispect.backend.route.api
 
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.dto.CombinedFrequencyDTO
 import com.mobilispect.backend.route.api.dto.CommonSectionDTO
 import com.mobilispect.backend.route.application.CommonSectionService
 import com.mobilispect.backend.route.domain.model.TimePeriod
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import java.util.UUID
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable

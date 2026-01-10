@@ -3,9 +3,9 @@ package com.mobilispect.backend.feed.batch.discovery
 import com.mobilispect.backend.feed.events.RegionDiscoveredEvent
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.domain.MetropolitanRegion
 import java.time.Instant
 import org.slf4j.LoggerFactory

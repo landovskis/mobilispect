@@ -1,10 +1,10 @@
 package com.mobilispect.backend.route.application
 
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.dto.CombinedFrequencyDTO
 import com.mobilispect.backend.route.api.dto.CommonSectionDTO
 import com.mobilispect.backend.route.api.dto.RouteContributionDTO
 import com.mobilispect.backend.route.domain.model.TimePeriod
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.CommonSectionRepository
 import com.mobilispect.backend.route.domain.repository.CommonSectionVariantRepository

@@ -1,7 +1,11 @@
-package com.mobilispect.backend.feed.api
+package com.mobilispect.backend.feed
 
+import com.mobilispect.backend.feed.api.FeedDTO
+import com.mobilispect.backend.feed.domain.FeedImport
+import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.feed.model.ImportTriggerType
+import com.mobilispect.backend.region.RegionId
 
 /**
  * Public API for querying feeds.
@@ -13,7 +17,7 @@ import com.mobilispect.backend.feed.model.ids.RegionId
  * - No cross-module database access
  * - Communication via ports/events only
  */
-interface FeedQueryApi {
+interface FeedApi {
   /**
    * Find a feed by its onestop ID.
    *
@@ -28,7 +32,7 @@ interface FeedQueryApi {
    * @param regionId The region identifier
    * @return List of feeds in the region
    */
-  fun findFeedsByRegion(regionId: RegionId): List<FeedDTO>
+  fun findFeedsByRegion(regionId: RegionId): List<Feed>
 
   /**
    * Get the current version SHA1 for a feed.
@@ -37,4 +41,6 @@ interface FeedQueryApi {
    * @return The version SHA1 if available, null otherwise
    */
   fun getFeedVersion(feedId: FeedId): String?
+
+  fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport
 }

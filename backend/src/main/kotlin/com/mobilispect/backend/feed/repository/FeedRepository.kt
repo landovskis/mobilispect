@@ -3,7 +3,7 @@ package com.mobilispect.backend.feed.repository
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 import java.util.Optional
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -35,7 +35,7 @@ interface FeedRepository : JpaRepository<FeedEntity, String> {
   @Query(
     "SELECT f FROM FeedEntity f JOIN f.regions r WHERE r.regionOnestopId = :regionOnestopId AND f.status IN :statuses"
   )
-  fun findAllByRegionRegionOnestopIdAndStatusIn(
+  fun findAllByRegionIdAndStatusIn(
     @Param("regionOnestopId") regionOnestopId: RegionId,
     @Param("statuses") statuses: Collection<FeedStatus>,
   ): List<FeedEntity>

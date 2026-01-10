@@ -1,13 +1,13 @@
 package com.mobilispect.backend.transitanalysis.application
 
-import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.application.FrequencyQueryService
 import com.mobilispect.backend.route.domain.model.Frequency
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
 import com.mobilispect.backend.route.domain.model.RouteVariant
 import com.mobilispect.backend.route.domain.model.TimePeriod
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
@@ -33,8 +33,7 @@ class FrequencyQueryServiceTest {
     val route =
       Route(
         id = RouteId("r-1"),
-        agencyId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-1"),
-        gtfsRouteId = GTFSRouteId("R1"),
+        agencyId = AgencyId("o-1"),
         longName = "Route 1",
         routeType = RouteType.BUS,
         active = true,
@@ -68,8 +67,7 @@ class FrequencyQueryServiceTest {
     val route =
       Route(
         id = RouteId("r-1"),
-        agencyId = com.mobilispect.backend.agency.domain.model.ids.AgencyId("o-1"),
-        gtfsRouteId = GTFSRouteId("R1"),
+        agencyId = AgencyId("o-1"),
         longName = "Route 1",
         routeType = RouteType.BUS,
         active = true,

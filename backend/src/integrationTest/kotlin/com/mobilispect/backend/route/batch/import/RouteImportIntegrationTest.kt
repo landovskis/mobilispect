@@ -1,15 +1,15 @@
 package com.mobilispect.backend.route.batch.import
 
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
 import com.mobilispect.backend.agency.domain.repository.AgencyRepository
 import com.mobilispect.backend.feed.api.GTFSRoute
 import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.api.ids.GTFSRouteId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.events.RouteImported
 import java.time.Instant

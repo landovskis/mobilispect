@@ -1,9 +1,9 @@
 package com.mobilispect.backend.route.data.mapper
 
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.data.entity.RouteEntity
 import com.mobilispect.backend.route.data.entity.RouteVariantEntity
 import com.mobilispect.backend.route.domain.model.RouteVariant
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import org.springframework.stereotype.Component
 

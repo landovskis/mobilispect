@@ -5,7 +5,7 @@ import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.data.MetropolitanRegionEntity
 import java.time.Instant
 import org.junit.jupiter.api.Assertions.*

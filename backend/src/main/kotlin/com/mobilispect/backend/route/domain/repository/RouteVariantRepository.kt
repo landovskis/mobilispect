@@ -1,7 +1,7 @@
 package com.mobilispect.backend.route.domain.repository
 
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.domain.model.RouteVariant
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import java.time.Instant
 import org.springframework.data.domain.Page

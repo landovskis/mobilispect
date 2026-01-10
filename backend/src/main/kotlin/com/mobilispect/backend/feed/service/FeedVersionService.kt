@@ -1,8 +1,8 @@
 package com.mobilispect.backend.feed.service
 
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.model.ids.RegionId
 import com.mobilispect.backend.feed.repository.FeedRepository
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.schedule.transit_land.TransitLandAPI
 import com.mobilispect.backend.schedule.transit_land.api.TransitLandCredentialsRepository
 import java.security.MessageDigest
