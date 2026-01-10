@@ -54,7 +54,7 @@ class RegionImportService(
   fun import(regionId: RegionId, triggerType: ImportTriggerType): BulkImportResponse {
     logger.info("Starting bulk import for region: $regionId")
 
-    val feeds = feedApi.findFeedsByRegion(regionId)
+    val feeds = feedApi.findActiveFeedsByRegion(regionId)
     if (feeds.isEmpty()) {
       logger.warn("No active feeds found for region: $regionId")
       return BulkImportResponse(
@@ -66,6 +66,9 @@ class RegionImportService(
         results = emptyList(),
       )
     }
+
+    // Clear previous feed states for this region to ensure clean state
+    feedImportStates.clear()
 
     val results = mutableListOf<FeedImportResult>()
     var startedCount = 0
@@ -174,6 +177,11 @@ class RegionImportService(
   }
 
   private fun publishEventsIfNeeded() {
+    // Don't publish events if no feeds are being tracked (empty map or all cleared)
+    if (feedImportStates.isEmpty()) {
+      return
+    }
+
     if (feedImportStates.all { it.value.status == RegionFeedImportStatus.COMPLETED }) {
       eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(lastRegionId))
       return

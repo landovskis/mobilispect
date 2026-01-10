@@ -35,6 +35,14 @@ interface FeedApi {
   fun findFeedsByRegion(regionId: RegionId): List<Feed>
 
   /**
+   * Find all ACTIVE feeds associated with a specific region.
+   *
+   * @param regionId The region identifier
+   * @return List of active feeds in the region
+   */
+  fun findActiveFeedsByRegion(regionId: RegionId): List<Feed>
+
+  /**
    * Get the current version SHA1 for a feed.
    *
    * @param feedId The feed identifier

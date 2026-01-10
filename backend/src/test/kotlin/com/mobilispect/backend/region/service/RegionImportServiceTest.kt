@@ -145,8 +145,35 @@ class RegionImportServiceTest {
     }
   }
 
+  @Test
+  fun `import only imports ACTIVE feeds, not INACTIVE or ERROR feeds`() {
+    val regionId = RegionId("r-mixed-status")
+    val activeFeeds = listOf(feed("f-active-1", regionId), feed("f-active-2", regionId))
+
+    // Mock to return only active feeds (simulating the repository filter)
+    every { feedApi.findActiveFeedsByRegion(regionId) } returns activeFeeds
+    activeFeeds.forEach { feed ->
+      every { feedApi.import(feed.feedId, ImportTriggerType.MANUAL) } returns
+        FeedImport(id = ImportId.random(), feedId = feed.feedId.value)
+    }
+
+    val response = service.import(regionId, ImportTriggerType.MANUAL)
+
+    // Verify only active feeds were imported
+    assertThat(response.totalFeeds).isEqualTo(2)
+    assertThat(response.startedCount).isEqualTo(2)
+    assertThat(response.results).hasSize(2)
+    assertThat(response.results.map { it.feedOnestopId }).containsExactlyInAnyOrder(
+      "f-active-1",
+      "f-active-2"
+    )
+
+    // Verify findActiveFeedsByRegion was called, not findFeedsByRegion
+    verify(exactly = 1) { feedApi.findActiveFeedsByRegion(regionId) }
+  }
+
   private fun primeRegionImport(regionId: RegionId, feeds: List<Feed>) {
-    every { feedApi.findFeedsByRegion(regionId) } returns feeds
+    every { feedApi.findActiveFeedsByRegion(regionId) } returns feeds
     feeds.forEach { feed ->
       every { feedApi.import(feed.feedId, ImportTriggerType.MANUAL) } returns
         FeedImport(id = ImportId.random(), feedId = feed.feedId.value)

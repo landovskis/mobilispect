@@ -31,6 +31,13 @@ internal class FeedApiImpl(
     return feedRepository.findByRegionId(regionId)
   }
 
+  override fun findActiveFeedsByRegion(regionId: RegionId): List<Feed> {
+    return feedRepository.findByRegionIdAndStatusIn(
+      regionId,
+      listOf(com.mobilispect.backend.feed.model.FeedStatus.ACTIVE)
+    )
+  }
+
   override fun getFeedVersion(feedId: FeedId): String? {
     return feedRepository.findById(feedId)?.currentVersionSha1
   }
