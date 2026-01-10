@@ -85,7 +85,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
               <app-brand-card
                 class="history-item-card"
                 [title]="importItem.feedName || importItem.feedOnestopId"
-                [subtitle]="importItem.regionName">
+                [subtitle]="importItem.regionName ?? undefined">
                 <div card-content class="history-card-content flex flex-col gap-3">
                   <div class="history-meta flex flex-wrap items-center gap-3">
                     <app-brand-badge

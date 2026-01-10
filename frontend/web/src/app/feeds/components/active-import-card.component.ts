@@ -24,8 +24,8 @@ import { ImportService } from '../services/import.service';
   template: `
     <app-brand-card
       titleIcon="rss_feed"
-      [title]="importItem.feedName"
-      [subtitle]="importItem.regionName"
+      [title]="importItem.feedName ?? undefined"
+      [subtitle]="importItem.regionName ?? undefined"
       [badge]="currentStatus"
       [hasFooter]="true">
 
