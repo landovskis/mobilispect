@@ -1,9 +1,8 @@
 package com.mobilispect.backend.agency.data.mapper
 
+import com.mobilispect.backend.agency.AgencyId
 import com.mobilispect.backend.agency.data.entity.AgencyEntity
 import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
-import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import org.springframework.stereotype.Component
 
@@ -16,36 +15,27 @@ import org.springframework.stereotype.Component
 @Component
 class AgencyMapper {
 
-  /** Converts data entity to domain model. Extracts feed ID from the feedOnestopId column. */
+  /** Converts data entity to the domain model. */
   fun toDomain(entity: AgencyEntity): Agency =
     Agency(
-      agencyOnestopId = AgencyId(entity.agencyOnestopId),
+      agencyId = AgencyId(entity.id),
       feedId = FeedId(entity.feedId),
-      gtfsAgencyId = GTFSAgencyId(entity.gtfsId),
       name = entity.name,
-      website = entity.website,
-      phone = entity.phone,
-      lastFeedImport = entity.lastFeedImport,
       active = entity.active,
       createdAt = entity.createdAt,
       updatedAt = entity.updatedAt,
     )
 
   /**
-   * Converts domain model to data entity. Maps feed ID directly to feedId column without entity
-   * navigation.
+   * Converts the domain model to the data entity.
    *
    * @param domain The domain model to convert
    */
   fun toEntity(domain: Agency): AgencyEntity =
     AgencyEntity(
-      agencyOnestopId = domain.agencyOnestopId.value,
+      id = domain.agencyId.toString(),
       feedId = domain.feedId.value,
-      gtfsId = domain.gtfsAgencyId.value,
       name = domain.name,
-      website = domain.website,
-      phone = domain.phone,
-      lastFeedImport = domain.lastFeedImport,
       active = domain.active,
       createdAt = domain.createdAt,
       updatedAt = domain.updatedAt,

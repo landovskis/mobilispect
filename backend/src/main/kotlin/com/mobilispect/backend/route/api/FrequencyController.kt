@@ -1,10 +1,10 @@
 package com.mobilispect.backend.route.api
 
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.dto.FrequencyDTO
 import com.mobilispect.backend.route.api.dto.RouteDTO
 import com.mobilispect.backend.route.api.dto.RouteVariantDTO
 import com.mobilispect.backend.route.application.FrequencyQueryService
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import java.time.LocalDate
 import org.springframework.format.annotation.DateTimeFormat

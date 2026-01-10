@@ -1,8 +1,8 @@
 package com.mobilispect.backend.route.data.repository
 
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.data.mapper.RouteVariantMapper
 import com.mobilispect.backend.route.domain.model.RouteVariant
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import java.time.Instant

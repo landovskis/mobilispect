@@ -1,9 +1,9 @@
 package com.mobilispect.backend.route.domain.repository
 
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
+import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteType
-import com.mobilispect.backend.route.domain.model.ids.RouteId
 import java.time.Instant
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable

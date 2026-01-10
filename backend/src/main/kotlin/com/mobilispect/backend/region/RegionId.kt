@@ -1,4 +1,4 @@
-package com.mobilispect.backend.feed.model.ids
+package com.mobilispect.backend.region
 
 import jakarta.persistence.Embeddable
 import java.io.Serializable

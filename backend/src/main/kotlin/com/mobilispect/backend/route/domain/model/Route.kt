@@ -1,8 +1,7 @@
 package com.mobilispect.backend.route.domain.model
 
-import com.mobilispect.backend.agency.domain.model.ids.AgencyId
-import com.mobilispect.backend.feed.api.ids.GTFSRouteId
-import com.mobilispect.backend.route.domain.model.ids.RouteId
+import com.mobilispect.backend.agency.AgencyId
+import com.mobilispect.backend.route.RouteId
 import java.time.Instant
 
 /**
@@ -24,7 +23,6 @@ import java.time.Instant
 data class Route(
   val id: RouteId,
   val agencyId: AgencyId,
-  val gtfsRouteId: GTFSRouteId,
   val shortName: String? = null,
   val longName: String,
   val routeType: RouteType,

@@ -6,7 +6,7 @@ import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.domain.repository.FeedRepository
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
-import com.mobilispect.backend.feed.model.ids.RegionId
+import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.data.repository.MetropolitanRegionJpaRepository
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
