@@ -105,7 +105,7 @@ class AgencyQueryServiceTest {
   @Test
   fun `getAgenciesByRegion aggregates agencies from feeds`() {
     val now = Instant.now()
-    val feed =
+    val feedDomain =
       Feed(
         feedId = FeedId("f-abc"),
         name = "Test Feed",
@@ -120,7 +120,7 @@ class AgencyQueryServiceTest {
         createdAt = now,
         updatedAt = now,
       )
-    val feedDTO =
+    val feedDto =
       FeedDTO(
         feedId = FeedId("f-abc"),
         name = "Test Feed",
@@ -143,11 +143,11 @@ class AgencyQueryServiceTest {
         createdAt = Instant.now(),
         updatedAt = Instant.now(),
       )
-    `when`(feedQueryApi.findFeedsByRegion(RegionId("r-1"))).thenReturn(listOf(feed))
+    `when`(feedQueryApi.findFeedsByRegion(RegionId("r-1"))).thenReturn(listOf(feedDomain))
     `when`(agencyRepository.findByFeedId(any(), any())).thenReturn(PageImpl(listOf(agency)))
     `when`(routeRepository.findByAgencyId(any(), any())).thenReturn(PageImpl(emptyList()))
     `when`(routeRepository.countByAgencyId(agency.agencyId)).thenReturn(0)
-    `when`(feedQueryApi.findFeedById(any())).thenReturn(feedDTO)
+    `when`(feedQueryApi.findFeedById(any())).thenReturn(feedDto)
     val page = service.getAgenciesByRegion(RegionId("r-1"), PageRequest.of(0, 20))
     assertThat(page.totalElements).isEqualTo(1)
   }

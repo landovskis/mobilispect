@@ -15,13 +15,14 @@ class AgencyId {
   var value: String
 
   constructor(value: String) {
+    require(value.isNotBlank()) { "Agency ID cannot be blank" }
     this.value = value
   }
 
   constructor(
     feedId: FeedId,
     agencyId: FeedLocalAgencyId,
-  ) : this("${feedId.value}$delimiter${agencyId.value}")
+  ) : this("${feedId.value}$delimiter${agencyId.value}") {}
 
   override fun toString(): String = value
 }
