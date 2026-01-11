@@ -35,7 +35,12 @@ class FeedRepositoryImpl(
     regionId: RegionId,
     statuses: Collection<FeedStatus>,
   ): List<Feed> =
-    jpaRepository.findByRegionIdAndStatusIn(regionId.value, statuses).map { mapper.toDomain(it) }
+    jpaRepository
+      .findByRegionIdAndStatusIn(
+        regionId.value,
+        statuses.first().dbValue, // Pass string value for PostgreSQL enum casting
+      )
+      .map { mapper.toDomain(it) }
 
   override fun findByRegionIdAndSpecTypeIn(
     regionId: RegionId,

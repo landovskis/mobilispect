@@ -2,7 +2,6 @@ package com.mobilispect.backend.feed.data.repository
 
 import com.mobilispect.backend.feed.data.entity.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
-import com.mobilispect.backend.feed.model.FeedStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -25,11 +24,18 @@ interface FeedJpaRepository : JpaRepository<FeedEntity, String> {
 
   /** Find feeds by region and status. */
   @Query(
-    "SELECT f FROM FeedDataEntity f JOIN f.regions r WHERE r.regionOnestopId = :regionId AND f.status IN :statuses"
+    value =
+      """
+      SELECT f.* FROM feeds f
+      JOIN feed_regions fr ON f.feed_onestop_id = fr.feed_onestop_id
+      WHERE fr.region_onestop_id = :regionId
+        AND f.status = CAST(:status AS feed_status)
+    """,
+    nativeQuery = true,
   )
   fun findByRegionIdAndStatusIn(
     @Param("regionId") regionId: String,
-    @Param("statuses") statuses: Collection<FeedStatus>,
+    @Param("status") status: String,
   ): List<FeedEntity>
 
   /** Find feeds by region and spec type. */

@@ -110,9 +110,7 @@ class RegionImportServiceTest {
     service.onFeedImportCompleted(FeedImportCompletedEvent(feeds[1].feedId))
 
     verify(exactly = 1) { eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(regionId)) }
-    verify(exactly = 0) {
-      eventPublisher.publishEvent(match { it is RegionFeedsImportFailedEvent })
-    }
+    verify(exactly = 0) { eventPublisher.publishEvent(RegionFeedsImportFailedEvent(regionId)) }
   }
 
   @Test
@@ -124,9 +122,7 @@ class RegionImportServiceTest {
     service.onFeedImportCompleted(FeedImportCompletedEvent(feeds[0].feedId))
     service.onFeedImportFailed(FeedImportFailedEvent(feeds[1].feedId, "stops", "boom"))
 
-    verify(exactly = 1) {
-      eventPublisher.publishEvent(match { it is RegionFeedsImportFailedEvent })
-    }
+    verify(exactly = 1) { eventPublisher.publishEvent(RegionFeedsImportFailedEvent(regionId)) }
     verify(exactly = 0) { eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(regionId)) }
   }
 
@@ -140,9 +136,7 @@ class RegionImportServiceTest {
     service.onFeedImportCompleted(FeedImportCompletedEvent(feeds[0].feedId))
 
     verify(exactly = 0) { eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(regionId)) }
-    verify(exactly = 0) {
-      eventPublisher.publishEvent(match { it is RegionFeedsImportFailedEvent })
-    }
+    verify(exactly = 0) { eventPublisher.publishEvent(RegionFeedsImportFailedEvent(regionId)) }
   }
 
   @Test
@@ -163,10 +157,8 @@ class RegionImportServiceTest {
     assertThat(response.totalFeeds).isEqualTo(2)
     assertThat(response.startedCount).isEqualTo(2)
     assertThat(response.results).hasSize(2)
-    assertThat(response.results.map { it.feedOnestopId }).containsExactlyInAnyOrder(
-      "f-active-1",
-      "f-active-2"
-    )
+    assertThat(response.results.map { it.feedOnestopId })
+      .containsExactlyInAnyOrder("f-active-1", "f-active-2")
 
     // Verify findActiveFeedsByRegion was called, not findFeedsByRegion
     verify(exactly = 1) { feedApi.findActiveFeedsByRegion(regionId) }

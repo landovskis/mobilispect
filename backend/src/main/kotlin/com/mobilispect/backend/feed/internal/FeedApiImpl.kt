@@ -34,7 +34,7 @@ internal class FeedApiImpl(
   override fun findActiveFeedsByRegion(regionId: RegionId): List<Feed> {
     return feedRepository.findByRegionIdAndStatusIn(
       regionId,
-      listOf(com.mobilispect.backend.feed.model.FeedStatus.ACTIVE)
+      setOf(com.mobilispect.backend.feed.model.FeedStatus.ACTIVE),
     )
   }
 

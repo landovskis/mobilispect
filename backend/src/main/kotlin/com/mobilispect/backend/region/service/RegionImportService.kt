@@ -70,6 +70,12 @@ class RegionImportService(
     // Clear previous feed states for this region to ensure clean state
     feedImportStates.clear()
 
+    // Initialize state for all feeds in this batch so we can track completion correctly
+    feeds.forEach { feed ->
+      feedImportStates[feed.feedId] =
+        RegionFeedImportState(feedId = feed.feedId, status = RegionFeedImportStatus.STARTED)
+    }
+
     val results = mutableListOf<FeedImportResult>()
     var startedCount = 0
     var failedCount = 0
@@ -193,7 +199,7 @@ class RegionImportService(
           it.value.status == RegionFeedImportStatus.FAILED
       }
     ) {
-      eventPublisher.publishEvent(RegionFeedsImportFailedEvent(lastRegionId))
+      eventPublisher.publishEvent(RegionFeedsImportFailedEvent(regionId = lastRegionId))
     }
   }
 }
