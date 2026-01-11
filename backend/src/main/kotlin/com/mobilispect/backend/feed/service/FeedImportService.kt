@@ -36,6 +36,7 @@ class FeedImportService(
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
+  @Transactional
   fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
     val activeImport =
       feedImportRepository
@@ -79,16 +80,33 @@ class FeedImportService(
 
     val now = clock.instant()
     val feedImport =
-      feedImportRepository.save(
-        FeedImport().apply {
-          this.feedId = feed.feedId
-          this.administrator = null
-          this.triggerType = triggerType
-          this.status = ImportStatus.RUNNING
-          this.startedAt = now
-          this.versionSha1 = null
-        }
-      )
+      try {
+        feedImportRepository.save(
+          FeedImport().apply {
+            this.feedId = feed.feedId
+            this.administrator = null
+            this.triggerType = triggerType
+            this.status = ImportStatus.RUNNING
+            this.startedAt = now
+            this.versionSha1 = null
+          }
+        )
+      } catch (e: org.springframework.dao.DataIntegrityViolationException) {
+        // Database constraint prevented duplicate - fetch and return the existing import
+        logger.info(
+          "Import already started for feed {} (caught by database constraint), fetching existing import",
+          feedId,
+        )
+        feedImportRepository
+          .findAllByFeedIdAndStatusInOrderByStartedAtDesc(
+            feedId.value,
+            listOf(ImportStatus.PENDING, ImportStatus.RUNNING),
+            PageRequest.of(0, 1),
+          )
+          .content
+          .firstOrNull()
+          ?: throw IllegalStateException("Failed to create or find active import for feed $feedId")
+      }
 
     if (TransactionSynchronizationManager.isSynchronizationActive()) {
       TransactionSynchronizationManager.registerSynchronization(
