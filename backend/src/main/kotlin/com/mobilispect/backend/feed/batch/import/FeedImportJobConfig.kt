@@ -63,6 +63,7 @@ class FeedImportJobConfig(
   @Bean
   fun feedImportJob(): Job =
     JobBuilder("feedImportJob", jobRepository)
+      .preventRestart()
       .start(feedImportStep())
       .next(agencyProcessingStep())
       .next(routeProcessingStep())
