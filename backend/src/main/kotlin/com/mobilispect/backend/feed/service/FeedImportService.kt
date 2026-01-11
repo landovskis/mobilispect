@@ -108,16 +108,27 @@ class FeedImportService(
           ?: throw IllegalStateException("Failed to create or find active import for feed $feedId")
       }
 
+    // Capture values before async execution to avoid variable capture issues
+    val capturedImportId = feedImport.id
+    val capturedFeedId = FeedId(feed.feedId)
+
+    logger.info("import() method: created import {} for feed {}", capturedImportId, capturedFeedId)
+
     if (TransactionSynchronizationManager.isSynchronizationActive()) {
       TransactionSynchronizationManager.registerSynchronization(
         object : TransactionSynchronization {
           override fun afterCommit() {
-            launchImportJob(feedImport.id, FeedId(feed.feedId))
+            logger.info(
+              "afterCommit hook: importing {} for feed {}",
+              capturedImportId,
+              capturedFeedId,
+            )
+            launchImportJob(capturedImportId, capturedFeedId)
           }
         }
       )
     } else {
-      launchImportJob(feedImport.id, FeedId(feed.feedId))
+      launchImportJob(capturedImportId, capturedFeedId)
     }
 
     return feedImport
@@ -136,14 +147,22 @@ class FeedImportService(
   }
 
   private fun launchImportJob(importId: ImportId, feedId: FeedId) {
-    // Build parameters now - importId is unique enough, no need for timestamp
-    val params =
-      JobParametersBuilder()
-        .addString("feedOnestopId", feedId.value, true)
-        .addString("importId", importId.value.toString(), true)
-        .toJobParameters()
+    logger.info("launchImportJob called with importId={}, feedId={}", importId, feedId)
 
     importLaunchExecutor.execute {
+      // Build parameters INSIDE async block to avoid variable capture issues
+      val params =
+        JobParametersBuilder()
+          .addString("feedOnestopId", feedId.value, true)
+          .addString("importId", importId.value.toString(), true)
+          .toJobParameters()
+
+      logger.info(
+        "Executing async block for importId={}, feedId={} with params={}",
+        importId,
+        feedId,
+        params,
+      )
       runCatching { rateLimitedJobLauncher.run(feedImportJob, params) }
         .onFailure { throwable ->
           if (throwable is JobExecutionAlreadyRunningException) {

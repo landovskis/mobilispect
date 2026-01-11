@@ -1,5 +1,6 @@
 package com.mobilispect.backend.feed.service
 
+import jakarta.annotation.PostConstruct
 import java.util.concurrent.Semaphore
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
@@ -19,11 +20,16 @@ import org.springframework.stereotype.Component
 class RateLimitedJobLauncher(private val delegate: JobLauncher) {
   private val logger = LoggerFactory.getLogger(RateLimitedJobLauncher::class.java)
 
-  // Allow only 3 concurrent job launches at a time
-  private val concurrencyLimit = Semaphore(3)
+  @PostConstruct
+  fun init() {
+    logger.info("RateLimitedJobLauncher initialized with delegate: ${delegate.javaClass.name}")
+  }
+
+  // Allow only 1 concurrent job launch at a time (Spring Batch 6.0 requires sequential launches)
+  private val concurrencyLimit = Semaphore(1)
 
   // Minimum delay between job launches in milliseconds
-  private val minDelayBetweenLaunchesMs = 100L
+  private val minDelayBetweenLaunchesMs = 200L
 
   @Volatile private var lastLaunchTime = 0L
 
@@ -44,17 +50,19 @@ class RateLimitedJobLauncher(private val delegate: JobLauncher) {
 
         if (timeSinceLastLaunch < minDelayBetweenLaunchesMs) {
           val delay = minDelayBetweenLaunchesMs - timeSinceLastLaunch
-          logger.debug("Throttling job launch, sleeping for {}ms to maintain minimum delay", delay)
+          logger.info("Throttling job launch, sleeping for {}ms to maintain minimum delay", delay)
           Thread.sleep(delay)
         }
 
         lastLaunchTime = System.currentTimeMillis()
 
         // Launch the job
+        logger.info("Launching job via delegate JobLauncher")
         delegate.run(job, parameters)
+        logger.info("Job launched successfully, waiting for registration")
       } finally {
-        // Release permit after a short delay to ensure job is fully registered
-        Thread.sleep(50)
+        // Release permit after delay to ensure job is fully registered in Spring Batch
+        Thread.sleep(300)
         concurrencyLimit.release()
       }
     } catch (e: InterruptedException) {
