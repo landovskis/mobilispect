@@ -2,10 +2,10 @@ import { Subject, of, throwError } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { FeedImportsPageComponent } from './feed-imports.page';
 import { ImportService } from '../services/import.service';
-import { MatSnackBar, MatSnackBarRef } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
-import { FeedImport, ImportStatus, TriggerType } from '../models';
+import { FeedImportDetail, ImportStatus, TriggerType } from '../models';
 
 describe('FeedImportsPageComponent', () => {
   let component: FeedImportsPageComponent;
@@ -14,9 +14,11 @@ describe('FeedImportsPageComponent', () => {
   let metrics: jasmine.SpyObj<FeedsMetricsService>;
   let events: FeedsEventsService;
 
-  const baseImport: FeedImport = {
+  const baseImport: FeedImportDetail = {
     id: 'imp-1',
     feedOnestopId: 'f-1',
+    feedName: 'Feed 1',
+    regionName: 'Region 1',
     administratorId: null,
     administratorUsername: null,
     status: ImportStatus.COMPLETED,
@@ -26,6 +28,7 @@ describe('FeedImportsPageComponent', () => {
     completedAt: '2024-01-01T00:10:00Z',
     fileSizeBytes: null,
     errorMessage: null,
+    progress: null,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:10:00Z',
   };
@@ -50,17 +53,17 @@ describe('FeedImportsPageComponent', () => {
     importService.cancelImport.and.returnValue(of(baseImport));
     snackBar.open.and.returnValue({
       onAction: () => new Subject<void>()
-    } as MatSnackBarRef<unknown>);
+    } as unknown as MatSnackBarRef<TextOnlySnackBar>);
 
     TestBed.configureTestingModule({
       imports: [FeedImportsPageComponent],
       providers: [
         { provide: ImportService, useValue: importService },
-        { provide: MatSnackBar, useValue: snackBar },
         { provide: FeedsMetricsService, useValue: metrics },
         { provide: FeedsEventsService, useValue: events },
       ],
     });
+    TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
     component = TestBed.createComponent(FeedImportsPageComponent).componentInstance;
   });
 

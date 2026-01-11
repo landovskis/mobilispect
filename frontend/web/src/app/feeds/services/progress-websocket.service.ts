@@ -2,7 +2,6 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Observable, Observer, Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { ActiveImportsResponse, ImportProgress } from '../models/import-progress.model';
 
 @Injectable({
@@ -30,6 +29,11 @@ export class ProgressWebSocketService implements OnDestroy {
     }
 
     this.connectionStatus$.next('CONNECTING');
+    void this.createClient();
+  }
+
+  private async createClient(): Promise<void> {
+    const { default: SockJS } = await import('sockjs-client');
 
     this.stompClient = new Client({
       webSocketFactory: () => new SockJS(`${this.baseUrl}${this.endpoint}`),

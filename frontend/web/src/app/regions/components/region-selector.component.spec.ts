@@ -29,7 +29,7 @@ describe('RegionSelectorComponent', () => {
     const filterRegions = (component as unknown as {
       _filterRegions: (term: string) => MetropolitanRegion[];
     })._filterRegions;
-    const result = filterRegions('aus');
+    const result = filterRegions.call(component, 'aus');
 
     expect(result.length).toBe(1);
     expect(result[0].regionOnestopId).toBe('r-2');

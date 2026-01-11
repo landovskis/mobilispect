@@ -16,7 +16,7 @@ describe('WebSocketService', () => {
 
   it('publishes messages when connected', () => {
     const publishSpy = jasmine.createSpy('publish');
-    internals.stompClient = { connected: true, publish: publishSpy };
+    internals.stompClient = { connected: true, publish: publishSpy, deactivate: jasmine.createSpy('deactivate') };
 
     service.send('/topic/test', { type: 'PING' });
 
@@ -28,7 +28,7 @@ describe('WebSocketService', () => {
 
   it('warns when publishing while disconnected', () => {
     const publishSpy = jasmine.createSpy('publish');
-    internals.stompClient = { connected: false, publish: publishSpy };
+    internals.stompClient = { connected: false, publish: publishSpy, deactivate: jasmine.createSpy('deactivate') };
 
     service.send('/topic/test', { type: 'PING' });
 
@@ -39,7 +39,7 @@ describe('WebSocketService', () => {
   it('subscribes to import progress when connected', () => {
     const unsubscribeSpy = jasmine.createSpy('unsubscribe');
     const subscribeSpy = jasmine.createSpy('subscribe').and.returnValue({ unsubscribe: unsubscribeSpy });
-    internals.stompClient = { subscribe: subscribeSpy };
+    internals.stompClient = { subscribe: subscribeSpy, deactivate: jasmine.createSpy('deactivate') };
 
     service.subscribeToImportProgress('import-1');
     internals.connectionStatus$.next('CONNECTED');
@@ -50,7 +50,7 @@ describe('WebSocketService', () => {
   it('subscribes to import status when connected', () => {
     const unsubscribeSpy = jasmine.createSpy('unsubscribe');
     const subscribeSpy = jasmine.createSpy('subscribe').and.returnValue({ unsubscribe: unsubscribeSpy });
-    internals.stompClient = { subscribe: subscribeSpy };
+    internals.stompClient = { subscribe: subscribeSpy, deactivate: jasmine.createSpy('deactivate') };
 
     service.subscribeToImportStatus('import-2');
     internals.connectionStatus$.next('CONNECTED');
@@ -61,7 +61,7 @@ describe('WebSocketService', () => {
   it('subscribes to system alerts when connected', () => {
     const unsubscribeSpy = jasmine.createSpy('unsubscribe');
     const subscribeSpy = jasmine.createSpy('subscribe').and.returnValue({ unsubscribe: unsubscribeSpy });
-    internals.stompClient = { subscribe: subscribeSpy };
+    internals.stompClient = { subscribe: subscribeSpy, deactivate: jasmine.createSpy('deactivate') };
 
     service.subscribeToSystemAlerts();
     internals.connectionStatus$.next('CONNECTED');
@@ -87,6 +87,7 @@ type WebSocketServiceInternals = {
     connected?: boolean;
     publish?: (args: { destination: string; body: string }) => void;
     subscribe?: (topic: string, callback: (message: unknown) => void) => { unsubscribe: () => void };
+    deactivate?: () => void;
   } | null;
   connectionStatus$: {
     next: (status: 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR') => void;

@@ -76,10 +76,10 @@ export class TypeGuards {
   static isMetropolitanRegion(obj: unknown): obj is MetropolitanRegion {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate.regionOnestopId === 'string' &&
-           typeof candidate.name === 'string' &&
-           typeof candidate.autoUpdateEnabled === 'boolean' &&
-           typeof candidate.feedCount === 'number';
+    return typeof candidate['regionOnestopId'] === 'string' &&
+           typeof candidate['name'] === 'string' &&
+           typeof candidate['autoUpdateEnabled'] === 'boolean' &&
+           typeof candidate['feedCount'] === 'number';
   }
 
   /**
@@ -88,11 +88,11 @@ export class TypeGuards {
   static isFeed(obj: unknown): obj is Feed {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate.feedOnestopId === 'string' &&
-           typeof candidate.regionOnestopId === 'string' &&
-           typeof candidate.name === 'string' &&
-           Object.values(FeedSpecType).includes(candidate.specType as FeedSpecType) &&
-           Object.values(FeedStatus).includes(candidate.status as FeedStatus);
+    return typeof candidate['feedOnestopId'] === 'string' &&
+           typeof candidate['regionOnestopId'] === 'string' &&
+           typeof candidate['name'] === 'string' &&
+           Object.values(FeedSpecType).includes(candidate['specType'] as FeedSpecType) &&
+           Object.values(FeedStatus).includes(candidate['status'] as FeedStatus);
   }
 
   /**
@@ -101,10 +101,10 @@ export class TypeGuards {
   static isFeedImport(obj: unknown): obj is FeedImport {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate.id === 'string' &&
-           typeof candidate.feedOnestopId === 'string' &&
-           Object.values(ImportStatus).includes(candidate.status as ImportStatus) &&
-           Object.values(TriggerType).includes(candidate.triggerType as TriggerType);
+    return typeof candidate['id'] === 'string' &&
+           typeof candidate['feedOnestopId'] === 'string' &&
+           Object.values(ImportStatus).includes(candidate['status'] as ImportStatus) &&
+           Object.values(TriggerType).includes(candidate['triggerType'] as TriggerType);
   }
 
   /**
@@ -113,9 +113,9 @@ export class TypeGuards {
   static isImportProgress(obj: unknown): obj is ImportProgress {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate.progressPercentage === 'number' &&
-           typeof candidate.totalSteps === 'number' &&
-           typeof candidate.currentStep === 'string';
+    return typeof candidate['progressPercentage'] === 'number' &&
+           typeof candidate['totalSteps'] === 'number' &&
+           typeof candidate['currentStep'] === 'string';
   }
 
   /**
@@ -124,10 +124,10 @@ export class TypeGuards {
   static isProgressUpdateMessage(obj: unknown): obj is ProgressUpdateMessage {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate.importId === 'string' &&
-           typeof candidate.feedOnestopId === 'string' &&
-           typeof candidate.progressPercentage === 'number' &&
-           typeof candidate.currentStep === 'string';
+    return typeof candidate['importId'] === 'string' &&
+           typeof candidate['feedOnestopId'] === 'string' &&
+           typeof candidate['progressPercentage'] === 'number' &&
+           typeof candidate['currentStep'] === 'string';
   }
 
   /**
@@ -136,9 +136,9 @@ export class TypeGuards {
   static isSystemAlertMessage(obj: unknown): obj is SystemAlertMessage {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return ['info', 'warning', 'error'].includes(candidate.type as string) &&
-           typeof candidate.title === 'string' &&
-           typeof candidate.message === 'string';
+    return ['info', 'warning', 'error'].includes(candidate['type'] as string) &&
+           typeof candidate['title'] === 'string' &&
+           typeof candidate['message'] === 'string';
   }
 }
 

@@ -4,7 +4,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { FeedImportSummary } from '../models';
+import { FeedImportDetail, FeedImportSummary } from '../models';
 import { ImportService } from '../services/import.service';
 import { ActiveImportsCardComponent } from '../components/active-imports-card.component';
 import { ImportsHistoryCardComponent } from '../components/imports-history-card.component';
@@ -46,7 +46,7 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
 
   activeImports$: Observable<FeedImportSummary[]>;
 
-  importHistory: FeedImportSummary[] = [];
+  importHistory: FeedImportDetail[] = [];
   importHistoryPage = 0;
   importHistorySize = 20;
   pageSizeOptions: number[] = [10, 20, 50, 100];

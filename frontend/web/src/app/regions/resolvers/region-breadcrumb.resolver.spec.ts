@@ -3,6 +3,7 @@ import { RegionService } from '../../feeds/services/region.service';
 import { MetropolitanRegion, MetropolitanRegionDetail } from '../../feeds/models/region.models';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { ActivatedRouteSnapshot } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
 
 describe('RegionBreadcrumbResolver', () => {
   let resolver: RegionBreadcrumbResolver;
@@ -27,7 +28,13 @@ describe('RegionBreadcrumbResolver', () => {
 
   beforeEach(() => {
     regionServiceSpy = jasmine.createSpyObj('RegionService', ['getRegion', 'getCachedRegion']);
-    resolver = new RegionBreadcrumbResolver(regionServiceSpy);
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: RegionService, useValue: regionServiceSpy },
+        RegionBreadcrumbResolver
+      ]
+    });
+    resolver = TestBed.inject(RegionBreadcrumbResolver);
   });
 
   const createSnapshot = (regionId: string | null): ActivatedRouteSnapshot => {

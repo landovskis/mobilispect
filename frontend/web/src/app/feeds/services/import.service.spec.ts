@@ -85,7 +85,7 @@ describe('ImportService', () => {
       expect(result.id).toBe('imp-1');
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/feeds/f-1/import`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/f-1/import`);
     expect(req.request.method).toBe('POST');
     req.flush({ ...baseImport });
 
@@ -102,7 +102,7 @@ describe('ImportService', () => {
       },
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/feeds/f-1/import`);
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/f-1/import`);
     req.flush({ message: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
   });
 
@@ -123,12 +123,12 @@ describe('ImportService', () => {
         expect(result.imports[0].id).toBe('imp-1');
       });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/feeds/f-1/imports`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/f-1/imports`);
     expect(req.request.params.get('page')).toBe('1');
     expect(req.request.params.get('size')).toBe('10');
     expect(req.request.params.get('status')).toBe(ImportStatus.FAILED);
     req.flush({
-      imports: [{ ...baseImport, status: ImportStatus.FAILED }],
+      imports: [{ ...baseImportDetail, status: ImportStatus.FAILED }],
       page: { page: 1, size: 10, totalElements: 1, totalPages: 1, hasNext: false, hasPrevious: false },
     });
   });
@@ -138,7 +138,7 @@ describe('ImportService', () => {
       expect(result.totalElements).toBe(0);
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/feeds/f-1/imports`);
+    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/feeds/f-1/imports`);
     expect(req.request.params.keys().length).toBe(0);
     req.flush({
       imports: [],
@@ -215,9 +215,9 @@ describe('ImportService', () => {
     jasmine.clock().install();
     jasmine.clock().mockDate(new Date('2024-06-02T12:00:00Z'));
 
-    const recent = { ...baseImport, id: 'recent', createdAt: '2024-06-02T11:00:00Z', status: ImportStatus.COMPLETED };
-    const old = { ...baseImport, id: 'old', createdAt: '2024-05-30T11:00:00Z', status: ImportStatus.COMPLETED };
-    const failed = { ...baseImport, id: 'failed', createdAt: '2024-06-02T10:00:00Z', status: ImportStatus.FAILED };
+    const recent = { ...baseImportDetail, id: 'recent', createdAt: '2024-06-02T11:00:00Z', status: ImportStatus.COMPLETED };
+    const old = { ...baseImportDetail, id: 'old', createdAt: '2024-05-30T11:00:00Z', status: ImportStatus.COMPLETED };
+    const failed = { ...baseImportDetail, id: 'failed', createdAt: '2024-06-02T10:00:00Z', status: ImportStatus.FAILED };
 
     spyOn(service, 'getAllImportHistory').and.callFake(options => {
       if (options?.status === ImportStatus.FAILED) {
@@ -317,9 +317,11 @@ describe('ImportService', () => {
     mockWebSocketService.subscribeToImportProgress.and.returnValue(of({
       progress: {
         importId: 'imp-1',
+        feedOnestopId: 'f-1',
         progressPercentage: 20,
         totalSteps: 100,
         currentStep: 'Step',
+        currentStepNumber: 2,
         estimatedTimeRemainingSeconds: 5,
         startedAt: '2024-01-01T00:00:00Z',
         lastUpdatedAt: '2024-01-01T00:00:05Z',

@@ -76,9 +76,9 @@ describe('RegionListComponent', () => {
         { provide: RegionService, useValue: regionService },
         { provide: ImportService, useValue: importService },
         { provide: SchedulerService, useValue: schedulerService },
-        { provide: MatSnackBar, useValue: snackBar },
       ],
     });
+    TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
     component = TestBed.createComponent(RegionListComponent).componentInstance;
   });
 
@@ -111,7 +111,7 @@ describe('RegionListComponent', () => {
     const filterRegions = (component as unknown as {
       filterRegions: (items: MetropolitanRegion[], term: string, flag: boolean) => MetropolitanRegion[];
     }).filterRegions;
-    const filtered = filterRegions(regions, 'tor', true);
+    const filtered = filterRegions.call(component, regions, 'tor', true);
     expect(filtered.length).toBe(1);
     expect(filtered[0].regionOnestopId).toBe('r-1');
   });

@@ -103,7 +103,7 @@ export interface PageInfo {
  * Response wrapper for imports list
  */
 export interface ImportsResponse {
-  imports: FeedImport[];
+  imports: FeedImportDetail[];
   page: PageInfo;
 }
 

@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, timer, of, merge } from 'rxjs';
+import { Observable, BehaviorSubject, timer, of, merge, firstValueFrom } from 'rxjs';
 import { map, tap, switchMap, takeUntil, distinctUntilChanged, catchError, startWith, filter } from 'rxjs/operators';
 import { WebSocketService } from './websocket.service';
 import {
@@ -106,7 +106,7 @@ export class ImportService implements OnDestroy {
       size?: number;
       status?: ImportStatus;
     }
-  ): Observable<{ imports: FeedImport[]; totalElements: number; totalPages: number }> {
+  ): Observable<{ imports: FeedImportDetail[]; totalElements: number; totalPages: number }> {
     let params = new HttpParams();
     if (options?.page !== undefined) {
       params = params.set('page', options.page.toString());
@@ -302,7 +302,7 @@ export class ImportService implements OnDestroy {
     size?: number;
     status?: ImportStatus;
     triggerType?: TriggerType;
-  }): Observable<{ imports: FeedImport[]; totalElements: number; totalPages: number }> {
+  }): Observable<{ imports: FeedImportDetail[]; totalElements: number; totalPages: number }> {
     let params = new HttpParams();
     if (options?.page !== undefined) {
       params = params.set('page', options.page.toString());
@@ -388,9 +388,9 @@ export class ImportService implements OnDestroy {
    */
   bulkCancelImports(importIds: string[]): Promise<ImportCancelResult[]> {
     const cancelRequests = importIds.map(id =>
-      this.cancelImport(id).toPromise().then(
-        result => ({ id, status: 'COMPLETED', result }),
-        error => ({ id, status: 'FAILED', error: error.message || 'Unknown error' })
+      firstValueFrom(this.cancelImport(id)).then(
+        result => ({ id, status: 'COMPLETED' as const, result }),
+        error => ({ id, status: 'FAILED' as const, error: error.message || 'Unknown error' })
       )
     );
     return Promise.all(cancelRequests);

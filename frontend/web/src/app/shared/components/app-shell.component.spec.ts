@@ -15,8 +15,9 @@ describe('AppShellComponent', () => {
     let component: AppShellComponent;
     let fixture: ComponentFixture<AppShellComponent>;
 
+    let activeImports$ = of<FeedImportSummary[] | null>([]);
     const mockImportService = {
-        getActiveImportsObservable: () => of([]),
+        getActiveImportsObservable: () => activeImports$,
         refreshActiveImports: jasmine.createSpy('refreshActiveImports')
     };
 
@@ -115,7 +116,7 @@ describe('AppShellComponent', () => {
     });
 
     it('falls back to zero active imports when data is missing', async () => {
-        mockImportService.getActiveImportsObservable = () => of(null as FeedImportSummary[] | null);
+        activeImports$ = of(null);
 
         const testFixture = TestBed.createComponent(AppShellComponent);
         const testComponent = testFixture.componentInstance;

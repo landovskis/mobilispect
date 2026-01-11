@@ -4,7 +4,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { FeedImportSummary } from '../models';
+import { FeedImportDetail } from '../models';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
@@ -142,7 +142,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
 })
 export class ImportsHistoryCardComponent {
   @Input() loading = false;
-  @Input() history: FeedImportSummary[] | null = [];
+  @Input() history: FeedImportDetail[] | null = [];
   @Input() totalItems = 0;
   @Input() pageIndex = 0;
   @Input() pageSize = 20;

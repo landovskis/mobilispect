@@ -2,7 +2,6 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { Observable, Subject, BehaviorSubject } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { environment } from '../../../environments/environment';
 
 export interface WebSocketMessage {
@@ -81,6 +80,11 @@ export class WebSocketService implements OnDestroy {
 
     this.connectionStatus$.next('CONNECTING');
     console.log('Connecting to STOMP WebSocket:', `${environment.wsUrl}/ws/feeds`);
+    void this.createClient();
+  }
+
+  private async createClient(): Promise<void> {
+    const { default: SockJS } = await import('sockjs-client');
 
     this.stompClient = new Client({
       webSocketFactory: () => new SockJS(`${environment.wsUrl}/ws/feeds`),

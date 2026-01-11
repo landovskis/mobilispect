@@ -1,6 +1,12 @@
 import { ImportsHistoryCardComponent } from './imports-history-card.component';
+import { PageEvent } from '@angular/material/paginator';
 
-const makeEvent = (pageIndex: number): { pageIndex: number } => ({ pageIndex });
+const makeEvent = (pageIndex: number): PageEvent => ({
+  pageIndex,
+  pageSize: 25,
+  length: 100,
+  previousPageIndex: pageIndex - 1
+});
 
 describe('ImportsHistoryCardComponent', () => {
   let component: ImportsHistoryCardComponent;

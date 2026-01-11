@@ -76,7 +76,7 @@ export class FrequencyService {
 
   getFrequencies(variantId: string, date?: string): Observable<FrequencyDto[]> {
     const params: Record<string, string> = {};
-    if (date) params.date = date;
+    if (date) params['date'] = date;
     return this.http.get<FrequencyDto[]>(`${this.baseUrl}/variants/${variantId}/frequencies`, { params });
   }
 

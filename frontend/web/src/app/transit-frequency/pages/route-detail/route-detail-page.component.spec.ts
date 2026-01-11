@@ -29,7 +29,7 @@ describe('RouteDetailPageComponent', () => {
           get: jasmine.createSpy('get').and.returnValue('test-route-id')
         }
       }
-    } as ActivatedRoute;
+    } as unknown as ActivatedRoute;
 
     await TestBed.configureTestingModule({
       imports: [RouteDetailPageComponent],

@@ -2,6 +2,7 @@ import { RouteBreadcrumbResolver } from './route-breadcrumb.resolver';
 import { FrequencyService, RouteDto } from '../services/frequency.service';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { ActivatedRouteSnapshot } from '@angular/router';
+import { TestBed } from '@angular/core/testing';
 
 describe('RouteBreadcrumbResolver', () => {
     let resolver: RouteBreadcrumbResolver;
@@ -18,7 +19,13 @@ describe('RouteBreadcrumbResolver', () => {
 
     beforeEach(() => {
         frequencyServiceSpy = jasmine.createSpyObj('FrequencyService', ['getRoute']);
-        resolver = new RouteBreadcrumbResolver(frequencyServiceSpy);
+        TestBed.configureTestingModule({
+            providers: [
+                { provide: FrequencyService, useValue: frequencyServiceSpy },
+                RouteBreadcrumbResolver
+            ]
+        });
+        resolver = TestBed.inject(RouteBreadcrumbResolver);
     });
 
     const createSnapshot = (routeId: string | null): ActivatedRouteSnapshot => {
