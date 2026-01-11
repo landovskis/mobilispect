@@ -36,7 +36,7 @@ class FeedImportService(
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
-  @Transactional
+  @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
   fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
     val activeImport =
       feedImportRepository
