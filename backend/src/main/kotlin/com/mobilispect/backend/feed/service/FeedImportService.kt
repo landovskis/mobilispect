@@ -93,11 +93,12 @@ class FeedImportService(
         )
       } catch (e: org.springframework.dao.DataIntegrityViolationException) {
         // Database constraint prevented duplicate - fetch and return the existing import
+        // Do NOT launch a job for this import as it already has one running
         logger.info(
-          "Import already started for feed {} (caught by database constraint), fetching existing import",
+          "Import already started for feed {} (caught by database constraint), returning existing import",
           feedId,
         )
-        feedImportRepository
+        return feedImportRepository
           .findAllByFeedIdAndStatusInOrderByStartedAtDesc(
             feedId.value,
             listOf(ImportStatus.PENDING, ImportStatus.RUNNING),
