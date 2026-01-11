@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -6,7 +6,7 @@ import { AgencyService } from '../services/agency.service';
 
 @Injectable({ providedIn: 'root' })
 export class AgencyBreadcrumbResolver implements Resolve<string> {
-  constructor(private readonly agencyService: AgencyService) {}
+  private readonly agencyService = inject(AgencyService);
 
   resolve(route: ActivatedRouteSnapshot): Observable<string> {
     const agencyId = route.paramMap.get('agencyId');

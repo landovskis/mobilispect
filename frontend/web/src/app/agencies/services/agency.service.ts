@@ -1,19 +1,17 @@
-import {Injectable} from "@angular/core";
-import {environment} from "../../../environments/environment";
-import {HttpClient, HttpParams} from "@angular/common/http";
-import {Observable} from "rxjs";
-import {AgencySummary} from "../../transit-frequency/models/agency.model";
-import {AgencyListResponse} from "../../transit-frequency/services/agency.service";
-import {RouteListResponse} from "../models/route.model";
+import { inject, Injectable } from '@angular/core';
+import { environment } from '../../../environments/environment';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { AgencySummary } from '../../transit-frequency/models/agency.model';
+import { AgencyListResponse } from '../../transit-frequency/services/agency.service';
+import { RouteListResponse } from '../models/route.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AgencyService {
   private readonly apiUrl = `${environment.apiUrl}`;
-
-  constructor(private readonly http: HttpClient) {
-  }
+  private readonly http = inject(HttpClient);
 
   listAgencies(page: number = 0, size: number = 20, regionId?: string): Observable<AgencyListResponse> {
     const params = new HttpParams()

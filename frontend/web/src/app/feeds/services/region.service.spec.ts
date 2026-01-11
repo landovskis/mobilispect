@@ -7,6 +7,7 @@ import { FeedSpecType, FeedStatus, MetropolitanRegion } from '../models/region.m
 describe('RegionService', () => {
   let service: RegionService;
   let httpMock: HttpTestingController;
+  let internals: RegionServiceInternals;
 
   const baseRegion: MetropolitanRegion = {
     regionOnestopId: 'r-test',
@@ -28,6 +29,7 @@ describe('RegionService', () => {
 
     service = TestBed.inject(RegionService);
     httpMock = TestBed.inject(HttpTestingController);
+    internals = service as unknown as RegionServiceInternals;
   });
 
   afterEach(() => {
@@ -52,11 +54,11 @@ describe('RegionService', () => {
   });
 
   it('serves cached regions without another request', () => {
-    (service as any).regionsCache$.next([
+    internals.regionsCache$.next([
       { ...baseRegion, regionOnestopId: 'r-1', autoUpdateEnabled: true },
       { ...baseRegion, regionOnestopId: 'r-2', autoUpdateEnabled: false },
     ]);
-    (service as any).lastCacheUpdate = Date.now();
+    internals.lastCacheUpdate = Date.now();
 
     service.listRegions(false).subscribe(regions => {
       expect(regions.length).toBe(1);
@@ -67,7 +69,7 @@ describe('RegionService', () => {
   });
 
   it('updates cache on region update', () => {
-    (service as any).regionsCache$.next([
+    internals.regionsCache$.next([
       { ...baseRegion, regionOnestopId: 'r-1', autoUpdateEnabled: false },
       { ...baseRegion, regionOnestopId: 'r-2', autoUpdateEnabled: false },
     ]);
@@ -131,11 +133,11 @@ describe('RegionService', () => {
   });
 
   it('supports region searching and ranking helpers', () => {
-    (service as any).regionsCache$.next([
+    internals.regionsCache$.next([
       { ...baseRegion, regionOnestopId: 'r-1', name: 'Toronto', feedCount: 10 },
       { ...baseRegion, regionOnestopId: 'r-2', name: 'Austin', feedCount: 2 },
     ]);
-    (service as any).lastCacheUpdate = Date.now();
+    internals.lastCacheUpdate = Date.now();
 
     service.searchRegions('tor').subscribe(regions => {
       expect(regions.length).toBe(1);
@@ -151,11 +153,11 @@ describe('RegionService', () => {
     jasmine.clock().install();
     jasmine.clock().mockDate(new Date('2024-06-02T12:00:00Z'));
 
-    (service as any).regionsCache$.next([
+    internals.regionsCache$.next([
       { ...baseRegion, regionOnestopId: 'r-can', name: 'Toronto', lastCheckAt: null, feedCount: 5 },
       { ...baseRegion, regionOnestopId: 'r-us', name: 'Austin', lastCheckAt: '2024-06-02T11:00:00Z', feedCount: 2 },
     ]);
-    (service as any).lastCacheUpdate = Date.now();
+    internals.lastCacheUpdate = Date.now();
 
     service.getRegionsNeedingAttention().subscribe(regions => {
       expect(regions.length).toBe(1);
@@ -173,8 +175,8 @@ describe('RegionService', () => {
   });
 
   it('reports cache validity and clearing', () => {
-    (service as any).regionsCache$.next([baseRegion]);
-    (service as any).lastCacheUpdate = Date.now();
+    internals.regionsCache$.next([baseRegion]);
+    internals.lastCacheUpdate = Date.now();
     expect(service.isCacheValid()).toBeTrue();
 
     service.clearCache();
@@ -198,3 +200,11 @@ describe('RegionService', () => {
     expect(nonCanadian).toBeFalse();
   });
 });
+
+type RegionServiceInternals = {
+  regionsCache$: {
+    next: (value: MetropolitanRegion[] | null) => void;
+    value: MetropolitanRegion[] | null;
+  };
+  lastCacheUpdate: number;
+};

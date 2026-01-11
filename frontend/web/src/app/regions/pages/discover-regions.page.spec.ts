@@ -1,12 +1,13 @@
 import { Subject, of, throwError } from 'rxjs';
+import { TestBed } from '@angular/core/testing';
 import { DiscoverRegionsPageComponent } from './discover-regions.page';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { ActivatedRoute, Router } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
-import { Feed, FeedSpecType, FeedStatus, MetropolitanRegion } from '../../feeds/models';
+import { MatSnackBar, MatSnackBarRef } from '@angular/material/snack-bar';
+import { Feed, FeedImport, FeedSpecType, FeedStatus, MetropolitanRegion, TriggerType } from '../../feeds/models';
 
 describe('DiscoverRegionsPageComponent', () => {
   let component: DiscoverRegionsPageComponent;
@@ -45,6 +46,22 @@ describe('DiscoverRegionsPageComponent', () => {
     updatedAt: '2024-01-01T00:00:00Z',
   };
 
+  const baseImport: FeedImport = {
+    id: 'imp-1',
+    feedOnestopId: 'f-1',
+    administratorId: null,
+    administratorUsername: null,
+    status: FeedStatus.ACTIVE,
+    triggerType: TriggerType.MANUAL,
+    versionSha1: null,
+    startedAt: '2024-01-01T00:00:00Z',
+    completedAt: null,
+    fileSizeBytes: null,
+    errorMessage: null,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  };
+
   beforeEach(() => {
     regionService = jasmine.createSpyObj<RegionService>('RegionService', [
       'listRegions',
@@ -64,7 +81,7 @@ describe('DiscoverRegionsPageComponent', () => {
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
 
-    const queryParamMap$ = new Subject<any>();
+    const queryParamMap$ = new Subject<{ get: (key: string) => string | null }>();
     route = {
       snapshot: {
         queryParamMap: {
@@ -74,22 +91,27 @@ describe('DiscoverRegionsPageComponent', () => {
       queryParamMap: queryParamMap$.asObservable(),
     } as ActivatedRoute;
 
-    snackBar.open.and.returnValue({ onAction: () => new Subject<void>() } as any);
+    snackBar.open.and.returnValue({ onAction: () => new Subject<void>() } as MatSnackBarRef<unknown>);
 
     regionService.listRegions.and.returnValue(of([baseRegion]));
     regionService.getCachedRegions.and.returnValue(of([baseRegion]));
     regionService.listFeedsForRegion.and.returnValue(of([baseFeed]));
-    importService.startImport.and.returnValue(of({ id: 'imp-1' } as any));
+    importService.startImport.and.returnValue(of(baseImport));
 
-    component = new DiscoverRegionsPageComponent(
-      regionService,
-      importService,
-      snackBar,
-      router,
-      route,
-      metrics,
-      events
-    );
+    TestBed.configureTestingModule({
+      imports: [DiscoverRegionsPageComponent],
+      providers: [
+        { provide: RegionService, useValue: regionService },
+        { provide: ImportService, useValue: importService },
+        { provide: MatSnackBar, useValue: snackBar },
+        { provide: Router, useValue: router },
+        { provide: ActivatedRoute, useValue: route },
+        { provide: FeedsMetricsService, useValue: metrics },
+        { provide: FeedsEventsService, useValue: events },
+      ],
+    });
+
+    component = TestBed.createComponent(DiscoverRegionsPageComponent).componentInstance;
   });
 
   it('loads regions and bootstraps selection from query params', () => {
@@ -146,8 +168,12 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('refreshes data when events fire', () => {
-    const loadRegionsSpy = spyOn<any>(component as any, 'loadRegions');
-    const loadFeedsSpy = spyOn<any>(component as any, 'loadFeedsForRegion');
+    const internals = component as unknown as {
+      loadRegions: () => void;
+      loadFeedsForRegion: (regionId: string) => void;
+    };
+    const loadRegionsSpy = spyOn(internals, 'loadRegions');
+    const loadFeedsSpy = spyOn(internals, 'loadFeedsForRegion');
     component.selectedRegionId = 'r-1';
     component.ngOnInit();
 
@@ -167,7 +193,7 @@ describe('DiscoverRegionsPageComponent', () => {
 
   it('retries loading feeds when the snackbar action fires', () => {
     const action$ = new Subject<void>();
-    snackBar.open.and.returnValue({ onAction: () => action$ } as any);
+    snackBar.open.and.returnValue({ onAction: () => action$ } as MatSnackBarRef<unknown>);
     regionService.listFeedsForRegion.and.returnValue(throwError(() => new Error('fail')));
 
     component.onRegionChange('r-1');
@@ -182,7 +208,7 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('clears selection when query param is removed', () => {
-    const queryParamMap$ = new Subject<any>();
+    const queryParamMap$ = new Subject<{ get: () => string | null }>();
     route = {
       snapshot: {
         queryParamMap: {
@@ -192,15 +218,8 @@ describe('DiscoverRegionsPageComponent', () => {
       queryParamMap: queryParamMap$.asObservable(),
     } as unknown as ActivatedRoute;
 
-    component = new DiscoverRegionsPageComponent(
-      regionService,
-      importService,
-      snackBar,
-      router,
-      route,
-      metrics,
-      events
-    );
+    TestBed.overrideProvider(ActivatedRoute, { useValue: route });
+    component = TestBed.createComponent(DiscoverRegionsPageComponent).componentInstance;
 
     component.ngOnInit();
     expect(component.selectedRegionId).toBeNull();
@@ -212,9 +231,13 @@ describe('DiscoverRegionsPageComponent', () => {
   });
 
   it('formats region display names', () => {
-    const displayName = (component as any).getRegionDisplayName(baseRegion);
+    const displayName = (component as unknown as {
+      getRegionDisplayName: (region: MetropolitanRegion | null) => string | null;
+    }).getRegionDisplayName(baseRegion);
     expect(displayName).toBe('Test Region, California, United States');
 
-    expect((component as any).getRegionDisplayName(null)).toBeNull();
+    expect((component as unknown as {
+      getRegionDisplayName: (region: MetropolitanRegion | null) => string | null;
+    }).getRegionDisplayName(null)).toBeNull();
   });
 });

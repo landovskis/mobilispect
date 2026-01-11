@@ -12,7 +12,6 @@ describe('RegionDetailComponent', () => {
   let fixture: ComponentFixture<RegionDetailComponent>;
   let regionServiceSpy: jasmine.SpyObj<RegionService>;
   let agencyServiceSpy: jasmine.SpyObj<AgencyService>;
-  let activatedRouteSpy: jasmine.SpyObj<ActivatedRoute>;
 
   const mockRegion: MetropolitanRegionDetail = {
     regionOnestopId: 'r-test-region',
@@ -70,8 +69,6 @@ describe('RegionDetailComponent', () => {
 
     regionServiceSpy = TestBed.inject(RegionService) as jasmine.SpyObj<RegionService>;
     agencyServiceSpy = TestBed.inject(AgencyService) as jasmine.SpyObj<AgencyService>;
-    activatedRouteSpy = TestBed.inject(ActivatedRoute) as jasmine.SpyObj<ActivatedRoute>;
-
     fixture = TestBed.createComponent(RegionDetailComponent);
     component = fixture.componentInstance;
   });

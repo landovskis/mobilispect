@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
@@ -28,8 +28,7 @@ export interface CombinedFrequencyDto {
 @Injectable({ providedIn: 'root' })
 export class CommonSectionService {
   private readonly baseUrl = '/api/v1/common-sections';
-
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getCommonSectionsForRoute(routeId: string): Observable<CommonSectionDto[]> {
     return this.http.get<CommonSectionDto[]>(`${this.baseUrl}/routes/${routeId}`);

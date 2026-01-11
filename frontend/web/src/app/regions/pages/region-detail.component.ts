@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
-import { MetropolitanRegionDetail, FeedStatus } from '../../feeds/models/region.models';
+import { MetropolitanRegionDetail } from '../../feeds/models/region.models';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -95,11 +95,11 @@ export class RegionDetailComponent implements OnInit {
   agencies$!: Observable<AgencyListResponse>;
   summary$!: Observable<RegionSummary>;
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly regionService: RegionService,
-    private readonly agencyService: AgencyService
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly regionService = inject(RegionService);
+  private readonly agencyService = inject(AgencyService);
+
+  constructor() {}
 
   ngOnInit(): void {
     const regionId = this.route.snapshot.paramMap.get('regionId');

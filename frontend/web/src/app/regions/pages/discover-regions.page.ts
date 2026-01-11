@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -104,15 +104,15 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
   agencyGroups: AgencyFeedGroup[] = [];
   loadingFeeds = false;
 
-  constructor(
-    private readonly regionService: RegionService,
-    private readonly importService: ImportService,
-    private readonly snackBar: MatSnackBar,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService
-  ) {}
+  private readonly regionService = inject(RegionService);
+  private readonly importService = inject(ImportService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly metrics = inject(FeedsMetricsService);
+  private readonly events = inject(FeedsEventsService);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.loadRegions();
@@ -148,7 +148,7 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
     this.importService.startImport(feed.feedOnestopId).pipe(
       takeUntil(this.destroy$)
     ).subscribe({
-      next: (result) => {
+      next: () => {
         this.snackBar.open(`Import started for ${feed.name}`, 'Close', { duration: 3000 });
         this.importService.refreshActiveImports();
         this.router.navigate(['/feeds/imports']);

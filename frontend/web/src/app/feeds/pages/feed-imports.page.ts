@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -55,12 +55,12 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
   totalImportElements = 0;
   loadingHistory = false;
 
-  constructor(
-    private readonly importService: ImportService,
-    private readonly snackBar: MatSnackBar,
-    private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService
-  ) {
+  private readonly importService = inject(ImportService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly metrics = inject(FeedsMetricsService);
+  private readonly events = inject(FeedsEventsService);
+
+  constructor() {
     this.activeImports$ = this.importService.getActiveImportsObservable();
   }
 
@@ -93,7 +93,7 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (response) => {
-        this.importHistory = response.imports as any[];
+        this.importHistory = response.imports;
         this.totalImportPages = response.totalPages;
         this.totalImportElements = response.totalElements;
         this.metrics.setTotalImportElements(response.totalElements);

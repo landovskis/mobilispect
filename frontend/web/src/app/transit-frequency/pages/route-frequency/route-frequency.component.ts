@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 
 import { ActivatedRoute } from '@angular/router';
 import { FrequencyService, RouteDto, RouteVariantDto, FrequencyDto } from '../../services/frequency.service';
@@ -34,7 +34,7 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
           <app-route-variant-card
             [variant]="variant"
             [frequencies]="variant.id === lastVariantId ? frequencies : []"
-            (select)="loadFrequencies($event)">
+            (selected)="loadFrequencies($event)">
           </app-route-variant-card>
         }
       </div>
@@ -57,11 +57,11 @@ export class RouteFrequencyComponent implements OnInit {
   lastVariantId?: string;
   selectedDirectionId: number | null = null;
 
-  constructor(
-    private readonly routeParams: ActivatedRoute,
-    private readonly frequencyService: FrequencyService,
-    private readonly commonSectionService: CommonSectionService
-  ) {}
+  private readonly routeParams = inject(ActivatedRoute);
+  private readonly frequencyService = inject(FrequencyService);
+  private readonly commonSectionService = inject(CommonSectionService);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.routeParams.paramMap.subscribe(params => {

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Observable, Subject, BehaviorSubject, timer, combineLatest } from 'rxjs';
 import { takeUntil, map, startWith, switchMap, catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
@@ -199,7 +199,9 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private refreshTrigger$ = new Subject<void>();
 
-  constructor(private progressWebSocketService: ProgressWebSocketService) {
+  private readonly progressWebSocketService = inject(ProgressWebSocketService);
+
+  constructor() {
     this.connectionStatus$ = this.progressWebSocketService.getConnectionStatus();
 
     this.displayData$ = combineLatest([

@@ -4,7 +4,7 @@ import { ActivatedRouteSnapshot, Params } from '@angular/router';
 export interface Breadcrumb {
     id?: string;
     label: string;
-    link?: string | any[];
+    link?: string | Array<string | number>;
     queryParams?: Params | null;
 }
 

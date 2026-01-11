@@ -3,7 +3,7 @@ import { AppBreadcrumbsComponent } from './app-breadcrumbs.component';
 import { Router, NavigationEnd } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
-import { By } from '@angular/platform-browser';
+import { Subject } from 'rxjs';
 
 describe('AppBreadcrumbsComponent', () => {
     let fixture: ComponentFixture<AppBreadcrumbsComponent>;
@@ -49,7 +49,8 @@ describe('AppBreadcrumbsComponent', () => {
         breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
 
         const navEnd = new NavigationEnd(1, '/new', '/new');
-        (router.events as any).next(navEnd);
+        const routerEvents = router.events as unknown as Subject<NavigationEnd>;
+        routerEvents.next(navEnd);
 
         expect(component.breadcrumbs).toEqual(mockCrumbs);
     });

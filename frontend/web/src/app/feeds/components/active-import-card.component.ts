@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -134,10 +134,10 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
   currentStatus: string;
   currentProgress: ImportProgress | null = null;
 
-  constructor(
-    private importService: ImportService,
-    private cdr: ChangeDetectorRef
-  ) {
+  private readonly importService = inject(ImportService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  constructor() {
     this.currentStatus = '';
   }
 

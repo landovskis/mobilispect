@@ -9,7 +9,7 @@ describe('RouteDetailPageComponent', () => {
   let component: RouteDetailPageComponent;
   let fixture: ComponentFixture<RouteDetailPageComponent>;
   let mockFrequencyService: jasmine.SpyObj<FrequencyService>;
-  let mockActivatedRoute: any;
+  let mockActivatedRoute: ActivatedRoute;
   let mockCommonSectionService: jasmine.SpyObj<CommonSectionService>;
 
   beforeEach(async () => {
@@ -29,7 +29,7 @@ describe('RouteDetailPageComponent', () => {
           get: jasmine.createSpy('get').and.returnValue('test-route-id')
         }
       }
-    };
+    } as ActivatedRoute;
 
     await TestBed.configureTestingModule({
       imports: [RouteDetailPageComponent],

@@ -13,9 +13,9 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       class="variant"
       role="button"
       tabindex="0"
-      (click)="select.emit(variant.id)"
-      (keydown.enter)="$event.preventDefault(); select.emit(variant.id)"
-      (keydown.space)="$event.preventDefault(); select.emit(variant.id)">
+      (click)="selected.emit(variant.id)"
+      (keydown.enter)="$event.preventDefault(); selected.emit(variant.id)"
+      (keydown.space)="$event.preventDefault(); selected.emit(variant.id)">
       <app-brand-card>
         <div class="title flex flex-col gap-0.5">
           <div class="variant-header flex flex-wrap items-center gap-2">
@@ -98,7 +98,7 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
 export class RouteVariantCardComponent {
   @Input({ required: true }) variant!: RouteVariantDto;
   @Input() frequencies: FrequencyDto[] = [];
-  @Output() select = new EventEmitter<string>();
+  @Output() selected = new EventEmitter<string>();
 
   get stopNames(): string[] {
     if (this.variant.stopNames && this.variant.stopNames.length > 0) {

@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { AgencyService } from '../services/agency.service';
 import { AgencySummary } from '../../transit-frequency/models/agency.model';
-import { RouteDTO } from '../models/route.model';
+import { RouteDTO, RouteListResponse } from '../models/route.model';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { AgencyRouteCardComponent } from '../components/agency-route-card.component';
 import { Observable } from 'rxjs';
@@ -87,12 +87,10 @@ import { map } from 'rxjs/operators';
 })
 export class AgencyPageComponent implements OnInit {
   agency$!: Observable<AgencySummary>;
-  routes$!: Observable<any>;
+  routes$!: Observable<RouteListResponse>;
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly agencyService: AgencyService
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly agencyService = inject(AgencyService);
 
   ngOnInit(): void {
     const agencyId = this.route.snapshot.paramMap.get('agencyId');

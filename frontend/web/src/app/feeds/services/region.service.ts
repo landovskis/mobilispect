@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
@@ -31,13 +31,12 @@ import { environment } from '../../../environments/environment';
 })
 export class RegionService {
   private readonly apiUrl = `${environment.apiUrl}/feeds/regions`;
+  private readonly http = inject(HttpClient);
 
   // Cache for regions list to improve performance
   private regionsCache$ = new BehaviorSubject<MetropolitanRegion[] | null>(null);
   private lastCacheUpdate = 0;
   private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
-
-  constructor(private http: HttpClient) {}
 
   /**
    * Lists all available metropolitan regions

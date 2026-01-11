@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,7 +13,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, Subject, BehaviorSubject, combineLatest } from 'rxjs';
 import { map, takeUntil, debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
-import { MetropolitanRegion, RegionUtils, FeedDiscoveryResult } from '../../feeds/models/region.models';
+import { MetropolitanRegion, RegionUtils } from '../../feeds/models/region.models';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { SchedulerService } from '../../feeds/services/scheduler.service';
@@ -111,7 +111,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       }
 
       <!-- Regions Grid -->
-      @if (!(isLoading$ | async) && !(error$ | async)) {
+      @if ((isLoading$ | async) === false && (error$ | async) === null) {
         @if (filteredRegions$ | async; as regions) {
           <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3">
             @for (region of regions; track region.regionOnestopId) {
@@ -257,7 +257,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       }
 
       <!-- Quick Stats -->
-      @if (!(isLoading$ | async) && !(error$ | async)) {
+      @if ((isLoading$ | async) === false && (error$ | async) === null) {
         <div class="quick-stats flex flex-wrap justify-center gap-4 rounded-lg bg-[var(--mdc-theme-surface-variant)] p-4 max-md:gap-3 max-md:p-3">
           <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
             <span class="stat-number">{{ (filteredRegions$ | async)?.length || 0 }}</span>
@@ -398,17 +398,17 @@ export class RegionListComponent implements OnInit, OnDestroy {
   // Auto-update control state
   isUpdatingAutoUpdate = new Set<string>();
   isCheckingUpdates = new Set<string>();
-  feedVersions = new Map<string, any>();
+  feedVersions = new Map<string, RegionVersionStatus>();
 
   // Computed streams
   filteredRegions$: Observable<MetropolitanRegion[]>;
 
-  constructor(
-    private regionService: RegionService,
-    private importService: ImportService,
-    private schedulerService: SchedulerService,
-    private snackBar: MatSnackBar
-  ) {
+  private readonly regionService = inject(RegionService);
+  private readonly importService = inject(ImportService);
+  private readonly schedulerService = inject(SchedulerService);
+  private readonly snackBar = inject(MatSnackBar);
+
+  constructor() {
     // Setup search term observable
     this.searchTerm$.pipe(
       debounceTime(300),
@@ -529,7 +529,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
     this.loadRegions();
   }
 
-  handleDiscoveryCompleted(region: MetropolitanRegion, result: FeedDiscoveryResult): void {
+  handleDiscoveryCompleted(region: MetropolitanRegion): void {
     // Refresh UI to reflect new feed counts and timestamps
     this.refreshRegions();
 
@@ -652,7 +652,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
   /**
    * Get version status for a region
    */
-  getVersionStatus(region: MetropolitanRegion): any {
+  getVersionStatus(region: MetropolitanRegion): RegionVersionStatus {
     const regionId = region.regionOnestopId;
     const versionInfo = this.feedVersions.get(regionId);
 
@@ -689,3 +689,8 @@ export class RegionListComponent implements OnInit, OnDestroy {
     return RegionUtils.getDisplayName(region);
   }
 }
+
+type RegionVersionStatus = {
+  lastChecked?: Date | string | null;
+  hasUpdate: boolean;
+};

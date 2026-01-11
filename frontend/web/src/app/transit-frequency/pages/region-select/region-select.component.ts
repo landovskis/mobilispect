@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { RegionService } from '../../../feeds/services/region.service';
@@ -40,10 +40,10 @@ import { BrandButtonComponent } from '../../../shared/components/brand-button.co
 export class RegionSelectComponent implements OnInit {
   regions: MetropolitanRegion[] = [];
 
-  constructor(
-    private readonly regionService: RegionService,
-    private readonly router: Router
-  ) {}
+  private readonly regionService = inject(RegionService);
+  private readonly router = inject(Router);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.regionService.listRegions().subscribe(regions => {

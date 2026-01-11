@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, BehaviorSubject, timer, of, merge } from 'rxjs';
 import { map, tap, switchMap, takeUntil, distinctUntilChanged, catchError, startWith, filter } from 'rxjs/operators';
@@ -31,18 +31,15 @@ import { environment } from '../../../environments/environment';
 @Injectable({
   providedIn: 'root'
 })
-export class ImportService {
+export class ImportService implements OnDestroy {
   private readonly apiUrl = `${environment.apiUrl}/feeds`;
+  private readonly http = inject(HttpClient);
+  private readonly webSocketService = inject(WebSocketService);
 
   // Active imports cache for real-time updates
   private activeImports$ = new BehaviorSubject<FeedImportSummary[]>([]);
   private pollingInterval = 5000; // 5 seconds
   private isPolling = false;
-
-  constructor(
-    private http: HttpClient,
-    private webSocketService: WebSocketService
-  ) {}
 
   /**
    * Initializes WebSocket connection for real-time updates
@@ -65,7 +62,7 @@ export class ImportService {
   startImport(feedOnestopId: string, request?: ImportRequest): Observable<FeedImport> {
     const body = request || { force: false };
     return this.http.post<FeedImport>(`${this.apiUrl}/${feedOnestopId}/import`, body).pipe(
-      tap(importResult => {
+      tap(() => {
         // Start polling for active imports to update UI
         this.startPollingActiveImports();
       }),
@@ -81,19 +78,21 @@ export class ImportService {
     );
   }
 
-  private getErrorMessage(error: any): string {
-    if (error.status === 0) {
+  private getErrorMessage(error: unknown): string {
+    const typedError = error as { status?: number; statusText?: string; error?: { message?: string } };
+    const status = typedError.status;
+    if (status === 0) {
       return 'Cannot connect to backend server. Please check if the backend is running.';
-    } else if (error.status === 403) {
+    } else if (status === 403) {
       return 'Authentication required. Please log in to perform imports.';
-    } else if (error.status === 404) {
+    } else if (status === 404) {
       return 'Feed not found or import endpoint not available.';
-    } else if (error.status === 503) {
+    } else if (status === 503) {
       return 'Backend service is temporarily unavailable. Database connection issues detected.';
-    } else if (error.error?.message) {
-      return error.error.message;
+    } else if (typedError.error?.message) {
+      return typedError.error.message;
     } else {
-      return `Backend error (${error.status}): ${error.statusText || 'Unknown error'}`;
+      return `Backend error (${status}): ${typedError.statusText || 'Unknown error'}`;
     }
   }
 
@@ -387,7 +386,7 @@ export class ImportService {
   /**
    * Bulk cancel multiple imports
    */
-  bulkCancelImports(importIds: string[]): Promise<any[]> {
+  bulkCancelImports(importIds: string[]): Promise<ImportCancelResult[]> {
     const cancelRequests = importIds.map(id =>
       this.cancelImport(id).toPromise().then(
         result => ({ id, status: 'COMPLETED', result }),
@@ -426,3 +425,7 @@ export class ImportService {
     this.stopPollingActiveImports();
   }
 }
+
+type ImportCancelResult =
+  | { id: string; status: 'COMPLETED'; result: FeedImport }
+  | { id: string; status: 'FAILED'; error: string };

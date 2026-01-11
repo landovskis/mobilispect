@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { TimePeriod } from '../models/time-period.model';
@@ -64,8 +64,7 @@ export interface RouteHourlyFrequencyDto {
 @Injectable({ providedIn: 'root' })
 export class FrequencyService {
   private readonly baseUrl = '/api/v1/routes';
-
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   getRoute(routeId: string): Observable<RouteDto> {
     return this.http.get<RouteDto>(`${this.baseUrl}/${routeId}`);
@@ -76,7 +75,7 @@ export class FrequencyService {
   }
 
   getFrequencies(variantId: string, date?: string): Observable<FrequencyDto[]> {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (date) params.date = date;
     return this.http.get<FrequencyDto[]>(`${this.baseUrl}/variants/${variantId}/frequencies`, { params });
   }

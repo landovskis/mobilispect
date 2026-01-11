@@ -1,7 +1,7 @@
-import { Component, Output, EventEmitter, ChangeDetectionStrategy, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, Output, EventEmitter, ChangeDetectionStrategy, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterModule, Params, Router, NavigationEnd } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { AppBreadcrumbService, Breadcrumb } from '../services/app-breadcrumb.service';
 export type { Breadcrumb };
 import { Subject } from 'rxjs';
@@ -83,11 +83,11 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  constructor(
-    private readonly router: Router,
-    private readonly breadcrumbService: AppBreadcrumbService,
-    private readonly cdr: ChangeDetectorRef
-  ) { }
+  private readonly router = inject(Router);
+  private readonly breadcrumbService = inject(AppBreadcrumbService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  constructor() { }
 
   ngOnInit(): void {
     this.router.events.pipe(

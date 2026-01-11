@@ -141,7 +141,7 @@ export interface ImportStatusMessage {
   status: string;
   message: string;
   timestamp: number;
-  details: Record<string, any> | null;
+  details: Record<string, unknown> | null;
 }
 
 /**

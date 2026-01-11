@@ -1,19 +1,20 @@
-import { Component, Input, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, NavigationEnd, RouterModule, ActivatedRoute, ActivatedRouteSnapshot } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { BreakpointObserver, LayoutModule } from '@angular/cdk/layout';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Observable, Subject, firstValueFrom } from 'rxjs';
-import { filter, map, shareReplay, startWith, takeUntil } from 'rxjs/operators';
-import { AppBarComponent, Breadcrumb, BreadcrumbSelection } from './app-bar.component';
+import { map, shareReplay } from 'rxjs/operators';
+import { AppBarComponent, BreadcrumbSelection } from './app-bar.component';
 import { ImportService } from '../../feeds/services/import.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
 import { ThemeToggleComponent } from './theme-toggle.component';
+import { FeedImportSummary } from '../../feeds/models';
 
 
 @Component({
@@ -245,24 +246,23 @@ export class AppShellComponent implements OnDestroy {
   readonly totalImportElements$: Observable<number>;
   readonly activeImportCount$: Observable<number>;
 
-  constructor(
-    private readonly router: Router,
-    private readonly activatedRoute: ActivatedRoute,
-    private readonly snackBar: MatSnackBar,
-    breakpointObserver: BreakpointObserver,
-    private readonly importService: ImportService,
-    private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService,
-    private readonly regionService: RegionService
-  ) {
-    this.isHandset$ = breakpointObserver.observe('(max-width: 768px)').pipe(
+  private readonly router = inject(Router);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly importService = inject(ImportService);
+  private readonly metrics = inject(FeedsMetricsService);
+  private readonly events = inject(FeedsEventsService);
+  private readonly regionService = inject(RegionService);
+
+  constructor() {
+    this.isHandset$ = this.breakpointObserver.observe('(max-width: 768px)').pipe(
       map(result => result.matches),
       shareReplay({ bufferSize: 1, refCount: true })
     );
     this.discoverFeedCount$ = this.metrics.discoverFeedCount$;
     this.totalImportElements$ = this.metrics.totalImportElements$;
     this.activeImportCount$ = this.importService.getActiveImportsObservable().pipe(
-      map((imports: any[] | null | undefined) => imports?.length ?? 0)
+      map((imports: FeedImportSummary[] | null | undefined) => imports?.length ?? 0)
     );
   }
 

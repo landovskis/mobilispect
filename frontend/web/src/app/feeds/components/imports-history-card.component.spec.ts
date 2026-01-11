@@ -1,6 +1,6 @@
 import { ImportsHistoryCardComponent } from './imports-history-card.component';
 
-const makeEvent = (pageIndex: number) => ({ pageIndex } as any);
+const makeEvent = (pageIndex: number): { pageIndex: number } => ({ pageIndex });
 
 describe('ImportsHistoryCardComponent', () => {
   let component: ImportsHistoryCardComponent;
