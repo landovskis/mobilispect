@@ -137,15 +137,14 @@ class FeedImportService(
   }
 
   private fun launchImportJob(importId: ImportId, feedId: FeedId) {
-    importLaunchExecutor.execute {
-      // Build parameters inside executor to ensure unique timestamp (including nanos)
-      val params =
-        JobParametersBuilder()
-          .addString("feedOnestopId", feedId.value, true)
-          .addString("importId", importId.value.toString(), true)
-          .addLong("timestamp", System.nanoTime(), true) // Use nanoTime for better uniqueness
-          .toJobParameters()
+    // Build parameters now - importId is unique enough, no need for timestamp
+    val params =
+      JobParametersBuilder()
+        .addString("feedOnestopId", feedId.value, true)
+        .addString("importId", importId.value.toString(), true)
+        .toJobParameters()
 
+    importLaunchExecutor.execute {
       runCatching { jobLauncher.run(feedImportJob, params) }
         .onFailure { throwable ->
           if (throwable is JobExecutionAlreadyRunningException) {
