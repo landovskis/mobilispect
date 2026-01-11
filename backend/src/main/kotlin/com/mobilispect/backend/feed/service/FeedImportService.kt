@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
 import org.springframework.batch.core.launch.JobExecutionAlreadyRunningException
-import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.batch.core.launch.JobOperator
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.TaskExecutor
@@ -28,7 +27,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 class FeedImportService(
   @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
   private val feedImportRepository: FeedImportRepository,
-  private val jobLauncher: JobLauncher,
+  private val rateLimitedJobLauncher: RateLimitedJobLauncher,
   private val jobOperator: JobOperator,
   @Qualifier("feedImportJob") private val feedImportJob: Job,
   @Qualifier("taskExecutor") private val importLaunchExecutor: TaskExecutor,
@@ -145,7 +144,7 @@ class FeedImportService(
         .toJobParameters()
 
     importLaunchExecutor.execute {
-      runCatching { jobLauncher.run(feedImportJob, params) }
+      runCatching { rateLimitedJobLauncher.run(feedImportJob, params) }
         .onFailure { throwable ->
           if (throwable is JobExecutionAlreadyRunningException) {
             logger.info("Feed import job already running for {} with import {}", feedId, importId)
