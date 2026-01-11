@@ -1,23 +1,27 @@
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 
 // Material Design 3 theming using brand colors and typography
-$mobilispect-theme: mat.define-theme((
-  color: (
-    theme-type: light,
-    primary: mat.$azure-palette,
-    tertiary: mat.$cyan-palette,
-  ),
-  typography: (
-    plain-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
-    brand-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
-    bold-weight: 700,
-    medium-weight: 600,
-    regular-weight: 400,
-  ),
-  density: (
-    scale: 0,
+$mobilispect-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$azure-palette,
+      tertiary: mat.$cyan-palette,
+    ),
+    typography: (
+      plain-family:
+        'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
+      brand-family:
+        'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
+      bold-weight: 700,
+      medium-weight: 600,
+      regular-weight: 400,
+    ),
+    density: (
+      scale: 0,
+    ),
   )
-));
+);
 
 // Apply the light theme by default
 html {
@@ -113,23 +117,27 @@ html {
 }
 
 // Define dark theme variant
-$mobilispect-dark-theme: mat.define-theme((
-  color: (
-    theme-type: dark,
-    primary: mat.$azure-palette,
-    tertiary: mat.$cyan-palette,
-  ),
-  typography: (
-    plain-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
-    brand-family: 'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
-    bold-weight: 700,
-    medium-weight: 600,
-    regular-weight: 400,
-  ),
-  density: (
-    scale: 0,
+$mobilispect-dark-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: dark,
+      primary: mat.$azure-palette,
+      tertiary: mat.$cyan-palette,
+    ),
+    typography: (
+      plain-family:
+        'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
+      brand-family:
+        'system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
+      bold-weight: 700,
+      medium-weight: 600,
+      regular-weight: 400,
+    ),
+    density: (
+      scale: 0,
+    ),
   )
-));
+);
 
 // Apply the dark theme when the dark-theme class is present
 .dark-theme {

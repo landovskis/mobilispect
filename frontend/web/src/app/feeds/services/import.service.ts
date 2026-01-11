@@ -1,7 +1,23 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, BehaviorSubject, timer, of, merge } from 'rxjs';
-import { map, tap, switchMap, takeUntil, distinctUntilChanged, catchError, startWith, filter } from 'rxjs/operators';
+import {
+  Observable,
+  BehaviorSubject,
+  timer,
+  of,
+  merge,
+  firstValueFrom,
+} from 'rxjs';
+import {
+  map,
+  tap,
+  switchMap,
+  takeUntil,
+  distinctUntilChanged,
+  catchError,
+  startWith,
+  filter,
+} from 'rxjs/operators';
 import { WebSocketService } from './websocket.service';
 import {
   FeedImport,
@@ -12,7 +28,7 @@ import {
   TriggerType,
   ImportsResponse,
   ActiveImportsResponse,
-  FeedImportSummary
+  FeedImportSummary,
 } from '../models/import.models';
 import { environment } from '../../../environments/environment';
 
@@ -29,20 +45,17 @@ import { environment } from '../../../environments/environment';
  * - UX: Loading states and progress indicators
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
-export class ImportService {
+export class ImportService implements OnDestroy {
   private readonly apiUrl = `${environment.apiUrl}/feeds`;
+  private readonly http = inject(HttpClient);
+  private readonly webSocketService = inject(WebSocketService);
 
   // Active imports cache for real-time updates
   private activeImports$ = new BehaviorSubject<FeedImportSummary[]>([]);
   private pollingInterval = 5000; // 5 seconds
   private isPolling = false;
-
-  constructor(
-    private http: HttpClient,
-    private webSocketService: WebSocketService
-  ) {}
 
   /**
    * Initializes WebSocket connection for real-time updates
@@ -62,38 +75,49 @@ export class ImportService {
   /**
    * Starts a new feed import
    */
-  startImport(feedOnestopId: string, request?: ImportRequest): Observable<FeedImport> {
+  startImport(
+    feedOnestopId: string,
+    request?: ImportRequest,
+  ): Observable<FeedImport> {
     const body = request || { force: false };
-    return this.http.post<FeedImport>(`${this.apiUrl}/${feedOnestopId}/import`, body).pipe(
-      tap(importResult => {
-        // Start polling for active imports to update UI
-        this.startPollingActiveImports();
-      }),
-      catchError(error => {
-        console.error('Import API error:', error);
-        // Re-throw the error with enhanced information
-        throw {
-          ...error,
-          message: this.getErrorMessage(error),
-          isBackendError: true
-        };
-      })
-    );
+    return this.http
+      .post<FeedImport>(`${this.apiUrl}/${feedOnestopId}/import`, body)
+      .pipe(
+        tap(() => {
+          // Start polling for active imports to update UI
+          this.startPollingActiveImports();
+        }),
+        catchError((error) => {
+          console.error('Import API error:', error);
+          // Re-throw the error with enhanced information
+          throw {
+            ...error,
+            message: this.getErrorMessage(error),
+            isBackendError: true,
+          };
+        }),
+      );
   }
 
-  private getErrorMessage(error: any): string {
-    if (error.status === 0) {
+  private getErrorMessage(error: unknown): string {
+    const typedError = error as {
+      status?: number;
+      statusText?: string;
+      error?: { message?: string };
+    };
+    const status = typedError.status;
+    if (status === 0) {
       return 'Cannot connect to backend server. Please check if the backend is running.';
-    } else if (error.status === 403) {
+    } else if (status === 403) {
       return 'Authentication required. Please log in to perform imports.';
-    } else if (error.status === 404) {
+    } else if (status === 404) {
       return 'Feed not found or import endpoint not available.';
-    } else if (error.status === 503) {
+    } else if (status === 503) {
       return 'Backend service is temporarily unavailable. Database connection issues detected.';
-    } else if (error.error?.message) {
-      return error.error.message;
+    } else if (typedError.error?.message) {
+      return typedError.error.message;
     } else {
-      return `Backend error (${error.status}): ${error.statusText || 'Unknown error'}`;
+      return `Backend error (${status}): ${typedError.statusText || 'Unknown error'}`;
     }
   }
 
@@ -106,8 +130,12 @@ export class ImportService {
       page?: number;
       size?: number;
       status?: ImportStatus;
-    }
-  ): Observable<{ imports: FeedImport[]; totalElements: number; totalPages: number }> {
+    },
+  ): Observable<{
+    imports: FeedImportDetail[];
+    totalElements: number;
+    totalPages: number;
+  }> {
     let params = new HttpParams();
     if (options?.page !== undefined) {
       params = params.set('page', options.page.toString());
@@ -119,51 +147,63 @@ export class ImportService {
       params = params.set('status', options.status);
     }
 
-    return this.http.get<ImportsResponse>(`${this.apiUrl}/${feedOnestopId}/imports`, { params }).pipe(
-      map(response => ({
-        imports: response.imports,
-        totalElements: response.page.totalElements,
-        totalPages: response.page.totalPages
-      }))
-    );
+    return this.http
+      .get<ImportsResponse>(`${this.apiUrl}/${feedOnestopId}/imports`, {
+        params,
+      })
+      .pipe(
+        map((response) => ({
+          imports: response.imports,
+          totalElements: response.page.totalElements,
+          totalPages: response.page.totalPages,
+        })),
+      );
   }
 
   /**
    * Gets detailed information about a specific import
    */
   getImport(importId: string): Observable<FeedImportDetail> {
-    return this.http.get<FeedImportDetail>(`${this.apiUrl}/imports/${importId}`);
+    return this.http.get<FeedImportDetail>(
+      `${this.apiUrl}/imports/${importId}`,
+    );
   }
 
   /**
    * Cancels a running import
    */
   cancelImport(importId: string): Observable<FeedImport> {
-    return this.http.delete<FeedImport>(`${this.apiUrl}/imports/${importId}`).pipe(
-      tap(() => {
-        // Refresh active imports after cancellation
-        this.refreshActiveImports();
-      })
-    );
+    return this.http
+      .delete<FeedImport>(`${this.apiUrl}/imports/${importId}`)
+      .pipe(
+        tap(() => {
+          // Refresh active imports after cancellation
+          this.refreshActiveImports();
+        }),
+      );
   }
 
   /**
    * Gets import progress for a specific import
    */
   getImportProgress(importId: string): Observable<ImportProgress> {
-    return this.http.get<ImportProgress>(`${this.apiUrl}/imports/${importId}/progress`);
+    return this.http.get<ImportProgress>(
+      `${this.apiUrl}/imports/${importId}/progress`,
+    );
   }
 
   /**
    * Gets all active imports
    */
   getActiveImports(): Observable<FeedImportSummary[]> {
-    return this.http.get<ActiveImportsResponse>(`${this.apiUrl}/imports/active`).pipe(
-      map(response => response.imports),
-      tap(imports => {
-        this.activeImports$.next(imports);
-      })
-    );
+    return this.http
+      .get<ActiveImportsResponse>(`${this.apiUrl}/imports/active`)
+      .pipe(
+        map((response) => response.imports),
+        tap((imports) => {
+          this.activeImports$.next(imports);
+        }),
+      );
   }
 
   /**
@@ -180,12 +220,15 @@ export class ImportService {
     if (this.isPolling) return;
 
     this.isPolling = true;
-    timer(0, this.pollingInterval).pipe(
-      switchMap(() => this.getActiveImports()),
-      distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
-    ).subscribe();
+    timer(0, this.pollingInterval)
+      .pipe(
+        switchMap(() => this.getActiveImports()),
+        distinctUntilChanged(
+          (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
+        ),
+      )
+      .subscribe();
   }
-
 
   /**
    * Stops polling for active imports
@@ -204,57 +247,68 @@ export class ImportService {
   /**
    * Monitors import progress with hybrid WebSocket + HTTP polling approach
    */
-  monitorImportProgress(importId: string, stopSignal?: Observable<void>): Observable<ImportProgress> {
+  monitorImportProgress(
+    importId: string,
+    stopSignal?: Observable<void>,
+  ): Observable<ImportProgress> {
     // HTTP polling as fallback
     const polling$ = timer(0, 5000).pipe(
       switchMap(() => this.getImportProgress(importId)),
-      distinctUntilChanged((prev, curr) =>
-        prev.progressPercentage === curr.progressPercentage &&
-        prev.currentStep === curr.currentStep
+      distinctUntilChanged(
+        (prev, curr) =>
+          prev.progressPercentage === curr.progressPercentage &&
+          prev.currentStep === curr.currentStep,
       ),
-      catchError(error => {
+      catchError((error) => {
         console.warn('HTTP polling failed, continuing...', error);
         return of(null);
-      })
+      }),
     );
 
     // WebSocket real-time updates (STOMP protocol)
-    const webSocket$ = this.webSocketService.subscribeToImportProgress(importId).pipe(
-      map(msg => {
-        // Backend sends ProgressUpdate: { progress?: ImportProgress, completed?: boolean, error?: string }
-        if (!msg.progress) {
-          console.warn('Received WebSocket message without progress field:', msg);
-          return null;
-        }
+    const webSocket$ = this.webSocketService
+      .subscribeToImportProgress(importId)
+      .pipe(
+        map((msg) => {
+          // Backend sends ProgressUpdate: { progress?: ImportProgress, completed?: boolean, error?: string }
+          if (!msg.progress) {
+            console.warn(
+              'Received WebSocket message without progress field:',
+              msg,
+            );
+            return null;
+          }
 
-        const progress = msg.progress;
-        return {
-          importId: progress.importId,
-          progressPercentage: progress.progressPercentage,
-          totalSteps: progress.totalSteps || 8,
-          currentStep: progress.currentStep,
-          estimatedTimeRemainingSeconds: progress.estimatedTimeRemainingSeconds || null,
-          startedAt: progress.startedAt,
-          lastUpdatedAt: progress.lastUpdatedAt
-        } as ImportProgress;
-      }),
-      filter((progress): progress is ImportProgress => progress !== null),
-      catchError(error => {
-        console.warn('WebSocket progress updates failed, using HTTP polling only', error);
-        return of(null);
-      })
-    );
+          const progress = msg.progress;
+          return {
+            importId: progress.importId,
+            progressPercentage: progress.progressPercentage,
+            totalSteps: progress.totalSteps || 8,
+            currentStep: progress.currentStep,
+            estimatedTimeRemainingSeconds:
+              progress.estimatedTimeRemainingSeconds || null,
+            startedAt: progress.startedAt,
+            lastUpdatedAt: progress.lastUpdatedAt,
+          } as ImportProgress;
+        }),
+        filter((progress): progress is ImportProgress => progress !== null),
+        catchError((error) => {
+          console.warn(
+            'WebSocket progress updates failed, using HTTP polling only',
+            error,
+          );
+          return of(null);
+        }),
+      );
 
     // Merge both streams, preferring WebSocket updates when available
-    const combined$ = merge(
-      polling$.pipe(startWith(null)),
-      webSocket$
-    ).pipe(
+    const combined$ = merge(polling$.pipe(startWith(null)), webSocket$).pipe(
       filter((progress): progress is ImportProgress => progress !== null),
-      distinctUntilChanged((prev, curr) =>
-        prev!.progressPercentage === curr!.progressPercentage &&
-        prev!.currentStep === curr!.currentStep
-      )
+      distinctUntilChanged(
+        (prev, curr) =>
+          prev!.progressPercentage === curr!.progressPercentage &&
+          prev!.currentStep === curr!.currentStep,
+      ),
     ) as Observable<ImportProgress>;
 
     return stopSignal ? combined$.pipe(takeUntil(stopSignal)) : combined$;
@@ -263,33 +317,41 @@ export class ImportService {
   /**
    * Monitors import status changes with WebSocket + HTTP hybrid approach
    */
-  monitorImportStatus(importId: string, stopSignal?: Observable<void>): Observable<FeedImportDetail> {
+  monitorImportStatus(
+    importId: string,
+    stopSignal?: Observable<void>,
+  ): Observable<FeedImportDetail> {
     // HTTP polling as fallback
     const polling$ = timer(0, 3000).pipe(
       switchMap(() => this.getImport(importId)),
       distinctUntilChanged((prev, curr) => prev.status === curr.status),
-      catchError(error => {
+      catchError((error) => {
         console.warn('HTTP status polling failed, continuing...', error);
         return of(null);
-      })
+      }),
     );
 
     // WebSocket real-time status updates
-    const webSocket$ = this.webSocketService.subscribeToImportStatus(importId).pipe(
-      switchMap(() => this.getImport(importId)), // Fetch full details when status changes
-      catchError(error => {
-        console.warn('WebSocket status updates failed, using HTTP polling only', error);
-        return of(null);
-      })
-    );
+    const webSocket$ = this.webSocketService
+      .subscribeToImportStatus(importId)
+      .pipe(
+        switchMap(() => this.getImport(importId)), // Fetch full details when status changes
+        catchError((error) => {
+          console.warn(
+            'WebSocket status updates failed, using HTTP polling only',
+            error,
+          );
+          return of(null);
+        }),
+      );
 
     // Merge both streams
-    const combined$ = merge(
-      polling$.pipe(startWith(null)),
-      webSocket$
-    ).pipe(
-      filter((importDetail): importDetail is FeedImportDetail => importDetail !== null),
-      distinctUntilChanged((prev, curr) => prev!.status === curr!.status)
+    const combined$ = merge(polling$.pipe(startWith(null)), webSocket$).pipe(
+      filter(
+        (importDetail): importDetail is FeedImportDetail =>
+          importDetail !== null,
+      ),
+      distinctUntilChanged((prev, curr) => prev!.status === curr!.status),
     ) as Observable<FeedImportDetail>;
 
     return stopSignal ? combined$.pipe(takeUntil(stopSignal)) : combined$;
@@ -303,7 +365,11 @@ export class ImportService {
     size?: number;
     status?: ImportStatus;
     triggerType?: TriggerType;
-  }): Observable<{ imports: FeedImport[]; totalElements: number; totalPages: number }> {
+  }): Observable<{
+    imports: FeedImportDetail[];
+    totalElements: number;
+    totalPages: number;
+  }> {
     let params = new HttpParams();
     if (options?.page !== undefined) {
       params = params.set('page', options.page.toString());
@@ -318,13 +384,15 @@ export class ImportService {
       params = params.set('triggerType', options.triggerType);
     }
 
-    return this.http.get<ImportsResponse>(`${this.apiUrl}/imports`, { params }).pipe(
-      map(response => ({
-        imports: response.imports,
-        totalElements: response.page.totalElements,
-        totalPages: response.page.totalPages
-      }))
-    );
+    return this.http
+      .get<ImportsResponse>(`${this.apiUrl}/imports`, { params })
+      .pipe(
+        map((response) => ({
+          imports: response.imports,
+          totalElements: response.page.totalElements,
+          totalPages: response.page.totalPages,
+        })),
+      );
   }
 
   /**
@@ -340,13 +408,13 @@ export class ImportService {
     // This would be implemented with a dedicated statistics endpoint
     // For now, we'll derive it from active imports
     return this.getActiveImports().pipe(
-      map(activeImports => ({
+      map((activeImports) => ({
         totalImports: 0, // Would come from backend
         successfulImports: 0, // Would come from backend
         failedImports: 0, // Would come from backend
         activeImports: activeImports.length,
-        averageImportTime: 0 // Would come from backend
-      }))
+        averageImportTime: 0, // Would come from backend
+      })),
     );
   }
 
@@ -355,20 +423,24 @@ export class ImportService {
    */
   isImportRunningForFeed(feedOnestopId: string): Observable<boolean> {
     return this.getActiveImports().pipe(
-      map(activeImports =>
-        activeImports.some(imp => imp.feedOnestopId === feedOnestopId)
-      )
+      map((activeImports) =>
+        activeImports.some((imp) => imp.feedOnestopId === feedOnestopId),
+      ),
     );
   }
 
   /**
    * Gets the current active import for a feed (if any)
    */
-  getActiveImportForFeed(feedOnestopId: string): Observable<FeedImportSummary | null> {
+  getActiveImportForFeed(
+    feedOnestopId: string,
+  ): Observable<FeedImportSummary | null> {
     return this.getActiveImports().pipe(
-      map(activeImports =>
-        activeImports.find(imp => imp.feedOnestopId === feedOnestopId) || null
-      )
+      map(
+        (activeImports) =>
+          activeImports.find((imp) => imp.feedOnestopId === feedOnestopId) ||
+          null,
+      ),
     );
   }
 
@@ -378,21 +450,25 @@ export class ImportService {
   retryImport(importId: string): Observable<FeedImport> {
     // Get the original import details and start a new import
     return this.getImport(importId).pipe(
-      switchMap(importDetail =>
-        this.startImport(importDetail.feedOnestopId, { force: true })
-      )
+      switchMap((importDetail) =>
+        this.startImport(importDetail.feedOnestopId, { force: true }),
+      ),
     );
   }
 
   /**
    * Bulk cancel multiple imports
    */
-  bulkCancelImports(importIds: string[]): Promise<any[]> {
-    const cancelRequests = importIds.map(id =>
-      this.cancelImport(id).toPromise().then(
-        result => ({ id, status: 'COMPLETED', result }),
-        error => ({ id, status: 'FAILED', error: error.message || 'Unknown error' })
-      )
+  bulkCancelImports(importIds: string[]): Promise<ImportCancelResult[]> {
+    const cancelRequests = importIds.map((id) =>
+      firstValueFrom(this.cancelImport(id)).then(
+        (result) => ({ id, status: 'COMPLETED' as const, result }),
+        (error) => ({
+          id,
+          status: 'FAILED' as const,
+          error: error.message || 'Unknown error',
+        }),
+      ),
     );
     return Promise.all(cancelRequests);
   }
@@ -402,11 +478,13 @@ export class ImportService {
    */
   getRecentImports(limit = 50): Observable<FeedImport[]> {
     return this.getAllImportHistory({ size: limit }).pipe(
-      map(response => response.imports.filter(imp => {
-        const importDate = new Date(imp.createdAt);
-        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        return importDate > twentyFourHoursAgo;
-      }))
+      map((response) =>
+        response.imports.filter((imp) => {
+          const importDate = new Date(imp.createdAt);
+          const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          return importDate > twentyFourHoursAgo;
+        }),
+      ),
     );
   }
 
@@ -415,7 +493,7 @@ export class ImportService {
    */
   getFailedImports(): Observable<FeedImport[]> {
     return this.getAllImportHistory({ status: ImportStatus.FAILED }).pipe(
-      map(response => response.imports)
+      map((response) => response.imports),
     );
   }
 
@@ -426,3 +504,7 @@ export class ImportService {
     this.stopPollingActiveImports();
   }
 }
+
+type ImportCancelResult =
+  | { id: string; status: 'COMPLETED'; result: FeedImport }
+  | { id: string; status: 'FAILED'; error: string };

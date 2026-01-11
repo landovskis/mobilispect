@@ -3,54 +3,59 @@ import { AppBreadcrumbsComponent } from './app-breadcrumbs.component';
 import { Router, NavigationEnd } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
-import { By } from '@angular/platform-browser';
+import { Subject } from 'rxjs';
 
 describe('AppBreadcrumbsComponent', () => {
-    let fixture: ComponentFixture<AppBreadcrumbsComponent>;
-    let component: AppBreadcrumbsComponent;
-    let breadcrumbService: jasmine.SpyObj<AppBreadcrumbService>;
-    let router: Router;
+  let fixture: ComponentFixture<AppBreadcrumbsComponent>;
+  let component: AppBreadcrumbsComponent;
+  let breadcrumbService: jasmine.SpyObj<AppBreadcrumbService>;
+  let router: Router;
 
-    beforeEach(async () => {
-        const breadcrumbServiceSpy = jasmine.createSpyObj('AppBreadcrumbService', ['getBreadcrumbs']);
+  beforeEach(async () => {
+    const breadcrumbServiceSpy = jasmine.createSpyObj('AppBreadcrumbService', [
+      'getBreadcrumbs',
+    ]);
 
-        await TestBed.configureTestingModule({
-            imports: [AppBreadcrumbsComponent, RouterTestingModule],
-            providers: [
-                { provide: AppBreadcrumbService, useValue: breadcrumbServiceSpy }
-            ]
-        }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [AppBreadcrumbsComponent, RouterTestingModule],
+      providers: [
+        { provide: AppBreadcrumbService, useValue: breadcrumbServiceSpy },
+      ],
+    }).compileComponents();
 
-        fixture = TestBed.createComponent(AppBreadcrumbsComponent);
-        component = fixture.componentInstance;
-        breadcrumbService = TestBed.inject(AppBreadcrumbService) as jasmine.SpyObj<AppBreadcrumbService>;
-        router = TestBed.inject(Router);
-    });
+    fixture = TestBed.createComponent(AppBreadcrumbsComponent);
+    component = fixture.componentInstance;
+    breadcrumbService = TestBed.inject(
+      AppBreadcrumbService,
+    ) as jasmine.SpyObj<AppBreadcrumbService>;
+    router = TestBed.inject(Router);
+  });
 
-    it('should create', () => {
-        expect(component).toBeTruthy();
-    });
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
 
-    it('should load breadcrumbs from service on init', () => {
-        const mockCrumbs = [{ id: 'test', label: 'Test', link: ['/'] }];
-        breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
+  it('should load breadcrumbs from service on init', () => {
+    const mockCrumbs = [{ id: 'test', label: 'Test', link: ['/'] }];
+    breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
 
-        fixture.detectChanges(); // ngOnInit
+    fixture.detectChanges(); // ngOnInit
 
-        expect(component.breadcrumbs).toEqual(mockCrumbs);
-        expect(breadcrumbService.getBreadcrumbs).toHaveBeenCalled();
-    });
+    expect(component.breadcrumbs).toEqual(mockCrumbs);
+    expect(breadcrumbService.getBreadcrumbs).toHaveBeenCalled();
+  });
 
-    it('should update breadcrumbs on navigation', () => {
-        breadcrumbService.getBreadcrumbs.and.returnValue([]);
-        fixture.detectChanges();
+  it('should update breadcrumbs on navigation', () => {
+    breadcrumbService.getBreadcrumbs.and.returnValue([]);
+    fixture.detectChanges();
 
-        const mockCrumbs = [{ id: 'new', label: 'New', link: ['/new'] }];
-        breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
+    const mockCrumbs = [{ id: 'new', label: 'New', link: ['/new'] }];
+    breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
 
-        const navEnd = new NavigationEnd(1, '/new', '/new');
-        (router.events as any).next(navEnd);
+    const navEnd = new NavigationEnd(1, '/new', '/new');
+    const routerEvents = router.events as unknown as Subject<NavigationEnd>;
+    routerEvents.next(navEnd);
 
-        expect(component.breadcrumbs).toEqual(mockCrumbs);
-    });
+    expect(component.breadcrumbs).toEqual(mockCrumbs);
+  });
 });

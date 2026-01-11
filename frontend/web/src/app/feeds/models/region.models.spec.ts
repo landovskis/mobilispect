@@ -1,14 +1,22 @@
-import { Feed, FeedSpecType, FeedStatus, FeedUtils, MetropolitanRegion, RegionUtils } from './region.models';
+import {
+  Feed,
+  FeedSpecType,
+  FeedStatus,
+  FeedUtils,
+  MetropolitanRegion,
+  RegionUtils,
+} from './region.models';
 
 describe('RegionUtils', () => {
-  const baseRegion: Omit<MetropolitanRegion, 'name' | 'adm0Name' | 'adm1Name'> = {
-    regionOnestopId: 'r-test',
-    autoUpdateEnabled: false,
-    feedCount: 0,
-    lastCheckAt: null,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  };
+  const baseRegion: Omit<MetropolitanRegion, 'name' | 'adm0Name' | 'adm1Name'> =
+    {
+      regionOnestopId: 'r-test',
+      autoUpdateEnabled: false,
+      feedCount: 0,
+      lastCheckAt: null,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
 
   beforeEach(() => {
     jasmine.clock().install();
@@ -37,7 +45,9 @@ describe('RegionUtils', () => {
       adm0Name: 'United States',
     };
 
-    expect(RegionUtils.getDisplayName(region)).toBe('San Francisco, California, United States');
+    expect(RegionUtils.getDisplayName(region)).toBe(
+      'San Francisco, California, United States',
+    );
   });
 
   it('filters empty parts and de-duplicates case-insensitively', () => {
@@ -69,13 +79,15 @@ describe('RegionUtils', () => {
   });
 
   it('handles missing or stale check timestamps', () => {
-    expect(RegionUtils.hasBeenCheckedRecently({
-      ...baseRegion,
-      name: 'Nowhere',
-      adm1Name: null,
-      adm0Name: null,
-      lastCheckAt: null,
-    })).toBeFalse();
+    expect(
+      RegionUtils.hasBeenCheckedRecently({
+        ...baseRegion,
+        name: 'Nowhere',
+        adm1Name: null,
+        adm0Name: null,
+        lastCheckAt: null,
+      }),
+    ).toBeFalse();
 
     jasmine.clock().mockDate(new Date('2024-06-01T12:00:00Z'));
     const oldCheck: MetropolitanRegion = {
@@ -116,7 +128,9 @@ describe('RegionUtils', () => {
     };
     expect(RegionUtils.formatLastCheck(fewHoursOld)).toBe('4 hours ago');
 
-    expect(RegionUtils.formatLastCheck({ ...region, lastCheckAt: null })).toBe('Never checked');
+    expect(RegionUtils.formatLastCheck({ ...region, lastCheckAt: null })).toBe(
+      'Never checked',
+    );
   });
 });
 
@@ -152,12 +166,20 @@ describe('FeedUtils', () => {
 
   it('maps display names and status metadata', () => {
     expect(FeedUtils.getDisplayName(baseFeed)).toBe('Metro Transit GTFS');
-    expect(FeedUtils.getSpecTypeDisplayName(FeedSpecType.GTFS_RT)).toBe('GTFS Realtime');
+    expect(FeedUtils.getSpecTypeDisplayName(FeedSpecType.GTFS_RT)).toBe(
+      'GTFS Realtime',
+    );
     expect(FeedUtils.getStatusDisplayName(FeedStatus.ERROR)).toBe('Error');
-    expect(FeedUtils.getStatusColorClass(FeedStatus.INACTIVE)).toBe('chip-neutral');
-    expect(FeedUtils.getSpecTypeDisplayName('other' as FeedSpecType)).toBe('other');
+    expect(FeedUtils.getStatusColorClass(FeedStatus.INACTIVE)).toBe(
+      'chip-neutral',
+    );
+    expect(FeedUtils.getSpecTypeDisplayName('other' as FeedSpecType)).toBe(
+      'other',
+    );
     expect(FeedUtils.getStatusDisplayName('other' as FeedStatus)).toBe('other');
-    expect(FeedUtils.getStatusColorClass('other' as FeedStatus)).toBe('chip-neutral');
+    expect(FeedUtils.getStatusColorClass('other' as FeedStatus)).toBe(
+      'chip-neutral',
+    );
   });
 
   it('checks recent updates and formats timestamps', () => {
@@ -170,7 +192,9 @@ describe('FeedUtils', () => {
     };
 
     expect(FeedUtils.hasBeenUpdatedRecently(recentFeed)).toBeTrue();
-    expect(FeedUtils.formatLastUpdated(recentFeed)).toBe(new Date('2024-06-08T10:00:00Z').toLocaleDateString());
+    expect(FeedUtils.formatLastUpdated(recentFeed)).toBe(
+      new Date('2024-06-08T10:00:00Z').toLocaleDateString(),
+    );
     expect(FeedUtils.formatLastUpdated(baseFeed)).toBe('Never updated');
     expect(FeedUtils.hasBeenUpdatedRecently(baseFeed)).toBeFalse();
   });

@@ -10,11 +10,11 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 12px !important;
   border: 2px solid transparent;
-  background: #2980B9 !important; // Primary color background
+  background: #2980b9 !important; // Primary color background
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
     border-color: rgba(255, 255, 255, 0.2);
   }
 
@@ -22,7 +22,7 @@
     background: #1e5f8c !important; // Darker shade for dark mode
 
     &:hover {
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
       border-color: rgba(100, 181, 246, 0.3);
     }
   }
@@ -65,7 +65,12 @@
 // Subtitle Styles
 @mixin card-subtitle {
   font-size: 0.875rem !important;
-  color: rgba(255, 255, 255, 0.9) !important; // WCAG AA compliant (contrast ratio 6.3:1)
+  color: rgba(
+    255,
+    255,
+    255,
+    0.9
+  ) !important; // WCAG AA compliant (contrast ratio 6.3:1)
 
   :host-context(.dark-theme) & {
     color: rgba(255, 255, 255, 0.9) !important;
@@ -82,14 +87,15 @@
 }
 
 // Section Styles (within card content)
-@mixin content-section {}
+@mixin content-section {
+}
 
 @mixin section-label {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #2980B9; // WCAG AAA on white background (contrast ratio 7.0:1)
+  color: #2980b9; // WCAG AAA on white background (contrast ratio 7.0:1)
 
   :host-context(.dark-theme) & {
     color: #64b5f6; // WCAG AAA on dark background
@@ -98,7 +104,7 @@
 
 @mixin label-icon {
   font-size: 16px;
-  color: #2980B9; // WCAG AAA on white background
+  color: #2980b9; // WCAG AAA on white background
 
   :host-context(.dark-theme) & {
     color: #64b5f6;
@@ -107,7 +113,12 @@
 
 // Card Actions Styles
 @mixin card-actions {
-  background-color: rgba(255, 255, 255, 0.95); // Light background to match content
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.95
+  ); // Light background to match content
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 
   :host-context(.dark-theme) & {
@@ -134,7 +145,7 @@
 @mixin meta-badge-success {
   @include meta-badge-base;
   background-color: rgba(76, 175, 80, 0.15);
-  color: #1B5E20; // WCAG AAA on light background (contrast ratio 8.5:1)
+  color: #1b5e20; // WCAG AAA on light background (contrast ratio 8.5:1)
   border-color: rgba(76, 175, 80, 0.4);
 
   :host-context(.dark-theme) & {
@@ -147,7 +158,7 @@
 @mixin meta-badge-warning {
   @include meta-badge-base;
   background-color: rgba(243, 156, 18, 0.15);
-  color: #8B5A00; // WCAG AAA on light background (contrast ratio 7.0:1)
+  color: #8b5a00; // WCAG AAA on light background (contrast ratio 7.0:1)
   border-color: rgba(243, 156, 18, 0.3);
 
   :host-context(.dark-theme) & {
@@ -160,7 +171,7 @@
 @mixin meta-badge-error {
   @include meta-badge-base;
   background-color: rgba(244, 67, 54, 0.15);
-  color: #B71C1C; // WCAG AAA on light background (contrast ratio 8.2:1)
+  color: #b71c1c; // WCAG AAA on light background (contrast ratio 8.2:1)
   border-color: rgba(244, 67, 54, 0.4);
 
   :host-context(.dark-theme) & {

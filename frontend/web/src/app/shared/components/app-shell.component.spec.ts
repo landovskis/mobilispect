@@ -7,122 +7,131 @@ import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service'
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { RegionService } from '../../feeds/services/region.service';
 import { BehaviorSubject, firstValueFrom, of } from 'rxjs';
-import { Router } from '@angular/router';
+import { FeedImportSummary } from '../../feeds/models';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('AppShellComponent', () => {
-    let component: AppShellComponent;
-    let fixture: ComponentFixture<AppShellComponent>;
-    let router: Router;
+  let component: AppShellComponent;
+  let fixture: ComponentFixture<AppShellComponent>;
 
-    const mockImportService = {
-        getActiveImportsObservable: () => of([]),
-        refreshActiveImports: jasmine.createSpy('refreshActiveImports')
-    };
+  let activeImports$ = of<FeedImportSummary[] | null>([]);
+  const mockImportService = {
+    getActiveImportsObservable: () => activeImports$,
+    refreshActiveImports: jasmine.createSpy('refreshActiveImports'),
+  };
 
-    const mockMetricsService = {
-        discoverFeedCount$: of(0),
-        totalImportElements$: of(0),
-        resetSelectedRegion: jasmine.createSpy('resetSelectedRegion')
-    };
+  const mockMetricsService = {
+    discoverFeedCount$: of(0),
+    totalImportElements$: of(0),
+    resetSelectedRegion: jasmine.createSpy('resetSelectedRegion'),
+  };
 
-    const mockEventsService = {
-        triggerRefresh: jasmine.createSpy('triggerRefresh')
-    };
+  const mockEventsService = {
+    triggerRefresh: jasmine.createSpy('triggerRefresh'),
+  };
 
-    const mockRegionService = {
-        clearCache: jasmine.createSpy('clearCache')
-    };
+  const mockRegionService = {
+    clearCache: jasmine.createSpy('clearCache'),
+  };
 
-    const breakpointState$ = new BehaviorSubject({ matches: false });
-    const mockBreakpointObserver = {
-        observe: () => breakpointState$.asObservable()
-    };
+  const breakpointState$ = new BehaviorSubject({ matches: false });
+  const mockBreakpointObserver = {
+    observe: () => breakpointState$.asObservable(),
+  };
 
-    beforeEach(async () => {
-        await TestBed.configureTestingModule({
-            imports: [
-                AppShellComponent,
-                MatSnackBarModule,
-                NoopAnimationsModule,
-                RouterTestingModule
-            ],
-            providers: [
-                { provide: ImportService, useValue: mockImportService },
-                { provide: FeedsMetricsService, useValue: mockMetricsService },
-                { provide: FeedsEventsService, useValue: mockEventsService },
-                { provide: RegionService, useValue: mockRegionService },
-                { provide: BreakpointObserver, useValue: mockBreakpointObserver }
-            ]
-        }).compileComponents();
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        AppShellComponent,
+        MatSnackBarModule,
+        NoopAnimationsModule,
+        RouterTestingModule,
+      ],
+      providers: [
+        { provide: ImportService, useValue: mockImportService },
+        { provide: FeedsMetricsService, useValue: mockMetricsService },
+        { provide: FeedsEventsService, useValue: mockEventsService },
+        { provide: RegionService, useValue: mockRegionService },
+        { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+      ],
+    }).compileComponents();
 
-        fixture = TestBed.createComponent(AppShellComponent);
-        component = fixture.componentInstance;
-        router = TestBed.inject(Router);
-        fixture.detectChanges();
+    fixture = TestBed.createComponent(AppShellComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+
+  it('refreshes data and triggers events', () => {
+    component.onRefresh();
+
+    expect(mockRegionService.clearCache).toHaveBeenCalled();
+    expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
+    expect(mockEventsService.triggerRefresh).toHaveBeenCalled();
+  });
+
+  it('navigates when regions breadcrumb is selected', () => {
+    const preventDefault = jasmine.createSpy('preventDefault');
+    const stopPropagation = jasmine.createSpy('stopPropagation');
+
+    component.onBreadcrumbSelected({
+      breadcrumb: {
+        id: 'regions',
+        label: 'Regions',
+        link: ['/regions/discover'],
+      },
+      originalEvent: {
+        preventDefault,
+        stopPropagation,
+      } as unknown as MouseEvent,
     });
 
-    it('should create', () => {
-        expect(component).toBeTruthy();
+    expect(preventDefault).toHaveBeenCalled();
+    expect(stopPropagation).toHaveBeenCalled();
+    expect(mockMetricsService.resetSelectedRegion).toHaveBeenCalled();
+  });
+
+  it('ignores breadcrumb selections outside regions', () => {
+    const preventDefault = jasmine.createSpy('preventDefault');
+    const stopPropagation = jasmine.createSpy('stopPropagation');
+
+    component.onBreadcrumbSelected({
+      breadcrumb: { id: 'feeds', label: 'Feeds', link: ['/feeds/imports'] },
+      originalEvent: {
+        preventDefault,
+        stopPropagation,
+      } as unknown as MouseEvent,
     });
 
-    it('refreshes data and triggers events', () => {
-        component.onRefresh();
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(stopPropagation).not.toHaveBeenCalled();
+  });
 
-        expect(mockRegionService.clearCache).toHaveBeenCalled();
-        expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
-        expect(mockEventsService.triggerRefresh).toHaveBeenCalled();
-    });
+  it('toggles the sidenav only on handset layouts', async () => {
+    await component.toggleSidenav();
+    expect(component.sidebarOpened).toBeFalse();
 
-    it('navigates when regions breadcrumb is selected', () => {
-        const preventDefault = jasmine.createSpy('preventDefault');
-        const stopPropagation = jasmine.createSpy('stopPropagation');
+    breakpointState$.next({ matches: true });
+    await component.toggleSidenav();
+    expect(component.sidebarOpened).toBeTrue();
+  });
 
-        component.onBreadcrumbSelected({
-            breadcrumb: { id: 'regions', label: 'Regions', link: ['/regions/discover'] },
-            originalEvent: { preventDefault, stopPropagation } as unknown as MouseEvent
-        });
+  it('updates sidebar state on opened change', () => {
+    component.onSidenavOpenedChange(true);
+    expect(component.sidebarOpened).toBeTrue();
+  });
 
-        expect(preventDefault).toHaveBeenCalled();
-        expect(stopPropagation).toHaveBeenCalled();
-        expect(mockMetricsService.resetSelectedRegion).toHaveBeenCalled();
-    });
+  it('falls back to zero active imports when data is missing', async () => {
+    activeImports$ = of(null);
 
-    it('ignores breadcrumb selections outside regions', () => {
-        const preventDefault = jasmine.createSpy('preventDefault');
-        const stopPropagation = jasmine.createSpy('stopPropagation');
+    const testFixture = TestBed.createComponent(AppShellComponent);
+    const testComponent = testFixture.componentInstance;
 
-        component.onBreadcrumbSelected({
-            breadcrumb: { id: 'feeds', label: 'Feeds', link: ['/feeds/imports'] },
-            originalEvent: { preventDefault, stopPropagation } as unknown as MouseEvent
-        });
-
-        expect(preventDefault).not.toHaveBeenCalled();
-        expect(stopPropagation).not.toHaveBeenCalled();
-    });
-
-    it('toggles the sidenav only on handset layouts', async () => {
-        await component.toggleSidenav();
-        expect(component.sidebarOpened).toBeFalse();
-
-        breakpointState$.next({ matches: true });
-        await component.toggleSidenav();
-        expect(component.sidebarOpened).toBeTrue();
-    });
-
-    it('updates sidebar state on opened change', () => {
-        component.onSidenavOpenedChange(true);
-        expect(component.sidebarOpened).toBeTrue();
-    });
-
-    it('falls back to zero active imports when data is missing', async () => {
-        mockImportService.getActiveImportsObservable = () => of(null as any);
-
-        const testFixture = TestBed.createComponent(AppShellComponent);
-        const testComponent = testFixture.componentInstance;
-
-        const activeCount = await firstValueFrom(testComponent.activeImportCount$);
-        expect(activeCount).toBe(0);
-    });
+    const activeCount = await firstValueFrom(testComponent.activeImportCount$);
+    expect(activeCount).toBe(0);
+  });
 });

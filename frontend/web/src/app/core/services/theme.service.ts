@@ -17,11 +17,17 @@ export class ThemeService {
   private readonly mediaQuery = this.getMediaQuery();
   private readonly hasStoredPreference: boolean;
 
-  private readonly preferenceSubject = new BehaviorSubject<ThemePreference>('light');
-  private readonly activeThemeSubject = new BehaviorSubject<ActiveTheme>('light');
+  private readonly preferenceSubject = new BehaviorSubject<ThemePreference>(
+    'light',
+  );
+  private readonly activeThemeSubject = new BehaviorSubject<ActiveTheme>(
+    'light',
+  );
 
-  readonly preference$: Observable<ThemePreference> = this.preferenceSubject.asObservable();
-  readonly activeTheme$: Observable<ActiveTheme> = this.activeThemeSubject.asObservable();
+  readonly preference$: Observable<ThemePreference> =
+    this.preferenceSubject.asObservable();
+  readonly activeTheme$: Observable<ActiveTheme> =
+    this.activeThemeSubject.asObservable();
 
   constructor() {
     const storedPreference = this.readStoredPreference();
@@ -41,7 +47,8 @@ export class ThemeService {
   }
 
   toggle(): ActiveTheme {
-    const next: ActiveTheme = this.activeThemeSubject.value === 'dark' ? 'light' : 'dark';
+    const next: ActiveTheme =
+      this.activeThemeSubject.value === 'dark' ? 'light' : 'dark';
     return this.setPreference(next);
   }
 
@@ -99,7 +106,10 @@ export class ThemeService {
   }
 
   private getMediaQuery(): MediaQueryList | null {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return null;
     }
 

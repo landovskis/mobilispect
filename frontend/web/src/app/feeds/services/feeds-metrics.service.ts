@@ -7,20 +7,22 @@ export interface SelectedRegionInfo {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class FeedsMetricsService {
-  private readonly selectedRegionSubject = new BehaviorSubject<SelectedRegionInfo>({
-    id: null,
-    name: null
-  });
+  private readonly selectedRegionSubject =
+    new BehaviorSubject<SelectedRegionInfo>({
+      id: null,
+      name: null,
+    });
 
   private readonly discoverFeedCountSubject = new BehaviorSubject<number>(0);
   private readonly totalImportElementsSubject = new BehaviorSubject<number>(0);
 
   readonly selectedRegion$ = this.selectedRegionSubject.asObservable();
   readonly discoverFeedCount$ = this.discoverFeedCountSubject.asObservable();
-  readonly totalImportElements$ = this.totalImportElementsSubject.asObservable();
+  readonly totalImportElements$ =
+    this.totalImportElementsSubject.asObservable();
 
   setSelectedRegion(id: string | null, name: string | null): void {
     this.selectedRegionSubject.next({ id, name });

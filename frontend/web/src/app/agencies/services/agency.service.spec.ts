@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { AgencyService } from './agency.service';
 import { environment } from '../../../environments/environment';
 import { RouteType } from '../../transit-frequency/models/route-type.model';
@@ -11,7 +14,7 @@ describe('AgencyService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [AgencyService]
+      providers: [AgencyService],
     });
 
     service = TestBed.inject(AgencyService);
@@ -23,11 +26,13 @@ describe('AgencyService', () => {
   });
 
   it('lists agencies with region scope when provided', () => {
-    service.listAgencies(2, 50, 'r-1').subscribe(response => {
+    service.listAgencies(2, 50, 'r-1').subscribe((response) => {
       expect(response.totalElements).toBe(1);
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/regions/r-1/agencies`);
+    const req = httpMock.expectOne(
+      (request) => request.url === `${environment.apiUrl}/regions/r-1/agencies`,
+    );
     expect(req.request.params.get('page')).toBe('2');
     expect(req.request.params.get('size')).toBe('50');
 
@@ -40,32 +45,34 @@ describe('AgencyService', () => {
           regionIds: ['r-1'],
           routeCount: 10,
           activeRouteCount: 8,
-          routesByType: { bus: 10 }
-        }
+          routesByType: { bus: 10 },
+        },
       ],
       totalElements: 1,
-      totalPages: 1
+      totalPages: 1,
     });
   });
 
   it('lists agencies without region scope by default', () => {
-    service.listAgencies().subscribe(response => {
+    service.listAgencies().subscribe((response) => {
       expect(response.totalPages).toBe(2);
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/agencies`);
+    const req = httpMock.expectOne(
+      (request) => request.url === `${environment.apiUrl}/agencies`,
+    );
     expect(req.request.params.get('page')).toBe('0');
     expect(req.request.params.get('size')).toBe('20');
 
     req.flush({
       content: [],
       totalElements: 20,
-      totalPages: 2
+      totalPages: 2,
     });
   });
 
   it('gets a single agency summary', () => {
-    service.getAgency('a-2').subscribe(agency => {
+    service.getAgency('a-2').subscribe((agency) => {
       expect(agency.id).toBe('a-2');
     });
 
@@ -78,17 +85,19 @@ describe('AgencyService', () => {
       routeCount: 12,
       averageHeadwayMinutes: 15,
       minHeadwayMinutes: 10,
-      maxHeadwayMinutes: 30
+      maxHeadwayMinutes: 30,
     });
   });
 
   it('lists routes for an agency with paging', () => {
-    service.listRoutesByAgency('a-3', 1, 25).subscribe(response => {
+    service.listRoutesByAgency('a-3', 1, 25).subscribe((response) => {
       expect(response.content.length).toBe(1);
       expect(response.number).toBe(1);
     });
 
-    const req = httpMock.expectOne(request => request.url === `${environment.apiUrl}/agencies/a-3/routes`);
+    const req = httpMock.expectOne(
+      (request) => request.url === `${environment.apiUrl}/agencies/a-3/routes`,
+    );
     expect(req.request.params.get('page')).toBe('1');
     expect(req.request.params.get('size')).toBe('25');
 
@@ -100,13 +109,13 @@ describe('AgencyService', () => {
           shortName: '10',
           longName: 'Downtown',
           routeType: RouteType.BUS,
-          active: true
-        }
+          active: true,
+        },
       ],
       totalElements: 1,
       totalPages: 1,
       number: 1,
-      size: 25
+      size: 25,
     });
   });
 });

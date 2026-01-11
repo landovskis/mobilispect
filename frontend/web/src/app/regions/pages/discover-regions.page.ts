@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -7,7 +7,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MetropolitanRegion, Feed, RegionUtils } from '../../feeds/models';
-import { AgencyFeedGroup, FeedGroupingUtils } from '../../feeds/models/agency-feed-group.model';
+import {
+  AgencyFeedGroup,
+  FeedGroupingUtils,
+} from '../../feeds/models/agency-feed-group.model';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
@@ -25,13 +28,14 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     MatIconModule,
     BrandSectionComponent,
     RegionSelectorComponent,
-    AgencyFeedCardComponent
-],
+    AgencyFeedCardComponent,
+  ],
   template: `
     <app-brand-section
       title="Discover Regions"
       subtitle="Choose a metropolitan region to explore its agencies and feeds"
-      icon="travel_explore">
+      icon="travel_explore"
+    >
       <app-region-selector
         [regions]="regions"
         [selectedRegionId]="selectedRegionId"
@@ -39,7 +43,11 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
       ></app-region-selector>
 
       @if (loadingFeeds) {
-        <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12" role="status" aria-live="polite">
+        <div
+          class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12"
+          role="status"
+          aria-live="polite"
+        >
           <mat-spinner diameter="40"></mat-spinner>
           <p>Loading feeds...</p>
         </div>
@@ -51,14 +59,21 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
                 [agencyGroup]="group"
                 (importFeed)="importFeed($event)"
                 (importAllFeeds)="importMultipleFeeds($event)"
-                (viewDetails)="viewFeedDetails($event)">
+                (viewDetails)="viewFeedDetails($event)"
+              >
               </app-agency-feed-card>
             }
           </div>
         } @else {
-          <div class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center">
-            <mat-icon class="empty-icon mb-4 text-[64px] text-[rgba(0,0,0,0.3)]">inbox</mat-icon>
-            <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">No regions found</h3>
+          <div
+            class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center"
+          >
+            <mat-icon class="empty-icon mb-4 text-[64px] text-[rgba(0,0,0,0.3)]"
+              >inbox</mat-icon
+            >
+            <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">
+              No regions found
+            </h3>
             <p class="max-w-[400px] text-sm text-[rgba(0,0,0,0.6)]">
               @if (selectedRegionId) {
                 No feeds are available for the selected region yet.
@@ -71,28 +86,30 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
       }
     </app-brand-section>
   `,
-  styles: [`
-    .loading-state p {
-      color: rgba(0, 0, 0, 0.6);
-      font-size: 0.875rem;
-    }
+  styles: [
+    `
+      .loading-state p {
+        color: rgba(0, 0, 0, 0.6);
+        font-size: 0.875rem;
+      }
 
-    :host-context(.dark-theme) .loading-state p {
-      color: rgba(255, 255, 255, 0.7);
-    }
+      :host-context(.dark-theme) .loading-state p {
+        color: rgba(255, 255, 255, 0.7);
+      }
 
-    :host-context(.dark-theme) .empty-state .empty-icon {
-      color: rgba(255, 255, 255, 0.3);
-    }
+      :host-context(.dark-theme) .empty-state .empty-icon {
+        color: rgba(255, 255, 255, 0.3);
+      }
 
-    :host-context(.dark-theme) .empty-state h3 {
-      color: rgba(255, 255, 255, 0.87);
-    }
+      :host-context(.dark-theme) .empty-state h3 {
+        color: rgba(255, 255, 255, 0.87);
+      }
 
-    :host-context(.dark-theme) .empty-state p {
-      color: rgba(255, 255, 255, 0.7);
-    }
-  `]
+      :host-context(.dark-theme) .empty-state p {
+        color: rgba(255, 255, 255, 0.7);
+      }
+    `,
+  ],
 })
 export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
@@ -104,15 +121,15 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
   agencyGroups: AgencyFeedGroup[] = [];
   loadingFeeds = false;
 
-  constructor(
-    private readonly regionService: RegionService,
-    private readonly importService: ImportService,
-    private readonly snackBar: MatSnackBar,
-    private readonly router: Router,
-    private readonly route: ActivatedRoute,
-    private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService
-  ) {}
+  private readonly regionService = inject(RegionService);
+  private readonly importService = inject(ImportService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly metrics = inject(FeedsMetricsService);
+  private readonly events = inject(FeedsEventsService);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.loadRegions();
@@ -131,65 +148,92 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
     }
 
     this.selectedRegionId = regionId;
-    this.selectedRegion = this.regions.find(r => r.regionOnestopId === regionId) ?? null;
-    this.metrics.setSelectedRegion(this.selectedRegionId, this.getRegionDisplayName(this.selectedRegion));
+    this.selectedRegion =
+      this.regions.find((r) => r.regionOnestopId === regionId) ?? null;
+    this.metrics.setSelectedRegion(
+      this.selectedRegionId,
+      this.getRegionDisplayName(this.selectedRegion),
+    );
     this.updateUrlWithRegion(regionId);
     this.loadFeedsForRegion(regionId);
     this.router.navigate(['/feeds/discover', regionId]);
   }
 
   importMultipleFeeds(feeds: Feed[]): void {
-    feeds.forEach(feed => this.importFeed(feed));
+    feeds.forEach((feed) => this.importFeed(feed));
   }
 
   importFeed(feed: Feed): void {
-    this.snackBar.open(`Starting import for ${feed.name}...`, 'Close', { duration: 2000 });
-
-    this.importService.startImport(feed.feedOnestopId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (result) => {
-        this.snackBar.open(`Import started for ${feed.name}`, 'Close', { duration: 3000 });
-        this.importService.refreshActiveImports();
-        this.router.navigate(['/feeds/imports']);
-      },
-      error: (error) => {
-        console.error('Failed to start import:', error);
-        const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
-        this.snackBar.open(`❌ Import failed: ${errorMessage}`, 'Retry', {
-          duration: 8000,
-          panelClass: ['error-snackbar']
-        }).onAction().subscribe(() => this.importFeed(feed));
-      }
+    this.snackBar.open(`Starting import for ${feed.name}...`, 'Close', {
+      duration: 2000,
     });
+
+    this.importService
+      .startImport(feed.feedOnestopId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.snackBar.open(`Import started for ${feed.name}`, 'Close', {
+            duration: 3000,
+          });
+          this.importService.refreshActiveImports();
+          this.router.navigate(['/feeds/imports']);
+        },
+        error: (error) => {
+          console.error('Failed to start import:', error);
+          const errorMessage =
+            error.message || error.error?.message || 'Unknown error occurred';
+          this.snackBar
+            .open(`❌ Import failed: ${errorMessage}`, 'Retry', {
+              duration: 8000,
+              panelClass: ['error-snackbar'],
+            })
+            .onAction()
+            .subscribe(() => this.importFeed(feed));
+        },
+      });
   }
 
   viewFeedDetails(feed: Feed): void {
-    this.snackBar.open(`Viewing details for ${feed.name}`, 'Close', { duration: 2000 });
+    this.snackBar.open(`Viewing details for ${feed.name}`, 'Close', {
+      duration: 2000,
+    });
   }
 
   private loadRegions(): void {
-    this.regionService.listRegions().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (regions) => {
-        this.regions = [...regions].sort((a, b) => a.name.localeCompare(b.name));
-        this.metrics.setSelectedRegion(this.selectedRegionId, this.getRegionDisplayName(this.selectedRegion));
-        this.bootstrapRegionFromQuery();
-      },
-      error: (error) => {
-        console.error('Failed to load regions:', error);
-        this.snackBar.open('Failed to load regions', 'Close', { duration: 3000 });
-      }
-    });
+    this.regionService
+      .listRegions()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (regions) => {
+          this.regions = [...regions].sort((a, b) =>
+            a.name.localeCompare(b.name),
+          );
+          this.metrics.setSelectedRegion(
+            this.selectedRegionId,
+            this.getRegionDisplayName(this.selectedRegion),
+          );
+          this.bootstrapRegionFromQuery();
+        },
+        error: (error) => {
+          console.error('Failed to load regions:', error);
+          this.snackBar.open('Failed to load regions', 'Close', {
+            duration: 3000,
+          });
+        },
+      });
   }
 
   private bootstrapRegionFromQuery(): void {
     const initialRegion = this.route.snapshot.queryParamMap.get('region');
     if (initialRegion) {
       this.selectedRegionId = initialRegion;
-      this.selectedRegion = this.regions.find(r => r.regionOnestopId === initialRegion) ?? null;
-      this.metrics.setSelectedRegion(this.selectedRegionId, this.getRegionDisplayName(this.selectedRegion));
+      this.selectedRegion =
+        this.regions.find((r) => r.regionOnestopId === initialRegion) ?? null;
+      this.metrics.setSelectedRegion(
+        this.selectedRegionId,
+        this.getRegionDisplayName(this.selectedRegion),
+      );
       this.loadFeedsForRegion(initialRegion);
     } else {
       this.clearSelection();
@@ -197,7 +241,7 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
 
     this.route.queryParamMap
       .pipe(takeUntil(this.destroy$))
-      .subscribe(params => {
+      .subscribe((params) => {
         const regionId = params.get('region');
         if (regionId && regionId !== this.selectedRegionId) {
           this.onRegionChange(regionId);
@@ -213,49 +257,59 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
     this.agencyGroups = [];
     this.metrics.setDiscoverFeedCount(0);
 
-    this.regionService.getCachedRegions().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe((regions) => {
-      const region = regions?.find(r => r.regionOnestopId === onestopId);
-      if (region) {
-        this.selectedRegion = region;
-        this.metrics.setSelectedRegion(region.regionOnestopId, this.getRegionDisplayName(region));
-      }
-    });
+    this.regionService
+      .getCachedRegions()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((regions) => {
+        const region = regions?.find((r) => r.regionOnestopId === onestopId);
+        if (region) {
+          this.selectedRegion = region;
+          this.metrics.setSelectedRegion(
+            region.regionOnestopId,
+            this.getRegionDisplayName(region),
+          );
+        }
+      });
 
-    this.regionService.listFeedsForRegion(onestopId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (feeds) => {
-        this.regionFeeds = feeds;
-        this.agencyGroups = FeedGroupingUtils.sortAgencyGroups(
-          FeedGroupingUtils.groupFeedsByAgency(feeds)
-        );
-        this.metrics.setDiscoverFeedCount(feeds.length);
-        this.loadingFeeds = false;
-        const regionName = this.getRegionDisplayName(this.selectedRegion) || onestopId;
-        this.snackBar.open(
-          `Viewing ${feeds.length} feeds from ${this.agencyGroups.length} agencies for ${regionName}`,
-          'Close',
-          { duration: 2000 }
-        );
-      },
-      error: (error) => {
-        console.error('Failed to load feeds:', error);
-        this.loadingFeeds = false;
-        const regionName = this.getRegionDisplayName(this.selectedRegion) || onestopId;
-        this.snackBar.open(`Failed to load feeds for ${regionName}`, 'Retry', {
-          duration: 5000
-        }).onAction().subscribe(() => this.loadFeedsForRegion(onestopId));
-      }
-    });
+    this.regionService
+      .listFeedsForRegion(onestopId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (feeds) => {
+          this.regionFeeds = feeds;
+          this.agencyGroups = FeedGroupingUtils.sortAgencyGroups(
+            FeedGroupingUtils.groupFeedsByAgency(feeds),
+          );
+          this.metrics.setDiscoverFeedCount(feeds.length);
+          this.loadingFeeds = false;
+          const regionName =
+            this.getRegionDisplayName(this.selectedRegion) || onestopId;
+          this.snackBar.open(
+            `Viewing ${feeds.length} feeds from ${this.agencyGroups.length} agencies for ${regionName}`,
+            'Close',
+            { duration: 2000 },
+          );
+        },
+        error: (error) => {
+          console.error('Failed to load feeds:', error);
+          this.loadingFeeds = false;
+          const regionName =
+            this.getRegionDisplayName(this.selectedRegion) || onestopId;
+          this.snackBar
+            .open(`Failed to load feeds for ${regionName}`, 'Retry', {
+              duration: 5000,
+            })
+            .onAction()
+            .subscribe(() => this.loadFeedsForRegion(onestopId));
+        },
+      });
   }
 
   private updateUrlWithRegion(regionId: string): void {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { region: regionId },
-      queryParamsHandling: 'merge'
+      queryParamsHandling: 'merge',
     });
   }
 
@@ -269,22 +323,22 @@ export class DiscoverRegionsPageComponent implements OnInit, OnDestroy {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { region: null },
-      queryParamsHandling: 'merge'
+      queryParamsHandling: 'merge',
     });
   }
 
   private subscribeToRefresh(): void {
-    this.events.refresh$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.loadRegions();
-        if (this.selectedRegionId) {
-          this.loadFeedsForRegion(this.selectedRegionId);
-        }
-      });
+    this.events.refresh$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.loadRegions();
+      if (this.selectedRegionId) {
+        this.loadFeedsForRegion(this.selectedRegionId);
+      }
+    });
   }
 
-  private getRegionDisplayName(region: MetropolitanRegion | null | undefined): string | null {
+  private getRegionDisplayName(
+    region: MetropolitanRegion | null | undefined,
+  ): string | null {
     if (!region) {
       return null;
     }

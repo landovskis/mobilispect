@@ -1,6 +1,9 @@
 <div class="sections flex flex-col gap-3" role="list">
   @for (section of sections; track section.id) {
-    <div class="section rounded-xl border border-[var(--mat-sys-outline,#e2e8f0)] p-3" role="listitem">
+    <div
+      class="section rounded-xl border border-[var(--mat-sys-outline,#e2e8f0)] p-3"
+      role="listitem"
+    >
       <div class="title">
         <span>Stops: {{ section.stopCount }}</span>
         <small>{{ section.stopPattern }}</small>
@@ -9,7 +12,10 @@
         <span>Variants: {{ section.variants.length }}</span>
         @if (combined?.[section.id]) {
           <span class="headway">
-            @if (!combined?.[section.id]?.isIrregular && combined?.[section.id]?.averageHeadwayMinutes) {
+            @if (
+              !combined?.[section.id]?.isIrregular &&
+              combined?.[section.id]?.averageHeadwayMinutes
+            ) {
               {{ combined?.[section.id]?.averageHeadwayMinutes }} min avg
             } @else {
               Variable schedule
@@ -17,23 +23,39 @@
           </span>
         }
       </div>
-      <div class="variant-tags mt-2 flex flex-wrap gap-1.5" aria-label="Variants">
+      <div
+        class="variant-tags mt-2 flex flex-wrap gap-1.5"
+        aria-label="Variants"
+      >
         @for (variant of section.variants; track variant) {
-          <span class="tag rounded-lg px-2 py-1 text-[0.85rem]">{{ variant }}</span>
+          <span class="tag rounded-lg px-2 py-1 text-[0.85rem]">{{
+            variant
+          }}</span>
         }
       </div>
       @if (combined?.[section.id]?.contributions?.length) {
-        <div class="contributions mt-2.5 grid gap-1.5 border-t border-[var(--mat-sys-outline,#e2e8f0)] pt-2" role="table" aria-label="Route contributions">
+        <div
+          class="contributions mt-2.5 grid gap-1.5 border-t border-[var(--mat-sys-outline,#e2e8f0)] pt-2"
+          role="table"
+          aria-label="Route contributions"
+        >
           <div class="contrib-row header grid grid-cols-3 gap-2" role="row">
             <span role="columnheader">Route</span>
             <span role="columnheader">Headway</span>
             <span role="columnheader">Trips</span>
           </div>
-          @for (contrib of combined?.[section.id]?.contributions; track contrib.routeId) {
+          @for (
+            contrib of combined?.[section.id]?.contributions;
+            track contrib.routeId
+          ) {
             <div class="contrib-row grid grid-cols-3 gap-2" role="row">
               <span role="cell">{{ contrib.routeId }}</span>
               <span role="cell">
-                @if (!contrib.isIrregular && contrib.averageHeadwayMinutes !== null && contrib.averageHeadwayMinutes !== undefined) {
+                @if (
+                  !contrib.isIrregular &&
+                  contrib.averageHeadwayMinutes !== null &&
+                  contrib.averageHeadwayMinutes !== undefined
+                ) {
                   {{ contrib.averageHeadwayMinutes }} min
                 } @else {
                   Variable

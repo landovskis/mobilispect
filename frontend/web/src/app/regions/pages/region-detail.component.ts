@@ -1,14 +1,19 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
-import { MetropolitanRegionDetail, FeedStatus } from '../../feeds/models/region.models';
+import { MetropolitanRegionDetail } from '../../feeds/models/region.models';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { AgencyListResponse } from '../../transit-frequency/services/agency.service';
 import { AgencyCardComponent } from '../../transit-frequency/components/agency-card/agency-card.component';
-import { AgencyService } from "../../agencies/services/agency.service";
+import { AgencyService } from '../../agencies/services/agency.service';
 
 interface RegionSummary {
   name: string;
@@ -25,14 +30,19 @@ interface RegionSummary {
       <app-brand-section
         [title]="(summary$ | async)?.name || 'Summary'"
         subtitle="Overview of transit data in this region"
-        icon="analytics">
+        icon="analytics"
+      >
         @if (summary$ | async; as summary) {
           <div class="summary-grid grid gap-4 md:grid-cols-2">
-            <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
+            <div
+              class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center"
+            >
               <div class="summary-value">{{ summary.totalAgencies }}</div>
               <div class="summary-label mt-2">Transit Agencies</div>
             </div>
-            <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
+            <div
+              class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center"
+            >
               <div class="summary-value">{{ summary.totalActiveRoutes }}</div>
               <div class="summary-label mt-2">Active Routes</div>
             </div>
@@ -45,13 +55,12 @@ interface RegionSummary {
       <app-brand-section
         title="Agencies"
         subtitle="Transit agencies serving this region"
-        icon="business">
+        icon="business"
+      >
         @if (agencies$ | async; as agenciesResponse) {
           <div class="agencies-grid grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             @for (agency of agenciesResponse.content; track agency) {
-              <app-agency-card
-                [agency]="agency">
-              </app-agency-card>
+              <app-agency-card [agency]="agency"> </app-agency-card>
             }
           </div>
           @if (agenciesResponse.content.length === 0) {
@@ -64,52 +73,56 @@ interface RegionSummary {
         }
       </app-brand-section>
     </div>
+  `,
+  styles: [
+    `
+      .summary-value {
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--mat-sys-primary, #1976d2);
+        line-height: 1.2;
+      }
+
+      .summary-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--mat-sys-on-surface, #333);
+      }
+
+      .summary-sublabel {
+        font-size: 12px;
+        color: var(--mat-sys-on-surface-variant, #6b7280);
+      }
+
+      .no-agencies {
+        color: var(--mat-sys-on-surface-variant, #6b7280);
+      }
     `,
-  styles: [`
-    .summary-value {
-      font-size: 32px;
-      font-weight: 600;
-      color: var(--mat-sys-primary, #1976d2);
-      line-height: 1.2;
-    }
-
-    .summary-label {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--mat-sys-on-surface, #333);
-    }
-
-    .summary-sublabel {
-      font-size: 12px;
-      color: var(--mat-sys-on-surface-variant, #6b7280);
-    }
-
-    .no-agencies {
-      color: var(--mat-sys-on-surface-variant, #6b7280);
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegionDetailComponent implements OnInit {
   region$!: Observable<MetropolitanRegionDetail>;
   agencies$!: Observable<AgencyListResponse>;
   summary$!: Observable<RegionSummary>;
 
-  constructor(
-    private readonly route: ActivatedRoute,
-    private readonly regionService: RegionService,
-    private readonly agencyService: AgencyService
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly regionService = inject(RegionService);
+  private readonly agencyService = inject(AgencyService);
+
+  constructor() {}
 
   ngOnInit(): void {
     const regionId = this.route.snapshot.paramMap.get('regionId');
     if (regionId) {
       this.region$ = this.regionService.getRegion(regionId);
       this.agencies$ = this.agencyService.listAgencies(0, 100, regionId).pipe(
-        map(response => ({
+        map((response) => ({
           ...response,
-          content: [...response.content].sort((a, b) => a.name.localeCompare(b.name))
-        }))
+          content: [...response.content].sort((a, b) =>
+            a.name.localeCompare(b.name),
+          ),
+        })),
       );
 
       // Compute summary from region and agencies data
@@ -118,14 +131,17 @@ export class RegionDetailComponent implements OnInit {
           const agencies = agenciesResponse.content;
 
           // Sum active route counts across all agencies
-          const totalActiveRoutes = agencies.reduce((sum, agency) => sum + agency.activeRouteCount, 0);
+          const totalActiveRoutes = agencies.reduce(
+            (sum, agency) => sum + agency.activeRouteCount,
+            0,
+          );
 
           return {
             name: region.name,
             totalAgencies: agencies.length,
-            totalActiveRoutes
+            totalActiveRoutes,
           };
-        })
+        }),
       );
     }
   }

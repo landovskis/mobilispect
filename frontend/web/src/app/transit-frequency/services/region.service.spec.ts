@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { RegionService } from './region.service';
 
 describe('RegionService', () => {
@@ -9,7 +12,7 @@ describe('RegionService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [RegionService]
+      providers: [RegionService],
     });
 
     service = TestBed.inject(RegionService);
@@ -21,7 +24,7 @@ describe('RegionService', () => {
   });
 
   it('lists regions for frequency analysis', () => {
-    service.listRegions().subscribe(regions => {
+    service.listRegions().subscribe((regions) => {
       expect(regions.length).toBe(1);
       expect(regions[0].id).toBe('r-1');
     });
@@ -35,8 +38,8 @@ describe('RegionService', () => {
         name: 'Test Region',
         adm0Name: 'Canada',
         adm1Name: 'Ontario',
-        agencyCount: 4
-      }
+        agencyCount: 4,
+      },
     ]);
   });
 });

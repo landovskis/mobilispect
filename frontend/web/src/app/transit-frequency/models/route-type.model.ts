@@ -76,7 +76,7 @@ export enum RouteType {
    * Single-rail elevated system.
    * GTFS code: 12
    */
-  MONORAIL = 'MONORAIL'
+  MONORAIL = 'MONORAIL',
 }
 
 /**
@@ -92,7 +92,7 @@ export const RouteTypeGtfsValues: Record<RouteType, number> = {
   [RouteType.AERIAL_LIFT]: 6,
   [RouteType.FUNICULAR]: 7,
   [RouteType.TROLLEYBUS]: 11,
-  [RouteType.MONORAIL]: 12
+  [RouteType.MONORAIL]: 12,
 };
 
 /**
@@ -108,7 +108,7 @@ export const GtfsValuesToRouteType: Record<number, RouteType> = {
   6: RouteType.AERIAL_LIFT,
   7: RouteType.FUNICULAR,
   11: RouteType.TROLLEYBUS,
-  12: RouteType.MONORAIL
+  12: RouteType.MONORAIL,
 };
 
 /**
@@ -124,7 +124,7 @@ export const RouteTypeLabels: Record<RouteType, string> = {
   [RouteType.AERIAL_LIFT]: 'Aerial Lift',
   [RouteType.FUNICULAR]: 'Funicular',
   [RouteType.TROLLEYBUS]: 'Trolleybus',
-  [RouteType.MONORAIL]: 'Monorail'
+  [RouteType.MONORAIL]: 'Monorail',
 };
 
 /**
@@ -140,7 +140,7 @@ export const RouteTypeIcons: Record<RouteType, string> = {
   [RouteType.AERIAL_LIFT]: 'cable_car',
   [RouteType.FUNICULAR]: 'trending_up',
   [RouteType.TROLLEYBUS]: 'electric_bus',
-  [RouteType.MONORAIL]: 'train'
+  [RouteType.MONORAIL]: 'train',
 };
 
 /**
@@ -179,7 +179,9 @@ export function getRouteTypeGtfsValue(routeType: RouteType): number {
 export function getRouteTypeFromGtfsValue(gtfsValue: number): RouteType {
   const routeType = GtfsValuesToRouteType[gtfsValue];
   if (!routeType) {
-    throw new Error(`Unknown GTFS route type: ${gtfsValue}. Valid values: ${Object.keys(GtfsValuesToRouteType).join(', ')}`);
+    throw new Error(
+      `Unknown GTFS route type: ${gtfsValue}. Valid values: ${Object.keys(GtfsValuesToRouteType).join(', ')}`,
+    );
   }
   return routeType;
 }
