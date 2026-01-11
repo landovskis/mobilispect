@@ -1,11 +1,36 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ChangeDetectionStrategy, inject } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, timer, combineLatest } from 'rxjs';
-import { takeUntil, map, startWith, switchMap, catchError } from 'rxjs/operators';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  OnInit,
+  OnDestroy,
+  ChangeDetectionStrategy,
+  inject,
+} from '@angular/core';
+import {
+  Observable,
+  Subject,
+  BehaviorSubject,
+  timer,
+  combineLatest,
+} from 'rxjs';
+import {
+  takeUntil,
+  map,
+  startWith,
+  switchMap,
+  catchError,
+} from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
-import { ImportProgress, ProgressDisplayData, ProgressStatus } from '../models/import-progress.model';
+import {
+  ImportProgress,
+  ProgressDisplayData,
+  ProgressStatus,
+} from '../models/import-progress.model';
 import { ProgressWebSocketService } from '../services/progress-websocket.service';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import { BrandButtonComponent } from '../../shared/components/brand-button.component';
@@ -19,18 +44,25 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     MatIconModule,
     MatChipsModule,
     BrandCardComponent,
-    BrandButtonComponent
+    BrandButtonComponent,
   ],
   template: `
     @if (importId) {
       <div class="progress-monitor w-full max-w-[600px]">
-        <app-brand-card class="progress-card mb-4" [ngClass]="'status-' + progressStatus">
+        <app-brand-card
+          class="progress-card mb-4"
+          [ngClass]="'status-' + progressStatus"
+        >
           <div card-header>
             <div class="flex items-center gap-2 text-white font-semibold">
-              <mat-icon [ngClass]="getIconClass()">{{ getStatusIcon() }}</mat-icon>
+              <mat-icon [ngClass]="getIconClass()">{{
+                getStatusIcon()
+              }}</mat-icon>
               Import Progress
             </div>
-            <div card-subtitle class="text-white/90">Import ID: {{ importId }}</div>
+            <div card-subtitle class="text-white/90">
+              Import ID: {{ importId }}
+            </div>
           </div>
 
           <div card-content>
@@ -38,13 +70,16 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
               <div class="progress-info">
                 <!-- Progress Bar -->
                 <div class="progress-section mb-4 flex items-center gap-4">
-                  <div class="progress-percentage min-w-[60px] text-2xl font-bold">
+                  <div
+                    class="progress-percentage min-w-[60px] text-2xl font-bold"
+                  >
                     {{ data.progress.progressPercentage }}%
                   </div>
                   <mat-progress-bar
                     mode="determinate"
                     [value]="data.progress.progressPercentage"
-                    [color]="data.progressBarColor">
+                    [color]="data.progressBarColor"
+                  >
                   </mat-progress-bar>
                 </div>
 
@@ -56,7 +91,11 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 <!-- Step Progress -->
                 <div class="step-progress mb-4">
                   <mat-chip-listbox>
-                    @for (step of getStepArray(data.progress.totalSteps); track step; let i = $index) {
+                    @for (
+                      step of getStepArray(data.progress.totalSteps);
+                      track step;
+                      let i = $index
+                    ) {
                       <mat-chip [color]="getStepColor(i, data.progress)">
                         {{ i + 1 }}
                       </mat-chip>
@@ -74,7 +113,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                   @if (data.estimatedCompletion) {
                     <div class="estimated-completion flex items-center gap-2">
                       <mat-icon>event</mat-icon>
-                      <span>Est. Completion: {{ data.estimatedCompletion | date:'short' }}</span>
+                      <span
+                        >Est. Completion:
+                        {{ data.estimatedCompletion | date: 'short' }}</span
+                      >
                     </div>
                   }
                 </div>
@@ -100,13 +142,22 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
           @if (showActions) {
             <div card-actions>
-              <app-brand-button variant="accent" size="sm" (click)="refreshProgress()" [disabled]="!!(isLoading$ | async)">
+              <app-brand-button
+                variant="accent"
+                size="sm"
+                (click)="refreshProgress()"
+                [disabled]="!!(isLoading$ | async)"
+              >
                 <mat-icon>refresh</mat-icon>
                 Refresh
               </app-brand-button>
               @if (progressStatus === 'active') {
-                <app-brand-button variant="ghost" size="sm" (click)="onCancel()"
-                        [disabled]="!!(isLoading$ | async)">
+                <app-brand-button
+                  variant="ghost"
+                  size="sm"
+                  (click)="onCancel()"
+                  [disabled]="!!(isLoading$ | async)"
+                >
                   <mat-icon>cancel</mat-icon>
                   Cancel Import
                 </app-brand-button>
@@ -127,59 +178,65 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       </div>
     }
   `,
-  styles: [`
-    .progress-card.status-active {
-      border-left: 4px solid #2196f3;
-    }
+  styles: [
+    `
+      .progress-card.status-active {
+        border-left: 4px solid #2196f3;
+      }
 
-    .progress-card.status-completed {
-      border-left: 4px solid #4caf50;
-    }
+      .progress-card.status-completed {
+        border-left: 4px solid #4caf50;
+      }
 
-    .progress-card.status-error {
-      border-left: 4px solid #f44336;
-    }
+      .progress-card.status-error {
+        border-left: 4px solid #f44336;
+      }
 
-    .progress-percentage {
-      color: #0b4f8a;
-    }
+      .progress-percentage {
+        color: #0b4f8a;
+      }
 
-    .current-step {
-      background-color: #f5f5f5;
-    }
+      .current-step {
+        background-color: #f5f5f5;
+      }
 
-    .error-state {
-      background-color: #ffebee;
-      color: #c62828;
-    }
+      .error-state {
+        background-color: #ffebee;
+        color: #c62828;
+      }
 
-    .loading-state {
-      background-color: #e3f2fd;
-      color: #1565c0;
-    }
+      .loading-state {
+        background-color: #e3f2fd;
+        color: #1565c0;
+      }
 
-    .icon-spinning {
-      animation: spin 2s linear infinite;
-    }
+      .icon-spinning {
+        animation: spin 2s linear infinite;
+      }
 
-    .icon-success {
-      color: #4caf50;
-    }
+      .icon-success {
+        color: #4caf50;
+      }
 
-    .icon-error {
-      color: #f44336;
-    }
+      .icon-error {
+        color: #f44336;
+      }
 
-    .icon-active {
-      color: #2196f3;
-    }
+      .icon-active {
+        color: #2196f3;
+      }
 
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProgressMonitorComponent implements OnInit, OnDestroy {
   @Input() importId!: string;
@@ -202,13 +259,16 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
   private readonly progressWebSocketService = inject(ProgressWebSocketService);
 
   constructor() {
-    this.connectionStatus$ = this.progressWebSocketService.getConnectionStatus();
+    this.connectionStatus$ =
+      this.progressWebSocketService.getConnectionStatus();
 
     this.displayData$ = combineLatest([
       this.progress$,
-      timer(0, 1000) // Update every second for timing
+      timer(0, 1000), // Update every second for timing
     ]).pipe(
-      map(([progress]) => progress ? this.calculateDisplayData(progress) : null)
+      map(([progress]) =>
+        progress ? this.calculateDisplayData(progress) : null,
+      ),
     );
   }
 
@@ -227,37 +287,43 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
   }
 
   private subscribeToProgress(): void {
-    this.refreshTrigger$.pipe(
-      startWith(null),
-      switchMap(() => {
-        this.isLoading$.next(true);
-        this.error$.next(null);
+    this.refreshTrigger$
+      .pipe(
+        startWith(null),
+        switchMap(() => {
+          this.isLoading$.next(true);
+          this.error$.next(null);
 
-        return this.progressWebSocketService.subscribeToImportProgress(this.importId).pipe(
-          catchError(error => {
-            this.error$.next(error.message || 'Failed to connect to progress updates');
-            this.isLoading$.next(false);
-            return [];
-          })
-        );
-      }),
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (progress) => {
-        this.progress$.next(progress);
-        this.isLoading$.next(false);
-        this.updateProgressStatus(progress);
-      },
-      complete: () => {
-        this.progressStatus = 'completed';
-        this.isLoading$.next(false);
-      },
-      error: (error) => {
-        this.error$.next(error.message || 'Progress update failed');
-        this.progressStatus = 'error';
-        this.isLoading$.next(false);
-      }
-    });
+          return this.progressWebSocketService
+            .subscribeToImportProgress(this.importId)
+            .pipe(
+              catchError((error) => {
+                this.error$.next(
+                  error.message || 'Failed to connect to progress updates',
+                );
+                this.isLoading$.next(false);
+                return [];
+              }),
+            );
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe({
+        next: (progress) => {
+          this.progress$.next(progress);
+          this.isLoading$.next(false);
+          this.updateProgressStatus(progress);
+        },
+        complete: () => {
+          this.progressStatus = 'completed';
+          this.isLoading$.next(false);
+        },
+        error: (error) => {
+          this.error$.next(error.message || 'Progress update failed');
+          this.progressStatus = 'error';
+          this.isLoading$.next(false);
+        },
+      });
   }
 
   private updateProgressStatus(progress: ImportProgress): void {
@@ -276,21 +342,30 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
     const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000);
 
     let estimatedCompletion: Date | undefined;
-    if (progress.estimatedTimeRemainingSeconds && progress.estimatedTimeRemainingSeconds > 0) {
-      estimatedCompletion = new Date(now.getTime() + progress.estimatedTimeRemainingSeconds * 1000);
+    if (
+      progress.estimatedTimeRemainingSeconds &&
+      progress.estimatedTimeRemainingSeconds > 0
+    ) {
+      estimatedCompletion = new Date(
+        now.getTime() + progress.estimatedTimeRemainingSeconds * 1000,
+      );
     }
 
-    const progressBarColor = this.getProgressBarColor(progress.progressPercentage);
+    const progressBarColor = this.getProgressBarColor(
+      progress.progressPercentage,
+    );
 
     return {
       progress,
       duration,
       estimatedCompletion,
-      progressBarColor
+      progressBarColor,
     };
   }
 
-  private getProgressBarColor(percentage: number): 'primary' | 'accent' | 'warn' {
+  private getProgressBarColor(
+    percentage: number,
+  ): 'primary' | 'accent' | 'warn' {
     if (percentage >= 100) return 'accent';
     if (percentage >= 75) return 'primary';
     return 'primary';
@@ -298,33 +373,50 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
 
   getStatusIcon(): string {
     switch (this.progressStatus) {
-      case 'pending': return 'hourglass_empty';
-      case 'active': return 'sync';
-      case 'completed': return 'check_circle';
-      case 'error': return 'error';
-      case 'cancelled': return 'cancel';
-      default: return 'help';
+      case 'pending':
+        return 'hourglass_empty';
+      case 'active':
+        return 'sync';
+      case 'completed':
+        return 'check_circle';
+      case 'error':
+        return 'error';
+      case 'cancelled':
+        return 'cancel';
+      default:
+        return 'help';
     }
   }
 
   getIconClass(): string {
     switch (this.progressStatus) {
-      case 'active': return 'icon-active icon-spinning';
-      case 'completed': return 'icon-success';
-      case 'error': return 'icon-error';
-      default: return '';
+      case 'active':
+        return 'icon-active icon-spinning';
+      case 'completed':
+        return 'icon-success';
+      case 'error':
+        return 'icon-error';
+      default:
+        return '';
     }
   }
 
   getStepArray(totalSteps: number): number[] {
-    return Array(totalSteps).fill(0).map((_, i) => i);
+    return Array(totalSteps)
+      .fill(0)
+      .map((_, i) => i);
   }
 
   getCurrentStepIndex(progress: ImportProgress): number {
-    return Math.floor((progress.progressPercentage / 100) * progress.totalSteps);
+    return Math.floor(
+      (progress.progressPercentage / 100) * progress.totalSteps,
+    );
   }
 
-  getStepColor(stepIndex: number, progress: ImportProgress): 'primary' | 'accent' | undefined {
+  getStepColor(
+    stepIndex: number,
+    progress: ImportProgress,
+  ): 'primary' | 'accent' | undefined {
     const currentStep = this.getCurrentStepIndex(progress);
     if (stepIndex < currentStep) return 'accent';
     if (stepIndex === currentStep) return 'primary';
@@ -351,7 +443,11 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
   }
 
   onCancel(): void {
-    if (confirm('Are you sure you want to cancel this import? This action cannot be undone.')) {
+    if (
+      confirm(
+        'Are you sure you want to cancel this import? This action cannot be undone.',
+      )
+    ) {
       this.cancelRequested.emit(this.importId);
     }
   }

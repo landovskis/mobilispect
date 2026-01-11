@@ -1,4 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { AgencyService } from '../services/agency.service';
@@ -12,13 +17,19 @@ import { map } from 'rxjs/operators';
 @Component({
   selector: 'app-agency-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, BrandSectionComponent, AgencyRouteCardComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    BrandSectionComponent,
+    AgencyRouteCardComponent,
+  ],
   template: `
     <div class="flex flex-col gap-6">
       <app-brand-section
         [title]="(agency$ | async)?.name || 'Agency Details'"
         subtitle="Routes and stops served by this agency"
-        icon="directions_bus">
+        icon="directions_bus"
+      >
         @if (agency$ | async; as agency) {
           <div class="agency-info flex flex-wrap gap-6 py-4">
             <div class="info-item flex flex-col gap-1">
@@ -28,7 +39,9 @@ import { map } from 'rxjs/operators';
             @if (agency.averageHeadwayMinutes) {
               <div class="info-item flex flex-col gap-1">
                 <span class="info-label">Average Headway:</span>
-                <span class="info-value">{{ agency.averageHeadwayMinutes }} min</span>
+                <span class="info-value"
+                  >{{ agency.averageHeadwayMinutes }} min</span
+                >
               </div>
             }
           </div>
@@ -40,13 +53,12 @@ import { map } from 'rxjs/operators';
       <app-brand-section
         title="Routes"
         subtitle="Transit routes operated by this agency"
-        icon="route">
+        icon="route"
+      >
         @if (routes$ | async; as routesResponse) {
           <div class="routes-list grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             @for (route of routesResponse.content; track route) {
-              <app-agency-route-card
-                [route]="route">
-              </app-agency-route-card>
+              <app-agency-route-card [route]="route"> </app-agency-route-card>
             }
           </div>
           @if (routesResponse.content.length === 0) {
@@ -59,31 +71,33 @@ import { map } from 'rxjs/operators';
         }
       </app-brand-section>
     </div>
+  `,
+  styles: [
+    `
+      .info-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--mat-sys-on-surface-variant, #6b7280);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .info-value {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--mat-sys-on-surface, #333);
+      }
+
+      .routes-list .route-item:nth-child(odd) {
+        background: var(--mat-sys-surface-container-high, #f9fafb);
+      }
+
+      .no-routes {
+        color: var(--mat-sys-on-surface-variant, #6b7280);
+      }
     `,
-  styles: [`
-    .info-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--mat-sys-on-surface-variant, #6b7280);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .info-value {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--mat-sys-on-surface, #333);
-    }
-
-    .routes-list .route-item:nth-child(odd) {
-      background: var(--mat-sys-surface-container-high, #f9fafb);
-    }
-
-    .no-routes {
-      color: var(--mat-sys-on-surface-variant, #6b7280);
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AgencyPageComponent implements OnInit {
   agency$!: Observable<AgencySummary>;
@@ -96,12 +110,14 @@ export class AgencyPageComponent implements OnInit {
     const agencyId = this.route.snapshot.paramMap.get('agencyId');
     if (agencyId) {
       this.agency$ = this.agencyService.getAgency(agencyId);
-      this.routes$ = this.agencyService.listRoutesByAgency(agencyId, 0, 500).pipe(
-        map(response => ({
-          ...response,
-          content: this.sortRoutes(response.content)
-        }))
-      );
+      this.routes$ = this.agencyService
+        .listRoutesByAgency(agencyId, 0, 500)
+        .pipe(
+          map((response) => ({
+            ...response,
+            content: this.sortRoutes(response.content),
+          })),
+        );
     }
   }
 
@@ -110,14 +126,21 @@ export class AgencyPageComponent implements OnInit {
       const keyA = this.getRouteSortKey(a);
       const keyB = this.getRouteSortKey(b);
 
-      if (keyA.number !== undefined && keyB.number !== undefined && keyA.number !== keyB.number) {
+      if (
+        keyA.number !== undefined &&
+        keyB.number !== undefined &&
+        keyA.number !== keyB.number
+      ) {
         return keyA.number - keyB.number;
       }
 
       if (keyA.number !== undefined && keyB.number === undefined) return -1;
       if (keyA.number === undefined && keyB.number !== undefined) return 1;
 
-      return keyA.text.localeCompare(keyB.text, undefined, { numeric: true, sensitivity: 'base' });
+      return keyA.text.localeCompare(keyB.text, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
     });
   }
 
@@ -128,7 +151,7 @@ export class AgencyPageComponent implements OnInit {
 
     return {
       number: Number.isNaN(numericValue) ? undefined : numericValue,
-      text: shortName || longName || route.id
+      text: shortName || longName || route.id,
     };
   }
 }

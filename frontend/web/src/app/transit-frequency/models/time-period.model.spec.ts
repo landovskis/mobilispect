@@ -1,8 +1,14 @@
-import { getAllTimePeriods, getTimePeriodLabel, TimePeriod } from './time-period.model';
+import {
+  getAllTimePeriods,
+  getTimePeriodLabel,
+  TimePeriod,
+} from './time-period.model';
 
 describe('Time period helpers', () => {
   it('maps labels for known and unknown periods', () => {
-    expect(getTimePeriodLabel(TimePeriod.WEEKDAY_AM_PEAK)).toBe('Weekday AM Peak');
+    expect(getTimePeriodLabel(TimePeriod.WEEKDAY_AM_PEAK)).toBe(
+      'Weekday AM Peak',
+    );
     expect(getTimePeriodLabel('CUSTOM' as TimePeriod)).toBe('CUSTOM');
   });
 

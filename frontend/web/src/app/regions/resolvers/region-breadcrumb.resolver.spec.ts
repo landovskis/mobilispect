@@ -1,6 +1,9 @@
 import { RegionBreadcrumbResolver } from './region-breadcrumb.resolver';
 import { RegionService } from '../../feeds/services/region.service';
-import { MetropolitanRegion, MetropolitanRegionDetail } from '../../feeds/models/region.models';
+import {
+  MetropolitanRegion,
+  MetropolitanRegionDetail,
+} from '../../feeds/models/region.models';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { ActivatedRouteSnapshot } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
@@ -18,21 +21,24 @@ describe('RegionBreadcrumbResolver', () => {
     feedCount: 10,
     lastCheckAt: null,
     createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z'
+    updatedAt: '2024-01-01T00:00:00Z',
   };
 
   const mockRegionDetail: MetropolitanRegionDetail = {
     ...mockRegion,
-    feeds: []
+    feeds: [],
   };
 
   beforeEach(() => {
-    regionServiceSpy = jasmine.createSpyObj('RegionService', ['getRegion', 'getCachedRegion']);
+    regionServiceSpy = jasmine.createSpyObj('RegionService', [
+      'getRegion',
+      'getCachedRegion',
+    ]);
     TestBed.configureTestingModule({
       providers: [
         { provide: RegionService, useValue: regionServiceSpy },
-        RegionBreadcrumbResolver
-      ]
+        RegionBreadcrumbResolver,
+      ],
     });
     resolver = TestBed.inject(RegionBreadcrumbResolver);
   });
@@ -40,8 +46,8 @@ describe('RegionBreadcrumbResolver', () => {
   const createSnapshot = (regionId: string | null): ActivatedRouteSnapshot => {
     return {
       paramMap: {
-        get: (key: string) => (key === 'regionId' ? regionId : null)
-      }
+        get: (key: string) => (key === 'regionId' ? regionId : null),
+      },
     } as unknown as ActivatedRouteSnapshot;
   };
 
@@ -62,7 +68,9 @@ describe('RegionBreadcrumbResolver', () => {
     const label = await firstValueFrom(resolver.resolve(snapshot));
 
     expect(label).toBe('Montréal, Québec, Canada');
-    expect(regionServiceSpy.getCachedRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
+    expect(regionServiceSpy.getCachedRegion).toHaveBeenCalledWith(
+      mockRegion.regionOnestopId,
+    );
     expect(regionServiceSpy.getRegion).not.toHaveBeenCalled();
   });
 
@@ -74,24 +82,34 @@ describe('RegionBreadcrumbResolver', () => {
     const label = await firstValueFrom(resolver.resolve(snapshot));
 
     expect(label).toBe('Montréal, Québec, Canada');
-    expect(regionServiceSpy.getCachedRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
-    expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
+    expect(regionServiceSpy.getCachedRegion).toHaveBeenCalledWith(
+      mockRegion.regionOnestopId,
+    );
+    expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(
+      mockRegion.regionOnestopId,
+    );
   });
 
   it('falls back to humanized slug when api call fails', async () => {
     regionServiceSpy.getCachedRegion.and.returnValue(undefined);
-    regionServiceSpy.getRegion.and.returnValue(throwError(() => new Error('boom')));
+    regionServiceSpy.getRegion.and.returnValue(
+      throwError(() => new Error('boom')),
+    );
     const snapshot = createSnapshot(mockRegion.regionOnestopId);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
 
     expect(label).toBe('Montr al qu, Bec, Canada');
-    expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
+    expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(
+      mockRegion.regionOnestopId,
+    );
   });
 
   it('humanizes short region slugs', async () => {
     regionServiceSpy.getCachedRegion.and.returnValue(undefined);
-    regionServiceSpy.getRegion.and.returnValue(throwError(() => new Error('boom')));
+    regionServiceSpy.getRegion.and.returnValue(
+      throwError(() => new Error('boom')),
+    );
     const snapshot = createSnapshot('r-ny');
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
@@ -101,7 +119,9 @@ describe('RegionBreadcrumbResolver', () => {
 
   it('handles empty slugs by falling back to region id', async () => {
     regionServiceSpy.getCachedRegion.and.returnValue(undefined);
-    regionServiceSpy.getRegion.and.returnValue(throwError(() => new Error('boom')));
+    regionServiceSpy.getRegion.and.returnValue(
+      throwError(() => new Error('boom')),
+    );
     const snapshot = createSnapshot('r-');
 
     const label = await firstValueFrom(resolver.resolve(snapshot));

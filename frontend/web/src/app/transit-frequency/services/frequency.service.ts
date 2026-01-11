@@ -71,26 +71,37 @@ export class FrequencyService {
   }
 
   getVariants(routeId: string): Observable<RouteVariantDto[]> {
-    return this.http.get<RouteVariantDto[]>(`${this.baseUrl}/${routeId}/variants`);
+    return this.http.get<RouteVariantDto[]>(
+      `${this.baseUrl}/${routeId}/variants`,
+    );
   }
 
   getFrequencies(variantId: string, date?: string): Observable<FrequencyDto[]> {
     const params: Record<string, string> = {};
     if (date) params['date'] = date;
-    return this.http.get<FrequencyDto[]>(`${this.baseUrl}/variants/${variantId}/frequencies`, { params });
-  }
-
-  getRouteHourlyFrequencies(routeId: string, date: string): Observable<RouteHourlyFrequencyDto[]> {
-    return this.http.get<RouteHourlyFrequencyDto[]>(
-      `${this.baseUrl}/${routeId}/hourly-frequencies`,
-      { params: { date } }
+    return this.http.get<FrequencyDto[]>(
+      `${this.baseUrl}/variants/${variantId}/frequencies`,
+      { params },
     );
   }
 
-  getVariantHourlyFrequencies(variantId: string, date: string): Observable<HourlyFrequencyDto[]> {
+  getRouteHourlyFrequencies(
+    routeId: string,
+    date: string,
+  ): Observable<RouteHourlyFrequencyDto[]> {
+    return this.http.get<RouteHourlyFrequencyDto[]>(
+      `${this.baseUrl}/${routeId}/hourly-frequencies`,
+      { params: { date } },
+    );
+  }
+
+  getVariantHourlyFrequencies(
+    variantId: string,
+    date: string,
+  ): Observable<HourlyFrequencyDto[]> {
     return this.http.get<HourlyFrequencyDto[]>(
       `${this.baseUrl}/variants/${variantId}/hourly-frequencies`,
-      { params: { date } }
+      { params: { date } },
     );
   }
 }

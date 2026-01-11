@@ -11,23 +11,29 @@ export const routes: Routes = [
       {
         path: '',
         redirectTo: '/regions/discover',
-        pathMatch: 'full'
+        pathMatch: 'full',
       },
       {
         path: 'regions',
-        loadChildren: () => import('./transit-frequency/transit-frequency.routes').then(m => m.TRANSIT_FREQUENCY_ROUTES),
+        loadChildren: () =>
+          import('./transit-frequency/transit-frequency.routes').then(
+            (m) => m.TRANSIT_FREQUENCY_ROUTES,
+          ),
         data: {
-          breadcrumb: 'Regions'
-        }
+          breadcrumb: 'Regions',
+        },
       },
 
       {
         path: 'feeds',
-        loadChildren: () => import('./feeds/feed-management.routes').then(m => m.FEED_MANAGEMENT_ROUTES),
+        loadChildren: () =>
+          import('./feeds/feed-management.routes').then(
+            (m) => m.FEED_MANAGEMENT_ROUTES,
+          ),
         data: {
           title: 'Feeds',
-          breadcrumb: 'Feeds'
-        }
+          breadcrumb: 'Feeds',
+        },
       },
       {
         path: 'agencies',
@@ -35,24 +41,30 @@ export const routes: Routes = [
         children: [
           {
             path: ':agencyId',
-            loadComponent: () => import('./agencies/pages/agency-page.component').then(m => m.AgencyPageComponent),
+            loadComponent: () =>
+              import('./agencies/pages/agency-page.component').then(
+                (m) => m.AgencyPageComponent,
+              ),
             resolve: {
-              breadcrumb: AgencyBreadcrumbResolver
-            }
-          }
-        ]
+              breadcrumb: AgencyBreadcrumbResolver,
+            },
+          },
+        ],
       },
       {
         path: 'routes/:routeId',
-        loadComponent: () => import('./transit-frequency/pages/route-detail/route-detail-page.component').then(m => m.RouteDetailPageComponent),
+        loadComponent: () =>
+          import('./transit-frequency/pages/route-detail/route-detail-page.component').then(
+            (m) => m.RouteDetailPageComponent,
+          ),
         resolve: {
-          breadcrumb: RouteBreadcrumbResolver
-        }
+          breadcrumb: RouteBreadcrumbResolver,
+        },
       },
       {
         path: '**',
-        redirectTo: '/regions/discover'
-      }
-    ]
-  }
+        redirectTo: '/regions/discover',
+      },
+    ],
+  },
 ];

@@ -1,7 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 
-import { FrequencyDto, RouteVariantDto } from '../../services/frequency.service';
+import {
+  FrequencyDto,
+  RouteVariantDto,
+} from '../../services/frequency.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 
 @Component({
@@ -15,12 +24,15 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       tabindex="0"
       (click)="selected.emit(variant.id)"
       (keydown.enter)="$event.preventDefault(); selected.emit(variant.id)"
-      (keydown.space)="$event.preventDefault(); selected.emit(variant.id)">
+      (keydown.space)="$event.preventDefault(); selected.emit(variant.id)"
+    >
       <app-brand-card>
         <div class="title flex flex-col gap-0.5">
           <div class="variant-header flex flex-wrap items-center gap-2">
             <span>{{ variant.headsign || 'Variant' }}</span>
-            <span class="spacing-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold">
+            <span
+              class="spacing-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold"
+            >
               {{ formatSpacing(variant) }}
             </span>
           </div>
@@ -31,7 +43,12 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
           </ul>
           <div class="meta flex flex-wrap items-center gap-2 text-sm">
             @if (variant.stopSpacingClassification) {
-              <span class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold" [ngClass]="classificationClass(variant.stopSpacingClassification)">
+              <span
+                class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold"
+                [ngClass]="
+                  classificationClass(variant.stopSpacingClassification)
+                "
+              >
                 {{ formatClassification(variant.stopSpacingClassification) }}
               </span>
             }
@@ -40,60 +57,86 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       </app-brand-card>
     </div>
   `,
-  styles: [`
-    .variant {
-      border-bottom-color: var(--mat-sys-outline, #e2e8f0);
-      border-right: 1px solid var(--mat-sys-outline, #e2e8f0);
-      cursor: pointer;
-      display: block;
-      padding-right: 12px;
-    }
-    .stop-list {
-      border-left: 10px solid var(--mat-sys-primary, #0b4f8a);
-      color: var(--mat-sys-on-surface-variant, #64748b);
-      font-size: 0.85rem;
-      padding-left: 12px;
-    }
-    .stop-name {
-      margin: 6px 0;
-      position: relative;
-    }
-    .stop-name::before {
-      background: var(--mat-sys-on-primary, #ffffff);
-      border-radius: 999px;
-      content: '';
-      height: 8px;
-      left: -21px;
-      position: absolute;
-      top: 0.45em;
-      width: 8px;
-    }
-    .spacing-badge {
-      background: rgba(11, 79, 138, 0.12);
-      color: var(--mat-sys-primary, #0b4f8a);
-    }
-    .classification { background: rgba(11, 79, 138, 0.12); color: #0b4f8a; }
-    .classification.local { background: rgba(76, 175, 80, 0.15); color: #2e7d32; }
-    .classification.rapid { background: rgba(255, 152, 0, 0.15); color: #ef6c00; }
-    .classification.express { background: rgba(244, 67, 54, 0.15); color: #c62828; }
-    :host-context(.dark-theme) .variant {
-      border-bottom-color: rgba(148, 163, 184, 0.3);
-      border-right-color: rgba(148, 163, 184, 0.3);
-    }
-    :host-context(.dark-theme) .stop-list {
-      border-left-color: var(--mat-sys-primary, #0b4f8a);
-      color: var(--mat-sys-on-surface-variant, #cbd5e1);
-    }
-    :host-context(.dark-theme) .spacing-badge {
-      background: rgba(59, 130, 246, 0.2);
-      color: var(--mat-sys-on-surface, #e2e8f0);
-    }
-    :host-context(.dark-theme) .classification { background: rgba(59, 130, 246, 0.2); color: #e2e8f0; }
-    :host-context(.dark-theme) .classification.local { background: rgba(76, 175, 80, 0.2); color: #bbf7d0; }
-    :host-context(.dark-theme) .classification.rapid { background: rgba(255, 152, 0, 0.2); color: #fed7aa; }
-    :host-context(.dark-theme) .classification.express { background: rgba(244, 67, 54, 0.2); color: #fecaca; }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styles: [
+    `
+      .variant {
+        border-bottom-color: var(--mat-sys-outline, #e2e8f0);
+        border-right: 1px solid var(--mat-sys-outline, #e2e8f0);
+        cursor: pointer;
+        display: block;
+        padding-right: 12px;
+      }
+      .stop-list {
+        border-left: 10px solid var(--mat-sys-primary, #0b4f8a);
+        color: var(--mat-sys-on-surface-variant, #64748b);
+        font-size: 0.85rem;
+        padding-left: 12px;
+      }
+      .stop-name {
+        margin: 6px 0;
+        position: relative;
+      }
+      .stop-name::before {
+        background: var(--mat-sys-on-primary, #ffffff);
+        border-radius: 999px;
+        content: '';
+        height: 8px;
+        left: -21px;
+        position: absolute;
+        top: 0.45em;
+        width: 8px;
+      }
+      .spacing-badge {
+        background: rgba(11, 79, 138, 0.12);
+        color: var(--mat-sys-primary, #0b4f8a);
+      }
+      .classification {
+        background: rgba(11, 79, 138, 0.12);
+        color: #0b4f8a;
+      }
+      .classification.local {
+        background: rgba(76, 175, 80, 0.15);
+        color: #2e7d32;
+      }
+      .classification.rapid {
+        background: rgba(255, 152, 0, 0.15);
+        color: #ef6c00;
+      }
+      .classification.express {
+        background: rgba(244, 67, 54, 0.15);
+        color: #c62828;
+      }
+      :host-context(.dark-theme) .variant {
+        border-bottom-color: rgba(148, 163, 184, 0.3);
+        border-right-color: rgba(148, 163, 184, 0.3);
+      }
+      :host-context(.dark-theme) .stop-list {
+        border-left-color: var(--mat-sys-primary, #0b4f8a);
+        color: var(--mat-sys-on-surface-variant, #cbd5e1);
+      }
+      :host-context(.dark-theme) .spacing-badge {
+        background: rgba(59, 130, 246, 0.2);
+        color: var(--mat-sys-on-surface, #e2e8f0);
+      }
+      :host-context(.dark-theme) .classification {
+        background: rgba(59, 130, 246, 0.2);
+        color: #e2e8f0;
+      }
+      :host-context(.dark-theme) .classification.local {
+        background: rgba(76, 175, 80, 0.2);
+        color: #bbf7d0;
+      }
+      :host-context(.dark-theme) .classification.rapid {
+        background: rgba(255, 152, 0, 0.2);
+        color: #fed7aa;
+      }
+      :host-context(.dark-theme) .classification.express {
+        background: rgba(244, 67, 54, 0.2);
+        color: #fecaca;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RouteVariantCardComponent {
   @Input({ required: true }) variant!: RouteVariantDto;
@@ -108,7 +151,10 @@ export class RouteVariantCardComponent {
   }
 
   formatSpacing(variant: RouteVariantDto): string {
-    if (variant.averageStopSpacingKm === null || variant.averageStopSpacingKm === undefined) {
+    if (
+      variant.averageStopSpacingKm === null ||
+      variant.averageStopSpacingKm === undefined
+    ) {
       return 'Avg spacing: Not available';
     }
     return `Avg spacing: ${variant.averageStopSpacingKm.toFixed(2)} km`;

@@ -21,14 +21,21 @@ describe('RegionSelectorComponent', () => {
     component = new RegionSelectorComponent();
     component.regions = [
       baseRegion,
-      { ...baseRegion, regionOnestopId: 'r-2', name: 'Austin', adm1Name: 'Texas' },
+      {
+        ...baseRegion,
+        regionOnestopId: 'r-2',
+        name: 'Austin',
+        adm1Name: 'Texas',
+      },
     ];
   });
 
   it('filters regions by search term', () => {
-    const filterRegions = (component as unknown as {
-      _filterRegions: (term: string) => MetropolitanRegion[];
-    })._filterRegions;
+    const filterRegions = (
+      component as unknown as {
+        _filterRegions: (term: string) => MetropolitanRegion[];
+      }
+    )._filterRegions;
     const result = filterRegions.call(component, 'aus');
 
     expect(result.length).toBe(1);

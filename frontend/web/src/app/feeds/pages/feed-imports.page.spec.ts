@@ -2,7 +2,11 @@ import { Subject, of, throwError } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { FeedImportsPageComponent } from './feed-imports.page';
 import { ImportService } from '../services/import.service';
-import { MatSnackBar, MatSnackBarRef, TextOnlySnackBar } from '@angular/material/snack-bar';
+import {
+  MatSnackBar,
+  MatSnackBarRef,
+  TextOnlySnackBar,
+} from '@angular/material/snack-bar';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
 import { FeedImportDetail, ImportStatus, TriggerType } from '../models';
@@ -41,18 +45,22 @@ describe('FeedImportsPageComponent', () => {
       'cancelImport',
     ]);
     snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
-    metrics = jasmine.createSpyObj<FeedsMetricsService>('FeedsMetricsService', ['setTotalImportElements']);
+    metrics = jasmine.createSpyObj<FeedsMetricsService>('FeedsMetricsService', [
+      'setTotalImportElements',
+    ]);
     events = new FeedsEventsService();
 
     importService.getActiveImportsObservable.and.returnValue(of([]));
-    importService.getAllImportHistory.and.returnValue(of({
-      imports: [baseImport],
-      totalElements: 1,
-      totalPages: 1,
-    }));
+    importService.getAllImportHistory.and.returnValue(
+      of({
+        imports: [baseImport],
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    );
     importService.cancelImport.and.returnValue(of(baseImport));
     snackBar.open.and.returnValue({
-      onAction: () => new Subject<void>()
+      onAction: () => new Subject<void>(),
     } as unknown as MatSnackBarRef<TextOnlySnackBar>);
 
     TestBed.configureTestingModule({
@@ -64,7 +72,9 @@ describe('FeedImportsPageComponent', () => {
       ],
     });
     TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
-    component = TestBed.createComponent(FeedImportsPageComponent).componentInstance;
+    component = TestBed.createComponent(
+      FeedImportsPageComponent,
+    ).componentInstance;
   });
 
   it('loads history and refreshes active imports on init', () => {
@@ -84,12 +94,18 @@ describe('FeedImportsPageComponent', () => {
   });
 
   it('handles history load failures', () => {
-    importService.getAllImportHistory.and.returnValue(throwError(() => new Error('fail')));
+    importService.getAllImportHistory.and.returnValue(
+      throwError(() => new Error('fail')),
+    );
 
     component.loadImportHistory();
 
     expect(component.loadingHistory).toBeFalse();
-    expect(snackBar.open).toHaveBeenCalledWith('Failed to load import history', 'Close', { duration: 4000 });
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Failed to load import history',
+      'Close',
+      { duration: 4000 },
+    );
   });
 
   it('cancels imports and refreshes data', () => {
@@ -103,7 +119,9 @@ describe('FeedImportsPageComponent', () => {
   });
 
   it('handles cancel errors with retry prompt', () => {
-    importService.cancelImport.and.returnValue(throwError(() => ({ message: 'nope' })));
+    importService.cancelImport.and.returnValue(
+      throwError(() => ({ message: 'nope' })),
+    );
 
     component.cancelImport('imp-1');
 
@@ -111,7 +129,9 @@ describe('FeedImportsPageComponent', () => {
   });
 
   it('uses backend error detail when cancel fails', () => {
-    importService.cancelImport.and.returnValue(throwError(() => ({ error: { message: 'backend issue' } })));
+    importService.cancelImport.and.returnValue(
+      throwError(() => ({ error: { message: 'backend issue' } })),
+    );
 
     component.cancelImport('imp-1');
 
@@ -134,7 +154,9 @@ describe('FeedImportsPageComponent', () => {
     component.ngOnInit();
     events.triggerRefresh();
 
-    expect(component.loadImportHistory).toHaveBeenCalledWith(component.importHistoryPage);
+    expect(component.loadImportHistory).toHaveBeenCalledWith(
+      component.importHistoryPage,
+    );
     expect(importService.refreshActiveImports).toHaveBeenCalled();
   });
 });

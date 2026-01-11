@@ -7,30 +7,41 @@ import { AgencyListResponse } from '../../transit-frequency/services/agency.serv
 import { RouteListResponse } from '../models/route.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AgencyService {
   private readonly apiUrl = `${environment.apiUrl}`;
   private readonly http = inject(HttpClient);
 
-  listAgencies(page: number = 0, size: number = 20, regionId?: string): Observable<AgencyListResponse> {
+  listAgencies(
+    page: number = 0,
+    size: number = 20,
+    regionId?: string,
+  ): Observable<AgencyListResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
     const url = regionId
       ? `${this.apiUrl}/regions/${regionId}/agencies`
       : `${this.apiUrl}/agencies`;
-    return this.http.get<AgencyListResponse>(url, {params});
+    return this.http.get<AgencyListResponse>(url, { params });
   }
 
   getAgency(agencyId: string): Observable<AgencySummary> {
     return this.http.get<AgencySummary>(`${this.apiUrl}/agencies/${agencyId}`);
   }
 
-  listRoutesByAgency(agencyId: string, page: number = 0, size: number = 500): Observable<RouteListResponse> {
+  listRoutesByAgency(
+    agencyId: string,
+    page: number = 0,
+    size: number = 500,
+  ): Observable<RouteListResponse> {
     const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
-    return this.http.get<RouteListResponse>(`${this.apiUrl}/agencies/${agencyId}/routes`, {params});
+    return this.http.get<RouteListResponse>(
+      `${this.apiUrl}/agencies/${agencyId}/routes`,
+      { params },
+    );
   }
 }

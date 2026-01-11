@@ -1,8 +1,20 @@
-import { Component, Output, EventEmitter, ChangeDetectionStrategy, OnInit, OnDestroy, ChangeDetectorRef, inject } from '@angular/core';
+import {
+  Component,
+  Output,
+  EventEmitter,
+  ChangeDetectionStrategy,
+  OnInit,
+  OnDestroy,
+  ChangeDetectorRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
-import { AppBreadcrumbService, Breadcrumb } from '../services/app-breadcrumb.service';
+import {
+  AppBreadcrumbService,
+  Breadcrumb,
+} from '../services/app-breadcrumb.service';
 export type { Breadcrumb };
 import { Subject } from 'rxjs';
 import { filter, startWith, takeUntil } from 'rxjs/operators';
@@ -12,8 +24,15 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
   standalone: true,
   imports: [CommonModule, MatIconModule, RouterModule],
   template: `
-    <nav class="flex flex-wrap items-center gap-1.5 text-[0.85rem] text-[#0b3558] mt-0.5 max-md:text-xs">
-      @for (breadcrumb of breadcrumbs; track breadcrumb.id ?? breadcrumb.label; let first = $first; let last = $last) {
+    <nav
+      class="flex flex-wrap items-center gap-1.5 text-[0.85rem] text-[#0b3558] mt-0.5 max-md:text-xs"
+    >
+      @for (
+        breadcrumb of breadcrumbs;
+        track breadcrumb.id ?? breadcrumb.label;
+        let first = $first;
+        let last = $last
+      ) {
         @if (!first) {
           <mat-icon
             class="breadcrumb-icon text-[18px] h-[18px] w-[18px] text-[#0b3558]"
@@ -35,7 +54,7 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
               [ngClass]="{
                 'breadcrumb-item': !last,
                 'breadcrumb-region': last,
-                'breadcrumb-active': last
+                'breadcrumb-active': last,
               }"
             >
               {{ breadcrumb.label }}
@@ -46,7 +65,7 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
             class="breadcrumb-item"
             [ngClass]="{
               'breadcrumb-region': last,
-              'breadcrumb-active': last
+              'breadcrumb-active': last,
             }"
             (click)="onBreadcrumbClick($event, breadcrumb)"
           >
@@ -56,26 +75,28 @@ import { filter, startWith, takeUntil } from 'rxjs/operators';
       }
     </nav>
   `,
-  styles: [`
-    .breadcrumb-item {
-      font-weight: 400;
-    }
+  styles: [
+    `
+      .breadcrumb-item {
+        font-weight: 400;
+      }
 
-    .breadcrumb-icon {
-      color: #0b3558;
-    }
+      .breadcrumb-icon {
+        color: #0b3558;
+      }
 
-    .breadcrumb-region {
-      font-weight: 500;
-      color: #0b3558;
-    }
+      .breadcrumb-region {
+        font-weight: 500;
+        color: #0b3558;
+      }
 
-    .breadcrumb-active {
-      text-decoration: none;
-      font-weight: 700;
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+      .breadcrumb-active {
+        text-decoration: none;
+        font-weight: 700;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
   breadcrumbs: Breadcrumb[] = [];
@@ -87,16 +108,20 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
   private readonly breadcrumbService = inject(AppBreadcrumbService);
   private readonly cdr = inject(ChangeDetectorRef);
 
-  constructor() { }
+  constructor() {}
 
   ngOnInit(): void {
-    this.router.events.pipe(
-      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      startWith(null), // Trigger initial load
-      takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.updateBreadcrumbs();
-    });
+    this.router.events
+      .pipe(
+        filter(
+          (event): event is NavigationEnd => event instanceof NavigationEnd,
+        ),
+        startWith(null), // Trigger initial load
+        takeUntil(this.destroy$),
+      )
+      .subscribe(() => {
+        this.updateBreadcrumbs();
+      });
   }
 
   ngOnDestroy(): void {
@@ -105,7 +130,9 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
   }
 
   private updateBreadcrumbs(): void {
-    const crumbs = this.breadcrumbService.getBreadcrumbs(this.router.routerState.root.snapshot);
+    const crumbs = this.breadcrumbService.getBreadcrumbs(
+      this.router.routerState.root.snapshot,
+    );
     this.breadcrumbs = crumbs.length
       ? crumbs
       : [{ id: 'regions', label: 'Regions', link: ['/regions/discover'] }];
@@ -116,8 +143,6 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
     this.breadcrumbSelected.emit({ breadcrumb, originalEvent: event });
   }
 }
-
-
 
 export interface BreadcrumbSelection {
   breadcrumb: Breadcrumb;

@@ -6,22 +6,22 @@ import { FrequencyService } from '../services/frequency.service';
 
 @Injectable({ providedIn: 'root' })
 export class RouteBreadcrumbResolver implements Resolve<string> {
-    private readonly frequencyService = inject(FrequencyService);
+  private readonly frequencyService = inject(FrequencyService);
 
-    constructor() { }
+  constructor() {}
 
-    resolve(route: ActivatedRouteSnapshot): Observable<string> {
-        const routeId = route.paramMap.get('routeId');
-        if (!routeId) return of('Route');
+  resolve(route: ActivatedRouteSnapshot): Observable<string> {
+    const routeId = route.paramMap.get('routeId');
+    if (!routeId) return of('Route');
 
-        return this.frequencyService.getRoute(routeId).pipe(
-            map(route => {
-                if (route.shortName && route.longName) {
-                    return `${route.shortName} ${route.longName}`;
-                }
-                return route.shortName || route.longName || routeId;
-            }),
-            catchError(() => of(routeId))
-        );
-    }
+    return this.frequencyService.getRoute(routeId).pipe(
+      map((route) => {
+        if (route.shortName && route.longName) {
+          return `${route.shortName} ${route.longName}`;
+        }
+        return route.shortName || route.longName || routeId;
+      }),
+      catchError(() => of(routeId)),
+    );
+  }
 }

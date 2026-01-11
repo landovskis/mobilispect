@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -38,7 +44,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
     MatProgressSpinnerModule,
     BrandCardComponent,
     BrandBadgeComponent,
-    BrandSectionComponent
+    BrandSectionComponent,
   ],
   template: `
     <app-brand-section
@@ -47,10 +53,16 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
       subtitle="Completed feed imports and metadata"
       icon="history"
       [collapsible]="true"
-      [(expanded)]="isExpanded">
-      <div section-actions class="panel-actions inline-flex items-center gap-2.5">
+      [(expanded)]="isExpanded"
+    >
+      <div
+        section-actions
+        class="panel-actions inline-flex items-center gap-2.5"
+      >
         @if (history && history.length > 0) {
-          <span class="count-badge rounded-full px-2.5 py-1">{{ totalItems }}</span>
+          <span class="count-badge rounded-full px-2.5 py-1">{{
+            totalItems
+          }}</span>
         }
       </div>
 
@@ -68,7 +80,9 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
 
       <!-- Empty State -->
       @if (!loading && (!history || history.length === 0)) {
-        <div class="empty-state flex flex-col items-center gap-1.5 p-6 text-center">
+        <div
+          class="empty-state flex flex-col items-center gap-1.5 p-6 text-center"
+        >
           <mat-icon class="empty-icon">history</mat-icon>
           <p class="empty-title m-0">No import history available yet.</p>
           <p class="empty-subtitle max-w-[340px] m-0">
@@ -85,23 +99,28 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
               <app-brand-card
                 class="history-item-card"
                 [title]="importItem.feedName || importItem.feedOnestopId"
-                [subtitle]="importItem.regionName">
-                <div card-content class="history-card-content flex flex-col gap-3">
+                [subtitle]="importItem.regionName"
+              >
+                <div
+                  card-content
+                  class="history-card-content flex flex-col gap-3"
+                >
                   <div class="history-meta flex flex-wrap items-center gap-3">
                     <app-brand-badge
                       [variant]="statusToBadge(importItem.status)"
-                      [label]="importItem.status | titlecase">
+                      [label]="importItem.status | titlecase"
+                    >
                     </app-brand-badge>
 
                     <span class="meta-item inline-flex items-center gap-1.5">
                       <mat-icon>schedule</mat-icon>
-                      Started: {{ importItem.startedAt | date:'short' }}
+                      Started: {{ importItem.startedAt | date: 'short' }}
                     </span>
 
                     @if (importItem.completedAt) {
                       <span class="meta-item inline-flex items-center gap-1.5">
                         <mat-icon>event_available</mat-icon>
-                        Completed: {{ importItem.completedAt | date:'short' }}
+                        Completed: {{ importItem.completedAt | date: 'short' }}
                       </span>
                     }
 
@@ -130,15 +149,36 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
       }
     </app-brand-section>
   `,
-    styles: [`
-    .history-meta { color: var(--mat-sys-on-surface-variant, #475569); }
-    .count-badge { background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
-    .empty-state { color: var(--mat-sys-on-surface-variant, #475569); }
-    .empty-icon { font-size: 48px; width: 48px; height: 48px; color: #94a3b8; }
-    .empty-title { font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
-    .empty-subtitle { color: var(--mat-sys-on-surface-variant, #475569); }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styles: [
+    `
+      .history-meta {
+        color: var(--mat-sys-on-surface-variant, #475569);
+      }
+      .count-badge {
+        background: var(--mat-sys-surface-variant, #e2e8f0);
+        color: var(--mat-sys-primary, #0b4f8a);
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+      .empty-state {
+        color: var(--mat-sys-on-surface-variant, #475569);
+      }
+      .empty-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        color: #94a3b8;
+      }
+      .empty-title {
+        font-weight: 700;
+        color: var(--mat-sys-on-surface, #0f172a);
+      }
+      .empty-subtitle {
+        color: var(--mat-sys-on-surface-variant, #475569);
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImportsHistoryCardComponent {
   @Input() loading = false;
@@ -147,7 +187,14 @@ export class ImportsHistoryCardComponent {
   @Input() pageIndex = 0;
   @Input() pageSize = 20;
   @Input() pageSizeOptions: number[] = [10, 20, 50, 100];
-  @Input() displayedColumns: string[] = ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'fileSize'];
+  @Input() displayedColumns: string[] = [
+    'feedName',
+    'region',
+    'status',
+    'startedAt',
+    'completedAt',
+    'fileSize',
+  ];
   @Input() showHeader = true;
 
   @Output() pageChange = new EventEmitter<number>();

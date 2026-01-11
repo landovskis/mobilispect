@@ -12,8 +12,20 @@ export * from './region.models';
 export * from './import.models';
 
 // Import types for TypeGuards
-import { MetropolitanRegion, Feed, FeedSpecType, FeedStatus } from './region.models';
-import { FeedImport, ImportProgress, ProgressUpdateMessage, SystemAlertMessage, ImportStatus, TriggerType } from './import.models';
+import {
+  MetropolitanRegion,
+  Feed,
+  FeedSpecType,
+  FeedStatus,
+} from './region.models';
+import {
+  FeedImport,
+  ImportProgress,
+  ProgressUpdateMessage,
+  SystemAlertMessage,
+  ImportStatus,
+  TriggerType,
+} from './import.models';
 
 // Re-export commonly used types for convenience
 export type {
@@ -27,7 +39,7 @@ export type {
   RegionsResponse,
   FeedsResponse,
   RegionConfigForm,
-  FeedAuthenticationForm
+  FeedAuthenticationForm,
 } from './region.models';
 
 export type {
@@ -42,7 +54,7 @@ export type {
   ImportStatusMessage,
   SystemAlertMessage,
   ImportRequest,
-  PageInfo
+  PageInfo,
 } from './import.models';
 
 export {
@@ -53,7 +65,7 @@ export {
 
   // Utility classes from region models
   RegionUtils,
-  FeedUtils
+  FeedUtils,
 } from './region.models';
 
 export {
@@ -63,7 +75,7 @@ export {
 
   // Utility classes from import models
   ImportUtils,
-  ProgressUtils
+  ProgressUtils,
 } from './import.models';
 
 /**
@@ -76,10 +88,12 @@ export class TypeGuards {
   static isMetropolitanRegion(obj: unknown): obj is MetropolitanRegion {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate['regionOnestopId'] === 'string' &&
-           typeof candidate['name'] === 'string' &&
-           typeof candidate['autoUpdateEnabled'] === 'boolean' &&
-           typeof candidate['feedCount'] === 'number';
+    return (
+      typeof candidate['regionOnestopId'] === 'string' &&
+      typeof candidate['name'] === 'string' &&
+      typeof candidate['autoUpdateEnabled'] === 'boolean' &&
+      typeof candidate['feedCount'] === 'number'
+    );
   }
 
   /**
@@ -88,11 +102,15 @@ export class TypeGuards {
   static isFeed(obj: unknown): obj is Feed {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate['feedOnestopId'] === 'string' &&
-           typeof candidate['regionOnestopId'] === 'string' &&
-           typeof candidate['name'] === 'string' &&
-           Object.values(FeedSpecType).includes(candidate['specType'] as FeedSpecType) &&
-           Object.values(FeedStatus).includes(candidate['status'] as FeedStatus);
+    return (
+      typeof candidate['feedOnestopId'] === 'string' &&
+      typeof candidate['regionOnestopId'] === 'string' &&
+      typeof candidate['name'] === 'string' &&
+      Object.values(FeedSpecType).includes(
+        candidate['specType'] as FeedSpecType,
+      ) &&
+      Object.values(FeedStatus).includes(candidate['status'] as FeedStatus)
+    );
   }
 
   /**
@@ -101,10 +119,16 @@ export class TypeGuards {
   static isFeedImport(obj: unknown): obj is FeedImport {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate['id'] === 'string' &&
-           typeof candidate['feedOnestopId'] === 'string' &&
-           Object.values(ImportStatus).includes(candidate['status'] as ImportStatus) &&
-           Object.values(TriggerType).includes(candidate['triggerType'] as TriggerType);
+    return (
+      typeof candidate['id'] === 'string' &&
+      typeof candidate['feedOnestopId'] === 'string' &&
+      Object.values(ImportStatus).includes(
+        candidate['status'] as ImportStatus,
+      ) &&
+      Object.values(TriggerType).includes(
+        candidate['triggerType'] as TriggerType,
+      )
+    );
   }
 
   /**
@@ -113,9 +137,11 @@ export class TypeGuards {
   static isImportProgress(obj: unknown): obj is ImportProgress {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate['progressPercentage'] === 'number' &&
-           typeof candidate['totalSteps'] === 'number' &&
-           typeof candidate['currentStep'] === 'string';
+    return (
+      typeof candidate['progressPercentage'] === 'number' &&
+      typeof candidate['totalSteps'] === 'number' &&
+      typeof candidate['currentStep'] === 'string'
+    );
   }
 
   /**
@@ -124,10 +150,12 @@ export class TypeGuards {
   static isProgressUpdateMessage(obj: unknown): obj is ProgressUpdateMessage {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return typeof candidate['importId'] === 'string' &&
-           typeof candidate['feedOnestopId'] === 'string' &&
-           typeof candidate['progressPercentage'] === 'number' &&
-           typeof candidate['currentStep'] === 'string';
+    return (
+      typeof candidate['importId'] === 'string' &&
+      typeof candidate['feedOnestopId'] === 'string' &&
+      typeof candidate['progressPercentage'] === 'number' &&
+      typeof candidate['currentStep'] === 'string'
+    );
   }
 
   /**
@@ -136,9 +164,11 @@ export class TypeGuards {
   static isSystemAlertMessage(obj: unknown): obj is SystemAlertMessage {
     if (!obj || typeof obj !== 'object') return false;
     const candidate = obj as Record<string, unknown>;
-    return ['info', 'warning', 'error'].includes(candidate['type'] as string) &&
-           typeof candidate['title'] === 'string' &&
-           typeof candidate['message'] === 'string';
+    return (
+      ['info', 'warning', 'error'].includes(candidate['type'] as string) &&
+      typeof candidate['title'] === 'string' &&
+      typeof candidate['message'] === 'string'
+    );
   }
 }
 
@@ -150,7 +180,7 @@ export const FEED_MANAGEMENT_CONSTANTS = {
   WEBSOCKET_TOPICS: {
     IMPORT_PROGRESS: '/topic/import/progress',
     IMPORT_STATUS: '/topic/import/status',
-    SYSTEM_ALERTS: '/topic/system/alerts'
+    SYSTEM_ALERTS: '/topic/system/alerts',
   },
 
   // API endpoints
@@ -158,7 +188,7 @@ export const FEED_MANAGEMENT_CONSTANTS = {
     REGIONS: '/api/feeds/regions',
     FEEDS: '/api/feeds/feeds',
     IMPORTS: '/api/feeds/imports',
-    AUTHENTICATION: '/api/feeds/feeds/{feedId}/authentication'
+    AUTHENTICATION: '/api/feeds/feeds/{feedId}/authentication',
   },
 
   // UI constants
@@ -167,7 +197,7 @@ export const FEED_MANAGEMENT_CONSTANTS = {
     MAX_PAGE_SIZE: 100,
     PROGRESS_UPDATE_INTERVAL: 1000, // ms
     TOAST_DURATION: 5000, // ms
-    WEBSOCKET_RECONNECT_DELAY: 5000 // ms
+    WEBSOCKET_RECONNECT_DELAY: 5000, // ms
   },
 
   // Validation constants
@@ -177,7 +207,7 @@ export const FEED_MANAGEMENT_CONSTANTS = {
     MIN_PASSWORD_LENGTH: 8,
     ONESTOP_ID_PATTERN: {
       REGION: /^r-[0-9a-z]+-[a-z0-9-]+$/,
-      FEED: /^f-[0-9a-z]+(~[a-z]+)?-[a-z0-9-]+$/
-    }
-  }
+      FEED: /^f-[0-9a-z]+(~[a-z]+)?-[a-z0-9-]+$/,
+    },
+  },
 } as const;

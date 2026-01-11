@@ -11,7 +11,7 @@ export interface RegionSummary {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class RegionService {
   private readonly baseUrl = '/api/v1/frequency';

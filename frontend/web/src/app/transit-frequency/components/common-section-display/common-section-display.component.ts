@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
-import { CommonSectionDto, CombinedFrequencyDto } from '../../services/common-section.service';
+import {
+  CommonSectionDto,
+  CombinedFrequencyDto,
+} from '../../services/common-section.service';
 
 @Component({
   selector: 'app-common-section-display',
@@ -8,7 +11,7 @@ import { CommonSectionDto, CombinedFrequencyDto } from '../../services/common-se
   imports: [],
   templateUrl: './common-section-display.component.html',
   styleUrls: ['./common-section-display.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommonSectionDisplayComponent {
   @Input() sections: CommonSectionDto[] = [];
