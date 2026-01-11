@@ -47,12 +47,29 @@ class FeedImportService(
         .content
         .firstOrNull()
     if (activeImport != null) {
-      logger.info(
-        "Import already running for feed {}, returning existing import {}",
-        feedId,
-        activeImport.id,
-      )
-      return activeImport
+      // Check if import is stale (running for more than 1 hour)
+      val now = clock.instant()
+      val importAge = java.time.Duration.between(activeImport.startedAt, now)
+      if (importAge.toHours() >= 1) {
+        logger.warn(
+          "Found stale import {} for feed {} (running for {} hours), marking as failed",
+          activeImport.id,
+          feedId,
+          importAge.toHours(),
+        )
+        activeImport.status = ImportStatus.FAILED
+        activeImport.completedAt = now
+        activeImport.errorMessage = "Import timed out - stuck in running state for > 1 hour"
+        feedImportRepository.save(activeImport)
+        // Continue to create new import below
+      } else {
+        logger.info(
+          "Import already running for feed {}, returning existing import {}",
+          feedId,
+          activeImport.id,
+        )
+        return activeImport
+      }
     }
 
     val feed =
