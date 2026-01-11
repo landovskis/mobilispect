@@ -11,12 +11,9 @@ private const val delimiter = "-"
  *
  * Per constitutional Code Quality First requirements (FR-018).
  */
-class RouteId {
-  var value: String
-
-  constructor(value: String) {
+data class RouteId(val value: String) {
+  init {
     require(value.isNotBlank()) { "Route ID cannot be blank" }
-    this.value = value
   }
 
   constructor(
