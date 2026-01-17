@@ -1,21 +1,20 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, EMPTY } from 'rxjs';
-import { filter, map, catchError, takeUntil } from 'rxjs/operators';
+import { BehaviorSubject, Observable, Observer, Subject } from 'rxjs';
+import { filter, takeUntil } from 'rxjs/operators';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import {
-  ImportProgress,
-  ImportProgressUpdate,
   ActiveImportsResponse,
-  ProgressSubscriptionResponse
+  ImportProgress,
 } from '../models/import-progress.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProgressWebSocketService implements OnDestroy {
   private stompClient: Client | null = null;
-  private connectionStatus$ = new BehaviorSubject<'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'>('DISCONNECTED');
+  private connectionStatus$ = new BehaviorSubject<
+    'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'
+  >('DISCONNECTED');
   private destroy$ = new Subject<void>();
   private subscriptions = new Map<string, StompSubscription>();
 
@@ -35,6 +34,11 @@ export class ProgressWebSocketService implements OnDestroy {
     }
 
     this.connectionStatus$.next('CONNECTING');
+    void this.createClient();
+  }
+
+  private async createClient(): Promise<void> {
+    const { default: SockJS } = await import('sockjs-client');
 
     this.stompClient = new Client({
       webSocketFactory: () => new SockJS(`${this.baseUrl}${this.endpoint}`),
@@ -59,7 +63,7 @@ export class ProgressWebSocketService implements OnDestroy {
       },
       reconnectDelay: 2000,
       heartbeatIncoming: 4000,
-      heartbeatOutgoing: 4000
+      heartbeatOutgoing: 4000,
     });
 
     this.stompClient.activate();
@@ -81,16 +85,18 @@ export class ProgressWebSocketService implements OnDestroy {
    * Subscribes to progress updates for a specific import
    */
   subscribeToImportProgress(importId: string): Observable<ImportProgress> {
-    return new Observable(observer => {
+    return new Observable((observer) => {
       if (!this.stompClient || !this.stompClient.connected) {
         console.warn('STOMP client not connected, waiting...');
         // Wait for connection then subscribe
-        this.connectionStatus$.pipe(
-          filter(status => status === 'CONNECTED'),
-          takeUntil(this.destroy$)
-        ).subscribe(() => {
-          this.performProgressSubscription(importId, observer);
-        });
+        this.connectionStatus$
+          .pipe(
+            filter((status) => status === 'CONNECTED'),
+            takeUntil(this.destroy$),
+          )
+          .subscribe(() => {
+            this.performProgressSubscription(importId, observer);
+          });
       } else {
         this.performProgressSubscription(importId, observer);
       }
@@ -102,36 +108,41 @@ export class ProgressWebSocketService implements OnDestroy {
     });
   }
 
-  private performProgressSubscription(importId: string, observer: any): void {
+  private performProgressSubscription(
+    importId: string,
+    observer: Observer<ImportProgress>,
+  ): void {
     if (!this.stompClient) return;
 
     const topic = `/topic/import/progress/${importId}`;
     const subscriptionKey = `progress-${importId}`;
 
     try {
-      const subscription = this.stompClient.subscribe(topic, (message: IMessage) => {
-        try {
-          const data = JSON.parse(message.body);
+      const subscription = this.stompClient.subscribe(
+        topic,
+        (message: IMessage) => {
+          try {
+            const data = JSON.parse(message.body);
 
-          if (data.progress) {
-            observer.next(data.progress);
-          } else if (data.completed) {
-            observer.complete();
-          } else if (data.error) {
-            observer.error(new Error(data.error));
+            if (data.progress) {
+              observer.next(data.progress);
+            } else if (data.completed) {
+              observer.complete();
+            } else if (data.error) {
+              observer.error(new Error(data.error));
+            }
+          } catch (error) {
+            console.error('Error parsing progress message:', error);
+            observer.error(error);
           }
-        } catch (error) {
-          console.error('Error parsing progress message:', error);
-          observer.error(error);
-        }
-      });
+        },
+      );
 
       this.subscriptions.set(subscriptionKey, subscription);
       console.log(`Subscribed to progress for import: ${importId}`);
 
       // Request current progress state
       this.requestProgressUpdate(importId);
-
     } catch (error) {
       console.error('Error subscribing to import progress:', error);
       observer.error(error);
@@ -146,7 +157,7 @@ export class ProgressWebSocketService implements OnDestroy {
 
     this.stompClient.publish({
       destination: `/app/import/progress/${importId}/request`,
-      body: JSON.stringify({ importId })
+      body: JSON.stringify({ importId }),
     });
   }
 
@@ -168,30 +179,33 @@ export class ProgressWebSocketService implements OnDestroy {
    * Gets all active imports
    */
   getActiveImports(): Observable<string[]> {
-    return new Observable(observer => {
+    return new Observable((observer) => {
       if (!this.stompClient || !this.stompClient.connected) {
         observer.error(new Error('WebSocket not connected'));
         return;
       }
 
       // Subscribe to active imports topic
-      const subscription = this.stompClient.subscribe('/topic/import/progress/active', (message: IMessage) => {
-        try {
-          const data: ActiveImportsResponse = JSON.parse(message.body);
-          if (data.error) {
-            observer.error(new Error(data.error));
-          } else {
-            observer.next(data.activeImports);
+      const subscription = this.stompClient.subscribe(
+        '/topic/import/progress/active',
+        (message: IMessage) => {
+          try {
+            const data: ActiveImportsResponse = JSON.parse(message.body);
+            if (data.error) {
+              observer.error(new Error(data.error));
+            } else {
+              observer.next(data.activeImports);
+            }
+          } catch (error) {
+            observer.error(error);
           }
-        } catch (error) {
-          observer.error(error);
-        }
-      });
+        },
+      );
 
       // Request active imports
       this.stompClient.publish({
         destination: '/app/import/progress/active',
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       // Cleanup
@@ -202,7 +216,9 @@ export class ProgressWebSocketService implements OnDestroy {
   /**
    * Gets the current connection status
    */
-  getConnectionStatus(): Observable<'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'> {
+  getConnectionStatus(): Observable<
+    'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'
+  > {
     return this.connectionStatus$.asObservable();
   }
 

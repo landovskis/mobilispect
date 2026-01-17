@@ -10,9 +10,16 @@ import { BrandBadgeComponent } from '../../../shared/components/brand-badge.comp
   standalone: true,
   imports: [RouterModule, BrandCardComponent, BrandBadgeComponent],
   template: `
-    <a [routerLink]="['/agencies', agency.id]" class="agency-card-link block transition-transform hover:-translate-y-0.5">
+    <a
+      [routerLink]="['/agencies', agency.id]"
+      class="agency-card-link block transition-transform hover:-translate-y-0.5"
+    >
       <app-brand-card [title]="agency.name">
-        <div class="meta flex flex-wrap gap-2" aria-label="agency details" role="list">
+        <div
+          class="meta flex flex-wrap gap-2"
+          aria-label="agency details"
+          role="list"
+        >
           @if (agency.routesByType && hasRoutes) {
             <div class="route-types flex flex-wrap gap-1">
               @for (type of routeTypes; track type) {
@@ -20,7 +27,10 @@ import { BrandBadgeComponent } from '../../../shared/components/brand-badge.comp
                   <app-brand-badge
                     role="listitem"
                     variant="neutral"
-                    [label]="formatRouteType(type) + ': ' + agency.routesByType[type]"></app-brand-badge>
+                    [label]="
+                      formatRouteType(type) + ': ' + agency.routesByType[type]
+                    "
+                  ></app-brand-badge>
                 }
               }
             </div>
@@ -29,27 +39,31 @@ import { BrandBadgeComponent } from '../../../shared/components/brand-badge.comp
       </app-brand-card>
     </a>
   `,
-  styles: [`
-    .agency-card-link {
-      text-decoration: none;
-      color: inherit;
-    }
+  styles: [
+    `
+      .agency-card-link {
+        text-decoration: none;
+        color: inherit;
+      }
 
-    .agency-card-link:hover {
-      transform: translateY(-2px);
-    }
+      .agency-card-link:hover {
+        transform: translateY(-2px);
+      }
 
-    :host-context(.dark-theme) app-brand-card {
-      color: var(--mat-sys-on-surface, #e5e7eb);
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+      :host-context(.dark-theme) app-brand-card {
+        color: var(--mat-sys-on-surface, #e5e7eb);
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AgencyCardComponent {
   @Input() agency!: AgencyDTO;
 
   get hasRoutes(): boolean {
-    return Object.values(this.agency.routesByType || {}).some(count => count > 0);
+    return Object.values(this.agency.routesByType || {}).some(
+      (count) => count > 0,
+    );
   }
 
   get routeTypes(): string[] {

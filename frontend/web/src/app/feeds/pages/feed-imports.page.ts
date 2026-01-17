@@ -1,10 +1,10 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { FeedImportSummary } from '../models';
+import { FeedImportDetail, FeedImportSummary } from '../models';
 import { ImportService } from '../services/import.service';
 import { ActiveImportsCardComponent } from '../components/active-imports-card.component';
 import { ImportsHistoryCardComponent } from '../components/imports-history-card.component';
@@ -18,8 +18,8 @@ import { FeedsEventsService } from '../services/feeds-events.service';
     MatSnackBarModule,
     MatDialogModule,
     ActiveImportsCardComponent,
-    ImportsHistoryCardComponent
-],
+    ImportsHistoryCardComponent,
+  ],
   template: `
     <div class="tab-content py-6 max-md:py-4">
       <app-active-imports-card
@@ -39,28 +39,35 @@ import { FeedsEventsService } from '../services/feeds-events.service';
         (pageChange)="loadImportHistory($event)"
       ></app-imports-history-card>
     </div>
-  `
+  `,
 })
 export class FeedImportsPageComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   activeImports$: Observable<FeedImportSummary[]>;
 
-  importHistory: FeedImportSummary[] = [];
+  importHistory: FeedImportDetail[] = [];
   importHistoryPage = 0;
   importHistorySize = 20;
   pageSizeOptions: number[] = [10, 20, 50, 100];
-  displayedColumns: string[] = ['feedName', 'region', 'status', 'startedAt', 'completedAt', 'fileSize'];
+  displayedColumns: string[] = [
+    'feedName',
+    'region',
+    'status',
+    'startedAt',
+    'completedAt',
+    'fileSize',
+  ];
   totalImportPages = 0;
   totalImportElements = 0;
   loadingHistory = false;
 
-  constructor(
-    private readonly importService: ImportService,
-    private readonly snackBar: MatSnackBar,
-    private readonly metrics: FeedsMetricsService,
-    private readonly events: FeedsEventsService
-  ) {
+  private readonly importService = inject(ImportService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly metrics = inject(FeedsMetricsService);
+  private readonly events = inject(FeedsEventsService);
+
+  constructor() {
     this.activeImports$ = this.importService.getActiveImportsObservable();
   }
 
@@ -86,46 +93,56 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
     this.loadingHistory = true;
     this.importHistoryPage = page;
 
-    this.importService.getAllImportHistory({
-      page,
-      size: this.importHistorySize
-    }).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (response) => {
-        this.importHistory = response.imports as any[];
-        this.totalImportPages = response.totalPages;
-        this.totalImportElements = response.totalElements;
-        this.metrics.setTotalImportElements(response.totalElements);
-        this.loadingHistory = false;
-      },
-      error: (error) => {
-        console.error('Failed to load import history:', error);
-        this.loadingHistory = false;
-        this.snackBar.open('Failed to load import history', 'Close', { duration: 4000 });
-      }
-    });
+    this.importService
+      .getAllImportHistory({
+        page,
+        size: this.importHistorySize,
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.importHistory = response.imports;
+          this.totalImportPages = response.totalPages;
+          this.totalImportElements = response.totalElements;
+          this.metrics.setTotalImportElements(response.totalElements);
+          this.loadingHistory = false;
+        },
+        error: (error) => {
+          console.error('Failed to load import history:', error);
+          this.loadingHistory = false;
+          this.snackBar.open('Failed to load import history', 'Close', {
+            duration: 4000,
+          });
+        },
+      });
   }
 
   cancelImport(importId: string): void {
     this.snackBar.open('Cancelling import...', 'Close', { duration: 2000 });
 
-    this.importService.cancelImport(importId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: () => {
-        this.snackBar.open('✅ Import cancelled successfully', 'Close', { duration: 4000 });
-        this.importService.refreshActiveImports();
-        this.loadImportHistory(this.importHistoryPage);
-      },
-      error: (error) => {
-        console.error('Failed to cancel import:', error);
-        const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
-        this.snackBar.open(`❌ Failed to cancel import: ${errorMessage}`, 'Retry', {
-          duration: 8000,
-          panelClass: ['error-snackbar']
-        }).onAction().subscribe(() => this.cancelImport(importId));
-      }
-    });
+    this.importService
+      .cancelImport(importId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.snackBar.open('✅ Import cancelled successfully', 'Close', {
+            duration: 4000,
+          });
+          this.importService.refreshActiveImports();
+          this.loadImportHistory(this.importHistoryPage);
+        },
+        error: (error) => {
+          console.error('Failed to cancel import:', error);
+          const errorMessage =
+            error.message || error.error?.message || 'Unknown error occurred';
+          this.snackBar
+            .open(`❌ Failed to cancel import: ${errorMessage}`, 'Retry', {
+              duration: 8000,
+              panelClass: ['error-snackbar'],
+            })
+            .onAction()
+            .subscribe(() => this.cancelImport(importId));
+        },
+      });
   }
 }

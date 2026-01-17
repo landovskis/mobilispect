@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  Input,
+  OnDestroy,
+  OnInit,
+  Output,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -19,7 +29,7 @@ import { ImportService } from '../services/import.service';
     MatTooltipModule,
     MatProgressBarModule,
     BrandButtonComponent,
-    BrandCardComponent
+    BrandCardComponent,
   ],
   template: `
     <app-brand-card
@@ -27,40 +37,64 @@ import { ImportService } from '../services/import.service';
       [title]="importItem.feedName ?? undefined"
       [subtitle]="importItem.regionName ?? undefined"
       [badge]="currentStatus"
-      [hasFooter]="true">
-
+      [hasFooter]="true"
+    >
       <!-- Progress information -->
       @if (currentProgress) {
         <div class="progress-section mb-4">
           <!-- Step indicator -->
           <div class="step-indicator mb-2 flex items-center gap-2">
-            <span class="step-count text-sm font-semibold text-[var(--mat-sys-primary)]">
-              Step {{ getCurrentStepNumber() }} of {{ currentProgress.totalSteps }}
+            <span
+              class="step-count text-sm font-semibold text-[var(--mat-sys-primary)]"
+            >
+              Step {{ getCurrentStepNumber() }} of
+              {{ currentProgress.totalSteps }}
             </span>
-            <span class="step-divider text-[var(--mat-sys-on-surface-variant)]">•</span>
-            <span class="progress-step text-sm italic text-[var(--mat-sys-on-surface-variant)]">
+            <span class="step-divider text-[var(--mat-sys-on-surface-variant)]"
+              >•</span
+            >
+            <span
+              class="progress-step text-sm italic text-[var(--mat-sys-on-surface-variant)]"
+            >
               {{ currentProgress.currentStep }}
             </span>
           </div>
 
           <!-- Progress bar with percentage -->
           <div class="progress-bar-section">
-            <div class="progress-details mb-2 flex items-center justify-between gap-3">
-              <span class="progress-percentage text-lg font-bold text-[var(--mat-sys-primary)]">
+            <div
+              class="progress-details mb-2 flex items-center justify-between gap-3"
+            >
+              <span
+                class="progress-percentage text-lg font-bold text-[var(--mat-sys-primary)]"
+              >
                 {{ currentProgress.progressPercentage }}%
               </span>
             </div>
             <mat-progress-bar
               mode="determinate"
               [value]="currentProgress.progressPercentage"
-              color="primary">
+              color="primary"
+            >
             </mat-progress-bar>
           </div>
 
-          @if (currentProgress.estimatedTimeRemainingSeconds !== null && currentProgress.estimatedTimeRemainingSeconds > 0) {
-            <div class="time-remaining mt-2 text-sm text-[var(--mat-sys-on-surface-variant)]">
-              <mat-icon class="inline-block align-middle text-base">schedule</mat-icon>
-              Est. time remaining: {{ formatTimeRemaining(currentProgress.estimatedTimeRemainingSeconds) }}
+          @if (
+            currentProgress.estimatedTimeRemainingSeconds !== null &&
+            currentProgress.estimatedTimeRemainingSeconds > 0
+          ) {
+            <div
+              class="time-remaining mt-2 text-sm text-[var(--mat-sys-on-surface-variant)]"
+            >
+              <mat-icon class="inline-block align-middle text-base"
+                >schedule</mat-icon
+              >
+              Est. time remaining:
+              {{
+                formatTimeRemaining(
+                  currentProgress.estimatedTimeRemainingSeconds
+                )
+              }}
             </div>
           }
         </div>
@@ -68,9 +102,11 @@ import { ImportService } from '../services/import.service';
 
       <!-- Started time -->
       @if (importItem.startedAt) {
-        <div class="started-time mb-3 flex items-center gap-1.5 text-sm text-[var(--mat-sys-on-surface-variant)]">
+        <div
+          class="started-time mb-3 flex items-center gap-1.5 text-sm text-[var(--mat-sys-on-surface-variant)]"
+        >
           <mat-icon class="text-base">access_time</mat-icon>
-          Started: {{ importItem.startedAt | date:'short' }}
+          Started: {{ importItem.startedAt | date: 'short' }}
         </div>
       }
 
@@ -80,50 +116,53 @@ import { ImportService } from '../services/import.service';
           variant="destructive"
           size="sm"
           (click)="onCancelImport()"
-          matTooltip="Stop import">
+          matTooltip="Stop import"
+        >
           <mat-icon>stop_circle</mat-icon>
           Stop
         </app-brand-button>
       </div>
     </app-brand-card>
   `,
-  styles: [`
-    .step-indicator {
-      padding: 8px 0;
-    }
+  styles: [
+    `
+      .step-indicator {
+        padding: 8px 0;
+      }
 
-    .step-count {
-      font-size: 0.875rem;
-      letter-spacing: 0.025em;
-    }
+      .step-count {
+        font-size: 0.875rem;
+        letter-spacing: 0.025em;
+      }
 
-    .step-divider {
-      font-size: 0.875rem;
-      opacity: 0.6;
-    }
+      .step-divider {
+        font-size: 0.875rem;
+        opacity: 0.6;
+      }
 
-    .progress-step {
-      font-size: 0.875rem;
-    }
+      .progress-step {
+        font-size: 0.875rem;
+      }
 
-    .progress-percentage {
-      font-size: 1.1rem;
-    }
+      .progress-percentage {
+        font-size: 1.1rem;
+      }
 
-    .time-remaining mat-icon {
-      margin-right: 4px;
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
+      .time-remaining mat-icon {
+        margin-right: 4px;
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
 
-    .started-time mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+      .started-time mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ActiveImportCardComponent implements OnInit, OnDestroy {
   @Input() importItem!: FeedImportSummary;
@@ -134,10 +173,10 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
   currentStatus: string;
   currentProgress: ImportProgress | null = null;
 
-  constructor(
-    private importService: ImportService,
-    private cdr: ChangeDetectorRef
-  ) {
+  private readonly importService = inject(ImportService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  constructor() {
     this.currentStatus = '';
   }
 
@@ -147,7 +186,8 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
     this.currentProgress = this.importItem.progress;
 
     // Subscribe to real-time progress updates via WebSocket + HTTP polling
-    this.importService.monitorImportProgress(this.importItem.id, this.destroy$)
+    this.importService
+      .monitorImportProgress(this.importItem.id, this.destroy$)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (progress) => {
@@ -156,11 +196,12 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error monitoring import progress:', error);
-        }
+        },
       });
 
     // Subscribe to status updates
-    this.importService.monitorImportStatus(this.importItem.id, this.destroy$)
+    this.importService
+      .monitorImportStatus(this.importItem.id, this.destroy$)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (importDetail) => {
@@ -172,7 +213,7 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error monitoring import status:', error);
-        }
+        },
       });
   }
 
@@ -188,7 +229,10 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
   getCurrentStepNumber(): number {
     if (!this.currentProgress) return 0;
     // Calculate current step based on progress percentage
-    return Math.ceil((this.currentProgress.progressPercentage / 100) * this.currentProgress.totalSteps);
+    return Math.ceil(
+      (this.currentProgress.progressPercentage / 100) *
+        this.currentProgress.totalSteps,
+    );
   }
 
   formatTimeRemaining(seconds: number): string {
@@ -202,11 +246,15 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
     const remainingSeconds = seconds % 60;
 
     if (minutes < 60) {
-      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+      return remainingSeconds > 0
+        ? `${minutes}m ${remainingSeconds}s`
+        : `${minutes}m`;
     }
 
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    return remainingMinutes > 0
+      ? `${hours}h ${remainingMinutes}m`
+      : `${hours}h`;
   }
 }

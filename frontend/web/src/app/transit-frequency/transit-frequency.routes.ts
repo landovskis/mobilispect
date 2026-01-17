@@ -1,44 +1,51 @@
 import { Routes } from '@angular/router';
-import { RegionsPageComponent } from '../regions/pages/regions.page';
+import { RegionListComponent } from '../regions/pages/region-list.component';
+import { RegionDetailComponent } from '../regions/pages/region-detail.component';
 import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 import { RouteBreadcrumbResolver } from './resolvers/route-breadcrumb.resolver';
+import { DiscoverRegionsPageComponent } from '../regions/pages/discover-regions.page';
 
 export const TRANSIT_FREQUENCY_ROUTES: Routes = [
   {
     path: '',
-    component: RegionsPageComponent,
-    data: {
-      title: 'Regions',
-      breadcrumb: 'Regions',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
+    component: RegionListComponent,
+    data: {},
   },
   {
     path: 'discover/:regionId',
-    redirectTo: ':regionId',
-    pathMatch: 'full'
+    component: DiscoverRegionsPageComponent,
+    resolve: {
+      breadcrumb: RegionBreadcrumbResolver,
+    },
+    data: {
+      title: 'Discover Regions',
+      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
+    },
   },
   {
     path: 'discover',
-    redirectTo: '',
-    pathMatch: 'full'
+    component: DiscoverRegionsPageComponent,
+    data: {
+      title: 'Discover Regions',
+      breadcrumb: 'Discover',
+      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
+    },
   },
   {
     path: ':regionId',
-    component: RegionsPageComponent,
+    component: RegionDetailComponent,
     resolve: {
-      breadcrumb: RegionBreadcrumbResolver
+      breadcrumb: RegionBreadcrumbResolver,
     },
-    data: {
-      title: 'Region Details',
-      permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-    }
   },
   {
     path: 'routes/:routeId',
-    loadComponent: () => import('./pages/route-frequency/route-frequency.component').then(m => m.RouteFrequencyComponent),
+    loadComponent: () =>
+      import('./pages/route-frequency/route-frequency.component').then(
+        (m) => m.RouteFrequencyComponent,
+      ),
     resolve: {
-      breadcrumb: RouteBreadcrumbResolver
-    }
-  }
+      breadcrumb: RouteBreadcrumbResolver,
+    },
+  },
 ];

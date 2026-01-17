@@ -4,7 +4,7 @@ export enum AuthType {
   BEARER_TOKEN = 'BEARER_TOKEN',
   API_KEY = 'API_KEY',
   OAUTH2 = 'OAUTH2',
-  CERTIFICATE = 'CERTIFICATE'
+  CERTIFICATE = 'CERTIFICATE',
 }
 
 export interface FeedAuthentication {
@@ -27,7 +27,7 @@ export interface FeedAuthenticationRequest {
   authType: AuthType;
   primaryCredential?: string;
   secondaryCredential?: string;
-  authParameters?: Record<string, any>;
+  authParameters?: Record<string, unknown>;
   expiresAt?: string;
   notes?: string;
 }

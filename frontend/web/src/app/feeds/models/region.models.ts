@@ -72,7 +72,7 @@ export interface FeedDetail extends Feed {
  */
 export enum FeedSpecType {
   GTFS = 'GTFS',
-  GTFS_RT = 'GTFS_RT'
+  GTFS_RT = 'GTFS_RT',
 }
 
 /**
@@ -81,7 +81,7 @@ export enum FeedSpecType {
 export enum FeedStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
-  ERROR = 'ERROR'
+  ERROR = 'ERROR',
 }
 
 /**
@@ -110,7 +110,7 @@ export interface FeedAuthenticationUpdate {
 export enum AuthType {
   NONE = 'none',
   API_KEY = 'api_key',
-  OAUTH2 = 'oauth2'
+  OAUTH2 = 'oauth2',
 }
 
 /**
@@ -175,7 +175,12 @@ export class RegionUtils {
     const rawParts = [region.name, region.adm1Name, region.adm0Name]
       .filter((part): part is string => !!part && part.trim().length > 0)
       // Split composite names like "Montréal, Québec, Canada" so we can de-duplicate pieces
-      .flatMap(part => part.split(',').map(piece => piece.trim()).filter(piece => piece.length > 0));
+      .flatMap((part) =>
+        part
+          .split(',')
+          .map((piece) => piece.trim())
+          .filter((piece) => piece.length > 0),
+      );
 
     const seen = new Set<string>();
     const uniqueParts: string[] = [];

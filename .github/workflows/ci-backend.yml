@@ -122,11 +122,6 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x backend/gradlew
 
-      - name: Kotlin Format Check (ktfmt)
-        run: |
-          echo "✨ Checking Kotlin formatting..."
-          cd backend && ./gradlew ktfmtCheck --continue
-
       - name: Kotlin Lint (ktlint)
         run: |
           echo "✨ Running ktlint..."
@@ -141,6 +136,38 @@ jobs:
         run: |
           echo "🏛️ Verifying Spring Modulith boundaries..."
           cd backend && ./gradlew verifyModulith
+
+  backend-format:
+    name: Formatting
+    runs-on: ubuntu-latest
+    needs: backend-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x backend/gradlew
+
+      - name: Kotlin Format Check (ktfmt)
+        run: |
+          echo "✨ Checking Kotlin formatting..."
+          cd backend && ./gradlew ktfmtCheck --continue
 
   backend-coverage:
     name: Coverage
@@ -277,7 +304,7 @@ jobs:
   backend-summary:
     name: Summary
     runs-on: ubuntu-latest
-    needs: [backend-build, backend-test, backend-code-quality, backend-coverage, backend-security]
+    needs: [backend-build, backend-test, backend-code-quality, backend-format, backend-coverage, backend-security]
     if: always()
     steps:
       - name: Backend CI Summary
@@ -287,13 +314,15 @@ jobs:
           echo "Build: ${{ needs.backend-build.result }}"
           echo "Tests: ${{ needs.backend-test.result }}"
           echo "Code Quality: ${{ needs.backend-code-quality.result }}"
+          echo "Formatting: ${{ needs.backend-format.result }}"
           echo "Coverage: ${{ needs.backend-coverage.result }}"
           echo "Security: ${{ needs.backend-security.result }}"
           echo ""
 
           if [[ "${{ needs.backend-build.result }}" == "failure" ]] || \
              [[ "${{ needs.backend-test.result }}" == "failure" ]] || \
-             [[ "${{ needs.backend-code-quality.result }}" == "failure" ]]; then
+             [[ "${{ needs.backend-code-quality.result }}" == "failure" ]] || \
+             [[ "${{ needs.backend-format.result }}" == "failure" ]]; then
             echo "❌ Backend CI failed"
             exit 1
           else

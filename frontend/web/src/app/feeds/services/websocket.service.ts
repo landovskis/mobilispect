@@ -1,13 +1,12 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, timer } from 'rxjs';
+import { Observable, Subject, BehaviorSubject } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 import { environment } from '../../../environments/environment';
 
 export interface WebSocketMessage {
   type: string;
-  data: any;
+  data: unknown;
   timestamp: string;
 }
 
@@ -46,7 +45,7 @@ export interface SystemAlertMessage extends WebSocketMessage {
   data: {
     level: 'INFO' | 'WARNING' | 'ERROR';
     message: string;
-    details?: any;
+    details?: unknown;
   };
 }
 
@@ -59,12 +58,14 @@ export interface SystemAlertMessage extends WebSocketMessage {
  * Uses STOMP protocol to match the backend Spring WebSocket configuration.
  */
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class WebSocketService implements OnDestroy {
   private stompClient: Client | null = null;
-  private messagesSubject$ = new Subject<any>();
-  private connectionStatus$ = new BehaviorSubject<'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'>('DISCONNECTED');
+  private messagesSubject$ = new Subject<WebSocketMessage>();
+  private connectionStatus$ = new BehaviorSubject<
+    'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'
+  >('DISCONNECTED');
   private destroy$ = new Subject<void>();
   private subscriptions = new Map<string, StompSubscription>();
 
@@ -80,7 +81,15 @@ export class WebSocketService implements OnDestroy {
     }
 
     this.connectionStatus$.next('CONNECTING');
-    console.log('Connecting to STOMP WebSocket:', `${environment.wsUrl}/ws/feeds`);
+    console.log(
+      'Connecting to STOMP WebSocket:',
+      `${environment.wsUrl}/ws/feeds`,
+    );
+    void this.createClient();
+  }
+
+  private async createClient(): Promise<void> {
+    const { default: SockJS } = await import('sockjs-client');
 
     this.stompClient = new Client({
       webSocketFactory: () => new SockJS(`${environment.wsUrl}/ws/feeds`),
@@ -118,7 +127,7 @@ export class WebSocketService implements OnDestroy {
       onDisconnect: (frame) => {
         console.log('STOMP disconnected:', frame);
         this.connectionStatus$.next('DISCONNECTED');
-      }
+      },
     });
 
     this.stompClient.activate();
@@ -147,14 +156,18 @@ export class WebSocketService implements OnDestroy {
   /**
    * Sends a message to the STOMP server
    */
-  send(destination: string, body: any): void {
+  send(destination: string, body: unknown): void {
     if (this.stompClient && this.stompClient.connected) {
       this.stompClient.publish({
         destination: destination,
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       });
     } else {
-      console.warn('Cannot send message: STOMP client not connected', destination, body);
+      console.warn(
+        'Cannot send message: STOMP client not connected',
+        destination,
+        body,
+      );
     }
   }
 
@@ -164,40 +177,53 @@ export class WebSocketService implements OnDestroy {
    * Backend publishes to: /topic/import/progress/{importId}
    * Message format: ProgressUpdate { progress?: ImportProgress, completed?: boolean, error?: string }
    */
-  subscribeToImportProgress(importId: string): Observable<ProgressUpdateMessage> {
+  subscribeToImportProgress(
+    importId: string,
+  ): Observable<ProgressUpdateMessage> {
     const topic = `/topic/import/progress/${importId}`;
     const progressSubject = new Subject<ProgressUpdateMessage>();
 
     // Wait for connection before subscribing
-    this.connectionStatus$.pipe(
-      filter(status => status === 'CONNECTED'),
-      tap(() => {
-        if (!this.stompClient) {
-          console.error('STOMP client not available');
-          return;
-        }
-
-        // Check if already subscribed
-        if (this.subscriptions.has(topic)) {
-          console.log('Already subscribed to:', topic);
-          return;
-        }
-
-        console.log('Subscribing to STOMP topic:', topic);
-
-        const subscription = this.stompClient.subscribe(topic, (message: IMessage) => {
-          try {
-            const progressUpdate: ProgressUpdateMessage = JSON.parse(message.body);
-            console.log('Received progress update:', progressUpdate);
-            progressSubject.next(progressUpdate);
-          } catch (error) {
-            console.error('Error parsing progress update:', error, message.body);
+    this.connectionStatus$
+      .pipe(
+        filter((status) => status === 'CONNECTED'),
+        tap(() => {
+          if (!this.stompClient) {
+            console.error('STOMP client not available');
+            return;
           }
-        });
 
-        this.subscriptions.set(topic, subscription);
-      })
-    ).subscribe();
+          // Check if already subscribed
+          if (this.subscriptions.has(topic)) {
+            console.log('Already subscribed to:', topic);
+            return;
+          }
+
+          console.log('Subscribing to STOMP topic:', topic);
+
+          const subscription = this.stompClient.subscribe(
+            topic,
+            (message: IMessage) => {
+              try {
+                const progressUpdate: ProgressUpdateMessage = JSON.parse(
+                  message.body,
+                );
+                console.log('Received progress update:', progressUpdate);
+                progressSubject.next(progressUpdate);
+              } catch (error) {
+                console.error(
+                  'Error parsing progress update:',
+                  error,
+                  message.body,
+                );
+              }
+            },
+          );
+
+          this.subscriptions.set(topic, subscription);
+        }),
+      )
+      .subscribe();
 
     return progressSubject.asObservable();
   }
@@ -209,34 +235,45 @@ export class WebSocketService implements OnDestroy {
     const topic = `/topic/import/status/${importId}`;
     const statusSubject = new Subject<ImportStatusMessage>();
 
-    this.connectionStatus$.pipe(
-      filter(status => status === 'CONNECTED'),
-      tap(() => {
-        if (!this.stompClient) {
-          console.error('STOMP client not available');
-          return;
-        }
-
-        if (this.subscriptions.has(topic)) {
-          console.log('Already subscribed to:', topic);
-          return;
-        }
-
-        console.log('Subscribing to STOMP topic:', topic);
-
-        const subscription = this.stompClient.subscribe(topic, (message: IMessage) => {
-          try {
-            const statusUpdate: ImportStatusMessage = JSON.parse(message.body);
-            console.log('Received status update:', statusUpdate);
-            statusSubject.next(statusUpdate);
-          } catch (error) {
-            console.error('Error parsing status update:', error, message.body);
+    this.connectionStatus$
+      .pipe(
+        filter((status) => status === 'CONNECTED'),
+        tap(() => {
+          if (!this.stompClient) {
+            console.error('STOMP client not available');
+            return;
           }
-        });
 
-        this.subscriptions.set(topic, subscription);
-      })
-    ).subscribe();
+          if (this.subscriptions.has(topic)) {
+            console.log('Already subscribed to:', topic);
+            return;
+          }
+
+          console.log('Subscribing to STOMP topic:', topic);
+
+          const subscription = this.stompClient.subscribe(
+            topic,
+            (message: IMessage) => {
+              try {
+                const statusUpdate: ImportStatusMessage = JSON.parse(
+                  message.body,
+                );
+                console.log('Received status update:', statusUpdate);
+                statusSubject.next(statusUpdate);
+              } catch (error) {
+                console.error(
+                  'Error parsing status update:',
+                  error,
+                  message.body,
+                );
+              }
+            },
+          );
+
+          this.subscriptions.set(topic, subscription);
+        }),
+      )
+      .subscribe();
 
     return statusSubject.asObservable();
   }
@@ -248,34 +285,43 @@ export class WebSocketService implements OnDestroy {
     const topic = '/topic/system/alerts';
     const alertsSubject = new Subject<SystemAlertMessage>();
 
-    this.connectionStatus$.pipe(
-      filter(status => status === 'CONNECTED'),
-      tap(() => {
-        if (!this.stompClient) {
-          console.error('STOMP client not available');
-          return;
-        }
-
-        if (this.subscriptions.has(topic)) {
-          console.log('Already subscribed to:', topic);
-          return;
-        }
-
-        console.log('Subscribing to STOMP topic:', topic);
-
-        const subscription = this.stompClient.subscribe(topic, (message: IMessage) => {
-          try {
-            const alert: SystemAlertMessage = JSON.parse(message.body);
-            console.log('Received system alert:', alert);
-            alertsSubject.next(alert);
-          } catch (error) {
-            console.error('Error parsing system alert:', error, message.body);
+    this.connectionStatus$
+      .pipe(
+        filter((status) => status === 'CONNECTED'),
+        tap(() => {
+          if (!this.stompClient) {
+            console.error('STOMP client not available');
+            return;
           }
-        });
 
-        this.subscriptions.set(topic, subscription);
-      })
-    ).subscribe();
+          if (this.subscriptions.has(topic)) {
+            console.log('Already subscribed to:', topic);
+            return;
+          }
+
+          console.log('Subscribing to STOMP topic:', topic);
+
+          const subscription = this.stompClient.subscribe(
+            topic,
+            (message: IMessage) => {
+              try {
+                const alert: SystemAlertMessage = JSON.parse(message.body);
+                console.log('Received system alert:', alert);
+                alertsSubject.next(alert);
+              } catch (error) {
+                console.error(
+                  'Error parsing system alert:',
+                  error,
+                  message.body,
+                );
+              }
+            },
+          );
+
+          this.subscriptions.set(topic, subscription);
+        }),
+      )
+      .subscribe();
 
     return alertsSubject.asObservable();
   }
@@ -303,14 +349,16 @@ export class WebSocketService implements OnDestroy {
   /**
    * Gets the current connection status
    */
-  getConnectionStatus(): Observable<'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'> {
+  getConnectionStatus(): Observable<
+    'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR'
+  > {
     return this.connectionStatus$.asObservable();
   }
 
   /**
    * Gets all WebSocket messages (for debugging)
    */
-  getAllMessages(): Observable<any> {
+  getAllMessages(): Observable<WebSocketMessage> {
     return this.messagesSubject$.asObservable();
   }
 

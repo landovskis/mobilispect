@@ -1,8 +1,9 @@
-@use './styles/tokens';
-@use './_theme.scss';
+@use "./styles/tokens";
+@use "./_theme.scss";
 @use "tailwindcss";
 
-html, body {
+html,
+body {
   @apply h-full m-0;
 }
 
@@ -26,7 +27,7 @@ body.dark-theme {
 
 /* Material Icons fallback */
 .material-icons {
-  font-family: 'Material Icons';
+  font-family: "Material Icons";
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -37,7 +38,7 @@ body.dark-theme {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: 'liga';
+  -webkit-font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
 }
 

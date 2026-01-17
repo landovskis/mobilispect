@@ -13,7 +13,7 @@ export {
   TimePeriod,
   TimePeriodLabels,
   getTimePeriodLabel,
-  getAllTimePeriods
+  getAllTimePeriods,
 } from './time-period.model';
 
 // Route Type enum and utilities
@@ -27,7 +27,7 @@ export {
   getRouteTypeIcon,
   getRouteTypeGtfsValue,
   getRouteTypeFromGtfsValue,
-  getAllRouteTypes
+  getAllRouteTypes,
 } from './route-type.model';
 
 // Transit Frequency interfaces and types
@@ -40,7 +40,7 @@ export type {
   CommonSection,
   FrequencyStats,
   FrequencyQueryRequest,
-  FrequencyQueryResponse
+  FrequencyQueryResponse,
 } from './transit-frequency.model';
 
 export type { AgencySummary } from './agency-summary.model';

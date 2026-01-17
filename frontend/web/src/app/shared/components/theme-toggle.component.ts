@@ -29,20 +29,24 @@ import { ThemeService } from '../../core/services/theme.service';
       </mat-icon>
     </button>
   `,
-  styles: [`
-    .theme-toggle {
-      color: #fff;
-    }
+  styles: [
+    `
+      .theme-toggle {
+        color: #fff;
+      }
 
-    :host-context(.dark-theme) .theme-toggle {
-      color: #e2e8f0;
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+      :host-context(.dark-theme) .theme-toggle {
+        color: #e2e8f0;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ThemeToggleComponent {
   private readonly themeService = inject(ThemeService);
-  readonly isDarkMode$ = this.themeService.activeTheme$.pipe(map(theme => theme === 'dark'));
+  readonly isDarkMode$ = this.themeService.activeTheme$.pipe(
+    map((theme) => theme === 'dark'),
+  );
 
   toggleTheme(): void {
     this.themeService.toggle();

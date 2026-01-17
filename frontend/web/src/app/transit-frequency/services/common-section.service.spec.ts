@@ -1,5 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
 import { CommonSectionService } from './common-section.service';
 
 describe('CommonSectionService', () => {
@@ -9,7 +12,7 @@ describe('CommonSectionService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [CommonSectionService]
+      providers: [CommonSectionService],
     });
 
     service = TestBed.inject(CommonSectionService);
@@ -21,7 +24,7 @@ describe('CommonSectionService', () => {
   });
 
   it('loads common sections for a route', () => {
-    service.getCommonSectionsForRoute('route-1').subscribe(sections => {
+    service.getCommonSectionsForRoute('route-1').subscribe((sections) => {
       expect(sections.length).toBe(1);
     });
 
@@ -34,19 +37,20 @@ describe('CommonSectionService', () => {
         stopCount: 3,
         firstStopId: 'stop-1',
         lastStopId: 'stop-3',
-        variants: ['variant-1']
-      }
+        variants: ['variant-1'],
+      },
     ]);
   });
 
   it('loads combined frequency for a section', () => {
-    service.getCombinedFrequency('section-2', 'PM').subscribe(frequency => {
+    service.getCombinedFrequency('section-2', 'PM').subscribe((frequency) => {
       expect(frequency?.commonSectionId).toBe('section-2');
     });
 
-    const req = httpMock.expectOne(request =>
-      request.url === '/api/v1/common-sections/section-2/frequency' &&
-      request.params.get('timePeriod') === 'PM'
+    const req = httpMock.expectOne(
+      (request) =>
+        request.url === '/api/v1/common-sections/section-2/frequency' &&
+        request.params.get('timePeriod') === 'PM',
     );
     req.flush({
       commonSectionId: 'section-2',
@@ -59,9 +63,9 @@ describe('CommonSectionService', () => {
           routeId: 'route-1',
           averageHeadwayMinutes: 12,
           tripCount: 6,
-          isIrregular: false
-        }
-      ]
+          isIrregular: false,
+        },
+      ],
     });
   });
 });

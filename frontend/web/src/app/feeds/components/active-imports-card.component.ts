@@ -1,4 +1,10 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
@@ -27,7 +33,7 @@ import { ActiveImportCardComponent } from './active-import-card.component';
     CommonModule,
     MatIconModule,
     BrandSectionComponent,
-    ActiveImportCardComponent
+    ActiveImportCardComponent,
   ],
   template: `
     <app-brand-section
@@ -36,10 +42,16 @@ import { ActiveImportCardComponent } from './active-import-card.component';
       subtitle="Running feed imports with real-time progress"
       icon="downloading"
       [collapsible]="true"
-      [(expanded)]="isExpanded">
-      <div section-actions class="panel-actions inline-flex items-center gap-2.5">
+      [(expanded)]="isExpanded"
+    >
+      <div
+        section-actions
+        class="panel-actions inline-flex items-center gap-2.5"
+      >
         @if (activeImports$ | async; as activeImports) {
-          <span class="count-badge rounded-full px-2.5 py-1">{{ activeImports.length }}</span>
+          <span class="count-badge rounded-full px-2.5 py-1">{{
+            activeImports.length
+          }}</span>
         }
       </div>
 
@@ -55,7 +67,9 @@ import { ActiveImportCardComponent } from './active-import-card.component';
             }
           </div>
         } @else {
-          <div class="empty-state flex flex-col items-center gap-1.5 p-6 text-center">
+          <div
+            class="empty-state flex flex-col items-center gap-1.5 p-6 text-center"
+          >
             <mat-icon class="empty-icon">cloud_done</mat-icon>
             <p class="empty-title m-0">No active imports</p>
             <p class="empty-subtitle max-w-[340px] m-0">
@@ -66,14 +80,33 @@ import { ActiveImportCardComponent } from './active-import-card.component';
       }
     </app-brand-section>
   `,
-    styles: [`
-    .count-badge { background: var(--mat-sys-surface-variant, #e2e8f0); color: var(--mat-sys-primary, #0b4f8a); font-weight: 700; font-size: 0.85rem; }
-    .empty-state { color: var(--mat-sys-on-surface-variant, #475569); }
-    .empty-icon { font-size: 48px; width: 48px; height: 48px; color: #94a3b8; }
-    .empty-title { font-weight: 700; color: var(--mat-sys-on-surface, #0f172a); }
-    .empty-subtitle { color: var(--mat-sys-on-surface-variant, #475569); }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  styles: [
+    `
+      .count-badge {
+        background: var(--mat-sys-surface-variant, #e2e8f0);
+        color: var(--mat-sys-primary, #0b4f8a);
+        font-weight: 700;
+        font-size: 0.85rem;
+      }
+      .empty-state {
+        color: var(--mat-sys-on-surface-variant, #475569);
+      }
+      .empty-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+        color: #94a3b8;
+      }
+      .empty-title {
+        font-weight: 700;
+        color: var(--mat-sys-on-surface, #0f172a);
+      }
+      .empty-subtitle {
+        color: var(--mat-sys-on-surface-variant, #475569);
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ActiveImportsCardComponent {
   @Input() activeImports$: Observable<FeedImportSummary[]> | null = null;

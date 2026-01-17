@@ -4,8 +4,8 @@ import { FeedImportsPageComponent } from './pages/feed-imports.page';
 export const FEED_MANAGEMENT_ROUTES: Routes = [
   {
     path: '',
-    redirectTo: '/regions',
-    pathMatch: 'full'
+    redirectTo: '/regions/discover',
+    pathMatch: 'full',
   },
   {
     path: '',
@@ -13,18 +13,18 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
     children: [
       {
         path: 'discover/:regionId',
-        redirectTo: '/regions/:regionId',
-        pathMatch: 'full'
+        redirectTo: '/regions/discover/:regionId',
+        pathMatch: 'full',
       },
       {
         path: 'discover',
-        redirectTo: '/regions',
-        pathMatch: 'full'
+        redirectTo: '/regions/discover',
+        pathMatch: 'full',
       },
       {
         path: 'regions',
-        redirectTo: '/regions',
-        pathMatch: 'full'
+        redirectTo: 'discover',
+        pathMatch: 'full',
       },
       {
         path: 'imports',
@@ -32,13 +32,13 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
         data: {
           title: 'Imports',
           breadcrumb: 'Imports',
-          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-        }
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
+        },
       },
       {
         path: 'history',
         redirectTo: 'imports',
-        pathMatch: 'full'
+        pathMatch: 'full',
       },
       {
         path: 'import/:importId',
@@ -46,9 +46,9 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
         data: {
           title: 'Import Details',
           breadcrumb: 'Import Details',
-          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER']
-        }
-      }
-    ]
-  }
+          permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
+        },
+      },
+    ],
+  },
 ];
