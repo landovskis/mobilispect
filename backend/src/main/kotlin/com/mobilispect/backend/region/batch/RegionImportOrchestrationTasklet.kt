@@ -21,6 +21,22 @@ import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
 /**
+ * @deprecated This tasklet has been replaced by a partitioned step architecture that provides
+ *   parallel feed processing with work-stealing scheduling.
+ *
+ * The new architecture uses:
+ * - [RegionImportInitializationTasklet]: Sets up the region import
+ * - [FeedPartitioner]: Creates partitions for parallel processing
+ * - [FeedImportWorkerTasklet]: Processes individual feeds
+ * - [RegionImportFinalizationTasklet]: Determines final status
+ *
+ * This class is kept for reference and potential rollback. It will be removed in a future version
+ * once the new architecture is validated.
+ *
+ * ---
+ *
+ * Original documentation:
+ *
  * Tasklet that orchestrates child feed import jobs for a region import.
  *
  * This tasklet:
@@ -35,6 +51,10 @@ import org.springframework.transaction.annotation.Transactional
  *   PARTIAL_SUCCESS
  * - Observability: Logs detailed progress and updates database state for monitoring
  */
+@Deprecated(
+  message = "Replaced by partitioned step architecture for parallel processing",
+  replaceWith = ReplaceWith("FeedImportWorkerTasklet"),
+)
 @Component
 @StepScope
 class RegionImportOrchestrationTasklet(
