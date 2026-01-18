@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SimpleChange } from '@angular/core';
-import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
@@ -21,7 +20,6 @@ describe('RegionDetailPanelComponent', () => {
   let mockMetricsService: jasmine.SpyObj<FeedsMetricsService>;
   let mockEventsService: jasmine.SpyObj<FeedsEventsService>;
   let mockSnackBar: jasmine.SpyObj<MatSnackBar>;
-  let mockRouter: jasmine.SpyObj<Router>;
 
   const mockRegion: MetropolitanRegion = {
     regionOnestopId: 'r-test-toronto',
@@ -102,10 +100,13 @@ describe('RegionDetailPanelComponent', () => {
     mockRegionService = jasmine.createSpyObj('RegionService', ['getRegion', 'listFeedsForRegion']);
     mockImportService = jasmine.createSpyObj('ImportService', [
       'startImport',
+      'startPollingActiveImports',
       'refreshActiveImports',
       'importAllFeedsForRegion',
       'getActiveRegionImport',
-      'monitorRegionImportProgress'
+      'monitorRegionImportProgress',
+      'getActiveImportsObservable',
+      'cancelImport'
     ]);
     mockAgencyService = jasmine.createSpyObj('AgencyService', ['listAgencies']);
     mockMetricsService = jasmine.createSpyObj('FeedsMetricsService', [
@@ -114,7 +115,7 @@ describe('RegionDetailPanelComponent', () => {
     ]);
     mockEventsService = jasmine.createSpyObj('FeedsEventsService', ['']);
     mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
-    mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+    mockImportService.getActiveImportsObservable.and.returnValue(of([]));
 
     // Setup default return values
     mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
@@ -135,8 +136,7 @@ describe('RegionDetailPanelComponent', () => {
         { provide: AgencyService, useValue: mockAgencyService },
         { provide: FeedsMetricsService, useValue: mockMetricsService },
         { provide: FeedsEventsService, useValue: mockEventsService },
-        { provide: MatSnackBar, useValue: mockSnackBar },
-        { provide: Router, useValue: mockRouter }
+        { provide: MatSnackBar, useValue: mockSnackBar }
       ]
     }).compileComponents();
 
@@ -191,6 +191,15 @@ describe('RegionDetailPanelComponent', () => {
       });
 
       expect(mockImportService.getActiveRegionImport).toHaveBeenCalledWith('r-test-toronto');
+    });
+
+    it('should start polling active imports when region is set', () => {
+      component.ngOnChanges({
+        region: new SimpleChange(null, mockRegion, true)
+      });
+
+      expect(mockImportService.startPollingActiveImports).toHaveBeenCalled();
+      expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
     });
 
     it('should update metrics when region is set', () => {
@@ -356,14 +365,6 @@ describe('RegionDetailPanelComponent', () => {
         'Close',
         { duration: 3000 }
       );
-    });
-
-    it('should navigate to imports page after starting import', () => {
-      mockImportService.startImport.and.returnValue(of({ importId: 'import-123' } as any));
-
-      component.importFeed(mockFeeds[0]);
-
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/feeds/imports']);
     });
 
     it('should refresh active imports after starting import', () => {

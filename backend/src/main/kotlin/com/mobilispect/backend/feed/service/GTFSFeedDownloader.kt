@@ -76,7 +76,7 @@ class GTFSFeedDownloader(
     validateGtfsFiles(extractedDir).getOrNull()
       ?: return Result.failure(IllegalStateException("Validation failed for feed $feedId"))
 
-    return parse(archive)
+    return parse(archive, feedId)
   }
 
   private fun downloadFeed(feed: FeedEntity): Result<Path> {
@@ -118,9 +118,9 @@ class GTFSFeedDownloader(
    *
    * Uses the Conveyal gtfs-lib (6.2.0), which is the successor to OneBusAway.
    */
-  fun parse(feedPath: Path): Result<GTFSData> = runCatching {
-    logger.info("Parsing GTFS feed at: {}", feedPath)
-    val feed = GTFSFeed.fromFile(feedPath.toString())
+  fun parse(feedPath: Path, feedId: FeedId): Result<GTFSData> = runCatching {
+    logger.info("Started parsing GTFS feed {}", feedId)
+    val feed = GTFSFeed.fromFile(feedPath.toString(), feedId.value)
     feed.use { gtfsFeed ->
       val agencies =
         gtfsFeed.agency.values.map { agency ->
@@ -212,6 +212,7 @@ class GTFSFeedDownloader(
         routes.size,
         trips.size,
       )
+      logger.info("Finished parsing GTFS feed {}", feedId)
       GTFSData(agencies = agencies, routes = routes, trips = trips, stops = stops, shapes = shapes)
     }
   }

@@ -1,6 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -16,12 +15,18 @@ import { AgencyListResponse } from '../../transit-frequency/services/agency.serv
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { AgencyCardComponent } from '../../transit-frequency/components/agency-card/agency-card.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import {
   BulkImportResponse,
   RegionImportStatus,
   RegionImportStatusResponse,
 } from '../../feeds/models/import.models';
 import { RegionImportStatusComponent } from '../../feeds/components/region-import-status.component';
+import { RegionImportCardComponent } from '../../feeds/components/region-import-card.component';
+import {
+  RegionImportGroup,
+  RegionImportGroupingUtils,
+} from '../../feeds/models/region-import-group.model';
 
 interface RegionSummary {
   name: string;
@@ -52,7 +57,9 @@ interface RegionSummary {
     MatProgressSpinnerModule,
     MatSnackBarModule,
     AgencyCardComponent,
-    RegionImportStatusComponent
+    BrandCardComponent,
+    RegionImportStatusComponent,
+    RegionImportCardComponent
   ],
   template: `
     <div class="region-detail-container">
@@ -118,6 +125,20 @@ interface RegionSummary {
             [status]="regionImportStatus"
             [loading]="regionImportLoading"
           ></app-region-import-status>
+        }
+
+        @if (activeRegionImportGroup$ | async; as activeRegionImportGroup) {
+          <app-region-import-card
+            class="mb-6 block"
+            [regionGroup]="activeRegionImportGroup"
+            (cancelImport)="cancelImport($event)"
+          ></app-region-import-card>
+        } @else if (regionImportStatus) {
+          <app-brand-card class="mb-6 block" title="Feed Import Status">
+            <p class="text-sm text-[var(--mat-sys-on-surface-variant)]">
+              {{ getRegionImportPlaceholder(regionImportStatus.status) }}
+            </p>
+          </app-brand-card>
         }
 
         <div class="overview-header flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--mdc-theme-on-surface-variant)]">
@@ -242,6 +263,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
   isImportingAll = false;
   regionImportStatus: RegionImportStatusResponse | null = null;
   regionImportLoading = false;
+  activeRegionImportGroup$: Observable<RegionImportGroup | null> = of(null);
   private readonly regionImportStop$ = new Subject<void>();
 
   constructor(
@@ -249,7 +271,6 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     private readonly importService: ImportService,
     private readonly agencyService: AgencyService,
     private readonly snackBar: MatSnackBar,
-    private readonly router: Router,
     private readonly metrics: FeedsMetricsService,
     private readonly events: FeedsEventsService,
     private readonly cdr: ChangeDetectorRef
@@ -261,6 +282,8 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         this.loadFeedsForRegion(this.region.regionOnestopId);
         this.loadOverviewForRegion(this.region.regionOnestopId);
         this.loadRegionImportStatus(this.region.regionOnestopId);
+        this.watchActiveRegionImports(this.region.regionOnestopId);
+        this.importService.startPollingActiveImports();
         this.metrics.setSelectedRegion(
           this.region.regionOnestopId,
           this.getDisplayName(this.region)
@@ -269,6 +292,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         this.regionImportStatus = null;
         this.regionImportLoading = false;
         this.regionImportStop$.next();
+        this.activeRegionImportGroup$ = of(null);
       }
     }
   }
@@ -405,6 +429,26 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     });
   }
 
+  private watchActiveRegionImports(regionId: string): void {
+    this.activeRegionImportGroup$ = this.importService
+      .getActiveImportsObservable()
+      .pipe(
+        map((imports) => {
+          const groups = RegionImportGroupingUtils.groupImportsByRegion(imports);
+          const group = groups.find((candidate) => candidate.regionOnestopId === regionId);
+          if (!group) {
+            return null;
+          }
+          const regionName = this.getDisplayName(this.region) || group.regionName;
+          return {
+            ...group,
+            regionName,
+          };
+        })
+      );
+    this.importService.refreshActiveImports();
+  }
+
   /**
    * Import a single feed
    */
@@ -417,7 +461,6 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
       next: (result) => {
         this.snackBar.open(`Import started for ${feed.name}`, 'Close', { duration: 3000 });
         this.importService.refreshActiveImports();
-        this.router.navigate(['/feeds/imports']);
       },
       error: (error) => {
         console.error('Failed to start import:', error);
@@ -473,8 +516,6 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         if (result.regionImportId) {
           this.startRegionImportMonitoring(result.regionImportId);
         }
-        // Navigate to imports page to monitor progress
-        this.router.navigate(['/feeds/imports']);
       },
       error: (error) => {
         console.error('Failed to start bulk import:', error);
@@ -511,11 +552,9 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     // Show longer duration for results with failures
     const duration = failedCount > 0 ? 10000 : 5000;
 
-    this.snackBar.open(message, 'View Imports', {
+    this.snackBar.open(message, 'Close', {
       duration,
       panelClass: failedCount > 0 ? ['warning-snackbar'] : []
-    }).onAction().subscribe(() => {
-      this.router.navigate(['/feeds/imports']);
     });
   }
 
@@ -551,11 +590,36 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     ].includes(status);
   }
 
+  getRegionImportPlaceholder(status: RegionImportStatus): string {
+    if (this.isRegionImportTerminal(status)) {
+      return 'All feed imports have completed for this region.';
+    }
+    return 'Waiting for feed-level imports to appear for this region.';
+  }
+
   /**
    * View feed details
    */
   viewFeedDetails(feed: Feed): void {
     this.snackBar.open(`Viewing details for ${feed.name}`, 'Close', { duration: 2000 });
+  }
+
+  cancelImport(importId: string): void {
+    this.snackBar.open('Cancelling import...', 'Close', { duration: 2000 });
+    this.importService.cancelImport(importId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.snackBar.open('✅ Import cancelled successfully', 'Close', {
+          duration: 3000
+        });
+      },
+      error: (error) => {
+        const errorMessage = error?.message || error?.error?.message || 'Unknown error';
+        this.snackBar.open(`❌ Failed to cancel import: ${errorMessage}`, 'Close', {
+          duration: 8000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
   }
 
   /**

@@ -128,8 +128,6 @@ class RegionController(
   @PostMapping("/{regionId}/import-all")
   @Transactional
   fun importAllFeedsForRegion(@PathVariable regionId: String): BulkImportResponse {
-    logger.info("Starting bulk import for all feeds in region: {}", regionId)
-
     // Verify region exists
     regionRepository.findByRegionOnestopId(RegionId(regionId)).orElseThrow {
       ResponseStatusException(HttpStatus.NOT_FOUND, "${"Region"} not found: $regionId")
