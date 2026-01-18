@@ -39,7 +39,7 @@ class AgencyImportService(
         agencyRepository.save(entity)
         created++
       } else {
-        agencyRepository.save(existing.copy(name = agency.name, active = agency.active))
+        agencyRepository.save(existing.copy(name = agency.name, active = true))
         updated++
       }
     }
