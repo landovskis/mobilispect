@@ -114,7 +114,7 @@ import { FeedImportSummary } from '../../feeds/models';
           <div
             class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-6 max-md:p-4"
           >
-            <div class="mx-auto max-w-[1200px]">
+            <div class="mx-auto w-full max-w-[1600px]">
               <section
                 class="view-content min-h-[calc(100vh-160px)] rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)] max-md:p-4"
               >
