@@ -100,7 +100,13 @@ describe('RegionDetailPanelComponent', () => {
 
   beforeEach(async () => {
     mockRegionService = jasmine.createSpyObj('RegionService', ['getRegion', 'listFeedsForRegion']);
-    mockImportService = jasmine.createSpyObj('ImportService', ['startImport', 'refreshActiveImports']);
+    mockImportService = jasmine.createSpyObj('ImportService', [
+      'startImport',
+      'refreshActiveImports',
+      'importAllFeedsForRegion',
+      'getActiveRegionImport',
+      'monitorRegionImportProgress'
+    ]);
     mockAgencyService = jasmine.createSpyObj('AgencyService', ['listAgencies']);
     mockMetricsService = jasmine.createSpyObj('FeedsMetricsService', [
       'setSelectedRegion',
@@ -114,6 +120,8 @@ describe('RegionDetailPanelComponent', () => {
     mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
     mockRegionService.listFeedsForRegion.and.returnValue(of(mockFeeds));
     mockAgencyService.listAgencies.and.returnValue(of(mockAgencies));
+    mockImportService.getActiveRegionImport.and.returnValue(of(null));
+    mockImportService.monitorRegionImportProgress.and.returnValue(of(null as any));
     mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
 
     await TestBed.configureTestingModule({
@@ -175,6 +183,14 @@ describe('RegionDetailPanelComponent', () => {
 
       expect(mockRegionService.getRegion).toHaveBeenCalledWith('r-test-toronto');
       expect(mockAgencyService.listAgencies).toHaveBeenCalledWith(0, 100, 'r-test-toronto');
+    });
+
+    it('should load active region import status when region is set', () => {
+      component.ngOnChanges({
+        region: new SimpleChange(null, mockRegion, true)
+      });
+
+      expect(mockImportService.getActiveRegionImport).toHaveBeenCalledWith('r-test-toronto');
     });
 
     it('should update metrics when region is set', () => {
@@ -290,8 +306,8 @@ describe('RegionDetailPanelComponent', () => {
     it('should calculate summary statistics', (done) => {
       setTimeout(() => {
         component.summary$.subscribe(summary => {
-          expect(summary.totalAgencies).toBe(2);
-          expect(summary.totalActiveRoutes).toBe(200); // 150 + 50
+          expect(summary!.totalAgencies).toBe(2);
+          expect(summary!.totalActiveRoutes).toBe(200); // 150 + 50
           done();
         });
       }, 100);

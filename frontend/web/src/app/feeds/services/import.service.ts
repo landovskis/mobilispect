@@ -30,6 +30,8 @@ import {
   ActiveImportsResponse,
   FeedImportSummary,
   BulkImportResponse,
+  RegionImportStatus,
+  RegionImportStatusResponse,
 } from '../models/import.models';
 import { environment } from '../../../environments/environment';
 
@@ -126,6 +128,61 @@ export class ImportService implements OnDestroy {
           };
         }),
       );
+  }
+
+  /**
+   * Gets the active region import for a region (if any)
+   */
+  getActiveRegionImport(
+    regionOnestopId: string,
+  ): Observable<RegionImportStatusResponse | null> {
+    return this.http
+      .get<RegionImportStatusResponse | null>(
+        `${this.apiUrl}/regions/${regionOnestopId}/imports/active`,
+      )
+      .pipe(catchError(() => of(null)));
+  }
+
+  /**
+   * Gets a region import status by its ID
+   */
+  getRegionImportStatus(
+    regionImportId: string,
+  ): Observable<RegionImportStatusResponse> {
+    return this.http.get<RegionImportStatusResponse>(
+      `${this.apiUrl}/regions/imports/${regionImportId}`,
+    );
+  }
+
+  /**
+   * Monitors region import status until completion or a stop signal is received
+   */
+  monitorRegionImportProgress(
+    regionImportId: string,
+    stopSignal?: Observable<void>,
+  ): Observable<RegionImportStatusResponse> {
+    const polling$ = timer(0, this.pollingInterval).pipe(
+      switchMap(() => this.getRegionImportStatus(regionImportId)),
+      distinctUntilChanged((prev, curr) => prev.status === curr.status),
+    );
+
+    const stop$ =
+      stopSignal ??
+      polling$.pipe(
+        filter((status) => this.isRegionImportTerminal(status.status)),
+        map(() => undefined as void),
+      );
+
+    return polling$.pipe(takeUntil(stop$));
+  }
+
+  private isRegionImportTerminal(status: RegionImportStatus): boolean {
+    return (
+      status === RegionImportStatus.COMPLETED ||
+      status === RegionImportStatus.PARTIAL_SUCCESS ||
+      status === RegionImportStatus.FAILED ||
+      status === RegionImportStatus.CANCELLED
+    );
   }
 
   private getErrorMessage(error: unknown): string {

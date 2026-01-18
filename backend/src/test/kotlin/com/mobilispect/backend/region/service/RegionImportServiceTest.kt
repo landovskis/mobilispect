@@ -4,176 +4,124 @@ import com.mobilispect.backend.feed.FeedApi
 import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.events.FeedImportCompletedEvent
-import com.mobilispect.backend.feed.events.FeedImportFailedEvent
-import com.mobilispect.backend.feed.events.FeedImportStartedEvent
-import com.mobilispect.backend.feed.events.FeedImportStepCompletedEvent
-import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.model.ids.ImportId
+import com.mobilispect.backend.feed.service.RateLimitedJobLauncher
 import com.mobilispect.backend.region.RegionId
+import com.mobilispect.backend.region.data.repository.RegionImportRepository
+import com.mobilispect.backend.region.domain.RegionImport
+import com.mobilispect.backend.region.domain.RegionImportId
+import com.mobilispect.backend.region.domain.RegionImportStatus
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import java.util.Optional
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.context.ApplicationEventPublisher
+import org.springframework.batch.core.job.Job
+import org.springframework.batch.core.job.parameters.JobParameters
+import org.springframework.core.task.TaskExecutor
 
 class RegionImportServiceTest {
   private lateinit var feedApi: FeedApi
-  private lateinit var eventPublisher: ApplicationEventPublisher
+  private lateinit var regionImportRepository: RegionImportRepository
+  private lateinit var jobLauncher: RateLimitedJobLauncher
+  private lateinit var regionImportJob: Job
+  private lateinit var taskExecutor: TaskExecutor
   private lateinit var service: RegionImportService
 
   @BeforeEach
   fun setUp() {
     feedApi = mockk()
-    eventPublisher = mockk(relaxed = true)
-    service = RegionImportService(feedApi = feedApi, eventPublisher = eventPublisher)
+    regionImportRepository = mockk()
+    jobLauncher = mockk()
+    regionImportJob = mockk()
+    taskExecutor = TaskExecutor { runnable -> runnable.run() }
+
+    service =
+      RegionImportService(
+        feedApi = feedApi,
+        regionImportRepository = regionImportRepository,
+        rateLimitedJobLauncher = jobLauncher,
+        regionImportJob = regionImportJob,
+        importLaunchExecutor = taskExecutor,
+      )
   }
 
   @Test
-  fun `onFeedImportStarted tracks started state`() {
-    val feedId = FeedId("f-started")
+  fun `returns completed response when no active feeds exist`() {
+    val regionId = RegionId("r-empty")
+    every { regionImportRepository.findActiveByRegionOnestopId(regionId.value) } returns
+      Optional.empty()
+    every { feedApi.findActiveFeedsByRegion(regionId) } returns emptyList()
 
-    service.onFeedImportStarted(FeedImportStartedEvent(feedId))
+    val response = service.import(regionId, ImportTriggerType.MANUAL)
 
-    val state = service.getFeedImportState(feedId)
-    assertThat(state).isNotNull
-    assertThat(state?.feedId).isEqualTo(feedId)
-    assertThat(state?.status).isEqualTo(RegionFeedImportStatus.STARTED)
-    assertThat(state?.currentStep).isNull()
-    assertThat(state?.errorMessage).isNull()
+    assertThat(response.status).isEqualTo(RegionImportStatus.COMPLETED)
+    assertThat(response.totalFeeds).isZero()
+    assertThat(response.regionImportId).isNull()
+    verify(exactly = 0) { regionImportRepository.save(any()) }
   }
 
   @Test
-  fun `onFeedImportStepStarted updates step state`() {
-    val feedId = FeedId("f-step-start")
+  fun `returns existing import when one is active`() {
+    val regionId = RegionId("r-active")
+    val existingImport =
+      RegionImport(
+        id = RegionImportId.random(),
+        regionOnestopId = regionId.value,
+        triggerType = ImportTriggerType.MANUAL,
+        status = RegionImportStatus.RUNNING,
+        totalFeeds = 3,
+      )
 
-    service.onFeedImportStarted(FeedImportStartedEvent(feedId))
-    service.onFeedImportStepStarted(FeedImportStepStartedEvent(feedId, "routes"))
+    every { regionImportRepository.findActiveByRegionOnestopId(regionId.value) } returns
+      Optional.of(existingImport)
 
-    val state = service.getFeedImportState(feedId)
-    assertThat(state?.status).isEqualTo(RegionFeedImportStatus.IN_PROGRESS)
-    assertThat(state?.currentStep).isEqualTo("routes")
-    assertThat(state?.errorMessage).isNull()
+    val response = service.import(regionId, ImportTriggerType.MANUAL)
+
+    assertThat(response.regionImportId).isEqualTo(existingImport.id.value.toString())
+    assertThat(response.status).isEqualTo(existingImport.status)
+    verify(exactly = 0) { regionImportRepository.save(any()) }
+    verify(exactly = 0) { feedApi.findActiveFeedsByRegion(regionId) }
   }
 
   @Test
-  fun `onFeedImportStepCompleted keeps in progress state`() {
-    val feedId = FeedId("f-step-completed")
-
-    service.onFeedImportStarted(FeedImportStartedEvent(feedId))
-    service.onFeedImportStepCompleted(FeedImportStepCompletedEvent(feedId, "stops"))
-
-    val state = service.getFeedImportState(feedId)
-    assertThat(state?.status).isEqualTo(RegionFeedImportStatus.IN_PROGRESS)
-    assertThat(state?.currentStep).isEqualTo("stops")
-  }
-
-  @Test
-  fun `onFeedImportCompleted marks completed and preserves last step`() {
-    val feedId = FeedId("f-completed")
-    primeRegionImport(RegionId("r-completed"), listOf(feed("f-completed")))
-
-    service.onFeedImportStepStarted(FeedImportStepStartedEvent(feedId, "trips"))
-    service.onFeedImportCompleted(FeedImportCompletedEvent(feedId))
-
-    val state = service.getFeedImportState(feedId)
-    assertThat(state?.status).isEqualTo(RegionFeedImportStatus.COMPLETED)
-    assertThat(state?.currentStep).isEqualTo("trips")
-    assertThat(state?.errorMessage).isNull()
-  }
-
-  @Test
-  fun `onFeedImportFailed marks failed with error details`() {
-    val feedId = FeedId("f-failed")
-    primeRegionImport(RegionId("r-failed"), listOf(feed("f-failed")))
-
-    service.onFeedImportFailed(FeedImportFailedEvent(feedId, "agency", "boom"))
-
-    val state = service.getFeedImportState(feedId)
-    assertThat(state?.status).isEqualTo(RegionFeedImportStatus.FAILED)
-    assertThat(state?.currentStep).isEqualTo("agency")
-    assertThat(state?.errorMessage).isEqualTo("boom")
-  }
-
-  @Test
-  fun `onFeedImportCompleted publishes region completed when all feeds complete`() {
-    val regionId = RegionId("r-all-complete")
+  fun `creates region import and launches job for active feeds`() {
+    val regionId = RegionId("r-start")
     val feeds = listOf(feed("f-1", regionId), feed("f-2", regionId))
-    primeRegionImport(regionId, feeds)
+    val regionImportId = RegionImportId.random()
+    val savedImport =
+      RegionImport(
+        id = regionImportId,
+        regionOnestopId = regionId.value,
+        triggerType = ImportTriggerType.MANUAL,
+        status = RegionImportStatus.PENDING,
+        totalFeeds = feeds.size,
+      )
 
-    service.onFeedImportCompleted(FeedImportCompletedEvent(feeds[0].feedId))
-    service.onFeedImportCompleted(FeedImportCompletedEvent(feeds[1].feedId))
-
-    verify(exactly = 1) { eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(regionId)) }
-    verify(exactly = 0) { eventPublisher.publishEvent(RegionFeedsImportFailedEvent(regionId)) }
-  }
-
-  @Test
-  fun `onFeedImportFailed publishes region failed when some feeds fail`() {
-    val regionId = RegionId("r-partial-fail")
-    val feeds = listOf(feed("f-1", regionId), feed("f-2", regionId))
-    primeRegionImport(regionId, feeds)
-
-    service.onFeedImportCompleted(FeedImportCompletedEvent(feeds[0].feedId))
-    service.onFeedImportFailed(FeedImportFailedEvent(feeds[1].feedId, "stops", "boom"))
-
-    verify(exactly = 1) { eventPublisher.publishEvent(RegionFeedsImportFailedEvent(regionId)) }
-    verify(exactly = 0) { eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(regionId)) }
-  }
-
-  @Test
-  fun `onFeedImportCompleted does not publish when other feeds still in progress`() {
-    val regionId = RegionId("r-in-progress")
-    val feeds = listOf(feed("f-1", regionId), feed("f-2", regionId))
-    primeRegionImport(regionId, feeds)
-
-    service.onFeedImportStarted(FeedImportStartedEvent(feeds[1].feedId))
-    service.onFeedImportCompleted(FeedImportCompletedEvent(feeds[0].feedId))
-
-    verify(exactly = 0) { eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(regionId)) }
-    verify(exactly = 0) { eventPublisher.publishEvent(RegionFeedsImportFailedEvent(regionId)) }
-  }
-
-  @Test
-  fun `import only imports ACTIVE feeds, not INACTIVE or ERROR feeds`() {
-    val regionId = RegionId("r-mixed-status")
-    val activeFeeds = listOf(feed("f-active-1", regionId), feed("f-active-2", regionId))
-
-    // Mock to return only active feeds (simulating the repository filter)
-    every { feedApi.findActiveFeedsByRegion(regionId) } returns activeFeeds
-    activeFeeds.forEach { feed ->
+    every { regionImportRepository.findActiveByRegionOnestopId(regionId.value) } returns
+      Optional.empty()
+    every { feedApi.findActiveFeedsByRegion(regionId) } returns feeds
+    every { regionImportRepository.save(any()) } returns savedImport
+    every { jobLauncher.run(regionImportJob, any<JobParameters>()) } returns mockk()
+    feeds.forEach { feed ->
       every { feedApi.import(feed.feedId, ImportTriggerType.MANUAL) } returns
         FeedImport(id = ImportId.random(), feedId = feed.feedId.value)
     }
 
     val response = service.import(regionId, ImportTriggerType.MANUAL)
 
-    // Verify only active feeds were imported
-    assertThat(response.totalFeeds).isEqualTo(2)
-    assertThat(response.startedCount).isEqualTo(2)
-    assertThat(response.results).hasSize(2)
-    assertThat(response.results.map { it.feedOnestopId })
-      .containsExactlyInAnyOrder("f-active-1", "f-active-2")
-
-    // Verify findActiveFeedsByRegion was called, not findFeedsByRegion
-    verify(exactly = 1) { feedApi.findActiveFeedsByRegion(regionId) }
+    assertThat(response.regionImportId).isEqualTo(regionImportId.value.toString())
+    assertThat(response.totalFeeds).isEqualTo(feeds.size)
+    assertThat(response.status).isEqualTo(RegionImportStatus.PENDING)
+    verify(exactly = 1) { jobLauncher.run(regionImportJob, any<JobParameters>()) }
   }
 
-  private fun primeRegionImport(regionId: RegionId, feeds: List<Feed>) {
-    every { feedApi.findActiveFeedsByRegion(regionId) } returns feeds
-    feeds.forEach { feed ->
-      every { feedApi.import(feed.feedId, ImportTriggerType.MANUAL) } returns
-        FeedImport(id = ImportId.random(), feedId = feed.feedId.value)
-    }
-    service.import(regionId, ImportTriggerType.MANUAL)
-  }
-
-  private fun feed(feedId: String, regionId: RegionId = RegionId("r-default")): Feed {
+  private fun feed(feedId: String, regionId: RegionId): Feed {
     return Feed(
       feedId = FeedId(feedId),
       name = "Feed $feedId",

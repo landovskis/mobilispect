@@ -14,6 +14,8 @@ import {
   ImportProgress,
   ImportStatus,
   TriggerType,
+  RegionImportStatus,
+  RegionImportStatusResponse,
 } from '../models/import.models';
 
 describe('ImportService', () => {
@@ -59,6 +61,22 @@ describe('ImportService', () => {
     feedName: 'Feed 1',
     regionName: 'Region 1',
     progress: null,
+  };
+
+  const baseRegionImport: RegionImportStatusResponse = {
+    regionImportId: 'reg-1',
+    regionOnestopId: 'r-1',
+    status: RegionImportStatus.RUNNING,
+    totalFeeds: 10,
+    startedCount: 5,
+    completedCount: 2,
+    failedCount: 1,
+    skippedCount: 0,
+    startedAt: '2024-01-01T00:00:00Z',
+    completedAt: null,
+    errorMessage: null,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
   };
 
   beforeEach(() => {
@@ -220,6 +238,41 @@ describe('ImportService', () => {
       expect(imports.length).toBe(1);
     });
   });
+
+  it('fetches active region import status', () => {
+    service.getActiveRegionImport('r-1').subscribe((status) => {
+      expect(status?.regionImportId).toBe('reg-1');
+    });
+
+    const req = httpMock.expectOne(
+      `${environment.apiUrl}/feeds/regions/r-1/imports/active`,
+    );
+    expect(req.request.method).toBe('GET');
+    req.flush({ ...baseRegionImport });
+  });
+
+  it('polls region import status until terminal', fakeAsync(() => {
+    const running = { ...baseRegionImport, status: RegionImportStatus.RUNNING };
+    const completed = { ...baseRegionImport, status: RegionImportStatus.COMPLETED };
+    spyOn(service, 'getRegionImportStatus').and.returnValues(
+      of(running),
+      of(completed),
+    );
+    internals.pollingInterval = 10;
+
+    const results: RegionImportStatusResponse[] = [];
+    service
+      .monitorRegionImportProgress('reg-1')
+      .subscribe((status) => results.push(status));
+
+    tick(0);
+    tick(internals.pollingInterval);
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[results.length - 1].status).toBe(
+      RegionImportStatus.COMPLETED,
+    );
+  }));
 
   it('finds active import for a feed', () => {
     spyOn(service, 'getActiveImports').and.returnValue(

@@ -58,6 +58,7 @@ describe('RegionMasterPanelComponent', () => {
       id: 'import-1',
       feedOnestopId: 'f-test-feed1',
       feedName: 'Test Feed 1',
+      regionOnestopId: 'r-toronto',
       regionName: 'Toronto',
       status: 'IN_PROGRESS' as any,
       triggerType: 'MANUAL' as any,

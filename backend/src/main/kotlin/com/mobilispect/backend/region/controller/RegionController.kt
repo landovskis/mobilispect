@@ -14,7 +14,11 @@ import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.domain.MetropolitanRegion
+import com.mobilispect.backend.region.domain.RegionImport
+import com.mobilispect.backend.region.domain.RegionImportId
+import com.mobilispect.backend.region.domain.RegionImportStatus
 import com.mobilispect.backend.region.service.RegionImportService
+import java.time.Instant
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
@@ -137,6 +141,55 @@ class RegionController(
     )
   }
 
+  /**
+   * Get the active region import for a specific region (if any).
+   *
+   * @param regionId The region identifier
+   * @return The active region import status if one exists, null otherwise
+   */
+  @GetMapping("/{regionId}/imports/active")
+  @Transactional(readOnly = true)
+  fun getActiveRegionImport(@PathVariable regionId: String): RegionImportStatusResponse? {
+    val regionImport = regionImportService.getActiveImportForRegion(RegionId(regionId))
+    return regionImport?.toStatusResponse()
+  }
+
+  /**
+   * Get a specific region import by its ID.
+   *
+   * @param regionImportId The region import identifier
+   * @return The region import status
+   */
+  @GetMapping("/imports/{regionImportId}")
+  @Transactional(readOnly = true)
+  fun getRegionImport(@PathVariable regionImportId: String): RegionImportStatusResponse {
+    val regionImport =
+      regionImportService.getRegionImport(RegionImportId.fromString(regionImportId))
+        ?: throw ResponseStatusException(
+          HttpStatus.NOT_FOUND,
+          "Region import not found: $regionImportId",
+        )
+    return regionImport.toStatusResponse()
+  }
+
+  private fun RegionImport.toStatusResponse(): RegionImportStatusResponse {
+    return RegionImportStatusResponse(
+      regionImportId = id.value.toString(),
+      regionOnestopId = regionOnestopId,
+      status = status,
+      totalFeeds = totalFeeds,
+      startedCount = startedCount,
+      completedCount = completedCount,
+      failedCount = failedCount,
+      skippedCount = skippedCount,
+      startedAt = startedAt,
+      completedAt = completedAt,
+      errorMessage = errorMessage,
+      createdAt = createdAt,
+      updatedAt = updatedAt,
+    )
+  }
+
   private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {
     val hasAuthentication = feedAuthenticationRepository.findById(feed.feedId).isPresent
     return FeedDTO(
@@ -197,3 +250,24 @@ class RegionController(
       FeedStatus.ERROR -> com.mobilispect.backend.feed.model.FeedStatus.ERROR
     }
 }
+
+/**
+ * Response DTO for region import status.
+ *
+ * Contains detailed information about a region import including progress counts and timestamps.
+ */
+data class RegionImportStatusResponse(
+  val regionImportId: String,
+  val regionOnestopId: String,
+  val status: RegionImportStatus,
+  val totalFeeds: Int,
+  val startedCount: Int,
+  val completedCount: Int,
+  val failedCount: Int,
+  val skippedCount: Int,
+  val startedAt: Instant?,
+  val completedAt: Instant?,
+  val errorMessage: String?,
+  val createdAt: Instant,
+  val updatedAt: Instant,
+)

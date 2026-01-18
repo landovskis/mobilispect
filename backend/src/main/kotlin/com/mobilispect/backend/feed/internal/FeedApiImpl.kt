@@ -6,9 +6,13 @@ import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.domain.repository.FeedRepository
+import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
+import com.mobilispect.backend.feed.model.ids.ImportId
+import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.service.FeedImportService
 import com.mobilispect.backend.region.RegionId
+import java.util.UUID
 import org.springframework.stereotype.Service
 
 /**
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Service
 internal class FeedApiImpl(
   private val feedRepository: FeedRepository,
   private val feedImportService: FeedImportService,
+  private val feedImportRepository: FeedImportRepository,
 ) : FeedApi {
 
   override fun findFeedById(feedId: FeedId): FeedDTO? {
@@ -44,6 +49,10 @@ internal class FeedApiImpl(
 
   override fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport =
     feedImportService.import(feedId, triggerType)
+
+  override fun getImportStatus(importId: UUID): ImportStatus? {
+    return feedImportRepository.findByImportId(ImportId(importId)).map { it.status }.orElse(null)
+  }
 
   /** Converts the domain model to public DTO. */
   private fun Feed.toDTO(): FeedDTO {

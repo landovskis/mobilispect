@@ -13,6 +13,7 @@ import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.controller.RegionController
 import com.mobilispect.backend.region.domain.MetropolitanRegion
+import com.mobilispect.backend.region.domain.RegionImportStatus
 import com.mobilispect.backend.region.service.RegionImportService
 import io.mockk.every
 import io.mockk.mockk
@@ -320,9 +321,12 @@ class RegionControllerTest {
     val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
     val bulkImportResponse =
       BulkImportResponse(
+        regionImportId = "region-import-123",
         regionOnestopId = testRegionId,
+        status = RegionImportStatus.PENDING,
         totalFeeds = 3,
         startedCount = 3,
+        completedCount = 0,
         failedCount = 0,
         skippedCount = 0,
         results =
@@ -349,6 +353,7 @@ class RegionControllerTest {
               importId = "import-3",
             ),
           ),
+        startedAt = null,
       )
 
     every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
@@ -374,9 +379,12 @@ class RegionControllerTest {
     val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
     val bulkImportResponse =
       BulkImportResponse(
+        regionImportId = "region-import-456",
         regionOnestopId = testRegionId,
+        status = RegionImportStatus.PENDING,
         totalFeeds = 4,
         startedCount = 2,
+        completedCount = 0,
         failedCount = 1,
         skippedCount = 1,
         results =
@@ -408,6 +416,7 @@ class RegionControllerTest {
               importId = "import-2",
             ),
           ),
+        startedAt = null,
       )
 
     every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns

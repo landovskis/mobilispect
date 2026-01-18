@@ -4,8 +4,10 @@ import com.mobilispect.backend.feed.api.FeedDTO
 import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.region.RegionId
+import java.util.UUID
 
 /**
  * Public API for querying feeds.
@@ -51,4 +53,12 @@ interface FeedApi {
   fun getFeedVersion(feedId: FeedId): String?
 
   fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport
+
+  /**
+   * Get the current status of a feed import.
+   *
+   * @param importId The UUID of the feed import
+   * @return The import status if found, null otherwise
+   */
+  fun getImportStatus(importId: UUID): ImportStatus?
 }

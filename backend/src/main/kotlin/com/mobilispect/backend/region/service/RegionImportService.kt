@@ -4,202 +4,262 @@ import com.mobilispect.backend.api.BulkImportResponse
 import com.mobilispect.backend.api.FeedImportResult
 import com.mobilispect.backend.api.FeedImportResultStatus
 import com.mobilispect.backend.feed.FeedApi
-import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.events.FeedImportCompletedEvent
-import com.mobilispect.backend.feed.events.FeedImportFailedEvent
-import com.mobilispect.backend.feed.events.FeedImportStartedEvent
-import com.mobilispect.backend.feed.events.FeedImportStepCompletedEvent
-import com.mobilispect.backend.feed.events.FeedImportStepStartedEvent
 import com.mobilispect.backend.feed.model.ImportTriggerType
+import com.mobilispect.backend.feed.service.RateLimitedJobLauncher
 import com.mobilispect.backend.region.RegionId
-import java.util.concurrent.ConcurrentHashMap
+import com.mobilispect.backend.region.data.repository.RegionImportRepository
+import com.mobilispect.backend.region.domain.RegionImport
+import com.mobilispect.backend.region.domain.RegionImportId
+import com.mobilispect.backend.region.domain.RegionImportStatus
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
-import org.springframework.context.event.EventListener
+import org.springframework.batch.core.job.Job
+import org.springframework.batch.core.job.parameters.JobParametersBuilder
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.core.task.TaskExecutor
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /**
  * Service responsible for managing region-level feed import operations.
  *
- * Handles bulk import operations for all feeds within a region, coordinating with FeedImportService
- * for individual feed imports while managing region-level lifecycle events and aggregating results.
+ * Handles bulk import operations for all feeds within a region using Spring Batch parent-child job
+ * architecture with database persistence. The service:
+ * - Creates a RegionImport entity persisted to database
+ * - Launches regionImportJob asynchronously
+ * - Tracks progress via database updates (not in-memory state)
  *
  * Constitutional Requirements:
  * - Module Boundaries: Coordinates between region and feed modules via public APIs
  * - Event-Driven Architecture: Publishes region import lifecycle events
  * - Continue-on-Failure: Ensures partial failures don't block entire region imports
+ * - Database Persistence: All state tracked in database for reliability
  */
 @Service
 class RegionImportService(
   private val feedApi: FeedApi,
-  private val eventPublisher: ApplicationEventPublisher,
+  private val regionImportRepository: RegionImportRepository,
+  private val rateLimitedJobLauncher: RateLimitedJobLauncher,
+  @Qualifier("regionImportJob") private val regionImportJob: Job,
+  @Qualifier("taskExecutor") private val importLaunchExecutor: TaskExecutor,
 ) {
   private val logger = LoggerFactory.getLogger(RegionImportService::class.java)
-  private val feedImportStates = ConcurrentHashMap<FeedId, RegionFeedImportState>()
-
-  private lateinit var lastRegionId: RegionId
 
   /**
    * Start bulk import for all ACTIVE feeds in a region.
    *
-   * Continues on failure - if one feed fails to import, the operation continues with remaining
-   * feeds. Automatically skips feeds that already have an active import running.
+   * Creates a RegionImport entity, persists it to the database, and launches the parent
+   * regionImportJob asynchronously. The job orchestrates child feed imports.
    *
    * @param regionId The region identifier
    * @param triggerType How the import was triggered (MANUAL, SCHEDULED, etc.)
-   * @return Summary of the bulk import operation with per-feed results
+   * @return Summary of the bulk import operation with parent import ID
    */
   @Transactional
   fun import(regionId: RegionId, triggerType: ImportTriggerType): BulkImportResponse {
-    logger.info("Starting bulk import for region: $regionId")
+    logger.info("Starting bulk import for region: {}", regionId.value)
 
+    // Check for existing active import
+    val existingImport = regionImportRepository.findActiveByRegionOnestopId(regionId.value)
+    if (existingImport.isPresent) {
+      logger.info(
+        "Region import already active for region {}: {}",
+        regionId.value,
+        existingImport.get().id,
+      )
+      return buildResponseFromExistingImport(existingImport.get())
+    }
+
+    // Get active feeds to determine total count
     val feeds = feedApi.findActiveFeedsByRegion(regionId)
     if (feeds.isEmpty()) {
-      logger.warn("No active feeds found for region: $regionId")
+      logger.warn("No active feeds found for region: {}", regionId.value)
       return BulkImportResponse(
+        regionImportId = null,
         regionOnestopId = regionId.value,
+        status = RegionImportStatus.COMPLETED,
         totalFeeds = 0,
         startedCount = 0,
+        completedCount = 0,
         failedCount = 0,
         skippedCount = 0,
         results = emptyList(),
+        startedAt = null,
       )
     }
 
-    // Clear previous feed states for this region to ensure clean state
-    feedImportStates.clear()
-
-    // Initialize state for all feeds in this batch so we can track completion correctly
-    feeds.forEach { feed ->
-      feedImportStates[feed.feedId] =
-        RegionFeedImportState(feedId = feed.feedId, status = RegionFeedImportStatus.STARTED)
-    }
-
-    val results = mutableListOf<FeedImportResult>()
-    var startedCount = 0
-    var failedCount = 0
-    var skippedCount = 0
-
-    eventPublisher.publishEvent(RegionFeedsImportStartedEvent(regionId))
-    lastRegionId = regionId
-
-    // Process each feed with continue-on-failure semantics
-    feeds.forEach { feed ->
+    // Create and persist the region import entity
+    val regionImport =
       try {
-        // Start import for this feed
-        val feedImport = feedApi.import(feed.feedId, triggerType)
-        logger.debug("Started import for feed {}: {}", feed.feedId, feedImport.id)
-        results.add(
-          FeedImportResult(
-            feedOnestopId = feed.feedId.value,
-            feedName = feed.name,
-            status = FeedImportResultStatus.STARTED,
-            message = "Import started successfully",
-            importId = feedImport.id.value.toString(),
+        regionImportRepository.save(
+          RegionImport(
+            id = RegionImportId.random(),
+            regionOnestopId = regionId.value,
+            triggerType = triggerType,
+            status = RegionImportStatus.PENDING,
+            totalFeeds = feeds.size,
           )
         )
-        startedCount++
-      } catch (e: Exception) {
-        logger.error("Failed to start import for feed ${feed.feedId}", e)
-        results.add(
-          FeedImportResult(
-            feedOnestopId = feed.feedId.value,
-            feedName = feed.name,
-            status = FeedImportResultStatus.FAILED,
-            message = e.message ?: "Unknown error",
-          )
+      } catch (e: DataIntegrityViolationException) {
+        // Database constraint prevented duplicate - fetch and return the existing import
+        logger.info(
+          "Region import already started for region {} (caught by database constraint)",
+          regionId.value,
         )
-        failedCount++
+        val existing =
+          regionImportRepository.findActiveByRegionOnestopId(regionId.value).orElseThrow {
+            IllegalStateException(
+              "Failed to create or find active region import for region ${regionId.value}"
+            )
+          }
+        return buildResponseFromExistingImport(existing)
       }
-    }
 
     logger.info(
-      "Bulk import for region $regionId completed: $startedCount started, $failedCount failed"
+      "Created region import {} for region {} with {} feeds",
+      regionImport.id.value,
+      regionId.value,
+      feeds.size,
     )
+
+    // Capture values for async execution
+    val capturedRegionImportId = regionImport.id
+    val capturedRegionId = regionId
+
+    // Launch job after transaction commits
+    if (TransactionSynchronizationManager.isSynchronizationActive()) {
+      TransactionSynchronizationManager.registerSynchronization(
+        object : TransactionSynchronization {
+          override fun afterCommit() {
+            logger.info(
+              "afterCommit hook: launching region import job for {}",
+              capturedRegionImportId.value,
+            )
+            launchRegionImportJob(capturedRegionImportId, capturedRegionId, triggerType)
+          }
+        }
+      )
+    } else {
+      launchRegionImportJob(capturedRegionImportId, capturedRegionId, triggerType)
+    }
+
+    // Build initial results (all feeds marked as pending)
+    val results =
+      feeds.map { feed ->
+        FeedImportResult(
+          feedOnestopId = feed.feedId.value,
+          feedName = feed.name,
+          status = FeedImportResultStatus.STARTED,
+          message = "Import queued",
+          importId = null, // Will be set when child job starts
+        )
+      }
 
     return BulkImportResponse(
+      regionImportId = regionImport.id.value.toString(),
       regionOnestopId = regionId.value,
+      status = RegionImportStatus.PENDING,
       totalFeeds = feeds.size,
-      startedCount = startedCount,
-      failedCount = failedCount,
-      skippedCount = skippedCount,
+      startedCount = 0,
+      completedCount = 0,
+      failedCount = 0,
+      skippedCount = 0,
       results = results,
+      startedAt = null,
     )
   }
 
-  @EventListener
-  fun onFeedImportStarted(event: FeedImportStartedEvent) {
-    feedImportStates[event.feedId] =
-      RegionFeedImportState(feedId = event.feedId, status = RegionFeedImportStatus.STARTED)
-  }
+  private fun launchRegionImportJob(
+    regionImportId: RegionImportId,
+    regionId: RegionId,
+    triggerType: ImportTriggerType,
+  ) {
+    importLaunchExecutor.execute {
+      val params =
+        JobParametersBuilder()
+          .addString("regionImportId", regionImportId.value.toString(), true)
+          .addString("regionOnestopId", regionId.value, true)
+          .addString("triggerType", triggerType.name, true)
+          .addLong("timestamp", System.currentTimeMillis(), true)
+          .toJobParameters()
 
-  @EventListener
-  fun onFeedImportStepStarted(event: FeedImportStepStartedEvent) {
-    feedImportStates[event.feedId] =
-      RegionFeedImportState(
-        feedId = event.feedId,
-        status = RegionFeedImportStatus.IN_PROGRESS,
-        currentStep = event.step,
+      logger.info(
+        "Launching region import job for region {} with import {}",
+        regionId.value,
+        regionImportId.value,
       )
-  }
 
-  @EventListener
-  fun onFeedImportStepCompleted(event: FeedImportStepCompletedEvent) {
-    feedImportStates[event.feedId] =
-      RegionFeedImportState(
-        feedId = event.feedId,
-        status = RegionFeedImportStatus.IN_PROGRESS,
-        currentStep = event.step,
-      )
-  }
-
-  @EventListener
-  fun onFeedImportCompleted(event: FeedImportCompletedEvent) {
-    val currentStep = feedImportStates[event.feedId]?.currentStep
-    feedImportStates[event.feedId] =
-      RegionFeedImportState(
-        feedId = event.feedId,
-        status = RegionFeedImportStatus.COMPLETED,
-        currentStep = currentStep,
-      )
-    publishEventsIfNeeded()
-  }
-
-  @EventListener
-  fun onFeedImportFailed(event: FeedImportFailedEvent) {
-    feedImportStates[event.feedId] =
-      RegionFeedImportState(
-        feedId = event.feedId,
-        status = RegionFeedImportStatus.FAILED,
-        currentStep = event.step,
-        errorMessage = event.message,
-      )
-    publishEventsIfNeeded()
-  }
-
-  fun getFeedImportState(feedId: FeedId): RegionFeedImportState? {
-    return feedImportStates[feedId]
-  }
-
-  private fun publishEventsIfNeeded() {
-    // Don't publish events if no feeds are being tracked (empty map or all cleared)
-    if (feedImportStates.isEmpty()) {
-      return
+      runCatching { rateLimitedJobLauncher.run(regionImportJob, params) }
+        .onFailure { throwable ->
+          logger.error(
+            "Failed to launch region import job for region {}",
+            regionId.value,
+            throwable,
+          )
+          failRegionImport(regionImportId, throwable.message ?: "Failed to start import job")
+        }
     }
+  }
 
-    if (feedImportStates.all { it.value.status == RegionFeedImportStatus.COMPLETED }) {
-      eventPublisher.publishEvent(RegionFeedsImportCompletedEvent(lastRegionId))
-      return
-    }
-
-    if (
-      feedImportStates.all {
-        it.value.status == RegionFeedImportStatus.COMPLETED ||
-          it.value.status == RegionFeedImportStatus.FAILED
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  fun failRegionImport(regionImportId: RegionImportId, message: String) {
+    val regionImport =
+      regionImportRepository.findByImportId(regionImportId).orElseThrow {
+        IllegalArgumentException("Region import not found: $regionImportId")
       }
-    ) {
-      eventPublisher.publishEvent(RegionFeedsImportFailedEvent(regionId = lastRegionId))
-    }
+
+    regionImport.fail(message)
+    regionImportRepository.save(regionImport)
+  }
+
+  private fun buildResponseFromExistingImport(regionImport: RegionImport): BulkImportResponse {
+    return BulkImportResponse(
+      regionImportId = regionImport.id.value.toString(),
+      regionOnestopId = regionImport.regionOnestopId,
+      status = regionImport.status,
+      totalFeeds = regionImport.totalFeeds,
+      startedCount = regionImport.startedCount,
+      completedCount = regionImport.completedCount,
+      failedCount = regionImport.failedCount,
+      skippedCount = regionImport.skippedCount,
+      results = emptyList(), // TODO: Could load from junction table
+      startedAt = regionImport.startedAt,
+    )
+  }
+
+  // ========== Query Methods ==========
+
+  /**
+   * Get a region import by its ID.
+   *
+   * @param regionImportId The region import identifier
+   * @return The region import if found, null otherwise
+   */
+  fun getRegionImport(regionImportId: RegionImportId): RegionImport? {
+    return regionImportRepository.findByImportId(regionImportId).orElse(null)
+  }
+
+  /**
+   * Get the active region import for a specific region (if any).
+   *
+   * @param regionId The region identifier
+   * @return The active region import if one exists, null otherwise
+   */
+  fun getActiveImportForRegion(regionId: RegionId): RegionImport? {
+    return regionImportRepository.findActiveByRegionOnestopId(regionId.value).orElse(null)
+  }
+
+  /**
+   * Get all active region imports (pending or running).
+   *
+   * @return List of active region imports
+   */
+  fun getActiveRegionImports(): List<RegionImport> {
+    return regionImportRepository.findAllByStatusInOrderByCreatedAtAsc(
+      listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+    )
   }
 }

@@ -16,7 +16,12 @@ import { AgencyListResponse } from '../../transit-frequency/services/agency.serv
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { AgencyCardComponent } from '../../transit-frequency/components/agency-card/agency-card.component';
-import { BulkImportResponse } from '../../feeds/models/import.models';
+import {
+  BulkImportResponse,
+  RegionImportStatus,
+  RegionImportStatusResponse,
+} from '../../feeds/models/import.models';
+import { RegionImportStatusComponent } from '../../feeds/components/region-import-status.component';
 
 interface RegionSummary {
   name: string;
@@ -46,7 +51,8 @@ interface RegionSummary {
     MatButtonModule,
     MatProgressSpinnerModule,
     MatSnackBarModule,
-    AgencyCardComponent
+    AgencyCardComponent,
+    RegionImportStatusComponent
   ],
   template: `
     <div class="region-detail-container">
@@ -105,6 +111,14 @@ interface RegionSummary {
             }
           </div>
         </div>
+
+        @if (regionImportStatus || regionImportLoading) {
+          <app-region-import-status
+            class="mb-6 block"
+            [status]="regionImportStatus"
+            [loading]="regionImportLoading"
+          ></app-region-import-status>
+        }
 
         <div class="overview-header flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--mdc-theme-on-surface-variant)]">
           <mat-icon class="text-[18px]">analytics</mat-icon>
@@ -226,6 +240,9 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
 
   // Bulk import state
   isImportingAll = false;
+  regionImportStatus: RegionImportStatusResponse | null = null;
+  regionImportLoading = false;
+  private readonly regionImportStop$ = new Subject<void>();
 
   constructor(
     private readonly regionService: RegionService,
@@ -239,19 +256,28 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['region'] && this.region) {
-      this.loadFeedsForRegion(this.region.regionOnestopId);
-      this.loadOverviewForRegion(this.region.regionOnestopId);
-      this.metrics.setSelectedRegion(
-        this.region.regionOnestopId,
-        this.getDisplayName(this.region)
-      );
+    if (changes['region']) {
+      if (this.region) {
+        this.loadFeedsForRegion(this.region.regionOnestopId);
+        this.loadOverviewForRegion(this.region.regionOnestopId);
+        this.loadRegionImportStatus(this.region.regionOnestopId);
+        this.metrics.setSelectedRegion(
+          this.region.regionOnestopId,
+          this.getDisplayName(this.region)
+        );
+      } else {
+        this.regionImportStatus = null;
+        this.regionImportLoading = false;
+        this.regionImportStop$.next();
+      }
     }
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.regionImportStop$.next();
+    this.regionImportStop$.complete();
   }
 
   /**
@@ -357,6 +383,28 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     });
   }
 
+  private loadRegionImportStatus(regionId: string): void {
+    this.regionImportLoading = true;
+    this.regionImportStop$.next();
+
+    this.importService.getActiveRegionImport(regionId).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (status) => {
+        this.regionImportStatus = status;
+        this.regionImportLoading = false;
+        if (status && !this.isRegionImportTerminal(status.status)) {
+          this.startRegionImportMonitoring(status.regionImportId);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.regionImportLoading = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
   /**
    * Import a single feed
    */
@@ -422,6 +470,9 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         this.isImportingAll = false;
         this.showBulkImportResults(result, regionName);
         this.importService.refreshActiveImports();
+        if (result.regionImportId) {
+          this.startRegionImportMonitoring(result.regionImportId);
+        }
         // Navigate to imports page to monitor progress
         this.router.navigate(['/feeds/imports']);
       },
@@ -466,6 +517,38 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     }).onAction().subscribe(() => {
       this.router.navigate(['/feeds/imports']);
     });
+  }
+
+  private startRegionImportMonitoring(regionImportId: string): void {
+    this.regionImportLoading = true;
+    this.regionImportStop$.next();
+
+    this.importService
+      .monitorRegionImportProgress(regionImportId, this.regionImportStop$)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (status) => {
+          this.regionImportStatus = status;
+          this.regionImportLoading = false;
+          if (this.isRegionImportTerminal(status.status)) {
+            this.regionImportStop$.next();
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.regionImportLoading = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  private isRegionImportTerminal(status: RegionImportStatus): boolean {
+    return [
+      RegionImportStatus.COMPLETED,
+      RegionImportStatus.PARTIAL_SUCCESS,
+      RegionImportStatus.FAILED,
+      RegionImportStatus.CANCELLED,
+    ].includes(status);
   }
 
   /**
