@@ -71,21 +71,21 @@ describe('AppBreadcrumbService', () => {
   });
 
   it('should handle empty path intermediate routes correctly', () => {
-    // Mock structure: feeds -> empty -> discover
-    const discoverRoute = {
+    // Mock structure: regions -> empty -> overview
+    const overviewRoute = {
       outlet: 'primary',
-      url: [{ path: 'discover' }],
-      data: { breadcrumb: 'Discover' },
+      url: [{ path: 'overview' }],
+      data: { breadcrumb: 'Overview' },
       children: [],
       paramMap: { get: () => null },
-      routeConfig: { path: 'discover' },
+      routeConfig: { path: 'overview' },
     } as unknown as ActivatedRouteSnapshot;
 
     const emptyRoute = {
       outlet: 'primary',
       url: [], // empty path
       data: {}, // no breadcrumb
-      children: [discoverRoute],
+      children: [overviewRoute],
       paramMap: { get: () => null },
       routeConfig: { path: '' },
     } as unknown as ActivatedRouteSnapshot;
@@ -108,8 +108,8 @@ describe('AppBreadcrumbService', () => {
     expect(crumbs.length).toBe(2);
     expect(crumbs[0].label).toBe('Regions');
     expect(crumbs[0].link).toEqual(['/regions']);
-    expect(crumbs[1].label).toBe('Discover');
-    expect(crumbs[1].link).toEqual(['/regions/discover']);
+    expect(crumbs[1].label).toBe('Overview');
+    expect(crumbs[1].link).toEqual(['/regions/overview']);
   });
 
   it('skips routes without breadcrumb labels', () => {

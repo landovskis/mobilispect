@@ -12,7 +12,7 @@ import { RegionDetailPanelComponent } from '../components/region-detail-panel.co
  * Regions Page Component
  *
  * Master-detail layout for browsing regions and viewing their feeds.
- * Consolidates the previous "Discover Regions" and "Region List" functionality
+ * Consolidates the previous discover and list functionality
  * into a unified interface following Material Design patterns.
  *
  * Constitutional Compliance:

@@ -135,7 +135,7 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
     );
     this.breadcrumbs = crumbs.length
       ? crumbs
-      : [{ id: 'regions', label: 'Regions', link: ['/regions/discover'] }];
+      : [{ id: 'regions', label: 'Regions', link: ['/regions'] }];
     this.cdr.markForCheck();
   }
 
