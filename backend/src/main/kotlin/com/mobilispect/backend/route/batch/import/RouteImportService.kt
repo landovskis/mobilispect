@@ -21,19 +21,44 @@ class RouteImportService(
 ) {
   private val logger = LoggerFactory.getLogger(RouteImportService::class.java)
 
+  /**
+   * Execute route import from Spring Batch step execution context.
+   *
+   * Delegates to [processRoutes] after extracting parsed data from the context.
+   */
   fun execute(stepExecution: StepExecution, feedOnestopId: String) {
     val parsedData =
       stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
         ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
 
+    val routesByFeedLocalId = processRoutes(FeedId(feedOnestopId), parsedData)
+
+    // Store results in execution context for downstream steps
+    val stepContext = stepExecution.executionContext
+    stepContext.putInt("routesProcessed", routesByFeedLocalId.size)
+
+    val jobContext = stepExecution.jobExecution.executionContext
+    jobContext.putInt("routesProcessed", routesByFeedLocalId.size)
+    jobContext.put("routesByFeedLocalId", routesByFeedLocalId)
+  }
+
+  /**
+   * Process routes from parsed GTFS data.
+   *
+   * This method can be called directly for synchronous processing or from Spring Batch.
+   *
+   * @param feedId The feed being imported
+   * @param parsedData Parsed GTFS data containing routes
+   * @return Map of feed-local route ID to persisted Route entity
+   */
+  fun processRoutes(feedId: FeedId, parsedData: GTFSData): Map<String, Route> {
     val routesByFeedLocalId = mutableMapOf<String, Route>()
-    var routesProcessed = 0
     var routesCreated = 0
     var routesUpdated = 0
 
     parsedData.routes.forEach { parsedRoute ->
       val gtfsAgencyId = parsedRoute.agencyId ?: FeedLocalAgencyId("default-agency")
-      val agencyId = AgencyId(FeedId(feedOnestopId), gtfsAgencyId)
+      val agencyId = AgencyId(feedId, gtfsAgencyId)
       val route =
         Route(
           id = RouteId(agencyId, parsedRoute.routeId),
@@ -67,26 +92,16 @@ class RouteImportService(
 
       eventPublisher.publishEvent(RouteImported(routeId = saved.id))
       routesByFeedLocalId[parsedRoute.routeId.value] = saved
-      routesProcessed++
     }
 
     logger.info(
       "Persisted routes for feed {} (total={}, created={}, updated={})",
-      feedOnestopId,
-      routesProcessed,
+      feedId.value,
+      routesByFeedLocalId.size,
       routesCreated,
       routesUpdated,
     )
 
-    val stepContext = stepExecution.executionContext
-    stepContext.putInt("routesProcessed", routesProcessed)
-    stepContext.putInt("routesCreated", routesCreated)
-    stepContext.putInt("routesUpdated", routesUpdated)
-
-    val jobContext = stepExecution.jobExecution.executionContext
-    jobContext.putInt("routesProcessed", routesProcessed)
-    jobContext.putInt("routesCreated", routesCreated)
-    jobContext.putInt("routesUpdated", routesUpdated)
-    jobContext.put("routesByFeedLocalId", routesByFeedLocalId)
+    return routesByFeedLocalId
   }
 }

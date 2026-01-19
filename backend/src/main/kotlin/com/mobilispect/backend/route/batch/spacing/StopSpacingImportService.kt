@@ -22,16 +22,44 @@ class StopSpacingImportService(
 ) {
   private val logger = LoggerFactory.getLogger(StopSpacingImportService::class.java)
 
+  /**
+   * Execute stop spacing import from Spring Batch step execution context.
+   *
+   * Delegates to [processStopSpacings] after extracting data from the context.
+   */
   fun execute(stepExecution: StepExecution) {
     val parsedData =
       stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
         ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
 
-    val stopsById = parsedData.stops.associateBy { it.stopId.value }
-    val persistedVariants = routeVariantRepository.findAll()
+    val spacings = processStopSpacings(parsedData)
 
+    // Store results in execution context
+    val stepContext = stepExecution.executionContext
+    stepContext.putInt("spacingsCreated", spacings.size)
+
+    val jobContext = stepExecution.jobExecution.executionContext
+    jobContext.putInt("stopSpacingRecordsCreated", spacings.size)
+  }
+
+  /**
+   * Process stop spacings from parsed GTFS data.
+   *
+   * This method can be called directly for synchronous processing or from Spring Batch.
+   *
+   * @param parsedData Parsed GTFS data containing stops
+   * @param variants Optional list of variants to process (if empty, fetches all from repository)
+   * @return List of persisted StopSpacing entities
+   */
+  fun processStopSpacings(
+    parsedData: GTFSData,
+    variants: List<RouteVariant> = emptyList(),
+  ): List<StopSpacing> {
+    val stopsById = parsedData.stops.associateBy { it.stopId.value }
+    val persistedVariants = variants.ifEmpty { routeVariantRepository.findAll() }
+
+    val allSpacings = mutableListOf<StopSpacing>()
     var variantsProcessed = 0
-    var spacingsCreated = 0
 
     persistedVariants.forEach { variant ->
       val spacings = calculateStopSpacings(variant, stopsById)
@@ -48,7 +76,7 @@ class StopSpacingImportService(
       }
 
       val savedSpacings = stopSpacingRepository.saveAll(spacings)
-      spacingsCreated += savedSpacings.count()
+      allSpacings.addAll(savedSpacings)
       variantsProcessed++
 
       val distances = spacings.map { it.distanceMeters }
@@ -65,16 +93,10 @@ class StopSpacingImportService(
     logger.info(
       "Persisted stop spacing records (variants={}, spacings={})",
       variantsProcessed,
-      spacingsCreated,
+      allSpacings.size,
     )
 
-    val stepContext = stepExecution.executionContext
-    stepContext.putInt("variantsProcessed", variantsProcessed)
-    stepContext.putInt("spacingsCreated", spacingsCreated)
-
-    val jobContext = stepExecution.jobExecution.executionContext
-    jobContext.putInt("stopSpacingVariantsProcessed", variantsProcessed)
-    jobContext.putInt("stopSpacingRecordsCreated", spacingsCreated)
+    return allSpacings
   }
 
   private fun calculateStopSpacings(

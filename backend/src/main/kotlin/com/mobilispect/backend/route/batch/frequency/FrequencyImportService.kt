@@ -27,6 +27,11 @@ class FrequencyImportService(
 ) {
   private val logger = LoggerFactory.getLogger(FrequencyImportService::class.java)
 
+  /**
+   * Execute frequency import from Spring Batch step execution context.
+   *
+   * Delegates to [processFrequencies] after extracting data from the context.
+   */
   fun execute(stepExecution: StepExecution) {
     val parsedData =
       stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
@@ -34,7 +39,33 @@ class FrequencyImportService(
 
     val serviceDateParam = stepExecution.jobParameters.getString("serviceDate")
     val serviceDate = serviceDateParam?.let { LocalDate.parse(it) } ?: LocalDate.now()
-    val persistedVariants = routeVariantRepository.findAll()
+
+    val frequencies = processFrequencies(parsedData, serviceDate)
+
+    // Store results in execution context
+    val stepContext = stepExecution.executionContext
+    stepContext.putInt("frequenciesProcessed", frequencies.size)
+
+    val jobContext = stepExecution.jobExecution.executionContext
+    jobContext.putInt("frequenciesProcessed", frequencies.size)
+  }
+
+  /**
+   * Process frequencies from parsed GTFS data.
+   *
+   * This method can be called directly for synchronous processing or from Spring Batch.
+   *
+   * @param parsedData Parsed GTFS data containing trips
+   * @param serviceDate Date for frequency calculation (affects weekday/weekend determination)
+   * @param variants Optional list of variants to process (if empty, fetches all from repository)
+   * @return List of persisted Frequency entities
+   */
+  fun processFrequencies(
+    parsedData: GTFSData,
+    serviceDate: LocalDate = LocalDate.now(),
+    variants: List<RouteVariant> = emptyList(),
+  ): List<Frequency> {
+    val persistedVariants = variants.ifEmpty { routeVariantRepository.findAll() }
 
     val variantMap =
       persistedVariants
@@ -43,7 +74,7 @@ class FrequencyImportService(
         }
         .filterValues { it.isNotEmpty() }
 
-    var frequenciesProcessed = 0
+    val allFrequencies = mutableListOf<Frequency>()
     var frequenciesCreated = 0
     var frequenciesUpdated = 0
     val processedVariants = mutableSetOf<Pair<VariantHash, LocalDate>>()
@@ -58,29 +89,30 @@ class FrequencyImportService(
             timePeriod = frequency.timePeriod,
           )
 
-        if (existing.isPresent) {
-          frequenciesUpdated++
-          val existingFrequency = existing.get()
-          frequencyRepository.save(
-            Frequency(
-              id = existingFrequency.id,
-              variantId = frequency.variantId,
-              serviceDate = frequency.serviceDate,
-              timePeriod = frequency.timePeriod,
-              averageHeadway = frequency.averageHeadway,
-              minHeadway = frequency.minHeadway,
-              maxHeadway = frequency.maxHeadway,
-              tripCount = frequency.tripCount,
-              isIrregular = frequency.isIrregular,
+        val saved =
+          if (existing.isPresent) {
+            frequenciesUpdated++
+            val existingFrequency = existing.get()
+            frequencyRepository.save(
+              Frequency(
+                id = existingFrequency.id,
+                variantId = frequency.variantId,
+                serviceDate = frequency.serviceDate,
+                timePeriod = frequency.timePeriod,
+                averageHeadway = frequency.averageHeadway,
+                minHeadway = frequency.minHeadway,
+                maxHeadway = frequency.maxHeadway,
+                tripCount = frequency.tripCount,
+                isIrregular = frequency.isIrregular,
+              )
             )
-          )
-        } else {
-          frequenciesCreated++
-          frequencyRepository.save(frequency)
-        }
+          } else {
+            frequenciesCreated++
+            frequencyRepository.save(frequency)
+          }
 
         processedVariants.add(VariantHash(frequency.variantId) to frequency.serviceDate)
-        frequenciesProcessed++
+        allFrequencies.add(saved)
       }
     }
 
@@ -92,20 +124,12 @@ class FrequencyImportService(
 
     logger.info(
       "Persisted frequency records (total={}, created={}, updated={})",
-      frequenciesProcessed,
+      allFrequencies.size,
       frequenciesCreated,
       frequenciesUpdated,
     )
 
-    val stepContext = stepExecution.executionContext
-    stepContext.putInt("frequenciesProcessed", frequenciesProcessed)
-    stepContext.putInt("frequenciesCreated", frequenciesCreated)
-    stepContext.putInt("frequenciesUpdated", frequenciesUpdated)
-
-    val jobContext = stepExecution.jobExecution.executionContext
-    jobContext.putInt("frequenciesProcessed", frequenciesProcessed)
-    jobContext.putInt("frequenciesCreated", frequenciesCreated)
-    jobContext.putInt("frequenciesUpdated", frequenciesUpdated)
+    return allFrequencies
   }
 
   private fun calculateFrequencies(

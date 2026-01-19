@@ -18,39 +18,56 @@ class AgencyImportService(
 ) {
   private val logger = LoggerFactory.getLogger(AgencyImportService::class.java)
 
+  /**
+   * Execute agency import from Spring Batch step execution context.
+   *
+   * Delegates to [processAgencies] after extracting parsed data from the context.
+   */
   fun execute(stepExecution: StepExecution, feedOnestopId: String) {
     val parsedData =
       stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
         ?: throw IllegalStateException("ParsedGtfsData not found in job execution context")
 
-    val feedId = FeedId(feedOnestopId)
+    processAgencies(FeedId(feedOnestopId), parsedData)
+  }
+
+  /**
+   * Process agencies from parsed GTFS data.
+   *
+   * This method can be called directly for synchronous processing or from Spring Batch.
+   *
+   * @param feedId The feed being imported
+   * @param parsedData Parsed GTFS data containing agencies
+   * @return Map of feed-local agency ID to persisted Agency entity
+   */
+  fun processAgencies(feedId: FeedId, parsedData: GTFSData): Map<String, Agency> {
+    val agenciesByFeedLocalId = mutableMapOf<String, Agency>()
     var created = 0
     var updated = 0
 
     parsedData.agencies.forEach { agency ->
       val entity =
-        Agency(
-          agencyId = AgencyId(FeedId(feedOnestopId), agency.agencyId),
-          feedId = FeedId(feedOnestopId),
-          name = agency.name,
-        )
+        Agency(agencyId = AgencyId(feedId, agency.agencyId), feedId = feedId, name = agency.name)
       val existing = agencyRepository.findById(entity.agencyId)
-      if (existing == null) {
-        agencyRepository.save(entity)
-        created++
-      } else {
-        agencyRepository.save(existing.copy(name = agency.name, active = true))
-        updated++
-      }
+      val saved =
+        if (existing == null) {
+          created++
+          agencyRepository.save(entity)
+        } else {
+          updated++
+          agencyRepository.save(existing.copy(name = agency.name, active = true))
+        }
+      agenciesByFeedLocalId[agency.agencyId.value] = saved
     }
 
     logger.info(
       "Persisted agencies for feed {} (created={}, updated={})",
-      feedOnestopId,
+      feedId.value,
       created,
       updated,
     )
 
     eventPublisher.publishEvent(FeedImportStepCompleted(feedId, "agency"))
+    return agenciesByFeedLocalId
   }
 }

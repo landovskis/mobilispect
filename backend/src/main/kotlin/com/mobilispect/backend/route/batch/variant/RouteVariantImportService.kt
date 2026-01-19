@@ -24,6 +24,11 @@ class RouteVariantImportService(
 ) {
   private val logger = LoggerFactory.getLogger(RouteVariantImportService::class.java)
 
+  /**
+   * Execute route variant import from Spring Batch step execution context.
+   *
+   * Delegates to [processVariants] after extracting data from the context.
+   */
   fun execute(stepExecution: StepExecution) {
     val parsedData =
       stepExecution.jobExecution.executionContext.get("parsedData") as? GTFSData
@@ -34,6 +39,29 @@ class RouteVariantImportService(
       stepExecution.jobExecution.executionContext.get("routesByFeedLocalId") as? Map<String, Route>
         ?: emptyMap()
 
+    val variants = processVariants(parsedData, routesByFeedLocalId)
+
+    // Store results in execution context for downstream steps
+    val stepContext = stepExecution.executionContext
+    stepContext.putInt("variantsProcessed", variants.size)
+
+    val jobContext = stepExecution.jobExecution.executionContext
+    jobContext.putInt("variantsProcessed", variants.size)
+  }
+
+  /**
+   * Process route variants from parsed GTFS data.
+   *
+   * This method can be called directly for synchronous processing or from Spring Batch.
+   *
+   * @param parsedData Parsed GTFS data containing trips and stops
+   * @param routesByFeedLocalId Map of feed-local route ID to Route entity (from RouteImportService)
+   * @return List of persisted RouteVariant entities
+   */
+  fun processVariants(
+    parsedData: GTFSData,
+    routesByFeedLocalId: Map<String, Route> = emptyMap(),
+  ): List<RouteVariant> {
     val stopsById = parsedData.stops.associateBy { it.stopId.value }
     val tripsByGtfsRouteId: Map<FeedLocalRouteId, List<GTFSTrip>> =
       parsedData.trips.groupBy { it.routeId }
@@ -50,7 +78,7 @@ class RouteVariantImportService(
         .filter { route -> tripsByGtfsRouteId.containsKey(route.id.feedLocalId()) }
         .associateWith { route -> tripsByGtfsRouteId[route.id.feedLocalId()] ?: emptyList() }
 
-    var variantsProcessed = 0
+    val allVariants = mutableListOf<RouteVariant>()
     var variantsCreated = 0
     var variantsUpdated = 0
 
@@ -76,7 +104,7 @@ class RouteVariantImportService(
         eventPublisher.publishEvent(
           RouteVariantIdentified(variantId = saved.id, routeId = saved.routeId)
         )
-        variantsProcessed++
+        allVariants.add(saved)
       }
 
       logger.info(
@@ -90,20 +118,12 @@ class RouteVariantImportService(
 
     logger.info(
       "Persisted route variants (total={}, created={}, updated={})",
-      variantsProcessed,
+      allVariants.size,
       variantsCreated,
       variantsUpdated,
     )
 
-    val stepContext = stepExecution.executionContext
-    stepContext.putInt("variantsProcessed", variantsProcessed)
-    stepContext.putInt("variantsCreated", variantsCreated)
-    stepContext.putInt("variantsUpdated", variantsUpdated)
-
-    val jobContext = stepExecution.jobExecution.executionContext
-    jobContext.putInt("variantsProcessed", variantsProcessed)
-    jobContext.putInt("variantsCreated", variantsCreated)
-    jobContext.putInt("variantsUpdated", variantsUpdated)
+    return allVariants
   }
 
   private fun identifyVariants(

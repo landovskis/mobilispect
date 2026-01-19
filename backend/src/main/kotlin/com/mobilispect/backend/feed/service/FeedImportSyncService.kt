@@ -1,8 +1,6 @@
 package com.mobilispect.backend.feed.service
 
-import com.mobilispect.backend.agency.AgencyId
-import com.mobilispect.backend.agency.domain.model.Agency
-import com.mobilispect.backend.agency.domain.repository.AgencyRepository
+import com.mobilispect.backend.agency.batch.import.AgencyImportService
 import com.mobilispect.backend.feed.api.GTFSData
 import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
@@ -11,11 +9,12 @@ import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.repository.FeedImportRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
-import com.mobilispect.backend.route.RouteId
-import com.mobilispect.backend.route.domain.model.Route
-import com.mobilispect.backend.route.domain.model.RouteType
-import com.mobilispect.backend.route.domain.repository.RouteRepository
+import com.mobilispect.backend.route.batch.frequency.FrequencyImportService
+import com.mobilispect.backend.route.batch.import.RouteImportService
+import com.mobilispect.backend.route.batch.spacing.StopSpacingImportService
+import com.mobilispect.backend.route.batch.variant.RouteVariantImportService
 import java.time.Clock
+import java.time.LocalDate
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Lazy
@@ -32,23 +31,27 @@ import org.springframework.transaction.annotation.Transactional
  * asynchronous batch jobs, this service:
  * 1. Creates the FeedImport record
  * 2. Downloads and parses the GTFS feed
- * 3. Processes all entities (agencies, routes, variants, etc.)
+ * 3. Processes all entities (agencies, routes, variants, stop spacings, frequencies)
  * 4. Updates the FeedImport status to COMPLETED or FAILED
  *
- * The processing runs in a single transaction that can be rolled back on failure.
+ * This service reuses the same processing logic as the Spring Batch job by delegating to the
+ * existing import services (AgencyImportService, RouteImportService, etc.).
  *
  * Constitutional Requirements:
- * - Module boundaries: Uses domain repositories, not cross-module access
- * - Test-driven quality: Processing logic extracted for unit testing
+ * - Module boundaries: Uses existing import services for cross-module processing
+ * - Test-driven quality: Processing logic shared with batch job for consistency
  * - Observability: Structured logging throughout
  */
 @Service
 class FeedImportSyncService(
   @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
   private val feedImportRepository: FeedImportRepository,
-  @Lazy private val agencyRepository: AgencyRepository,
-  @Lazy private val routeRepository: RouteRepository,
   private val gtfsFeedDownloader: GTFSFeedDownloader,
+  @Lazy private val agencyImportService: AgencyImportService,
+  @Lazy private val routeImportService: RouteImportService,
+  @Lazy private val routeVariantImportService: RouteVariantImportService,
+  @Lazy private val stopSpacingImportService: StopSpacingImportService,
+  @Lazy private val frequencyImportService: FrequencyImportService,
   private val clock: Clock = Clock.systemUTC(),
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportSyncService::class.java)
@@ -146,7 +149,11 @@ class FeedImportSyncService(
     }
   }
 
-  /** Process parsed GTFS data and persist entities. */
+  /**
+   * Process parsed GTFS data using the same services as the Spring Batch job.
+   *
+   * This ensures consistency between synchronous and batch processing modes.
+   */
   private fun processGtfsData(feedId: FeedId, data: GTFSData) {
     logger.info(
       "Processing GTFS data for feed {}: {} agencies, {} routes, {} trips",
@@ -156,97 +163,25 @@ class FeedImportSyncService(
       data.trips.size,
     )
 
-    // Process agencies
-    val agencies = processAgencies(feedId, data)
+    // Step 1: Process agencies (reuses AgencyImportService)
+    val agencies = agencyImportService.processAgencies(feedId, data)
     logger.info("Processed {} agencies for feed {}", agencies.size, feedId.value)
 
-    // Process routes
-    val routes = processRoutes(feedId, data, agencies)
+    // Step 2: Process routes (reuses RouteImportService)
+    val routes = routeImportService.processRoutes(feedId, data)
     logger.info("Processed {} routes for feed {}", routes.size, feedId.value)
 
-    // TODO: Process route variants, stop spacing, and frequencies
-    // These require more complex processing that depends on trips and stop times
-    // For the initial implementation, we process the core entities
-    // Route variants, stop spacing, and frequency processing can be added
-    // incrementally as needed
-  }
+    // Step 3: Process route variants (reuses RouteVariantImportService)
+    val variants = routeVariantImportService.processVariants(data, routes)
+    logger.info("Processed {} route variants for feed {}", variants.size, feedId.value)
 
-  /** Process agencies from GTFS data. */
-  private fun processAgencies(feedId: FeedId, data: GTFSData): Map<String, Agency> {
-    val agencyMap = mutableMapOf<String, Agency>()
+    // Step 4: Process stop spacings (reuses StopSpacingImportService)
+    val spacings = stopSpacingImportService.processStopSpacings(data, variants)
+    logger.info("Processed {} stop spacings for feed {}", spacings.size, feedId.value)
 
-    data.agencies.forEach { gtfsAgency ->
-      val agencyId = AgencyId(feedId, gtfsAgency.agencyId)
-      val existing = agencyRepository.findById(agencyId)
-
-      val agency =
-        if (existing != null) {
-          agencyRepository.save(existing.copy(name = gtfsAgency.name))
-        } else {
-          agencyRepository.save(
-            Agency(agencyId = agencyId, feedId = feedId, name = gtfsAgency.name)
-          )
-        }
-
-      agencyMap[gtfsAgency.agencyId.value] = agency
-    }
-
-    return agencyMap
-  }
-
-  /** Process routes from GTFS data. */
-  private fun processRoutes(
-    feedId: FeedId,
-    data: GTFSData,
-    agencies: Map<String, Agency>,
-  ): Map<String, Route> {
-    val routeMap = mutableMapOf<String, Route>()
-
-    // Find the default agency for routes without explicit agency
-    val defaultAgency = agencies.values.firstOrNull()
-
-    data.routes.forEach { gtfsRoute ->
-      // Determine the agency for this route
-      val agency =
-        gtfsRoute.agencyId?.let { agencies[it.value] }
-          ?: defaultAgency
-          ?: throw IllegalStateException(
-            "No agency found for route ${gtfsRoute.routeId.value} in feed $feedId"
-          )
-
-      val routeId = RouteId(agency.agencyId, gtfsRoute.routeId)
-      val existing = routeRepository.findById(routeId)
-
-      // GTFS requires route_type, but some feeds may have nulls - default to BUS
-      val routeType = gtfsRoute.type?.let { RouteType.fromGtfsValue(it) } ?: RouteType.BUS
-      val longName = gtfsRoute.longName ?: gtfsRoute.shortName ?: ""
-
-      val route =
-        if (existing != null) {
-          routeRepository.save(
-            existing.copy(
-              shortName = gtfsRoute.shortName,
-              longName = longName,
-              routeType = routeType,
-              active = true,
-            )
-          )
-        } else {
-          routeRepository.save(
-            Route(
-              id = routeId,
-              agencyId = agency.agencyId,
-              shortName = gtfsRoute.shortName,
-              longName = longName,
-              routeType = routeType,
-            )
-          )
-        }
-
-      routeMap[gtfsRoute.routeId.value] = route
-    }
-
-    return routeMap
+    // Step 5: Process frequencies (reuses FrequencyImportService)
+    val frequencies = frequencyImportService.processFrequencies(data, LocalDate.now(), variants)
+    logger.info("Processed {} frequencies for feed {}", frequencies.size, feedId.value)
   }
 
   private fun completeFeedImport(feedImport: FeedImport, feedOnestopId: String) {
