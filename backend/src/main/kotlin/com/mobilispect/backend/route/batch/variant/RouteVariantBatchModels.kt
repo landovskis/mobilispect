@@ -6,7 +6,7 @@ import com.mobilispect.backend.route.domain.model.Route
 import com.mobilispect.backend.route.domain.model.RouteVariant
 
 /**
- * Input data for the RouteVariantProcessor.
+ * Input data for route variant processing.
  *
  * Combines route information with trip data and stop metadata to enable route variant
  * identification through batch processing.
@@ -14,17 +14,19 @@ import com.mobilispect.backend.route.domain.model.RouteVariant
  * @property route The transit route being processed
  * @property trips List of trips belonging to this route
  * @property stopsById Map of stop IDs to stop metadata for coordinate lookups
+ * @property routesByFeedLocalId Map of GTFS route IDs to persisted Route entities
  */
 data class RouteVariantInput(
   val route: Route,
   val trips: List<GTFSTrip>,
   val stopsById: Map<String, GTFSStop>,
+  val routesByFeedLocalId: Map<String, Route>,
 )
 
 /**
  * Represents a batch of route variant processing results.
  *
- * This is the output type for the RouteVariantProcessor, containing all variants that were
+ * This is the output type for route variant processing, containing all variants that were
  * successfully identified from a route's trip patterns.
  *
  * @property variants List of identified route variants with unique stop patterns

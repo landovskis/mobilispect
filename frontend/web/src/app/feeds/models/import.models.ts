@@ -39,14 +39,15 @@ export interface FeedImportDetail extends FeedImport {
 export interface FeedImportSummary {
   id: string;
   feedOnestopId: string;
-  feedName: string;
-  regionName: string;
+  feedName: string | null;
+  regionOnestopId: string | null;
+  regionName: string | null;
   status: ImportStatus;
   triggerType: TriggerType;
   startedAt: string | null;
   completedAt: string | null;
-  fileSizeBytes: number | null;
-  errorMessage: string | null;
+  fileSizeBytes?: number | null;
+  errorMessage?: string | null;
   progress: ImportProgress | null;
   currentStep?: string; // For backward compatibility
 }
@@ -154,6 +155,78 @@ export interface SystemAlertMessage {
   timestamp: number;
   autoClose: boolean;
   duration: number;
+}
+
+/**
+ * Status values for region-level imports
+ * Includes PARTIAL_SUCCESS for mixed results
+ */
+export enum RegionImportStatus {
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  PARTIAL_SUCCESS = 'PARTIAL_SUCCESS',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+}
+
+/**
+ * Bulk import response for region-level imports
+ */
+export interface BulkImportResponse {
+  /** Unique ID for tracking this region import (parent job). */
+  regionImportId: string | null;
+  regionOnestopId: string;
+  /** Current status of the region import. */
+  status: RegionImportStatus;
+  totalFeeds: number;
+  startedCount: number;
+  /** Number of feed imports that completed successfully. */
+  completedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  results: FeedImportResult[];
+  /** When the region import started (null if pending). */
+  startedAt: string | null;
+}
+
+/**
+ * Response for querying region import status
+ */
+export interface RegionImportStatusResponse {
+  regionImportId: string;
+  regionOnestopId: string;
+  status: RegionImportStatus;
+  totalFeeds: number;
+  startedCount: number;
+  completedCount: number;
+  failedCount: number;
+  skippedCount: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Individual feed result within a bulk import operation
+ */
+export interface FeedImportResult {
+  feedOnestopId: string;
+  feedName: string;
+  status: FeedImportResultStatus;
+  message: string | null;
+  importId?: string;
+}
+
+/**
+ * Status values for individual feed import results
+ */
+export enum FeedImportResultStatus {
+  STARTED = 'STARTED',
+  FAILED = 'FAILED',
+  SKIPPED = 'SKIPPED'
 }
 
 /**
@@ -380,5 +453,85 @@ export class ProgressUtils {
     if (progress.progressPercentage >= 75) return 'bg-blue-500';
     if (progress.progressPercentage >= 50) return 'bg-yellow-500';
     return 'bg-gray-400';
+  }
+}
+
+/**
+ * Utility functions for region import status
+ */
+export class RegionImportUtils {
+  /**
+   * Checks if a region import status is active (not yet completed)
+   */
+  static isActive(status: RegionImportStatus): boolean {
+    return (
+      status === RegionImportStatus.PENDING ||
+      status === RegionImportStatus.RUNNING
+    );
+  }
+
+  /**
+   * Checks if a region import status is terminal (no further changes expected)
+   */
+  static isTerminal(status: RegionImportStatus): boolean {
+    return (
+      status === RegionImportStatus.COMPLETED ||
+      status === RegionImportStatus.PARTIAL_SUCCESS ||
+      status === RegionImportStatus.FAILED ||
+      status === RegionImportStatus.CANCELLED
+    );
+  }
+
+  /**
+   * Gets the status display name
+   */
+  static getStatusDisplayName(status: RegionImportStatus): string {
+    switch (status) {
+      case RegionImportStatus.PENDING:
+        return 'Pending';
+      case RegionImportStatus.RUNNING:
+        return 'Running';
+      case RegionImportStatus.COMPLETED:
+        return 'Completed';
+      case RegionImportStatus.PARTIAL_SUCCESS:
+        return 'Partial Success';
+      case RegionImportStatus.FAILED:
+        return 'Failed';
+      case RegionImportStatus.CANCELLED:
+        return 'Cancelled';
+      default:
+        return status;
+    }
+  }
+
+  /**
+   * Gets the status color class for UI
+   */
+  static getStatusColorClass(status: RegionImportStatus): string {
+    switch (status) {
+      case RegionImportStatus.PENDING:
+        return 'chip-neutral';
+      case RegionImportStatus.RUNNING:
+        return 'chip-warning';
+      case RegionImportStatus.COMPLETED:
+        return 'chip-success';
+      case RegionImportStatus.PARTIAL_SUCCESS:
+        return 'chip-warning';
+      case RegionImportStatus.FAILED:
+        return 'chip-error';
+      case RegionImportStatus.CANCELLED:
+        return 'chip-neutral';
+      default:
+        return 'chip-neutral';
+    }
+  }
+
+  /**
+   * Gets the progress percentage for a region import
+   */
+  static getProgressPercentage(regionImport: RegionImportStatusResponse): number {
+    if (regionImport.totalFeeds === 0) return 100;
+    const completed = regionImport.completedCount + regionImport.failedCount + regionImport.skippedCount;
+    return Math.round((completed / regionImport.totalFeeds) * 100);
   }
 }

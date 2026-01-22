@@ -14,8 +14,7 @@ import java.time.Instant
 @Table(name = "routes")
 class RouteEntity(
   @Id @Column(name = "id", nullable = false, updatable = false, length = 255) val id: String,
-  @Column(name = "agency_onestop_id", nullable = false, length = 255) val agencyOnestopId: String,
-  @Column(name = "gtfs_route_id", nullable = false, length = 255) val gtfsRouteId: String,
+  @Column(name = "agency_onestop_id", nullable = false, length = 255) val agencyId: String,
   @Column(name = "short_name", length = 255) var shortName: String? = null,
   @Column(name = "long_name", nullable = false, length = 255) var longName: String,
   @Column(name = "route_type", nullable = false, length = 20)

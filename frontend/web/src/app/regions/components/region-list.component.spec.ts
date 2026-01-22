@@ -35,6 +35,7 @@ describe('RegionListComponent', () => {
     id: 'imp-1',
     feedOnestopId: 'f-1',
     feedName: 'Feed 1',
+    regionOnestopId: 'r-test',
     regionName: 'Test Region',
     status: ImportStatus.RUNNING,
     triggerType: TriggerType.MANUAL,

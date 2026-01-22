@@ -73,7 +73,7 @@ import { ActiveImportCardComponent } from './active-import-card.component';
             <mat-icon class="empty-icon">cloud_done</mat-icon>
             <p class="empty-title m-0">No active imports</p>
             <p class="empty-subtitle max-w-[340px] m-0">
-              Discover regions from the discovery tab to see them here.
+              Select a region to see its imports here.
             </p>
           </div>
         }

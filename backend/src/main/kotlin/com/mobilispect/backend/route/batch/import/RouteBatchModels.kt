@@ -1,10 +1,11 @@
 package com.mobilispect.backend.route.batch.import
 
 import com.mobilispect.backend.feed.api.GTFSRoute
+import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.route.domain.model.Route
 
 /**
- * Input data for the RouteProcessor.
+ * Input data for the route import task.
  *
  * Combines parsed GTFS route data with feed context needed for generating route onestop IDs.
  *
@@ -16,12 +17,15 @@ data class RouteInput(val parsedRoute: GTFSRoute, val feedOnestopId: String)
 /**
  * Represents a batch of route processing results.
  *
- * This is the output type for the RouteProcessor, containing routes converted from GTFS data to
- * domain models with TransitLand-compatible onestop IDs.
+ * This is the output type for route import processing, containing routes converted from GTFS data
+ * to domain models with TransitLand-compatible onestop IDs.
  *
  * @property routes List of processed routes ready for persistence
  */
-data class RouteBatch(val routes: List<Route>) {
+data class RouteBatch(
+  val routes: List<Route>,
+  val routesByFeedLocalId: MutableMap<FeedLocalRouteId, Route>,
+) {
   /** Total number of routes in this batch. */
   val size: Int
     get() = routes.size

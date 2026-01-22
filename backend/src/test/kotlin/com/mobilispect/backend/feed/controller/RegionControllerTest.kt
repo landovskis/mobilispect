@@ -4,8 +4,6 @@ import com.mobilispect.backend.api.BulkImportResponse
 import com.mobilispect.backend.api.FeedImportResult
 import com.mobilispect.backend.api.FeedImportResultStatus
 import com.mobilispect.backend.api.dto.FeedSpecType as FeedSpecTypeDto
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -15,15 +13,13 @@ import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.controller.RegionController
 import com.mobilispect.backend.region.domain.MetropolitanRegion
+import com.mobilispect.backend.region.domain.RegionImportStatus
 import com.mobilispect.backend.region.service.RegionImportService
-import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import java.time.Instant
 import java.util.Optional
-import kotlinx.coroutines.runBlocking
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -33,7 +29,6 @@ class RegionControllerTest {
   private lateinit var regionRepository: MetropolitanRegionRepository
   private lateinit var feedRepository: FeedRepository
   private lateinit var feedAuthenticationRepository: FeedAuthenticationRepository
-  private lateinit var feedDiscoveryBatchService: FeedDiscoveryBatchService
   private lateinit var regionImportService: RegionImportService
   private lateinit var controller: RegionController
 
@@ -46,7 +41,6 @@ class RegionControllerTest {
     regionRepository = mockk()
     feedRepository = mockk()
     feedAuthenticationRepository = mockk()
-    feedDiscoveryBatchService = mockk()
     regionImportService = mockk()
 
     controller =
@@ -54,7 +48,6 @@ class RegionControllerTest {
         regionRepository = regionRepository,
         feedRepository = feedRepository,
         feedAuthenticationRepository = feedAuthenticationRepository,
-        feedDiscoveryBatchService = feedDiscoveryBatchService,
         regionImportService = regionImportService,
       )
   }
@@ -242,27 +235,6 @@ class RegionControllerTest {
   }
 
   @Test
-  fun `updateRegion updates autoUpdateEnabled`() {
-    // Given
-    val region = createRegion(testRegionId, testRegionName, autoUpdate = false)
-    val updateRequest =
-      com.mobilispect.backend.api.dto.RegionUpdateRequest(autoUpdateEnabled = true)
-
-    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
-      Optional.of(region)
-    every { regionRepository.save(any()) } answers { firstArg() }
-    every { feedRepository.findAllByRegionRegionOnestopId(RegionId(testRegionId)) } returns
-      emptyList()
-
-    // When
-    val result = controller.updateRegion(testRegionId, updateRequest)
-
-    // Then
-    assertThat(result.autoUpdateEnabled).isTrue()
-    verify { regionRepository.save(match { it.autoUpdateEnabled }) }
-  }
-
-  @Test
   fun `listFeedsForRegion returns all feeds for region`() {
     // Given
     val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
@@ -344,115 +316,17 @@ class RegionControllerTest {
   }
 
   @Test
-  fun `discoverFeeds calls service and returns result`() = runBlocking {
-    // Given
-    val expectedResult =
-      FeedDiscoveryJobResult(
-        jobExecutionId = 1L,
-        status = "COMPLETED",
-        startTime = fixedInstant,
-        endTime = fixedInstant,
-        feedsDiscovered = 5,
-        feedsCreated = 3,
-        feedsUpdated = 2,
-        feedsFound = 5,
-        regionsFound = 2,
-        timeTakenMillis = 0,
-        errors = emptyList(),
-      )
-
-    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
-      Optional.of(createRegion(testRegionId, testRegionName, true))
-    coEvery { feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS) } returns
-      expectedResult
-
-    // When
-    val result =
-      controller.discoverFeeds(
-        testRegionId,
-        spec = com.mobilispect.backend.api.dto.FeedSpecType.GTFS,
-      )
-
-    // Then
-    assertThat(result).isEqualTo(expectedResult)
-    assertThat(result.feedsDiscovered).isEqualTo(5)
-    assertThat(result.feedsCreated).isEqualTo(3)
-    assertThat(result.feedsUpdated).isEqualTo(2)
-    assertThat(result.errors).isEmpty()
-  }
-
-  @Test
-  fun `discoverFeeds uses GTFS as default spec`(): Unit = runBlocking {
-    // Given
-    val expectedResult =
-      FeedDiscoveryJobResult(
-        jobExecutionId = 2L,
-        status = "COMPLETED",
-        startTime = fixedInstant,
-        endTime = fixedInstant,
-        feedsDiscovered = 1,
-        feedsCreated = 1,
-        feedsUpdated = 0,
-        feedsFound = 1,
-        regionsFound = 1,
-        timeTakenMillis = 0,
-        errors = emptyList(),
-      )
-
-    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
-      Optional.of(createRegion(testRegionId, testRegionName, true))
-    coEvery { feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS) } returns
-      expectedResult
-
-    // When - providing GTFS as spec parameter
-    val result = controller.discoverFeeds(testRegionId, spec = FeedSpecTypeDto.GTFS)
-
-    // Then
-    coVerify { feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS) }
-    assertThat(result.feedsDiscovered).isEqualTo(1)
-  }
-
-  @Test
-  fun `discoverFeeds returns errors when discovery fails partially`(): Unit = runBlocking {
-    // Given
-    val expectedResult =
-      FeedDiscoveryJobResult(
-        jobExecutionId = 3L,
-        status = "COMPLETED",
-        startTime = fixedInstant,
-        endTime = fixedInstant,
-        feedsDiscovered = 3,
-        feedsCreated = 2,
-        feedsUpdated = 0,
-        feedsFound = 3,
-        regionsFound = 2,
-        timeTakenMillis = 0,
-        errors = listOf("Failed to upsert f-feed-3: Database error"),
-      )
-
-    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
-      Optional.of(createRegion(testRegionId, testRegionName, true))
-    coEvery { feedDiscoveryBatchService.discoverForRegion(testRegionId, FeedSpecType.GTFS) } returns
-      expectedResult
-
-    // When
-    val result = controller.discoverFeeds(testRegionId, spec = FeedSpecTypeDto.GTFS)
-
-    // Then
-    assertThat(result.errors).hasSize(1)
-    assertThat(result.errors.first()).contains("f-feed-3")
-    assertThat(result.feedsCreated).isEqualTo(2)
-  }
-
-  @Test
   fun `importAllFeedsForRegion starts bulk import for all active feeds`() {
     // Given
     val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
     val bulkImportResponse =
       BulkImportResponse(
+        regionImportId = "region-import-123",
         regionOnestopId = testRegionId,
+        status = RegionImportStatus.PENDING,
         totalFeeds = 3,
         startedCount = 3,
+        completedCount = 0,
         failedCount = 0,
         skippedCount = 0,
         results =
@@ -479,6 +353,7 @@ class RegionControllerTest {
               importId = "import-3",
             ),
           ),
+        startedAt = null,
       )
 
     every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
@@ -504,9 +379,12 @@ class RegionControllerTest {
     val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
     val bulkImportResponse =
       BulkImportResponse(
+        regionImportId = "region-import-456",
         regionOnestopId = testRegionId,
+        status = RegionImportStatus.PENDING,
         totalFeeds = 4,
         startedCount = 2,
+        completedCount = 0,
         failedCount = 1,
         skippedCount = 1,
         results =
@@ -538,6 +416,7 @@ class RegionControllerTest {
               importId = "import-2",
             ),
           ),
+        startedAt = null,
       )
 
     every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns

@@ -82,7 +82,7 @@ describe('AppShellComponent', () => {
       breadcrumb: {
         id: 'regions',
         label: 'Regions',
-        link: ['/regions/discover'],
+        link: ['/regions'],
       },
       originalEvent: {
         preventDefault,

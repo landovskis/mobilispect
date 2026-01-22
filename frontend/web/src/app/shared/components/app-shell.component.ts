@@ -6,6 +6,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable, Subject, firstValueFrom } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
 import { AppBarComponent, BreadcrumbSelection } from './app-bar.component';
@@ -27,6 +28,7 @@ import { FeedImportSummary } from '../../feeds/models';
     MatIconModule,
     MatButtonModule,
     MatSnackBarModule,
+    MatTooltipModule,
     AppBarComponent,
     ThemeToggleComponent,
   ],
@@ -55,7 +57,7 @@ import { FeedImportSummary } from '../../feeds/models';
         class="flex-1 bg-transparent md:h-[calc(100vh-64px)] max-md:h-auto"
       >
         <mat-sidenav
-          class="app-sidenav w-60 border-r border-[#E1F3FF] bg-white px-[18px] pb-8 pt-7 text-[#0B3558] max-md:w-full max-md:border-b max-md:border-r-0"
+          class="app-sidenav border-r border-[#E1F3FF] bg-white pb-8 pt-7 text-[#0B3558] max-md:border-b max-md:border-r-0"
           [mode]="(isHandset$ | async) ? 'over' : 'side'"
           [opened]="(isHandset$ | async) ? sidebarOpened : true"
           (openedChange)="onSidenavOpenedChange($event)"
@@ -65,7 +67,7 @@ import { FeedImportSummary } from '../../feeds/models';
             aria-label="Feed navigation"
           >
             <div
-              class="mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]"
+              class="sidebar-heading mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]"
             >
               Inspect
             </div>
@@ -73,29 +75,12 @@ import { FeedImportSummary } from '../../feeds/models';
             <button
               type="button"
               class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
-              routerLink="/regions/discover"
-              routerLinkActive="active"
-              [routerLinkActiveOptions]="{ exact: true }"
-            >
-              <mat-icon class="text-[20px] text-[#0B4F8A]">rss_feed</mat-icon>
-              <span>Discover Regions</span>
-              @let discoverCount = discoverFeedCount$ | async;
-              @if ((discoverCount ?? 0) > 0) {
-                <span
-                  class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                  >{{ discoverCount }}</span
-                >
-              }
-            </button>
-
-            <button
-              type="button"
-              class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
               routerLink="/feeds/imports"
               routerLinkActive="active"
+              matTooltip="Feed Imports"
             >
               <mat-icon class="text-[20px] text-[#0B4F8A]">history</mat-icon>
-              <span>Feed Imports</span>
+              <span class="nav-label">Feed Imports</span>
               @let totalImports = totalImportElements$ | async;
               @if ((totalImports ?? 0) > 0) {
                 <span
@@ -117,9 +102,10 @@ import { FeedImportSummary } from '../../feeds/models';
               class="sidebar-link flex w-full items-center gap-2.5 rounded-xl border border-[#D1D5DB] bg-white px-4 py-3 text-left font-semibold text-[#0B4F8A] shadow-[0_6px_14px_rgba(11,79,138,0.05)] transition-all duration-200"
               routerLink="/regions"
               routerLinkActive="active"
+              matTooltip="Regions"
             >
               <mat-icon class="text-[20px] text-[#0B4F8A]">map</mat-icon>
-              <span>Regions</span>
+              <span class="nav-label">Regions</span>
             </button>
           </nav>
         </mat-sidenav>
@@ -128,7 +114,7 @@ import { FeedImportSummary } from '../../feeds/models';
           <div
             class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-6 max-md:p-4"
           >
-            <div class="mx-auto max-w-[1200px]">
+            <div class="mx-auto w-full max-w-[1600px]">
               <section
                 class="view-content min-h-[calc(100vh-160px)] rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)] max-md:p-4"
               >
@@ -145,11 +131,20 @@ import { FeedImportSummary } from '../../feeds/models';
       .app-sidenav {
         background: #ffffff;
         color: #0b3558;
+        width: 88px;
+        padding-left: 12px;
+        padding-right: 12px;
       }
 
       .sidebar-link {
         background: #fff;
         color: #0b4f8a;
+        justify-content: center;
+        position: relative;
+        padding-left: 12px;
+        padding-right: 12px;
+        flex-direction: column;
+        gap: 6px;
       }
 
       .sidebar-link mat-icon {
@@ -161,11 +156,15 @@ import { FeedImportSummary } from '../../feeds/models';
         font-weight: 600;
         background: #e1f3ff;
         color: #0b4f8a;
+        position: absolute;
+        right: 10px;
+        top: 8px;
       }
 
       .sidebar-link .nav-count.active {
         background: rgba(0, 167, 196, 0.15);
         color: #0b3558;
+        top: 28px;
       }
 
       .sidebar-link:hover {
@@ -198,6 +197,49 @@ import { FeedImportSummary } from '../../feeds/models';
       .sidebar-link.active .nav-count {
         background: rgba(255, 255, 255, 0.2);
         color: #e5f1ff;
+      }
+
+      .nav-label {
+        display: inline;
+        font-size: 11px;
+        line-height: 1;
+        text-align: center;
+      }
+
+      .sidebar-heading {
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .app-sidenav {
+          width: 100%;
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+
+        .sidebar-link {
+          justify-content: flex-start;
+          padding-left: 16px;
+          padding-right: 16px;
+          flex-direction: row;
+          gap: 10px;
+        }
+
+        .nav-label {
+          font-size: inherit;
+          line-height: inherit;
+          text-align: left;
+        }
+
+        .sidebar-heading {
+          display: block;
+        }
+
+        .sidebar-link .nav-count,
+        .sidebar-link .nav-count.active {
+          position: static;
+          margin-left: auto;
+        }
       }
 
       .view-content {
@@ -327,7 +369,7 @@ export class AppShellComponent implements OnDestroy {
       selection.originalEvent.preventDefault();
       selection.originalEvent.stopPropagation();
       this.metrics.resetSelectedRegion();
-      this.router.navigate(['/regions/discover']);
+      this.router.navigate(['/regions']);
     }
   }
 

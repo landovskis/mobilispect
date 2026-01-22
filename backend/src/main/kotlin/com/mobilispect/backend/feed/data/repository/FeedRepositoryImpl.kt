@@ -25,18 +25,27 @@ class FeedRepositoryImpl(
   private val mapper: FeedMapper,
 ) : FeedRepository {
 
+  @Transactional(readOnly = true)
   override fun findById(feedId: FeedId): Feed? =
     jpaRepository.findByFeedOnestopId(feedId.value)?.let { mapper.toDomain(it) }
 
+  @Transactional(readOnly = true)
   override fun findByRegionId(regionId: RegionId): List<Feed> =
     jpaRepository.findByRegionId(regionId.value).map { mapper.toDomain(it) }
 
+  @Transactional(readOnly = true)
   override fun findByRegionIdAndStatusIn(
     regionId: RegionId,
     statuses: Collection<FeedStatus>,
   ): List<Feed> =
-    jpaRepository.findByRegionIdAndStatusIn(regionId.value, statuses).map { mapper.toDomain(it) }
+    jpaRepository
+      .findByRegionIdAndStatusIn(
+        regionId.value,
+        statuses.first().dbValue, // Pass string value for PostgreSQL enum casting
+      )
+      .map { mapper.toDomain(it) }
 
+  @Transactional(readOnly = true)
   override fun findByRegionIdAndSpecTypeIn(
     regionId: RegionId,
     specTypes: Collection<FeedSpecType>,
@@ -70,5 +79,6 @@ class FeedRepositoryImpl(
     jpaRepository.deleteById(feedId.value)
   }
 
+  @Transactional(readOnly = true)
   override fun findAll(): List<Feed> = jpaRepository.findAll().map { mapper.toDomain(it) }
 }

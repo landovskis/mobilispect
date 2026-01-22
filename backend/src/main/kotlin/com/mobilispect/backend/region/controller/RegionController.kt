@@ -1,14 +1,12 @@
 package com.mobilispect.backend.region.controller
 
+import com.mobilispect.backend.api.BulkImportResponse
 import com.mobilispect.backend.api.dto.FeedDTO
 import com.mobilispect.backend.api.dto.FeedSpecType
 import com.mobilispect.backend.api.dto.FeedStatus
 import com.mobilispect.backend.api.dto.FeedsResponse
 import com.mobilispect.backend.api.dto.MetropolitanRegionDTO
-import com.mobilispect.backend.api.dto.RegionUpdateRequest
 import com.mobilispect.backend.api.dto.RegionsResponse
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryJobResult
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
@@ -16,14 +14,17 @@ import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.domain.MetropolitanRegion
+import com.mobilispect.backend.region.domain.RegionImport
+import com.mobilispect.backend.region.domain.RegionImportId
+import com.mobilispect.backend.region.domain.RegionImportStatus
+import com.mobilispect.backend.region.service.RegionImportService
+import java.time.Instant
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -35,7 +36,7 @@ class RegionController(
   private val regionRepository: MetropolitanRegionRepository,
   private val feedRepository: FeedRepository,
   private val feedAuthenticationRepository: FeedAuthenticationRepository,
-  private val feedDiscoveryBatchService: FeedDiscoveryBatchService,
+  private val regionImportService: RegionImportService,
 ) {
   private val logger = LoggerFactory.getLogger(RegionController::class.java)
 
@@ -77,27 +78,10 @@ class RegionController(
   fun getRegion(@PathVariable regionOnestopId: String): MetropolitanRegionDTO {
     val region =
       regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-        notFound("Region", regionOnestopId)
+        ResponseStatusException(HttpStatus.NOT_FOUND, "${"Region"} not found: $regionOnestopId")
       }
     val feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
     return region.toDto(feeds)
-  }
-
-  @PatchMapping("/{regionOnestopId}")
-  @Transactional
-  fun updateRegion(
-    @PathVariable regionOnestopId: String,
-    @RequestBody request: RegionUpdateRequest,
-  ): MetropolitanRegionDTO {
-    val region =
-      regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-        notFound("Region", regionOnestopId)
-      }
-
-    request.autoUpdateEnabled?.let { auto -> region.autoUpdateEnabled = auto }
-    val updated = regionRepository.save(region)
-    val feeds = feedRepository.findAllByRegionRegionOnestopId(RegionId(regionOnestopId))
-    return updated.toDto(feeds)
   }
 
   @GetMapping("/{regionOnestopId}/feeds")
@@ -109,7 +93,7 @@ class RegionController(
   ): FeedsResponse {
     val region =
       regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-        notFound("Region", regionOnestopId)
+        ResponseStatusException(HttpStatus.NOT_FOUND, "${"Region"} not found: $regionOnestopId")
       }
 
     var feeds = feedRepository.findAllByRegionRegionOnestopId(region.regionOnestopId)
@@ -131,29 +115,77 @@ class RegionController(
     return FeedsResponse(feeds = feedDtos, total = feedDtos.size)
   }
 
-  @PostMapping("/{regionOnestopId}/discover")
-  suspend fun discoverFeeds(
-    @PathVariable regionOnestopId: String,
-    @RequestParam(required = false, defaultValue = "GTFS") spec: FeedSpecType,
-  ): FeedDiscoveryJobResult {
-    // GTFS-RT feeds are currently disabled
-    if (spec == FeedSpecType.GTFS_RT) {
-      logger.warn("GTFS-RT feed discovery is currently disabled")
-      throw ResponseStatusException(
-        HttpStatus.BAD_REQUEST,
-        "GTFS-RT feed discovery is currently disabled",
-      )
+  /**
+   * Start bulk import for all active feeds in a region.
+   *
+   * This endpoint triggers import jobs for all ACTIVE feeds in the specified region. It uses a
+   * continue-on-failure approach, so individual feed failures won't stop the entire operation.
+   * Feeds that already have active imports will be automatically skipped.
+   *
+   * @param regionId The region identifier
+   * @return Summary of the bulk import operation including counts and per-feed results
+   */
+  @PostMapping("/{regionId}/import-all")
+  @Transactional
+  fun importAllFeedsForRegion(@PathVariable regionId: String): BulkImportResponse {
+    // Verify region exists
+    regionRepository.findByRegionOnestopId(RegionId(regionId)).orElseThrow {
+      ResponseStatusException(HttpStatus.NOT_FOUND, "${"Region"} not found: $regionId")
     }
 
-    logger.info("Discovering feeds for region {} using spec {}", regionOnestopId, spec)
+    return regionImportService.import(
+      regionId = RegionId(regionId),
+      triggerType = ImportTriggerType.MANUAL,
+    )
+  }
 
-    // Get region name for Transit.land API query
-    val region =
-      regionRepository.findByRegionOnestopId(RegionId(regionOnestopId)).orElseThrow {
-        ResponseStatusException(HttpStatus.NOT_FOUND, "Region not found: $regionOnestopId")
-      }
+  /**
+   * Get the active region import for a specific region (if any).
+   *
+   * @param regionId The region identifier
+   * @return The active region import status if one exists, null otherwise
+   */
+  @GetMapping("/{regionId}/imports/active")
+  @Transactional(readOnly = true)
+  fun getActiveRegionImport(@PathVariable regionId: String): RegionImportStatusResponse? {
+    val regionImport = regionImportService.getActiveImportForRegion(RegionId(regionId))
+    return regionImport?.toStatusResponse()
+  }
 
-    return feedDiscoveryBatchService.discoverForRegion(regionOnestopId, spec.toEntity())
+  /**
+   * Get a specific region import by its ID.
+   *
+   * @param regionImportId The region import identifier
+   * @return The region import status
+   */
+  @GetMapping("/imports/{regionImportId}")
+  @Transactional(readOnly = true)
+  fun getRegionImport(@PathVariable regionImportId: String): RegionImportStatusResponse {
+    val regionImport =
+      regionImportService.getRegionImport(RegionImportId.fromString(regionImportId))
+        ?: throw ResponseStatusException(
+          HttpStatus.NOT_FOUND,
+          "Region import not found: $regionImportId",
+        )
+    return regionImport.toStatusResponse()
+  }
+
+  private fun RegionImport.toStatusResponse(): RegionImportStatusResponse {
+    return RegionImportStatusResponse(
+      regionImportId = id.value.toString(),
+      regionOnestopId = regionOnestopId,
+      status = status,
+      totalFeeds = totalFeeds,
+      startedCount = startedCount,
+      completedCount = completedCount,
+      failedCount = failedCount,
+      skippedCount = skippedCount,
+      startedAt = startedAt,
+      completedAt = completedAt,
+      errorMessage = errorMessage,
+      createdAt = createdAt,
+      updatedAt = updatedAt,
+    )
   }
 
   private fun toFeedDto(regionOnestopId: String, feed: FeedEntity): FeedDTO {
@@ -215,7 +247,25 @@ class RegionController(
       FeedStatus.INACTIVE -> com.mobilispect.backend.feed.model.FeedStatus.INACTIVE
       FeedStatus.ERROR -> com.mobilispect.backend.feed.model.FeedStatus.ERROR
     }
-
-  private fun notFound(entity: String, identifier: String) =
-    ResponseStatusException(HttpStatus.NOT_FOUND, "$entity not found: $identifier")
 }
+
+/**
+ * Response DTO for region import status.
+ *
+ * Contains detailed information about a region import including progress counts and timestamps.
+ */
+data class RegionImportStatusResponse(
+  val regionImportId: String,
+  val regionOnestopId: String,
+  val status: RegionImportStatus,
+  val totalFeeds: Int,
+  val startedCount: Int,
+  val completedCount: Int,
+  val failedCount: Int,
+  val skippedCount: Int,
+  val startedAt: Instant?,
+  val completedAt: Instant?,
+  val errorMessage: String?,
+  val createdAt: Instant,
+  val updatedAt: Instant,
+)

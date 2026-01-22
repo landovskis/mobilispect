@@ -4,7 +4,7 @@ import { FeedImportsPageComponent } from './pages/feed-imports.page';
 export const FEED_MANAGEMENT_ROUTES: Routes = [
   {
     path: '',
-    redirectTo: '/regions/discover',
+    redirectTo: '/regions',
     pathMatch: 'full',
   },
   {
@@ -13,12 +13,12 @@ export const FEED_MANAGEMENT_ROUTES: Routes = [
     children: [
       {
         path: 'discover/:regionId',
-        redirectTo: '/regions/discover/:regionId',
+        redirectTo: '/regions/:regionId',
         pathMatch: 'full',
       },
       {
         path: 'discover',
-        redirectTo: '/regions/discover',
+        redirectTo: '/regions',
         pathMatch: 'full',
       },
       {

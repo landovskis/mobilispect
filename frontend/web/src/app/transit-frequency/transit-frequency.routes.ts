@@ -1,39 +1,35 @@
 import { Routes } from '@angular/router';
-import { RegionListComponent } from '../regions/pages/region-list.component';
-import { RegionDetailComponent } from '../regions/pages/region-detail.component';
+import { RegionsPageComponent } from '../regions/pages/regions.page';
 import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 import { RouteBreadcrumbResolver } from './resolvers/route-breadcrumb.resolver';
-import { DiscoverRegionsPageComponent } from '../regions/pages/discover-regions.page';
 
 export const TRANSIT_FREQUENCY_ROUTES: Routes = [
   {
     path: '',
-    component: RegionListComponent,
+    component: RegionsPageComponent,
     data: {},
   },
   {
     path: 'discover/:regionId',
-    component: DiscoverRegionsPageComponent,
-    resolve: {
-      breadcrumb: RegionBreadcrumbResolver,
-    },
+    redirectTo: '/regions/:regionId',
+    pathMatch: 'full',
     data: {
-      title: 'Discover Regions',
+      title: 'Regions',
       permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
     },
   },
   {
     path: 'discover',
-    component: DiscoverRegionsPageComponent,
+    redirectTo: '/regions',
+    pathMatch: 'full',
     data: {
-      title: 'Discover Regions',
-      breadcrumb: 'Discover',
+      title: 'Regions',
       permissions: ['FEED_VIEWER', 'FEED_OPERATOR', 'FEED_MANAGER'],
     },
   },
   {
     path: ':regionId',
-    component: RegionDetailComponent,
+    component: RegionsPageComponent,
     resolve: {
       breadcrumb: RegionBreadcrumbResolver,
     },

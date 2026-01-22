@@ -8,8 +8,8 @@ import com.mobilispect.backend.feed.api.GTFSShapePoint
 import com.mobilispect.backend.feed.api.GTFSStop
 import com.mobilispect.backend.feed.api.GTFSStopTime
 import com.mobilispect.backend.feed.api.GTFSTrip
-import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
-import com.mobilispect.backend.feed.api.ids.GTFSRouteId
+import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
+import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.feed.api.ids.GTFSStopId
 import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
@@ -167,7 +167,7 @@ class GTFSFeedReader(
       val agencies =
         feed.agency.values.map { agency ->
           GTFSAgency(
-            agencyId = GTFSAgencyId(agency.agency_id),
+            agencyId = FeedLocalAgencyId(agency.agency_id),
             name = agency.agency_name,
             url = agency.agency_url?.toString(),
             timezone = agency.agency_timezone,
@@ -178,8 +178,8 @@ class GTFSFeedReader(
       val routes =
         feed.routes.values.map { route ->
           GTFSRoute(
-            routeId = GTFSRouteId(route.route_id),
-            agencyId = GTFSAgencyId.from(route.agency_id),
+            routeId = FeedLocalRouteId(route.route_id),
+            agencyId = FeedLocalAgencyId.from(route.agency_id),
             shortName = route.route_short_name,
             longName = route.route_long_name,
             type = route.route_type,
@@ -238,7 +238,7 @@ class GTFSFeedReader(
             }
 
           GTFSTrip(
-            routeId = GTFSRouteId(trip.route_id),
+            routeId = FeedLocalRouteId(trip.route_id),
             tripId = GTFSTripId(trip.trip_id),
             directionId = trip.direction_id,
             headsign = trip.trip_headsign,

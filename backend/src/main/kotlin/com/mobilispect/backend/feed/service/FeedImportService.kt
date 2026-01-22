@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
 import org.springframework.batch.core.launch.JobExecutionAlreadyRunningException
-import org.springframework.batch.core.launch.JobLauncher
+import org.springframework.batch.core.launch.JobOperator
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.TaskExecutor
 import org.springframework.data.domain.PageRequest
@@ -27,14 +27,16 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 class FeedImportService(
   @Qualifier("feedManagementFeedRepository") private val feedRepository: FeedRepository,
   private val feedImportRepository: FeedImportRepository,
-  private val jobLauncher: JobLauncher,
+  private val rateLimitedJobLauncher: RateLimitedJobLauncher,
+  private val jobOperator: JobOperator,
   @Qualifier("feedImportJob") private val feedImportJob: Job,
   @Qualifier("taskExecutor") private val importLaunchExecutor: TaskExecutor,
   private val clock: Clock = Clock.systemUTC(),
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportService::class.java)
 
-  fun startImport(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
+  @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+  fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport {
     val activeImport =
       feedImportRepository
         .findAllByFeedIdAndStatusInOrderByStartedAtDesc(
@@ -45,12 +47,29 @@ class FeedImportService(
         .content
         .firstOrNull()
     if (activeImport != null) {
-      logger.info(
-        "Import already running for feed {}, returning existing import {}",
-        feedId,
-        activeImport.id,
-      )
-      return activeImport
+      // Check if import is stale (running for more than 1 hour)
+      val now = clock.instant()
+      val importAge = java.time.Duration.between(activeImport.startedAt, now)
+      if (importAge.toHours() >= 1) {
+        logger.warn(
+          "Found stale import {} for feed {} (running for {} hours), marking as failed",
+          activeImport.id,
+          feedId,
+          importAge.toHours(),
+        )
+        activeImport.status = ImportStatus.FAILED
+        activeImport.completedAt = now
+        activeImport.errorMessage = "Import timed out - stuck in running state for > 1 hour"
+        feedImportRepository.save(activeImport)
+        // Continue to create new import below
+      } else {
+        logger.info(
+          "Import already running for feed {}, returning existing import {}",
+          feedId,
+          activeImport.id,
+        )
+        return activeImport
+      }
     }
 
     val feed =
@@ -60,27 +79,56 @@ class FeedImportService(
 
     val now = clock.instant()
     val feedImport =
-      feedImportRepository.save(
-        FeedImport().apply {
-          this.feedId = feed.feedId
-          this.administrator = null
-          this.triggerType = triggerType
-          this.status = ImportStatus.RUNNING
-          this.startedAt = now
-          this.versionSha1 = null
-        }
-      )
+      try {
+        feedImportRepository.save(
+          FeedImport().apply {
+            this.feedId = feed.feedId
+            this.administrator = null
+            this.triggerType = triggerType
+            this.status = ImportStatus.RUNNING
+            this.startedAt = now
+            this.versionSha1 = null
+          }
+        )
+      } catch (e: org.springframework.dao.DataIntegrityViolationException) {
+        // Database constraint prevented duplicate - fetch and return the existing import
+        // Do NOT launch a job for this import as it already has one running
+        logger.info(
+          "Import already started for feed {} (caught by database constraint), returning existing import",
+          feedId,
+        )
+        return feedImportRepository
+          .findAllByFeedIdAndStatusInOrderByStartedAtDesc(
+            feedId.value,
+            listOf(ImportStatus.PENDING, ImportStatus.RUNNING),
+            PageRequest.of(0, 1),
+          )
+          .content
+          .firstOrNull()
+          ?: throw IllegalStateException("Failed to create or find active import for feed $feedId")
+      }
+
+    // Capture values before async execution to avoid variable capture issues
+    val capturedImportId = feedImport.id
+    val capturedFeedId = FeedId(feed.feedId)
+
+    logger.info("import() method: created import {} for feed {}", capturedImportId, capturedFeedId)
 
     if (TransactionSynchronizationManager.isSynchronizationActive()) {
       TransactionSynchronizationManager.registerSynchronization(
         object : TransactionSynchronization {
           override fun afterCommit() {
-            launchImportJob(feedImport.id, FeedId(feed.feedId))
+            logger.info(
+              "afterCommit hook: importing {} for feed {}",
+              capturedImportId,
+              capturedFeedId,
+            )
+            launchImportJob(capturedImportId, capturedFeedId)
           }
         }
       )
     } else {
-      launchImportJob(feedImport.id, FeedId(feed.feedId))
+      launchImportJob(capturedImportId, capturedFeedId)
     }
 
     return feedImport
@@ -99,18 +147,28 @@ class FeedImportService(
   }
 
   private fun launchImportJob(importId: ImportId, feedId: FeedId) {
-    val params =
-      JobParametersBuilder()
-        .addString("feedOnestopId", feedId.value, true)
-        .addString("importId", importId.value.toString(), true)
-        .addLong("timestamp", System.currentTimeMillis(), true)
-        .toJobParameters()
+    logger.info("launchImportJob called with importId={}, feedId={}", importId, feedId)
 
     importLaunchExecutor.execute {
-      runCatching { jobLauncher.run(feedImportJob, params) }
+      // Build parameters INSIDE async block to avoid variable capture issues
+      val params =
+        JobParametersBuilder()
+          .addString("feedOnestopId", feedId.value, true)
+          .addString("importId", importId.value.toString(), true)
+          .toJobParameters()
+
+      logger.info(
+        "Executing async block for importId={}, feedId={} with params={}",
+        importId,
+        feedId,
+        params,
+      )
+      runCatching { rateLimitedJobLauncher.run(feedImportJob, params) }
         .onFailure { throwable ->
           if (throwable is JobExecutionAlreadyRunningException) {
             logger.info("Feed import job already running for {} with import {}", feedId, importId)
+            cancelRunningJobExecution(importId, feedId)
+            cancelImport(importId)
             return@onFailure
           }
           logger.error("Failed to launch feed import job for {}", feedId, throwable)
@@ -153,5 +211,33 @@ class FeedImportService(
     feedImport.completedAt = clock.instant()
     feedImport.errorMessage = message
     feedImportRepository.save(feedImport)
+  }
+
+  private fun cancelRunningJobExecution(importId: ImportId, feedId: FeedId) {
+    val runningExecutionIds = jobOperator.getRunningExecutions(feedImportJob.name)
+
+    if (runningExecutionIds.isEmpty()) {
+      logger.warn(
+        "No running job executions found to cancel for feed {} and import {}",
+        feedId,
+        importId,
+      )
+      return
+    }
+
+    runningExecutionIds.forEach { executionId ->
+      runCatching { jobOperator.stop(executionId) }
+        .onSuccess {
+          logger.info("Stopped running job execution {} for feed {}", executionId, feedId)
+        }
+        .onFailure { error ->
+          logger.warn(
+            "Failed to stop running job execution {} for feed {}",
+            executionId,
+            feedId,
+            error,
+          )
+        }
+    }
   }
 }
