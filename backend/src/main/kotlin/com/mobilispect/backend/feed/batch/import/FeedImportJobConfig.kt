@@ -36,7 +36,6 @@ class FeedImportJobConfig(
       .preventRestart()
       .start(feedImportStep())
       .next(agencyProcessingStep())
-      .next(routeProcessingStep())
       .next(routeVariantProcessingStep())
       .next(stopSpacingProcessingStep())
       .next(frequencyProcessingStep())

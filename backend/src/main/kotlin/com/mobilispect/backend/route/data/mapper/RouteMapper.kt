@@ -20,7 +20,8 @@ class RouteMapper {
   fun toDomain(entity: RouteEntity): Route =
     Route(
       id = RouteId(entity.id),
-      agencyId = AgencyId(entity.agencyId),
+      agencyId = AgencyId(entity.agencyOnestopId),
+      gtfsRouteId = entity.gtfsRouteId,
       shortName = entity.shortName,
       longName = entity.longName,
       routeType = RouteType.fromValue(entity.routeType),
@@ -40,7 +41,8 @@ class RouteMapper {
   fun toEntity(domain: Route): RouteEntity =
     RouteEntity(
       id = domain.id.value,
-      agencyId = domain.agencyId.value,
+      agencyOnestopId = domain.agencyId.value,
+      gtfsRouteId = domain.gtfsRouteId,
       shortName = domain.shortName,
       longName = domain.longName,
       routeType = domain.routeType.value,

@@ -13,6 +13,7 @@ import com.mobilispect.backend.route.domain.model.RouteType
 data class RouteDTO(
   val routeId: RouteId,
   val agencyId: AgencyId,
+  val gtfsRouteId: String,
   val shortName: String?,
   val longName: String?,
   val routeType: RouteType,

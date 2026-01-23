@@ -37,7 +37,7 @@ class AgencyQueryServiceTest {
   @Test
   fun `getAgencies maps agency and routes into DTO`() {
     val now = Instant.now()
-    val feed =
+    val feedDTO =
       FeedDTO(
         feedId = FeedId("f-abc"),
         name = "Test Feed",
@@ -56,6 +56,7 @@ class AgencyQueryServiceTest {
       Agency(
         agencyId = AgencyId("o-123"),
         feedId = FeedId("f-abc"),
+        gtfsAgencyId = "123",
         name = "Test Agency",
         createdAt = Instant.now(),
         updatedAt = Instant.now(),
@@ -65,6 +66,7 @@ class AgencyQueryServiceTest {
         Route(
           id = RouteId("r-1"),
           agencyId = agency.agencyId,
+          gtfsRouteId = "1",
           shortName = "1",
           longName = "Route 1",
           routeType = RouteType.BUS,
@@ -73,6 +75,7 @@ class AgencyQueryServiceTest {
         Route(
           id = RouteId("r-2"),
           agencyId = agency.agencyId,
+          gtfsRouteId = "2",
           shortName = "2",
           longName = "Route 2",
           routeType = RouteType.BUS,
@@ -83,7 +86,7 @@ class AgencyQueryServiceTest {
     `when`(agencyRepository.findAll()).thenReturn(listOf(agency))
     `when`(routeRepository.findByAgencyId(agency.agencyId, Pageable.unpaged()))
       .thenReturn(PageImpl(routes))
-    `when`(feedQueryApi.findFeedById(FeedId("f-abc"))).thenReturn(feed)
+    `when`(feedQueryApi.findFeedById(FeedId("f-abc"))).thenReturn(feedDTO)
 
     val page: Page<*> = service.getAgencies(PageRequest.of(0, 20))
     val dto = page.content.first() as com.mobilispect.backend.agency.api.dto.AgencyDTO
@@ -139,6 +142,7 @@ class AgencyQueryServiceTest {
       Agency(
         agencyId = AgencyId("o-1"),
         feedId = FeedId("f-abc"),
+        gtfsAgencyId = "1",
         name = "A1",
         createdAt = Instant.now(),
         updatedAt = Instant.now(),

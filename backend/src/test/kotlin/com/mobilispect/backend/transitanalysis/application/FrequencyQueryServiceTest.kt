@@ -34,6 +34,7 @@ class FrequencyQueryServiceTest {
       Route(
         id = RouteId("r-1"),
         agencyId = AgencyId("o-1"),
+        gtfsRouteId = "1",
         longName = "Route 1",
         routeType = RouteType.BUS,
         active = true,
@@ -68,6 +69,7 @@ class FrequencyQueryServiceTest {
       Route(
         id = RouteId("r-1"),
         agencyId = AgencyId("o-1"),
+        gtfsRouteId = "1",
         longName = "Route 1",
         routeType = RouteType.BUS,
         active = true,

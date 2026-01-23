@@ -22,4 +22,12 @@ data class AgencyId(val value: String) {
   ) : this("${feedId.value}$delimiter${agencyId.value}")
 
   override fun toString(): String = value
+
+  override fun equals(other: Any?): Boolean {
+    if (this === other) return true
+    if (other !is AgencyId) return false
+    return value == other.value
+  }
+
+  override fun hashCode(): Int = value.hashCode()
 }
