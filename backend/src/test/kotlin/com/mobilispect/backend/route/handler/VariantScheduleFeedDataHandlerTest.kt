@@ -9,6 +9,7 @@ import com.mobilispect.backend.feed.api.ids.GTFSStopId
 import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
+import com.mobilispect.backend.route.domain.repository.VariantDepartureRepository
 import com.mobilispect.backend.route.domain.repository.VariantScheduleRepository
 import com.mobilispect.backend.route.domain.service.VariantHashGenerator
 import io.mockk.every
@@ -24,14 +25,21 @@ import org.junit.jupiter.api.Test
 class VariantScheduleFeedDataHandlerTest {
 
   private lateinit var variantScheduleRepository: VariantScheduleRepository
+  private lateinit var variantDepartureRepository: VariantDepartureRepository
   private lateinit var variantHashGenerator: VariantHashGenerator
   private lateinit var handler: VariantScheduleFeedDataHandler
 
   @BeforeEach
   fun setup() {
     variantScheduleRepository = mockk(relaxed = true)
+    variantDepartureRepository = mockk(relaxed = true)
     variantHashGenerator = mockk(relaxed = true)
-    handler = VariantScheduleFeedDataHandler(variantScheduleRepository, variantHashGenerator)
+    handler =
+      VariantScheduleFeedDataHandler(
+        variantScheduleRepository,
+        variantDepartureRepository,
+        variantHashGenerator,
+      )
   }
 
   @Test

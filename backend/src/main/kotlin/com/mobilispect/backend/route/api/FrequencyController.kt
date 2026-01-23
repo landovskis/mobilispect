@@ -31,4 +31,8 @@ class FrequencyController(private val frequencyQueryService: FrequencyQueryServi
     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate?,
   ): List<FrequencyDTO> =
     frequencyQueryService.getFrequenciesForVariant(VariantHash(variantId), date)
+
+  @GetMapping("/variants/{variantId}/schedule")
+  fun getCompleteSchedule(@PathVariable variantId: String): List<String> =
+    frequencyQueryService.getCompleteSchedule(VariantHash(variantId))
 }

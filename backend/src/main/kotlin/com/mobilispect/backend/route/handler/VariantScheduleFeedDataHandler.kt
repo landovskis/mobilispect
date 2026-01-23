@@ -8,7 +8,9 @@ import com.mobilispect.backend.feed.api.handler.ImportContext
 import com.mobilispect.backend.feed.api.handler.ImportError
 import com.mobilispect.backend.feed.api.handler.ImportResult
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
+import com.mobilispect.backend.route.domain.model.VariantDeparture
 import com.mobilispect.backend.route.domain.model.VariantSchedule
+import com.mobilispect.backend.route.domain.repository.VariantDepartureRepository
 import com.mobilispect.backend.route.domain.repository.VariantScheduleRepository
 import com.mobilispect.backend.route.domain.service.VariantHashGenerator
 import java.time.Instant
@@ -18,23 +20,25 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * Handler that calculates and persists schedule summaries for route variants.
+ * Handler that calculates and persists schedule summaries and departure times for route variants.
  *
  * This handler:
  * 1. Groups trips by variant (using stop pattern hash)
  * 2. Extracts first departure times from each trip
  * 3. Calculates earliest/latest departure times and trip count per variant
- * 4. Persists VariantSchedule records
+ * 4. Persists VariantSchedule summary and individual VariantDeparture records
  *
  * Priority is set to 2 (after route variants at 4 and stop spacing at 3) because schedules depend
  * on variants.
  *
  * @param variantScheduleRepository Repository for persisting variant schedule entities
+ * @param variantDepartureRepository Repository for persisting individual departure times
  * @param variantHashGenerator Generator for computing variant hashes
  */
 @Component
 class VariantScheduleFeedDataHandler(
   private val variantScheduleRepository: VariantScheduleRepository,
+  private val variantDepartureRepository: VariantDepartureRepository,
   private val variantHashGenerator: VariantHashGenerator,
 ) : FeedDataHandler {
 
@@ -73,14 +77,29 @@ class VariantScheduleFeedDataHandler(
         val schedule = calculateScheduleSummary(variantId.value, trips)
 
         if (schedule != null) {
-          // Delete existing schedule for this variant to avoid duplicates
+          // Delete existing schedule and departures for this variant to avoid duplicates
           if (variantScheduleRepository.existsByVariantId(variantId.value)) {
             logger.debug("Deleting existing schedule for variant {}", variantId.value.take(12))
             variantScheduleRepository.deleteByVariantId(variantId.value)
           }
+          if (variantDepartureRepository.existsByVariantId(variantId.value)) {
+            logger.debug("Deleting existing departures for variant {}", variantId.value.take(12))
+            variantDepartureRepository.deleteByVariantId(variantId.value)
+          }
 
           // Save schedule summary
           variantScheduleRepository.save(schedule)
+
+          // Save individual departure times
+          val departures = collectDepartures(variantId.value, trips)
+          if (departures.isNotEmpty()) {
+            variantDepartureRepository.saveAll(departures)
+            logger.debug(
+              "Saved {} departure times for variant {}",
+              departures.size,
+              variantId.value.take(12),
+            )
+          }
 
           logger.debug(
             "Created schedule for variant {} (first: {}, last: {}, trips: {})",
@@ -172,5 +191,30 @@ class VariantScheduleFeedDataHandler(
       tripCount = trips.size,
       calculatedAt = Instant.now(),
     )
+  }
+
+  /**
+   * Collect individual departure times for a variant.
+   *
+   * @param variantId The variant ID
+   * @param trips List of trips for this variant
+   * @return List of VariantDeparture entities
+   */
+  private fun collectDepartures(variantId: String, trips: List<GTFSTrip>): List<VariantDeparture> {
+    val calculatedAt = Instant.now()
+    return trips
+      .mapNotNull { trip ->
+        val departureTime = trip.stopTimes.firstOrNull()?.departureTime
+        if (departureTime != null && departureTime != LocalTime.MIDNIGHT) {
+          VariantDeparture(
+            variantId = variantId,
+            departureTime = departureTime,
+            tripId = trip.tripId.value,
+            calculatedAt = calculatedAt,
+          )
+        } else {
+          null
+        }
+      }
   }
 }

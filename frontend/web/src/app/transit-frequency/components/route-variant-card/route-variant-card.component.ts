@@ -3,12 +3,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
+  signal,
 } from '@angular/core';
 
 import {
   FrequencyDto,
+  FrequencyService,
   RouteVariantDto,
 } from '../../services/frequency.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
@@ -54,12 +57,40 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
             }
             @if (variant.firstDepartureTime && variant.lastDepartureTime) {
               <span
-                class="schedule-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold"
+                class="schedule-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold cursor-pointer hover:opacity-80"
+                (click)="toggleSchedule($event)"
+                title="Click to view complete schedule"
               >
                 {{ formatSchedule(variant) }}
               </span>
             }
           </div>
+          @if (showCompleteSchedule()) {
+            <div class="complete-schedule mt-3 p-3 rounded-md">
+              <div class="flex justify-between items-center mb-2">
+                <h4 class="text-sm font-semibold m-0">Complete Schedule</h4>
+                <button
+                  class="close-btn text-sm"
+                  (click)="toggleSchedule($event)"
+                  aria-label="Close schedule"
+                >
+                  ✕
+                </button>
+              </div>
+              @if (isLoadingSchedule()) {
+                <p class="text-sm">Loading...</p>
+              } @else if (completeDepartures().length > 0) {
+                <div class="departures-grid">
+                  @for (time of completeDepartures(); track time) {
+                    <span class="departure-time">{{ formatDepartureTime(time) }}</span>
+                  }
+                </div>
+              } @else {
+                <p class="text-sm">No departure times available</p>
+              }
+            </div>
+          }
+        </div>
         </div>
       </app-brand-card>
     </div>
@@ -149,6 +180,51 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
         background: rgba(244, 67, 54, 0.2);
         color: #fecaca;
       }
+      .complete-schedule {
+        background: rgba(103, 58, 183, 0.05);
+        border: 1px solid rgba(103, 58, 183, 0.2);
+      }
+      .departures-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 8px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .departure-time {
+        background: rgba(103, 58, 183, 0.12);
+        color: #673ab7;
+        padding: 4px 8px;
+        border-radius: 4px;
+        text-align: center;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .close-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--mat-sys-on-surface-variant, #64748b);
+        font-size: 1.25rem;
+        line-height: 1;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .close-btn:hover {
+        opacity: 0.7;
+      }
+      :host-context(.dark-theme) .complete-schedule {
+        background: rgba(156, 39, 176, 0.1);
+        border: 1px solid rgba(156, 39, 176, 0.3);
+      }
+      :host-context(.dark-theme) .departure-time {
+        background: rgba(156, 39, 176, 0.2);
+        color: #ce93d8;
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -157,6 +233,12 @@ export class RouteVariantCardComponent {
   @Input({ required: true }) variant!: RouteVariantDto;
   @Input() frequencies: FrequencyDto[] = [];
   @Output() selected = new EventEmitter<string>();
+
+  private readonly frequencyService = inject(FrequencyService);
+
+  showCompleteSchedule = signal(false);
+  isLoadingSchedule = signal(false);
+  completeDepartures = signal<string[]>([]);
 
   get stopNames(): string[] {
     if (this.variant.stopNames && this.variant.stopNames.length > 0) {
@@ -208,5 +290,32 @@ export class RouteVariantCardComponent {
     const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
 
     return `${hour12}:${minute} ${period}`;
+  }
+
+  toggleSchedule(event: Event): void {
+    event.stopPropagation();
+
+    if (!this.showCompleteSchedule()) {
+      // Load complete schedule if not already loaded
+      if (this.completeDepartures().length === 0) {
+        this.isLoadingSchedule.set(true);
+        this.frequencyService.getCompleteSchedule(this.variant.id).subscribe({
+          next: (departures) => {
+            this.completeDepartures.set(departures);
+            this.isLoadingSchedule.set(false);
+          },
+          error: (err) => {
+            console.error('Failed to load complete schedule:', err);
+            this.isLoadingSchedule.set(false);
+          },
+        });
+      }
+    }
+
+    this.showCompleteSchedule.set(!this.showCompleteSchedule());
+  }
+
+  formatDepartureTime(timeStr: string): string {
+    return this.formatTime(timeStr);
   }
 }

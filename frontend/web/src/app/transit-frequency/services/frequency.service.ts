@@ -107,4 +107,10 @@ export class FrequencyService {
       { params: { date } },
     );
   }
+
+  getCompleteSchedule(variantId: string): Observable<string[]> {
+    return this.http.get<string[]>(
+      `${this.baseUrl}/variants/${variantId}/schedule`,
+    );
+  }
 }
