@@ -26,7 +26,11 @@ import java.time.Instant
 data class Agency(
   val agencyId: AgencyId,
   val feedId: FeedId,
+  val gtfsAgencyId: String,
   val name: String,
+  val website: String? = null,
+  val phone: String? = null,
+  val lastFeedImport: Instant? = null,
   val active: Boolean = true,
   val createdAt: Instant = Instant.now(),
   val updatedAt: Instant = Instant.now(),

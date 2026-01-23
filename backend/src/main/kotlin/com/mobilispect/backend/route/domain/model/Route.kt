@@ -23,6 +23,7 @@ import java.time.Instant
 data class Route(
   val id: RouteId,
   val agencyId: AgencyId,
+  val gtfsRouteId: String,
   val shortName: String? = null,
   val longName: String,
   val routeType: RouteType,

@@ -39,6 +39,7 @@ class CommonSectionServiceTest {
       Route(
         id = RouteId("r-1"),
         agencyId = AgencyId("o-1"),
+        gtfsRouteId = "1",
         longName = "Route 1",
         routeType = com.mobilispect.backend.route.domain.model.RouteType.BUS,
         active = true,

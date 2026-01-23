@@ -1,8 +1,5 @@
 package com.mobilispect.backend.feed.controller
 
-import com.mobilispect.backend.api.BulkImportResponse
-import com.mobilispect.backend.api.FeedImportResult
-import com.mobilispect.backend.api.FeedImportResultStatus
 import com.mobilispect.backend.api.dto.FeedSpecType as FeedSpecTypeDto
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
