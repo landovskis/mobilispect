@@ -27,6 +27,9 @@ export interface RouteVariantDto {
   lastStopId: string;
   averageStopSpacingKm?: number | null;
   stopSpacingClassification?: 'local' | 'rapid' | 'express' | null;
+  firstDepartureTime?: string | null;
+  lastDepartureTime?: string | null;
+  scheduleTripCount?: number | null;
 }
 
 export interface RouteDto {

@@ -52,6 +52,13 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
                 {{ formatClassification(variant.stopSpacingClassification) }}
               </span>
             }
+            @if (variant.firstDepartureTime && variant.lastDepartureTime) {
+              <span
+                class="schedule-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold"
+              >
+                {{ formatSchedule(variant) }}
+              </span>
+            }
           </div>
         </div>
       </app-brand-card>
@@ -90,6 +97,10 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
         background: rgba(11, 79, 138, 0.12);
         color: var(--mat-sys-primary, #0b4f8a);
       }
+      .schedule-badge {
+        background: rgba(103, 58, 183, 0.12);
+        color: #673ab7;
+      }
       .classification {
         background: rgba(11, 79, 138, 0.12);
         color: #0b4f8a;
@@ -117,6 +128,10 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       :host-context(.dark-theme) .spacing-badge {
         background: rgba(59, 130, 246, 0.2);
         color: var(--mat-sys-on-surface, #e2e8f0);
+      }
+      :host-context(.dark-theme) .schedule-badge {
+        background: rgba(156, 39, 176, 0.2);
+        color: #ce93d8;
       }
       :host-context(.dark-theme) .classification {
         background: rgba(59, 130, 246, 0.2);
@@ -166,5 +181,32 @@ export class RouteVariantCardComponent {
 
   classificationClass(classification: 'local' | 'rapid' | 'express'): string {
     return classification;
+  }
+
+  formatSchedule(variant: RouteVariantDto): string {
+    if (!variant.firstDepartureTime || !variant.lastDepartureTime) {
+      return 'Schedule: Not available';
+    }
+
+    const first = this.formatTime(variant.firstDepartureTime);
+    const last = this.formatTime(variant.lastDepartureTime);
+    const trips = variant.scheduleTripCount ? ` (${variant.scheduleTripCount} trips)` : '';
+
+    return `${first} - ${last}${trips}`;
+  }
+
+  private formatTime(timeStr: string): string {
+    // Parse time string (HH:mm:ss or HH:mm format)
+    const parts = timeStr.split(':');
+    if (parts.length < 2) return timeStr;
+
+    const hour = parseInt(parts[0], 10);
+    const minute = parts[1];
+
+    // Convert to 12-hour format
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+
+    return `${hour12}:${minute} ${period}`;
   }
 }

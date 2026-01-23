@@ -9,6 +9,7 @@ import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.domain.repository.VariantScheduleRepository
 import java.time.LocalDate
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
@@ -24,6 +25,7 @@ class FrequencyQueryService(
   private val routeRepository: RouteRepository,
   private val routeVariantRepository: RouteVariantRepository,
   private val frequencyRepository: FrequencyRepository,
+  private val variantScheduleRepository: VariantScheduleRepository,
 ) {
   @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'route_' + #routeId")
   fun getRoute(routeId: RouteId): RouteDTO? =
@@ -40,17 +42,22 @@ class FrequencyQueryService(
 
   @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'variants_' + #routeId")
   fun getVariantsByRoute(routeId: RouteId): List<RouteVariantDTO> =
-    routeVariantRepository.findByRouteId(routeId).map {
+    routeVariantRepository.findByRouteId(routeId).map { variant ->
+      val schedule = variantScheduleRepository.findByVariantId(variant.id.value)
+
       RouteVariantDTO(
-        id = it.id.value,
-        routeId = it.routeId.value,
-        directionId = it.directionId,
-        headsign = it.headsign,
-        stopCount = it.stopCount,
-        stopPattern = it.stopPattern,
-        stopNames = extractStopNames(it.stopNamePattern, it.stopPattern),
-        firstStopId = it.firstStopId,
-        lastStopId = it.lastStopId,
+        id = variant.id.value,
+        routeId = variant.routeId.value,
+        directionId = variant.directionId,
+        headsign = variant.headsign,
+        stopCount = variant.stopCount,
+        stopPattern = variant.stopPattern,
+        stopNames = extractStopNames(variant.stopNamePattern, variant.stopPattern),
+        firstStopId = variant.firstStopId,
+        lastStopId = variant.lastStopId,
+        firstDepartureTime = schedule?.firstDepartureTime,
+        lastDepartureTime = schedule?.lastDepartureTime,
+        scheduleTripCount = schedule?.tripCount,
       )
     }
 

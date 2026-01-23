@@ -1,5 +1,7 @@
 package com.mobilispect.backend.route.api.dto
 
+import java.time.LocalTime
+
 data class RouteVariantDTO(
   val id: String,
   val routeId: String,
@@ -10,4 +12,7 @@ data class RouteVariantDTO(
   val stopNames: List<String>,
   val firstStopId: String,
   val lastStopId: String,
+  val firstDepartureTime: LocalTime?,
+  val lastDepartureTime: LocalTime?,
+  val scheduleTripCount: Int?,
 )
