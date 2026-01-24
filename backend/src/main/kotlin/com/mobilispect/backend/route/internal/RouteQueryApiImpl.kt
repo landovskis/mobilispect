@@ -21,6 +21,7 @@ internal class RouteQueryApiImpl(private val routeRepository: RouteRepository) :
       RouteDTO(
         routeId = route.id,
         agencyId = route.agencyId,
+        gtfsRouteId = route.gtfsRouteId,
         shortName = route.shortName,
         longName = route.longName,
         routeType = route.routeType,
@@ -38,6 +39,7 @@ internal class RouteQueryApiImpl(private val routeRepository: RouteRepository) :
         RouteDTO(
           routeId = route.id,
           agencyId = route.agencyId,
+          gtfsRouteId = route.gtfsRouteId,
           shortName = route.shortName,
           longName = route.longName,
           routeType = route.routeType,

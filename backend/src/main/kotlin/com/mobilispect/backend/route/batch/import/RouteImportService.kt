@@ -63,6 +63,7 @@ class RouteImportService(
         Route(
           id = RouteId(agencyId, parsedRoute.routeId),
           agencyId = agencyId,
+          gtfsRouteId = parsedRoute.routeId.value,
           shortName = parsedRoute.shortName,
           longName = parsedRoute.longName ?: parsedRoute.shortName ?: parsedRoute.routeId.value,
           routeType = RouteType.fromGtfsValue(parsedRoute.type ?: 3),
@@ -90,7 +91,9 @@ class RouteImportService(
           routeRepository.save(route)
         }
 
-      eventPublisher.publishEvent(RouteImported(routeId = saved.id))
+      eventPublisher.publishEvent(
+        RouteImported(routeId = saved.id, gtfsRouteId = saved.gtfsRouteId)
+      )
       routesByFeedLocalId[parsedRoute.routeId.value] = saved
     }
 

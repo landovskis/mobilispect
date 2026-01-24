@@ -46,11 +46,12 @@ interface RegionImportRepository : JpaRepository<RegionImport, RegionImportId> {
     """
     SELECT ri FROM RegionImport ri
     WHERE ri.regionOnestopId = :regionOnestopId
-    AND ri.status IN ('PENDING', 'RUNNING')
+    AND ri.status IN :statuses
     """
   )
   fun findActiveByRegionOnestopId(
-    @Param("regionOnestopId") regionOnestopId: String
+    @Param("regionOnestopId") regionOnestopId: String,
+    @Param("statuses") statuses: Collection<RegionImportStatus>,
   ): Optional<RegionImport>
 
   /**
@@ -62,10 +63,13 @@ interface RegionImportRepository : JpaRepository<RegionImport, RegionImportId> {
     SELECT CASE WHEN COUNT(ri) > 0 THEN true ELSE false END
     FROM RegionImport ri
     WHERE ri.regionOnestopId = :regionOnestopId
-    AND ri.status IN ('PENDING', 'RUNNING')
+    AND ri.status IN :statuses
     """
   )
-  fun existsActiveByRegionOnestopId(@Param("regionOnestopId") regionOnestopId: String): Boolean
+  fun existsActiveByRegionOnestopId(
+    @Param("regionOnestopId") regionOnestopId: String,
+    @Param("statuses") statuses: Collection<RegionImportStatus>,
+  ): Boolean
 
   /** Find all active (pending or running) region imports. */
   fun findAllByStatusInOrderByCreatedAtAsc(

@@ -8,6 +8,7 @@ import com.mobilispect.backend.api.dto.FeedsResponse
 import com.mobilispect.backend.api.dto.MetropolitanRegionDTO
 import com.mobilispect.backend.api.dto.RegionsResponse
 import com.mobilispect.backend.feed.model.FeedEntity
+import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository

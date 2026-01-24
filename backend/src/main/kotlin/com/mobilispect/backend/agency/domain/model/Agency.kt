@@ -14,11 +14,7 @@ import java.time.Instant
  *
  * @property agencyId Unique agency identifier using Transitland Onestop ID format (o-geohash-name)
  * @property feedId Feed this agency belongs to
- * @property gtfsAgencyId Agency ID from GTFS agency.txt file
  * @property name Agency display name
- * @property website Agency website URL
- * @property phone Agency contact phone number
- * @property lastFeedImport Timestamp of last successful feed import
  * @property active Whether this agency is currently active
  * @property createdAt Record creation timestamp
  * @property updatedAt Record last update timestamp
@@ -26,11 +22,7 @@ import java.time.Instant
 data class Agency(
   val agencyId: AgencyId,
   val feedId: FeedId,
-  val gtfsAgencyId: String,
   val name: String,
-  val website: String? = null,
-  val phone: String? = null,
-  val lastFeedImport: Instant? = null,
   val active: Boolean = true,
   val createdAt: Instant = Instant.now(),
   val updatedAt: Instant = Instant.now(),
