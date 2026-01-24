@@ -4,7 +4,7 @@ import { of } from 'rxjs';
 import { RegionDetailComponent } from './region-detail.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { MetropolitanRegionDetail } from '../../feeds/models/region.models';
-import { AgencyDTO } from '../../transit-frequency/models/agency.model';
+import { AgencyDTO } from '../../agencies/models/agency.model';
 import { AgencyService } from '../../agencies/services/agency.service';
 
 describe('RegionDetailComponent', () => {

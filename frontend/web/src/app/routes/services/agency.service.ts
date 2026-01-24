@@ -1,4 +1,5 @@
-import { AgencyDTO, AgencySummary } from '../models/agency.model';
+import { AgencyDTO } from '../../agencies/models/agency.model';
+import { AgencySummary } from '../../agencies/models/agency-summary.model';
 
 export interface AgencyListResponse {
   content: AgencyDTO[];

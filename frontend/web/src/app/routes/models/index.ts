@@ -1,11 +1,11 @@
 /**
- * Transit Frequency Module Models
+ * Routes Module Models
  *
- * Central export point for all transit frequency data models, enums, and types.
+ * Central export point for all routes data models, enums, and types.
  * Use barrel exports for clean imports throughout the application.
  *
  * Example usage:
- * import { Frequency, TimePeriod, RouteType } from '@app/transit-frequency/models';
+ * import { Frequency, TimePeriod, RouteType } from '@app/routes/models';
  */
 
 // Time Period enum and utilities
@@ -42,5 +42,3 @@ export type {
   FrequencyQueryRequest,
   FrequencyQueryResponse,
 } from './transit-frequency.model';
-
-export type { AgencySummary } from './agency-summary.model';
