@@ -40,8 +40,13 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
             </span>
           </div>
           <ul class="stop-list m-0 ml-4 list-none">
-            @for (stopName of stopNames; track stopName) {
+            @for (stopName of stopNames; track $index; let i = $index) {
               <li class="stop-name">{{ stopName }}</li>
+              @if (i < stopNames.length - 1 && stopSpacingLabel(i)) {
+                <li class="stop-spacing">
+                  <span class="spacing-label">{{ stopSpacingLabel(i) }}</span>
+                </li>
+              }
             }
           </ul>
           <div class="meta flex flex-wrap items-center gap-2 text-sm">
@@ -91,7 +96,6 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
             </div>
           }
         </div>
-        </div>
       </app-brand-card>
     </div>
   `,
@@ -124,6 +128,19 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
         top: 0.45em;
         width: 8px;
       }
+      .stop-spacing {
+        color: var(--mat-sys-on-surface-variant, #94a3b8);
+        font-size: 0.75rem;
+        margin: 2px 0 6px;
+        padding-left: 18px;
+      }
+      .spacing-label {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.18);
+        line-height: 1.2;
+      }
       .spacing-badge {
         background: rgba(11, 79, 138, 0.12);
         color: var(--mat-sys-primary, #0b4f8a);
@@ -155,6 +172,12 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       :host-context(.dark-theme) .stop-list {
         border-left-color: var(--mat-sys-primary, #0b4f8a);
         color: var(--mat-sys-on-surface-variant, #cbd5e1);
+      }
+      :host-context(.dark-theme) .stop-spacing {
+        color: rgba(226, 232, 240, 0.75);
+      }
+      :host-context(.dark-theme) .spacing-label {
+        background: rgba(148, 163, 184, 0.2);
       }
       :host-context(.dark-theme) .spacing-badge {
         background: rgba(59, 130, 246, 0.2);
@@ -245,6 +268,20 @@ export class RouteVariantCardComponent {
       return this.variant.stopNames.filter(Boolean);
     }
     return this.variant.stopPattern.split('|').filter(Boolean);
+  }
+
+  stopSpacingLabel(index: number): string | null {
+    const spacingMeters = this.variant.stopSpacingsMeters?.[index];
+    if (spacingMeters === null || spacingMeters === undefined) {
+      return null;
+    }
+    if (!Number.isFinite(spacingMeters) || spacingMeters <= 0) {
+      return null;
+    }
+    if (spacingMeters < 1000) {
+      return `${Math.round(spacingMeters)} m`;
+    }
+    return `${(spacingMeters / 1000).toFixed(2)} km`;
   }
 
   formatSpacing(variant: RouteVariantDto): string {

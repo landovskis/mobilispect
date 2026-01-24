@@ -23,6 +23,7 @@ export interface RouteVariantDto {
   stopCount: number;
   stopPattern: string;
   stopNames?: string[] | null;
+  stopSpacingsMeters?: number[] | null;
   firstStopId: string;
   lastStopId: string;
   averageStopSpacingKm?: number | null;

@@ -8,6 +8,7 @@ import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.domain.repository.StopSpacingRepository
 import com.mobilispect.backend.route.domain.repository.VariantDepartureRepository
 import com.mobilispect.backend.route.domain.repository.VariantScheduleRepository
 import java.time.LocalDate
@@ -20,6 +21,7 @@ class FrequencyQueryService(
   private val routeRepository: RouteRepository,
   private val routeVariantRepository: RouteVariantRepository,
   private val frequencyRepository: FrequencyRepository,
+  private val stopSpacingRepository: StopSpacingRepository,
   private val variantScheduleRepository: VariantScheduleRepository,
   private val variantDepartureRepository: VariantDepartureRepository,
 ) {
@@ -38,6 +40,10 @@ class FrequencyQueryService(
   fun getVariantsByRoute(routeId: RouteId): List<RouteVariantDTO> =
     routeVariantRepository.findByRouteId(routeId).map { variant ->
       val schedule = variantScheduleRepository.findByVariantId(variant.id.value)
+      val stopSpacings =
+        stopSpacingRepository.findByVariantOrderBySequence(variant.id.value).map {
+          it.distanceMeters
+        }
 
       RouteVariantDTO(
         id = variant.id.value,
@@ -47,6 +53,7 @@ class FrequencyQueryService(
         stopCount = variant.stopCount,
         stopPattern = variant.stopPattern,
         stopNames = extractStopNames(variant.stopNamePattern, variant.stopPattern),
+        stopSpacingsMeters = stopSpacings,
         firstStopId = variant.firstStopId,
         lastStopId = variant.lastStopId,
         firstDepartureTime = schedule?.firstDepartureTime,
