@@ -5,7 +5,7 @@ import {
 } from '@angular/common/http/testing';
 import { AgencyService } from './agency.service';
 import { environment } from '../../../environments/environment';
-import { RouteType } from '../../transit-frequency/models/route-type.model';
+import { RouteType } from '../../routes/models/route-type.model';
 
 describe('AgencyService', () => {
   let service: AgencyService;

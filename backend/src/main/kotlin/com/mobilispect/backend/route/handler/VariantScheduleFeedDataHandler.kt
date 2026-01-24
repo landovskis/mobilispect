@@ -147,9 +147,14 @@ class VariantScheduleFeedDataHandler(
    * @param trips List of GTFS trips
    * @return Map of variant hash to trips
    */
-  private fun groupTripsByVariant(trips: List<GTFSTrip>): Map<com.mobilispect.backend.route.domain.model.ids.VariantHash, List<GTFSTrip>> {
+  private fun groupTripsByVariant(
+    trips: List<GTFSTrip>
+  ): Map<com.mobilispect.backend.route.domain.model.ids.VariantHash, List<GTFSTrip>> {
     val tripsByVariant =
-      mutableMapOf<com.mobilispect.backend.route.domain.model.ids.VariantHash, MutableList<GTFSTrip>>()
+      mutableMapOf<
+        com.mobilispect.backend.route.domain.model.ids.VariantHash,
+        MutableList<GTFSTrip>,
+      >()
 
     trips.forEach { trip ->
       val stopIds = trip.stopTimes.sortedBy { it.stopSequence }.map { it.stopId.value }
@@ -202,19 +207,18 @@ class VariantScheduleFeedDataHandler(
    */
   private fun collectDepartures(variantId: String, trips: List<GTFSTrip>): List<VariantDeparture> {
     val calculatedAt = Instant.now()
-    return trips
-      .mapNotNull { trip ->
-        val departureTime = trip.stopTimes.firstOrNull()?.departureTime
-        if (departureTime != null && departureTime != LocalTime.MIDNIGHT) {
-          VariantDeparture(
-            variantId = variantId,
-            departureTime = departureTime,
-            tripId = trip.tripId.value,
-            calculatedAt = calculatedAt,
-          )
-        } else {
-          null
-        }
+    return trips.mapNotNull { trip ->
+      val departureTime = trip.stopTimes.firstOrNull()?.departureTime
+      if (departureTime != null && departureTime != LocalTime.MIDNIGHT) {
+        VariantDeparture(
+          variantId = variantId,
+          departureTime = departureTime,
+          tripId = trip.tripId.value,
+          calculatedAt = calculatedAt,
+        )
+      } else {
+        null
       }
+    }
   }
 }

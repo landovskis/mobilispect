@@ -3,7 +3,7 @@ import { RegionsPageComponent } from '../regions/pages/regions.page';
 import { RegionBreadcrumbResolver } from '../regions/resolvers/region-breadcrumb.resolver';
 import { RouteBreadcrumbResolver } from './resolvers/route-breadcrumb.resolver';
 
-export const TRANSIT_FREQUENCY_ROUTES: Routes = [
+export const ROUTES_ROUTES: Routes = [
   {
     path: '',
     component: RegionsPageComponent,

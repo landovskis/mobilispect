@@ -99,7 +99,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
               <app-brand-card
                 class="history-item-card"
                 [title]="importItem.feedName || importItem.feedOnestopId"
-                [subtitle]="importItem.regionName ?? undefined"
+                [subtitle]="importItem.regionName"
               >
                 <div
                   card-content

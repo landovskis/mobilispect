@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { AgencyBreadcrumbResolver } from './agencies/resolvers/agency-breadcrumb.resolver';
 import { AppShellComponent } from './shared/components/app-shell.component';
-import { RouteBreadcrumbResolver } from './transit-frequency/resolvers/route-breadcrumb.resolver';
+import { RouteBreadcrumbResolver } from './routes/resolvers/route-breadcrumb.resolver';
 
 export const routes: Routes = [
   {
@@ -16,8 +16,8 @@ export const routes: Routes = [
       {
         path: 'regions',
         loadChildren: () =>
-          import('./transit-frequency/transit-frequency.routes').then(
-            (m) => m.TRANSIT_FREQUENCY_ROUTES,
+          import('./routes/routes.routes').then(
+            (m) => m.ROUTES_ROUTES,
           ),
         data: {
           breadcrumb: 'Regions',
@@ -54,7 +54,7 @@ export const routes: Routes = [
       {
         path: 'routes/:routeId',
         loadComponent: () =>
-          import('./transit-frequency/pages/route-detail/route-detail-page.component').then(
+          import('./routes/pages/route-detail/route-detail-page.component').then(
             (m) => m.RouteDetailPageComponent,
           ),
         resolve: {
