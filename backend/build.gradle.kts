@@ -47,7 +47,6 @@ dependencies {
     }
     implementation(libs.resilience4j.spring)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation(libs.spring.boot.batch)
     implementation(libs.spring.modulith.api)
     runtimeOnly(libs.spring.modulith.runtime)

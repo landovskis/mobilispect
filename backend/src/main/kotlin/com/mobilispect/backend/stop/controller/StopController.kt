@@ -25,7 +25,7 @@ import org.springframework.web.server.ResponseStatusException
  * - Filtering by location type (stations, platforms, etc.)
  * - Counting stops by feed
  *
- * All endpoints leverage Redis caching via StopQueryService.
+ * All endpoints are served directly by StopQueryService.
  */
 @RestController
 @RequestMapping("/api/v1/stops")

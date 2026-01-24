@@ -1,6 +1,5 @@
 package com.mobilispect.backend.route.application
 
-import com.mobilispect.backend.config.RedisConfiguration
 import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.dto.FrequencyDTO
 import com.mobilispect.backend.route.api.dto.RouteDTO
@@ -13,15 +12,9 @@ import com.mobilispect.backend.route.domain.repository.VariantDepartureRepositor
 import com.mobilispect.backend.route.domain.repository.VariantScheduleRepository
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 
-/**
- * Query service for frequency-related operations with Redis caching (T123).
- *
- * All query methods are cached with 1-hour TTL to improve performance. Cache is invalidated when
- * feed imports complete (T124).
- */
+/** Query service for frequency-related operations. */
 @Service
 class FrequencyQueryService(
   private val routeRepository: RouteRepository,
@@ -30,7 +23,6 @@ class FrequencyQueryService(
   private val variantScheduleRepository: VariantScheduleRepository,
   private val variantDepartureRepository: VariantDepartureRepository,
 ) {
-  @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'route_' + #routeId")
   fun getRoute(routeId: RouteId): RouteDTO? =
     routeRepository.findById(routeId)?.let {
       RouteDTO(
@@ -43,7 +35,6 @@ class FrequencyQueryService(
       )
     }
 
-  @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'variants_' + #routeId")
   fun getVariantsByRoute(routeId: RouteId): List<RouteVariantDTO> =
     routeVariantRepository.findByRouteId(routeId).map { variant ->
       val schedule = variantScheduleRepository.findByVariantId(variant.id.value)
@@ -69,10 +60,6 @@ class FrequencyQueryService(
     return pattern.split("|").filter { it.isNotBlank() }
   }
 
-  @Cacheable(
-    value = [RedisConfiguration.FREQUENCY_CACHE],
-    key = "'freq_' + #variantHash + '_' + (#serviceDate != null ? #serviceDate : 'all')",
-  )
   fun getFrequenciesForVariant(
     variantHash: VariantHash,
     serviceDate: LocalDate?,
@@ -122,9 +109,9 @@ class FrequencyQueryService(
    * @param variantHash The variant hash
    * @return List of departure times formatted as HH:mm
    */
-  @Cacheable(value = [RedisConfiguration.FREQUENCY_CACHE], key = "'schedule_' + #variantHash")
   fun getCompleteSchedule(variantHash: VariantHash): List<String> {
-    val departures = variantDepartureRepository.findByVariantIdOrderByDepartureTime(variantHash.value)
+    val departures =
+      variantDepartureRepository.findByVariantIdOrderByDepartureTime(variantHash.value)
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     return departures.map { it.departureTime.format(formatter) }
   }
