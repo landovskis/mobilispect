@@ -33,11 +33,6 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
         <div class="title flex flex-col gap-0.5">
           <div class="variant-header flex flex-wrap items-center gap-2">
             <span>{{ variant.headsign || 'Variant' }}</span>
-            <span
-              class="spacing-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold"
-            >
-              {{ formatSpacing(variant) }}
-            </span>
           </div>
           <ul class="stop-list m-0 ml-4 list-none">
             @for (stopName of stopNames; track $index; let i = $index) {
@@ -50,16 +45,6 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
             }
           </ul>
           <div class="meta flex flex-wrap items-center gap-2 text-sm">
-            @if (variant.stopSpacingClassification) {
-              <span
-                class="classification rounded-full px-2 py-0.5 text-[0.75rem] font-semibold"
-                [ngClass]="
-                  classificationClass(variant.stopSpacingClassification)
-                "
-              >
-                {{ formatClassification(variant.stopSpacingClassification) }}
-              </span>
-            }
             @if (variant.firstDepartureTime && variant.lastDepartureTime) {
               <span
                 class="schedule-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold cursor-pointer hover:opacity-80"
@@ -141,29 +126,9 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
         background: rgba(148, 163, 184, 0.18);
         line-height: 1.2;
       }
-      .spacing-badge {
-        background: rgba(11, 79, 138, 0.12);
-        color: var(--mat-sys-primary, #0b4f8a);
-      }
       .schedule-badge {
         background: rgba(103, 58, 183, 0.12);
         color: #673ab7;
-      }
-      .classification {
-        background: rgba(11, 79, 138, 0.12);
-        color: #0b4f8a;
-      }
-      .classification.local {
-        background: rgba(76, 175, 80, 0.15);
-        color: #2e7d32;
-      }
-      .classification.rapid {
-        background: rgba(255, 152, 0, 0.15);
-        color: #ef6c00;
-      }
-      .classification.express {
-        background: rgba(244, 67, 54, 0.15);
-        color: #c62828;
       }
       :host-context(.dark-theme) .variant {
         border-bottom-color: rgba(148, 163, 184, 0.3);
@@ -179,29 +144,9 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       :host-context(.dark-theme) .spacing-label {
         background: rgba(148, 163, 184, 0.2);
       }
-      :host-context(.dark-theme) .spacing-badge {
-        background: rgba(59, 130, 246, 0.2);
-        color: var(--mat-sys-on-surface, #e2e8f0);
-      }
       :host-context(.dark-theme) .schedule-badge {
         background: rgba(156, 39, 176, 0.2);
         color: #ce93d8;
-      }
-      :host-context(.dark-theme) .classification {
-        background: rgba(59, 130, 246, 0.2);
-        color: #e2e8f0;
-      }
-      :host-context(.dark-theme) .classification.local {
-        background: rgba(76, 175, 80, 0.2);
-        color: #bbf7d0;
-      }
-      :host-context(.dark-theme) .classification.rapid {
-        background: rgba(255, 152, 0, 0.2);
-        color: #fed7aa;
-      }
-      :host-context(.dark-theme) .classification.express {
-        background: rgba(244, 67, 54, 0.2);
-        color: #fecaca;
       }
       .complete-schedule {
         background: rgba(103, 58, 183, 0.05);
@@ -284,23 +229,6 @@ export class RouteVariantCardComponent {
     return `${(spacingMeters / 1000).toFixed(2)} km`;
   }
 
-  formatSpacing(variant: RouteVariantDto): string {
-    if (
-      variant.averageStopSpacingKm === null ||
-      variant.averageStopSpacingKm === undefined
-    ) {
-      return 'Avg spacing: Not available';
-    }
-    return `Avg spacing: ${variant.averageStopSpacingKm.toFixed(2)} km`;
-  }
-
-  formatClassification(classification: 'local' | 'rapid' | 'express'): string {
-    return classification.charAt(0).toUpperCase() + classification.slice(1);
-  }
-
-  classificationClass(classification: 'local' | 'rapid' | 'express'): string {
-    return classification;
-  }
 
   formatSchedule(variant: RouteVariantDto): string {
     if (!variant.firstDepartureTime || !variant.lastDepartureTime) {
