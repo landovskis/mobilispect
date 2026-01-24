@@ -22,6 +22,7 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
 import { RouteSummaryCardComponent } from '../../components/route-summary-card/route-summary-card.component';
 import { Observable, tap } from 'rxjs';
 import { BrandSectionComponent } from '../../../shared/components/brand-section.component';
+import { MatTabsModule } from '@angular/material/tabs';
 
 @Component({
   selector: 'app-route-detail-page',
@@ -32,6 +33,7 @@ import { BrandSectionComponent } from '../../../shared/components/brand-section.
     CommonSectionDisplayComponent,
     RouteSummaryCardComponent,
     BrandSectionComponent,
+    MatTabsModule,
   ],
   template: `
     @if (route$ | async; as route) {
@@ -42,23 +44,15 @@ import { BrandSectionComponent } from '../../../shared/components/brand-section.
 
     <app-brand-section class="mt-6 block" title="Variants">
       @if (directionTabs.length > 1) {
-        <div class="mb-4 flex flex-wrap gap-2">
+        <mat-tab-group
+          class="mb-4"
+          [selectedIndex]="selectedDirectionIndex"
+          (selectedIndexChange)="selectDirectionByIndex($event)"
+        >
           @for (tab of directionTabs; track tab.key) {
-            <button
-              type="button"
-              class="rounded-full border px-3 py-1 text-sm font-semibold"
-              [class.border-[var(--mat-sys-primary,#0b4f8a)]]="
-                tab.id === selectedDirectionId
-              "
-              [class.text-[var(--mat-sys-primary,#0b4f8a)]]="
-                tab.id === selectedDirectionId
-              "
-              (click)="selectDirection(tab.id)"
-            >
-              {{ tab.label }}
-            </button>
+            <mat-tab [label]="tab.label"></mat-tab>
           }
-        </div>
+        </mat-tab-group>
       }
       <div class="grid gap-4 md:grid-cols-2" role="list">
         @for (variant of filteredVariants; track variant.id) {
@@ -170,6 +164,19 @@ export class RouteDetailPageComponent implements OnInit {
     if (this.selectedDirectionId === directionId) return;
     this.selectedDirectionId = directionId;
     this.loadFirstVariantForDirection();
+  }
+
+  selectDirectionByIndex(index: number): void {
+    const tab = this.directionTabs[index];
+    if (!tab) return;
+    this.selectDirection(tab.id);
+  }
+
+  get selectedDirectionIndex(): number {
+    const index = this.directionTabs.findIndex(
+      (tab) => tab.id === this.selectedDirectionId,
+    );
+    return index === -1 ? 0 : index;
   }
 
   private loadFirstVariantForDirection(): void {
