@@ -8,6 +8,7 @@ import com.mobilispect.backend.feed.api.ids.FeedLocalRouteId
 import com.mobilispect.backend.feed.api.ids.GTFSStopId
 import com.mobilispect.backend.feed.api.ids.GTFSTripId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
+import com.mobilispect.backend.feed.model.ids.ImportId
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.VariantDepartureRepository
 import com.mobilispect.backend.route.domain.repository.VariantScheduleRepository
@@ -16,6 +17,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import java.time.Instant
 import java.time.LocalTime
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -46,7 +48,7 @@ class VariantScheduleFeedDataHandlerTest {
   fun `should calculate schedule for variant with trips`() {
     // Given
     val feedId = FeedId("test-feed")
-    val variantId = VariantHash("test-variant-hash")
+    val variantId = VariantHash("a".repeat(64))
     val routeId = FeedLocalRouteId("route-1")
 
     val trip1 =
@@ -99,7 +101,7 @@ class VariantScheduleFeedDataHandlerTest {
 
     val trips = listOf(trip1, trip2)
     val bundle = GTFSDataBundle(feedId = feedId, trips = trips)
-    val context = ImportContext(feedId = feedId)
+    val context = ImportContext(importId = ImportId.random(), startedAt = Instant.now())
 
     every { variantHashGenerator.fromStops(any()) } returns variantId
 
@@ -140,7 +142,7 @@ class VariantScheduleFeedDataHandlerTest {
       )
 
     val bundle = GTFSDataBundle(feedId = feedId, trips = listOf(trip))
-    val context = ImportContext(feedId = feedId)
+    val context = ImportContext(importId = ImportId.random(), startedAt = Instant.now())
 
     // When
     val result = handler.handle(feedId, bundle, context)

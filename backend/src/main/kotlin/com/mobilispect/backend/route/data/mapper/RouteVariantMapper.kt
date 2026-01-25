@@ -3,6 +3,7 @@ package com.mobilispect.backend.route.data.mapper
 import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.data.entity.RouteEntity
 import com.mobilispect.backend.route.data.entity.RouteVariantEntity
+import com.mobilispect.backend.route.domain.model.RouteClassification
 import com.mobilispect.backend.route.domain.model.RouteVariant
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import org.springframework.stereotype.Component
@@ -29,6 +30,8 @@ class RouteVariantMapper {
       stopCount = entity.stopCount,
       firstStopId = entity.firstStopId,
       lastStopId = entity.lastStopId,
+      classification = entity.classification?.let { RouteClassification.fromValue(it) },
+      averageStopSpacingMeters = entity.averageStopSpacingMeters,
       active = entity.active,
       firstSeen = entity.firstSeen,
       lastSeen = entity.lastSeen,
@@ -54,6 +57,8 @@ class RouteVariantMapper {
       stopCount = domain.stopCount,
       firstStopId = domain.firstStopId,
       lastStopId = domain.lastStopId,
+      classification = domain.classification?.name,
+      averageStopSpacingMeters = domain.averageStopSpacingMeters,
       active = domain.active,
       firstSeen = domain.firstSeen,
       lastSeen = domain.lastSeen,

@@ -179,8 +179,8 @@ class StopSpacingFeedDataHandlerTest {
     handler.handle(feedId, bundle, context)
 
     assertThat(savedSpacings.captured).hasSize(1)
-    // Distance should be approximately 800-1000m
-    assertThat(savedSpacings.captured[0].distanceMeters).isBetween(800.0, 1000.0)
+    // Distance should be approximately 1000-1100m based on Haversine calculation
+    assertThat(savedSpacings.captured[0].distanceMeters).isBetween(1000.0, 1100.0)
   }
 
   @Test
@@ -213,15 +213,11 @@ class StopSpacingFeedDataHandlerTest {
     val variant = createTestVariant("stop1|stop2|stop3")
 
     every { routeVariantRepository.findAll() } returns listOf(variant)
-    every { stopSpacingRepository.existsByVariant(any()) } returns false
-
-    val savedSpacings = slot<List<StopSpacing>>()
-    every { stopSpacingRepository.saveAll(capture(savedSpacings)) } answers { firstArg() }
 
     handler.handle(feedId, bundle, context)
 
-    // Both pairs involve stop2 which has no coordinates, so no spacings saved
-    assertThat(savedSpacings.captured).isEmpty()
+    // Both pairs involve stop2 which has no coordinates, so saveAll should not be called
+    verify(exactly = 0) { stopSpacingRepository.saveAll(any<List<StopSpacing>>()) }
   }
 
   @Test
@@ -313,15 +309,11 @@ class StopSpacingFeedDataHandlerTest {
     val variant = createTestVariant("stop1|stop2")
 
     every { routeVariantRepository.findAll() } returns listOf(variant)
-    every { stopSpacingRepository.existsByVariant(any()) } returns false
-
-    val savedSpacings = slot<List<StopSpacing>>()
-    every { stopSpacingRepository.saveAll(capture(savedSpacings)) } answers { firstArg() }
 
     handler.handle(feedId, bundle, context)
 
-    // No spacings can be calculated since stop2 is missing
-    assertThat(savedSpacings.captured).isEmpty()
+    // No spacings can be calculated since stop2 is missing - saveAll should not be called
+    verify(exactly = 0) { stopSpacingRepository.saveAll(any<List<StopSpacing>>()) }
   }
 
   private fun createTestStops(): List<GTFSStop> =
@@ -346,18 +338,18 @@ class StopSpacingFeedDataHandlerTest {
       ),
     )
 
-  private fun createTestVariant(
-    stopPattern: String,
-    idValue: String = "test-variant-hash",
-  ): RouteVariant {
+  private fun createTestVariant(stopPattern: String, idSuffix: String = "default"): RouteVariant {
     val feedId = FeedId("f-abc-test")
     val agencyId = AgencyId(feedId, FeedLocalAgencyId("agency-1"))
     val routeId =
       RouteId(agencyId, com.mobilispect.backend.feed.api.ids.FeedLocalRouteId("route-1"))
     val stopIds = stopPattern.split("|")
+    // Create valid 64-character hex hash - use hashCode to generate unique hex suffix
+    val hexSuffix = idSuffix.hashCode().toUInt().toString(16).padStart(8, '0')
+    val hash = hexSuffix.padStart(64, 'a')
 
     return RouteVariant(
-      id = VariantHash(idValue),
+      id = VariantHash(hash),
       routeId = routeId,
       stopPattern = stopPattern,
       stopNamePattern = stopIds.joinToString("|") { "Name $it" },

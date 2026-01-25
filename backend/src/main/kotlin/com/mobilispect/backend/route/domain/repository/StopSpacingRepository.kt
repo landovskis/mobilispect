@@ -72,4 +72,13 @@ interface StopSpacingRepository : JpaRepository<StopSpacing, UUID> {
    */
   @Query("SELECT COUNT(s) FROM StopSpacing s WHERE s.variantId = :variantId")
   fun countByVariant(@Param("variantId") variantId: String): Long
+
+  /**
+   * Calculate average stop spacing for a variant.
+   *
+   * @param variantId The route variant ID
+   * @return Average distance in meters, or null if no spacing records exist
+   */
+  @Query("SELECT AVG(s.distanceMeters) FROM StopSpacing s WHERE s.variantId = :variantId")
+  fun calculateAverageByVariant(@Param("variantId") variantId: String): Double?
 }

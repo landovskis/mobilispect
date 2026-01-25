@@ -21,7 +21,6 @@ class RouteMapper {
     Route(
       id = RouteId(entity.id),
       agencyId = AgencyId(entity.agencyId),
-      gtfsRouteId = RouteId(entity.id).feedLocalId().value,
       shortName = entity.shortName,
       longName = entity.longName,
       routeType = RouteType.fromValue(entity.routeType),
