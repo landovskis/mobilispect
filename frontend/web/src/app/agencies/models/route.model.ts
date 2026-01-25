@@ -1,4 +1,4 @@
-import { RouteType } from '../../transit-frequency/models/route-type.model';
+import { RouteType } from '../../routes/models/route-type.model';
 
 export interface RouteDTO {
   id: string;

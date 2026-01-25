@@ -11,10 +11,10 @@ import { AgencyFeedGroup, FeedGroupingUtils } from '../../feeds/models/agency-fe
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { AgencyService } from '../../agencies/services/agency.service';
-import { AgencyListResponse } from '../../transit-frequency/services/agency.service';
+import { AgencyListResponse } from '../../routes/services/agency.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
-import { AgencyCardComponent } from '../../transit-frequency/components/agency-card/agency-card.component';
+import { AgencyCardComponent } from '../../agencies/components/agency-card.component';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
 import {
   BulkImportResponse,

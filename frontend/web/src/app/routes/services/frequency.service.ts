@@ -23,10 +23,12 @@ export interface RouteVariantDto {
   stopCount: number;
   stopPattern: string;
   stopNames?: string[] | null;
+  stopSpacingsMeters?: number[] | null;
   firstStopId: string;
   lastStopId: string;
-  averageStopSpacingKm?: number | null;
-  stopSpacingClassification?: 'local' | 'rapid' | 'express' | null;
+  firstDepartureTime?: string | null;
+  lastDepartureTime?: string | null;
+  scheduleTripCount?: number | null;
 }
 
 export interface RouteDto {
@@ -102,6 +104,12 @@ export class FrequencyService {
     return this.http.get<HourlyFrequencyDto[]>(
       `${this.baseUrl}/variants/${variantId}/hourly-frequencies`,
       { params: { date } },
+    );
+  }
+
+  getCompleteSchedule(variantId: string): Observable<string[]> {
+    return this.http.get<string[]>(
+      `${this.baseUrl}/variants/${variantId}/schedule`,
     );
   }
 }

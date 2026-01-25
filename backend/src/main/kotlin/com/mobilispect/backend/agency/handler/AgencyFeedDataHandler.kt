@@ -53,11 +53,7 @@ class AgencyFeedDataHandler(private val agencyRepository: AgencyRepository) : Fe
           Agency(
             agencyId = AgencyId(feedId, gtfsAgency.agencyId),
             feedId = feedId,
-            gtfsAgencyId = gtfsAgency.agencyId.value,
             name = gtfsAgency.name,
-            website = gtfsAgency.url,
-            phone = gtfsAgency.phone,
-            lastFeedImport = context.startedAt,
             active = true,
           )
 

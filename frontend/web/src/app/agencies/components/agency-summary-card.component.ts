@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
-import { AgencySummary } from '../../models/agency-summary.model';
-import { BrandBadgeComponent } from '../../../shared/components/brand-badge.component';
-import { BrandCardComponent } from '../../../shared/components/brand-card.component';
+import { AgencySummary } from '../models/agency-summary.model';
+import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
 
 @Component({
   selector: 'app-agency-summary-card',

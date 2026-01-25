@@ -2,8 +2,8 @@ import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AgencySummary } from '../../transit-frequency/models/agency.model';
-import { AgencyListResponse } from '../../transit-frequency/services/agency.service';
+import { AgencySummary } from '../models/agency-summary.model';
+import { AgencyListResponse } from '../../routes/services/agency.service';
 import { RouteListResponse } from '../models/route.model';
 
 @Injectable({

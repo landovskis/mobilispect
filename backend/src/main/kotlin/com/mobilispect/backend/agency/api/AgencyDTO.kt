@@ -13,11 +13,7 @@ import java.time.Instant
 data class AgencyDTO(
   val agencyId: AgencyId,
   val feedId: FeedId,
-  val gtfsAgencyId: String,
   val name: String,
-  val website: String?,
-  val phone: String?,
-  val lastFeedImport: Instant?,
   val active: Boolean,
   val createdAt: Instant,
   val updatedAt: Instant,

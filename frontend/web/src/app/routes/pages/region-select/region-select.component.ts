@@ -78,6 +78,6 @@ export class RegionSelectComponent implements OnInit {
   }
 
   select(regionId: string): void {
-    this.router.navigate(['/transit-frequency/regions', regionId]);
+    this.router.navigate(['/regions', regionId]);
   }
 }

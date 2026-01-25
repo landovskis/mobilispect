@@ -11,8 +11,8 @@ import { MetropolitanRegionDetail } from '../../feeds/models/region.models';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { Observable, combineLatest } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { AgencyListResponse } from '../../transit-frequency/services/agency.service';
-import { AgencyCardComponent } from '../../transit-frequency/components/agency-card/agency-card.component';
+import { AgencyListResponse } from '../../routes/services/agency.service';
+import { AgencyCardComponent } from '../../agencies/components/agency-card.component';
 import { AgencyService } from '../../agencies/services/agency.service';
 
 interface RegionSummary {

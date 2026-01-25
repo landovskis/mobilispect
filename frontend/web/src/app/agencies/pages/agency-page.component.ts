@@ -7,7 +7,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { AgencyService } from '../services/agency.service';
-import { AgencySummary } from '../../transit-frequency/models/agency.model';
+import { AgencySummary } from '../models/agency-summary.model';
 import { RouteDTO, RouteListResponse } from '../models/route.model';
 import { BrandSectionComponent } from '../../shared/components/brand-section.component';
 import { AgencyRouteCardComponent } from '../components/agency-route-card.component';

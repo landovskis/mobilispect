@@ -18,13 +18,9 @@ class AgencyMapper {
   /** Converts data entity to the domain model. */
   fun toDomain(entity: AgencyEntity): Agency =
     Agency(
-      agencyId = AgencyId(entity.agencyOnestopId),
+      agencyId = AgencyId(entity.id),
       feedId = FeedId(entity.feedId),
-      gtfsAgencyId = entity.gtfsId,
       name = entity.name,
-      website = entity.website,
-      phone = entity.phone,
-      lastFeedImport = entity.lastFeedImport,
       active = entity.active,
       createdAt = entity.createdAt,
       updatedAt = entity.updatedAt,
@@ -37,13 +33,9 @@ class AgencyMapper {
    */
   fun toEntity(domain: Agency): AgencyEntity =
     AgencyEntity(
-      agencyOnestopId = domain.agencyId.value,
+      id = domain.agencyId.value,
       feedId = domain.feedId.value,
-      gtfsId = domain.gtfsAgencyId,
       name = domain.name,
-      website = domain.website,
-      phone = domain.phone,
-      lastFeedImport = domain.lastFeedImport,
       active = domain.active,
       createdAt = domain.createdAt,
       updatedAt = domain.updatedAt,

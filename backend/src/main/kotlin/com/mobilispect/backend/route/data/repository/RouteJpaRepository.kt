@@ -18,13 +18,13 @@ interface RouteJpaRepository : JpaRepository<RouteEntity, String> {
 
   /** Find all routes operated by a specific agency. */
   @Query(
-    "SELECT r FROM RouteEntity r WHERE r.agencyOnestopId = :agencyId ORDER BY r.shortName ASC, r.longName ASC"
+    "SELECT r FROM RouteEntity r WHERE r.agencyId = :agencyId ORDER BY r.shortName ASC, r.longName ASC"
   )
   fun findByAgencyId(@Param("agencyId") agencyId: String, pageable: Pageable): Page<RouteEntity>
 
   /** Find all active routes operated by a specific agency. */
   @Query(
-    "SELECT r FROM RouteEntity r WHERE r.agencyOnestopId = :agencyId AND r.active = true ORDER BY r.shortName ASC, r.longName ASC"
+    "SELECT r FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.active = true ORDER BY r.shortName ASC, r.longName ASC"
   )
   fun findByAgencyIdAndActive(
     @Param("agencyId") agencyId: String,
@@ -33,7 +33,7 @@ interface RouteJpaRepository : JpaRepository<RouteEntity, String> {
 
   /** Find routes by agency and route type. */
   @Query(
-    "SELECT r FROM RouteEntity r WHERE r.agencyOnestopId = :agencyId AND r.routeType = :routeType ORDER BY r.shortName ASC, r.longName ASC"
+    "SELECT r FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.routeType = :routeType ORDER BY r.shortName ASC, r.longName ASC"
   )
   fun findByAgencyIdAndRouteType(
     @Param("agencyId") agencyId: String,
@@ -43,7 +43,7 @@ interface RouteJpaRepository : JpaRepository<RouteEntity, String> {
 
   /** Find active routes by agency and route type. */
   @Query(
-    "SELECT r FROM RouteEntity r WHERE r.agencyOnestopId = :agencyId AND r.routeType = :routeType AND r.active = true ORDER BY r.shortName ASC, r.longName ASC"
+    "SELECT r FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.routeType = :routeType AND r.active = true ORDER BY r.shortName ASC, r.longName ASC"
   )
   fun findByAgencyIdAndRouteTypeAndActive(
     @Param("agencyId") agencyId: String,
@@ -75,18 +75,18 @@ interface RouteJpaRepository : JpaRepository<RouteEntity, String> {
   fun findByUpdatedAtAfter(@Param("since") since: Instant, pageable: Pageable): Page<RouteEntity>
 
   /** Count routes for a specific agency. */
-  @Query("SELECT COUNT(r) FROM RouteEntity r WHERE r.agencyOnestopId = :agencyId")
+  @Query("SELECT COUNT(r) FROM RouteEntity r WHERE r.agencyId = :agencyId")
   fun countByAgencyId(@Param("agencyId") agencyId: String): Long
 
   /** Count active routes for a specific agency. */
   @Query(
-    "SELECT COUNT(r) FROM RouteEntity r WHERE r.agencyOnestopId = :agencyId AND r.active = true"
+    "SELECT COUNT(r) FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.active = true"
   )
   fun countActiveByAgencyId(@Param("agencyId") agencyId: String): Long
 
   /** Count routes of a specific type for an agency. */
   @Query(
-    "SELECT COUNT(r) FROM RouteEntity r WHERE r.agencyOnestopId = :agencyId AND r.routeType = :routeType"
+    "SELECT COUNT(r) FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.routeType = :routeType"
   )
   fun countByAgencyIdAndRouteType(
     @Param("agencyId") agencyId: String,

@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
-import { AgencyDTO } from '../../models/agency.model';
-import { BrandCardComponent } from '../../../shared/components/brand-card.component';
-import { BrandBadgeComponent } from '../../../shared/components/brand-badge.component';
+import { AgencyDTO } from '../models/agency.model';
+import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { BrandBadgeComponent } from '../../shared/components/brand-badge.component';
 
 @Component({
   selector: 'app-agency-card',

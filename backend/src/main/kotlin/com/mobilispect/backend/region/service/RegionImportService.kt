@@ -63,7 +63,9 @@ class RegionImportService(
     logger.info("Starting bulk import for region: {}", regionId.value)
 
     // Check for existing active import
-    val existingImport = regionImportRepository.findActiveByRegionOnestopId(regionId.value)
+    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+    val existingImport =
+      regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
     if (existingImport.isPresent) {
       logger.info(
         "Region import already active for region {}: {}",
@@ -110,7 +112,8 @@ class RegionImportService(
           regionId.value,
         )
         val existing =
-          regionImportRepository.findActiveByRegionOnestopId(regionId.value).orElseThrow {
+          regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
+            .orElseThrow {
             IllegalStateException(
               "Failed to create or find active region import for region ${regionId.value}"
             )
@@ -249,7 +252,9 @@ class RegionImportService(
    * @return The active region import if one exists, null otherwise
    */
   fun getActiveImportForRegion(regionId: RegionId): RegionImport? {
-    return regionImportRepository.findActiveByRegionOnestopId(regionId.value).orElse(null)
+    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+    return regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
+      .orElse(null)
   }
 
   /**
