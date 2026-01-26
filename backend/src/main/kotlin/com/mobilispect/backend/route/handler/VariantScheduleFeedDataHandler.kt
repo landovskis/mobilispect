@@ -12,6 +12,7 @@ import com.mobilispect.backend.route.domain.model.VariantDeparture
 import com.mobilispect.backend.route.domain.model.VariantSchedule
 import com.mobilispect.backend.route.domain.repository.VariantDepartureRepository
 import com.mobilispect.backend.route.domain.repository.VariantScheduleRepository
+import com.mobilispect.backend.route.domain.service.ClockFaceDetector
 import com.mobilispect.backend.route.domain.service.VariantHashGenerator
 import java.time.Instant
 import java.time.LocalTime
@@ -40,6 +41,7 @@ class VariantScheduleFeedDataHandler(
   private val variantScheduleRepository: VariantScheduleRepository,
   private val variantDepartureRepository: VariantDepartureRepository,
   private val variantHashGenerator: VariantHashGenerator,
+  private val clockFaceDetector: ClockFaceDetector,
 ) : FeedDataHandler {
 
   private val logger = LoggerFactory.getLogger(VariantScheduleFeedDataHandler::class.java)
@@ -102,11 +104,12 @@ class VariantScheduleFeedDataHandler(
           }
 
           logger.debug(
-            "Created schedule for variant {} (first: {}, last: {}, trips: {})",
+            "Created schedule for variant {} (first: {}, last: {}, trips: {}, clock-face: {}min)",
             variantId.value.take(12),
             schedule.firstDepartureTime,
             schedule.lastDepartureTime,
             schedule.tripCount,
+            schedule.clockFaceIntervalMinutes ?: "none",
           )
 
           variantsProcessed++
@@ -189,11 +192,15 @@ class VariantScheduleFeedDataHandler(
     val firstDeparture = departureTimes.minOrNull() ?: return null
     val lastDeparture = departureTimes.maxOrNull() ?: return null
 
+    // Detect clock-face scheduling pattern
+    val clockFaceInterval = clockFaceDetector.detect(departureTimes)
+
     return VariantSchedule(
       variantId = variantId,
       firstDepartureTime = firstDeparture,
       lastDepartureTime = lastDeparture,
       tripCount = trips.size,
+      clockFaceIntervalMinutes = clockFaceInterval,
       calculatedAt = Instant.now(),
     )
   }

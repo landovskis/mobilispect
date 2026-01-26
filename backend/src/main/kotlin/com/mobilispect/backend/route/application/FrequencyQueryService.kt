@@ -61,6 +61,7 @@ class FrequencyQueryService(
         scheduleTripCount = schedule?.tripCount,
         classification = variant.classification,
         averageStopSpacingMeters = variant.averageStopSpacingMeters,
+        clockFaceIntervalMinutes = schedule?.clockFaceIntervalMinutes,
       )
     }
 

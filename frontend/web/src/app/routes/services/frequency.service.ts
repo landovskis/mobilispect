@@ -31,6 +31,7 @@ export interface RouteVariantDto {
   scheduleTripCount?: number | null;
   classification?: string | null;
   averageStopSpacingMeters?: number | null;
+  clockFaceIntervalMinutes?: number | null;
 }
 
 export interface RouteDto {

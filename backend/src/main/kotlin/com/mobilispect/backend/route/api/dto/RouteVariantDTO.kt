@@ -19,4 +19,5 @@ data class RouteVariantDTO(
   val scheduleTripCount: Int?,
   val classification: RouteClassification? = null,
   val averageStopSpacingMeters: Double? = null,
+  val clockFaceIntervalMinutes: Int? = null,
 )

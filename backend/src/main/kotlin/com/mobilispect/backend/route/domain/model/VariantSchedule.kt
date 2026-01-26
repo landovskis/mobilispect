@@ -21,6 +21,8 @@ import java.util.UUID
  * @property firstDepartureTime Earliest departure time from the first stop across all trips
  * @property lastDepartureTime Latest departure time from the first stop across all trips
  * @property tripCount Number of trips operating this variant
+ * @property clockFaceIntervalMinutes Detected clock-face interval in minutes (10, 12, 15, 20, 30, or 60),
+ *   or null if no regular pattern detected
  * @property calculatedAt Timestamp when this schedule summary was calculated
  * @property createdAt Record creation timestamp
  */
@@ -35,6 +37,7 @@ class VariantSchedule(
   @Column(name = "first_departure_time", nullable = false) val firstDepartureTime: LocalTime,
   @Column(name = "last_departure_time", nullable = false) val lastDepartureTime: LocalTime,
   @Column(name = "trip_count", nullable = false) val tripCount: Int,
+  @Column(name = "clock_face_interval_minutes", nullable = true) val clockFaceIntervalMinutes: Int? = null,
   @Column(name = "calculated_at", nullable = false) val calculatedAt: Instant = Instant.now(),
   @Column(name = "created_at", nullable = false) var createdAt: Instant = Instant.now(),
 ) {
@@ -44,6 +47,7 @@ class VariantSchedule(
       firstDepartureTime = LocalTime.MIDNIGHT,
       lastDepartureTime = LocalTime.MIDNIGHT,
       tripCount = 0,
+      clockFaceIntervalMinutes = null,
       calculatedAt = Instant.EPOCH,
       createdAt = Instant.EPOCH,
     )
