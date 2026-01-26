@@ -2,6 +2,7 @@ package com.mobilispect.backend.feed.batch.import
 
 import com.mobilispect.backend.agency.batch.import.AgencyImportTasklet
 import com.mobilispect.backend.feed.api.GTFSData
+import com.mobilispect.backend.route.batch.classification.RouteClassificationTasklet
 import com.mobilispect.backend.route.batch.frequency.FrequencyImportTasklet
 import com.mobilispect.backend.route.batch.import.RouteImportTasklet
 import com.mobilispect.backend.route.batch.spacing.StopSpacingImportTasklet
@@ -25,6 +26,7 @@ class FeedImportJobConfig(
   private val routeImportTasklet: RouteImportTasklet,
   private val routeVariantImportTasklet: RouteVariantImportTasklet,
   private val stopSpacingImportTasklet: StopSpacingImportTasklet,
+  private val routeClassificationTasklet: RouteClassificationTasklet,
   private val frequencyImportTasklet: FrequencyImportTasklet,
   private val stepExecutionListener: FeedImportStepExecutionListener,
   private val jobExecutionListener: FeedImportJobExecutionListener,
@@ -38,6 +40,7 @@ class FeedImportJobConfig(
       .next(agencyProcessingStep())
       .next(routeVariantProcessingStep())
       .next(stopSpacingProcessingStep())
+      .next(routeClassificationProcessingStep())
       .next(frequencyProcessingStep())
       .listener(jobExecutionListener)
       .build()
@@ -77,6 +80,13 @@ class FeedImportJobConfig(
   fun stopSpacingProcessingStep(): Step =
     StepBuilder("stopSpacingProcessingStep", jobRepository)
       .tasklet(stopSpacingImportTasklet, transactionManager)
+      .listener(stepExecutionListener)
+      .build()
+
+  @Bean
+  fun routeClassificationProcessingStep(): Step =
+    StepBuilder("routeClassificationProcessingStep", jobRepository)
+      .tasklet(routeClassificationTasklet, transactionManager)
       .listener(stepExecutionListener)
       .build()
 

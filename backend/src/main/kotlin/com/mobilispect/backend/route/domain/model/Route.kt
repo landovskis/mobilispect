@@ -10,7 +10,6 @@ import java.time.Instant
  * @property id Unique route identifier in Transitland Onestop ID format
  *   (r-{geohash}-{route_identifier})
  * @property agencyId Agency that operates this route
- * @property gtfsRouteId Route ID from GTFS routes.txt file
  * @property shortName Short route name (e.g., "5", "Red Line")
  * @property longName Long route name (e.g., "Downtown Express")
  * @property routeType GTFS route type (bus, rail, subway, etc.)
@@ -23,7 +22,6 @@ import java.time.Instant
 data class Route(
   val id: RouteId,
   val agencyId: AgencyId,
-  val gtfsRouteId: String,
   val shortName: String? = null,
   val longName: String,
   val routeType: RouteType,

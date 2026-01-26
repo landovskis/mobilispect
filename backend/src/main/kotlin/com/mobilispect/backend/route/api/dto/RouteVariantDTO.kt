@@ -1,5 +1,6 @@
 package com.mobilispect.backend.route.api.dto
 
+import com.mobilispect.backend.route.domain.model.RouteClassification
 import java.time.LocalTime
 
 data class RouteVariantDTO(
@@ -16,4 +17,6 @@ data class RouteVariantDTO(
   val firstDepartureTime: LocalTime?,
   val lastDepartureTime: LocalTime?,
   val scheduleTripCount: Int?,
+  val classification: RouteClassification? = null,
+  val averageStopSpacingMeters: Double? = null,
 )

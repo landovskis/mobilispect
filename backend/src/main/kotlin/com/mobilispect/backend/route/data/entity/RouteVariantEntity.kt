@@ -25,6 +25,8 @@ class RouteVariantEntity(
   @Column(name = "stop_count", nullable = false) val stopCount: Int,
   @Column(name = "first_stop_id", nullable = false, length = 255) val firstStopId: String,
   @Column(name = "last_stop_id", nullable = false, length = 255) val lastStopId: String,
+  @Column(name = "classification", length = 20) var classification: String? = null,
+  @Column(name = "average_stop_spacing_meters") var averageStopSpacingMeters: Double? = null,
   @Column(name = "active", nullable = false) var active: Boolean = true,
   @Column(name = "first_seen", nullable = false) var firstSeen: Instant,
   @Column(name = "last_seen", nullable = false) var lastSeen: Instant,

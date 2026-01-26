@@ -56,7 +56,6 @@ class AgencyQueryServiceTest {
       Agency(
         agencyId = AgencyId("o-123"),
         feedId = FeedId("f-abc"),
-        gtfsAgencyId = "123",
         name = "Test Agency",
         createdAt = Instant.now(),
         updatedAt = Instant.now(),
@@ -66,7 +65,6 @@ class AgencyQueryServiceTest {
         Route(
           id = RouteId("r-1"),
           agencyId = agency.agencyId,
-          gtfsRouteId = "1",
           shortName = "1",
           longName = "Route 1",
           routeType = RouteType.BUS,
@@ -75,7 +73,6 @@ class AgencyQueryServiceTest {
         Route(
           id = RouteId("r-2"),
           agencyId = agency.agencyId,
-          gtfsRouteId = "2",
           shortName = "2",
           longName = "Route 2",
           routeType = RouteType.BUS,
@@ -142,7 +139,6 @@ class AgencyQueryServiceTest {
       Agency(
         agencyId = AgencyId("o-1"),
         feedId = FeedId("f-abc"),
-        gtfsAgencyId = "1",
         name = "A1",
         createdAt = Instant.now(),
         updatedAt = Instant.now(),

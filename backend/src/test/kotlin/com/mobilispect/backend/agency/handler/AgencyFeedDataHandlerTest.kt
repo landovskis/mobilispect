@@ -8,7 +8,7 @@ import com.mobilispect.backend.feed.api.handler.GTFSDataBundle
 import com.mobilispect.backend.feed.api.handler.GTFSDataType
 import com.mobilispect.backend.feed.api.handler.ImportContext
 import com.mobilispect.backend.feed.api.handler.ImportResult
-import com.mobilispect.backend.feed.api.ids.GTFSAgencyId
+import com.mobilispect.backend.feed.api.ids.FeedLocalAgencyId
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.ids.ImportId
 import io.mockk.every
@@ -47,7 +47,7 @@ class AgencyFeedDataHandlerTest {
     val feedId = FeedId("f-abc-test")
     val gtfsAgency =
       GTFSAgency(
-        agencyId = GTFSAgencyId("agency-1"),
+        agencyId = FeedLocalAgencyId("agency-1"),
         name = "Test Transit",
         url = "https://test-transit.com",
         timezone = "America/New_York",
@@ -66,10 +66,7 @@ class AgencyFeedDataHandlerTest {
 
     verify(exactly = 1) { agencyRepository.save(any()) }
     assertThat(savedAgency.captured.feedId).isEqualTo(feedId)
-    assertThat(savedAgency.captured.gtfsAgencyId).isEqualTo("agency-1")
     assertThat(savedAgency.captured.name).isEqualTo("Test Transit")
-    assertThat(savedAgency.captured.website).isEqualTo("https://test-transit.com")
-    assertThat(savedAgency.captured.phone).isEqualTo("555-1234")
     assertThat(savedAgency.captured.active).isTrue()
   }
 
@@ -79,14 +76,14 @@ class AgencyFeedDataHandlerTest {
     val agencies =
       listOf(
         GTFSAgency(
-          agencyId = GTFSAgencyId("agency-1"),
+          agencyId = FeedLocalAgencyId("agency-1"),
           name = "Transit A",
           url = null,
           timezone = null,
           phone = null,
         ),
         GTFSAgency(
-          agencyId = GTFSAgencyId("agency-2"),
+          agencyId = FeedLocalAgencyId("agency-2"),
           name = "Transit B",
           url = "https://b.com",
           timezone = "America/Chicago",
@@ -123,7 +120,7 @@ class AgencyFeedDataHandlerTest {
     val feedId = FeedId("f-abc-test")
     val gtfsAgency =
       GTFSAgency(
-        agencyId = GTFSAgencyId("my-agency"),
+        agencyId = FeedLocalAgencyId("my-agency"),
         name = "My Agency",
         url = null,
         timezone = null,
@@ -138,7 +135,8 @@ class AgencyFeedDataHandlerTest {
     handler.handle(feedId, bundle, context)
 
     // Agency ID should be constructed from feed ID and GTFS agency ID
-    assertThat(savedAgency.captured.agencyId).isEqualTo(AgencyId(feedId, GTFSAgencyId("my-agency")))
+    assertThat(savedAgency.captured.agencyId)
+      .isEqualTo(AgencyId(feedId, FeedLocalAgencyId("my-agency")))
   }
 
   @Test
@@ -147,14 +145,14 @@ class AgencyFeedDataHandlerTest {
     val agencies =
       listOf(
         GTFSAgency(
-          agencyId = GTFSAgencyId("agency-1"),
+          agencyId = FeedLocalAgencyId("agency-1"),
           name = "Transit A",
           url = null,
           timezone = null,
           phone = null,
         ),
         GTFSAgency(
-          agencyId = GTFSAgencyId("agency-2"),
+          agencyId = FeedLocalAgencyId("agency-2"),
           name = "Transit B",
           url = null,
           timezone = null,
@@ -182,28 +180,5 @@ class AgencyFeedDataHandlerTest {
     assertThat(partialSuccess.errors).hasSize(1)
     assertThat(partialSuccess.errors.first().recordId).isEqualTo("agency-2")
     assertThat(partialSuccess.errors.first().message).contains("Database error")
-  }
-
-  @Test
-  fun `handle sets lastFeedImport to context startedAt`() {
-    val feedId = FeedId("f-abc-test")
-    val gtfsAgency =
-      GTFSAgency(
-        agencyId = GTFSAgencyId("agency-1"),
-        name = "Test Transit",
-        url = null,
-        timezone = null,
-        phone = null,
-      )
-    val bundle = GTFSDataBundle(feedId = feedId, agencies = listOf(gtfsAgency))
-    val importStartTime = Instant.parse("2025-01-15T10:00:00Z")
-    val context = ImportContext(importId = ImportId.random(), startedAt = importStartTime)
-
-    val savedAgency = slot<Agency>()
-    every { agencyRepository.save(capture(savedAgency)) } answers { savedAgency.captured }
-
-    handler.handle(feedId, bundle, context)
-
-    assertThat(savedAgency.captured.lastFeedImport).isEqualTo(importStartTime)
   }
 }

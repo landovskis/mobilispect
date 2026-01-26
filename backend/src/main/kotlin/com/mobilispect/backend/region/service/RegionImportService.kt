@@ -112,12 +112,13 @@ class RegionImportService(
           regionId.value,
         )
         val existing =
-          regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
+          regionImportRepository
+            .findActiveByRegionOnestopId(regionId.value, activeStatuses)
             .orElseThrow {
-            IllegalStateException(
-              "Failed to create or find active region import for region ${regionId.value}"
-            )
-          }
+              IllegalStateException(
+                "Failed to create or find active region import for region ${regionId.value}"
+              )
+            }
         return buildResponseFromExistingImport(existing)
       }
 
@@ -186,7 +187,7 @@ class RegionImportService(
           .addString("regionImportId", regionImportId.value.toString(), true)
           .addString("regionOnestopId", regionId.value, true)
           .addString("triggerType", triggerType.name, true)
-          .addLong("timestamp", System.currentTimeMillis(), true)
+          .addLong("timestamp", System.currentTimeMillis(), false)
           .toJobParameters()
 
       logger.info(
@@ -253,7 +254,8 @@ class RegionImportService(
    */
   fun getActiveImportForRegion(regionId: RegionId): RegionImport? {
     val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
-    return regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
+    return regionImportRepository
+      .findActiveByRegionOnestopId(regionId.value, activeStatuses)
       .orElse(null)
   }
 

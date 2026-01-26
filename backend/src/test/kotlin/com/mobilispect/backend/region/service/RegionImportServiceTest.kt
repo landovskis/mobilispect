@@ -54,8 +54,10 @@ class RegionImportServiceTest {
   @Test
   fun `returns completed response when no active feeds exist`() {
     val regionId = RegionId("r-empty")
-    every { regionImportRepository.findActiveByRegionOnestopId(regionId.value) } returns
-      Optional.empty()
+    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+    every {
+      regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
+    } returns Optional.empty()
     every { feedApi.findActiveFeedsByRegion(regionId) } returns emptyList()
 
     val response = service.import(regionId, ImportTriggerType.MANUAL)
@@ -78,8 +80,10 @@ class RegionImportServiceTest {
         totalFeeds = 3,
       )
 
-    every { regionImportRepository.findActiveByRegionOnestopId(regionId.value) } returns
-      Optional.of(existingImport)
+    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+    every {
+      regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
+    } returns Optional.of(existingImport)
 
     val response = service.import(regionId, ImportTriggerType.MANUAL)
 
@@ -103,8 +107,10 @@ class RegionImportServiceTest {
         totalFeeds = feeds.size,
       )
 
-    every { regionImportRepository.findActiveByRegionOnestopId(regionId.value) } returns
-      Optional.empty()
+    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+    every {
+      regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
+    } returns Optional.empty()
     every { feedApi.findActiveFeedsByRegion(regionId) } returns feeds
     every { regionImportRepository.save(any()) } returns savedImport
     every { jobLauncher.run(regionImportJob, any<JobParameters>()) } returns mockk()

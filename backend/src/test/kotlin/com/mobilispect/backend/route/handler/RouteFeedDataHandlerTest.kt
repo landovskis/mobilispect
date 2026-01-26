@@ -78,7 +78,6 @@ class RouteFeedDataHandlerTest {
     verify(exactly = 1) { routeRepository.save(any()) }
     verify(exactly = 1) { eventPublisher.publishEvent(any<RouteImported>()) }
 
-    assertThat(savedRoute.captured.gtfsRouteId).isEqualTo("route-1")
     assertThat(savedRoute.captured.shortName).isEqualTo("1")
     assertThat(savedRoute.captured.longName).isEqualTo("Main Street")
     assertThat(savedRoute.captured.routeType).isEqualTo(RouteType.BUS)
@@ -143,7 +142,6 @@ class RouteFeedDataHandlerTest {
       Route(
         id = routeId,
         agencyId = agencyId,
-        gtfsRouteId = "route-1",
         shortName = "OLD",
         longName = "Old Name",
         routeType = RouteType.BUS,
@@ -246,7 +244,7 @@ class RouteFeedDataHandlerTest {
 
     handler.handle(feedId, bundle, context)
 
-    assertThat(publishedEvent.captured.gtfsRouteId).isEqualTo("route-1")
+    assertThat(publishedEvent.captured.routeId).isNotNull()
   }
 
   @Test

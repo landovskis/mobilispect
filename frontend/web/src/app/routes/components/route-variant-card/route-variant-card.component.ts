@@ -54,6 +54,11 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
                 {{ formatSchedule(variant) }}
               </span>
             }
+            @if (variant.classification) {
+              <span class="classification-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold">
+                {{ formatClassification(variant.classification) }}
+              </span>
+            }
           </div>
           @if (showCompleteSchedule()) {
             <div class="complete-schedule mt-3 p-3 rounded-md">
@@ -130,6 +135,10 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
         background: rgba(103, 58, 183, 0.12);
         color: #673ab7;
       }
+      .classification-badge {
+        background: rgba(34, 197, 94, 0.12);
+        color: #166534;
+      }
       :host-context(.dark-theme) .variant {
         border-bottom-color: rgba(148, 163, 184, 0.3);
         border-right-color: rgba(148, 163, 184, 0.3);
@@ -147,6 +156,10 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
       :host-context(.dark-theme) .schedule-badge {
         background: rgba(156, 39, 176, 0.2);
         color: #ce93d8;
+      }
+      :host-context(.dark-theme) .classification-badge {
+        background: rgba(34, 197, 94, 0.2);
+        color: #bbf7d0;
       }
       .complete-schedule {
         background: rgba(103, 58, 183, 0.05);
@@ -282,5 +295,12 @@ export class RouteVariantCardComponent {
 
   formatDepartureTime(timeStr: string): string {
     return this.formatTime(timeStr);
+  }
+
+  formatClassification(value: string): string {
+    return value
+      .split('_')
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+      .join(' ');
   }
 }

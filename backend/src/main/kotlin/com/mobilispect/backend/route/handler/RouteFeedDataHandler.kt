@@ -82,7 +82,6 @@ class RouteFeedDataHandler(
             Route(
               id = routeId,
               agencyId = agencyId,
-              gtfsRouteId = gtfsRoute.routeId.value,
               shortName = gtfsRoute.shortName,
               longName = gtfsRoute.longName ?: gtfsRoute.shortName ?: gtfsRoute.routeId.value,
               routeType = RouteType.fromGtfsValue(gtfsRoute.type ?: 3),
@@ -94,9 +93,7 @@ class RouteFeedDataHandler(
         successCount++
 
         // Publish domain event
-        eventPublisher.publishEvent(
-          RouteImported(routeId = saved.id, gtfsRouteId = saved.gtfsRouteId)
-        )
+        eventPublisher.publishEvent(RouteImported(routeId = saved.id))
 
         logger.debug(
           "Saved route {} ({}) for feed {}",

@@ -59,6 +59,8 @@ class FrequencyQueryService(
         firstDepartureTime = schedule?.firstDepartureTime,
         lastDepartureTime = schedule?.lastDepartureTime,
         scheduleTripCount = schedule?.tripCount,
+        classification = variant.classification,
+        averageStopSpacingMeters = variant.averageStopSpacingMeters,
       )
     }
 
@@ -98,15 +100,6 @@ class FrequencyQueryService(
         tripCount = it.tripCount,
         isIrregular = it.isIrregular,
       )
-    }
-  }
-
-  private fun classifyStopSpacing(averageStopSpacingKm: Double?): String? {
-    return when {
-      averageStopSpacingKm == null -> null
-      averageStopSpacingKm < 0.5 -> "local"
-      averageStopSpacingKm <= 1.0 -> "rapid"
-      else -> "express"
     }
   }
 

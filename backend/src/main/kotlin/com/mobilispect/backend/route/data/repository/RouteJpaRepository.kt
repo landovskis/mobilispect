@@ -79,9 +79,7 @@ interface RouteJpaRepository : JpaRepository<RouteEntity, String> {
   fun countByAgencyId(@Param("agencyId") agencyId: String): Long
 
   /** Count active routes for a specific agency. */
-  @Query(
-    "SELECT COUNT(r) FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.active = true"
-  )
+  @Query("SELECT COUNT(r) FROM RouteEntity r WHERE r.agencyId = :agencyId AND r.active = true")
   fun countActiveByAgencyId(@Param("agencyId") agencyId: String): Long
 
   /** Count routes of a specific type for an agency. */

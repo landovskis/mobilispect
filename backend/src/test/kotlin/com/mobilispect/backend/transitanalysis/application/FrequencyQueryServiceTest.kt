@@ -12,6 +12,9 @@ import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
+import com.mobilispect.backend.route.domain.repository.StopSpacingRepository
+import com.mobilispect.backend.route.domain.repository.VariantDepartureRepository
+import com.mobilispect.backend.route.domain.repository.VariantScheduleRepository
 import java.time.Instant
 import java.time.LocalDate
 import org.assertj.core.api.Assertions.assertThat
@@ -25,8 +28,20 @@ class FrequencyQueryServiceTest {
   private val routeRepository: RouteRepository = mock(RouteRepository::class.java)
   private val variantRepository: RouteVariantRepository = mock(RouteVariantRepository::class.java)
   private val frequencyRepository: FrequencyRepository = mock(FrequencyRepository::class.java)
+  private val stopSpacingRepository: StopSpacingRepository = mock(StopSpacingRepository::class.java)
+  private val variantScheduleRepository: VariantScheduleRepository =
+    mock(VariantScheduleRepository::class.java)
+  private val variantDepartureRepository: VariantDepartureRepository =
+    mock(VariantDepartureRepository::class.java)
   private val service =
-    FrequencyQueryService(routeRepository, variantRepository, frequencyRepository)
+    FrequencyQueryService(
+      routeRepository,
+      variantRepository,
+      frequencyRepository,
+      stopSpacingRepository,
+      variantScheduleRepository,
+      variantDepartureRepository,
+    )
 
   @Test
   fun `getVariantsByRoute maps variants`() {
@@ -34,7 +49,6 @@ class FrequencyQueryServiceTest {
       Route(
         id = RouteId("r-1"),
         agencyId = AgencyId("o-1"),
-        gtfsRouteId = "1",
         longName = "Route 1",
         routeType = RouteType.BUS,
         active = true,
@@ -69,7 +83,6 @@ class FrequencyQueryServiceTest {
       Route(
         id = RouteId("r-1"),
         agencyId = AgencyId("o-1"),
-        gtfsRouteId = "1",
         longName = "Route 1",
         routeType = RouteType.BUS,
         active = true,
