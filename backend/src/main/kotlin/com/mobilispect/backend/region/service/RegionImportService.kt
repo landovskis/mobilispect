@@ -187,7 +187,7 @@ class RegionImportService(
           .addString("regionImportId", regionImportId.value.toString(), true)
           .addString("regionOnestopId", regionId.value, true)
           .addString("triggerType", triggerType.name, true)
-          .addLong("timestamp", System.currentTimeMillis(), true)
+          .addLong("timestamp", System.currentTimeMillis(), false)
           .toJobParameters()
 
       logger.info(

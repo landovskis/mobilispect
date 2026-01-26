@@ -29,6 +29,8 @@ export interface RouteVariantDto {
   firstDepartureTime?: string | null;
   lastDepartureTime?: string | null;
   scheduleTripCount?: number | null;
+  classification?: string | null;
+  averageStopSpacingMeters?: number | null;
 }
 
 export interface RouteDto {

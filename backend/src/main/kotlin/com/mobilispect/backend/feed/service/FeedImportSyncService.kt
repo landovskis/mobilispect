@@ -2,6 +2,9 @@ package com.mobilispect.backend.feed.service
 
 import com.mobilispect.backend.agency.batch.import.AgencyImportService
 import com.mobilispect.backend.feed.api.GTFSData
+import com.mobilispect.backend.feed.api.handler.GTFSDataBundle
+import com.mobilispect.backend.feed.api.handler.ImportContext
+import com.mobilispect.backend.feed.api.handler.ImportResult
 import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedStatus
@@ -13,6 +16,7 @@ import com.mobilispect.backend.route.batch.frequency.FrequencyImportService
 import com.mobilispect.backend.route.batch.import.RouteImportService
 import com.mobilispect.backend.route.batch.spacing.StopSpacingImportService
 import com.mobilispect.backend.route.batch.variant.RouteVariantImportService
+import com.mobilispect.backend.route.handler.RouteClassificationFeedDataHandler
 import java.time.Clock
 import java.time.LocalDate
 import org.slf4j.LoggerFactory
@@ -52,6 +56,7 @@ class FeedImportSyncService(
   @Lazy private val routeVariantImportService: RouteVariantImportService,
   @Lazy private val stopSpacingImportService: StopSpacingImportService,
   @Lazy private val frequencyImportService: FrequencyImportService,
+  private val routeClassificationFeedDataHandler: RouteClassificationFeedDataHandler,
   private val clock: Clock = Clock.systemUTC(),
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportSyncService::class.java)
@@ -132,7 +137,7 @@ class FeedImportSyncService(
 
       parseResult
         .onSuccess { parsedData ->
-          processGtfsData(feedId, parsedData)
+          processGtfsData(feedId, parsedData, feedImport)
           completeFeedImport(feedImport, feed.feedId)
         }
         .onFailure { error ->
@@ -154,7 +159,7 @@ class FeedImportSyncService(
    *
    * This ensures consistency between synchronous and batch processing modes.
    */
-  private fun processGtfsData(feedId: FeedId, data: GTFSData) {
+  private fun processGtfsData(feedId: FeedId, data: GTFSData, feedImport: FeedImport) {
     logger.info(
       "Processing GTFS data for feed {}: {} agencies, {} routes, {} trips",
       feedId.value,
@@ -179,7 +184,40 @@ class FeedImportSyncService(
     val spacings = stopSpacingImportService.processStopSpacings(data, variants)
     logger.info("Processed {} stop spacings for feed {}", spacings.size, feedId.value)
 
-    // Step 5: Process frequencies (reuses FrequencyImportService)
+    // Step 5: Classify route variants based on stop spacing
+    val importContext =
+      ImportContext(importId = feedImport.id, startedAt = feedImport.startedAt ?: clock.instant())
+    val bundle =
+      GTFSDataBundle(
+        feedId = feedId,
+        routes = data.routes,
+        trips = data.trips,
+        stops = data.stops,
+        shapes = data.shapes,
+      )
+    when (val result = routeClassificationFeedDataHandler.handle(feedId, bundle, importContext)) {
+      is ImportResult.Success -> {
+        logger.info("Classified {} variants for feed {}", result.recordsProcessed, feedId.value)
+      }
+      is ImportResult.PartialSuccess -> {
+        logger.warn(
+          "Partially classified variants for feed {}: {} succeeded, {} failed",
+          feedId.value,
+          result.recordsProcessed,
+          result.errors.size,
+        )
+      }
+      is ImportResult.Failure -> {
+        logger.error(
+          "Route classification failed for feed {}: {}",
+          feedId.value,
+          result.error.message,
+        )
+        throw IllegalStateException(result.error.message ?: "Route classification failed")
+      }
+    }
+
+    // Step 6: Process frequencies (reuses FrequencyImportService)
     val frequencies = frequencyImportService.processFrequencies(data, LocalDate.now(), variants)
     logger.info("Processed {} frequencies for feed {}", frequencies.size, feedId.value)
   }
