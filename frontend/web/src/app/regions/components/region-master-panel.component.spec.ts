@@ -12,7 +12,11 @@ import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { SchedulerService } from '../../feeds/services/scheduler.service';
 import { MetropolitanRegion } from '../../feeds/models/region.models';
-import { FeedImportSummary, ImportStatus, TriggerType } from '../../feeds/models/import.models';
+import {
+  FeedImportSummary,
+  ImportStatus,
+  TriggerType,
+} from '../../feeds/models/import.models';
 
 describe('RegionMasterPanelComponent', () => {
   let component: RegionMasterPanelComponent;
@@ -96,7 +100,9 @@ describe('RegionMasterPanelComponent', () => {
     regionService.listRegions.and.returnValue(of(mockRegions));
     regionService.sortWithCanadianPriority.and.callFake((regions) => regions);
     importService.getActiveImports.and.returnValue(of(mockActiveImports));
-    importService.getActiveImportsObservable.and.returnValue(of(mockActiveImports));
+    importService.getActiveImportsObservable.and.returnValue(
+      of(mockActiveImports),
+    );
     schedulerService.enableFeedAutoUpdate.and.returnValue(of(undefined));
     schedulerService.disableFeedAutoUpdate.and.returnValue(of(undefined));
 
@@ -213,7 +219,9 @@ describe('RegionMasterPanelComponent', () => {
 
     component.ngOnInit();
 
-    expect(component.error$.value).toBe('Failed to load regions. Please try again.');
+    expect(component.error$.value).toBe(
+      'Failed to load regions. Please try again.',
+    );
     expect(component.isLoading$.value).toBeFalse();
   });
 

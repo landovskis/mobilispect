@@ -55,7 +55,9 @@ describe('FeedImportsPageComponent', () => {
       }),
     );
     importService.cancelImport.and.returnValue(of(baseImport));
-    snackBar.open.and.returnValue({ onAction: () => new Subject<void>() } as any);
+    snackBar.open.and.returnValue({
+      onAction: () => new Subject<void>(),
+    } as any);
 
     TestBed.configureTestingModule({
       imports: [FeedImportsPageComponent],

@@ -143,7 +143,9 @@ describe('RegionDetailPanelComponent', () => {
     mockRegionService.listFeedsForRegion.and.returnValue(of(mockFeeds));
     mockAgencyService.listAgencies.and.returnValue(of(mockAgencies));
     mockImportService.getActiveRegionImport.and.returnValue(of(null));
-    mockImportService.monitorRegionImportProgress.and.returnValue(of(null as any));
+    mockImportService.monitorRegionImportProgress.and.returnValue(
+      of(null as any),
+    );
     mockSnackBar.open.and.returnValue(snackBarRef as any);
 
     TestBed.overrideComponent(RegionDetailPanelComponent, {
