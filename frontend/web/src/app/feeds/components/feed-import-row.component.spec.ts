@@ -107,10 +107,7 @@ describe('FeedImportRowComponent', () => {
     );
 
     // Spy on the actual ChangeDetectorRef
-    const cdrSpy = spyOn(
-      component['cdr'] as ChangeDetectorRef,
-      'markForCheck',
-    );
+    const cdrSpy = spyOn(component['cdr'] as ChangeDetectorRef, 'markForCheck');
 
     // When: Component initializes
     fixture.detectChanges();
@@ -248,10 +245,7 @@ describe('FeedImportRowComponent', () => {
     );
 
     // Spy on the actual ChangeDetectorRef
-    const cdrSpy = spyOn(
-      component['cdr'] as ChangeDetectorRef,
-      'markForCheck',
-    );
+    const cdrSpy = spyOn(component['cdr'] as ChangeDetectorRef, 'markForCheck');
 
     // When: Component initializes
     fixture.detectChanges();

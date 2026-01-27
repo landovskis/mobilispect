@@ -88,10 +88,17 @@ describe('RegionsPageComponent', () => {
       new BehaviorSubject([]).asObservable(),
     );
     mockImportService.getActiveRegionImport.and.returnValue(of(null));
-    mockImportService.monitorRegionImportProgress.and.returnValue(of(null as any));
+    mockImportService.monitorRegionImportProgress.and.returnValue(
+      of(null as any),
+    );
     mockImportService.startImport.and.returnValue(of({} as any));
     mockImportService.importAllFeedsForRegion.and.returnValue(
-      of({ totalFeeds: 0, startedCount: 0, failedCount: 0, skippedCount: 0 } as any),
+      of({
+        totalFeeds: 0,
+        startedCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+      } as any),
     );
     mockImportService.cancelImport.and.returnValue(of({} as any));
     mockAgencyService.listAgencies.and.returnValue(

@@ -285,9 +285,9 @@ describe('RegionMasterPanelComponent', () => {
           take(1),
         )
         .subscribe((regions) => {
-        expect(regions.length).toBe(1);
-        expect(regions[0].name).toBe('Toronto');
-      });
+          expect(regions.length).toBe(1);
+          expect(regions[0].name).toBe('Toronto');
+        });
     }));
   });
 
@@ -444,10 +444,13 @@ describe('RegionMasterPanelComponent', () => {
     it('should calculate total feeds across filtered regions', (done) => {
       fixture.detectChanges();
 
-      component.getTotalFeeds().pipe(take(1)).subscribe((total) => {
-        expect(total).toBe(25); // 12 + 8 + 5
-        done();
-      });
+      component
+        .getTotalFeeds()
+        .pipe(take(1))
+        .subscribe((total) => {
+          expect(total).toBe(25); // 12 + 8 + 5
+          done();
+        });
     });
 
     it('should update total feeds when filters change', fakeAsync(() => {
@@ -456,9 +459,12 @@ describe('RegionMasterPanelComponent', () => {
       component.setAutoUpdateFilter(true);
       tick(100);
 
-      component.getTotalFeeds().pipe(skip(1), take(1)).subscribe((total) => {
-        expect(total).toBe(17); // 12 + 5 (only auto-update enabled)
-      });
+      component
+        .getTotalFeeds()
+        .pipe(skip(1), take(1))
+        .subscribe((total) => {
+          expect(total).toBe(17); // 12 + 5 (only auto-update enabled)
+        });
     }));
   });
 

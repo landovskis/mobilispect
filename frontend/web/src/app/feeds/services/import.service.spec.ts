@@ -257,10 +257,11 @@ describe('ImportService', () => {
       ...baseRegionImport,
       status: RegionImportStatus.COMPLETED,
     };
-    spyOn(service, 'getRegionImportStatus').and.returnValues(
-      of(running),
-      of(completed),
-    );
+    let callCount = 0;
+    spyOn(service, 'getRegionImportStatus').and.callFake(() => {
+      callCount++;
+      return callCount === 1 ? of(running) : of(completed);
+    });
     internals.pollingInterval = 10;
 
     const results: RegionImportStatusResponse[] = [];
