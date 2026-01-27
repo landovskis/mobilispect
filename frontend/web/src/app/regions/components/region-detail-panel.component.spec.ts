@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SimpleChange } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ActivatedRoute } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { RegionDetailPanelComponent } from './region-detail-panel.component';
 import { RegionService } from '../../feeds/services/region.service';
@@ -134,6 +135,12 @@ describe('RegionDetailPanelComponent', () => {
     );
     mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
 
+    TestBed.overrideComponent(RegionDetailPanelComponent, {
+      set: {
+        providers: [{ provide: MatSnackBar, useValue: mockSnackBar }],
+      },
+    });
+
     await TestBed.configureTestingModule({
       imports: [RegionDetailPanelComponent, NoopAnimationsModule],
       providers: [
@@ -143,6 +150,12 @@ describe('RegionDetailPanelComponent', () => {
         { provide: FeedsMetricsService, useValue: mockMetricsService },
         { provide: FeedsEventsService, useValue: mockEventsService },
         { provide: MatSnackBar, useValue: mockSnackBar },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: { get: () => null } },
+          },
+        },
       ],
     }).compileComponents();
 
@@ -176,6 +189,7 @@ describe('RegionDetailPanelComponent', () => {
 
   describe('region changes', () => {
     it('should load feeds when region is set', () => {
+      component.region = mockRegion;
       component.ngOnChanges({
         region: new SimpleChange(null, mockRegion, true),
       });
@@ -186,6 +200,7 @@ describe('RegionDetailPanelComponent', () => {
     });
 
     it('should load overview data when region is set', () => {
+      component.region = mockRegion;
       component.ngOnChanges({
         region: new SimpleChange(null, mockRegion, true),
       });
@@ -201,6 +216,7 @@ describe('RegionDetailPanelComponent', () => {
     });
 
     it('should load active region import status when region is set', () => {
+      component.region = mockRegion;
       component.ngOnChanges({
         region: new SimpleChange(null, mockRegion, true),
       });
@@ -211,6 +227,7 @@ describe('RegionDetailPanelComponent', () => {
     });
 
     it('should start polling active imports when region is set', () => {
+      component.region = mockRegion;
       component.ngOnChanges({
         region: new SimpleChange(null, mockRegion, true),
       });
@@ -220,6 +237,7 @@ describe('RegionDetailPanelComponent', () => {
     });
 
     it('should update metrics when region is set', () => {
+      component.region = mockRegion;
       component.ngOnChanges({
         region: new SimpleChange(null, mockRegion, true),
       });
@@ -231,6 +249,7 @@ describe('RegionDetailPanelComponent', () => {
     });
 
     it('should not load data when region is null', () => {
+      component.region = null;
       component.ngOnChanges({
         region: new SimpleChange(mockRegion, null, false),
       });
@@ -273,8 +292,9 @@ describe('RegionDetailPanelComponent', () => {
       );
     });
 
-    it('should display loading spinner while loading feeds', () => {
-      component.loadingFeeds = true;
+    it('should display loading spinner while loading overview', () => {
+      component.region = mockRegion;
+      component.loadingOverview = true;
       fixture.detectChanges();
 
       const spinner = fixture.nativeElement.querySelector('mat-spinner');
@@ -371,13 +391,15 @@ describe('RegionDetailPanelComponent', () => {
   describe('feed import', () => {
     beforeEach(() => {
       component.region = mockRegion;
-      fixture.detectChanges();
+      // Don't call fixture.detectChanges() here to avoid triggering change detection
+      // before tests can set up their mocks
     });
 
     it('should start import for single feed', () => {
       mockImportService.startImport.and.returnValue(
         of({ importId: 'import-123' } as any),
       );
+      fixture.detectChanges();
 
       component.importFeed(mockFeeds[0]);
 
@@ -390,9 +412,11 @@ describe('RegionDetailPanelComponent', () => {
       mockImportService.startImport.and.returnValue(
         of({ importId: 'import-123' } as any),
       );
+      fixture.detectChanges();
 
       component.importFeed(mockFeeds[0]);
 
+      // First call is "Starting import...", second call is "Import started"
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         jasmine.stringContaining('Import started'),
         'Close',
@@ -404,6 +428,7 @@ describe('RegionDetailPanelComponent', () => {
       mockImportService.startImport.and.returnValue(
         of({ importId: 'import-123' } as any),
       );
+      fixture.detectChanges();
 
       component.importFeed(mockFeeds[0]);
 
@@ -415,6 +440,7 @@ describe('RegionDetailPanelComponent', () => {
         throwError(() => ({ error: { message: 'Import failed' } })),
       );
       spyOn(console, 'error');
+      fixture.detectChanges();
 
       component.importFeed(mockFeeds[0]);
 
@@ -434,8 +460,7 @@ describe('RegionDetailPanelComponent', () => {
         onAction: () => of(null),
       };
       mockSnackBar.open.and.returnValue(snackBarRef as any);
-      spyOn(snackBarRef, 'onAction').and.returnValue(of(null));
-      spyOn(component, 'importFeed');
+      fixture.detectChanges();
 
       component.importFeed(mockFeeds[0]);
 
@@ -450,7 +475,8 @@ describe('RegionDetailPanelComponent', () => {
       mockImportService.startImport.and.returnValue(
         of({ importId: 'import-123' } as any),
       );
-      spyOn(component, 'importFeed');
+      spyOn(component, 'importFeed').and.callThrough();
+      fixture.detectChanges();
 
       component.importMultipleFeeds(mockFeeds);
 
@@ -461,6 +487,10 @@ describe('RegionDetailPanelComponent', () => {
   });
 
   describe('feed details', () => {
+    beforeEach(() => {
+      fixture.detectChanges();
+    });
+
     it('should show message when viewing feed details', () => {
       component.viewFeedDetails(mockFeeds[0]);
 
@@ -540,34 +570,38 @@ describe('RegionDetailPanelComponent', () => {
       expect(meta.textContent).toContain('r-test-toronto');
     });
 
-    it('should display tabs when region is selected', () => {
+    it('should display overview section when region is selected', () => {
       component.region = mockRegion;
       fixture.detectChanges();
 
-      const tabs = fixture.nativeElement.querySelector('mat-tab-group');
-      expect(tabs).toBeTruthy();
+      const overviewHeader =
+        fixture.nativeElement.querySelector('.overview-header');
+      expect(overviewHeader).toBeTruthy();
+      expect(overviewHeader.textContent).toContain('Overview');
     });
 
-    it('should have Feeds tab', () => {
+    it('should display tab content when region is selected', () => {
       component.region = mockRegion;
       fixture.detectChanges();
 
-      const tabLabels = fixture.nativeElement.querySelectorAll('.mat-mdc-tab');
-      const feedsTab = Array.from(tabLabels).find((tab: any) =>
-        tab.textContent.includes('Feeds'),
-      );
-      expect(feedsTab).toBeTruthy();
+      const tabContent = fixture.nativeElement.querySelector('.tab-content');
+      expect(tabContent).toBeTruthy();
     });
 
-    it('should have Overview tab', () => {
+    it('should display summary section when data is loaded', (done) => {
       component.region = mockRegion;
+      component.ngOnChanges({
+        region: new SimpleChange(null, mockRegion, true),
+      });
       fixture.detectChanges();
 
-      const tabLabels = fixture.nativeElement.querySelectorAll('.mat-mdc-tab');
-      const overviewTab = Array.from(tabLabels).find((tab: any) =>
-        tab.textContent.includes('Overview'),
-      );
-      expect(overviewTab).toBeTruthy();
+      setTimeout(() => {
+        fixture.detectChanges();
+        const summarySection =
+          fixture.nativeElement.querySelector('.summary-section');
+        expect(summarySection).toBeTruthy();
+        done();
+      }, 100);
     });
   });
 });

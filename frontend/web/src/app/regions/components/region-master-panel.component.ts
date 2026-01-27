@@ -371,13 +371,6 @@ export class RegionMasterPanelComponent implements OnInit, OnDestroy {
     private schedulerService: SchedulerService,
     private snackBar: MatSnackBar,
   ) {
-    // Setup search term observable with debouncing
-    this.searchTerm$
-      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
-      .subscribe((term) => {
-        this.searchTerm = term;
-      });
-
     // Setup filtered regions stream
     this.filteredRegions$ = combineLatest([
       this.regions$,
@@ -391,6 +384,13 @@ export class RegionMasterPanelComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Setup search term observable with debouncing
+    this.searchTerm$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((term) => {
+        this.searchTerm = term;
+      });
+
     this.loadRegions();
     this.loadActiveImports();
 

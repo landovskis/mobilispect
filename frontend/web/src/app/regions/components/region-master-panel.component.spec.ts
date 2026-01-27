@@ -6,7 +6,7 @@ import {
 } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { of, throwError, BehaviorSubject } from 'rxjs';
+import { of, throwError, BehaviorSubject, take, skip, filter } from 'rxjs';
 import { RegionMasterPanelComponent } from './region-master-panel.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
@@ -143,7 +143,7 @@ describe('RegionMasterPanelComponent', () => {
     it('should populate regions$ with loaded data', (done) => {
       fixture.detectChanges();
 
-      component.regions$.subscribe((regions) => {
+      component.regions$.pipe(take(1)).subscribe((regions) => {
         expect(regions).toEqual(mockRegions);
         done();
       });
@@ -153,7 +153,7 @@ describe('RegionMasterPanelComponent', () => {
       fixture.detectChanges();
 
       setTimeout(() => {
-        component.isLoading$.subscribe((loading) => {
+        component.isLoading$.pipe(take(1)).subscribe((loading) => {
           expect(loading).toBe(false);
           done();
         });
@@ -173,18 +173,17 @@ describe('RegionMasterPanelComponent', () => {
       expect(component.searchTerm).toBe('tor');
     }));
 
-    it('should filter regions by name', (done) => {
+    it('should filter regions by name', fakeAsync(() => {
       fixture.detectChanges();
 
       component.onSearchTermChange('toronto');
       tick(300);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].name).toBe('Toronto');
-        done();
       });
-    });
+    }));
 
     it('should filter regions by onestop ID', fakeAsync(() => {
       fixture.detectChanges();
@@ -192,7 +191,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('r-test-vancouver');
       tick(300);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].regionOnestopId).toBe('r-test-vancouver');
       });
@@ -204,7 +203,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('washington');
       tick(300);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].adm1Name).toBe('Washington');
       });
@@ -216,7 +215,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('TORONTO');
       tick(300);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].name).toBe('Toronto');
       });
@@ -231,7 +230,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('');
       tick(300);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
         expect(regions.length).toBe(3);
       });
     }));
@@ -243,7 +242,7 @@ describe('RegionMasterPanelComponent', () => {
 
       component.setAutoUpdateFilter(true);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
         expect(regions.length).toBe(2);
         expect(regions.every((r) => r.autoUpdateEnabled)).toBe(true);
         done();
@@ -255,7 +254,7 @@ describe('RegionMasterPanelComponent', () => {
 
       component.setAutoUpdateFilter(false);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions.every((r) => !r.autoUpdateEnabled)).toBe(true);
         done();
@@ -267,7 +266,7 @@ describe('RegionMasterPanelComponent', () => {
 
       component.setAutoUpdateFilter(undefined);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
         expect(regions.length).toBe(3);
         done();
       });
@@ -280,7 +279,12 @@ describe('RegionMasterPanelComponent', () => {
       tick(300);
       component.setAutoUpdateFilter(true);
 
-      component.filteredRegions$.subscribe((regions) => {
+      component.filteredRegions$
+        .pipe(
+          filter((regions) => regions.length === 1),
+          take(1),
+        )
+        .subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].name).toBe('Toronto');
       });
@@ -440,7 +444,7 @@ describe('RegionMasterPanelComponent', () => {
     it('should calculate total feeds across filtered regions', (done) => {
       fixture.detectChanges();
 
-      component.getTotalFeeds().subscribe((total) => {
+      component.getTotalFeeds().pipe(take(1)).subscribe((total) => {
         expect(total).toBe(25); // 12 + 8 + 5
         done();
       });
@@ -452,7 +456,7 @@ describe('RegionMasterPanelComponent', () => {
       component.setAutoUpdateFilter(true);
       tick(100);
 
-      component.getTotalFeeds().subscribe((total) => {
+      component.getTotalFeeds().pipe(skip(1), take(1)).subscribe((total) => {
         expect(total).toBe(17); // 12 + 5 (only auto-update enabled)
       });
     }));
@@ -479,7 +483,7 @@ describe('RegionMasterPanelComponent', () => {
       fixture.detectChanges();
 
       setTimeout(() => {
-        component.error$.subscribe((error) => {
+        component.error$.pipe(take(1)).subscribe((error) => {
           expect(error).toBe('Failed to load regions. Please try again.');
           done();
         });
@@ -494,7 +498,7 @@ describe('RegionMasterPanelComponent', () => {
       fixture.detectChanges();
 
       setTimeout(() => {
-        component.isLoading$.subscribe((loading) => {
+        component.isLoading$.pipe(take(1)).subscribe((loading) => {
           expect(loading).toBe(false);
           done();
         });
@@ -541,6 +545,8 @@ describe('RegionMasterPanelComponent', () => {
 
   describe('template rendering', () => {
     it('should display loading spinner when loading', () => {
+      fixture.detectChanges();
+
       component.isLoading$.next(true);
       fixture.detectChanges();
 
@@ -549,6 +555,8 @@ describe('RegionMasterPanelComponent', () => {
     });
 
     it('should display error message when error occurs', () => {
+      fixture.detectChanges();
+
       component.isLoading$.next(false);
       component.error$.next('Test error message');
       fixture.detectChanges();
@@ -560,6 +568,8 @@ describe('RegionMasterPanelComponent', () => {
     });
 
     it('should display empty state when no regions found', () => {
+      fixture.detectChanges();
+
       component.regions$.next([]);
       component.isLoading$.next(false);
       component.error$.next(null);

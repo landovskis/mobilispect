@@ -3,13 +3,25 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { RegionsPageComponent } from './regions.page';
 import { RegionService } from '../../feeds/services/region.service';
+import { ImportService } from '../../feeds/services/import.service';
+import { SchedulerService } from '../../feeds/services/scheduler.service';
 import { MetropolitanRegion } from '../../feeds/models/region.models';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { AgencyService } from '../../agencies/services/agency.service';
+import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
+import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 
 describe('RegionsPageComponent', () => {
   let component: RegionsPageComponent;
   let fixture: ComponentFixture<RegionsPageComponent>;
   let mockRegionService: jasmine.SpyObj<RegionService>;
+  let mockImportService: jasmine.SpyObj<ImportService>;
+  let mockSchedulerService: jasmine.SpyObj<SchedulerService>;
+  let mockSnackBar: jasmine.SpyObj<MatSnackBar>;
+  let mockAgencyService: jasmine.SpyObj<AgencyService>;
+  let mockMetricsService: jasmine.SpyObj<FeedsMetricsService>;
+  let mockEventsService: jasmine.SpyObj<FeedsEventsService>;
   let mockRouter: jasmine.SpyObj<Router>;
   let paramMapSubject: BehaviorSubject<any>;
   let queryParamMapSubject: BehaviorSubject<any>;
@@ -33,8 +45,59 @@ describe('RegionsPageComponent', () => {
 
   beforeEach(async () => {
     // Create spy objects
-    mockRegionService = jasmine.createSpyObj('RegionService', ['getRegion']);
+    mockRegionService = jasmine.createSpyObj('RegionService', [
+      'getRegion',
+      'listRegions',
+      'listFeedsForRegion',
+      'sortWithCanadianPriority',
+      'clearCache',
+    ]);
+    mockImportService = jasmine.createSpyObj('ImportService', [
+      'getActiveImports',
+      'startPollingActiveImports',
+      'stopPollingActiveImports',
+      'getActiveImportsObservable',
+      'refreshActiveImports',
+      'getActiveRegionImport',
+      'monitorRegionImportProgress',
+      'startImport',
+      'importAllFeedsForRegion',
+      'cancelImport',
+    ]);
+    mockSchedulerService = jasmine.createSpyObj('SchedulerService', [
+      'enableFeedAutoUpdate',
+      'disableFeedAutoUpdate',
+    ]);
+    mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    mockAgencyService = jasmine.createSpyObj('AgencyService', ['listAgencies']);
+    mockMetricsService = jasmine.createSpyObj('FeedsMetricsService', [
+      'setSelectedRegion',
+      'setDiscoverFeedCount',
+    ]);
+    mockEventsService = jasmine.createSpyObj('FeedsEventsService', ['']);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+
+    // Setup default return values
+    mockRegionService.listRegions.and.returnValue(of([mockRegion]));
+    mockRegionService.listFeedsForRegion.and.returnValue(of([]));
+    mockRegionService.sortWithCanadianPriority.and.callFake(
+      (regions) => regions,
+    );
+    mockImportService.getActiveImports.and.returnValue(of([]));
+    mockImportService.getActiveImportsObservable.and.returnValue(
+      new BehaviorSubject([]).asObservable(),
+    );
+    mockImportService.getActiveRegionImport.and.returnValue(of(null));
+    mockImportService.monitorRegionImportProgress.and.returnValue(of(null as any));
+    mockImportService.startImport.and.returnValue(of({} as any));
+    mockImportService.importAllFeedsForRegion.and.returnValue(
+      of({ totalFeeds: 0, startedCount: 0, failedCount: 0, skippedCount: 0 } as any),
+    );
+    mockImportService.cancelImport.and.returnValue(of({} as any));
+    mockAgencyService.listAgencies.and.returnValue(
+      of({ content: [], totalElements: 0, totalPages: 0 } as any),
+    );
+    mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
 
     // Create subjects for route params
     paramMapSubject = new BehaviorSubject(convertToParamMap({}));
@@ -44,6 +107,12 @@ describe('RegionsPageComponent', () => {
       imports: [RegionsPageComponent, NoopAnimationsModule],
       providers: [
         { provide: RegionService, useValue: mockRegionService },
+        { provide: ImportService, useValue: mockImportService },
+        { provide: SchedulerService, useValue: mockSchedulerService },
+        { provide: MatSnackBar, useValue: mockSnackBar },
+        { provide: AgencyService, useValue: mockAgencyService },
+        { provide: FeedsMetricsService, useValue: mockMetricsService },
+        { provide: FeedsEventsService, useValue: mockEventsService },
         { provide: Router, useValue: mockRouter },
         {
           provide: ActivatedRoute,
