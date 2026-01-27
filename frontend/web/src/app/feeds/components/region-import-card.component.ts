@@ -3,7 +3,7 @@ import {
   Input,
   Output,
   EventEmitter,
-  ChangeDetectionStrategy
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -27,7 +27,7 @@ import { FeedImportRowComponent } from './feed-import-row.component';
     CommonModule,
     MatProgressBarModule,
     BrandCardComponent,
-    FeedImportRowComponent
+    FeedImportRowComponent,
   ],
   template: `
     <app-brand-card
@@ -40,7 +40,9 @@ import { FeedImportRowComponent } from './feed-import-row.component';
       <div class="region-aggregate-progress">
         <div class="progress-header">
           <span class="progress-label">Overall Progress</span>
-          <span class="progress-percentage">{{ regionGroup.averageProgress | number:'1.0-1' }}%</span>
+          <span class="progress-percentage"
+            >{{ regionGroup.averageProgress | number: '1.0-1' }}%</span
+          >
         </div>
         <mat-progress-bar
           [value]="regionGroup.averageProgress"
@@ -64,49 +66,51 @@ import { FeedImportRowComponent } from './feed-import-row.component';
       </div>
     </app-brand-card>
   `,
-  styles: [`
-    .region-aggregate-progress {
-      margin-bottom: 1.5rem;
-      padding: 0.75rem;
-      background: var(--ms-color-background, #f5f5f5);
-      border-radius: 0.5rem;
-      border: 1px solid var(--ms-color-border, #e0e0e0);
-    }
+  styles: [
+    `
+      .region-aggregate-progress {
+        margin-bottom: 1.5rem;
+        padding: 0.75rem;
+        background: var(--ms-color-background, #f5f5f5);
+        border-radius: 0.5rem;
+        border: 1px solid var(--ms-color-border, #e0e0e0);
+      }
 
-    .progress-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
 
-    .progress-label {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--mat-sys-on-surface-variant, #666);
-    }
+      .progress-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--mat-sys-on-surface-variant, #666);
+      }
 
-    .progress-percentage {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--mat-sys-primary, #1976d2);
-    }
+      .progress-percentage {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--mat-sys-primary, #1976d2);
+      }
 
-    .feed-list {
-      margin-top: 1rem;
-    }
+      .feed-list {
+        margin-top: 1rem;
+      }
 
-    /* Dark theme support */
-    :host-context(.dark-theme) .region-aggregate-progress {
-      background: var(--ms-color-background, #2c2c2c);
-      border-color: var(--ms-color-border, #424242);
-    }
+      /* Dark theme support */
+      :host-context(.dark-theme) .region-aggregate-progress {
+        background: var(--ms-color-background, #2c2c2c);
+        border-color: var(--ms-color-border, #424242);
+      }
 
-    :host-context(.dark-theme) .progress-label {
-      color: var(--mat-sys-on-surface-variant, #aaa);
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+      :host-context(.dark-theme) .progress-label {
+        color: var(--mat-sys-on-surface-variant, #aaa);
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegionImportCardComponent {
   /** Region import group data containing feeds and aggregate info */

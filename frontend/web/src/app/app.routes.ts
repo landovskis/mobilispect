@@ -16,9 +16,7 @@ export const routes: Routes = [
       {
         path: 'regions',
         loadChildren: () =>
-          import('./routes/routes.routes').then(
-            (m) => m.ROUTES_ROUTES,
-          ),
+          import('./routes/routes.routes').then((m) => m.ROUTES_ROUTES),
         data: {
           breadcrumb: 'Regions',
         },

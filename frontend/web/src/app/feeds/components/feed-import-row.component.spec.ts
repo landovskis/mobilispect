@@ -3,7 +3,12 @@ import { ChangeDetectorRef } from '@angular/core';
 import { of, Subject } from 'rxjs';
 import { FeedImportRowComponent } from './feed-import-row.component';
 import { ImportService } from '../services/import.service';
-import { FeedImportSummary, ImportStatus, TriggerType, ImportProgress } from '../models/import.models';
+import {
+  FeedImportSummary,
+  ImportStatus,
+  TriggerType,
+  ImportProgress,
+} from '../models/import.models';
 
 describe('FeedImportRowComponent', () => {
   let component: FeedImportRowComponent;
@@ -25,20 +30,24 @@ describe('FeedImportRowComponent', () => {
       progressPercentage: 50,
       totalSteps: 5,
       currentStep: 'Parsing routes',
-      estimatedTimeRemainingSeconds: 120
-    }
+      estimatedTimeRemainingSeconds: 120,
+    },
   };
 
   const mockProgress: ImportProgress = {
     progressPercentage: 75,
     totalSteps: 5,
     currentStep: 'Importing stops',
-    estimatedTimeRemainingSeconds: 60
+    estimatedTimeRemainingSeconds: 60,
   };
 
   beforeEach(async () => {
-    mockImportService = jasmine.createSpyObj('ImportService', ['monitorImportProgress']);
-    mockChangeDetectorRef = jasmine.createSpyObj('ChangeDetectorRef', ['markForCheck']);
+    mockImportService = jasmine.createSpyObj('ImportService', [
+      'monitorImportProgress',
+    ]);
+    mockChangeDetectorRef = jasmine.createSpyObj('ChangeDetectorRef', [
+      'markForCheck',
+    ]);
 
     // Default: return observable that never emits (for tests that don't care about progress)
     mockImportService.monitorImportProgress.and.returnValue(new Subject());
@@ -47,8 +56,8 @@ describe('FeedImportRowComponent', () => {
       imports: [FeedImportRowComponent],
       providers: [
         { provide: ImportService, useValue: mockImportService },
-        { provide: ChangeDetectorRef, useValue: mockChangeDetectorRef }
-      ]
+        { provide: ChangeDetectorRef, useValue: mockChangeDetectorRef },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(FeedImportRowComponent);
@@ -94,7 +103,9 @@ describe('FeedImportRowComponent', () => {
     // Given: Component with feed import and progress observable
     component.feedImport = mockFeedImport;
     const progressSubject = new Subject<ImportProgress>();
-    mockImportService.monitorImportProgress.and.returnValue(progressSubject.asObservable());
+    mockImportService.monitorImportProgress.and.returnValue(
+      progressSubject.asObservable(),
+    );
 
     // When: Component initializes
     fixture.detectChanges();
@@ -122,14 +133,20 @@ describe('FeedImportRowComponent', () => {
     expect(result60).toBe('1m 0s');
 
     // When: Formatting 125 seconds
-    component.currentProgress = { ...mockProgress, estimatedTimeRemainingSeconds: 125 };
+    component.currentProgress = {
+      ...mockProgress,
+      estimatedTimeRemainingSeconds: 125,
+    };
     const result125 = component.formatTimeRemaining();
 
     // Then: Formatted as "2m 5s"
     expect(result125).toBe('2m 5s');
 
     // When: Formatting 30 seconds
-    component.currentProgress = { ...mockProgress, estimatedTimeRemainingSeconds: 30 };
+    component.currentProgress = {
+      ...mockProgress,
+      estimatedTimeRemainingSeconds: 30,
+    };
     const result30 = component.formatTimeRemaining();
 
     // Then: Formatted as "30s"
@@ -147,7 +164,9 @@ describe('FeedImportRowComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const stopButton = compiled.querySelector('button[aria-label]');
     expect(stopButton).toBeTruthy();
-    expect(stopButton?.getAttribute('aria-label')).toContain('Stop import for BART');
+    expect(stopButton?.getAttribute('aria-label')).toContain(
+      'Stop import for BART',
+    );
 
     // And: Row has listitem role
     const row = compiled.querySelector('[role="listitem"]');
@@ -171,7 +190,7 @@ describe('FeedImportRowComponent', () => {
     const failedImport: FeedImportSummary = {
       ...mockFeedImport,
       status: ImportStatus.FAILED,
-      errorMessage: 'Feed download failed'
+      errorMessage: 'Feed download failed',
     };
     component.feedImport = failedImport;
 
@@ -189,7 +208,7 @@ describe('FeedImportRowComponent', () => {
     const pendingImport: FeedImportSummary = {
       ...mockFeedImport,
       status: ImportStatus.PENDING,
-      progress: null
+      progress: null,
     };
     component.feedImport = pendingImport;
     component.currentProgress = null;
@@ -220,7 +239,9 @@ describe('FeedImportRowComponent', () => {
     // Given: Component with active subscription
     component.feedImport = mockFeedImport;
     const progressSubject = new Subject<ImportProgress>();
-    mockImportService.monitorImportProgress.and.returnValue(progressSubject.asObservable());
+    mockImportService.monitorImportProgress.and.returnValue(
+      progressSubject.asObservable(),
+    );
 
     // When: Component initializes
     fixture.detectChanges();
@@ -232,7 +253,9 @@ describe('FeedImportRowComponent', () => {
     // We can verify this by trying to emit - destroyed subjects won't trigger updates
     const initialCallCount = mockChangeDetectorRef.markForCheck.calls.count();
     progressSubject.next(mockProgress);
-    expect(mockChangeDetectorRef.markForCheck.calls.count()).toBe(initialCallCount);
+    expect(mockChangeDetectorRef.markForCheck.calls.count()).toBe(
+      initialCallCount,
+    );
   });
 
   describe('getStatusClass', () => {

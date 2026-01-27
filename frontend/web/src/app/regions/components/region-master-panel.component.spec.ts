@@ -1,4 +1,9 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
+import {
+  ComponentFixture,
+  TestBed,
+  fakeAsync,
+  tick,
+} from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError, BehaviorSubject } from 'rxjs';
@@ -27,7 +32,7 @@ describe('RegionMasterPanelComponent', () => {
       autoUpdateEnabled: true,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-02T00:00:00Z',
-      lastCheckAt: '2024-01-03T00:00:00Z'
+      lastCheckAt: '2024-01-03T00:00:00Z',
     },
     {
       regionOnestopId: 'r-test-vancouver',
@@ -38,7 +43,7 @@ describe('RegionMasterPanelComponent', () => {
       autoUpdateEnabled: false,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-02T00:00:00Z',
-      lastCheckAt: null
+      lastCheckAt: null,
     },
     {
       regionOnestopId: 'r-test-seattle',
@@ -49,8 +54,8 @@ describe('RegionMasterPanelComponent', () => {
       autoUpdateEnabled: true,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-02T00:00:00Z',
-      lastCheckAt: null
-    }
+      lastCheckAt: null,
+    },
   ];
 
   const mockActiveImports: FeedImportSummary[] = [
@@ -66,47 +71,46 @@ describe('RegionMasterPanelComponent', () => {
       completedAt: null,
       fileSizeBytes: null,
       errorMessage: null,
-      progress: null
-    }
+      progress: null,
+    },
   ];
 
   beforeEach(async () => {
     mockRegionService = jasmine.createSpyObj('RegionService', [
       'listRegions',
       'clearCache',
-      'sortWithCanadianPriority'
+      'sortWithCanadianPriority',
     ]);
     mockImportService = jasmine.createSpyObj('ImportService', [
       'getActiveImports',
       'startPollingActiveImports',
       'stopPollingActiveImports',
-      'getActiveImportsObservable'
+      'getActiveImportsObservable',
     ]);
     mockSchedulerService = jasmine.createSpyObj('SchedulerService', [
       'enableFeedAutoUpdate',
-      'disableFeedAutoUpdate'
+      'disableFeedAutoUpdate',
     ]);
     mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
     // Setup default return values
     mockRegionService.listRegions.and.returnValue(of(mockRegions));
-    mockRegionService.sortWithCanadianPriority.and.callFake((regions) => regions);
+    mockRegionService.sortWithCanadianPriority.and.callFake(
+      (regions) => regions,
+    );
     mockImportService.getActiveImports.and.returnValue(of(mockActiveImports));
     mockImportService.getActiveImportsObservable.and.returnValue(
-      new BehaviorSubject(mockActiveImports).asObservable()
+      new BehaviorSubject(mockActiveImports).asObservable(),
     );
 
     await TestBed.configureTestingModule({
-      imports: [
-        RegionMasterPanelComponent,
-        NoopAnimationsModule
-      ],
+      imports: [RegionMasterPanelComponent, NoopAnimationsModule],
       providers: [
         { provide: RegionService, useValue: mockRegionService },
         { provide: ImportService, useValue: mockImportService },
         { provide: SchedulerService, useValue: mockSchedulerService },
-        { provide: MatSnackBar, useValue: mockSnackBar }
-      ]
+        { provide: MatSnackBar, useValue: mockSnackBar },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegionMasterPanelComponent);
@@ -139,7 +143,7 @@ describe('RegionMasterPanelComponent', () => {
     it('should populate regions$ with loaded data', (done) => {
       fixture.detectChanges();
 
-      component.regions$.subscribe(regions => {
+      component.regions$.subscribe((regions) => {
         expect(regions).toEqual(mockRegions);
         done();
       });
@@ -149,7 +153,7 @@ describe('RegionMasterPanelComponent', () => {
       fixture.detectChanges();
 
       setTimeout(() => {
-        component.isLoading$.subscribe(loading => {
+        component.isLoading$.subscribe((loading) => {
           expect(loading).toBe(false);
           done();
         });
@@ -175,7 +179,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('toronto');
       tick(300);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].name).toBe('Toronto');
         done();
@@ -188,7 +192,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('r-test-vancouver');
       tick(300);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].regionOnestopId).toBe('r-test-vancouver');
       });
@@ -200,7 +204,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('washington');
       tick(300);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].adm1Name).toBe('Washington');
       });
@@ -212,7 +216,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('TORONTO');
       tick(300);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].name).toBe('Toronto');
       });
@@ -227,7 +231,7 @@ describe('RegionMasterPanelComponent', () => {
       component.onSearchTermChange('');
       tick(300);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(3);
       });
     }));
@@ -239,9 +243,9 @@ describe('RegionMasterPanelComponent', () => {
 
       component.setAutoUpdateFilter(true);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(2);
-        expect(regions.every(r => r.autoUpdateEnabled)).toBe(true);
+        expect(regions.every((r) => r.autoUpdateEnabled)).toBe(true);
         done();
       });
     });
@@ -251,9 +255,9 @@ describe('RegionMasterPanelComponent', () => {
 
       component.setAutoUpdateFilter(false);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(1);
-        expect(regions.every(r => !r.autoUpdateEnabled)).toBe(true);
+        expect(regions.every((r) => !r.autoUpdateEnabled)).toBe(true);
         done();
       });
     });
@@ -263,7 +267,7 @@ describe('RegionMasterPanelComponent', () => {
 
       component.setAutoUpdateFilter(undefined);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(3);
         done();
       });
@@ -276,7 +280,7 @@ describe('RegionMasterPanelComponent', () => {
       tick(300);
       component.setAutoUpdateFilter(true);
 
-      component.filteredRegions$.subscribe(regions => {
+      component.filteredRegions$.subscribe((regions) => {
         expect(regions.length).toBe(1);
         expect(regions[0].name).toBe('Toronto');
       });
@@ -290,7 +294,9 @@ describe('RegionMasterPanelComponent', () => {
 
       component.selectRegion(mockRegions[0]);
 
-      expect(component.regionSelected.emit).toHaveBeenCalledWith(mockRegions[0]);
+      expect(component.regionSelected.emit).toHaveBeenCalledWith(
+        mockRegions[0],
+      );
     });
 
     it('should update selectedRegion property', () => {
@@ -307,7 +313,9 @@ describe('RegionMasterPanelComponent', () => {
 
       component.viewRegionDetails(mockRegions[0]);
 
-      expect(component.regionDetailsRequested.emit).toHaveBeenCalledWith(mockRegions[0]);
+      expect(component.regionDetailsRequested.emit).toHaveBeenCalledWith(
+        mockRegions[0],
+      );
     });
   });
 
@@ -319,7 +327,9 @@ describe('RegionMasterPanelComponent', () => {
 
       component.toggleAutoUpdate(mockRegions[1], true);
 
-      expect(mockSchedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith('r-test-vancouver');
+      expect(mockSchedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith(
+        'r-test-vancouver',
+      );
     });
 
     it('should disable auto-update for a region', () => {
@@ -329,7 +339,9 @@ describe('RegionMasterPanelComponent', () => {
 
       component.toggleAutoUpdate(mockRegions[0], false);
 
-      expect(mockSchedulerService.disableFeedAutoUpdate).toHaveBeenCalledWith('r-test-toronto');
+      expect(mockSchedulerService.disableFeedAutoUpdate).toHaveBeenCalledWith(
+        'r-test-toronto',
+      );
     });
 
     it('should show success message when auto-update is enabled', () => {
@@ -342,7 +354,7 @@ describe('RegionMasterPanelComponent', () => {
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         jasmine.stringContaining('enabled'),
         'Close',
-        { duration: 3000 }
+        { duration: 3000 },
       );
     });
 
@@ -356,7 +368,7 @@ describe('RegionMasterPanelComponent', () => {
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         jasmine.stringContaining('disabled'),
         'Close',
-        { duration: 3000 }
+        { duration: 3000 },
       );
     });
 
@@ -373,7 +385,7 @@ describe('RegionMasterPanelComponent', () => {
 
     it('should handle auto-update toggle errors', () => {
       mockSchedulerService.enableFeedAutoUpdate.and.returnValue(
-        throwError(() => new Error('Failed to update'))
+        throwError(() => new Error('Failed to update')),
       );
       mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
       spyOn(console, 'error');
@@ -385,7 +397,7 @@ describe('RegionMasterPanelComponent', () => {
       expect(mockSnackBar.open).toHaveBeenCalledWith(
         'Failed to update auto-update setting',
         'Close',
-        { duration: 3000 }
+        { duration: 3000 },
       );
     });
 
@@ -394,11 +406,15 @@ describe('RegionMasterPanelComponent', () => {
       mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
       fixture.detectChanges();
 
-      expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(false);
+      expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(
+        false,
+      );
 
       component.toggleAutoUpdate(mockRegions[1], true);
 
-      expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(false);
+      expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(
+        false,
+      );
     });
   });
 
@@ -424,7 +440,7 @@ describe('RegionMasterPanelComponent', () => {
     it('should calculate total feeds across filtered regions', (done) => {
       fixture.detectChanges();
 
-      component.getTotalFeeds().subscribe(total => {
+      component.getTotalFeeds().subscribe((total) => {
         expect(total).toBe(25); // 12 + 8 + 5
         done();
       });
@@ -436,7 +452,7 @@ describe('RegionMasterPanelComponent', () => {
       component.setAutoUpdateFilter(true);
       tick(100);
 
-      component.getTotalFeeds().subscribe(total => {
+      component.getTotalFeeds().subscribe((total) => {
         expect(total).toBe(17); // 12 + 5 (only auto-update enabled)
       });
     }));
@@ -456,14 +472,14 @@ describe('RegionMasterPanelComponent', () => {
   describe('error handling', () => {
     it('should display error message when region loading fails', (done) => {
       mockRegionService.listRegions.and.returnValue(
-        throwError(() => new Error('Network error'))
+        throwError(() => new Error('Network error')),
       );
       spyOn(console, 'error');
 
       fixture.detectChanges();
 
       setTimeout(() => {
-        component.error$.subscribe(error => {
+        component.error$.subscribe((error) => {
           expect(error).toBe('Failed to load regions. Please try again.');
           done();
         });
@@ -472,13 +488,13 @@ describe('RegionMasterPanelComponent', () => {
 
     it('should set isLoading to false on error', (done) => {
       mockRegionService.listRegions.and.returnValue(
-        throwError(() => new Error('Network error'))
+        throwError(() => new Error('Network error')),
       );
 
       fixture.detectChanges();
 
       setTimeout(() => {
-        component.isLoading$.subscribe(loading => {
+        component.isLoading$.subscribe((loading) => {
           expect(loading).toBe(false);
           done();
         });
@@ -537,7 +553,8 @@ describe('RegionMasterPanelComponent', () => {
       component.error$.next('Test error message');
       fixture.detectChanges();
 
-      const errorContainer = fixture.nativeElement.querySelector('.error-container');
+      const errorContainer =
+        fixture.nativeElement.querySelector('.error-container');
       expect(errorContainer).toBeTruthy();
       expect(errorContainer.textContent).toContain('Test error message');
     });
@@ -555,7 +572,8 @@ describe('RegionMasterPanelComponent', () => {
     it('should display region cards when regions are loaded', () => {
       fixture.detectChanges();
 
-      const regionCards = fixture.nativeElement.querySelectorAll('.region-card');
+      const regionCards =
+        fixture.nativeElement.querySelectorAll('.region-card');
       expect(regionCards.length).toBeGreaterThan(0);
     });
 

@@ -1,5 +1,8 @@
 import { FeedImportSummary, ImportStatus, TriggerType } from './import.models';
-import { RegionImportGroup, RegionImportGroupingUtils } from './region-import-group.model';
+import {
+  RegionImportGroup,
+  RegionImportGroupingUtils,
+} from './region-import-group.model';
 
 describe('RegionImportGroupingUtils', () => {
   const fixedDate = '2026-01-07T12:00:00Z';
@@ -11,7 +14,7 @@ describe('RegionImportGroupingUtils', () => {
     regionId: string,
     regionName: string,
     status: ImportStatus,
-    progressPercentage: number = 0
+    progressPercentage: number = 0,
   ): FeedImportSummary => ({
     id,
     feedOnestopId: feedId,
@@ -22,21 +25,48 @@ describe('RegionImportGroupingUtils', () => {
     triggerType: TriggerType.MANUAL,
     startedAt: fixedDate,
     completedAt: null,
-    progress: progressPercentage > 0 ? {
-      progressPercentage,
-      totalSteps: 5,
-      currentStep: 'Processing',
-      estimatedTimeRemainingSeconds: 60
-    } : null
+    progress:
+      progressPercentage > 0
+        ? {
+            progressPercentage,
+            totalSteps: 5,
+            currentStep: 'Processing',
+            estimatedTimeRemainingSeconds: 60,
+          }
+        : null,
   });
 
   describe('groupImportsByRegion', () => {
     it('should group imports by region', () => {
       // Given: Imports from two different regions
       const imports: FeedImportSummary[] = [
-        createImport('1', 'f-bart', 'BART', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.RUNNING, 50),
-        createImport('2', 'f-muni', 'MUNI', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.RUNNING, 75),
-        createImport('3', 'f-mta', 'MTA', 'r-nyc', 'New York City', ImportStatus.PENDING, 0),
+        createImport(
+          '1',
+          'f-bart',
+          'BART',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.RUNNING,
+          50,
+        ),
+        createImport(
+          '2',
+          'f-muni',
+          'MUNI',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.RUNNING,
+          75,
+        ),
+        createImport(
+          '3',
+          'f-mta',
+          'MTA',
+          'r-nyc',
+          'New York City',
+          ImportStatus.PENDING,
+          0,
+        ),
       ];
 
       // When: Grouping by region
@@ -45,13 +75,13 @@ describe('RegionImportGroupingUtils', () => {
       // Then: Two region groups are created
       expect(result.length).toBe(2);
 
-      const sfBay = result.find(g => g.regionOnestopId === 'r-sf-bay');
+      const sfBay = result.find((g) => g.regionOnestopId === 'r-sf-bay');
       expect(sfBay).toBeDefined();
       expect(sfBay!.regionName).toBe('San Francisco Bay Area');
       expect(sfBay!.feedImports.length).toBe(2);
       expect(sfBay!.totalFeeds).toBe(2);
 
-      const nyc = result.find(g => g.regionOnestopId === 'r-nyc');
+      const nyc = result.find((g) => g.regionOnestopId === 'r-nyc');
       expect(nyc).toBeDefined();
       expect(nyc!.regionName).toBe('New York City');
       expect(nyc!.feedImports.length).toBe(1);
@@ -61,9 +91,33 @@ describe('RegionImportGroupingUtils', () => {
     it('should calculate average progress correctly', () => {
       // Given: Imports with different progress levels
       const imports: FeedImportSummary[] = [
-        createImport('1', 'f-bart', 'BART', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.RUNNING, 50),
-        createImport('2', 'f-muni', 'MUNI', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.RUNNING, 100),
-        createImport('3', 'f-caltrain', 'Caltrain', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.RUNNING, 25),
+        createImport(
+          '1',
+          'f-bart',
+          'BART',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.RUNNING,
+          50,
+        ),
+        createImport(
+          '2',
+          'f-muni',
+          'MUNI',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.RUNNING,
+          100,
+        ),
+        createImport(
+          '3',
+          'f-caltrain',
+          'Caltrain',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.RUNNING,
+          25,
+        ),
       ];
 
       // When: Grouping by region
@@ -77,8 +131,24 @@ describe('RegionImportGroupingUtils', () => {
     it('should handle imports with null progress', () => {
       // Given: Some imports have no progress data
       const imports: FeedImportSummary[] = [
-        createImport('1', 'f-bart', 'BART', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.PENDING, 0),
-        createImport('2', 'f-muni', 'MUNI', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.RUNNING, 50),
+        createImport(
+          '1',
+          'f-bart',
+          'BART',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.PENDING,
+          0,
+        ),
+        createImport(
+          '2',
+          'f-muni',
+          'MUNI',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.RUNNING,
+          50,
+        ),
       ];
 
       // When: Grouping by region
@@ -103,8 +173,24 @@ describe('RegionImportGroupingUtils', () => {
     it('should identify regions with failures', () => {
       // Given: Imports with one failed import
       const imports: FeedImportSummary[] = [
-        createImport('1', 'f-bart', 'BART', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.RUNNING, 50),
-        createImport('2', 'f-muni', 'MUNI', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.FAILED, 0),
+        createImport(
+          '1',
+          'f-bart',
+          'BART',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.RUNNING,
+          50,
+        ),
+        createImport(
+          '2',
+          'f-muni',
+          'MUNI',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.FAILED,
+          0,
+        ),
       ];
 
       // When: Grouping by region
@@ -119,8 +205,24 @@ describe('RegionImportGroupingUtils', () => {
     it('should identify when all imports are completed', () => {
       // Given: All imports are completed
       const imports: FeedImportSummary[] = [
-        createImport('1', 'f-bart', 'BART', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.COMPLETED, 100),
-        createImport('2', 'f-muni', 'MUNI', 'r-sf-bay', 'San Francisco Bay Area', ImportStatus.COMPLETED, 100),
+        createImport(
+          '1',
+          'f-bart',
+          'BART',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.COMPLETED,
+          100,
+        ),
+        createImport(
+          '2',
+          'f-muni',
+          'MUNI',
+          'r-sf-bay',
+          'San Francisco Bay Area',
+          ImportStatus.COMPLETED,
+          100,
+        ),
       ];
 
       // When: Grouping by region
@@ -145,7 +247,7 @@ describe('RegionImportGroupingUtils', () => {
           triggerType: TriggerType.MANUAL,
           startedAt: fixedDate,
           completedAt: null,
-          progress: null
+          progress: null,
         },
       ];
 
@@ -197,7 +299,7 @@ describe('RegionImportGroupingUtils', () => {
       const result = RegionImportGroupingUtils.sortRegionGroups(groups);
 
       // Then: Sorted alphabetically
-      expect(result.map(g => g.regionName)).toEqual([
+      expect(result.map((g) => g.regionName)).toEqual([
         'Los Angeles',
         'New York City',
         'San Francisco Bay Area',
@@ -220,14 +322,47 @@ describe('RegionImportGroupingUtils', () => {
     it('should calculate average of all feed progress percentages', () => {
       // Given: Imports with varying progress
       const imports: FeedImportSummary[] = [
-        createImport('1', 'f-1', 'Feed 1', 'r-test', 'Test Region', ImportStatus.RUNNING, 25),
-        createImport('2', 'f-2', 'Feed 2', 'r-test', 'Test Region', ImportStatus.RUNNING, 50),
-        createImport('3', 'f-3', 'Feed 3', 'r-test', 'Test Region', ImportStatus.RUNNING, 75),
-        createImport('4', 'f-4', 'Feed 4', 'r-test', 'Test Region', ImportStatus.RUNNING, 100),
+        createImport(
+          '1',
+          'f-1',
+          'Feed 1',
+          'r-test',
+          'Test Region',
+          ImportStatus.RUNNING,
+          25,
+        ),
+        createImport(
+          '2',
+          'f-2',
+          'Feed 2',
+          'r-test',
+          'Test Region',
+          ImportStatus.RUNNING,
+          50,
+        ),
+        createImport(
+          '3',
+          'f-3',
+          'Feed 3',
+          'r-test',
+          'Test Region',
+          ImportStatus.RUNNING,
+          75,
+        ),
+        createImport(
+          '4',
+          'f-4',
+          'Feed 4',
+          'r-test',
+          'Test Region',
+          ImportStatus.RUNNING,
+          100,
+        ),
       ];
 
       // When: Calculating average
-      const result = RegionImportGroupingUtils.calculateAverageProgress(imports);
+      const result =
+        RegionImportGroupingUtils.calculateAverageProgress(imports);
 
       // Then: Average is (25 + 50 + 75 + 100) / 4 = 62.5
       expect(result).toBe(62.5);
@@ -236,13 +371,38 @@ describe('RegionImportGroupingUtils', () => {
     it('should ignore imports with no progress data', () => {
       // Given: Mix of imports with and without progress
       const imports: FeedImportSummary[] = [
-        createImport('1', 'f-1', 'Feed 1', 'r-test', 'Test Region', ImportStatus.PENDING, 0),
-        createImport('2', 'f-2', 'Feed 2', 'r-test', 'Test Region', ImportStatus.RUNNING, 50),
-        createImport('3', 'f-3', 'Feed 3', 'r-test', 'Test Region', ImportStatus.RUNNING, 100),
+        createImport(
+          '1',
+          'f-1',
+          'Feed 1',
+          'r-test',
+          'Test Region',
+          ImportStatus.PENDING,
+          0,
+        ),
+        createImport(
+          '2',
+          'f-2',
+          'Feed 2',
+          'r-test',
+          'Test Region',
+          ImportStatus.RUNNING,
+          50,
+        ),
+        createImport(
+          '3',
+          'f-3',
+          'Feed 3',
+          'r-test',
+          'Test Region',
+          ImportStatus.RUNNING,
+          100,
+        ),
       ];
 
       // When: Calculating average
-      const result = RegionImportGroupingUtils.calculateAverageProgress(imports);
+      const result =
+        RegionImportGroupingUtils.calculateAverageProgress(imports);
 
       // Then: Average only includes imports with progress (50 + 100) / 2 = 75
       expect(result).toBe(75);
@@ -251,12 +411,29 @@ describe('RegionImportGroupingUtils', () => {
     it('should return 0 when no imports have progress', () => {
       // Given: All imports have no progress
       const imports: FeedImportSummary[] = [
-        createImport('1', 'f-1', 'Feed 1', 'r-test', 'Test Region', ImportStatus.PENDING, 0),
-        createImport('2', 'f-2', 'Feed 2', 'r-test', 'Test Region', ImportStatus.PENDING, 0),
+        createImport(
+          '1',
+          'f-1',
+          'Feed 1',
+          'r-test',
+          'Test Region',
+          ImportStatus.PENDING,
+          0,
+        ),
+        createImport(
+          '2',
+          'f-2',
+          'Feed 2',
+          'r-test',
+          'Test Region',
+          ImportStatus.PENDING,
+          0,
+        ),
       ];
 
       // When: Calculating average
-      const result = RegionImportGroupingUtils.calculateAverageProgress(imports);
+      const result =
+        RegionImportGroupingUtils.calculateAverageProgress(imports);
 
       // Then: Returns 0
       expect(result).toBe(0);
@@ -267,7 +444,8 @@ describe('RegionImportGroupingUtils', () => {
       const imports: FeedImportSummary[] = [];
 
       // When: Calculating average
-      const result = RegionImportGroupingUtils.calculateAverageProgress(imports);
+      const result =
+        RegionImportGroupingUtils.calculateAverageProgress(imports);
 
       // Then: Returns 0
       expect(result).toBe(0);
