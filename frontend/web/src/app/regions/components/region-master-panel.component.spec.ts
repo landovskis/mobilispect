@@ -79,6 +79,10 @@ describe('RegionMasterPanelComponent', () => {
     },
   ];
 
+  const setup = () => {
+    component.ngOnInit();
+  };
+
   beforeEach(async () => {
     regionService = jasmine.createSpyObj('RegionService', [
       'listRegions',
@@ -121,7 +125,7 @@ describe('RegionMasterPanelComponent', () => {
   });
 
   it('loads regions and active imports on init', () => {
-    component.ngOnInit();
+    setup();
 
     expect(regionService.listRegions).toHaveBeenCalled();
     expect(importService.getActiveImports).toHaveBeenCalled();
@@ -133,7 +137,7 @@ describe('RegionMasterPanelComponent', () => {
   });
 
   it('updates search term with debounce', fakeAsync(() => {
-    component.ngOnInit();
+    setup();
 
     component.onSearchTermChange('tor');
     tick(299);
@@ -144,7 +148,7 @@ describe('RegionMasterPanelComponent', () => {
   }));
 
   it('filters regions by search and auto-update flag', fakeAsync(() => {
-    component.ngOnInit();
+    setup();
 
     let results: MetropolitanRegion[] = [];
     component.filteredRegions$.subscribe((items) => {
@@ -171,6 +175,13 @@ describe('RegionMasterPanelComponent', () => {
 
     expect(selected).toEqual(mockRegions[0]);
     expect(details).toEqual(mockRegions[1]);
+  });
+
+  it('refreshes regions and clears cache', () => {
+    component.refreshRegions();
+
+    expect(regionService.clearCache).toHaveBeenCalled();
+    expect(regionService.listRegions).toHaveBeenCalled();
   });
 
   it('toggles auto-update and refreshes regions', () => {
@@ -217,7 +228,7 @@ describe('RegionMasterPanelComponent', () => {
       throwError(() => new Error('Network error')),
     );
 
-    component.ngOnInit();
+    setup();
 
     expect(component.error$.value).toBe(
       'Failed to load regions. Please try again.',
@@ -226,7 +237,7 @@ describe('RegionMasterPanelComponent', () => {
   });
 
   it('stops polling on destroy', () => {
-    component.ngOnInit();
+    setup();
     component.ngOnDestroy();
 
     expect(importService.stopPollingActiveImports).toHaveBeenCalled();

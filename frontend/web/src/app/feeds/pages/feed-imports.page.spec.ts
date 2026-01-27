@@ -33,6 +33,10 @@ describe('FeedImportsPageComponent', () => {
     updatedAt: '2024-01-01T00:10:00Z',
   };
 
+  const setup = () => {
+    component.ngOnInit();
+  };
+
   beforeEach(() => {
     importService = jasmine.createSpyObj<ImportService>('ImportService', [
       'getActiveImportsObservable',
@@ -55,9 +59,7 @@ describe('FeedImportsPageComponent', () => {
       }),
     );
     importService.cancelImport.and.returnValue(of(baseImport));
-    snackBar.open.and.returnValue({
-      onAction: () => new Subject<void>(),
-    } as any);
+    snackBar.open.and.returnValue({ onAction: () => new Subject<void>() } as any);
 
     TestBed.configureTestingModule({
       imports: [FeedImportsPageComponent],
@@ -73,36 +75,36 @@ describe('FeedImportsPageComponent', () => {
     ).componentInstance;
   });
 
-  it('loads history and refreshes active imports on init', () => {
+  it('initializes history and refreshes active imports', () => {
     spyOn(component, 'loadImportHistory');
 
-    component.ngOnInit();
+    setup();
 
     expect(component.loadImportHistory).toHaveBeenCalledWith(0);
     expect(importService.refreshActiveImports).toHaveBeenCalled();
   });
 
-  it('refreshes history when events trigger', () => {
+  it('refreshes data when events emit', () => {
     spyOn(component, 'loadImportHistory');
 
-    component.ngOnInit();
+    setup();
     events.triggerRefresh();
 
     expect(component.loadImportHistory).toHaveBeenCalledWith(0);
     expect(importService.refreshActiveImports).toHaveBeenCalledTimes(2);
   });
 
-  it('updates state and metrics on history load', () => {
+  it('updates history state and metrics on load', () => {
     component.loadImportHistory(2);
 
-    expect(component.importHistory).toEqual([baseImport]);
+    expect(component.loadingHistory).toBeFalse();
     expect(component.importHistoryPage).toBe(2);
+    expect(component.importHistory).toEqual([baseImport]);
     expect(component.totalImportElements).toBe(1);
     expect(metrics.setTotalImportElements).toHaveBeenCalledWith(1);
-    expect(component.loadingHistory).toBeFalse();
   });
 
-  it('handles history load failures with a snackbar', () => {
+  it('shows snackbar when history load fails', () => {
     importService.getAllImportHistory.and.returnValue(
       throwError(() => new Error('fail')),
     );
@@ -117,7 +119,7 @@ describe('FeedImportsPageComponent', () => {
     );
   });
 
-  it('cancels imports and refreshes data', () => {
+  it('cancels import and refreshes history', () => {
     spyOn(component, 'loadImportHistory');
 
     component.cancelImport('imp-1');
@@ -125,14 +127,14 @@ describe('FeedImportsPageComponent', () => {
     expect(importService.cancelImport).toHaveBeenCalledWith('imp-1');
     expect(importService.refreshActiveImports).toHaveBeenCalled();
     expect(component.loadImportHistory).toHaveBeenCalledWith(0);
-    expect(snackBar.open).toHaveBeenCalledWith(
+    expect(snackBar.open.calls.mostRecent().args).toEqual([
       '✅ Import cancelled successfully',
       'Close',
       { duration: 4000 },
-    );
+    ]);
   });
 
-  it('retries cancel on action when cancellation fails', () => {
+  it('retries cancel on snackbar action after failure', () => {
     const retry$ = new Subject<void>();
     snackBar.open.and.returnValue({ onAction: () => retry$ } as any);
     importService.cancelImport.and.returnValues(
@@ -148,7 +150,7 @@ describe('FeedImportsPageComponent', () => {
     expect(component.loadImportHistory).toHaveBeenCalledWith(0);
   });
 
-  it('shows backend error detail when cancel fails', () => {
+  it('surfaces backend error detail on cancel failure', () => {
     importService.cancelImport.and.returnValue(
       throwError(() => ({ error: { message: 'backend issue' } })),
     );
