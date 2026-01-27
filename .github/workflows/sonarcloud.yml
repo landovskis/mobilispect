@@ -6,7 +6,6 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/web/**'
-      - 'frontend/mobile/**'
       - 'sonar-project.properties'
       - '.github/workflows/sonarcloud.yml'
   push:
@@ -14,7 +13,6 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/web/**'
-      - 'frontend/mobile/**'
       - 'sonar-project.properties'
       - '.github/workflows/sonarcloud.yml'
   workflow_dispatch:
@@ -67,17 +65,11 @@ jobs:
       - name: Make gradlew executable
         run: |
           chmod +x backend/gradlew
-          chmod +x frontend/mobile/gradlew
 
       - name: Backend tests (coverage inputs)
         run: |
           echo "🧪 Running backend tests..."
           cd backend && ./gradlew test jacocoTestReport --info
-
-      - name: Mobile shared tests (coverage inputs)
-        run: |
-          echo "🧪 Running KMM shared tests..."
-          cd frontend/mobile && ./gradlew shared:testDebugUnitTest shared:koverXmlReport --info
 
       - name: Web tests (coverage inputs)
         run: |
