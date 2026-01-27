@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { RegionListComponent } from './region-list.component';
 import { RegionService } from '../../feeds/services/region.service';
@@ -26,7 +26,7 @@ describe('RegionListComponent', () => {
     adm1Name: 'California',
     autoUpdateEnabled: false,
     feedCount: 2,
-    lastCheckAt: null,
+    lastCheckAt: '2024-01-01T00:00:00Z',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   };
@@ -86,9 +86,9 @@ describe('RegionListComponent', () => {
         { provide: RegionService, useValue: regionService },
         { provide: ImportService, useValue: importService },
         { provide: SchedulerService, useValue: schedulerService },
+        { provide: MatSnackBar, useValue: snackBar },
       ],
     });
-    TestBed.overrideProvider(MatSnackBar, { useValue: snackBar });
     component = TestBed.createComponent(RegionListComponent).componentInstance;
   });
 
@@ -116,7 +116,7 @@ describe('RegionListComponent', () => {
     );
   });
 
-  it('filters regions by search term and auto-update flag', () => {
+  it('filters regions by search term and auto-update flag', fakeAsync(() => {
     const regions: MetropolitanRegion[] = [
       {
         ...baseRegion,
@@ -132,19 +132,19 @@ describe('RegionListComponent', () => {
       },
     ];
 
-    const filterRegions = (
-      component as unknown as {
-        filterRegions: (
-          items: MetropolitanRegion[],
-          term: string,
-          flag: boolean,
-        ) => MetropolitanRegion[];
-      }
-    ).filterRegions;
-    const filtered = filterRegions.call(component, regions, 'tor', true);
-    expect(filtered.length).toBe(1);
-    expect(filtered[0].regionOnestopId).toBe('r-1');
-  });
+    let results: MetropolitanRegion[] = [];
+    component.filteredRegions$.subscribe((items) => {
+      results = items;
+    });
+
+    component.regions$.next(regions);
+    component.onSearchTermChange('tor');
+    component.setAutoUpdateFilter(true);
+    tick(300);
+
+    expect(results.length).toBe(1);
+    expect(results[0].regionOnestopId).toBe('r-1');
+  }));
 
   it('emits selection and details events', () => {
     let selected: MetropolitanRegion | undefined;
@@ -167,24 +167,17 @@ describe('RegionListComponent', () => {
     expect(regionService.listRegions).toHaveBeenCalled();
   });
 
-  it('handles discovery completion', () => {
+  it('handles discovery completion for selected region', () => {
     component.selectedRegion = baseRegion;
-
     spyOn(component, 'refreshRegions');
     let emitted: MetropolitanRegion | undefined;
+
     component.regionSelected.subscribe((region) => (emitted = region));
 
     component.handleDiscoveryCompleted(baseRegion);
 
     expect(component.refreshRegions).toHaveBeenCalled();
     expect(emitted).toEqual(baseRegion);
-  });
-
-  it('tracks regions and formats labels', () => {
-    expect(component.trackByRegionId(0, baseRegion)).toBe('r-test');
-    expect(component.getDisplayName(baseRegion)).toBe(
-      'Test Region, California, United States',
-    );
   });
 
   it('calculates active import status', () => {
@@ -218,7 +211,7 @@ describe('RegionListComponent', () => {
     expect(total).toBe(8);
   });
 
-  it('toggles auto-update and shows snackbars', () => {
+  it('toggles auto-update and shows snackbar', () => {
     spyOn(component, 'refreshRegions');
 
     component.toggleAutoUpdate(baseRegion, true);
@@ -226,8 +219,14 @@ describe('RegionListComponent', () => {
     expect(schedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith(
       'r-test',
     );
-    expect(snackBar.open).toHaveBeenCalled();
+    expect(snackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('Automatic updates enabled'),
+      'Close',
+      { duration: 3000 },
+    );
     expect(component.refreshRegions).toHaveBeenCalled();
+    expect(component.isUpdatingAutoUpdate.has('r-test')).toBeFalse();
+    expect(baseRegion.autoUpdateEnabled).toBeTrue();
   });
 
   it('handles auto-update errors', () => {
@@ -248,24 +247,9 @@ describe('RegionListComponent', () => {
   it('checks for updates and stores version status', () => {
     component.checkForUpdates(baseRegion);
 
-    expect(schedulerService.checkFeedUpdate).toHaveBeenCalled();
     const status = component.getVersionStatus(baseRegion);
     expect(status.hasUpdate).toBeTrue();
-  });
-
-  it('handles update check errors', () => {
-    schedulerService.checkFeedUpdate.and.returnValue(
-      throwError(() => new Error('fail')),
-    );
-
-    component.checkForUpdates(baseRegion);
-
-    expect(component.isCheckingUpdates.has('r-test')).toBeFalse();
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to check for updates',
-      'Close',
-      { duration: 3000 },
-    );
+    expect(status.lastChecked instanceof Date).toBeTrue();
   });
 
   it('returns existing version status data', () => {

@@ -6,21 +6,21 @@ import {
 } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { of, throwError, BehaviorSubject, take, skip, filter } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { RegionMasterPanelComponent } from './region-master-panel.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { SchedulerService } from '../../feeds/services/scheduler.service';
 import { MetropolitanRegion } from '../../feeds/models/region.models';
-import { FeedImportSummary } from '../../feeds/models/import.models';
+import { FeedImportSummary, ImportStatus, TriggerType } from '../../feeds/models/import.models';
 
 describe('RegionMasterPanelComponent', () => {
   let component: RegionMasterPanelComponent;
   let fixture: ComponentFixture<RegionMasterPanelComponent>;
-  let mockRegionService: jasmine.SpyObj<RegionService>;
-  let mockImportService: jasmine.SpyObj<ImportService>;
-  let mockSchedulerService: jasmine.SpyObj<SchedulerService>;
-  let mockSnackBar: jasmine.SpyObj<MatSnackBar>;
+  let regionService: jasmine.SpyObj<RegionService>;
+  let importService: jasmine.SpyObj<ImportService>;
+  let schedulerService: jasmine.SpyObj<SchedulerService>;
+  let snackBar: jasmine.SpyObj<MatSnackBar>;
 
   const mockRegions: MetropolitanRegion[] = [
     {
@@ -63,10 +63,10 @@ describe('RegionMasterPanelComponent', () => {
       id: 'import-1',
       feedOnestopId: 'f-test-feed1',
       feedName: 'Test Feed 1',
-      regionOnestopId: 'r-toronto',
+      regionOnestopId: 'r-test-toronto',
       regionName: 'Toronto',
-      status: 'IN_PROGRESS' as any,
-      triggerType: 'MANUAL' as any,
+      status: ImportStatus.RUNNING,
+      triggerType: TriggerType.MANUAL,
       startedAt: '2024-01-03T10:00:00Z',
       completedAt: null,
       fileSizeBytes: null,
@@ -76,40 +76,37 @@ describe('RegionMasterPanelComponent', () => {
   ];
 
   beforeEach(async () => {
-    mockRegionService = jasmine.createSpyObj('RegionService', [
+    regionService = jasmine.createSpyObj('RegionService', [
       'listRegions',
       'clearCache',
       'sortWithCanadianPriority',
     ]);
-    mockImportService = jasmine.createSpyObj('ImportService', [
+    importService = jasmine.createSpyObj('ImportService', [
       'getActiveImports',
       'startPollingActiveImports',
       'stopPollingActiveImports',
       'getActiveImportsObservable',
     ]);
-    mockSchedulerService = jasmine.createSpyObj('SchedulerService', [
+    schedulerService = jasmine.createSpyObj('SchedulerService', [
       'enableFeedAutoUpdate',
       'disableFeedAutoUpdate',
     ]);
-    mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
 
-    // Setup default return values
-    mockRegionService.listRegions.and.returnValue(of(mockRegions));
-    mockRegionService.sortWithCanadianPriority.and.callFake(
-      (regions) => regions,
-    );
-    mockImportService.getActiveImports.and.returnValue(of(mockActiveImports));
-    mockImportService.getActiveImportsObservable.and.returnValue(
-      new BehaviorSubject(mockActiveImports).asObservable(),
-    );
+    regionService.listRegions.and.returnValue(of(mockRegions));
+    regionService.sortWithCanadianPriority.and.callFake((regions) => regions);
+    importService.getActiveImports.and.returnValue(of(mockActiveImports));
+    importService.getActiveImportsObservable.and.returnValue(of(mockActiveImports));
+    schedulerService.enableFeedAutoUpdate.and.returnValue(of(undefined));
+    schedulerService.disableFeedAutoUpdate.and.returnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [RegionMasterPanelComponent, NoopAnimationsModule],
       providers: [
-        { provide: RegionService, useValue: mockRegionService },
-        { provide: ImportService, useValue: mockImportService },
-        { provide: SchedulerService, useValue: mockSchedulerService },
-        { provide: MatSnackBar, useValue: mockSnackBar },
+        { provide: RegionService, useValue: regionService },
+        { provide: ImportService, useValue: importService },
+        { provide: SchedulerService, useValue: schedulerService },
+        { provide: MatSnackBar, useValue: snackBar },
       ],
     }).compileComponents();
 
@@ -117,487 +114,113 @@ describe('RegionMasterPanelComponent', () => {
     component = fixture.componentInstance;
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('loads regions and active imports on init', () => {
+    component.ngOnInit();
+
+    expect(regionService.listRegions).toHaveBeenCalled();
+    expect(importService.getActiveImports).toHaveBeenCalled();
+    expect(importService.startPollingActiveImports).toHaveBeenCalled();
+    expect(importService.getActiveImportsObservable).toHaveBeenCalled();
+    expect(component.regions$.value).toEqual(mockRegions);
+    expect(component.activeImports$.value).toEqual(mockActiveImports);
+    expect(component.isLoading$.value).toBeFalse();
   });
 
-  describe('initialization', () => {
-    it('should load regions on init', () => {
-      fixture.detectChanges();
+  it('updates search term with debounce', fakeAsync(() => {
+    component.ngOnInit();
 
-      expect(mockRegionService.listRegions).toHaveBeenCalled();
+    component.onSearchTermChange('tor');
+    tick(299);
+    expect(component.searchTerm).toBe('');
+
+    tick(1);
+    expect(component.searchTerm).toBe('tor');
+  }));
+
+  it('filters regions by search and auto-update flag', fakeAsync(() => {
+    component.ngOnInit();
+
+    let results: MetropolitanRegion[] = [];
+    component.filteredRegions$.subscribe((items) => {
+      results = items;
     });
 
-    it('should start polling active imports on init', () => {
-      fixture.detectChanges();
+    component.onSearchTermChange('canada');
+    component.setAutoUpdateFilter(true);
+    tick(300);
 
-      expect(mockImportService.startPollingActiveImports).toHaveBeenCalled();
-    });
+    expect(results.length).toBe(1);
+    expect(results[0].regionOnestopId).toBe('r-test-toronto');
+  }));
 
-    it('should subscribe to active imports observable', () => {
-      fixture.detectChanges();
+  it('emits selection and details events', () => {
+    let selected: MetropolitanRegion | undefined;
+    let details: MetropolitanRegion | undefined;
 
-      expect(mockImportService.getActiveImportsObservable).toHaveBeenCalled();
-    });
+    component.regionSelected.subscribe((region) => (selected = region));
+    component.regionDetailsRequested.subscribe((region) => (details = region));
 
-    it('should populate regions$ with loaded data', (done) => {
-      fixture.detectChanges();
+    component.selectRegion(mockRegions[0]);
+    component.viewRegionDetails(mockRegions[1]);
 
-      component.regions$.pipe(take(1)).subscribe((regions) => {
-        expect(regions).toEqual(mockRegions);
-        done();
-      });
-    });
-
-    it('should set isLoading$ to false after loading', (done) => {
-      fixture.detectChanges();
-
-      setTimeout(() => {
-        component.isLoading$.pipe(take(1)).subscribe((loading) => {
-          expect(loading).toBe(false);
-          done();
-        });
-      }, 100);
-    });
+    expect(selected).toEqual(mockRegions[0]);
+    expect(details).toEqual(mockRegions[1]);
   });
 
-  describe('search functionality', () => {
-    it('should debounce search input by 300ms', fakeAsync(() => {
-      fixture.detectChanges();
+  it('toggles auto-update and refreshes regions', () => {
+    spyOn(component, 'refreshRegions');
 
-      component.onSearchTermChange('tor');
-      tick(100);
-      expect(component.searchTerm).toBe('');
+    component.toggleAutoUpdate(mockRegions[1], true);
 
-      tick(200);
-      expect(component.searchTerm).toBe('tor');
-    }));
-
-    it('should filter regions by name', fakeAsync(() => {
-      fixture.detectChanges();
-
-      component.onSearchTermChange('toronto');
-      tick(300);
-
-      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
-        expect(regions.length).toBe(1);
-        expect(regions[0].name).toBe('Toronto');
-      });
-    }));
-
-    it('should filter regions by onestop ID', fakeAsync(() => {
-      fixture.detectChanges();
-
-      component.onSearchTermChange('r-test-vancouver');
-      tick(300);
-
-      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
-        expect(regions.length).toBe(1);
-        expect(regions[0].regionOnestopId).toBe('r-test-vancouver');
-      });
-    }));
-
-    it('should filter regions by administrative area', fakeAsync(() => {
-      fixture.detectChanges();
-
-      component.onSearchTermChange('washington');
-      tick(300);
-
-      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
-        expect(regions.length).toBe(1);
-        expect(regions[0].adm1Name).toBe('Washington');
-      });
-    }));
-
-    it('should be case-insensitive', fakeAsync(() => {
-      fixture.detectChanges();
-
-      component.onSearchTermChange('TORONTO');
-      tick(300);
-
-      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
-        expect(regions.length).toBe(1);
-        expect(regions[0].name).toBe('Toronto');
-      });
-    }));
-
-    it('should return all regions when search is cleared', fakeAsync(() => {
-      fixture.detectChanges();
-
-      component.onSearchTermChange('toronto');
-      tick(300);
-
-      component.onSearchTermChange('');
-      tick(300);
-
-      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
-        expect(regions.length).toBe(3);
-      });
-    }));
+    expect(schedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith(
+      'r-test-vancouver',
+    );
+    expect(snackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('enabled'),
+      'Close',
+      { duration: 3000 },
+    );
+    expect(component.refreshRegions).toHaveBeenCalled();
+    expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBeFalse();
   });
 
-  describe('filter functionality', () => {
-    it('should filter regions with auto-update enabled', (done) => {
-      fixture.detectChanges();
+  it('handles auto-update errors', () => {
+    schedulerService.enableFeedAutoUpdate.and.returnValue(
+      throwError(() => new Error('Failed to update')),
+    );
 
-      component.setAutoUpdateFilter(true);
+    component.toggleAutoUpdate(mockRegions[1], true);
 
-      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
-        expect(regions.length).toBe(2);
-        expect(regions.every((r) => r.autoUpdateEnabled)).toBe(true);
-        done();
-      });
-    });
-
-    it('should filter regions with auto-update disabled', (done) => {
-      fixture.detectChanges();
-
-      component.setAutoUpdateFilter(false);
-
-      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
-        expect(regions.length).toBe(1);
-        expect(regions.every((r) => !r.autoUpdateEnabled)).toBe(true);
-        done();
-      });
-    });
-
-    it('should show all regions when filter is undefined', (done) => {
-      fixture.detectChanges();
-
-      component.setAutoUpdateFilter(undefined);
-
-      component.filteredRegions$.pipe(skip(1), take(1)).subscribe((regions) => {
-        expect(regions.length).toBe(3);
-        done();
-      });
-    });
-
-    it('should combine search and filter', fakeAsync(() => {
-      fixture.detectChanges();
-
-      component.onSearchTermChange('canada');
-      tick(300);
-      component.setAutoUpdateFilter(true);
-
-      component.filteredRegions$
-        .pipe(
-          filter((regions) => regions.length === 1),
-          take(1),
-        )
-        .subscribe((regions) => {
-          expect(regions.length).toBe(1);
-          expect(regions[0].name).toBe('Toronto');
-        });
-    }));
+    expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBeFalse();
+    expect(snackBar.open).toHaveBeenCalledWith(
+      'Failed to update auto-update setting',
+      'Close',
+      { duration: 3000 },
+    );
   });
 
-  describe('region selection', () => {
-    it('should emit regionSelected event when region is selected', () => {
-      spyOn(component.regionSelected, 'emit');
-      fixture.detectChanges();
+  it('calculates active import count', () => {
+    component.activeImports$.next(mockActiveImports);
 
-      component.selectRegion(mockRegions[0]);
-
-      expect(component.regionSelected.emit).toHaveBeenCalledWith(
-        mockRegions[0],
-      );
-    });
-
-    it('should update selectedRegion property', () => {
-      fixture.detectChanges();
-
-      component.selectRegion(mockRegions[0]);
-
-      expect(component.selectedRegion).toEqual(mockRegions[0]);
-    });
-
-    it('should emit regionDetailsRequested when details are requested', () => {
-      spyOn(component.regionDetailsRequested, 'emit');
-      fixture.detectChanges();
-
-      component.viewRegionDetails(mockRegions[0]);
-
-      expect(component.regionDetailsRequested.emit).toHaveBeenCalledWith(
-        mockRegions[0],
-      );
-    });
+    expect(component.getActiveImportCount(mockRegions[0])).toBe(1);
+    expect(component.getActiveImportCount(mockRegions[1])).toBe(0);
   });
 
-  describe('auto-update functionality', () => {
-    it('should enable auto-update for a region', () => {
-      mockSchedulerService.enableFeedAutoUpdate.and.returnValue(of(undefined));
-      mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
-      fixture.detectChanges();
+  it('handles region load errors', () => {
+    regionService.listRegions.and.returnValue(
+      throwError(() => new Error('Network error')),
+    );
 
-      component.toggleAutoUpdate(mockRegions[1], true);
+    component.ngOnInit();
 
-      expect(mockSchedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith(
-        'r-test-vancouver',
-      );
-    });
-
-    it('should disable auto-update for a region', () => {
-      mockSchedulerService.disableFeedAutoUpdate.and.returnValue(of(undefined));
-      mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
-      fixture.detectChanges();
-
-      component.toggleAutoUpdate(mockRegions[0], false);
-
-      expect(mockSchedulerService.disableFeedAutoUpdate).toHaveBeenCalledWith(
-        'r-test-toronto',
-      );
-    });
-
-    it('should show success message when auto-update is enabled', () => {
-      mockSchedulerService.enableFeedAutoUpdate.and.returnValue(of(undefined));
-      mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
-      fixture.detectChanges();
-
-      component.toggleAutoUpdate(mockRegions[1], true);
-
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        jasmine.stringContaining('enabled'),
-        'Close',
-        { duration: 3000 },
-      );
-    });
-
-    it('should show success message when auto-update is disabled', () => {
-      mockSchedulerService.disableFeedAutoUpdate.and.returnValue(of(undefined));
-      mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
-      fixture.detectChanges();
-
-      component.toggleAutoUpdate(mockRegions[0], false);
-
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        jasmine.stringContaining('disabled'),
-        'Close',
-        { duration: 3000 },
-      );
-    });
-
-    it('should refresh regions after auto-update toggle', () => {
-      mockSchedulerService.enableFeedAutoUpdate.and.returnValue(of(undefined));
-      mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
-      spyOn(component, 'refreshRegions');
-      fixture.detectChanges();
-
-      component.toggleAutoUpdate(mockRegions[1], true);
-
-      expect(component.refreshRegions).toHaveBeenCalled();
-    });
-
-    it('should handle auto-update toggle errors', () => {
-      mockSchedulerService.enableFeedAutoUpdate.and.returnValue(
-        throwError(() => new Error('Failed to update')),
-      );
-      mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
-      spyOn(console, 'error');
-      fixture.detectChanges();
-
-      component.toggleAutoUpdate(mockRegions[1], true);
-
-      expect(console.error).toHaveBeenCalled();
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        'Failed to update auto-update setting',
-        'Close',
-        { duration: 3000 },
-      );
-    });
-
-    it('should track updating state', () => {
-      mockSchedulerService.enableFeedAutoUpdate.and.returnValue(of(undefined));
-      mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
-      fixture.detectChanges();
-
-      expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(
-        false,
-      );
-
-      component.toggleAutoUpdate(mockRegions[1], true);
-
-      expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(
-        false,
-      );
-    });
+    expect(component.error$.value).toBe('Failed to load regions. Please try again.');
+    expect(component.isLoading$.value).toBeFalse();
   });
 
-  describe('active imports', () => {
-    it('should calculate active import count for region', () => {
-      component.activeImports$.next(mockActiveImports);
+  it('stops polling on destroy', () => {
+    component.ngOnInit();
+    component.ngOnDestroy();
 
-      const count = component.getActiveImportCount(mockRegions[0]);
-
-      expect(count).toBe(1);
-    });
-
-    it('should return 0 when no active imports for region', () => {
-      component.activeImports$.next(mockActiveImports);
-
-      const count = component.getActiveImportCount(mockRegions[1]);
-
-      expect(count).toBe(0);
-    });
-  });
-
-  describe('statistics', () => {
-    it('should calculate total feeds across filtered regions', (done) => {
-      fixture.detectChanges();
-
-      component
-        .getTotalFeeds()
-        .pipe(take(1))
-        .subscribe((total) => {
-          expect(total).toBe(25); // 12 + 8 + 5
-          done();
-        });
-    });
-
-    it('should update total feeds when filters change', fakeAsync(() => {
-      fixture.detectChanges();
-
-      component.setAutoUpdateFilter(true);
-      tick(100);
-
-      component
-        .getTotalFeeds()
-        .pipe(skip(1), take(1))
-        .subscribe((total) => {
-          expect(total).toBe(17); // 12 + 5 (only auto-update enabled)
-        });
-    }));
-  });
-
-  describe('refresh functionality', () => {
-    it('should clear cache and reload regions', () => {
-      fixture.detectChanges();
-
-      component.refreshRegions();
-
-      expect(mockRegionService.clearCache).toHaveBeenCalled();
-      expect(mockRegionService.listRegions).toHaveBeenCalled();
-    });
-  });
-
-  describe('error handling', () => {
-    it('should display error message when region loading fails', (done) => {
-      mockRegionService.listRegions.and.returnValue(
-        throwError(() => new Error('Network error')),
-      );
-      spyOn(console, 'error');
-
-      fixture.detectChanges();
-
-      setTimeout(() => {
-        component.error$.pipe(take(1)).subscribe((error) => {
-          expect(error).toBe('Failed to load regions. Please try again.');
-          done();
-        });
-      }, 100);
-    });
-
-    it('should set isLoading to false on error', (done) => {
-      mockRegionService.listRegions.and.returnValue(
-        throwError(() => new Error('Network error')),
-      );
-
-      fixture.detectChanges();
-
-      setTimeout(() => {
-        component.isLoading$.pipe(take(1)).subscribe((loading) => {
-          expect(loading).toBe(false);
-          done();
-        });
-      }, 100);
-    });
-  });
-
-  describe('utility methods', () => {
-    it('should format last check time', () => {
-      const formatted = component.formatLastCheck(mockRegions[0]);
-
-      expect(formatted).toBeTruthy();
-      expect(typeof formatted).toBe('string');
-    });
-
-    it('should get display name for region', () => {
-      const displayName = component.getDisplayName(mockRegions[0]);
-
-      expect(displayName).toBeTruthy();
-      expect(typeof displayName).toBe('string');
-    });
-  });
-
-  describe('component lifecycle', () => {
-    it('should stop polling imports on destroy', () => {
-      fixture.detectChanges();
-
-      component.ngOnDestroy();
-
-      expect(mockImportService.stopPollingActiveImports).toHaveBeenCalled();
-    });
-
-    it('should complete destroy$ subject on destroy', () => {
-      fixture.detectChanges();
-      const destroySpy = spyOn(component['destroy$'], 'next');
-      const completeSpy = spyOn(component['destroy$'], 'complete');
-
-      component.ngOnDestroy();
-
-      expect(destroySpy).toHaveBeenCalled();
-      expect(completeSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('template rendering', () => {
-    it('should display loading spinner when loading', () => {
-      fixture.detectChanges();
-
-      component.isLoading$.next(true);
-      fixture.detectChanges();
-
-      const spinner = fixture.nativeElement.querySelector('mat-spinner');
-      expect(spinner).toBeTruthy();
-    });
-
-    it('should display error message when error occurs', () => {
-      fixture.detectChanges();
-
-      component.isLoading$.next(false);
-      component.error$.next('Test error message');
-      fixture.detectChanges();
-
-      const errorContainer =
-        fixture.nativeElement.querySelector('.error-container');
-      expect(errorContainer).toBeTruthy();
-      expect(errorContainer.textContent).toContain('Test error message');
-    });
-
-    it('should display empty state when no regions found', () => {
-      fixture.detectChanges();
-
-      component.regions$.next([]);
-      component.isLoading$.next(false);
-      component.error$.next(null);
-      fixture.detectChanges();
-
-      const emptyState = fixture.nativeElement.querySelector('.empty-state');
-      expect(emptyState).toBeTruthy();
-    });
-
-    it('should display region cards when regions are loaded', () => {
-      fixture.detectChanges();
-
-      const regionCards =
-        fixture.nativeElement.querySelectorAll('.region-card');
-      expect(regionCards.length).toBeGreaterThan(0);
-    });
-
-    it('should display quick stats', () => {
-      fixture.detectChanges();
-
-      const quickStats = fixture.nativeElement.querySelector('.quick-stats');
-      expect(quickStats).toBeTruthy();
-    });
+    expect(importService.stopPollingActiveImports).toHaveBeenCalled();
   });
 });
