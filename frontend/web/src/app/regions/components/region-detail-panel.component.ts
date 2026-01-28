@@ -16,6 +16,8 @@ import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service'
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 import { AgencyCardComponent } from '../../agencies/components/agency-card.component';
 import { BrandCardComponent } from '../../shared/components/brand-card.component';
+import { CorridorService, CorridorDto } from '../../routes/services/corridor.service';
+import { CorridorsListComponent } from '../../routes/components/corridors-list/corridors-list.component';
 import {
   BulkImportResponse,
   RegionImportStatus,
@@ -59,7 +61,8 @@ interface RegionSummary {
     AgencyCardComponent,
     BrandCardComponent,
     RegionImportStatusComponent,
-    RegionImportCardComponent
+    RegionImportCardComponent,
+    CorridorsListComponent
   ],
   template: `
     <div class="region-detail-container">
@@ -186,6 +189,19 @@ interface RegionSummary {
                 }
               </div>
             }
+
+            <!-- Corridors Section -->
+            <div class="corridors-section mt-6">
+              <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">Corridors</h3>
+              @if (loadingCorridors) {
+                <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-8">
+                  <mat-spinner diameter="32"></mat-spinner>
+                  <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">Loading corridors...</p>
+                </div>
+              } @else {
+                <app-corridors-list [corridors]="corridors"></app-corridors-list>
+              }
+            </div>
           }
         </div>
       }
@@ -259,6 +275,10 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
   summary$!: Observable<RegionSummary | null>;
   loadingOverview = false;
 
+  // Corridors state
+  corridors: CorridorDto[] = [];
+  loadingCorridors = false;
+
   // Bulk import state
   isImportingAll = false;
   regionImportStatus: RegionImportStatusResponse | null = null;
@@ -270,6 +290,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     private readonly regionService: RegionService,
     private readonly importService: ImportService,
     private readonly agencyService: AgencyService,
+    private readonly corridorService: CorridorService,
     private readonly snackBar: MatSnackBar,
     private readonly metrics: FeedsMetricsService,
     private readonly events: FeedsEventsService,
@@ -281,6 +302,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
       if (this.region) {
         this.loadFeedsForRegion(this.region.regionOnestopId);
         this.loadOverviewForRegion(this.region.regionOnestopId);
+        this.loadCorridorsForRegion(this.region.regionOnestopId);
         this.loadRegionImportStatus(this.region.regionOnestopId);
         this.watchActiveRegionImports(this.region.regionOnestopId);
         this.importService.startPollingActiveImports();
@@ -289,6 +311,8 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
           this.getDisplayName(this.region)
         );
       } else {
+        this.corridors = [];
+        this.loadingCorridors = false;
         this.regionImportStatus = null;
         this.regionImportLoading = false;
         this.regionImportStop$.next();
@@ -402,6 +426,30 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
       },
       error: () => {
         this.loadingOverview = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  /**
+   * Load corridors for the selected region
+   */
+  private loadCorridorsForRegion(regionId: string): void {
+    this.loadingCorridors = true;
+    this.corridors = [];
+
+    this.corridorService.getCorridorsForRegion(regionId).pipe(
+      takeUntil(this.destroy$),
+      catchError((error) => {
+        console.error('Failed to load corridors:', error);
+        this.loadingCorridors = false;
+        this.cdr.markForCheck();
+        return of([] as CorridorDto[]);
+      })
+    ).subscribe({
+      next: (corridors) => {
+        this.corridors = corridors;
+        this.loadingCorridors = false;
         this.cdr.markForCheck();
       }
     });
