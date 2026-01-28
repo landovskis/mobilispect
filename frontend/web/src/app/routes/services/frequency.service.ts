@@ -65,6 +65,18 @@ export interface RouteHourlyFrequencyDto {
   isIrregular: boolean;
 }
 
+export interface RouteCommonSectionDto {
+  id: string;
+  routeId: string;
+  directionId?: number | null;
+  stopPattern: string;
+  stopNames: string[];
+  stopCount: number;
+  firstStopId: string;
+  lastStopId: string;
+  variantCount: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class FrequencyService {
   private readonly baseUrl = '/api/v1/routes';
@@ -112,6 +124,12 @@ export class FrequencyService {
   getCompleteSchedule(variantId: string): Observable<string[]> {
     return this.http.get<string[]>(
       `${this.baseUrl}/variants/${variantId}/schedule`,
+    );
+  }
+
+  getCommonSections(routeId: string): Observable<RouteCommonSectionDto[]> {
+    return this.http.get<RouteCommonSectionDto[]>(
+      `${this.baseUrl}/${routeId}/common-sections`,
     );
   }
 }
