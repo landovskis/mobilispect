@@ -47,7 +47,9 @@ export class RegionImportGroupingUtils {
    * @param imports - List of feed import summaries to group
    * @returns Array of region import groups
    */
-  static groupImportsByRegion(imports: FeedImportSummary[]): RegionImportGroup[] {
+  static groupImportsByRegion(
+    imports: FeedImportSummary[],
+  ): RegionImportGroup[] {
     if (imports.length === 0) {
       return [];
     }
@@ -73,15 +75,14 @@ export class RegionImportGroupingUtils {
       // Use the region name from the first import in the group
       // (all imports in a group have the same region)
       const firstImport = feedImports[0];
-      const regionName =
-        firstImport.regionName || 'Unknown Region';
+      const regionName = firstImport.regionName || 'Unknown Region';
 
       const averageProgress = this.calculateAverageProgress(feedImports);
       const hasFailures = feedImports.some(
-        (imp) => imp.status === ImportStatus.FAILED
+        (imp) => imp.status === ImportStatus.FAILED,
       );
       const allCompleted = feedImports.every(
-        (imp) => imp.status === ImportStatus.COMPLETED
+        (imp) => imp.status === ImportStatus.COMPLETED,
       );
 
       groups.push({
@@ -110,7 +111,7 @@ export class RegionImportGroupingUtils {
   static calculateAverageProgress(imports: FeedImportSummary[]): number {
     // Filter imports that have progress data
     const importsWithProgress = imports.filter(
-      (imp) => imp.progress !== null && imp.progress !== undefined
+      (imp) => imp.progress !== null && imp.progress !== undefined,
     );
 
     if (importsWithProgress.length === 0) {
@@ -120,7 +121,7 @@ export class RegionImportGroupingUtils {
     // Sum all progress percentages
     const totalProgress = importsWithProgress.reduce(
       (sum, imp) => sum + (imp.progress?.progressPercentage || 0),
-      0
+      0,
     );
 
     // Calculate average and round to 2 decimal places
@@ -135,8 +136,6 @@ export class RegionImportGroupingUtils {
    * @returns Sorted array of region groups (does not mutate input)
    */
   static sortRegionGroups(groups: RegionImportGroup[]): RegionImportGroup[] {
-    return [...groups].sort((a, b) =>
-      a.regionName.localeCompare(b.regionName)
-    );
+    return [...groups].sort((a, b) => a.regionName.localeCompare(b.regionName));
   }
 }

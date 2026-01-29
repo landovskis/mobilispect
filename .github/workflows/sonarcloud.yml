@@ -1,0 +1,86 @@
+name: SonarCloud (Monorepo)
+
+on:
+  pull_request:
+    branches: ["**"]
+    paths:
+      - 'backend/**'
+      - 'frontend/web/**'
+      - 'sonar-project.properties'
+      - '.github/workflows/sonarcloud.yml'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
+      - 'frontend/web/**'
+      - 'sonar-project.properties'
+      - '.github/workflows/sonarcloud.yml'
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '25'
+  JAVA_DISTRIBUTION: 'temurin'
+  NODE_VERSION: '24.x'
+
+jobs:
+  sonarcloud:
+    name: SonarCloud Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: |
+          chmod +x backend/gradlew
+
+      - name: Backend tests (coverage inputs)
+        run: |
+          echo "🧪 Running backend tests..."
+          cd backend && ./gradlew test jacocoTestReport --info
+
+      - name: Web tests (coverage inputs)
+        run: |
+          echo "🧪 Running web tests..."
+          cd frontend/web && npm ci
+          cd frontend/web && npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: .

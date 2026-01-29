@@ -17,7 +17,9 @@ import {
       <div class="sections grid gap-3 md:grid-cols-2">
         @for (section of sections; track section.id) {
           <div class="section-card rounded-xl p-3">
-            <div class="header flex flex-wrap items-center justify-between gap-2">
+            <div
+              class="header flex flex-wrap items-center justify-between gap-2"
+            >
               <div class="title text-sm font-semibold">
                 {{ section.stopCount }} stops
               </div>

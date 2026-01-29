@@ -43,7 +43,12 @@ describe('RegionImportStatusComponent', () => {
   });
 
   it('shows progress percent based on completed counts', () => {
-    component.status = { ...baseStatus, completedCount: 5, failedCount: 0, skippedCount: 0 };
+    component.status = {
+      ...baseStatus,
+      completedCount: 5,
+      failedCount: 0,
+      skippedCount: 0,
+    };
     fixture.detectChanges();
 
     expect(component.progressPercent).toBe(50);
@@ -52,7 +57,10 @@ describe('RegionImportStatusComponent', () => {
   });
 
   it('renders status label and class', () => {
-    component.status = { ...baseStatus, status: RegionImportStatus.PARTIAL_SUCCESS };
+    component.status = {
+      ...baseStatus,
+      status: RegionImportStatus.PARTIAL_SUCCESS,
+    };
     fixture.detectChanges();
 
     const badge = fixture.nativeElement.querySelector('.badge');

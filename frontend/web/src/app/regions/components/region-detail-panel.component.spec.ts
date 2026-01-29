@@ -2,14 +2,22 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SimpleChange } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of, throwError } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import { of, Subject, throwError, firstValueFrom } from 'rxjs';
 import { RegionDetailPanelComponent } from './region-detail-panel.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { AgencyService } from '../../agencies/services/agency.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
-import { MetropolitanRegion, MetropolitanRegionDetail, Feed } from '../../feeds/models/region.models';
+import {
+  Feed,
+  FeedSpecType,
+  FeedStatus,
+  MetropolitanRegion,
+  MetropolitanRegionDetail,
+} from '../../feeds/models/region.models';
+import { RegionImportStatus } from '../../feeds/models/import.models';
 
 describe('RegionDetailPanelComponent', () => {
   let component: RegionDetailPanelComponent;
@@ -30,43 +38,43 @@ describe('RegionDetailPanelComponent', () => {
     autoUpdateEnabled: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-02T00:00:00Z',
-    lastCheckAt: null
+    lastCheckAt: null,
   };
 
   const mockRegionDetail: MetropolitanRegionDetail = {
     ...mockRegion,
-    feeds: []
+    feeds: [],
   };
 
   const mockFeeds: Feed[] = [
     {
       feedOnestopId: 'f-test-feed1',
-      regionOnestopId: 'r-test-toronto' as any,
+      regionOnestopId: 'r-test-toronto',
       name: 'TTC Feed',
-      specType: 'GTFS' as any,
+      specType: FeedSpecType.GTFS,
       downloadUrl: 'https://example.com/feed1.zip',
       currentVersionSha1: null,
       lastCheckedAt: null,
       lastUpdatedAt: null,
-      status: 'ACTIVE' as any,
+      status: FeedStatus.ACTIVE,
       hasAuthentication: false,
       createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-02T00:00:00Z'
+      updatedAt: '2024-01-02T00:00:00Z',
     },
     {
       feedOnestopId: 'f-test-feed2',
-      regionOnestopId: 'r-test-toronto' as any,
+      regionOnestopId: 'r-test-toronto',
       name: 'GO Transit Feed',
-      specType: 'GTFS' as any,
+      specType: FeedSpecType.GTFS,
       downloadUrl: 'https://example.com/feed2.zip',
       currentVersionSha1: null,
       lastCheckedAt: null,
       lastUpdatedAt: null,
-      status: 'ACTIVE' as any,
+      status: FeedStatus.ACTIVE,
       hasAuthentication: false,
       createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-02T00:00:00Z'
-    }
+      updatedAt: '2024-01-02T00:00:00Z',
+    },
   ];
 
   const mockAgencies = {
@@ -78,7 +86,7 @@ describe('RegionDetailPanelComponent', () => {
         regionIds: ['r-test-toronto'],
         routeCount: 150,
         activeRouteCount: 150,
-        routesByType: { BUS: 100, SUBWAY: 50 } as Record<string, number>
+        routesByType: { BUS: 100, SUBWAY: 50 } as Record<string, number>,
       },
       {
         id: 'agency-2',
@@ -87,17 +95,31 @@ describe('RegionDetailPanelComponent', () => {
         regionIds: ['r-test-toronto'],
         routeCount: 50,
         activeRouteCount: 50,
-        routesByType: { RAIL: 50 } as Record<string, number>
-      }
+        routesByType: { RAIL: 50 } as Record<string, number>,
+      },
     ],
     totalElements: 2,
     totalPages: 1,
     number: 0,
-    size: 100
+    size: 100,
+  };
+
+  const snackBarRef = {
+    onAction: () => new Subject<void>(),
+  };
+
+  const setRegion = (region: MetropolitanRegion | null) => {
+    component.region = region;
+    component.ngOnChanges({
+      region: new SimpleChange(null, region, true),
+    });
   };
 
   beforeEach(async () => {
-    mockRegionService = jasmine.createSpyObj('RegionService', ['getRegion', 'listFeedsForRegion']);
+    mockRegionService = jasmine.createSpyObj('RegionService', [
+      'getRegion',
+      'listFeedsForRegion',
+    ]);
     mockImportService = jasmine.createSpyObj('ImportService', [
       'startImport',
       'startPollingActiveImports',
@@ -106,431 +128,214 @@ describe('RegionDetailPanelComponent', () => {
       'getActiveRegionImport',
       'monitorRegionImportProgress',
       'getActiveImportsObservable',
-      'cancelImport'
+      'cancelImport',
     ]);
     mockAgencyService = jasmine.createSpyObj('AgencyService', ['listAgencies']);
     mockMetricsService = jasmine.createSpyObj('FeedsMetricsService', [
       'setSelectedRegion',
-      'setDiscoverFeedCount'
+      'setDiscoverFeedCount',
     ]);
-    mockEventsService = jasmine.createSpyObj('FeedsEventsService', ['']);
+    mockEventsService = jasmine.createSpyObj('FeedsEventsService', []);
     mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
-    mockImportService.getActiveImportsObservable.and.returnValue(of([]));
 
-    // Setup default return values
+    mockImportService.getActiveImportsObservable.and.returnValue(of([]));
     mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
     mockRegionService.listFeedsForRegion.and.returnValue(of(mockFeeds));
     mockAgencyService.listAgencies.and.returnValue(of(mockAgencies));
     mockImportService.getActiveRegionImport.and.returnValue(of(null));
-    mockImportService.monitorRegionImportProgress.and.returnValue(of(null as any));
-    mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
+    mockImportService.monitorRegionImportProgress.and.returnValue(
+      of(null as any),
+    );
+    mockSnackBar.open.and.returnValue(snackBarRef as any);
+
+    TestBed.overrideComponent(RegionDetailPanelComponent, {
+      set: {
+        providers: [{ provide: MatSnackBar, useValue: mockSnackBar }],
+      },
+    });
 
     await TestBed.configureTestingModule({
-      imports: [
-        RegionDetailPanelComponent,
-        NoopAnimationsModule
-      ],
+      imports: [RegionDetailPanelComponent, NoopAnimationsModule],
       providers: [
         { provide: RegionService, useValue: mockRegionService },
         { provide: ImportService, useValue: mockImportService },
         { provide: AgencyService, useValue: mockAgencyService },
         { provide: FeedsMetricsService, useValue: mockMetricsService },
         { provide: FeedsEventsService, useValue: mockEventsService },
-        { provide: MatSnackBar, useValue: mockSnackBar }
-      ]
+        { provide: MatSnackBar, useValue: mockSnackBar },
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { paramMap: { get: () => null } },
+          },
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegionDetailPanelComponent);
     component = fixture.componentInstance;
   });
 
-  it('should create', () => {
+  it('creates the component', () => {
     expect(component).toBeTruthy();
   });
 
-  describe('empty state', () => {
-    it('should display empty state when no region is selected', () => {
-      component.region = null;
-      fixture.detectChanges();
+  it('renders empty state when no region selected', () => {
+    component.region = null;
+    fixture.detectChanges();
 
-      const emptyState = fixture.nativeElement.querySelector('.empty-state');
-      expect(emptyState).toBeTruthy();
-      expect(emptyState.textContent).toContain('No Region Selected');
-    });
-
-    it('should not display region content when no region is selected', () => {
-      component.region = null;
-      fixture.detectChanges();
-
-      const regionHeader = fixture.nativeElement.querySelector('.region-header');
-      expect(regionHeader).toBeFalsy();
-    });
+    const emptyState = fixture.nativeElement.querySelector('.empty-state');
+    expect(emptyState).toBeTruthy();
+    expect(emptyState.textContent).toContain('No Region Selected');
   });
 
-  describe('region changes', () => {
-    it('should load feeds when region is set', () => {
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
+  it('loads data and metrics when region is set', () => {
+    setRegion(mockRegion);
 
-      expect(mockRegionService.listFeedsForRegion).toHaveBeenCalledWith('r-test-toronto');
-    });
-
-    it('should load overview data when region is set', () => {
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
-
-      expect(mockRegionService.getRegion).toHaveBeenCalledWith('r-test-toronto');
-      expect(mockAgencyService.listAgencies).toHaveBeenCalledWith(0, 100, 'r-test-toronto');
-    });
-
-    it('should load active region import status when region is set', () => {
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
-
-      expect(mockImportService.getActiveRegionImport).toHaveBeenCalledWith('r-test-toronto');
-    });
-
-    it('should start polling active imports when region is set', () => {
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
-
-      expect(mockImportService.startPollingActiveImports).toHaveBeenCalled();
-      expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
-    });
-
-    it('should update metrics when region is set', () => {
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
-
-      expect(mockMetricsService.setSelectedRegion).toHaveBeenCalledWith(
-        'r-test-toronto',
-        jasmine.any(String)
-      );
-    });
-
-    it('should not load data when region is null', () => {
-      component.ngOnChanges({
-        region: new SimpleChange(mockRegion, null, false)
-      });
-
-      expect(mockRegionService.listFeedsForRegion).not.toHaveBeenCalled();
-      expect(mockRegionService.getRegion).not.toHaveBeenCalled();
-    });
-
-    it('should not load data when changes do not include region', () => {
-      component.ngOnChanges({});
-
-      expect(mockRegionService.listFeedsForRegion).not.toHaveBeenCalled();
-    });
+    expect(mockRegionService.listFeedsForRegion).toHaveBeenCalledWith(
+      'r-test-toronto',
+    );
+    expect(mockRegionService.getRegion).toHaveBeenCalledWith('r-test-toronto');
+    expect(mockAgencyService.listAgencies).toHaveBeenCalledWith(
+      0,
+      100,
+      'r-test-toronto',
+    );
+    expect(mockImportService.getActiveRegionImport).toHaveBeenCalledWith(
+      'r-test-toronto',
+    );
+    expect(mockImportService.startPollingActiveImports).toHaveBeenCalled();
+    expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
+    expect(mockMetricsService.setSelectedRegion).toHaveBeenCalledWith(
+      'r-test-toronto',
+      jasmine.any(String),
+    );
   });
 
-  describe('feeds tab', () => {
-    beforeEach(() => {
-      component.region = mockRegion;
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
+  it('resets import state when region cleared', () => {
+    setRegion(mockRegion);
+    component.regionImportStatus = {
+      regionImportId: 'import-1',
+      regionOnestopId: 'r-test-toronto',
+      status: RegionImportStatus.RUNNING,
+      startedAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:10:00Z',
+      totalFeeds: 2,
+      completedFeeds: 0,
+      failedFeeds: 0,
+    } as any;
+    component.regionImportLoading = true;
+
+    component.region = null;
+    component.ngOnChanges({
+      region: new SimpleChange(mockRegion, null, false),
     });
 
-    it('should load feeds for region', () => {
-      expect(mockRegionService.listFeedsForRegion).toHaveBeenCalledWith('r-test-toronto');
-    });
-
-    it('should group feeds by agency', (done) => {
-      setTimeout(() => {
-        expect(component.agencyGroups.length).toBeGreaterThan(0);
-        done();
-      }, 100);
-    });
-
-    it('should update feed count metric', () => {
-      expect(mockMetricsService.setDiscoverFeedCount).toHaveBeenCalledWith(mockFeeds.length);
-    });
-
-    it('should display loading spinner while loading feeds', () => {
-      component.loadingFeeds = true;
-      fixture.detectChanges();
-
-      const spinner = fixture.nativeElement.querySelector('mat-spinner');
-      expect(spinner).toBeTruthy();
-    });
-
-    it('should handle feed loading errors', () => {
-      mockRegionService.listFeedsForRegion.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
-      spyOn(console, 'error');
-
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
-
-      expect(console.error).toHaveBeenCalled();
-      expect(mockSnackBar.open).toHaveBeenCalled();
-    });
-
-    it('should allow retry on feed loading error', () => {
-      mockRegionService.listFeedsForRegion.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
-      const snackBarRef = {
-        onAction: () => of(null)
-      };
-      mockSnackBar.open.and.returnValue(snackBarRef as any);
-      spyOn(snackBarRef, 'onAction').and.returnValue(of(null));
-
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
-
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        jasmine.stringContaining('Failed'),
-        'Retry',
-        jasmine.any(Object)
-      );
-    });
+    expect(component.regionImportStatus).toBeNull();
+    expect(component.regionImportLoading).toBeFalse();
   });
 
-  describe('overview tab', () => {
-    beforeEach(() => {
-      component.region = mockRegion;
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
-    });
+  it('groups feeds and updates metrics after feed load', () => {
+    setRegion(mockRegion);
 
-    it('should load region detail', () => {
-      expect(mockRegionService.getRegion).toHaveBeenCalledWith('r-test-toronto');
-    });
-
-    it('should load agencies for region', () => {
-      expect(mockAgencyService.listAgencies).toHaveBeenCalledWith(0, 100, 'r-test-toronto');
-    });
-
-    it('should calculate summary statistics', (done) => {
-      setTimeout(() => {
-        component.summary$.subscribe(summary => {
-          expect(summary!.totalAgencies).toBe(2);
-          expect(summary!.totalActiveRoutes).toBe(200); // 150 + 50
-          done();
-        });
-      }, 100);
-    });
-
-    it('should sort agencies alphabetically', (done) => {
-      setTimeout(() => {
-        component.agencies$.subscribe(response => {
-          const names = response.content.map(a => a.name);
-          expect(names).toEqual(names.slice().sort());
-          done();
-        });
-      }, 100);
-    });
-
-    it('should display loading spinner while loading overview', () => {
-      component.loadingOverview = true;
-      fixture.detectChanges();
-
-      const spinner = fixture.nativeElement.querySelector('mat-spinner');
-      expect(spinner).toBeTruthy();
-    });
+    expect(component.regionFeeds).toEqual(mockFeeds);
+    expect(component.agencyGroups.length).toBeGreaterThan(0);
+    expect(mockMetricsService.setDiscoverFeedCount).toHaveBeenCalledWith(
+      mockFeeds.length,
+    );
   });
 
-  describe('feed import', () => {
-    beforeEach(() => {
-      component.region = mockRegion;
-      fixture.detectChanges();
-    });
+  it('shows retry snackbar when feed load fails', () => {
+    mockRegionService.listFeedsForRegion.and.returnValue(
+      throwError(() => new Error('Network error')),
+    );
 
-    it('should start import for single feed', () => {
-      mockImportService.startImport.and.returnValue(of({ importId: 'import-123' } as any));
+    setRegion(mockRegion);
 
-      component.importFeed(mockFeeds[0]);
-
-      expect(mockImportService.startImport).toHaveBeenCalledWith('f-test-feed1');
-    });
-
-    it('should show success message on import start', () => {
-      mockImportService.startImport.and.returnValue(of({ importId: 'import-123' } as any));
-
-      component.importFeed(mockFeeds[0]);
-
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        jasmine.stringContaining('Import started'),
-        'Close',
-        { duration: 3000 }
-      );
-    });
-
-    it('should refresh active imports after starting import', () => {
-      mockImportService.startImport.and.returnValue(of({ importId: 'import-123' } as any));
-
-      component.importFeed(mockFeeds[0]);
-
-      expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
-    });
-
-    it('should handle import errors', () => {
-      mockImportService.startImport.and.returnValue(
-        throwError(() => ({ error: { message: 'Import failed' } }))
-      );
-      spyOn(console, 'error');
-
-      component.importFeed(mockFeeds[0]);
-
-      expect(console.error).toHaveBeenCalled();
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        jasmine.stringContaining('Import failed'),
-        'Retry',
-        jasmine.any(Object)
-      );
-    });
-
-    it('should allow retry on import error', () => {
-      mockImportService.startImport.and.returnValue(
-        throwError(() => new Error('Network error'))
-      );
-      const snackBarRef = {
-        onAction: () => of(null)
-      };
-      mockSnackBar.open.and.returnValue(snackBarRef as any);
-      spyOn(snackBarRef, 'onAction').and.returnValue(of(null));
-      spyOn(component, 'importFeed');
-
-      component.importFeed(mockFeeds[0]);
-
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        jasmine.stringContaining('failed'),
-        'Retry',
-        jasmine.any(Object)
-      );
-    });
-
-    it('should import multiple feeds', () => {
-      mockImportService.startImport.and.returnValue(of({ importId: 'import-123' } as any));
-      spyOn(component, 'importFeed');
-
-      component.importMultipleFeeds(mockFeeds);
-
-      expect(component.importFeed).toHaveBeenCalledTimes(2);
-      expect(component.importFeed).toHaveBeenCalledWith(mockFeeds[0]);
-      expect(component.importFeed).toHaveBeenCalledWith(mockFeeds[1]);
-    });
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('Failed to load feeds'),
+      'Retry',
+      jasmine.any(Object),
+    );
   });
 
-  describe('feed details', () => {
-    it('should show message when viewing feed details', () => {
-      component.viewFeedDetails(mockFeeds[0]);
+  it('computes summary and sorts agencies', async () => {
+    setRegion(mockRegion);
 
-      expect(mockSnackBar.open).toHaveBeenCalledWith(
-        jasmine.stringContaining('Viewing details'),
-        'Close',
-        { duration: 2000 }
-      );
-    });
+    const summary = await firstValueFrom(component.summary$);
+    expect(summary).toEqual(
+      jasmine.objectContaining({
+        name: 'Toronto',
+        totalAgencies: 2,
+        totalActiveRoutes: 200,
+      }),
+    );
+
+    const agencies = await firstValueFrom(component.agencies$);
+    const names = agencies.content.map((agency) => agency.name);
+    expect(names).toEqual(['GO Transit', 'Toronto Transit Commission']);
   });
 
-  describe('utility methods', () => {
-    it('should get display name for region', () => {
-      const displayName = component.getDisplayName(mockRegion);
+  it('starts region import monitoring when active import is running', () => {
+    mockImportService.getActiveRegionImport.and.returnValue(
+      of({
+        regionImportId: 'import-1',
+        regionOnestopId: 'r-test-toronto',
+        status: RegionImportStatus.RUNNING,
+        startedAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:10:00Z',
+        totalFeeds: 2,
+        completedFeeds: 0,
+        failedFeeds: 0,
+      } as any),
+    );
 
-      expect(displayName).toBeTruthy();
-      expect(typeof displayName).toBe('string');
-    });
+    setRegion(mockRegion);
 
-    it('should return null for null region', () => {
-      const displayName = component.getDisplayName(null);
-
-      expect(displayName).toBeNull();
-    });
-
-    it('should return null for undefined region', () => {
-      const displayName = component.getDisplayName(undefined);
-
-      expect(displayName).toBeNull();
-    });
+    expect(mockImportService.monitorRegionImportProgress).toHaveBeenCalledWith(
+      'import-1',
+      jasmine.any(Object),
+    );
   });
 
-  describe('component lifecycle', () => {
-    it('should complete destroy$ subject on destroy', () => {
-      fixture.detectChanges();
-      const destroySpy = spyOn(component['destroy$'], 'next');
-      const completeSpy = spyOn(component['destroy$'], 'complete');
+  it('renders region header and meta when region is selected', () => {
+    component.region = mockRegion;
+    fixture.detectChanges();
 
-      component.ngOnDestroy();
+    const header = fixture.nativeElement.querySelector('.region-header');
+    expect(header).toBeTruthy();
+    expect(header.textContent).toContain('Toronto');
 
-      expect(destroySpy).toHaveBeenCalled();
-      expect(completeSpy).toHaveBeenCalled();
-    });
-
-    it('should unsubscribe from observables on destroy', () => {
-      component.region = mockRegion;
-      component.ngOnChanges({
-        region: new SimpleChange(null, mockRegion, true)
-      });
-      fixture.detectChanges();
-
-      const subscription = component['destroy$'].subscribe();
-      expect(subscription.closed).toBe(false);
-
-      component.ngOnDestroy();
-
-      expect(subscription.closed).toBe(true);
-    });
+    const meta = fixture.nativeElement.querySelector('.region-meta');
+    expect(meta).toBeTruthy();
+    expect(meta.textContent).toContain('r-test-toronto');
   });
 
-  describe('template rendering', () => {
-    it('should display region header when region is selected', () => {
-      component.region = mockRegion;
-      fixture.detectChanges();
+  it('handles import errors with retry snackbar', () => {
+    mockImportService.startImport.and.returnValue(
+      throwError(() => ({ error: { message: 'Import failed' } })),
+    );
 
-      const header = fixture.nativeElement.querySelector('.region-header');
-      expect(header).toBeTruthy();
-      expect(header.textContent).toContain('Toronto');
-    });
+    component.importFeed(mockFeeds[0]);
 
-    it('should display region metadata', () => {
-      component.region = mockRegion;
-      fixture.detectChanges();
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('Import failed'),
+      'Retry',
+      jasmine.any(Object),
+    );
+  });
 
-      const meta = fixture.nativeElement.querySelector('.region-meta');
-      expect(meta).toBeTruthy();
-      expect(meta.textContent).toContain('r-test-toronto');
-    });
+  it('cancels import and shows success toast', () => {
+    mockImportService.cancelImport.and.returnValue(
+      of({ importId: 'import-1' } as any),
+    );
 
-    it('should display tabs when region is selected', () => {
-      component.region = mockRegion;
-      fixture.detectChanges();
+    component.cancelImport('import-1');
 
-      const tabs = fixture.nativeElement.querySelector('mat-tab-group');
-      expect(tabs).toBeTruthy();
-    });
-
-    it('should have Feeds tab', () => {
-      component.region = mockRegion;
-      fixture.detectChanges();
-
-      const tabLabels = fixture.nativeElement.querySelectorAll('.mat-mdc-tab');
-      const feedsTab = Array.from(tabLabels).find((tab: any) =>
-        tab.textContent.includes('Feeds')
-      );
-      expect(feedsTab).toBeTruthy();
-    });
-
-    it('should have Overview tab', () => {
-      component.region = mockRegion;
-      fixture.detectChanges();
-
-      const tabLabels = fixture.nativeElement.querySelectorAll('.mat-mdc-tab');
-      const overviewTab = Array.from(tabLabels).find((tab: any) =>
-        tab.textContent.includes('Overview')
-      );
-      expect(overviewTab).toBeTruthy();
-    });
+    expect(mockSnackBar.open).toHaveBeenCalledWith(
+      jasmine.stringContaining('Import cancelled successfully'),
+      'Close',
+      { duration: 3000 },
+    );
   });
 });

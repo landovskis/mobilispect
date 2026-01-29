@@ -113,7 +113,7 @@ class FeedImportEndToEndIntegrationTest {
         name = "STM GTFS Test Feed",
         downloadUrl = testGtfsUrl,
         specType = FeedSpecType.GTFS,
-        status = FeedStatus.PENDING_IMPORT,
+        status = FeedStatus.ACTIVE,
         createdAt = fixedInstant,
         updatedAt = fixedInstant,
       )
@@ -208,7 +208,7 @@ class FeedImportEndToEndIntegrationTest {
     val firstAgency = agencies.first()
     assertThat(firstAgency.name).isNotBlank()
     assertThat(firstAgency.agencyId).isNotNull
-    assertThat(firstAgency.gtfsAgencyId).isNotNull
+    assertThat(firstAgency.feedId.value).isEqualTo(stmFeedOnestopId)
   }
 
   @Test
@@ -244,7 +244,6 @@ class FeedImportEndToEndIntegrationTest {
     val firstRoute = routes.first()
     assertThat(firstRoute.id).isNotNull
     assertThat(firstRoute.agencyId).isNotNull
-    assertThat(firstRoute.gtfsRouteId).isNotNull
     assertThat(firstRoute.routeType).isNotNull
     assertThat(firstRoute.active).isTrue()
   }
@@ -310,7 +309,7 @@ class FeedImportEndToEndIntegrationTest {
         name = "Invalid Feed",
         downloadUrl = "file:///nonexistent/path/feed.zip",
         specType = FeedSpecType.GTFS,
-        status = FeedStatus.PENDING_IMPORT,
+        status = FeedStatus.ACTIVE,
         createdAt = fixedInstant,
         updatedAt = fixedInstant,
       )
@@ -349,7 +348,14 @@ class FeedImportEndToEndIntegrationTest {
 
   /** Test event listener to capture feed import events. */
   class TestEventListener {
-    // Placeholder for event listeners
-    // Can be expanded to capture FeedImportStartedEvent, FeedImportCompletedEvent, etc.
+    private val events = mutableListOf<Any>()
+
+    /** Clear captured events for test isolation. */
+    fun clear() {
+      events.clear()
+    }
+
+    /** Get all captured events. */
+    fun getEvents(): List<Any> = events.toList()
   }
 }

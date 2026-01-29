@@ -1,4 +1,12 @@
-import { Component, Input, OnChanges, SimpleChanges, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  OnDestroy,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
@@ -6,8 +14,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Subject, Observable, combineLatest, of } from 'rxjs';
 import { map, take, takeUntil, catchError } from 'rxjs/operators';
-import { MetropolitanRegion, MetropolitanRegionDetail, Feed, RegionUtils } from '../../feeds/models/region.models';
-import { AgencyFeedGroup, FeedGroupingUtils } from '../../feeds/models/agency-feed-group.model';
+import {
+  MetropolitanRegion,
+  MetropolitanRegionDetail,
+  Feed,
+  RegionUtils,
+} from '../../feeds/models/region.models';
+import {
+  AgencyFeedGroup,
+  FeedGroupingUtils,
+} from '../../feeds/models/agency-feed-group.model';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { AgencyService } from '../../agencies/services/agency.service';
@@ -59,24 +75,33 @@ interface RegionSummary {
     AgencyCardComponent,
     BrandCardComponent,
     RegionImportStatusComponent,
-    RegionImportCardComponent
+    RegionImportCardComponent,
   ],
   template: `
     <div class="region-detail-container">
       @if (!region) {
         <!-- Empty State - No Region Selected -->
-        <div class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center">
-          <mat-icon class="empty-icon mb-4 text-[64px] text-[rgba(0,0,0,0.3)]">travel_explore</mat-icon>
-          <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">No Region Selected</h3>
+        <div
+          class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center"
+        >
+          <mat-icon class="empty-icon mb-4 text-[64px] text-[rgba(0,0,0,0.3)]"
+            >travel_explore</mat-icon
+          >
+          <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">
+            No Region Selected
+          </h3>
           <p class="max-w-[400px] text-sm text-[rgba(0,0,0,0.6)]">
-            Select a region from the list to view its transit feeds and agencies.
+            Select a region from the list to view its transit feeds and
+            agencies.
           </p>
         </div>
       } @else {
         <!-- Region Header -->
         <div class="region-header mb-6">
           <div class="flex items-center justify-between">
-            <h2 class="text-2xl font-semibold text-[var(--mdc-theme-on-surface)]">
+            <h2
+              class="text-2xl font-semibold text-[var(--mdc-theme-on-surface)]"
+            >
               {{ getDisplayName(region) }}
             </h2>
             <!-- Import All Feeds Button -->
@@ -89,15 +114,22 @@ interface RegionSummary {
                 class="import-all-button"
               >
                 @if (isImportingAll) {
-                  <mat-spinner diameter="20" class="mr-2 inline-block"></mat-spinner>
+                  <mat-spinner
+                    diameter="20"
+                    class="mr-2 inline-block"
+                  ></mat-spinner>
                 } @else {
                   <mat-icon class="mr-1">cloud_download</mat-icon>
                 }
-                <span>{{ isImportingAll ? 'Importing...' : 'Import All Feeds' }}</span>
+                <span>{{
+                  isImportingAll ? 'Importing...' : 'Import All Feeds'
+                }}</span>
               </button>
             }
           </div>
-          <div class="region-meta mt-2 flex flex-wrap gap-4 text-sm text-[var(--mdc-theme-on-surface-variant)]">
+          <div
+            class="region-meta mt-2 flex flex-wrap gap-4 text-sm text-[var(--mdc-theme-on-surface-variant)]"
+          >
             <div class="meta-item flex items-center gap-1">
               <mat-icon class="text-[18px]">location_on</mat-icon>
               <span>{{ region.regionOnestopId }}</span>
@@ -113,7 +145,11 @@ interface RegionSummary {
                 <mat-icon class="text-[18px]">
                   {{ region.autoUpdateEnabled ? 'sync' : 'sync_disabled' }}
                 </mat-icon>
-                <span>{{ region.autoUpdateEnabled ? 'Auto-update enabled' : 'Manual updates' }}</span>
+                <span>{{
+                  region.autoUpdateEnabled
+                    ? 'Auto-update enabled'
+                    : 'Manual updates'
+                }}</span>
               </div>
             }
           </div>
@@ -141,29 +177,45 @@ interface RegionSummary {
           </app-brand-card>
         }
 
-        <div class="overview-header flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--mdc-theme-on-surface-variant)]">
+        <div
+          class="overview-header flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] text-[var(--mdc-theme-on-surface-variant)]"
+        >
           <mat-icon class="text-[18px]">analytics</mat-icon>
           Overview
         </div>
 
         <div class="tab-content pt-4">
           @if (loadingOverview) {
-            <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12">
+            <div
+              class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12"
+            >
               <mat-spinner diameter="40"></mat-spinner>
-              <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">Loading overview...</p>
+              <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">
+                Loading overview...
+              </p>
             </div>
           } @else {
             <!-- Summary Statistics -->
             @if (summary$ | async; as summary) {
               <div class="summary-section mb-6">
-                <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">Summary</h3>
+                <h3
+                  class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]"
+                >
+                  Summary
+                </h3>
                 <div class="summary-grid grid gap-4 md:grid-cols-2">
-                  <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
+                  <div
+                    class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center"
+                  >
                     <div class="summary-value">{{ summary.totalAgencies }}</div>
                     <div class="summary-label mt-2">Transit Agencies</div>
                   </div>
-                  <div class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center">
-                    <div class="summary-value">{{ summary.totalActiveRoutes }}</div>
+                  <div
+                    class="summary-card rounded-xl border border-[var(--mat-sys-outline-variant,#e0e0e0)] bg-[var(--mat-sys-surface-container,#f5f5f5)] p-5 text-center"
+                  >
+                    <div class="summary-value">
+                      {{ summary.totalActiveRoutes }}
+                    </div>
                     <div class="summary-label mt-2">Active Routes</div>
                   </div>
                 </div>
@@ -173,14 +225,22 @@ interface RegionSummary {
             <!-- Agencies Grid -->
             @if (agencies$ | async; as agenciesResponse) {
               <div class="agencies-section">
-                <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">Agencies</h3>
-                <div class="agencies-grid grid gap-4 md:grid-cols-1 xl:grid-cols-2">
+                <h3
+                  class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]"
+                >
+                  Agencies
+                </h3>
+                <div
+                  class="agencies-grid grid gap-4 md:grid-cols-1 xl:grid-cols-2"
+                >
                   @for (agency of agenciesResponse.content; track agency) {
                     <app-agency-card [agency]="agency"></app-agency-card>
                   }
                 </div>
                 @if (agenciesResponse.content.length === 0) {
-                  <p class="no-agencies py-4 text-center italic text-[var(--mat-sys-on-surface-variant)]">
+                  <p
+                    class="no-agencies py-4 text-center italic text-[var(--mat-sys-on-surface-variant)]"
+                  >
                     No agencies found for this region.
                   </p>
                 }
@@ -191,57 +251,59 @@ interface RegionSummary {
       }
     </div>
   `,
-  styles: [`
-    .region-detail-container {
-      padding: 1rem;
-    }
+  styles: [
+    `
+      .region-detail-container {
+        padding: 1rem;
+      }
 
-    .empty-state {
-      min-height: 400px;
-    }
+      .empty-state {
+        min-height: 400px;
+      }
 
-    .empty-icon {
-      color: rgba(0, 0, 0, 0.3);
-    }
+      .empty-icon {
+        color: rgba(0, 0, 0, 0.3);
+      }
 
-    :host-context(.dark-theme) .empty-icon {
-      color: rgba(255, 255, 255, 0.3);
-    }
+      :host-context(.dark-theme) .empty-icon {
+        color: rgba(255, 255, 255, 0.3);
+      }
 
-    :host-context(.dark-theme) .empty-state h3 {
-      color: rgba(255, 255, 255, 0.87);
-    }
+      :host-context(.dark-theme) .empty-state h3 {
+        color: rgba(255, 255, 255, 0.87);
+      }
 
-    :host-context(.dark-theme) .empty-state p {
-      color: rgba(255, 255, 255, 0.7);
-    }
+      :host-context(.dark-theme) .empty-state p {
+        color: rgba(255, 255, 255, 0.7);
+      }
 
-    .summary-value {
-      font-size: 32px;
-      font-weight: 600;
-      color: var(--mat-sys-primary, #1976d2);
-      line-height: 1.2;
-    }
+      .summary-value {
+        font-size: 32px;
+        font-weight: 600;
+        color: var(--mat-sys-primary, #1976d2);
+        line-height: 1.2;
+      }
 
-    .summary-label {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--mat-sys-on-surface, #333);
-    }
+      .summary-label {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--mat-sys-on-surface, #333);
+      }
 
-    .no-agencies {
-      color: var(--mat-sys-on-surface-variant, #6b7280);
-    }
+      .no-agencies {
+        color: var(--mat-sys-on-surface-variant, #6b7280);
+      }
 
-    .loading-state p {
-      color: rgba(0, 0, 0, 0.6);
-    }
+      .loading-state p {
+        color: rgba(0, 0, 0, 0.6);
+      }
 
-    :host-context(.dark-theme) .loading-state p {
-      color: rgba(255, 255, 255, 0.7);
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+      :host-context(.dark-theme) .loading-state p {
+        color: rgba(255, 255, 255, 0.7);
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
   @Input() region: MetropolitanRegion | null = null;
@@ -273,7 +335,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     private readonly snackBar: MatSnackBar,
     private readonly metrics: FeedsMetricsService,
     private readonly events: FeedsEventsService,
-    private readonly cdr: ChangeDetectorRef
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -286,7 +348,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         this.importService.startPollingActiveImports();
         this.metrics.setSelectedRegion(
           this.region.regionOnestopId,
-          this.getDisplayName(this.region)
+          this.getDisplayName(this.region),
         );
       } else {
         this.regionImportStatus = null;
@@ -313,26 +375,30 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     this.agencyGroups = [];
     this.metrics.setDiscoverFeedCount(0);
 
-    this.regionService.listFeedsForRegion(regionId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (feeds) => {
-        this.regionFeeds = feeds;
-        this.agencyGroups = FeedGroupingUtils.sortAgencyGroups(
-          FeedGroupingUtils.groupFeedsByAgency(feeds)
-        );
-        this.metrics.setDiscoverFeedCount(feeds.length);
-        this.loadingFeeds = false;
-      },
-      error: (error) => {
-        console.error('Failed to load feeds:', error);
-        this.loadingFeeds = false;
-        const regionName = this.getDisplayName(this.region) || regionId;
-        this.snackBar.open(`Failed to load feeds for ${regionName}`, 'Retry', {
-          duration: 5000
-        }).onAction().subscribe(() => this.loadFeedsForRegion(regionId));
-      }
-    });
+    this.regionService
+      .listFeedsForRegion(regionId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (feeds) => {
+          this.regionFeeds = feeds;
+          this.agencyGroups = FeedGroupingUtils.sortAgencyGroups(
+            FeedGroupingUtils.groupFeedsByAgency(feeds),
+          );
+          this.metrics.setDiscoverFeedCount(feeds.length);
+          this.loadingFeeds = false;
+        },
+        error: (error) => {
+          console.error('Failed to load feeds:', error);
+          this.loadingFeeds = false;
+          const regionName = this.getDisplayName(this.region) || regionId;
+          this.snackBar
+            .open(`Failed to load feeds for ${regionName}`, 'Retry', {
+              duration: 5000,
+            })
+            .onAction()
+            .subscribe(() => this.loadFeedsForRegion(regionId));
+        },
+      });
   }
 
   /**
@@ -346,30 +412,38 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         console.error('Failed to load region details:', error);
         this.loadingOverview = false;
         this.cdr.markForCheck();
-        this.snackBar.open('Failed to load region details.', 'Retry', {
-          duration: 5000
-        }).onAction().subscribe(() => this.loadOverviewForRegion(regionId));
+        this.snackBar
+          .open('Failed to load region details.', 'Retry', {
+            duration: 5000,
+          })
+          .onAction()
+          .subscribe(() => this.loadOverviewForRegion(regionId));
         return of(null as unknown as MetropolitanRegionDetail);
-      })
+      }),
     );
     this.agencies$ = this.agencyService.listAgencies(0, 100, regionId).pipe(
-      map(response => ({
+      map((response) => ({
         ...response,
-        content: [...response.content].sort((a, b) => a.name.localeCompare(b.name))
+        content: [...response.content].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
       })),
       catchError((error) => {
         console.error('Failed to load agencies:', error);
         this.loadingOverview = false;
         this.cdr.markForCheck();
-        this.snackBar.open('Failed to load agencies.', 'Retry', {
-          duration: 5000
-        }).onAction().subscribe(() => this.loadOverviewForRegion(regionId));
+        this.snackBar
+          .open('Failed to load agencies.', 'Retry', {
+            duration: 5000,
+          })
+          .onAction()
+          .subscribe(() => this.loadOverviewForRegion(regionId));
         return of({
           content: [],
           totalElements: 0,
-          totalPages: 0
+          totalPages: 0,
         } as AgencyListResponse);
-      })
+      }),
     );
 
     // Compute summary from region and agencies data
@@ -381,21 +455,21 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         const agencies = agenciesResponse.content;
 
         // Sum active route counts across all agencies
-        const totalActiveRoutes = agencies.reduce((sum, agency) => sum + agency.activeRouteCount, 0);
+        const totalActiveRoutes = agencies.reduce(
+          (sum, agency) => sum + agency.activeRouteCount,
+          0,
+        );
 
         return {
           name: region.name,
           totalAgencies: agencies.length,
-          totalActiveRoutes
+          totalActiveRoutes,
         };
-      })
+      }),
     );
 
     // Ensure the loading flag is cleared once the first overview emission arrives.
-    this.summary$.pipe(
-      take(1),
-      takeUntil(this.destroy$)
-    ).subscribe({
+    this.summary$.pipe(take(1), takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.loadingOverview = false;
         this.cdr.markForCheck();
@@ -403,7 +477,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
       error: () => {
         this.loadingOverview = false;
         this.cdr.markForCheck();
-      }
+      },
     });
   }
 
@@ -411,22 +485,23 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     this.regionImportLoading = true;
     this.regionImportStop$.next();
 
-    this.importService.getActiveRegionImport(regionId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (status) => {
-        this.regionImportStatus = status;
-        this.regionImportLoading = false;
-        if (status && !this.isRegionImportTerminal(status.status)) {
-          this.startRegionImportMonitoring(status.regionImportId);
-        }
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.regionImportLoading = false;
-        this.cdr.markForCheck();
-      }
-    });
+    this.importService
+      .getActiveRegionImport(regionId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (status) => {
+          this.regionImportStatus = status;
+          this.regionImportLoading = false;
+          if (status && !this.isRegionImportTerminal(status.status)) {
+            this.startRegionImportMonitoring(status.regionImportId);
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.regionImportLoading = false;
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   private watchActiveRegionImports(regionId: string): void {
@@ -434,17 +509,21 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
       .getActiveImportsObservable()
       .pipe(
         map((imports) => {
-          const groups = RegionImportGroupingUtils.groupImportsByRegion(imports);
-          const group = groups.find((candidate) => candidate.regionOnestopId === regionId);
+          const groups =
+            RegionImportGroupingUtils.groupImportsByRegion(imports);
+          const group = groups.find(
+            (candidate) => candidate.regionOnestopId === regionId,
+          );
           if (!group) {
             return null;
           }
-          const regionName = this.getDisplayName(this.region) || group.regionName;
+          const regionName =
+            this.getDisplayName(this.region) || group.regionName;
           return {
             ...group,
             regionName,
           };
-        })
+        }),
       );
     this.importService.refreshActiveImports();
   }
@@ -453,31 +532,40 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
    * Import a single feed
    */
   importFeed(feed: Feed): void {
-    this.snackBar.open(`Starting import for ${feed.name}...`, 'Close', { duration: 2000 });
-
-    this.importService.startImport(feed.feedOnestopId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (result) => {
-        this.snackBar.open(`Import started for ${feed.name}`, 'Close', { duration: 3000 });
-        this.importService.refreshActiveImports();
-      },
-      error: (error) => {
-        console.error('Failed to start import:', error);
-        const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
-        this.snackBar.open(`❌ Import failed: ${errorMessage}`, 'Retry', {
-          duration: 8000,
-          panelClass: ['error-snackbar']
-        }).onAction().subscribe(() => this.importFeed(feed));
-      }
+    this.snackBar.open(`Starting import for ${feed.name}...`, 'Close', {
+      duration: 2000,
     });
+
+    this.importService
+      .startImport(feed.feedOnestopId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.snackBar.open(`Import started for ${feed.name}`, 'Close', {
+            duration: 3000,
+          });
+          this.importService.refreshActiveImports();
+        },
+        error: (error) => {
+          console.error('Failed to start import:', error);
+          const errorMessage =
+            error.message || error.error?.message || 'Unknown error occurred';
+          this.snackBar
+            .open(`❌ Import failed: ${errorMessage}`, 'Retry', {
+              duration: 8000,
+              panelClass: ['error-snackbar'],
+            })
+            .onAction()
+            .subscribe(() => this.importFeed(feed));
+        },
+      });
   }
 
   /**
    * Import multiple feeds
    */
   importMultipleFeeds(feeds: Feed[]): void {
-    feeds.forEach(feed => this.importFeed(feed));
+    feeds.forEach((feed) => this.importFeed(feed));
   }
 
   /**
@@ -494,7 +582,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     if (feedCount > 20) {
       const confirmed = window.confirm(
         `You are about to import ${feedCount} feeds for ${this.getDisplayName(this.region)}. ` +
-        `This may take some time. Continue?`
+          `This may take some time. Continue?`,
       );
       if (!confirmed) {
         return;
@@ -502,37 +590,48 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     }
 
     this.isImportingAll = true;
-    const regionName = this.getDisplayName(this.region) || this.region.regionOnestopId;
+    const regionName =
+      this.getDisplayName(this.region) || this.region.regionOnestopId;
 
-    this.snackBar.open(`Starting bulk import for ${regionName}...`, 'Close', { duration: 2000 });
-
-    this.importService.importAllFeedsForRegion(this.region.regionOnestopId).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (result) => {
-        this.isImportingAll = false;
-        this.showBulkImportResults(result, regionName);
-        this.importService.refreshActiveImports();
-        if (result.regionImportId) {
-          this.startRegionImportMonitoring(result.regionImportId);
-        }
-      },
-      error: (error) => {
-        console.error('Failed to start bulk import:', error);
-        this.isImportingAll = false;
-        const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
-        this.snackBar.open(`❌ Bulk import failed: ${errorMessage}`, 'Retry', {
-          duration: 8000,
-          panelClass: ['error-snackbar']
-        }).onAction().subscribe(() => this.confirmAndImportAllFeeds());
-      }
+    this.snackBar.open(`Starting bulk import for ${regionName}...`, 'Close', {
+      duration: 2000,
     });
+
+    this.importService
+      .importAllFeedsForRegion(this.region.regionOnestopId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (result) => {
+          this.isImportingAll = false;
+          this.showBulkImportResults(result, regionName);
+          this.importService.refreshActiveImports();
+          if (result.regionImportId) {
+            this.startRegionImportMonitoring(result.regionImportId);
+          }
+        },
+        error: (error) => {
+          console.error('Failed to start bulk import:', error);
+          this.isImportingAll = false;
+          const errorMessage =
+            error.message || error.error?.message || 'Unknown error occurred';
+          this.snackBar
+            .open(`❌ Bulk import failed: ${errorMessage}`, 'Retry', {
+              duration: 8000,
+              panelClass: ['error-snackbar'],
+            })
+            .onAction()
+            .subscribe(() => this.confirmAndImportAllFeeds());
+        },
+      });
   }
 
   /**
    * Display bulk import results in a snackbar
    */
-  private showBulkImportResults(result: BulkImportResponse, regionName: string): void {
+  private showBulkImportResults(
+    result: BulkImportResponse,
+    regionName: string,
+  ): void {
     const { totalFeeds, startedCount, failedCount, skippedCount } = result;
 
     // Build summary message
@@ -554,7 +653,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
 
     this.snackBar.open(message, 'Close', {
       duration,
-      panelClass: failedCount > 0 ? ['warning-snackbar'] : []
+      panelClass: failedCount > 0 ? ['warning-snackbar'] : [],
     });
   }
 
@@ -601,25 +700,35 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
    * View feed details
    */
   viewFeedDetails(feed: Feed): void {
-    this.snackBar.open(`Viewing details for ${feed.name}`, 'Close', { duration: 2000 });
+    this.snackBar.open(`Viewing details for ${feed.name}`, 'Close', {
+      duration: 2000,
+    });
   }
 
   cancelImport(importId: string): void {
     this.snackBar.open('Cancelling import...', 'Close', { duration: 2000 });
-    this.importService.cancelImport(importId).pipe(takeUntil(this.destroy$)).subscribe({
-      next: () => {
-        this.snackBar.open('✅ Import cancelled successfully', 'Close', {
-          duration: 3000
-        });
-      },
-      error: (error) => {
-        const errorMessage = error?.message || error?.error?.message || 'Unknown error';
-        this.snackBar.open(`❌ Failed to cancel import: ${errorMessage}`, 'Close', {
-          duration: 8000,
-          panelClass: ['error-snackbar']
-        });
-      }
-    });
+    this.importService
+      .cancelImport(importId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.snackBar.open('✅ Import cancelled successfully', 'Close', {
+            duration: 3000,
+          });
+        },
+        error: (error) => {
+          const errorMessage =
+            error?.message || error?.error?.message || 'Unknown error';
+          this.snackBar.open(
+            `❌ Failed to cancel import: ${errorMessage}`,
+            'Close',
+            {
+              duration: 8000,
+              panelClass: ['error-snackbar'],
+            },
+          );
+        },
+      });
   }
 
   /**

@@ -3,13 +3,25 @@ import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { BehaviorSubject, of, throwError } from 'rxjs';
 import { RegionsPageComponent } from './regions.page';
 import { RegionService } from '../../feeds/services/region.service';
+import { ImportService } from '../../feeds/services/import.service';
+import { SchedulerService } from '../../feeds/services/scheduler.service';
 import { MetropolitanRegion } from '../../feeds/models/region.models';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { AgencyService } from '../../agencies/services/agency.service';
+import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
+import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
 
 describe('RegionsPageComponent', () => {
   let component: RegionsPageComponent;
   let fixture: ComponentFixture<RegionsPageComponent>;
   let mockRegionService: jasmine.SpyObj<RegionService>;
+  let mockImportService: jasmine.SpyObj<ImportService>;
+  let mockSchedulerService: jasmine.SpyObj<SchedulerService>;
+  let mockSnackBar: jasmine.SpyObj<MatSnackBar>;
+  let mockAgencyService: jasmine.SpyObj<AgencyService>;
+  let mockMetricsService: jasmine.SpyObj<FeedsMetricsService>;
+  let mockEventsService: jasmine.SpyObj<FeedsEventsService>;
   let mockRouter: jasmine.SpyObj<Router>;
   let paramMapSubject: BehaviorSubject<any>;
   let queryParamMapSubject: BehaviorSubject<any>;
@@ -23,30 +35,91 @@ describe('RegionsPageComponent', () => {
     autoUpdateEnabled: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-02T00:00:00Z',
-    lastCheckAt: null
+    lastCheckAt: null,
   };
 
   const mockRegionDetail = {
     ...mockRegion,
-    feeds: []
+    feeds: [],
   };
 
   beforeEach(async () => {
     // Create spy objects
-    mockRegionService = jasmine.createSpyObj('RegionService', ['getRegion']);
+    mockRegionService = jasmine.createSpyObj('RegionService', [
+      'getRegion',
+      'listRegions',
+      'listFeedsForRegion',
+      'sortWithCanadianPriority',
+      'clearCache',
+    ]);
+    mockImportService = jasmine.createSpyObj('ImportService', [
+      'getActiveImports',
+      'startPollingActiveImports',
+      'stopPollingActiveImports',
+      'getActiveImportsObservable',
+      'refreshActiveImports',
+      'getActiveRegionImport',
+      'monitorRegionImportProgress',
+      'startImport',
+      'importAllFeedsForRegion',
+      'cancelImport',
+    ]);
+    mockSchedulerService = jasmine.createSpyObj('SchedulerService', [
+      'enableFeedAutoUpdate',
+      'disableFeedAutoUpdate',
+    ]);
+    mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    mockAgencyService = jasmine.createSpyObj('AgencyService', ['listAgencies']);
+    mockMetricsService = jasmine.createSpyObj('FeedsMetricsService', [
+      'setSelectedRegion',
+      'setDiscoverFeedCount',
+    ]);
+    mockEventsService = jasmine.createSpyObj('FeedsEventsService', ['']);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+
+    // Setup default return values
+    mockRegionService.listRegions.and.returnValue(of([mockRegion]));
+    mockRegionService.listFeedsForRegion.and.returnValue(of([]));
+    mockRegionService.sortWithCanadianPriority.and.callFake(
+      (regions) => regions,
+    );
+    mockImportService.getActiveImports.and.returnValue(of([]));
+    mockImportService.getActiveImportsObservable.and.returnValue(
+      new BehaviorSubject([]).asObservable(),
+    );
+    mockImportService.getActiveRegionImport.and.returnValue(of(null));
+    mockImportService.monitorRegionImportProgress.and.returnValue(
+      of(null as any),
+    );
+    mockImportService.startImport.and.returnValue(of({} as any));
+    mockImportService.importAllFeedsForRegion.and.returnValue(
+      of({
+        totalFeeds: 0,
+        startedCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+      } as any),
+    );
+    mockImportService.cancelImport.and.returnValue(of({} as any));
+    mockAgencyService.listAgencies.and.returnValue(
+      of({ content: [], totalElements: 0, totalPages: 0 } as any),
+    );
+    mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
 
     // Create subjects for route params
     paramMapSubject = new BehaviorSubject(convertToParamMap({}));
     queryParamMapSubject = new BehaviorSubject(convertToParamMap({}));
 
     await TestBed.configureTestingModule({
-      imports: [
-        RegionsPageComponent,
-        NoopAnimationsModule
-      ],
+      imports: [RegionsPageComponent, NoopAnimationsModule],
       providers: [
         { provide: RegionService, useValue: mockRegionService },
+        { provide: ImportService, useValue: mockImportService },
+        { provide: SchedulerService, useValue: mockSchedulerService },
+        { provide: MatSnackBar, useValue: mockSnackBar },
+        { provide: AgencyService, useValue: mockAgencyService },
+        { provide: FeedsMetricsService, useValue: mockMetricsService },
+        { provide: FeedsEventsService, useValue: mockEventsService },
         { provide: Router, useValue: mockRouter },
         {
           provide: ActivatedRoute,
@@ -55,11 +128,11 @@ describe('RegionsPageComponent', () => {
             queryParamMap: queryParamMapSubject.asObservable(),
             snapshot: {
               paramMap: convertToParamMap({}),
-              queryParamMap: convertToParamMap({})
-            }
-          }
-        }
-      ]
+              queryParamMap: convertToParamMap({}),
+            },
+          },
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegionsPageComponent);
@@ -74,14 +147,16 @@ describe('RegionsPageComponent', () => {
     it('should initialize with no selected region', (done) => {
       fixture.detectChanges();
 
-      component.selectedRegion$.subscribe(region => {
+      component.selectedRegion$.subscribe((region) => {
         expect(region).toBeNull();
         done();
       });
     });
 
     it('should subscribe to route parameter changes on init', () => {
-      spyOn(component['route'].paramMap, 'pipe').and.returnValue(of(convertToParamMap({})));
+      spyOn(component['route'].paramMap, 'pipe').and.returnValue(
+        of(convertToParamMap({})),
+      );
 
       component.ngOnInit();
 
@@ -89,7 +164,9 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should subscribe to query parameter changes on init', () => {
-      spyOn(component['route'].queryParamMap, 'pipe').and.returnValue(of(convertToParamMap({})));
+      spyOn(component['route'].queryParamMap, 'pipe').and.returnValue(
+        of(convertToParamMap({})),
+      );
 
       component.ngOnInit();
 
@@ -104,7 +181,9 @@ describe('RegionsPageComponent', () => {
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
 
-      expect(mockRegionService.getRegion).toHaveBeenCalledWith('r-test-toronto');
+      expect(mockRegionService.getRegion).toHaveBeenCalledWith(
+        'r-test-toronto',
+      );
     });
 
     it('should update selectedRegion$ when region loads successfully', (done) => {
@@ -114,7 +193,7 @@ describe('RegionsPageComponent', () => {
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
 
       setTimeout(() => {
-        component.selectedRegion$.subscribe(region => {
+        component.selectedRegion$.subscribe((region) => {
           expect(region).toEqual(mockRegionDetail);
           done();
         });
@@ -131,7 +210,7 @@ describe('RegionsPageComponent', () => {
         paramMapSubject.next(convertToParamMap({}));
 
         setTimeout(() => {
-          component.selectedRegion$.subscribe(region => {
+          component.selectedRegion$.subscribe((region) => {
             expect(region).toBeNull();
             done();
           });
@@ -141,7 +220,7 @@ describe('RegionsPageComponent', () => {
 
     it('should handle region loading errors gracefully', (done) => {
       mockRegionService.getRegion.and.returnValue(
-        throwError(() => new Error('Failed to load region'))
+        throwError(() => new Error('Failed to load region')),
       );
       spyOn(console, 'error');
 
@@ -151,9 +230,9 @@ describe('RegionsPageComponent', () => {
       setTimeout(() => {
         expect(console.error).toHaveBeenCalledWith(
           'Failed to load region:',
-          jasmine.any(Error)
+          jasmine.any(Error),
         );
-        component.selectedRegion$.subscribe(region => {
+        component.selectedRegion$.subscribe((region) => {
           expect(region).toBeNull();
           done();
         });
@@ -164,11 +243,13 @@ describe('RegionsPageComponent', () => {
   describe('query parameter handling (backwards compatibility)', () => {
     it('should redirect when region query param is present and no path param', () => {
       fixture.detectChanges();
-      queryParamMapSubject.next(convertToParamMap({ region: 'r-test-toronto' }));
+      queryParamMapSubject.next(
+        convertToParamMap({ region: 'r-test-toronto' }),
+      );
 
       expect(mockRouter.navigate).toHaveBeenCalledWith(
         ['/regions', 'r-test-toronto'],
-        { replaceUrl: true }
+        { replaceUrl: true },
       );
     });
 
@@ -177,10 +258,14 @@ describe('RegionsPageComponent', () => {
 
       // Set route snapshot to have regionId
       const route = TestBed.inject(ActivatedRoute);
-      (route.snapshot.paramMap as any) = convertToParamMap({ regionId: 'r-test-toronto' });
+      (route.snapshot.paramMap as any) = convertToParamMap({
+        regionId: 'r-test-toronto',
+      });
 
       fixture.detectChanges();
-      queryParamMapSubject.next(convertToParamMap({ region: 'r-test-toronto' }));
+      queryParamMapSubject.next(
+        convertToParamMap({ region: 'r-test-toronto' }),
+      );
 
       // Navigate should only be called once (from paramMap), not from queryParam
       expect(mockRouter.navigate).not.toHaveBeenCalled();
@@ -198,13 +283,19 @@ describe('RegionsPageComponent', () => {
     it('should navigate to region detail when region is selected', () => {
       component.onRegionSelected(mockRegion);
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/regions', 'r-test-toronto']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/regions',
+        'r-test-toronto',
+      ]);
     });
 
     it('should navigate to region detail when details are requested', () => {
       component.onRegionDetailsRequested(mockRegion);
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith(['/regions', 'r-test-toronto']);
+      expect(mockRouter.navigate).toHaveBeenCalledWith([
+        '/regions',
+        'r-test-toronto',
+      ]);
     });
   });
 
@@ -255,7 +346,7 @@ describe('RegionsPageComponent', () => {
       fixture.detectChanges();
 
       const masterPanel = fixture.debugElement.query(
-        (el) => el.name === 'app-region-master-panel'
+        (el) => el.name === 'app-region-master-panel',
       );
 
       expect(masterPanel).toBeTruthy();
@@ -269,7 +360,7 @@ describe('RegionsPageComponent', () => {
       fixture.detectChanges();
 
       const detailPanel = fixture.debugElement.query(
-        (el) => el.name === 'app-region-detail-panel'
+        (el) => el.name === 'app-region-detail-panel',
       );
 
       expect(detailPanel).toBeTruthy();
@@ -283,7 +374,8 @@ describe('RegionsPageComponent', () => {
 
       setTimeout(() => {
         fixture.detectChanges();
-        const container = fixture.nativeElement.querySelector('.regions-container');
+        const container =
+          fixture.nativeElement.querySelector('.regions-container');
         expect(container.classList.contains('has-selection')).toBe(true);
         done();
       }, 100);
@@ -292,7 +384,8 @@ describe('RegionsPageComponent', () => {
     it('should not apply has-selection class when no region is selected', () => {
       fixture.detectChanges();
 
-      const container = fixture.nativeElement.querySelector('.regions-container');
+      const container =
+        fixture.nativeElement.querySelector('.regions-container');
       expect(container.classList.contains('has-selection')).toBe(false);
     });
   });
@@ -301,7 +394,9 @@ describe('RegionsPageComponent', () => {
     it('should have master-detail-layout class', () => {
       fixture.detectChanges();
 
-      const container = fixture.nativeElement.querySelector('.master-detail-layout');
+      const container = fixture.nativeElement.querySelector(
+        '.master-detail-layout',
+      );
       expect(container).toBeTruthy();
     });
 
