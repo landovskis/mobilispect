@@ -9,8 +9,7 @@ import org.junit.jupiter.api.Test
 
 class RouteCommonSectionDetectionServiceTest {
 
-  private val service: RouteCommonSectionDetectionService =
-    RouteCommonSectionDetectionServiceImpl()
+  private val service: RouteCommonSectionDetectionService = RouteCommonSectionDetectionServiceImpl()
 
   @Test
   fun `should return null when no variants provided`() {
@@ -20,8 +19,7 @@ class RouteCommonSectionDetectionServiceTest {
 
   @Test
   fun `should return null when only one variant provided`() {
-    val variant =
-      createVariant("variant1", "stop1|stop2|stop3", "Stop 1|Stop 2|Stop 3")
+    val variant = createVariant("variant1", "stop1|stop2|stop3", "Stop 1|Stop 2|Stop 3")
     val result = service.detectCommonSection(listOf(variant))
     assertNull(result)
   }
@@ -137,10 +135,12 @@ class RouteCommonSectionDetectionServiceTest {
   private fun createVariant(
     id: String,
     stopPattern: String,
-    stopNamePattern: String
-  ): RouteVariant =
-    RouteVariant(
-      id = VariantHash(id.padEnd(64, '0')),
+    stopNamePattern: String,
+  ): RouteVariant {
+    // Generate a valid 64-character hex string from the id
+    val hexId = id.toByteArray().joinToString("") { "%02x".format(it) }.padEnd(64, '0').take(64)
+    return RouteVariant(
+      id = VariantHash(hexId),
       routeId = RouteId("r-test"),
       stopPattern = stopPattern,
       stopNamePattern = stopNamePattern,
@@ -151,4 +151,5 @@ class RouteCommonSectionDetectionServiceTest {
       firstSeen = Instant.now(),
       lastSeen = Instant.now(),
     )
+  }
 }

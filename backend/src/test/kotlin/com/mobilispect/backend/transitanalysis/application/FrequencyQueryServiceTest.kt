@@ -10,6 +10,7 @@ import com.mobilispect.backend.route.domain.model.RouteVariant
 import com.mobilispect.backend.route.domain.model.TimePeriod
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
+import com.mobilispect.backend.route.domain.repository.RouteCommonSectionRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import com.mobilispect.backend.route.domain.repository.StopSpacingRepository
@@ -33,6 +34,8 @@ class FrequencyQueryServiceTest {
     mock(VariantScheduleRepository::class.java)
   private val variantDepartureRepository: VariantDepartureRepository =
     mock(VariantDepartureRepository::class.java)
+  private val routeCommonSectionRepository: RouteCommonSectionRepository =
+    mock(RouteCommonSectionRepository::class.java)
   private val service =
     FrequencyQueryService(
       routeRepository,
@@ -41,6 +44,7 @@ class FrequencyQueryServiceTest {
       stopSpacingRepository,
       variantScheduleRepository,
       variantDepartureRepository,
+      routeCommonSectionRepository,
     )
 
   @Test
