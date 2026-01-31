@@ -1,7 +1,9 @@
 package com.mobilispect.backend.region.batch
 
 import org.springframework.batch.core.job.Job
+import org.springframework.batch.core.job.builder.FlowBuilder
 import org.springframework.batch.core.job.builder.JobBuilder
+import org.springframework.batch.core.job.flow.support.SimpleFlow
 import org.springframework.batch.core.partition.support.TaskExecutorPartitionHandler
 import org.springframework.batch.core.repository.JobRepository
 import org.springframework.batch.core.step.Step
@@ -52,16 +54,29 @@ class RegionImportJobConfig(
    * - regionOnestopId: Transit.land region identifier
    * - triggerType: MANUAL or AUTOMATIC
    * - timestamp: Unique timestamp to allow multiple runs
+   *
+   * Flow Transitions:
+   * - Uses Flow-based configuration to ensure finalization runs regardless of partition failures
+   * - If any partition fails, the partitioned step exits with FAILED status
+   * - The finalization step runs anyway (via "*" transition) to determine actual outcome
+   * - Finalization reads database state to set COMPLETED, PARTIAL_SUCCESS, or FAILED
    */
   @Bean
-  fun regionImportJob(): Job =
-    JobBuilder("regionImportJob", jobRepository)
-      .preventRestart()
+  fun regionImportJob(): Job {
+    val flow = FlowBuilder<SimpleFlow>("regionImportFlow")
       .start(regionImportInitializationStep())
-      .next(feedImportPartitionedStep())
-      .next(regionImportFinalizationStep())
+      .on("*").to(feedImportPartitionedStep())
+      .from(feedImportPartitionedStep())
+      .on("*").to(regionImportFinalizationStep())
+      .end()
+
+    return JobBuilder("regionImportJob", jobRepository)
+      .preventRestart()
+      .start(flow)
+      .end()
       .listener(jobExecutionListener)
       .build()
+  }
 
   /**
    * Initialization step - prepares the region import.
