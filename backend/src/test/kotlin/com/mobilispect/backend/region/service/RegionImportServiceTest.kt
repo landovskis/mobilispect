@@ -38,7 +38,9 @@ class RegionImportServiceTest {
     feedApi = mockk()
     regionImportRepository = mockk()
     jobLauncher = mockk()
-    regionImportJob = mockk()
+    regionImportJob = mockk {
+      every { name } returns "regionImportJob"
+    }
     taskExecutor = TaskExecutor { runnable -> runnable.run() }
 
     service =
