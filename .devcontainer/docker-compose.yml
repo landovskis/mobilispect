@@ -66,12 +66,20 @@ services:
   airflow:
     image: apache/airflow:3.1.7
     depends_on:
-      - airflow-postgres
+      airflow-postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       MOBILISPECT_GTFS_STORAGE_ROOT: /var/lib/mobilispect/gtfs
+      MOBILISPECT_DATABASE_URL: postgresql+psycopg2://${MOBILISPECT_DB_USER}:${MOBILISPECT_DB_PASSWORD}@${MOBILISPECT_DB_HOST}:${MOBILISPECT_DB_PORT}/${MOBILISPECT_DB_NAME}
       AIRFLOW_DB_HOST: airflow-postgres
       AIRFLOW_DB_PORT: "5432"
       AIRFLOW_DB_NAME: airflow
@@ -93,7 +101,43 @@ services:
       [
         "bash",
         "-lc",
-        "export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=\"postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}\" && export MOBILISPECT_DATABASE_URL=\"postgresql+psycopg2://${MOBILISPECT_DB_USER}:${MOBILISPECT_DB_PASSWORD}@${MOBILISPECT_DB_HOST}:${MOBILISPECT_DB_PORT}/${MOBILISPECT_DB_NAME}\" && pip install --no-cache-dir -r /workspaces/backend/airflow/requirements.txt && airflow db migrate && airflow users create --role Admin --username admin --password admin --email admin@example.com --firstname Admin --lastname User || true && airflow webserver & airflow scheduler"
+        "printf '{\"%s\":\"%s\"}\\n' \"$AIRFLOW_ADMIN_USER\" \"$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && pip install --no-cache-dir -r /workspaces/backend/airflow/requirements.txt && airflow api-server --host 0.0.0.0 --port 8080 & airflow scheduler & airflow dag-processor"
+      ]
+
+  airflow-init:
+    image: apache/airflow:3.1.7
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+      MOBILISPECT_GTFS_STORAGE_ROOT: /var/lib/mobilispect/gtfs
+      MOBILISPECT_DATABASE_URL: postgresql+psycopg2://${MOBILISPECT_DB_USER}:${MOBILISPECT_DB_PASSWORD}@${MOBILISPECT_DB_HOST}:${MOBILISPECT_DB_PORT}/${MOBILISPECT_DB_NAME}
+      AIRFLOW_DB_HOST: airflow-postgres
+      AIRFLOW_DB_PORT: "5432"
+      AIRFLOW_DB_NAME: airflow
+      AIRFLOW_DB_USER: airflow
+      AIRFLOW_DB_PASSWORD: airflow
+      MOBILISPECT_DB_HOST: airflow-postgres
+      MOBILISPECT_DB_PORT: "5432"
+      MOBILISPECT_DB_NAME: mobilispect
+      MOBILISPECT_DB_USER: airflow
+      MOBILISPECT_DB_PASSWORD: airflow
+    volumes:
+      - ..:/workspaces:cached
+      - ../airflow/dags:/opt/airflow/dags:cached
+      - ../airflow/pipeline:/opt/airflow/pipeline:cached
+      - gtfs-data:/var/lib/mobilispect/gtfs
+    command:
+      [
+        "bash",
+        "-lc",
+        "printf '{\"%s\":\"%s\"}\\n' \"$AIRFLOW_ADMIN_USER\" \"$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && pip install --no-cache-dir -r /workspaces/backend/airflow/requirements.txt && for i in $(seq 1 30); do airflow db migrate && break; echo \"waiting for airflow db\"; sleep 2; done"
       ]
 
 volumes:
