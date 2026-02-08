@@ -1,5 +1,8 @@
 import hashlib
 import math
+import os
+import time
+import unicodedata
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
@@ -7,6 +10,7 @@ from datetime import date
 from typing import Dict, Iterable, List, Optional, Tuple
 
 import pandas as pd
+import requests
 from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
@@ -17,6 +21,7 @@ from .db import (
     feed_regions,
     feeds,
     get_engine,
+    metropolitan_regions,
     new_uuid,
     region_import_feeds,
     region_imports,
@@ -124,6 +129,10 @@ ALLOWED_ROUTE_TYPES = {
     1702: "HORSE_DRAWN_CARRIAGE",
 }
 
+TRANSITLAND_BASE_URL = "https://transit.land/api/v2/rest"
+TRANSITLAND_API_KEY_ENV = "MOBILISPECT_TRANSITLAND_API_KEY"
+TRANSITLAND_API_KEY_FALLBACK_ENV = "TRANSITLAND_API_KEY"
+
 
 CLASSIFICATION_THRESHOLDS = [
     ("LOCAL", 0.0, 400.0),
@@ -143,6 +152,187 @@ class FeedImportStartResult:
     feed_id: str
     download_url: Optional[str]
     message: Optional[str] = None
+
+
+def _get_transitland_api_key() -> str:
+    api_key = os.environ.get(TRANSITLAND_API_KEY_ENV) or os.environ.get(
+        TRANSITLAND_API_KEY_FALLBACK_ENV
+    )
+    if not api_key:
+        raise RuntimeError(
+            "Transit.land API key not set. Provide MOBILISPECT_TRANSITLAND_API_KEY or "
+            "TRANSITLAND_API_KEY."
+        )
+    return api_key
+
+
+def _normalize_text(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    normalized = unicodedata.normalize("NFKD", value)
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch)).lower().strip()
+
+
+def _matches_region(place: Dict[str, Optional[str]], region: Dict[str, Optional[str]]) -> bool:
+    region_name = _normalize_text(region.get("name"))
+    place_city = _normalize_text(place.get("city_name"))
+    if region_name and place_city:
+        if region_name == place_city:
+            return True
+        if region_name in place_city or place_city in region_name:
+            return True
+
+    region_adm0 = _normalize_text(region.get("adm0_name"))
+    region_adm1 = _normalize_text(region.get("adm1_name"))
+    place_adm0 = _normalize_text(place.get("adm0_name"))
+    place_adm1 = _normalize_text(place.get("adm1_name"))
+    if region_adm0 and place_adm0 and region_adm0 == place_adm0:
+        if region_adm1 and place_adm1 and region_adm1 == place_adm1:
+            return True
+    return False
+
+
+def discover_region_feeds(region_id: str) -> Dict[str, int]:
+    engine = get_engine()
+    with engine.begin() as conn:
+        region_row = (
+            conn.execute(
+                select(
+                    metropolitan_regions.c.region_onestop_id,
+                    metropolitan_regions.c.name,
+                    metropolitan_regions.c.adm0_name,
+                    metropolitan_regions.c.adm1_name,
+                ).where(metropolitan_regions.c.region_onestop_id == region_id)
+            )
+            .mappings()
+            .first()
+        )
+
+    if not region_row:
+        raise RuntimeError(f"Region not found for discovery: {region_id}")
+
+    region = {
+        "region_onestop_id": region_row["region_onestop_id"],
+        "name": region_row["name"],
+        "adm0_name": region_row["adm0_name"],
+        "adm1_name": region_row["adm1_name"],
+    }
+
+    api_key = _get_transitland_api_key()
+    feed_ids: set[str] = set()
+    after: Optional[int] = None
+
+    while True:
+        params = {"limit": 100}
+        if after is not None:
+            params["after"] = after
+        response = requests.get(
+            f"{TRANSITLAND_BASE_URL}/operators.json",
+            params=params,
+            headers={"apikey": api_key},
+            timeout=30,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        operators = payload.get("operators", [])
+        for operator in operators:
+            agencies = operator.get("agencies") or []
+            matches_region = False
+            for agency in agencies:
+                places = agency.get("places") or []
+                for place in places:
+                    if _matches_region(place, region):
+                        matches_region = True
+                        break
+                if matches_region:
+                    break
+            if not matches_region:
+                continue
+            for feed in operator.get("feeds") or []:
+                if feed.get("spec") != "gtfs":
+                    continue
+                feed_id = feed.get("onestop_id")
+                if feed_id:
+                    feed_ids.add(feed_id)
+
+        meta = payload.get("meta") or {}
+        after = meta.get("after")
+        if after is None:
+            break
+        time.sleep(0.2)
+
+    if not feed_ids:
+        return {"feeds_discovered": 0, "feeds_updated": 0}
+
+    now = utc_now()
+    feed_rows = []
+    for feed_id in sorted(feed_ids):
+        feed_response = requests.get(
+            f"{TRANSITLAND_BASE_URL}/feeds.json",
+            params={"onestop_id": feed_id, "include_alerts": "false"},
+            headers={"apikey": api_key},
+            timeout=30,
+        )
+        feed_response.raise_for_status()
+        feed_payload = feed_response.json()
+        feeds_payload = feed_payload.get("feeds") or []
+        if not feeds_payload:
+            continue
+        feed_data = feeds_payload[0]
+        feed_versions = feed_data.get("feed_versions") or []
+        if not feed_versions:
+            continue
+        latest_version = feed_versions[0]
+        download_url = latest_version.get("url")
+        if not download_url:
+            continue
+        feed_rows.append(
+            {
+                "feed_onestop_id": feed_id,
+                "download_url": download_url,
+                "status": "active",
+                "last_updated_at": now,
+            }
+        )
+        time.sleep(0.1)
+
+    with engine.begin() as conn:
+        if feed_rows:
+            conn.execute(
+                delete(feed_regions).where(feed_regions.c.region_onestop_id == region_id)
+            )
+            for row in feed_rows:
+                stmt = (
+                    insert(feeds)
+                    .values(**row)
+                    .on_conflict_do_update(
+                        index_elements=[feeds.c.feed_onestop_id],
+                        set_={
+                            "download_url": row["download_url"],
+                            "status": row["status"],
+                            "last_updated_at": now,
+                        },
+                    )
+                )
+                conn.execute(stmt)
+
+            for row in feed_rows:
+                stmt = (
+                    insert(feed_regions)
+                    .values(
+                        feed_onestop_id=row["feed_onestop_id"],
+                        region_onestop_id=region_id,
+                    )
+                    .on_conflict_do_nothing(
+                        index_elements=[
+                            feed_regions.c.feed_onestop_id,
+                            feed_regions.c.region_onestop_id,
+                        ]
+                    )
+                )
+                conn.execute(stmt)
+
+    return {"feeds_discovered": len(feed_ids), "feeds_updated": len(feed_rows)}
 
 
 def normalize_trigger_type(value: str) -> str:

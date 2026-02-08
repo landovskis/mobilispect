@@ -17,6 +17,15 @@ from pipeline import processing
 )
 def region_import():
     @task
+    def discover_region_feeds():
+        context = get_current_context()
+        conf = (context.get("dag_run") or {}).conf or {}
+        region_id = conf.get("region_id")
+        if not region_id:
+            raise ValueError("region_id is required in dag_run.conf")
+        return processing.discover_region_feeds(region_id)
+
+    @task
     def start_region_import():
         context = get_current_context()
         conf = (context.get("dag_run") or {}).conf or {}
@@ -54,7 +63,9 @@ def region_import():
     def finalize_region_import(start_result: dict):
         return processing.finalize_region_import(start_result["region_import_id"])
 
+    discovery = discover_region_feeds()
     start_result = start_region_import()
+    discovery >> start_result
     feeds = list_feeds(start_result)
     run_confs = build_run_confs(start_result, feeds)
 

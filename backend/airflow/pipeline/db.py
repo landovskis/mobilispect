@@ -56,6 +56,15 @@ feeds = Table(
     Column("last_updated_at", DateTime(timezone=True)),
 )
 
+metropolitan_regions = Table(
+    "metropolitan_regions",
+    metadata,
+    Column("region_onestop_id", String(255), primary_key=True),
+    Column("name", String(255)),
+    Column("adm0_name", String(255)),
+    Column("adm1_name", String(255)),
+)
+
 feed_regions = Table(
     "feed_regions",
     metadata,
