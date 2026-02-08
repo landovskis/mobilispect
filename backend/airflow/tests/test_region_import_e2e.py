@@ -26,14 +26,20 @@ def db_engine(postgres_container, monkeypatch):
         db.metadata.drop_all(engine)
 
 
-def _seed_region(engine, region_id: str):
+def _seed_region(
+    engine,
+    region_id: str,
+    name: str = "San Francisco Bay Area",
+    adm0_name: str = "United States",
+    adm1_name: str = "California",
+):
     with engine.begin() as conn:
         conn.execute(
             db.metropolitan_regions.insert().values(
                 region_onestop_id=region_id,
-                name="San Francisco Bay Area",
-                adm0_name="United States",
-                adm1_name="California",
+                name=name,
+                adm0_name=adm0_name,
+                adm1_name=adm1_name,
             )
         )
 
@@ -158,6 +164,21 @@ def _mock_transitland_endpoints():
                 )
             ],
         )
+
+
+def test_resolve_region_id_by_name_normalizes_accents(db_engine):
+    region_id = "r-ca-montreal"
+    _seed_region(
+        db_engine,
+        region_id,
+        name="Montréal",
+        adm0_name="Canada",
+        adm1_name="Quebec",
+    )
+
+    resolved = processing.resolve_region_id(None, "Montreal")
+
+    assert resolved == region_id
 
 
 @responses.activate

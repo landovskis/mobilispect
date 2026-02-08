@@ -21,11 +21,18 @@ export PYTHONPATH="/path/to/repo/airflow"
 
 ## DAG Inputs
 
-Trigger `region_import` with JSON conf:
+Trigger `region_import` with JSON conf (use `region_id` or `region_name`):
 
 ```json
 {
   "region_id": "r-dpz8-sf",
+  "trigger_type": "automatic"
+}
+```
+
+```json
+{
+  "region_name": "Montréal",
   "trigger_type": "automatic"
 }
 ```

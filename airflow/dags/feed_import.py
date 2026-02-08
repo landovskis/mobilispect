@@ -2,8 +2,9 @@ import os
 
 from datetime import datetime
 
-from airflow.sdk import dag, get_current_context, task
-from airflow.task.trigger_rule import TriggerRule
+from airflow.decorators import dag, task
+from airflow.operators.python import get_current_context
+from airflow.utils.trigger_rule import TriggerRule
 
 from pipeline import gtfs, processing
 

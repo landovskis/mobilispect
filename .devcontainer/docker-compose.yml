@@ -66,7 +66,7 @@ services:
   airflow:
     image: apache/airflow:3.1.7
     depends_on:
-      airflow-postgres:
+      postgres:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
@@ -76,17 +76,18 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
+      PYTHONPATH: /opt/airflow
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       MOBILISPECT_TRANSITLAND_API_KEY: ${MOBILISPECT_TRANSITLAND_API_KEY}
       MOBILISPECT_GTFS_STORAGE_ROOT: /var/lib/mobilispect/gtfs
       MOBILISPECT_DATABASE_URL: postgresql+psycopg2://${MOBILISPECT_DB_USER}:${MOBILISPECT_DB_PASSWORD}@${MOBILISPECT_DB_HOST}:${MOBILISPECT_DB_PORT}/${MOBILISPECT_DB_NAME}
-      AIRFLOW_DB_HOST: airflow-postgres
+      AIRFLOW_DB_HOST: postgres
       AIRFLOW_DB_PORT: "5432"
       AIRFLOW_DB_NAME: airflow
       AIRFLOW_DB_USER: airflow
       AIRFLOW_DB_PASSWORD: airflow
-      MOBILISPECT_DB_HOST: airflow-postgres
+      MOBILISPECT_DB_HOST: postgres
       MOBILISPECT_DB_PORT: "5432"
       MOBILISPECT_DB_NAME: mobilispect
       MOBILISPECT_DB_USER: airflow
@@ -108,24 +109,25 @@ services:
   airflow-init:
     image: apache/airflow:3.1.7
     depends_on:
-      airflow-postgres:
+      postgres:
         condition: service_healthy
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
+      PYTHONPATH: /opt/airflow
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       MOBILISPECT_TRANSITLAND_API_KEY: ${MOBILISPECT_TRANSITLAND_API_KEY}
       MOBILISPECT_GTFS_STORAGE_ROOT: /var/lib/mobilispect/gtfs
       MOBILISPECT_DATABASE_URL: postgresql+psycopg2://${MOBILISPECT_DB_USER}:${MOBILISPECT_DB_PASSWORD}@${MOBILISPECT_DB_HOST}:${MOBILISPECT_DB_PORT}/${MOBILISPECT_DB_NAME}
-      AIRFLOW_DB_HOST: airflow-postgres
+      AIRFLOW_DB_HOST: postgres
       AIRFLOW_DB_PORT: "5432"
       AIRFLOW_DB_NAME: airflow
       AIRFLOW_DB_USER: airflow
       AIRFLOW_DB_PASSWORD: airflow
-      MOBILISPECT_DB_HOST: airflow-postgres
+      MOBILISPECT_DB_HOST: postgres
       MOBILISPECT_DB_PORT: "5432"
       MOBILISPECT_DB_NAME: mobilispect
       MOBILISPECT_DB_USER: airflow
