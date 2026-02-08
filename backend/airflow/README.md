@@ -10,6 +10,7 @@ These DAGs run the Python import pipeline and write directly to Postgres.
 4. `airflow/` must be on `PYTHONPATH` so DAGs can import `pipeline`.
 
 ## Environment
+
 Set the database URL and local GTFS storage root for the Airflow runtime.
 
 ```bash
@@ -19,6 +20,7 @@ export PYTHONPATH="/path/to/repo/airflow"
 ```
 
 ## DAG Inputs
+
 Trigger `region_import` with JSON conf:
 
 ```json
@@ -37,7 +39,15 @@ Trigger `feed_import` directly with JSON conf:
 }
 ```
 
+## Testing
+
+```bash
+python -m pip install -r airflow/requirements-dev.txt
+pytest airflow/tests
+```
+
 ## Notes
 
-1. `region_import` triggers `feed_import` per feed and waits for completion before finalizing.
+1. `region_import` triggers `feed_import` per feed and waits for completion
+   before finalizing.
 2. `feed_import` updates region import counts when `region_import_id` is provided.

@@ -167,6 +167,22 @@ route_variants = Table(
     Column("updated_at", DateTime(timezone=True)),
 )
 
+route_common_sections = Table(
+    "route_common_sections",
+    metadata,
+    Column("id", String(64), primary_key=True),
+    Column("route_id", String(50)),
+    Column("direction_id", Integer),
+    Column("stop_pattern", Text),
+    Column("stop_name_pattern", Text),
+    Column("stop_count", Integer),
+    Column("first_stop_id", String(255)),
+    Column("last_stop_id", String(255)),
+    Column("variant_count", Integer),
+    Column("created_at", DateTime(timezone=True)),
+    Column("updated_at", DateTime(timezone=True)),
+)
+
 stops = Table(
     "stops",
     metadata,
