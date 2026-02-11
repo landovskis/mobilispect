@@ -26,7 +26,12 @@ def region_import():
 
     @task
     def discover_region_feeds(region_id: str):
-        return processing.discover_region_feeds(region_id)
+        context = get_current_context()
+        conf = (context.get("dag_run") or {}).conf or {}
+        region_name = conf.get("region_name") or conf.get("city_name")
+        if not region_name:
+            raise ValueError("region_name or city_name is required for feed discovery")
+        return processing.discover_region_feeds(region_name, region_id)
 
     @task
     def start_region_import(region_id: str):

@@ -51,6 +51,8 @@ feeds = Table(
     "feeds",
     metadata,
     Column("feed_onestop_id", String(512), primary_key=True),
+    Column("name", String(255)),
+    Column("spec_type", String(32)),
     Column("download_url", Text),
     Column("status", String(32)),
     Column("last_updated_at", DateTime(timezone=True)),

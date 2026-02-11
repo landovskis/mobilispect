@@ -1,6 +1,7 @@
 import hashlib
 import math
 import os
+import re
 import time
 import unicodedata
 import uuid
@@ -173,6 +174,12 @@ def _normalize_text(value: Optional[str]) -> str:
     return "".join(ch for ch in normalized if not unicodedata.combining(ch)).lower().strip()
 
 
+def _slugify(value: str) -> str:
+    normalized = _normalize_text(value)
+    slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
+    return slug
+
+
 def _matches_region(place: Dict[str, Optional[str]], region: Dict[str, Optional[str]]) -> bool:
     region_name = _normalize_text(region.get("name"))
     place_city = _normalize_text(place.get("city_name"))
@@ -227,7 +234,24 @@ def resolve_region_id(region_id: Optional[str], region_name: Optional[str]) -> s
             matches.append(row["region_onestop_id"])
 
     if not matches:
-        raise RuntimeError(f"No region matches region_name={region_name!r}")
+        auto_slug = _slugify(region_name)
+        if not auto_slug:
+            auto_slug = hashlib.sha1(region_name.encode("utf-8")).hexdigest()[:8]
+        auto_region_id = f"r-auto-{auto_slug}"
+        with engine.begin() as conn:
+            conn.execute(
+                insert(metropolitan_regions)
+                .values(
+                    region_onestop_id=auto_region_id,
+                    name=region_name,
+                    adm0_name=None,
+                    adm1_name=None,
+                )
+                .on_conflict_do_nothing(
+                    index_elements=[metropolitan_regions.c.region_onestop_id]
+                )
+            )
+        return auto_region_id
     if len(matches) > 1:
         raise RuntimeError(
             f"Multiple regions match region_name={region_name!r}: {sorted(matches)}"
@@ -266,7 +290,7 @@ def discover_region_feeds(region_id: str) -> Dict[str, int]:
     after: Optional[int] = None
 
     while True:
-        params = {"limit": 100}
+        params = {"limit": 100, city_name: region_row["name"]}
         if after is not None:
             params["after"] = after
         response = requests.get(

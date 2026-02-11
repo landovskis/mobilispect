@@ -18,6 +18,7 @@ services:
       REDIS_PORT: "6379"
     depends_on:
       - postgres
+      - mobilispect-init
       - redis
 
   postgres:
@@ -35,6 +36,22 @@ services:
       timeout: 5s
       retries: 10
 
+  mobilispect-init:
+    image: flyway/flyway:10
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      [
+        "-url=jdbc:postgresql://postgres:5432/mobilispect",
+        "-user=mobilispect",
+        "-password=mobilispect",
+        "-connectRetries=60",
+        "migrate"
+      ]
+    volumes:
+      - ../backend/src/main/resources/db/migration:/flyway/sql:ro
+
   redis:
     image: redis:8.2-alpine
     restart: unless-stopped
@@ -47,27 +64,13 @@ services:
       timeout: 5s
       retries: 10
 
-  airflow-postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: airflow
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-    volumes:
-      - airflow-postgres-data:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
   airflow:
     image: apache/airflow:3.1.7
     depends_on:
       postgres:
         condition: service_healthy
+      mobilispect-init:
+        condition: service_completed_successfully
       airflow-init:
         condition: service_completed_successfully
     restart: unless-stopped
@@ -76,6 +79,7 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
+      AIRFLOW__API__JWT_EXPIRATION_TIME: "3600"
       PYTHONPATH: /opt/airflow
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
@@ -111,11 +115,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mobilispect-init:
+        condition: service_completed_successfully
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
+      AIRFLOW__API__JWT_EXPIRATION_TIME: "3600"
       PYTHONPATH: /opt/airflow
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"

@@ -24,8 +24,8 @@ def region_import():
         return processing.resolve_region_id(region_id, region_name)
 
     @task
-    def discover_region_feeds(region_id: str):
-        return processing.discover_region_feeds(region_id)
+    def discover_region_feeds(region_name: str):
+        return processing.discover_region_feeds(region_name)
 
     @task
     def start_region_import(region_id: str):
