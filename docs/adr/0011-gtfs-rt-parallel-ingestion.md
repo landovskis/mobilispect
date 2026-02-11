@@ -41,17 +41,124 @@ data class Feed(
 
 ## Decision
 
-### 1. No Separate GTFS-RT Discovery
+### 1. On-Demand Discovery Integration
 
-GTFS-RT feed discovery is handled by the existing feed discovery pipeline. The GTFS-RT ingestion module queries feeds that have already been discovered:
+GTFS-RT feed discovery reuses the existing feed discovery pipeline. At ingestion time, the service queries for feeds with realtime URLs:
 
 ```kotlin
 feedRepository.findByStatusAndRealtimeFeedUrlNotNull(FeedStatus.ACTIVE)
 ```
 
-No new discovery scheduler, API client, or batch job is introduced for GTFS-RT feeds.
+**If no feeds are found**, the ingestion service triggers feed discovery before proceeding. This ensures the system bootstraps itself without manual intervention or waiting for the daily discovery schedule.
 
-### 2. Parallel Fetch with Kotlin Coroutines
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    Ingestion Cycle (every 30 seconds)                        │
+│                                                                              │
+│  ┌───────────────────────────┐                                              │
+│  │ Query feeds with          │                                              │
+│  │ realtimeFeedUrl != null   │                                              │
+│  └─────────────┬─────────────┘                                              │
+│                │                                                             │
+│                ▼                                                             │
+│        ┌───────────────┐                                                    │
+│        │ Feeds found?  │                                                    │
+│        └───────┬───────┘                                                    │
+│                │                                                             │
+│       ┌────────┴────────┐                                                   │
+│       │ No              │ Yes                                               │
+│       ▼                 ▼                                                   │
+│  ┌─────────────┐   ┌─────────────────────────────────────────────────────┐  │
+│  │ Trigger     │   │ Parallel Fetch → Dedupe → Process → Persist        │  │
+│  │ Discovery   │   └─────────────────────────────────────────────────────┘  │
+│  │ (async)     │                                                            │
+│  └──────┬──────┘                                                            │
+│         │                                                                    │
+│         ▼                                                                    │
+│  ┌─────────────┐                                                            │
+│  │ Wait for    │                                                            │
+│  │ completion  │                                                            │
+│  └──────┬──────┘                                                            │
+│         │                                                                    │
+│         ▼                                                                    │
+│  ┌─────────────┐                                                            │
+│  │ Re-query    │──────▶ Proceed with ingestion                              │
+│  │ feeds       │                                                            │
+│  └─────────────┘                                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+No new discovery scheduler, API client, or batch job is introduced. The existing `FeedDiscoveryBatchService.discoverAll()` is invoked when needed.
+
+### 2. On-Demand Discovery Implementation
+
+```kotlin
+@Service
+class GtfsRtIngestionService(
+    private val feedRepository: FeedRepository,
+    private val feedDiscoveryBatchService: FeedDiscoveryBatchService,
+    private val fetcher: ParallelGtfsRtFetcher,
+    private val processor: GtfsRtProcessingService,
+    private val meterRegistry: MeterRegistry
+) {
+    private val logger = KotlinLogging.logger {}
+    private val discoveryInProgress = AtomicBoolean(false)
+
+    @Scheduled(fixedRateString = "\${gtfsrt.ingestion.interval-ms:30000}")
+    fun ingest() = runBlocking {
+        val feeds = getOrDiscoverFeeds()
+
+        if (feeds.isEmpty()) {
+            logger.info { "No GTFS-RT feeds available after discovery attempt" }
+            return@runBlocking
+        }
+
+        // Proceed with parallel ingestion
+        fetcher.fetchAllFeeds(feeds).collect { result ->
+            processor.process(result)
+        }
+    }
+
+    private suspend fun getOrDiscoverFeeds(): List<Feed> {
+        val feeds = feedRepository.findByStatusAndRealtimeFeedUrlNotNull(FeedStatus.ACTIVE)
+
+        if (feeds.isNotEmpty()) {
+            return feeds
+        }
+
+        // No feeds found — trigger discovery if not already running
+        if (discoveryInProgress.compareAndSet(false, true)) {
+            try {
+                logger.info { "No GTFS-RT feeds found, triggering feed discovery" }
+                meterRegistry.counter("gtfsrt.discovery.triggered").increment()
+
+                val result = feedDiscoveryBatchService.discoverAll()
+
+                logger.info {
+                    mapOf(
+                        "event" to "gtfsrt_discovery_complete",
+                        "feeds_discovered" to result.feedsFound,
+                        "regions_discovered" to result.regionsFound
+                    )
+                }
+            } finally {
+                discoveryInProgress.set(false)
+            }
+        } else {
+            logger.info { "Discovery already in progress, waiting..." }
+            // Wait for in-progress discovery to complete
+            while (discoveryInProgress.get()) {
+                delay(1000)
+            }
+        }
+
+        // Re-query after discovery
+        return feedRepository.findByStatusAndRealtimeFeedUrlNotNull(FeedStatus.ACTIVE)
+    }
+}
+```
+
+### 3. Parallel Fetch with Kotlin Coroutines
 
 Use Kotlin coroutines with a bounded IO dispatcher and semaphore for backpressure to fetch feeds concurrently:
 
@@ -59,12 +166,15 @@ Use Kotlin coroutines with a bounded IO dispatcher and semaphore for backpressur
 private val dispatcher = Dispatchers.IO.limitedParallelism(parallelism = 50)
 private val semaphore = Semaphore(permits = 100)
 
-suspend fun fetchAllFeeds(): Flow<GtfsRtFetchResult> = channelFlow {
-    feedRepository.findByStatusAndRealtimeFeedUrlNotNull(FeedStatus.ACTIVE)
-        .map { feed ->
+suspend fun fetchAllFeeds(feeds: List<Feed>): Flow<GtfsRtFetchResult> = channelFlow {
+    feeds
+        .mapNotNull { feed ->
+            feed.realtimeFeedUrl?.let { url -> feed to url }
+        }
+        .map { (feed, url) ->
             async(dispatcher) {
                 semaphore.withPermit {
-                    fetchWithResilience(feed)
+                    fetchWithResilience(feed, url)
                 }
             }
         }
@@ -72,7 +182,7 @@ suspend fun fetchAllFeeds(): Flow<GtfsRtFetchResult> = channelFlow {
 }
 ```
 
-### 3. Three-Layer Deduplication to Skip Unchanged Feeds
+### 4. Three-Layer Deduplication to Skip Unchanged Feeds
 
 Processing is skipped when the downloaded content has not changed, using three checks applied in order of cost:
 
@@ -100,7 +210,7 @@ data class GtfsRtFeedState(
 )
 ```
 
-### 4. Per-Feed Circuit Breakers
+### 5. Per-Feed Circuit Breakers
 
 Each feed gets an independent circuit breaker keyed by `FeedId` to isolate failures:
 
@@ -114,7 +224,7 @@ CircuitBreakerConfig.custom()
 
 Combined with retry (3 attempts, exponential backoff with jitter) and per-request timeouts.
 
-### 5. Parallel Fetch, Sequential Process
+### 6. Parallel Fetch, Sequential Process
 
 Fetching is parallelized across all feeds. Processing (protobuf decode → persist) is sequential within the `.collect {}` block:
 
@@ -126,7 +236,7 @@ Process: [A]→[B]→[C]→[D]→[E]  ← sequential in collect
 
 The bottleneck is network I/O (100–500ms per fetch), not processing (single-digit milliseconds for decode, batched writes). Sequential processing avoids DB write contention and keeps the implementation simple.
 
-### 6. New `gtfsrt` Module
+### 7. New `gtfsrt` Module
 
 ```
 backend/src/main/kotlin/com/mobilispect/backend/
@@ -161,11 +271,12 @@ No cross-module database access.
 
 ## Rationale
 
-### Why Reuse Existing Discovery?
+### Why On-Demand Discovery?
 
-1. **Single Source of Truth**: Feed metadata (URLs, auth, status) is already managed by the feed discovery pipeline. Duplicating this creates inconsistency risk.
-2. **Transit.land Already Provides RT URLs**: The `realtimeFeedUrl` field is populated during metadata fetch in Phase 2 of `FeedDiscoveryReader`. No additional API calls needed.
-3. **Operational Simplicity**: One discovery pipeline to monitor, debug, and maintain. GTFS-RT availability is just another field on an already-discovered feed.
+1. **Self-Bootstrapping**: The service starts ingesting immediately after deployment without manual intervention or waiting for scheduled discovery.
+2. **Single Source of Truth**: Feed metadata (URLs, auth, status) is already managed by the feed discovery pipeline. Invoking it on-demand avoids duplication.
+3. **Transit.land Already Provides RT URLs**: The `realtimeFeedUrl` field is populated during metadata fetch in Phase 2 of `FeedDiscoveryReader`. No additional API calls needed.
+4. **Operational Simplicity**: One discovery pipeline to monitor, debug, and maintain. The ingestion service simply triggers it when needed.
 
 ### Why Kotlin Coroutines Over Other Concurrency Models?
 
@@ -192,19 +303,20 @@ No cross-module database access.
 
 ### Positive
 
-1. **High Throughput**: 500 feeds polled in ~5–10 seconds per cycle with 50 parallel workers.
-2. **Low Waste**: ~60–80% of polling cycles skip processing due to deduplication, reducing CPU and database I/O.
-3. **Fault Isolation**: Per-feed circuit breakers prevent cascading failures. One failing feed doesn't affect others.
-4. **No New Discovery Infrastructure**: Zero operational overhead for GTFS-RT feed management. Feeds appear automatically when discovered.
-5. **Modulith Compliant**: Clean module boundary via `FeedQueryApi`. No cross-module DB access.
-6. **Observable**: Metrics per feed (fetch duration, cache hits, circuit breaker state, skip reasons) enable targeted debugging.
+1. **Self-Bootstrapping**: Service discovers feeds on-demand if none exist, enabling zero-configuration deployment.
+2. **High Throughput**: 500 feeds polled in ~5–10 seconds per cycle with 50 parallel workers.
+3. **Low Waste**: ~60–80% of polling cycles skip processing due to deduplication, reducing CPU and database I/O.
+4. **Fault Isolation**: Per-feed circuit breakers prevent cascading failures. One failing feed doesn't affect others.
+5. **No New Discovery Infrastructure**: Reuses existing `FeedDiscoveryBatchService`. Zero additional operational overhead.
+6. **Modulith Compliant**: Clean module boundary via `FeedQueryApi`. No cross-module DB access.
+7. **Observable**: Metrics per feed (fetch duration, cache hits, circuit breaker state, skip reasons) enable targeted debugging.
 
 ### Negative
 
 1. **Redis Dependency**: Deduplication state requires Redis. If Redis is unavailable, all feeds are processed every cycle (safe but wasteful).
    - Mitigation: Graceful fallback to process-all mode. Redis is already required for caching.
-2. **Discovery Latency**: New GTFS-RT feeds are not ingested until the next daily discovery run (01:15 AM).
-   - Mitigation: Manual discovery can be triggered via existing `FeedDiscoveryBatchService.discoverAll()`. Acceptable for transit feeds which change infrequently.
+2. **First-Run Discovery Delay**: On first startup with no feeds, the initial discovery takes 1–5 minutes before ingestion can begin.
+   - Mitigation: One-time cost; subsequent cycles use cached feeds. Discovery runs in background if already triggered.
 3. **Coroutine Complexity**: Developers must understand structured concurrency, `Flow`, and `channelFlow`.
    - Mitigation: Concurrency logic is isolated in `ParallelGtfsRtFetcher`. Application-layer code is straightforward.
 4. **Sequential Processing Ceiling**: If individual feed processing becomes slow (very large feeds), sequential processing could become a bottleneck.
@@ -298,11 +410,13 @@ No cross-module database access.
 ### Phase 3: Ingestion Service
 
 - [ ] Implement `GtfsRtIngestionService` with `@Scheduled` polling
+- [ ] Add on-demand discovery via `FeedDiscoveryBatchService.discoverAll()` when no feeds found
+- [ ] Add `AtomicBoolean` guard to prevent concurrent discovery triggers
 - [ ] Implement `GtfsRtProcessingService` (decode → validate → persist)
 - [ ] Define `VehiclePosition`, `TripUpdate`, `ServiceAlert` domain models
 - [ ] Add batch persistence for RT entities
 - [ ] Wire feed status updates (`lastCheckedAt`, `lastUpdatedAt`)
-- [ ] Write integration tests with Testcontainers
+- [ ] Write integration tests with Testcontainers (including empty-DB bootstrap scenario)
 
 ### Phase 4: Observability
 
@@ -314,10 +428,11 @@ No cross-module database access.
 
 ## Notes for Implementation Team
 
+- **On-Demand Discovery**: The ingestion service triggers `FeedDiscoveryBatchService.discoverAll()` when no feeds with `realtimeFeedUrl` are found. Use an `AtomicBoolean` to prevent concurrent discovery runs.
 - **Feed URLs**: Use `Feed.realtimeFeedUrl` for GTFS-RT endpoints. For feeds with `specType == GTFS_RT`, `Feed.downloadUrl` may also be the RT endpoint.
 - **Authentication**: Always check `FeedAuthentication` before fetching. Some GTFS-RT feeds require API keys.
 - **Redis Keys**: Namespace deduplication state under `gtfsrt:state:{feedId}` with 24-hour TTL.
-- **Metrics Tags**: Always tag with `feed_id` for per-feed drill-down. Include `skip_reason` on skip counters.
+- **Metrics Tags**: Always tag with `feed_id` for per-feed drill-down. Include `skip_reason` on skip counters. Add `gtfsrt.discovery.triggered` counter.
 - **Graceful Degradation**: If Redis is unavailable, process all feeds (skip deduplication). Log a warning, don't fail the cycle.
 - **Dispatcher Tuning**: Start with parallelism=50, semaphore=100. Adjust based on observed connection pool usage and memory.
-- **Testing**: Mock HTTP responses with `MockWebServer`. Use `TestCoroutineDispatcher` for deterministic coroutine testing.
+- **Testing**: Mock HTTP responses with `MockWebServer`. Use `TestCoroutineDispatcher` for deterministic coroutine testing. Include test for empty-DB bootstrap scenario.
