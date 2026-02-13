@@ -87,10 +87,21 @@ interface FeedRepository {
   fun findAll(): List<Feed>
 
   /**
-   * Find feeds by status that have a realtime feed URL.
+   * Find all feeds with the given status that have a realtime feed URL.
    *
-   * @param status The feed status to filter by
-   * @return List of feeds with a non-null realtime feed URL
+   * Used by GTFS-RT ingestion to get active feeds with realtime endpoints. Per ADR 0011, this query
+   * powers the parallel GTFS-RT ingestion pipeline.
+   *
+   * @param status The feed status to filter by (typically ACTIVE)
+   * @return List of feeds with non-null realtimeFeedUrl
    */
   fun findByStatusAndRealtimeFeedUrlNotNull(status: FeedStatus): List<Feed>
+
+  /**
+   * Find feeds by status.
+   *
+   * @param status The feed status to filter by
+   * @return List of feeds with the given status
+   */
+  fun findByStatus(status: FeedStatus): List<Feed>
 }

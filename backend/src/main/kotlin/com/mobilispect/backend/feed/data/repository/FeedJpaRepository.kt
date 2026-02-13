@@ -53,7 +53,11 @@ interface FeedJpaRepository : JpaRepository<FeedEntity, String> {
   )
   fun countByRegionId(@Param("regionId") regionId: String): Long
 
-  /** Find feeds by status that have a realtime feed URL. */
+  /**
+   * Find all feeds with the given status that have a realtime feed URL.
+   *
+   * Used by GTFS-RT ingestion to get active feeds with realtime endpoints.
+   */
   @Query(
     value =
       """
@@ -64,4 +68,15 @@ interface FeedJpaRepository : JpaRepository<FeedEntity, String> {
     nativeQuery = true,
   )
   fun findByStatusAndRealtimeFeedUrlNotNull(@Param("status") status: String): List<FeedEntity>
+
+  /** Find feeds by status. */
+  @Query(
+    value =
+      """
+      SELECT f.* FROM feeds f
+      WHERE f.status = CAST(:status AS feed_status)
+    """,
+    nativeQuery = true,
+  )
+  fun findByStatus(@Param("status") status: String): List<FeedEntity>
 }
