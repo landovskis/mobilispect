@@ -94,7 +94,7 @@ def feed_import():
             parsed, feed_id, route_map, route_map_by_gtfs, stop_lookup
         )
         processing.persist_stop_spacing(variants, stop_lookup)
-        processing.classify_route_variants()
+        processing.classify_route_variants(variants)
         processing.persist_route_common_sections(variants)
         processing.calculate_frequencies(parsed, variants)
         return {"variants": len(variants)}

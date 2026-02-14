@@ -2,8 +2,9 @@ import os
 
 from datetime import datetime
 
-from airflow.sdk import dag, get_current_context, task
-from airflow.task.trigger_rule import TriggerRule
+from airflow.decorators import dag, task
+from airflow.operators.python import get_current_context
+from airflow.utils.trigger_rule import TriggerRule
 
 from pipeline import gtfs, processing
 
@@ -93,7 +94,7 @@ def feed_import():
             parsed, feed_id, route_map, route_map_by_gtfs, stop_lookup
         )
         processing.persist_stop_spacing(variants, stop_lookup)
-        processing.classify_route_variants()
+        processing.classify_route_variants(variants)
         processing.persist_route_common_sections(variants)
         processing.calculate_frequencies(parsed, variants)
         return {"variants": len(variants)}

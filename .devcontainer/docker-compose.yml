@@ -107,7 +107,7 @@ services:
       [
         "bash",
         "-lc",
-        "printf '{\"%s\":\"%s\"}\\n' \"$AIRFLOW_ADMIN_USER\" \"$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && pip install --no-cache-dir -r /workspaces/backend/airflow/requirements.txt && airflow api-server --host 0.0.0.0 --port 8080 & airflow scheduler & airflow dag-processor"
+        "printf '{\"%s\":\"%s\"}\\n' \"$AIRFLOW_ADMIN_USER\" \"$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && mkdir -p /var/lib/mobilispect/gtfs && pip install --no-cache-dir -r /workspaces/backend/airflow/requirements.txt && airflow api-server --host 0.0.0.0 --port 8080 & airflow scheduler & airflow dag-processor"
       ]
 
   airflow-init:

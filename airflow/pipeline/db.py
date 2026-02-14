@@ -122,11 +122,7 @@ agencies = Table(
     metadata,
     Column("agency_onestop_id", String(255), primary_key=True),
     Column("feed_onestop_id", String(512)),
-    Column("gtfs_agency_id", String(255)),
     Column("name", String(255)),
-    Column("website", String(512)),
-    Column("phone", String(50)),
-    Column("last_feed_import", DateTime(timezone=True)),
     Column("active", Boolean),
     Column("created_at", DateTime(timezone=True)),
     Column("updated_at", DateTime(timezone=True)),
@@ -135,12 +131,11 @@ agencies = Table(
 routes = Table(
     "routes",
     metadata,
-    Column("id", String(50), primary_key=True),
+    Column("id", String(255), primary_key=True),
     Column("agency_onestop_id", String(255)),
-    Column("gtfs_route_id", String(255)),
     Column("short_name", String(255)),
     Column("long_name", String(255)),
-    Column("route_type", String(64)),
+    Column("route_type", String(50)),
     Column("color", String(6)),
     Column("text_color", String(6)),
     Column("active", Boolean),
@@ -227,6 +222,23 @@ stop_spacing = Table(
     Column("calculated_at", DateTime(timezone=True)),
     Column("created_at", DateTime(timezone=True)),
 )
+
+frequencies = Table(
+    "frequencies",
+    metadata,
+    Column("id", UUID(as_uuid=True), primary_key=True),
+    Column("variant_id", String(64)),
+    Column("service_date", Date),
+    Column("time_period", String(50)),
+    Column("average_headway_minutes", Float),
+    Column("min_headway_minutes", Float),
+    Column("max_headway_minutes", Float),
+    Column("trip_count", Integer),
+    Column("is_irregular", Boolean),
+    Column("calculated_at", DateTime(timezone=True)),
+    Column("created_at", DateTime(timezone=True)),
+)
+
 
 def new_uuid() -> uuid.UUID:
     return uuid7()

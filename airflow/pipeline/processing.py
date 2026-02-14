@@ -21,6 +21,7 @@ from .db import (
     feed_imports,
     feed_regions,
     feeds,
+    frequencies,
     get_engine,
     metropolitan_regions,
     new_uuid,
@@ -130,6 +131,9 @@ ALLOWED_ROUTE_TYPES = {
     1702: "HORSE_DRAWN_CARRIAGE",
 }
 
+DEADLOCK_MAX_RETRIES = 3
+DEADLOCK_BASE_DELAY = 2.0
+
 TRANSITLAND_BASE_URL = "https://transit.land/api/v2/rest"
 TRANSITLAND_API_KEY_ENV = "MOBILISPECT_TRANSITLAND_API_KEY"
 TRANSITLAND_API_KEY_FALLBACK_ENV = "TRANSITLAND_API_KEY"
@@ -178,6 +182,18 @@ def _slugify(value: str) -> str:
     normalized = _normalize_text(value)
     slug = re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
     return slug
+
+
+_HEX_COLOR_RE = re.compile(r'^[0-9A-Fa-f]{6}$')
+
+
+def _clean_hex_color(value) -> Optional[str]:
+    if not pd.notna(value):
+        return None
+    cleaned = str(value).strip().lstrip("#")
+    if not cleaned or not _HEX_COLOR_RE.match(cleaned):
+        return None
+    return cleaned
 
 
 def _matches_region(place: Dict[str, Optional[str]], region: Dict[str, Optional[str]]) -> bool:
@@ -478,7 +494,7 @@ def start_region_import(region_id: str, trigger_type: str) -> Tuple[str, str]:
             select(region_imports.c.id, region_imports.c.status)
             .where(
                 and_(
-                    region_imports.c.region_onestop_id == region_name,
+                    region_imports.c.region_onestop_id == region_id,
                     region_imports.c.status.in_(["pending", "running"]),
                 )
             )
@@ -494,7 +510,7 @@ def start_region_import(region_id: str, trigger_type: str) -> Tuple[str, str]:
             )
             .where(
                 and_(
-                    feed_regions.c.region_onestop_id == region_name,
+                    feed_regions.c.region_onestop_id == region_id,
                     feeds.c.status == "active",
                 )
             )
@@ -536,7 +552,7 @@ def list_region_feeds(region_id: str) -> List[Dict[str, str]]:
             )
             .where(
                 and_(
-                    feed_regions.c.region_onestop_id == region_name,
+                    feed_regions.c.region_onestop_id == region_id,
                     feeds.c.status == "active",
                 )
             )
@@ -660,9 +676,6 @@ def persist_agencies(parsed: gtfs_lib.ParsedGTFS, feed_id: str) -> Dict[str, str
                 "feed_onestop_id": feed_id,
                 "gtfs_agency_id": row["agency_id"],
                 "name": row.get("agency_name") or row.get("agency_id"),
-                "website": row.get("agency_url") or None,
-                "phone": row.get("agency_phone") or None,
-                "last_feed_import": now,
                 "active": True,
                 "created_at": now,
                 "updated_at": now,
@@ -673,14 +686,18 @@ def persist_agencies(parsed: gtfs_lib.ParsedGTFS, feed_id: str) -> Dict[str, str
         for row in rows:
             stmt = (
                 insert(agencies)
-                .values(**row)
+                .values(
+                    agency_onestop_id=row["agency_onestop_id"],
+                    feed_onestop_id=row["feed_onestop_id"],
+                    name=row["name"],
+                    active=True,
+                    created_at=now,
+                    updated_at=now,
+                )
                 .on_conflict_do_update(
                     index_elements=[agencies.c.agency_onestop_id],
                     set_={
                         "name": row["name"],
-                        "website": row["website"],
-                        "phone": row["phone"],
-                        "last_feed_import": now,
                         "active": True,
                         "updated_at": now,
                     },
@@ -701,10 +718,15 @@ def persist_routes(
         return {}
 
     rows = []
+    missing_agencies: Dict[str, str] = {}
     for _, row in routes_df.iterrows():
         gtfs_route_id = row.get("route_id")
-        agency_id = row.get("agency_id") or "default-agency"
-        agency_onestop_id = agency_map.get(agency_id, f"{feed_id}-{agency_id}")
+        raw_agency_id = row.get("agency_id")
+        agency_id = str(raw_agency_id) if pd.notna(raw_agency_id) and str(raw_agency_id).strip() else "default"
+        agency_onestop_id = agency_map.get(agency_id)
+        if not agency_onestop_id:
+            agency_onestop_id = f"{feed_id}-{agency_id}"
+            missing_agencies[agency_id] = agency_onestop_id
         route_type_raw = row.get("route_type")
         if route_type_raw is None or str(route_type_raw).strip() == "":
             raise RuntimeError(f"Route {gtfs_route_id} missing route_type")
@@ -713,6 +735,8 @@ def persist_routes(
             raise RuntimeError(f"Unsupported GTFS route_type {route_type_code} for route {gtfs_route_id}")
         route_type = ALLOWED_ROUTE_TYPES[route_type_code]
         route_id = f"r-{agency_onestop_id}_{gtfs_route_id}"
+        color = _clean_hex_color(row.get("route_color"))
+        text_color = _clean_hex_color(row.get("route_text_color"))
         rows.append(
             {
                 "id": route_id,
@@ -723,8 +747,8 @@ def persist_routes(
                 or row.get("route_short_name")
                 or gtfs_route_id,
                 "route_type": route_type,
-                "color": (row.get("route_color") or None),
-                "text_color": (row.get("route_text_color") or None),
+                "color": color,
+                "text_color": text_color,
                 "active": True,
                 "created_at": now,
                 "updated_at": now,
@@ -732,10 +756,39 @@ def persist_routes(
         )
 
     with engine.begin() as conn:
+        for gtfs_id, onestop_id in missing_agencies.items():
+            conn.execute(
+                insert(agencies)
+                .values(
+                    agency_onestop_id=onestop_id,
+                    feed_onestop_id=feed_id,
+                    name=gtfs_id,
+                    active=True,
+                    created_at=now,
+                    updated_at=now,
+                )
+                .on_conflict_do_update(
+                    index_elements=[agencies.c.agency_onestop_id],
+                    set_={"active": True, "updated_at": now},
+                )
+            )
+            agency_map[gtfs_id] = onestop_id
+
         for row in rows:
             stmt = (
                 insert(routes)
-                .values(**row)
+                .values(
+                    id=row["id"],
+                    agency_onestop_id=row["agency_onestop_id"],
+                    short_name=row["short_name"],
+                    long_name=row["long_name"],
+                    route_type=row["route_type"],
+                    color=row["color"],
+                    text_color=row["text_color"],
+                    active=True,
+                    created_at=now,
+                    updated_at=now,
+                )
                 .on_conflict_do_update(
                     index_elements=[routes.c.id],
                     set_={
@@ -787,8 +840,8 @@ def persist_stops(parsed: gtfs_lib.ParsedGTFS, feed_id: str) -> Dict[str, Dict]:
                 "stop_desc": row.get("stop_desc") or None,
                 "zone_id": row.get("zone_id") or None,
                 "stop_url": row.get("stop_url") or None,
-                "location_type": int(row.get("location_type"))
-                if row.get("location_type")
+                "location_type": int(float(row.get("location_type")))
+                if pd.notna(row.get("location_type")) and str(row.get("location_type")).strip() != ""
                 else None,
                 "parent_station": row.get("parent_station") or None,
                 "active": True,
@@ -799,30 +852,39 @@ def persist_stops(parsed: gtfs_lib.ParsedGTFS, feed_id: str) -> Dict[str, Dict]:
             }
         )
 
-    with engine.begin() as conn:
-        for row in rows:
-            stmt = (
-                insert(stops)
-                .values(**row)
-                .on_conflict_do_update(
-                    index_elements=[stops.c.stop_onestop_id],
-                    set_={
-                        "name": row["name"],
-                        "latitude": row["latitude"],
-                        "longitude": row["longitude"],
-                        "stop_code": row["stop_code"],
-                        "stop_desc": row["stop_desc"],
-                        "zone_id": row["zone_id"],
-                        "stop_url": row["stop_url"],
-                        "location_type": row["location_type"],
-                        "parent_station": row["parent_station"],
-                        "active": True,
-                        "last_seen": now,
-                        "updated_at": now,
-                    },
-                )
-            )
-            conn.execute(stmt)
+    sorted_rows = sorted(rows, key=lambda r: r["stop_onestop_id"])
+    for attempt in range(DEADLOCK_MAX_RETRIES):
+        try:
+            with engine.begin() as conn:
+                for row in sorted_rows:
+                    stmt = (
+                        insert(stops)
+                        .values(**row)
+                        .on_conflict_do_update(
+                            index_elements=[stops.c.stop_onestop_id],
+                            set_={
+                                "name": row["name"],
+                                "latitude": row["latitude"],
+                                "longitude": row["longitude"],
+                                "stop_code": row["stop_code"],
+                                "stop_desc": row["stop_desc"],
+                                "zone_id": row["zone_id"],
+                                "stop_url": row["stop_url"],
+                                "location_type": row["location_type"],
+                                "parent_station": row["parent_station"],
+                                "active": True,
+                                "last_seen": now,
+                                "updated_at": now,
+                            },
+                        )
+                    )
+                    conn.execute(stmt)
+            break
+        except Exception as exc:
+            if "deadlock" in str(exc).lower() and attempt < DEADLOCK_MAX_RETRIES - 1:
+                time.sleep(DEADLOCK_BASE_DELAY * (attempt + 1))
+                continue
+            raise
 
     return {row["stop_onestop_id"]: row for row in rows}
 
@@ -877,10 +939,10 @@ def persist_route_variants(
         stop_ids = stop_patterns.get(str(trip_id), [])
         if len(stop_ids) < 2:
             continue
-        agency_id = row.get("agency_id") or "default-agency"
+        agency_id = row.get("agency_id") or "default"
         route_id = route_map.get((route_id_raw, f"{feed_id}-{agency_id}"))
         if not route_id:
-            route_id = route_map.get((route_id_raw, f"{feed_id}-default-agency"))
+            route_id = route_map.get((route_id_raw, f"{feed_id}-default"))
         if not route_id:
             route_id = route_map_by_gtfs.get(route_id_raw)
         if not route_id:
@@ -893,8 +955,8 @@ def persist_route_variants(
             variants_by_id[variant_id] = {
                 "id": variant_id,
                 "route_id": route_id,
-                "direction_id": int(row.get("direction_id"))
-                if row.get("direction_id") not in (None, "")
+                "direction_id": int(float(row.get("direction_id")))
+                if pd.notna(row.get("direction_id")) and str(row.get("direction_id")).strip() != ""
                 else None,
                 "headsign": row.get("trip_headsign") or None,
                 "stop_pattern": "|".join(stop_ids),
@@ -960,6 +1022,7 @@ def persist_route_variants(
                     "stop_sequence": idx,
                 }
                 for idx, stop_id in enumerate(record["stops"])
+                if stop_id in stop_lookup
             ]
             if inserts:
                 conn.execute(route_variant_stops.insert(), inserts)
@@ -1015,23 +1078,36 @@ def persist_stop_spacing(variants: List[Dict], stop_lookup: Dict[str, Dict]) -> 
                         "created_at": now,
                     }
                 )
-            if inserts:
-                conn.execute(stop_spacing.insert(), inserts)
+            for row in inserts:
+                conn.execute(
+                    insert(stop_spacing)
+                    .values(**row)
+                    .on_conflict_do_update(
+                        constraint="unique_variant_stop_pair",
+                        set_={
+                            "stop_sequence": row["stop_sequence"],
+                            "distance_meters": row["distance_meters"],
+                            "calculated_at": row["calculated_at"],
+                        },
+                    )
+                )
 
 
-def classify_route_variants() -> None:
+def classify_route_variants(variant_list: List[Dict]) -> None:
+    if not variant_list:
+        return
+    variant_ids = [v["id"] for v in variant_list]
     engine = get_engine()
     now = utc_now()
     with engine.begin() as conn:
         spacing = conn.execute(
             select(stop_spacing.c.variant_id, func.avg(stop_spacing.c.distance_meters))
+            .where(stop_spacing.c.variant_id.in_(variant_ids))
             .group_by(stop_spacing.c.variant_id)
         ).fetchall()
         avg_map = {row[0]: row[1] for row in spacing}
 
-        variants = conn.execute(select(route_variants.c.id)).fetchall()
-        for row in variants:
-            variant_id = row[0]
+        for variant_id in variant_ids:
             avg = avg_map.get(variant_id)
             classification = "UNKNOWN"
             if avg is not None and avg >= 0:
@@ -1089,6 +1165,8 @@ def persist_route_common_sections(variants: List[Dict]) -> None:
         for (route_id, direction_id), items in by_route_direction.items():
             if len(items) < 2:
                 continue
+            if len(route_id) > 50:
+                continue
             sequences = [item["stop_pattern"].split("|") for item in items]
             stop_names = [item.get("stop_name_pattern", "").split("|") for item in items]
             longest = _longest_common_sequence(sequences)
@@ -1125,8 +1203,10 @@ def persist_route_common_sections(variants: List[Dict]) -> None:
                     updated_at=now,
                 )
                 .on_conflict_do_update(
-                    index_elements=[route_common_sections.c.route_id, route_common_sections.c.direction_id],
+                    index_elements=[route_common_sections.c.id],
                     set_={
+                        "route_id": route_id,
+                        "direction_id": direction_id,
                         "stop_pattern": stop_pattern,
                         "stop_name_pattern": stop_name_pattern,
                         "stop_count": len(longest),
@@ -1162,3 +1242,100 @@ def _headway_stats(minutes: List[int]) -> Optional[Tuple[float, float, float, bo
     avg_h = sum(headways) / len(headways)
     irregular = abs(max_h - min_h) > avg_h
     return (None if irregular else avg_h, min_h, max_h, irregular)
+
+
+TIME_PERIODS = [
+    ("WEEKDAY_AM_PEAK", 360, 540),
+    ("WEEKDAY_PM_PEAK", 960, 1140),
+    ("WEEKDAY_OFF_PEAK", 540, 960),
+]
+
+
+def _classify_time_period(minute: int) -> Optional[str]:
+    for name, start, end in TIME_PERIODS:
+        if start <= minute < end:
+            return name
+    return None
+
+
+def calculate_frequencies(parsed: gtfs_lib.ParsedGTFS, variants: List[Dict]) -> None:
+    stop_times_df = parsed.stop_times.copy()
+    trips_df = parsed.trips.copy()
+    if stop_times_df.empty or trips_df.empty or not variants:
+        return
+
+    first_departures = (
+        stop_times_df.sort_values(["trip_id", "stop_sequence"])
+        .groupby("trip_id")
+        .first()
+        .reset_index()
+    )
+
+    trip_to_variant: Dict[str, str] = {}
+    trip_stop_patterns = _build_trip_stop_patterns(stop_times_df)
+    for trip_id, stop_ids in trip_stop_patterns.items():
+        if len(stop_ids) >= 2:
+            trip_to_variant[trip_id] = _variant_hash(stop_ids)
+
+    variant_ids = {v["id"] for v in variants}
+
+    period_departures: Dict[Tuple[str, str], List[int]] = defaultdict(list)
+    for _, row in first_departures.iterrows():
+        trip_id = str(row.get("trip_id", ""))
+        variant_id = trip_to_variant.get(trip_id)
+        if not variant_id or variant_id not in variant_ids:
+            continue
+        dep_time = row.get("departure_time") or row.get("arrival_time")
+        seconds = gtfs_lib.parse_time_to_seconds(dep_time)
+        if seconds is None:
+            continue
+        minute = seconds // 60
+        period = _classify_time_period(minute)
+        if period:
+            period_departures[(variant_id, period)].append(minute)
+
+    engine = get_engine()
+    now = utc_now()
+    today = date.today()
+    with engine.begin() as conn:
+        for variant in variants:
+            conn.execute(
+                delete(frequencies).where(frequencies.c.variant_id == variant["id"])
+            )
+
+        for (variant_id, period), minutes in period_departures.items():
+            stats = _headway_stats(minutes)
+            if stats is None:
+                continue
+            avg_h, min_h, max_h, irregular = stats
+            conn.execute(
+                insert(frequencies)
+                .values(
+                    id=new_uuid(),
+                    variant_id=variant_id,
+                    service_date=today,
+                    time_period=period,
+                    average_headway_minutes=avg_h,
+                    min_headway_minutes=min_h,
+                    max_headway_minutes=max_h,
+                    trip_count=len(minutes),
+                    is_irregular=irregular,
+                    calculated_at=now,
+                    created_at=now,
+                )
+                .on_conflict_do_update(
+                    index_elements=[
+                        frequencies.c.variant_id,
+                        frequencies.c.service_date,
+                        frequencies.c.time_period,
+                    ],
+                    set_={
+                        "average_headway_minutes": avg_h,
+                        "min_headway_minutes": min_h,
+                        "max_headway_minutes": max_h,
+                        "trip_count": len(minutes),
+                        "is_irregular": irregular,
+                        "calculated_at": now,
+                    },
+                )
+            )
