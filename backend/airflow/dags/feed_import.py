@@ -1,6 +1,6 @@
 import os
-
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 from airflow.decorators import dag, task
 from airflow.operators.python import get_current_context
@@ -16,21 +16,21 @@ from pipeline import gtfs, processing
     catchup=False,
     tags=["mobilispect", "imports"],
 )
-def feed_import():
+def feed_import() -> None:
     @task
-    def start_import():
+    def start_import() -> Dict[str, Any]:
         context = get_current_context()
-        conf = (context.get("dag_run") or {}).conf or {}
-        feed_id = conf.get("feed_id")
+        conf: Dict[str, Any] = (context.get("dag_run") or {}).conf or {}
+        feed_id: str | None = conf.get("feed_id")
         if not feed_id:
             raise ValueError("feed_id is required in dag_run.conf")
 
-        trigger_type = conf.get("trigger_type", "automatic")
-        region_import_id = conf.get("region_import_id")
-        sequence = int(conf.get("sequence", 0))
+        trigger_type: str = conf.get("trigger_type", "automatic")
+        region_import_id: str | None = conf.get("region_import_id")
+        sequence: int = int(conf.get("sequence", 0))
 
-        result = processing.start_feed_import(feed_id, trigger_type)
-        payload = {
+        result: processing.FeedImportStartResult = processing.start_feed_import(feed_id, trigger_type)
+        payload: Dict[str, Any] = {
             "status": result.status,
             "import_id": result.import_id,
             "feed_id": result.feed_id,
@@ -52,22 +52,22 @@ def feed_import():
         return payload
 
     @task.short_circuit
-    def should_continue(start_result: dict) -> bool:
+    def should_continue(start_result: Dict[str, Any]) -> bool:
         return start_result.get("status") == "STARTED"
 
     @task
-    def download_feed(start_result: dict) -> str:
-        import_id = start_result["import_id"]
-        download_url = start_result["download_url"]
+    def download_feed(start_result: Dict[str, Any]) -> str:
+        import_id: Optional[str] = start_result["import_id"]
+        download_url: Optional[str] = start_result["download_url"]
         if not import_id or not download_url:
             raise RuntimeError("import_id and download_url are required")
-        zip_path = gtfs.download_gtfs_zip(download_url, import_id)
-        file_size = os.path.getsize(zip_path)
+        zip_path: str = gtfs.download_gtfs_zip(download_url, import_id)
+        file_size: int = os.path.getsize(zip_path)
         processing.update_feed_import_file_size(import_id, file_size)
         return zip_path
 
     @task
-    def extract_feed(zip_path: str, start_result: dict) -> str:
+    def extract_feed(zip_path: str, start_result: Dict[str, Any]) -> str:
         return gtfs.extract_gtfs_zip(zip_path, start_result["import_id"])
 
     @task
@@ -76,20 +76,20 @@ def feed_import():
         return extract_dir
 
     @task
-    def parse_feed(extract_dir: str, start_result: dict) -> str:
-        parsed = gtfs.parse_gtfs(extract_dir)
+    def parse_feed(extract_dir: str, start_result: Dict[str, Any]) -> str:
+        parsed: gtfs.ParsedGTFS = gtfs.parse_gtfs(extract_dir)
         gtfs.write_metadata(start_result["import_id"], gtfs.snapshot_metadata(parsed))
         return gtfs.save_parsed(parsed, start_result["import_id"])
 
     @task
-    def persist_feed(parsed_path: str, start_result: dict) -> dict:
-        parsed = gtfs.load_parsed(parsed_path)
-        feed_id = start_result["feed_id"]
-        agency_map = processing.persist_agencies(parsed, feed_id)
+    def persist_feed(parsed_path: str, start_result: Dict[str, Any]) -> Dict[str, int]:
+        parsed: gtfs.ParsedGTFS = gtfs.load_parsed(parsed_path)
+        feed_id: str = start_result["feed_id"]
+        agency_map: Dict[str, str] = processing.persist_agencies(parsed, feed_id)
         route_map, route_map_by_gtfs = processing.persist_routes(
             parsed, feed_id, agency_map
         )
-        stop_lookup = processing.persist_stops(parsed, feed_id)
+        stop_lookup: Dict[str, Dict[str, Any]] = processing.persist_stops(parsed, feed_id)
         variants = processing.persist_route_variants(
             parsed, feed_id, route_map, route_map_by_gtfs, stop_lookup
         )
@@ -100,7 +100,7 @@ def feed_import():
         return {"variants": len(variants)}
 
     @task(trigger_rule=TriggerRule.ALL_SUCCESS)
-    def finalize_success(start_result: dict) -> None:
+    def finalize_success(start_result: Dict[str, Any]) -> None:
         processing.update_feed_import_success(
             start_result["import_id"], start_result["feed_id"]
         )
@@ -110,7 +110,7 @@ def feed_import():
             )
 
     @task(trigger_rule=TriggerRule.ONE_FAILED)
-    def finalize_failure(start_result: dict) -> None:
+    def finalize_failure(start_result: Dict[str, Any]) -> None:
         if start_result.get("import_id"):
             processing.update_feed_import_failure(
                 start_result["import_id"], "Airflow task failed"

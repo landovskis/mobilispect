@@ -1,8 +1,10 @@
 from datetime import datetime
+from typing import Any, Dict, List
 
-from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
-from airflow.sdk import dag, get_current_context, task
-from airflow.task.trigger_rule import TriggerRule
+from airflow.decorators import dag, task
+from airflow.operators.python import get_current_context
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.utils.trigger_rule import TriggerRule
 
 from pipeline import processing
 
@@ -14,24 +16,29 @@ from pipeline import processing
     catchup=False,
     tags=["mobilispect", "imports"],
 )
-def region_import():
+def region_import() -> None:
     @task
-    def resolve_region():
+    def resolve_region() -> str:
         context = get_current_context()
-        conf = (context.get("dag_run") or {}).conf or {}
-        region_id = conf.get("region_id")
-        region_name = conf.get("region_name") or conf.get("city_name")
+        conf: Dict[str, Any] = (context.get("dag_run") or {}).conf or {}
+        region_id: str | None = conf.get("region_id")
+        region_name: str | None = conf.get("region_name") or conf.get("city_name")
         return processing.resolve_region_id(region_id, region_name)
 
     @task
-    def discover_region_feeds(region_name: str):
-        return processing.discover_region_feeds(region_name)
+    def discover_region_feeds(region_id: str) -> Dict[str, int]:
+        context = get_current_context()
+        conf: Dict[str, Any] = (context.get("dag_run") or {}).conf or {}
+        region_name: str | None = conf.get("region_name") or conf.get("city_name")
+        if not region_name:
+            raise ValueError("region_name or city_name is required for feed discovery")
+        return processing.discover_region_feeds(region_name, region_id)
 
     @task
-    def start_region_import(region_id: str):
+    def start_region_import(region_id: str) -> Dict[str, str]:
         context = get_current_context()
-        conf = (context.get("dag_run") or {}).conf or {}
-        trigger_type = conf.get("trigger_type", "automatic")
+        conf: Dict[str, Any] = (context.get("dag_run") or {}).conf or {}
+        trigger_type: str = conf.get("trigger_type", "automatic")
         region_import_id, state = processing.start_region_import(region_id, trigger_type)
         return {
             "region_id": region_id,
@@ -41,12 +48,12 @@ def region_import():
         }
 
     @task
-    def list_feeds(start_result: dict):
+    def list_feeds(start_result: Dict[str, str]) -> List[Dict[str, str]]:
         return processing.list_region_feeds(start_result["region_id"])
 
     @task
-    def build_run_confs(start_result: dict, feeds: list):
-        run_confs = []
+    def build_run_confs(start_result: Dict[str, str], feeds: List[Dict[str, str]]) -> List[Dict[str, Any]]:
+        run_confs: List[Dict[str, Any]] = []
         for index, feed in enumerate(feeds):
             run_confs.append(
                 {
@@ -59,7 +66,7 @@ def region_import():
         return run_confs
 
     @task(trigger_rule=TriggerRule.ALL_DONE)
-    def finalize_region_import(start_result: dict):
+    def finalize_region_import(start_result: Dict[str, str]) -> str:
         return processing.finalize_region_import(start_result["region_import_id"])
 
     region_id = resolve_region()
