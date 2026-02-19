@@ -1,0 +1,235 @@
+openapi: "3.1.0"
+info:
+  title: Mobilispect Isochrone API
+  description: |
+    Returns isochrone polygons showing areas reachable from an origin point
+    within given time thresholds, for transit, walk, and bike travel modes.
+  version: "1.0.0"
+
+servers:
+  - url: /api/v1
+    description: Mobilispect backend
+
+paths:
+  /isochrones:
+    get:
+      summary: Compute isochrone polygons
+      operationId: getIsochrones
+      description: |
+        Returns GeoJSON polygons representing areas reachable from the given
+        origin within the specified time cutoffs, for the chosen travel mode.
+        Results are cached (1h transit, 24h walk/bike).
+      tags:
+        - isochrone
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          description: Origin latitude (WGS 84)
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+          example: 45.5017
+        - name: lon
+          in: query
+          required: true
+          description: Origin longitude (WGS 84)
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+          example: -73.5673
+        - name: mode
+          in: query
+          required: false
+          description: Travel mode
+          schema:
+            type: string
+            enum: [TRANSIT, WALK, BICYCLE]
+            default: TRANSIT
+          example: TRANSIT
+        - name: cutoffMinutes
+          in: query
+          required: false
+          description: |
+            Comma-separated list of time cutoffs in minutes.
+            Maximum 8 values; each value between 1 and 240.
+          schema:
+            type: string
+            default: "15,30,45,60"
+          example: "15,30,45,60"
+        - name: dateTime
+          in: query
+          required: false
+          description: |
+            Departure date and time in ISO-8601 format.
+            Defaults to current server time.
+          schema:
+            type: string
+            format: date-time
+          example: "2026-02-19T09:00:00"
+      responses:
+        "200":
+          description: Isochrone polygons computed or served from cache
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IsochroneResponse"
+              example:
+                origin:
+                  latitude: 45.5017
+                  longitude: -73.5673
+                mode: TRANSIT
+                dateTime: "2026-02-19T09:00:00"
+                bands:
+                  - cutoffMinutes: 15
+                    color: "#1a9641"
+                    geojson:
+                      type: Feature
+                      geometry:
+                        type: MultiPolygon
+                        coordinates: [[[[- 73.58, 45.49], [-73.51, 45.49], [-73.51, 45.51], [-73.58, 45.51], [-73.58, 45.49]]]]
+                      properties:
+                        cutoffMinutes: 15
+                  - cutoffMinutes: 30
+                    color: "#a6d96a"
+                    geojson:
+                      type: Feature
+                      geometry:
+                        type: MultiPolygon
+                        coordinates: [[[[- 73.62, 45.47], [-73.47, 45.47], [-73.47, 45.53], [-73.62, 45.53], [-73.62, 45.47]]]]
+                      properties:
+                        cutoffMinutes: 30
+                computedAt: "2026-02-19T09:00:01Z"
+                cached: false
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                invalid_lat:
+                  value:
+                    error: "INVALID_PARAMETERS"
+                    message: "lat must be between -90 and 90"
+                invalid_mode:
+                  value:
+                    error: "INVALID_PARAMETERS"
+                    message: "mode must be one of: TRANSIT, WALK, BICYCLE"
+                too_many_cutoffs:
+                  value:
+                    error: "INVALID_PARAMETERS"
+                    message: "cutoffMinutes may contain at most 8 values"
+        "502":
+          description: OTP routing engine unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "ROUTING_ENGINE_UNAVAILABLE"
+                message: "The isochrone computation service is temporarily unavailable"
+        "504":
+          description: OTP computation timed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "ROUTING_ENGINE_TIMEOUT"
+                message: "Isochrone computation exceeded time limit"
+
+components:
+  schemas:
+    IsochroneResponse:
+      type: object
+      required: [origin, mode, dateTime, bands, computedAt, cached]
+      properties:
+        origin:
+          $ref: "#/components/schemas/LatLon"
+        mode:
+          type: string
+          enum: [TRANSIT, WALK, BICYCLE]
+        dateTime:
+          type: string
+          format: date-time
+          description: Departure time used for computation
+        bands:
+          type: array
+          items:
+            $ref: "#/components/schemas/IsochroneBand"
+          description: Time bands ordered from smallest to largest cutoff
+        computedAt:
+          type: string
+          format: date-time
+          description: UTC timestamp of when the result was computed (or cached)
+        cached:
+          type: boolean
+          description: True if the result was served from cache
+
+    IsochroneBand:
+      type: object
+      required: [cutoffMinutes, color, geojson]
+      properties:
+        cutoffMinutes:
+          type: integer
+          minimum: 1
+          maximum: 240
+          description: Time cutoff this band represents
+        color:
+          type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+          description: Hex color for rendering this band on the map
+        geojson:
+          type: object
+          description: GeoJSON Feature with Polygon or MultiPolygon geometry
+          required: [type, geometry, properties]
+          properties:
+            type:
+              type: string
+              enum: [Feature]
+            geometry:
+              type: object
+              required: [type, coordinates]
+              properties:
+                type:
+                  type: string
+                  enum: [Polygon, MultiPolygon]
+                coordinates:
+                  type: array
+            properties:
+              type: object
+              required: [cutoffMinutes]
+              properties:
+                cutoffMinutes:
+                  type: integer
+
+    LatLon:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error description
