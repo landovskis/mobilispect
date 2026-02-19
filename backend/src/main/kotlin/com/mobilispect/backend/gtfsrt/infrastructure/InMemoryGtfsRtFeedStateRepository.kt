@@ -7,18 +7,22 @@ import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import org.slf4j.LoggerFactory
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.stereotype.Repository
 
 /**
  * In-memory implementation of [GtfsRtFeedStateRepository].
  *
- * Uses a ConcurrentHashMap with time-based eviction. This is a fallback implementation for
+ * Uses a ConcurrentHashMap with time-based eviction. This is the default implementation for
  * development and testing. Production deployments should use Redis for persistence across restarts
- * and horizontal scaling.
- *
- * TODO: Replace with Redis implementation when spring-boot-starter-data-redis is added.
+ * and horizontal scaling by setting `gtfsrt.state.storage=redis`.
  */
 @Repository
+@ConditionalOnProperty(
+  name = ["gtfsrt.state.storage"],
+  havingValue = "memory",
+  matchIfMissing = true,
+)
 class InMemoryGtfsRtFeedStateRepository : GtfsRtFeedStateRepository {
 
   private val logger = LoggerFactory.getLogger(InMemoryGtfsRtFeedStateRepository::class.java)
