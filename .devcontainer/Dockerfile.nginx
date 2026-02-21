@@ -9,6 +9,6 @@ COPY frontend/web/ .
 RUN npm run build:prod && test -d dist/web/browser
 
 # Stage 2: Serve with nginx
-FROM nginx:alpine
+FROM nginx:1.29-alpine
 COPY --from=builder /app/dist/web/browser /usr/share/nginx/html
 COPY .devcontainer/nginx.conf /etc/nginx/conf.d/default.conf

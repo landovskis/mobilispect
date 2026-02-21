@@ -107,6 +107,8 @@ services:
       dockerfile: .devcontainer/Dockerfile.nginx
     ports:
       - "4200:80"
+    # /api/ and /ws routes return 502 until Spring Boot is manually started
+    # inside the 'app' container (app runs sleep infinity, not Spring Boot).
     depends_on:
       - app
 
