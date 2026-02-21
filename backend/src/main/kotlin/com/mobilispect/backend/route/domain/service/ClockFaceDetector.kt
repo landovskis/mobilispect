@@ -69,8 +69,14 @@ class ClockFaceDetector {
   }
 
   private fun calculateIntervals(sortedDepartures: List<LocalTime>): List<Int> {
-    return sortedDepartures.zipWithNext { a, b ->
+    if (sortedDepartures.size < 2) return emptyList()
+    val intervals = sortedDepartures.zipWithNext { a, b ->
       Duration.between(a, b).toMinutes().toInt()
-    }
+    }.toMutableList()
+    val daySpan = Duration.between(sortedDepartures.first(), sortedDepartures.last()).toMinutes().toInt()
+    val wrapGap = (24 * 60) - daySpan
+    intervals.add(wrapGap)
+    return intervals
+  }
   }
 }
