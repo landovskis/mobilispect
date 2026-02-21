@@ -6,7 +6,7 @@ WORKDIR /app
 COPY frontend/web/package.json frontend/web/package-lock.json ./
 RUN npm ci
 COPY frontend/web/ .
-RUN npm run build:prod
+RUN npm run build:prod && test -d dist/web/browser
 
 # Stage 2: Serve with nginx
 FROM nginx:alpine
