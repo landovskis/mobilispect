@@ -6,7 +6,7 @@
   "postAttachCommand": {
     "Install frontend deps": "cd frontend/web && npm install"
   },
-  "forwardPorts": [8080, 4200, 5432, 6379],
+  "forwardPorts": [8080, 8081, 4200, 5432, 6379],
   "remoteEnv": {
     "GRADLE_USER_HOME": "/workspaces/.gradle-user-home"
   },
@@ -26,6 +26,7 @@
         "mathiasfrohlich.Kotlin",
         "vscjava.vscode-gradle",
         "pivotal.vscode-spring-boot",
+        "ms-python.python",
         "esbenp.prettier-vscode",
         "dbaeumer.vscode-eslint",
         "angular.ng-template",

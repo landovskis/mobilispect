@@ -1,0 +1,55 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$file\" ] && echo \"$file\" | grep -q '\\.kt$'; then cd /Users/alex/src/mobilispect && ./backend/gradlew -p backend ktfmtFormat -q 2>/dev/null; fi",
+            "timeout": 30000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$file\" ] && echo \"$file\" | grep -qE '\\.(ts|html)$' && echo \"$file\" | grep -q 'frontend/web'; then cd /Users/alex/src/mobilispect/frontend/web && npx ng lint --fix 2>/dev/null; fi",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if TOOL_INPUT.file_path matches the pattern 'db/migration/V' (a Flyway versioned migration). If it does, respond with exactly: BLOCK: Applied Flyway migrations must never be modified (constitutional requirement). Create a new migration file instead. If the file is NOT a Flyway migration, respond with exactly: ALLOW"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if TOOL_INPUT.file_path matches any of these patterns: '.env' (but NOT '.env.sample' or '.env.example'), 'credentials', 'secrets', '.pem', '.key', 'application.properties' (but NOT 'application.sample.properties'). If it matches, respond with exactly: BLOCK: This file may contain secrets. Use environment variables or Spring profiles instead (constitutional requirement). If it does NOT match, respond with exactly: ALLOW"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if TOOL_INPUT.file_path ends with 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', or 'gradle.lockfile'. If it does, respond with exactly: BLOCK: Lock files should not be edited directly. Use npm install or gradle dependencies instead. If it does NOT match, respond with exactly: ALLOW"
+          }
+        ]
+      }
+    ]
+  }
+}
