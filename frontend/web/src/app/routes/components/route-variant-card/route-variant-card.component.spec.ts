@@ -67,6 +67,16 @@ describe('RouteVariantCardComponent', () => {
       component.variant = createVariant({ clockFaceIntervalMinutes: 60 });
       expect(component.clockFaceLabel).toBe('Every 60 min');
     });
+
+    it('returns formatted label for 12-minute interval', () => {
+      component.variant = createVariant({ clockFaceIntervalMinutes: 12 });
+      expect(component.clockFaceLabel).toBe('Every 12 min');
+    });
+
+    it('returns formatted label for 20-minute interval', () => {
+      component.variant = createVariant({ clockFaceIntervalMinutes: 20 });
+      expect(component.clockFaceLabel).toBe('Every 20 min');
+    });
   });
 
   describe('stopNames', () => {
