@@ -7,6 +7,12 @@ from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.trigger_rule import TriggerRule
 
 from pipeline import processing
+from pipeline.models import (
+    DiscoveryResult,
+    FeedImportConf,
+    RegionFeedInfo,
+    RegionImportStartResult,
+)
 
 
 @dag(
@@ -26,7 +32,7 @@ def region_import() -> None:
         return processing.resolve_region_id(region_id, region_name)
 
     @task
-    def discover_region_feeds(region_id: str) -> Dict[str, int]:
+    def discover_region_feeds(region_id: str) -> DiscoveryResult:
         context = get_current_context()
         conf: Dict[str, Any] = (context.get("dag_run") or {}).conf or {}
         region_name: str | None = conf.get("region_name") or conf.get("city_name")
@@ -35,38 +41,38 @@ def region_import() -> None:
         return processing.discover_region_feeds(region_name, region_id)
 
     @task
-    def start_region_import(region_id: str) -> Dict[str, str]:
+    def start_region_import(region_id: str) -> RegionImportStartResult:
         context = get_current_context()
         conf: Dict[str, Any] = (context.get("dag_run") or {}).conf or {}
         trigger_type: str = conf.get("trigger_type", "automatic")
         region_import_id, state = processing.start_region_import(region_id, trigger_type)
-        return {
-            "region_id": region_id,
-            "trigger_type": trigger_type,
-            "region_import_id": region_import_id,
-            "state": state,
-        }
+        return RegionImportStartResult(
+            region_id=region_id,
+            trigger_type=trigger_type,
+            region_import_id=region_import_id,
+            state=state,
+        )
 
     @task
-    def list_feeds(start_result: Dict[str, str]) -> List[Dict[str, str]]:
+    def list_feeds(start_result: RegionImportStartResult) -> List[RegionFeedInfo]:
         return processing.list_region_feeds(start_result["region_id"])
 
     @task
-    def build_run_confs(start_result: Dict[str, str], feeds: List[Dict[str, str]]) -> List[Dict[str, Any]]:
-        run_confs: List[Dict[str, Any]] = []
+    def build_run_confs(start_result: RegionImportStartResult, feeds: List[RegionFeedInfo]) -> List[FeedImportConf]:
+        run_confs: List[FeedImportConf] = []
         for index, feed in enumerate(feeds):
             run_confs.append(
-                {
-                    "feed_id": feed["feed_id"],
-                    "trigger_type": start_result["trigger_type"],
-                    "region_import_id": start_result["region_import_id"],
-                    "sequence": index,
-                }
+                FeedImportConf(
+                    feed_id=feed["feed_id"],
+                    trigger_type=start_result["trigger_type"],
+                    region_import_id=start_result["region_import_id"],
+                    sequence=index,
+                )
             )
         return run_confs
 
     @task(trigger_rule=TriggerRule.ALL_DONE)
-    def finalize_region_import(start_result: Dict[str, str]) -> str:
+    def finalize_region_import(start_result: RegionImportStartResult) -> str:
         return processing.finalize_region_import(start_result["region_import_id"])
 
     region_id = resolve_region()

@@ -7,6 +7,7 @@ from airflow.operators.python import get_current_context
 from airflow.utils.trigger_rule import TriggerRule
 
 from pipeline import gtfs, processing
+from pipeline.models import FeedImportPayload, PersistResult
 
 
 @dag(
@@ -18,7 +19,7 @@ from pipeline import gtfs, processing
 )
 def feed_import() -> None:
     @task
-    def start_import() -> Dict[str, Any]:
+    def start_import() -> FeedImportPayload:
         context = get_current_context()
         conf: Dict[str, Any] = (context.get("dag_run") or {}).conf or {}
         feed_id: str | None = conf.get("feed_id")
@@ -30,16 +31,16 @@ def feed_import() -> None:
         sequence: int = int(conf.get("sequence", 0))
 
         result: processing.FeedImportStartResult = processing.start_feed_import(feed_id, trigger_type)
-        payload: Dict[str, Any] = {
-            "status": result.status,
-            "import_id": result.import_id,
-            "feed_id": result.feed_id,
-            "download_url": result.download_url,
-            "trigger_type": trigger_type,
-            "region_import_id": region_import_id,
-            "sequence": sequence,
-            "message": result.message,
-        }
+        payload = FeedImportPayload(
+            status=result.status,
+            import_id=result.import_id,
+            feed_id=result.feed_id,
+            download_url=result.download_url,
+            trigger_type=trigger_type,
+            region_import_id=region_import_id,
+            sequence=sequence,
+            message=result.message,
+        )
 
         if region_import_id:
             if result.status == "STARTED" and result.import_id:
@@ -52,11 +53,11 @@ def feed_import() -> None:
         return payload
 
     @task.short_circuit
-    def should_continue(start_result: Dict[str, Any]) -> bool:
+    def should_continue(start_result: FeedImportPayload) -> bool:
         return start_result.get("status") == "STARTED"
 
     @task
-    def download_feed(start_result: Dict[str, Any]) -> str:
+    def download_feed(start_result: FeedImportPayload) -> str:
         import_id: Optional[str] = start_result["import_id"]
         download_url: Optional[str] = start_result["download_url"]
         if not import_id or not download_url:
@@ -67,7 +68,7 @@ def feed_import() -> None:
         return zip_path
 
     @task
-    def extract_feed(zip_path: str, start_result: Dict[str, Any]) -> str:
+    def extract_feed(zip_path: str, start_result: FeedImportPayload) -> str:
         return gtfs.extract_gtfs_zip(zip_path, start_result["import_id"])
 
     @task
@@ -76,13 +77,13 @@ def feed_import() -> None:
         return extract_dir
 
     @task
-    def parse_feed(extract_dir: str, start_result: Dict[str, Any]) -> str:
+    def parse_feed(extract_dir: str, start_result: FeedImportPayload) -> str:
         parsed: gtfs.ParsedGTFS = gtfs.parse_gtfs(extract_dir)
         gtfs.write_metadata(start_result["import_id"], gtfs.snapshot_metadata(parsed))
         return gtfs.save_parsed(parsed, start_result["import_id"])
 
     @task
-    def persist_feed(parsed_path: str, start_result: Dict[str, Any]) -> Dict[str, int]:
+    def persist_feed(parsed_path: str, start_result: FeedImportPayload) -> PersistResult:
         parsed: gtfs.ParsedGTFS = gtfs.load_parsed(parsed_path)
         feed_id: str = start_result["feed_id"]
         agency_map: Dict[str, str] = processing.persist_agencies(parsed, feed_id)
@@ -97,10 +98,10 @@ def feed_import() -> None:
         processing.classify_route_variants(variants)
         processing.persist_route_common_sections(variants)
         processing.calculate_frequencies(parsed, variants)
-        return {"variants": len(variants)}
+        return PersistResult(variants=len(variants))
 
     @task(trigger_rule=TriggerRule.ALL_SUCCESS)
-    def finalize_success(start_result: Dict[str, Any]) -> None:
+    def finalize_success(start_result: FeedImportPayload) -> None:
         processing.update_feed_import_success(
             start_result["import_id"], start_result["feed_id"]
         )
@@ -110,7 +111,7 @@ def feed_import() -> None:
             )
 
     @task(trigger_rule=TriggerRule.ONE_FAILED)
-    def finalize_failure(start_result: Dict[str, Any]) -> None:
+    def finalize_failure(start_result: FeedImportPayload) -> None:
         if start_result.get("import_id"):
             processing.update_feed_import_failure(
                 start_result["import_id"], "Airflow task failed"
