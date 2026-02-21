@@ -5,6 +5,7 @@ plugins {
     id("org.springframework.boot") version "4.0.0"
     id("io.spring.dependency-management") version "1.1.7"
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.protobuf)
     id("org.owasp.dependencycheck") version "11.1.1"
     id("com.ncorti.ktfmt.gradle") version "0.21.0"
 }
@@ -30,6 +31,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-data-rest")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
@@ -45,6 +47,7 @@ dependencies {
     implementation(libs.conveyal.gtfs) {
         exclude(group = "org.slf4j", module = "slf4j-simple")
     }
+    implementation(libs.protobuf.kotlin)
     implementation(libs.resilience4j.spring)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation(libs.spring.boot.batch)
@@ -178,6 +181,19 @@ tasks.register("detekt") {
 ktfmt {
     googleStyle()
     maxWidth.set(100)
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("kotlin")
+            }
+        }
+    }
 }
 
 tasks.register("ktlintCheck") {

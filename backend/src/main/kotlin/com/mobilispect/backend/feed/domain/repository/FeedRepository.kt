@@ -85,4 +85,12 @@ interface FeedRepository {
    * @return List of all feeds
    */
   fun findAll(): List<Feed>
+
+  /**
+   * Find feeds by status that have a realtime feed URL.
+   *
+   * @param status The feed status to filter by
+   * @return List of feeds with a non-null realtime feed URL
+   */
+  fun findByStatusAndRealtimeFeedUrlNotNull(status: FeedStatus): List<Feed>
 }

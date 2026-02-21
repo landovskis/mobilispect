@@ -52,4 +52,16 @@ interface FeedJpaRepository : JpaRepository<FeedEntity, String> {
     "SELECT COUNT(f) FROM FeedDataEntity f JOIN f.regions r WHERE r.regionOnestopId = :regionId"
   )
   fun countByRegionId(@Param("regionId") regionId: String): Long
+
+  /** Find feeds by status that have a realtime feed URL. */
+  @Query(
+    value =
+      """
+      SELECT f.* FROM feeds f
+      WHERE f.status = CAST(:status AS feed_status)
+        AND f.realtime_feed_url IS NOT NULL
+    """,
+    nativeQuery = true,
+  )
+  fun findByStatusAndRealtimeFeedUrlNotNull(@Param("status") status: String): List<FeedEntity>
 }
