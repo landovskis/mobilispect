@@ -6,6 +6,7 @@ services:
     volumes:
       - ..:/workspaces:cached
       - gradle-cache:/workspaces/.gradle-user-home
+      - db-secrets:/run/secrets
     command: sleep infinity
     environment:
       JAVA_HOME: /usr/lib/jvm/msopenjdk-current
@@ -13,7 +14,6 @@ services:
       DB_PORT: "5432"
       DB_NAME: mobilispect
       DB_USER: mobilispect
-      DB_PASSWORD: mobilispect
       REDIS_HOST: redis
       REDIS_PORT: "6379"
     depends_on:
@@ -25,31 +25,67 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: mobilispect
-      POSTGRES_USER: mobilispect
-      POSTGRES_PASSWORD: mobilispect
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mobilispect"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 10
 
-  mobilispect-init:
-    image: flyway/flyway:10
+  mobilispect-user-init:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile.postgres-init
     depends_on:
       postgres:
         condition: service_healthy
-    command:
-      [
-        "-url=jdbc:postgresql://postgres:5432/mobilispect",
-        "-user=mobilispect",
-        "-password=mobilispect",
-        "-connectRetries=60",
-        "migrate"
-      ]
     volumes:
+      - db-secrets:/run/secrets
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        if [ -f /run/secrets/spring.datasource.password ]; then
+          echo "mobilispect user already initialized, skipping"
+          exit 0
+        fi
+        PASSWORD=$(openssl rand -hex 16)
+        psql -c "CREATE USER mobilispect WITH PASSWORD '$$PASSWORD';"
+        psql -c "CREATE DATABASE mobilispect OWNER mobilispect;"
+        psql -c "CREATE USER airflow WITH PASSWORD 'airflow';"
+        psql -c "CREATE DATABASE airflow OWNER airflow;"
+        psql -c "GRANT CONNECT ON DATABASE mobilispect TO airflow;"
+        echo -n "$$PASSWORD" > /run/secrets/spring.datasource.password
+        chmod 600 /run/secrets/spring.datasource.password
+        printf '\n==> MOBILISPECT_DB_PASSWORD=%s\n\n' "$$PASSWORD"
+
+  mobilispect-init:
+    image: flyway/flyway:10
+    depends_on:
+      mobilispect-user-init:
+        condition: service_completed_successfully
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        flyway \
+          -url=jdbc:postgresql://postgres:5432/mobilispect \
+          -user=mobilispect \
+          -password="$(cat /run/secrets/spring.datasource.password)" \
+          -connectRetries=60 \
+          migrate
+    volumes:
+      - db-secrets:/run/secrets
       - ../backend/src/main/resources/db/migration:/flyway/sql:ro
 
   redis:
@@ -63,6 +99,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+
+  nginx:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile.nginx
+    ports:
+      - "4200:80"
+    depends_on:
+      - app
 
   airflow:
     image: apache/airflow:3.1.7
@@ -156,3 +202,4 @@ volumes:
   postgres-data:
   airflow-postgres-data:
   gtfs-data:
+  db-secrets:
