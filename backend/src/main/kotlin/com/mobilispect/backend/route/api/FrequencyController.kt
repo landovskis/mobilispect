@@ -2,6 +2,7 @@ package com.mobilispect.backend.route.api
 
 import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.dto.FrequencyDTO
+import com.mobilispect.backend.route.api.dto.RouteCommonSectionDTO
 import com.mobilispect.backend.route.api.dto.RouteDTO
 import com.mobilispect.backend.route.api.dto.RouteVariantDTO
 import com.mobilispect.backend.route.application.FrequencyQueryService
@@ -35,4 +36,8 @@ class FrequencyController(private val frequencyQueryService: FrequencyQueryServi
   @GetMapping("/variants/{variantId}/schedule")
   fun getCompleteSchedule(@PathVariable variantId: String): List<String> =
     frequencyQueryService.getCompleteSchedule(VariantHash(variantId))
+
+  @GetMapping("/{routeId}/common-sections")
+  fun getCommonSections(@PathVariable routeId: String): List<RouteCommonSectionDTO> =
+    frequencyQueryService.getCommonSectionsForRoute(RouteId(routeId))
 }

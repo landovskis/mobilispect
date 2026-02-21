@@ -63,7 +63,9 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
               </span>
             }
             @if (variant.classification) {
-              <span class="classification-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold">
+              <span
+                class="classification-badge rounded-full px-2 py-0.5 text-[0.75rem] font-semibold"
+              >
                 {{ formatClassification(variant.classification) }}
               </span>
             }
@@ -85,7 +87,9 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
               } @else if (completeDepartures().length > 0) {
                 <div class="departures-grid">
                   @for (time of completeDepartures(); track time) {
-                    <span class="departure-time">{{ formatDepartureTime(time) }}</span>
+                    <span class="departure-time">{{
+                      formatDepartureTime(time)
+                    }}</span>
                   }
                 </div>
               } @else {
@@ -258,7 +262,6 @@ export class RouteVariantCardComponent {
     return `${(spacingMeters / 1000).toFixed(2)} km`;
   }
 
-
   formatSchedule(variant: RouteVariantDto): string {
     if (!variant.firstDepartureTime || !variant.lastDepartureTime) {
       return 'Schedule: Not available';
@@ -266,7 +269,9 @@ export class RouteVariantCardComponent {
 
     const first = this.formatTime(variant.firstDepartureTime);
     const last = this.formatTime(variant.lastDepartureTime);
-    const trips = variant.scheduleTripCount ? ` (${variant.scheduleTripCount} trips)` : '';
+    const trips = variant.scheduleTripCount
+      ? ` (${variant.scheduleTripCount} trips)`
+      : '';
 
     return `${first} - ${last}${trips}`;
   }
@@ -316,7 +321,10 @@ export class RouteVariantCardComponent {
   formatClassification(value: string): string {
     return value
       .split('_')
-      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+      .map(
+        (segment) =>
+          segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase(),
+      )
       .join(' ');
   }
 

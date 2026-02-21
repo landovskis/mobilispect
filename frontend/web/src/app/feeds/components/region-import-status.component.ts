@@ -32,12 +32,20 @@ import {
 
       @if (status) {
         <div class="progress mt-3">
-          <div class="progress-track" role="progressbar" [attr.aria-valuenow]="progressPercent" aria-valuemin="0" aria-valuemax="100">
+          <div
+            class="progress-track"
+            role="progressbar"
+            [attr.aria-valuenow]="progressPercent"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
             <div class="progress-bar" [style.width.%]="progressPercent"></div>
           </div>
           <div class="progress-meta mt-2 flex flex-wrap gap-4 text-sm">
             <span>{{ progressPercent }}% complete</span>
-            <span>{{ completedTotal }} / {{ status.totalFeeds }} processed</span>
+            <span
+              >{{ completedTotal }} / {{ status.totalFeeds }} processed</span
+            >
             <span>{{ status.failedCount }} failed</span>
             <span>{{ status.skippedCount }} skipped</span>
           </div>

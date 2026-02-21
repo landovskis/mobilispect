@@ -108,11 +108,13 @@ export interface RegionImportGroup {
 #### RegionImportGroupingUtils Class
 
 Utility class with static methods:
+
 - `groupImportsByRegion(imports)` - Groups imports by region
 - `calculateAverageProgress(imports)` - Calculates average progress
 - `sortRegionGroups(groups)` - Sorts alphabetically by region name
 
 Files:
+
 - `src/app/feeds/models/region-import-group.model.ts`
 - `src/app/feeds/models/region-import-group.model.spec.ts` (14 tests)
 
@@ -125,6 +127,7 @@ Files:
 **Location**: `src/app/feeds/components/feed-import-row.component.ts`
 
 **Features**:
+
 - Grid layout (3 columns: info, progress, actions)
 - Real-time progress monitoring via ImportService
 - Status badge with color coding (running, pending, completed, failed, cancelled)
@@ -136,9 +139,11 @@ Files:
 - Dark theme support
 
 **Inputs**:
+
 - `feedImport: FeedImportSummary`
 
 **Outputs**:
+
 - `stopImport: EventEmitter<string>` (emits import ID)
 
 **Tests**: 12 comprehensive test cases
@@ -150,6 +155,7 @@ Files:
 **Location**: `src/app/feeds/components/region-import-card.component.ts`
 
 **Features**:
+
 - BrandCard wrapper with region icon
 - Region name as title
 - Feed count badge (handles singular/plural)
@@ -160,9 +166,11 @@ Files:
 - Dark theme support
 
 **Inputs**:
+
 - `regionGroup: RegionImportGroup`
 
 **Outputs**:
+
 - `cancelImport: EventEmitter<string>` (propagates from child rows)
 
 **Tests**: 12 comprehensive test cases
@@ -174,6 +182,7 @@ Files:
 **Location**: `src/app/feeds/components/active-imports-card.component.ts`
 
 **Features**:
+
 - RxJS pipeline for grouping and sorting
 - Count badge: "X feeds in Y regions"
 - Empty state handling
@@ -182,18 +191,21 @@ Files:
 - Dark theme support
 
 **Inputs**:
+
 - `activeImports$: Observable<FeedImportSummary[]>`
 
 **Outputs**:
+
 - `cancelImport: EventEmitter<string>`
 
 **RxJS Pipeline**:
+
 ```typescript
 this.activeImports$.pipe(
-  map(imports => RegionImportGroupingUtils.groupImportsByRegion(imports)),
-  map(groups => RegionImportGroupingUtils.sortRegionGroups(groups)),
-  shareReplay(1)
-)
+  map((imports) => RegionImportGroupingUtils.groupImportsByRegion(imports)),
+  map((groups) => RegionImportGroupingUtils.sortRegionGroups(groups)),
+  shareReplay(1),
+);
 ```
 
 **Tests**: 10 comprehensive test cases
@@ -203,15 +215,10 @@ this.activeImports$.pipe(
 ### Basic Usage
 
 ```typescript
-import { ActiveImportsCardComponent } from '@app/feeds/components';
+import { ActiveImportsCardComponent } from "@app/feeds/components";
 
 @Component({
-  template: `
-    <app-active-imports-card
-      [activeImports$]="activeImports$"
-      (cancelImport)="onCancelImport($event)"
-    />
-  `
+  template: ` <app-active-imports-card [activeImports$]="activeImports$" (cancelImport)="onCancelImport($event)" /> `,
 })
 export class FeedImportsPage {
   activeImports$ = this.importService.getActiveImportsObservable();
@@ -227,9 +234,9 @@ export class FeedImportsPage {
 Since all components are standalone, import them directly:
 
 ```typescript
-import { ActiveImportsCardComponent } from '@app/feeds/components/active-imports-card.component';
-import { RegionImportCardComponent } from '@app/feeds/components/region-import-card.component';
-import { FeedImportRowComponent } from '@app/feeds/components/feed-import-row.component';
+import { ActiveImportsCardComponent } from "@app/feeds/components/active-imports-card.component";
+import { RegionImportCardComponent } from "@app/feeds/components/region-import-card.component";
+import { FeedImportRowComponent } from "@app/feeds/components/feed-import-row.component";
 ```
 
 ## Testing
@@ -253,13 +260,13 @@ npm test -- --include='**/feeds/**/*.spec.ts' --watch=false
 
 ### Test Coverage
 
-| Component | Test Cases | Coverage Target |
-|-----------|------------|-----------------|
-| FeedImportRowComponent | 12 | ≥80% |
-| RegionImportCardComponent | 12 | ≥80% |
-| ActiveImportsCardComponent | 10 | ≥80% |
-| RegionImportGroupingUtils | 14 | ≥80% |
-| **Total** | **48** | **≥80%** |
+| Component                  | Test Cases | Coverage Target |
+| -------------------------- | ---------- | --------------- |
+| FeedImportRowComponent     | 12         | ≥80%            |
+| RegionImportCardComponent  | 12         | ≥80%            |
+| ActiveImportsCardComponent | 10         | ≥80%            |
+| RegionImportGroupingUtils  | 14         | ≥80%            |
+| **Total**                  | **48**     | **≥80%**        |
 
 ## Accessibility (WCAG 2.1 AA)
 
@@ -423,6 +430,7 @@ frontend/web/src/app/feeds/
 ## Support
 
 For questions or issues:
+
 - Check this documentation first
 - Review component tests for usage examples
 - Consult the approved implementation plan at `.claude/plans/happy-tickling-wind.md`

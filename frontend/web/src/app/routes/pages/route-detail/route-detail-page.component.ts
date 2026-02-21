@@ -11,6 +11,7 @@ import {
   FrequencyDto,
   RouteDto,
   RouteVariantDto,
+  RouteCommonSectionDto,
 } from '../../services/frequency.service';
 import {
   CommonSectionService,
@@ -54,6 +55,22 @@ import { MatTabsModule } from '@angular/material/tabs';
           }
         </mat-tab-group>
       }
+
+      @if (selectedDirectionCommonSection) {
+        <div class="mb-4 rounded-lg border border-blue-300 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900">
+          <h3 class="mb-2 text-lg font-semibold text-blue-900 dark:text-blue-100">
+            Core Section ({{ selectedDirectionCommonSection.stopCount }} stops shared by all {{ selectedDirectionCommonSection.variantCount }} variants)
+          </h3>
+          <div class="flex flex-wrap gap-2">
+            @for (stopName of selectedDirectionCommonSection.stopNames; track $index) {
+              <span class="rounded bg-blue-200 px-2 py-1 text-sm text-blue-900 dark:bg-blue-800 dark:text-blue-100">
+                {{ stopName }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+
       <div class="grid gap-4 md:grid-cols-2" role="list">
         @for (variant of filteredVariants; track variant.id) {
           <app-route-variant-card
@@ -81,6 +98,7 @@ export class RouteDetailPageComponent implements OnInit {
   variants: RouteVariantDto[] = [];
   frequencies: FrequencyDto[] = [];
   commonSections: CommonSectionDto[] = [];
+  routeCommonSections: RouteCommonSectionDto[] = [];
   combinedBySection: Record<string, CombinedFrequencyDto> = {};
   lastVariantId?: string;
   selectedDirectionId: number | null = null;
@@ -117,6 +135,11 @@ export class RouteDetailPageComponent implements OnInit {
                 if (freq) this.combinedBySection[section.id] = freq;
               });
           });
+        });
+      this.frequencyService
+        .getCommonSections(routeId)
+        .subscribe((sections) => {
+          this.routeCommonSections = sections;
         });
     }
   }
@@ -157,6 +180,12 @@ export class RouteDetailPageComponent implements OnInit {
     }
     return this.variants.filter(
       (variant) => variant.directionId === this.selectedDirectionId,
+    );
+  }
+
+  get selectedDirectionCommonSection(): RouteCommonSectionDto | undefined {
+    return this.routeCommonSections.find(
+      (section) => (section.directionId ?? null) === this.selectedDirectionId
     );
   }
 

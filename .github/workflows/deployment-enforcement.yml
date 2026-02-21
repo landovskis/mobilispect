@@ -21,7 +21,7 @@ on:
         type: string
 
 env:
-  JAVA_VERSION: '21'
+  JAVA_VERSION: '25'
   JAVA_DISTRIBUTION: 'temurin'
   CONSTITUTION_VERSION: 'v1.3.0'
 
@@ -101,11 +101,15 @@ jobs:
             exit 1
           fi
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Build Mobile for Deployment
         id: build-mobile
         run: |
           echo "📱 Building Mobile KMM for Constitutional Deployment..."
           cd frontend/mobile
+          chmod +x gradlew
           if ./gradlew build -x test --info; then
             echo "✅ Mobile build successful"
             echo "artifacts=mobile-artifacts-${{ github.sha }}" >> $GITHUB_OUTPUT

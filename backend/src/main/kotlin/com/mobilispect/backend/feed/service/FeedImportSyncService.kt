@@ -17,6 +17,7 @@ import com.mobilispect.backend.route.batch.import.RouteImportService
 import com.mobilispect.backend.route.batch.spacing.StopSpacingImportService
 import com.mobilispect.backend.route.batch.variant.RouteVariantImportService
 import com.mobilispect.backend.route.handler.RouteClassificationFeedDataHandler
+import com.mobilispect.backend.route.handler.RouteCommonSectionFeedDataHandler
 import java.time.Clock
 import java.time.LocalDate
 import org.slf4j.LoggerFactory
@@ -57,6 +58,7 @@ class FeedImportSyncService(
   @Lazy private val stopSpacingImportService: StopSpacingImportService,
   @Lazy private val frequencyImportService: FrequencyImportService,
   private val routeClassificationFeedDataHandler: RouteClassificationFeedDataHandler,
+  private val routeCommonSectionFeedDataHandler: RouteCommonSectionFeedDataHandler,
   private val clock: Clock = Clock.systemUTC(),
 ) {
   private val logger = LoggerFactory.getLogger(FeedImportSyncService::class.java)
@@ -217,7 +219,34 @@ class FeedImportSyncService(
       }
     }
 
-    // Step 6: Process frequencies (reuses FrequencyImportService)
+    // Step 6: Detect common sections across route variants
+    when (val result = routeCommonSectionFeedDataHandler.handle(feedId, bundle, importContext)) {
+      is ImportResult.Success -> {
+        logger.info(
+          "Detected {} common sections for feed {}",
+          result.recordsProcessed,
+          feedId.value,
+        )
+      }
+      is ImportResult.PartialSuccess -> {
+        logger.warn(
+          "Partially detected common sections for feed {}: {} succeeded, {} failed",
+          feedId.value,
+          result.recordsProcessed,
+          result.errors.size,
+        )
+      }
+      is ImportResult.Failure -> {
+        logger.error(
+          "Common section detection failed for feed {}: {}",
+          feedId.value,
+          result.error.message,
+        )
+        throw IllegalStateException(result.error.message ?: "Common section detection failed")
+      }
+    }
+
+    // Step 7: Process frequencies (reuses FrequencyImportService)
     val frequencies = frequencyImportService.processFrequencies(data, LocalDate.now(), variants)
     logger.info("Processed {} frequencies for feed {}", frequencies.size, feedId.value)
   }

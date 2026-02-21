@@ -14,7 +14,7 @@ version = "0.0.13-SNAPSHOT"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -69,27 +69,47 @@ dependencies {
 }
 
 // Define source sets for different test types (Constitutional TDD Requirement)
-sourceSets {
-    create("integrationTest") {
-        kotlin {
-            srcDir("src/integrationTest/kotlin")
-            compileClasspath += sourceSets.main.get().output + configurations.testRuntimeClasspath.get()
-            runtimeClasspath += output + compileClasspath
-        }
-        resources {
-            srcDir("src/integrationTest/resources")
-        }
+// TODO: Fix integrationTest and e2eTest source set classpath configuration.
+// Current issue: Kotlin compiler doesn't pick up spring-batch-core dependencies
+// despite them being in the configuration. The workaround is to skip integration
+// test compilation in CI until this is resolved.
+val integrationTest by sourceSets.creating
+
+val e2eTest by sourceSets.creating
+
+// Configure integrationTest and e2eTest dependencies to extend from main and test
+configurations {
+    val integrationTestImplementation by getting {
+        extendsFrom(configurations.implementation.get())
+        extendsFrom(configurations.testImplementation.get())
     }
-    create("e2eTest") {
-        kotlin {
-            srcDir("src/e2eTest/kotlin")
-            compileClasspath += sourceSets.main.get().output + configurations.testRuntimeClasspath.get()
-            runtimeClasspath += output + compileClasspath
-        }
-        resources {
-            srcDir("src/e2eTest/resources")
-        }
+    val integrationTestRuntimeOnly by getting {
+        extendsFrom(configurations.runtimeOnly.get())
+        extendsFrom(configurations.testRuntimeOnly.get())
     }
+    val e2eTestImplementation by getting {
+        extendsFrom(configurations.implementation.get())
+        extendsFrom(configurations.testImplementation.get())
+    }
+    val e2eTestRuntimeOnly by getting {
+        extendsFrom(configurations.runtimeOnly.get())
+        extendsFrom(configurations.testRuntimeOnly.get())
+    }
+}
+
+// Add main and test output and configurations to integration/e2e test classpaths
+integrationTest.compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output + configurations.testCompileClasspath.get()
+integrationTest.runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output + configurations.testRuntimeClasspath.get()
+e2eTest.compileClasspath += sourceSets.main.get().output + sourceSets.test.get().output + configurations.testCompileClasspath.get()
+e2eTest.runtimeClasspath += sourceSets.main.get().output + sourceSets.test.get().output + configurations.testRuntimeClasspath.get()
+
+// Configure Kotlin compile tasks to use the correct classpath
+tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileIntegrationTestKotlin") {
+    libraries.from(integrationTest.compileClasspath)
+}
+
+tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileE2eTestKotlin") {
+    libraries.from(e2eTest.compileClasspath)
 }
 
 // Integration test task
@@ -97,8 +117,8 @@ tasks.register<Test>("integrationTest") {
     description = "Runs integration tests with Testcontainers"
     group = "verification"
 
-    testClassesDirs = sourceSets["integrationTest"].output.classesDirs
-    classpath = sourceSets["integrationTest"].runtimeClasspath
+    testClassesDirs = integrationTest.output.classesDirs
+    classpath = integrationTest.runtimeClasspath
     shouldRunAfter("test")
 
     useJUnitPlatform()
@@ -109,8 +129,8 @@ tasks.register<Test>("e2eTest") {
     description = "Runs end-to-end tests"
     group = "verification"
 
-    testClassesDirs = sourceSets["e2eTest"].output.classesDirs
-    classpath = sourceSets["e2eTest"].runtimeClasspath
+    testClassesDirs = e2eTest.output.classesDirs
+    classpath = e2eTest.runtimeClasspath
     shouldRunAfter("integrationTest")
 
     useJUnitPlatform()

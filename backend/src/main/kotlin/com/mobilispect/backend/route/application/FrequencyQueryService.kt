@@ -2,10 +2,12 @@ package com.mobilispect.backend.route.application
 
 import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.api.dto.FrequencyDTO
+import com.mobilispect.backend.route.api.dto.RouteCommonSectionDTO
 import com.mobilispect.backend.route.api.dto.RouteDTO
 import com.mobilispect.backend.route.api.dto.RouteVariantDTO
 import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
+import com.mobilispect.backend.route.domain.repository.RouteCommonSectionRepository
 import com.mobilispect.backend.route.domain.repository.RouteRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import com.mobilispect.backend.route.domain.repository.StopSpacingRepository
@@ -24,6 +26,7 @@ class FrequencyQueryService(
   private val stopSpacingRepository: StopSpacingRepository,
   private val variantScheduleRepository: VariantScheduleRepository,
   private val variantDepartureRepository: VariantDepartureRepository,
+  private val routeCommonSectionRepository: RouteCommonSectionRepository,
 ) {
   fun getRoute(routeId: RouteId): RouteDTO? =
     routeRepository.findById(routeId)?.let {
@@ -116,4 +119,26 @@ class FrequencyQueryService(
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
     return departures.map { it.departureTime.format(formatter) }
   }
+
+  /**
+   * Get common sections (longest continuous stop sequences shared by all variants)
+   * for a route, grouped by direction.
+   *
+   * @param routeId The route ID
+   * @return List of common sections for each direction
+   */
+  fun getCommonSectionsForRoute(routeId: RouteId): List<RouteCommonSectionDTO> =
+    routeCommonSectionRepository.findByRouteId(routeId).map { section ->
+      RouteCommonSectionDTO(
+        id = section.id,
+        routeId = section.routeId.value,
+        directionId = section.directionId,
+        stopPattern = section.stopPattern,
+        stopNames = extractStopNames(section.stopNamePattern, section.stopPattern),
+        stopCount = section.stopCount,
+        firstStopId = section.firstStopId,
+        lastStopId = section.lastStopId,
+        variantCount = section.variantCount,
+      )
+    }
 }

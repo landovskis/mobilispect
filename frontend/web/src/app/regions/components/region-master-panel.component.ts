@@ -1,4 +1,12 @@
-import { Component, OnInit, OnDestroy, Output, EventEmitter, Input, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  Output,
+  EventEmitter,
+  Input,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,8 +21,17 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, Subject, BehaviorSubject, combineLatest } from 'rxjs';
-import { map, takeUntil, debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
-import { MetropolitanRegion, RegionUtils } from '../../feeds/models/region.models';
+import {
+  map,
+  takeUntil,
+  debounceTime,
+  distinctUntilChanged,
+  startWith,
+} from 'rxjs/operators';
+import {
+  MetropolitanRegion,
+  RegionUtils,
+} from '../../feeds/models/region.models';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { SchedulerService } from '../../feeds/services/scheduler.service';
@@ -52,13 +69,17 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     MatMenuModule,
     MatButtonModule,
     BrandCardComponent,
-    BrandButtonComponent
+    BrandButtonComponent,
   ],
   template: `
     <div class="region-master-container">
       <div class="master-header mb-4">
-        <h2 class="text-2xl font-semibold text-[var(--mdc-theme-on-surface)]">Regions</h2>
-        <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">Browse metropolitan regions and their transit feeds</p>
+        <h2 class="text-2xl font-semibold text-[var(--mdc-theme-on-surface)]">
+          Regions
+        </h2>
+        <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">
+          Browse metropolitan regions and their transit feeds
+        </p>
       </div>
 
       <!-- Search and Filters -->
@@ -71,12 +92,15 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
             (ngModelChange)="onSearchTermChange($event)"
             placeholder="Search by name or ID..."
             [attr.aria-label]="'Search regions by name or ID'"
-          >
+          />
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
 
         <div class="filter-chips flex flex-wrap gap-2">
-          <mat-chip-listbox [multiple]="false" [hideSingleSelectionIndicator]="true">
+          <mat-chip-listbox
+            [multiple]="false"
+            [hideSingleSelectionIndicator]="true"
+          >
             <mat-chip-option
               [selected]="autoUpdateFilter === undefined"
               (click)="setAutoUpdateFilter(undefined)"
@@ -101,18 +125,29 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
 
       <!-- Loading State -->
       @if (isLoading$ | async) {
-        <div class="loading-container flex flex-col items-center justify-center px-4 py-12 text-center">
+        <div
+          class="loading-container flex flex-col items-center justify-center px-4 py-12 text-center"
+        >
           <mat-spinner diameter="40"></mat-spinner>
-          <p class="mt-4 text-sm text-[var(--mdc-theme-on-surface-variant)]">Loading regions...</p>
+          <p class="mt-4 text-sm text-[var(--mdc-theme-on-surface-variant)]">
+            Loading regions...
+          </p>
         </div>
       }
 
       <!-- Error State -->
       @if (error$ | async; as error) {
-        <div class="error-container flex flex-col items-center justify-center px-4 py-12 text-center">
+        <div
+          class="error-container flex flex-col items-center justify-center px-4 py-12 text-center"
+        >
           <mat-icon class="mb-4" color="warn">error</mat-icon>
           <p class="text-[var(--mdc-theme-error)]">{{ error }}</p>
-          <app-brand-button variant="primary" size="sm" (click)="refreshRegions()" class="mt-4">
+          <app-brand-button
+            variant="primary"
+            size="sm"
+            (click)="refreshRegions()"
+            class="mt-4"
+          >
             <mat-icon>refresh</mat-icon>
             <span>Retry</span>
           </app-brand-button>
@@ -126,13 +161,21 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
             @for (region of regions; track region.regionOnestopId) {
               <app-brand-card
                 class="region-card cursor-pointer transition-all"
-                [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
+                [class.selected]="
+                  selectedRegion?.regionOnestopId === region.regionOnestopId
+                "
                 [title]="getDisplayName(region)"
                 [subtitle]="region.regionOnestopId"
-                [badge]="getActiveImportCount(region) > 0 ? getActiveImportCount(region) + ' active' : undefined"
+                [badge]="
+                  getActiveImportCount(region) > 0
+                    ? getActiveImportCount(region) + ' active'
+                    : undefined
+                "
                 [hasFooter]="true"
                 (click)="selectRegion(region)"
-                [attr.aria-label]="'Select ' + getDisplayName(region) + ' region'"
+                [attr.aria-label]="
+                  'Select ' + getDisplayName(region) + ' region'
+                "
                 tabindex="0"
                 (keydown.enter)="selectRegion(region)"
                 (keydown.space)="$event.preventDefault(); selectRegion(region)"
@@ -145,13 +188,20 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                     </div>
 
                     <div class="stat-item flex items-center gap-2 text-sm">
-                      <mat-icon [ngClass]="{
-                        'auto-update-enabled': region.autoUpdateEnabled,
-                        'auto-update-disabled': !region.autoUpdateEnabled
-                      }" class="text-[18px]">
-                        {{ region.autoUpdateEnabled ? 'sync' : 'sync_disabled' }}
+                      <mat-icon
+                        [ngClass]="{
+                          'auto-update-enabled': region.autoUpdateEnabled,
+                          'auto-update-disabled': !region.autoUpdateEnabled,
+                        }"
+                        class="text-[18px]"
+                      >
+                        {{
+                          region.autoUpdateEnabled ? 'sync' : 'sync_disabled'
+                        }}
                       </mat-icon>
-                      <span>{{ region.autoUpdateEnabled ? 'Auto-update' : 'Manual only' }}</span>
+                      <span>{{
+                        region.autoUpdateEnabled ? 'Auto-update' : 'Manual only'
+                      }}</span>
                     </div>
 
                     @if (region.lastCheckAt) {
@@ -166,32 +216,54 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
             }
 
             @if (regions.length === 0) {
-              <div class="empty-state col-span-full flex flex-col items-center justify-center px-4 py-12 text-center">
-                <mat-icon class="mb-4 text-[64px] opacity-50">location_off</mat-icon>
-                <h3 class="text-lg font-semibold text-[var(--mdc-theme-on-surface)]">{{ searchTerm ? 'No regions found' : 'No regions available' }}</h3>
+              <div
+                class="empty-state col-span-full flex flex-col items-center justify-center px-4 py-12 text-center"
+              >
+                <mat-icon class="mb-4 text-[64px] opacity-50"
+                  >location_off</mat-icon
+                >
+                <h3
+                  class="text-lg font-semibold text-[var(--mdc-theme-on-surface)]"
+                >
+                  {{ searchTerm ? 'No regions found' : 'No regions available' }}
+                </h3>
                 @if (searchTerm) {
-                  <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">Try adjusting your search criteria.</p>
+                  <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">
+                    Try adjusting your search criteria.
+                  </p>
                 } @else {
-                  <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">No regions have been discovered yet.</p>
+                  <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">
+                    No regions have been discovered yet.
+                  </p>
                 }
               </div>
             }
           </div>
 
           <!-- Quick Stats -->
-          <div class="quick-stats flex flex-wrap justify-center gap-4 rounded-lg bg-[var(--mdc-theme-surface-variant)] p-4 max-md:gap-3 max-md:p-3">
-            <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
+          <div
+            class="quick-stats flex flex-wrap justify-center gap-4 rounded-lg bg-[var(--mdc-theme-surface-variant)] p-4 max-md:gap-3 max-md:p-3"
+          >
+            <div
+              class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3"
+            >
               <span class="stat-number">{{ regions.length }}</span>
               <span class="stat-label">Regions</span>
             </div>
 
-            <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
+            <div
+              class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3"
+            >
               <span class="stat-number">{{ getTotalFeeds() | async }}</span>
               <span class="stat-label">Total Feeds</span>
             </div>
 
-            <div class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3">
-              <span class="stat-number">{{ (activeImports$ | async)?.length || 0 }}</span>
+            <div
+              class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3"
+            >
+              <span class="stat-number">{{
+                (activeImports$ | async)?.length || 0
+              }}</span>
               <span class="stat-label">Active Imports</span>
             </div>
           </div>
@@ -199,70 +271,72 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       }
     </div>
   `,
-  styles: [`
-    .region-master-container {
-      padding: 1rem;
-    }
+  styles: [
+    `
+      .region-master-container {
+        padding: 1rem;
+      }
 
-    .error-container {
-      color: var(--mdc-theme-error);
-    }
+      .error-container {
+        color: var(--mdc-theme-error);
+      }
 
-    .error-container mat-icon {
-      font-size: 48px;
-      width: 48px;
-      height: 48px;
-    }
+      .error-container mat-icon {
+        font-size: 48px;
+        width: 48px;
+        height: 48px;
+      }
 
-    .region-card {
-      border: 1px solid var(--ms-color-border, #d1d5db);
-    }
+      .region-card {
+        border: 1px solid var(--ms-color-border, #d1d5db);
+      }
 
-    .region-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 18px rgba(11, 79, 138, 0.16);
-    }
+      .region-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 18px rgba(11, 79, 138, 0.16);
+      }
 
-    .region-card.selected {
-      border-color: var(--ms-color-primary, #0b4f8a);
-      box-shadow: 0 12px 24px rgba(11, 79, 138, 0.22);
-    }
+      .region-card.selected {
+        border-color: var(--ms-color-primary, #0b4f8a);
+        box-shadow: 0 12px 24px rgba(11, 79, 138, 0.22);
+      }
 
-    .region-card:focus {
-      outline: 2px solid var(--ms-color-primary, #0b4f8a);
-      outline-offset: 2px;
-    }
+      .region-card:focus {
+        outline: 2px solid var(--ms-color-primary, #0b4f8a);
+        outline-offset: 2px;
+      }
 
-    .stat-item {
-      color: var(--mdc-theme-on-surface-variant);
-    }
+      .stat-item {
+        color: var(--mdc-theme-on-surface-variant);
+      }
 
-    .auto-update-enabled {
-      color: var(--mdc-theme-tertiary);
-    }
+      .auto-update-enabled {
+        color: var(--mdc-theme-tertiary);
+      }
 
-    .auto-update-disabled {
-      color: var(--mdc-theme-outline);
-    }
+      .auto-update-disabled {
+        color: var(--mdc-theme-outline);
+      }
 
-    .stat-number {
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--mdc-theme-primary);
-    }
+      .stat-number {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--mdc-theme-primary);
+      }
 
-    .stat-label {
-      font-size: 12px;
-      color: var(--mdc-theme-on-surface-variant);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+      .stat-label {
+        font-size: 12px;
+        color: var(--mdc-theme-on-surface-variant);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
 
-    .control-item span {
-      font-size: 14px;
-    }
-  `],
-  changeDetection: ChangeDetectionStrategy.OnPush
+      .control-item span {
+        font-size: 14px;
+      }
+    `,
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegionMasterPanelComponent implements OnInit, OnDestroy {
   @Input() selectedRegion: MetropolitanRegion | null = null;
@@ -275,7 +349,9 @@ export class RegionMasterPanelComponent implements OnInit, OnDestroy {
   searchTerm = '';
   private searchTerm$ = new BehaviorSubject<string>('');
   autoUpdateFilter: boolean | undefined = undefined;
-  private autoUpdateFilter$ = new BehaviorSubject<boolean | undefined>(undefined);
+  private autoUpdateFilter$ = new BehaviorSubject<boolean | undefined>(
+    undefined,
+  );
 
   // Data streams
   regions$ = new BehaviorSubject<MetropolitanRegion[]>([]);
@@ -293,30 +369,28 @@ export class RegionMasterPanelComponent implements OnInit, OnDestroy {
     private regionService: RegionService,
     private importService: ImportService,
     private schedulerService: SchedulerService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
   ) {
-    // Setup search term observable with debouncing
-    this.searchTerm$.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(term => {
-      this.searchTerm = term;
-    });
-
     // Setup filtered regions stream
     this.filteredRegions$ = combineLatest([
       this.regions$,
       this.searchTerm$.pipe(startWith('')),
-      this.autoUpdateFilter$.pipe(startWith(undefined))
+      this.autoUpdateFilter$.pipe(startWith(undefined)),
     ]).pipe(
       map(([regions, searchTerm, autoUpdateFilter]) =>
-        this.filterRegions(regions, searchTerm, autoUpdateFilter)
-      )
+        this.filterRegions(regions, searchTerm, autoUpdateFilter),
+      ),
     );
   }
 
   ngOnInit(): void {
+    // Setup search term observable with debouncing
+    this.searchTerm$
+      .pipe(debounceTime(300), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((term) => {
+        this.searchTerm = term;
+      });
+
     this.loadRegions();
     this.loadActiveImports();
 
@@ -324,11 +398,12 @@ export class RegionMasterPanelComponent implements OnInit, OnDestroy {
     this.importService.startPollingActiveImports();
 
     // Subscribe to active imports updates
-    this.importService.getActiveImportsObservable().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe(imports => {
-      this.activeImports$.next(imports);
-    });
+    this.importService
+      .getActiveImportsObservable()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((imports) => {
+        this.activeImports$.next(imports);
+      });
   }
 
   ngOnDestroy(): void {
@@ -341,59 +416,63 @@ export class RegionMasterPanelComponent implements OnInit, OnDestroy {
     this.isLoading$.next(true);
     this.error$.next(null);
 
-    this.regionService.listRegions().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (regions) => {
-        this.regions$.next(regions);
-        this.isLoading$.next(false);
-      },
-      error: (error) => {
-        console.error('Failed to load regions:', error);
-        this.error$.next('Failed to load regions. Please try again.');
-        this.isLoading$.next(false);
-      }
-    });
+    this.regionService
+      .listRegions()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (regions) => {
+          this.regions$.next(regions);
+          this.isLoading$.next(false);
+        },
+        error: (error) => {
+          console.error('Failed to load regions:', error);
+          this.error$.next('Failed to load regions. Please try again.');
+          this.isLoading$.next(false);
+        },
+      });
   }
 
   private loadActiveImports(): void {
-    this.importService.getActiveImports().pipe(
-      takeUntil(this.destroy$)
-    ).subscribe({
-      next: (imports) => {
-        this.activeImports$.next(imports);
-      },
-      error: (error) => {
-        console.error('Failed to load active imports:', error);
-      }
-    });
+    this.importService
+      .getActiveImports()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (imports) => {
+          this.activeImports$.next(imports);
+        },
+        error: (error) => {
+          console.error('Failed to load active imports:', error);
+        },
+      });
   }
 
   private filterRegions(
     regions: MetropolitanRegion[],
     searchTerm: string,
-    autoUpdateFilter: boolean | undefined
+    autoUpdateFilter: boolean | undefined,
   ): MetropolitanRegion[] {
     let filtered = regions;
 
     // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(region => {
+      filtered = filtered.filter((region) => {
         const haystack = [
           region.name,
           region.regionOnestopId,
           region.adm1Name ?? '',
-          region.adm0Name ?? ''
-        ].join(' ').toLowerCase();
+          region.adm0Name ?? '',
+        ]
+          .join(' ')
+          .toLowerCase();
         return haystack.includes(term);
       });
     }
 
     // Apply auto-update filter
     if (autoUpdateFilter !== undefined) {
-      filtered = filtered.filter(region =>
-        region.autoUpdateEnabled === autoUpdateFilter
+      filtered = filtered.filter(
+        (region) => region.autoUpdateEnabled === autoUpdateFilter,
       );
     }
 
@@ -430,15 +509,20 @@ export class RegionMasterPanelComponent implements OnInit, OnDestroy {
 
   getActiveImportCount(region: MetropolitanRegion): number {
     const activeImports = this.activeImports$.value;
-    return activeImports.filter(imp =>
-      imp.regionName === region.name ||
-      activeImports.some(imp2 => imp2.feedOnestopId.includes(region.regionOnestopId))
+    return activeImports.filter(
+      (imp) =>
+        imp.regionName === region.name ||
+        activeImports.some((imp2) =>
+          imp2.feedOnestopId.includes(region.regionOnestopId),
+        ),
     ).length;
   }
 
   getTotalFeeds(): Observable<number> {
     return this.filteredRegions$.pipe(
-      map(regions => regions.reduce((total, region) => total + region.feedCount, 0))
+      map((regions) =>
+        regions.reduce((total, region) => total + region.feedCount, 0),
+      ),
     );
   }
 
@@ -471,8 +555,10 @@ export class RegionMasterPanelComponent implements OnInit, OnDestroy {
       error: (error) => {
         this.isUpdatingAutoUpdate.delete(regionId);
         console.error('Error toggling auto-update:', error);
-        this.snackBar.open('Failed to update auto-update setting', 'Close', { duration: 3000 });
-      }
+        this.snackBar.open('Failed to update auto-update setting', 'Close', {
+          duration: 3000,
+        });
+      },
     });
   }
 

@@ -5,7 +5,11 @@ import { Subject } from 'rxjs';
 import { RegionImportCardComponent } from './region-import-card.component';
 import { FeedImportRowComponent } from './feed-import-row.component';
 import { RegionImportGroup } from '../models/region-import-group.model';
-import { FeedImportSummary, ImportStatus, TriggerType } from '../models/import.models';
+import {
+  FeedImportSummary,
+  ImportStatus,
+  TriggerType,
+} from '../models/import.models';
 import { ImportService } from '../services/import.service';
 
 describe('RegionImportCardComponent', () => {
@@ -27,8 +31,8 @@ describe('RegionImportCardComponent', () => {
         progressPercentage: 50,
         totalSteps: 5,
         currentStep: 'Parsing routes',
-        estimatedTimeRemainingSeconds: 120
-      }
+        estimatedTimeRemainingSeconds: 120,
+      },
     },
     {
       id: 'import-2',
@@ -44,9 +48,9 @@ describe('RegionImportCardComponent', () => {
         progressPercentage: 75,
         totalSteps: 5,
         currentStep: 'Importing stops',
-        estimatedTimeRemainingSeconds: 60
-      }
-    }
+        estimatedTimeRemainingSeconds: 60,
+      },
+    },
   ];
 
   const mockRegionGroup: RegionImportGroup = {
@@ -56,16 +60,18 @@ describe('RegionImportCardComponent', () => {
     totalFeeds: 2,
     averageProgress: 62.5, // (50 + 75) / 2
     hasFailures: false,
-    allCompleted: false
+    allCompleted: false,
   };
 
   beforeEach(async () => {
-    const mockImportService = jasmine.createSpyObj('ImportService', ['monitorImportProgress']);
+    const mockImportService = jasmine.createSpyObj('ImportService', [
+      'monitorImportProgress',
+    ]);
     mockImportService.monitorImportProgress.and.returnValue(new Subject());
 
     await TestBed.configureTestingModule({
       imports: [RegionImportCardComponent],
-      providers: [{ provide: ImportService, useValue: mockImportService }]
+      providers: [{ provide: ImportService, useValue: mockImportService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegionImportCardComponent);
@@ -100,7 +106,9 @@ describe('RegionImportCardComponent', () => {
 
     // Then: Aggregate progress bar exists
     const compiled = fixture.nativeElement as HTMLElement;
-    const progressBar = compiled.querySelector('.region-aggregate-progress mat-progress-bar');
+    const progressBar = compiled.querySelector(
+      '.region-aggregate-progress mat-progress-bar',
+    );
     expect(progressBar).toBeTruthy();
 
     // And: Progress percentage is displayed
@@ -115,7 +123,9 @@ describe('RegionImportCardComponent', () => {
     fixture.detectChanges();
 
     // Then: Two feed import row components are rendered
-    const feedRows = fixture.debugElement.queryAll(By.directive(FeedImportRowComponent));
+    const feedRows = fixture.debugElement.queryAll(
+      By.directive(FeedImportRowComponent),
+    );
     expect(feedRows.length).toBe(2);
   });
 
@@ -145,7 +155,9 @@ describe('RegionImportCardComponent', () => {
 
     // Then: Average progress is 62.5%
     const compiled = fixture.nativeElement as HTMLElement;
-    const progressText = compiled.querySelector('.progress-percentage')?.textContent;
+    const progressText = compiled.querySelector(
+      '.progress-percentage',
+    )?.textContent;
     expect(progressText).toContain('62.5%');
   });
 
@@ -168,7 +180,7 @@ describe('RegionImportCardComponent', () => {
       ...mockRegionGroup,
       feedImports: [mockFeedImports[0]],
       totalFeeds: 1,
-      averageProgress: 50
+      averageProgress: 50,
     };
     component.regionGroup = singleFeedGroup;
 
@@ -176,7 +188,9 @@ describe('RegionImportCardComponent', () => {
     fixture.detectChanges();
 
     // Then: Single feed is displayed
-    const feedRows = fixture.debugElement.queryAll(By.directive(FeedImportRowComponent));
+    const feedRows = fixture.debugElement.queryAll(
+      By.directive(FeedImportRowComponent),
+    );
     expect(feedRows.length).toBe(1);
 
     // And: Badge shows "1 feeds" (or "1 feed" if singularized in template)
@@ -194,9 +208,9 @@ describe('RegionImportCardComponent', () => {
         {
           ...mockFeedImports[1],
           status: ImportStatus.FAILED,
-          errorMessage: 'Download failed'
-        }
-      ]
+          errorMessage: 'Download failed',
+        },
+      ],
     };
     component.regionGroup = failedGroup;
 
@@ -204,7 +218,9 @@ describe('RegionImportCardComponent', () => {
     fixture.detectChanges();
 
     // Then: Both feeds are displayed (including failed one)
-    const feedRows = fixture.debugElement.queryAll(By.directive(FeedImportRowComponent));
+    const feedRows = fixture.debugElement.queryAll(
+      By.directive(FeedImportRowComponent),
+    );
     expect(feedRows.length).toBe(2);
   });
 
@@ -213,7 +229,7 @@ describe('RegionImportCardComponent', () => {
     const noProgressGroup: RegionImportGroup = {
       ...mockRegionGroup,
       averageProgress: 0,
-      feedImports: mockFeedImports.map(f => ({ ...f, progress: null }))
+      feedImports: mockFeedImports.map((f) => ({ ...f, progress: null })),
     };
     component.regionGroup = noProgressGroup;
 
