@@ -14,6 +14,7 @@ import org.springframework.modulith.ApplicationModule
  * Dependencies:
  * - feed: For feed-related data validation
  * - agency: For agency-related data validation
+ * - stop: For stop coordinates used in parallel route detection
  *
  * Exposed API:
  * - RouteQueryApi: Public API for querying routes
@@ -23,5 +24,5 @@ import org.springframework.modulith.ApplicationModule
  * - domain: Domain models, repositories, and services
  * - internal: Internal API implementations
  */
-@ApplicationModule(displayName = "Route Management", allowedDependencies = ["feed", "agency"])
+@ApplicationModule(displayName = "Route Management", allowedDependencies = ["feed", "agency", "stop"])
 class RouteModule
