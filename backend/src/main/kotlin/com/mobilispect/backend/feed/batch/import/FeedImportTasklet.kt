@@ -30,6 +30,10 @@ class FeedImportTasklet(private val gtfsFeedReader: GTFSFeedReader) : Tasklet {
       throw throwable
     }
 
+    // TODO(Task 6): This tasklet will be deleted. The success path intentionally does nothing
+    // because FeedImportService (which wrote the completion record) has been removed.
+    // The parsed data is no longer consumed here; FeedImportSyncService owns this path instead.
+
     return RepeatStatus.FINISHED
   }
 }

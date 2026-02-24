@@ -32,8 +32,7 @@ import org.springframework.transaction.annotation.Transactional
  * Synchronous feed import service that processes a feed without launching a Spring Batch job.
  *
  * This service is designed for parallel execution within a single region import job, allowing
- * multiple feeds to be processed concurrently. Unlike [FeedImportService], which launches
- * asynchronous batch jobs, this service:
+ * multiple feeds to be processed concurrently. This service:
  * 1. Creates the FeedImport record
  * 2. Downloads and parses the GTFS feed
  * 3. Processes all entities (agencies, routes, variants, stop spacings, frequencies)
