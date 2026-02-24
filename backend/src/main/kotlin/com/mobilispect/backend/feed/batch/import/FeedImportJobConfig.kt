@@ -1,6 +1,5 @@
 package com.mobilispect.backend.feed.batch.import
 
-import com.mobilispect.backend.agency.batch.import.AgencyImportTasklet
 import com.mobilispect.backend.feed.api.GTFSData
 import com.mobilispect.backend.route.batch.classification.RouteClassificationTasklet
 import com.mobilispect.backend.route.batch.frequency.FrequencyImportTasklet
@@ -22,7 +21,6 @@ class FeedImportJobConfig(
   private val transactionManager: PlatformTransactionManager,
   private val feedImportReader: GTFSFeedReader,
   private val feedImportWriter: FeedImportWriter,
-  private val agencyImportTasklet: AgencyImportTasklet,
   private val routeImportTasklet: RouteImportTasklet,
   private val routeVariantImportTasklet: RouteVariantImportTasklet,
   private val stopSpacingImportTasklet: StopSpacingImportTasklet,
@@ -37,7 +35,6 @@ class FeedImportJobConfig(
     JobBuilder("feedImportJob", jobRepository)
       .preventRestart()
       .start(feedImportStep())
-      .next(agencyProcessingStep())
       .next(routeVariantProcessingStep())
       .next(stopSpacingProcessingStep())
       .next(routeClassificationProcessingStep())
@@ -53,13 +50,6 @@ class FeedImportJobConfig(
       .writer(feedImportWriter)
       .listener(stepExecutionListener)
       .transactionManager(transactionManager)
-      .build()
-
-  @Bean
-  fun agencyProcessingStep(): Step =
-    StepBuilder("agencyProcessingStep", jobRepository)
-      .tasklet(agencyImportTasklet, transactionManager)
-      .listener(stepExecutionListener)
       .build()
 
   @Bean
