@@ -108,25 +108,15 @@ class RegionImportOrchestrationTasklet(
     val childImports = mutableListOf<ChildImportInfo>()
     var sequenceNumber = 0
 
+    // TODO(Task 7): importSync removed from FeedApi — this entire file will be deleted in Task 7.
+    // The Spring Batch pipeline has been replaced by Airflow.
     feeds.forEach { feed ->
       try {
-        val feedImport = feedApi.importSync(feed.feedId, triggerType)
-        logger.info("Launched import {} for feed {}", feedImport.id, feed.feedId)
-
-        // Link child to parent
-        linkChildToParent(regionImportId, feedImport, sequenceNumber++)
-        incrementStartedCount(regionImportId)
-
-        childImports.add(
-          ChildImportInfo(
-            feedOnestopId = feed.feedId.value,
-            feedImportId = feedImport.id.value,
-            feedName = feed.name,
-          )
+        throw UnsupportedOperationException(
+          "importSync removed — batch pipeline replaced by Airflow"
         )
       } catch (e: Exception) {
         logger.error("Failed to launch import for feed {}: {}", feed.feedId, e.message)
-        // Mark as skipped (could not even start)
         incrementSkippedCount(regionImportId)
       }
     }

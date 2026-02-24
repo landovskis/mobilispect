@@ -2,12 +2,10 @@ package com.mobilispect.backend.region.batch
 
 import com.mobilispect.backend.feed.FeedApi
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.model.ImportStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.region.data.repository.RegionImportRepository
 import com.mobilispect.backend.region.domain.RegionImportId
 import org.slf4j.LoggerFactory
-import org.springframework.batch.core.ExitStatus
 import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.core.scope.context.ChunkContext
 import org.springframework.batch.core.step.StepContribution
@@ -69,59 +67,10 @@ class FeedImportWorkerTasklet(
       partitionIndex ?: -1,
     )
 
-    return try {
-      // Process the feed synchronously
-      val feedImport = feedApi.importSync(feedId, triggerType)
-
-      // Link the feed import to the region import
-      linkFeedToRegionImport(regionImportId, feedImport.id.value, partitionIndex ?: 0)
-
-      // Update status based on result
-      when (feedImport.status) {
-        ImportStatus.COMPLETED -> {
-          logger.info(
-            "Worker completed import for feed {} - partition {}",
-            feedId.value,
-            partitionIndex,
-          )
-          markFeedCompleted(regionImportId)
-          contribution.exitStatus = ExitStatus.COMPLETED
-        }
-        ImportStatus.FAILED -> {
-          logger.warn(
-            "Worker import failed for feed {} - partition {}: {}",
-            feedId.value,
-            partitionIndex,
-            feedImport.errorMessage,
-          )
-          markFeedFailed(regionImportId)
-          // Mark as FAILED but allow other partitions to continue
-          contribution.exitStatus = ExitStatus.FAILED
-        }
-        else -> {
-          logger.warn(
-            "Worker import for feed {} ended with unexpected status: {}",
-            feedId.value,
-            feedImport.status,
-          )
-          markFeedFailed(regionImportId)
-          contribution.exitStatus = ExitStatus.FAILED
-        }
-      }
-
-      RepeatStatus.FINISHED
-    } catch (e: Exception) {
-      logger.error(
-        "Worker exception during import for feed {} - partition {}",
-        feedId.value,
-        partitionIndex,
-        e,
-      )
-      markFeedFailed(regionImportId)
-      contribution.exitStatus = ExitStatus.FAILED
-      // Re-throw to signal failure but allow partitioner to continue with other feeds
-      throw e
-    }
+    // TODO(Task 7): This entire batch file will be deleted when region batch code is removed.
+    // importSync has been removed from FeedApi as part of replacing the Spring Batch pipeline
+    // with Airflow. This tasklet is now non-functional dead code.
+    throw UnsupportedOperationException("importSync removed — batch pipeline replaced by Airflow")
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
