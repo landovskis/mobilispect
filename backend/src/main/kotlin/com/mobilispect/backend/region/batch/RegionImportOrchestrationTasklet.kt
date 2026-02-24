@@ -110,7 +110,7 @@ class RegionImportOrchestrationTasklet(
 
     feeds.forEach { feed ->
       try {
-        val feedImport = feedApi.import(feed.feedId, triggerType)
+        val feedImport = feedApi.importSync(feed.feedId, triggerType)
         logger.info("Launched import {} for feed {}", feedImport.id, feed.feedId)
 
         // Link child to parent

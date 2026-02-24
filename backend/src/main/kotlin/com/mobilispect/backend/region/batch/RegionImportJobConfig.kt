@@ -63,12 +63,15 @@ class RegionImportJobConfig(
    */
   @Bean
   fun regionImportJob(): Job {
-    val flow = FlowBuilder<SimpleFlow>("regionImportFlow")
-      .start(regionImportInitializationStep())
-      .on("*").to(feedImportPartitionedStep())
-      .from(feedImportPartitionedStep())
-      .on("*").to(regionImportFinalizationStep())
-      .end()
+    val flow =
+      FlowBuilder<SimpleFlow>("regionImportFlow")
+        .start(regionImportInitializationStep())
+        .on("*")
+        .to(feedImportPartitionedStep())
+        .from(feedImportPartitionedStep())
+        .on("*")
+        .to(regionImportFinalizationStep())
+        .end()
 
     return JobBuilder("regionImportJob", jobRepository)
       .preventRestart()

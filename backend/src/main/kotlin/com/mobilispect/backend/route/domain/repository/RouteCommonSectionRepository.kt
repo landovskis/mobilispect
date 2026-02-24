@@ -6,9 +6,9 @@ import com.mobilispect.backend.route.domain.model.RouteCommonSection
 /**
  * Domain repository for [RouteCommonSection] entities.
  *
- * Provides data access methods for route common sections using domain models.
- * A route common section represents the longest continuous sequence of stops
- * shared by ALL variants in a given direction.
+ * Provides data access methods for route common sections using domain models. A route common
+ * section represents the longest continuous sequence of stops shared by ALL variants in a given
+ * direction.
  */
 interface RouteCommonSectionRepository {
 

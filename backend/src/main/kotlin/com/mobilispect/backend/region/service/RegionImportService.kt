@@ -5,7 +5,6 @@ import com.mobilispect.backend.api.FeedImportResult
 import com.mobilispect.backend.api.FeedImportResultStatus
 import com.mobilispect.backend.feed.FeedApi
 import com.mobilispect.backend.feed.model.ImportTriggerType
-import com.mobilispect.backend.feed.service.RateLimitedJobLauncher
 import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.data.repository.RegionImportRepository
 import com.mobilispect.backend.region.domain.RegionImport
@@ -14,6 +13,7 @@ import com.mobilispect.backend.region.domain.RegionImportStatus
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParametersBuilder
+import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.core.task.TaskExecutor
 import org.springframework.dao.DataIntegrityViolationException
@@ -42,7 +42,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 class RegionImportService(
   private val feedApi: FeedApi,
   private val regionImportRepository: RegionImportRepository,
-  private val rateLimitedJobLauncher: RateLimitedJobLauncher,
+  private val jobLauncher: JobLauncher,
   @Qualifier("regionImportJob") private val regionImportJob: Job,
   @Qualifier("taskExecutor") private val importLaunchExecutor: TaskExecutor,
 ) {
@@ -196,7 +196,7 @@ class RegionImportService(
         regionImportId.value,
       )
 
-      runCatching { rateLimitedJobLauncher.run(regionImportJob, params) }
+      runCatching { jobLauncher.run(regionImportJob, params) }
         .onFailure { throwable ->
           logger.error(
             "Failed to launch region import job for region {}",

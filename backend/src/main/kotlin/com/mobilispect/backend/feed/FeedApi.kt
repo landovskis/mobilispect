@@ -52,13 +52,10 @@ interface FeedApi {
    */
   fun getFeedVersion(feedId: FeedId): String?
 
-  fun import(feedId: FeedId, triggerType: ImportTriggerType): FeedImport
-
   /**
-   * Import a feed synchronously without launching a separate Spring Batch job.
+   * Import a feed synchronously.
    *
-   * This method is designed for parallel execution within a single region import job. Unlike
-   * [import], which launches an asynchronous job, this method:
+   * This method is designed for parallel execution within a single region import job. It:
    * - Creates the FeedImport record
    * - Downloads and parses the GTFS feed
    * - Processes all entities (agencies, routes, variants, etc.)

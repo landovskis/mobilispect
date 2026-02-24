@@ -7,8 +7,8 @@ import java.time.Instant
  * Longest continuous section of stops shared by ALL variants in a given direction.
  *
  * Unlike the general CommonSection which represents pairwise overlaps between variants,
- * RouteCommonSection represents the single longest sequence of consecutive stops that
- * appears in ALL variants of a route traveling in the same direction.
+ * RouteCommonSection represents the single longest sequence of consecutive stops that appears in
+ * ALL variants of a route traveling in the same direction.
  *
  * This is useful for:
  * - Identifying the "core" or "trunk" section of a route

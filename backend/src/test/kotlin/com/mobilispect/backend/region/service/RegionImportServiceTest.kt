@@ -1,14 +1,11 @@
 package com.mobilispect.backend.region.service
 
 import com.mobilispect.backend.feed.FeedApi
-import com.mobilispect.backend.feed.domain.FeedImport
 import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
-import com.mobilispect.backend.feed.model.ids.ImportId
-import com.mobilispect.backend.feed.service.RateLimitedJobLauncher
 import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.data.repository.RegionImportRepository
 import com.mobilispect.backend.region.domain.RegionImport
@@ -23,12 +20,13 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.batch.core.job.Job
 import org.springframework.batch.core.job.parameters.JobParameters
+import org.springframework.batch.core.launch.JobLauncher
 import org.springframework.core.task.TaskExecutor
 
 class RegionImportServiceTest {
   private lateinit var feedApi: FeedApi
   private lateinit var regionImportRepository: RegionImportRepository
-  private lateinit var jobLauncher: RateLimitedJobLauncher
+  private lateinit var jobLauncher: JobLauncher
   private lateinit var regionImportJob: Job
   private lateinit var taskExecutor: TaskExecutor
   private lateinit var service: RegionImportService
@@ -38,16 +36,14 @@ class RegionImportServiceTest {
     feedApi = mockk()
     regionImportRepository = mockk()
     jobLauncher = mockk()
-    regionImportJob = mockk {
-      every { name } returns "regionImportJob"
-    }
+    regionImportJob = mockk { every { name } returns "regionImportJob" }
     taskExecutor = TaskExecutor { runnable -> runnable.run() }
 
     service =
       RegionImportService(
         feedApi = feedApi,
         regionImportRepository = regionImportRepository,
-        rateLimitedJobLauncher = jobLauncher,
+        jobLauncher = jobLauncher,
         regionImportJob = regionImportJob,
         importLaunchExecutor = taskExecutor,
       )
@@ -116,10 +112,6 @@ class RegionImportServiceTest {
     every { feedApi.findActiveFeedsByRegion(regionId) } returns feeds
     every { regionImportRepository.save(any()) } returns savedImport
     every { jobLauncher.run(regionImportJob, any<JobParameters>()) } returns mockk()
-    feeds.forEach { feed ->
-      every { feedApi.import(feed.feedId, ImportTriggerType.MANUAL) } returns
-        FeedImport(id = ImportId.random(), feedId = feed.feedId.value)
-    }
 
     val response = service.import(regionId, ImportTriggerType.MANUAL)
 

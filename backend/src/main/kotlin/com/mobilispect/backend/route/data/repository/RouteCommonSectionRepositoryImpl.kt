@@ -23,7 +23,7 @@ class RouteCommonSectionRepositoryImpl(
 
   override fun findByRouteIdAndDirectionId(
     routeId: RouteId,
-    directionId: Int?
+    directionId: Int?,
   ): RouteCommonSection? {
     val routeEntity =
       routeJpaRepository.findById(routeId.value).orElseThrow {

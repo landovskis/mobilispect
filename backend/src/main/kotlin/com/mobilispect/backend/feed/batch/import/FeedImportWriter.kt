@@ -1,9 +1,6 @@
 package com.mobilispect.backend.feed.batch.import
 
 import com.mobilispect.backend.feed.api.GTFSData
-import com.mobilispect.backend.feed.model.ids.ImportId
-import com.mobilispect.backend.feed.service.FeedImportService
-import java.util.UUID
 import org.slf4j.LoggerFactory
 import org.springframework.batch.core.annotation.BeforeStep
 import org.springframework.batch.core.configuration.annotation.StepScope
@@ -15,7 +12,7 @@ import org.springframework.stereotype.Component
 
 @Component
 @StepScope
-class FeedImportWriter(private val feedImportService: FeedImportService) : ItemWriter<GTFSData> {
+class FeedImportWriter : ItemWriter<GTFSData> {
   private val logger = LoggerFactory.getLogger(FeedImportWriter::class.java)
 
   @Value("#{jobParameters['importId']}") lateinit var importId: String
@@ -29,27 +26,14 @@ class FeedImportWriter(private val feedImportService: FeedImportService) : ItemW
 
   override fun write(chunk: Chunk<out GTFSData>) {
     val parsedData = chunk.items.firstOrNull() ?: return
-    val importUuid =
-      runCatching { UUID.fromString(importId) }
-        .getOrElse { throw IllegalArgumentException("importId job parameter is required", it) }
-    val id = ImportId(importUuid)
 
-    runCatching {
-        feedImportService.completeImport(id, parsedData)
-
-        // Store parsed data in job execution context for subsequent steps
-        stepExecution?.jobExecution?.executionContext?.put("parsedData", parsedData)
-        logger.info(
-          "Stored parsed data in execution context: {} routes, {} trips, {} stops",
-          parsedData.routes.size,
-          parsedData.trips.size,
-          parsedData.stops.size,
-        )
-      }
-      .onFailure { throwable ->
-        logger.error("Feed import failed for {}", id, throwable)
-        feedImportService.failImport(id, throwable.message ?: "Import failed")
-        throw throwable
-      }
+    // Store parsed data in job execution context for subsequent steps
+    stepExecution?.jobExecution?.executionContext?.put("parsedData", parsedData)
+    logger.info(
+      "Stored parsed data in execution context: {} routes, {} trips, {} stops",
+      parsedData.routes.size,
+      parsedData.trips.size,
+      parsedData.stops.size,
+    )
   }
 }

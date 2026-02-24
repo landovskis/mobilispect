@@ -11,9 +11,9 @@ import org.springframework.transaction.PlatformTransactionManager
 /**
  * Tests for RegionImportJobConfig to ensure the job flow handles partition failures correctly.
  *
- * The key requirement is that the finalization step MUST run regardless of whether
- * the partitioned step succeeds or fails. This enables proper status determination
- * (COMPLETED, PARTIAL_SUCCESS, FAILED) based on actual feed import results.
+ * The key requirement is that the finalization step MUST run regardless of whether the partitioned
+ * step succeeds or fails. This enables proper status determination (COMPLETED, PARTIAL_SUCCESS,
+ * FAILED) based on actual feed import results.
  */
 class RegionImportJobConfigTest {
 
@@ -36,17 +36,18 @@ class RegionImportJobConfigTest {
     finalizationTasklet = mockk(relaxed = true)
     jobExecutionListener = mockk(relaxed = true)
 
-    config = RegionImportJobConfig(
-      jobRepository = jobRepository,
-      transactionManager = transactionManager,
-      feedPartitioner = feedPartitioner,
-      workerTasklet = workerTasklet,
-      initializationTasklet = initializationTasklet,
-      finalizationTasklet = finalizationTasklet,
-      jobExecutionListener = jobExecutionListener,
-      taskExecutor = SyncTaskExecutor(),
-      gridSize = 4,
-    )
+    config =
+      RegionImportJobConfig(
+        jobRepository = jobRepository,
+        transactionManager = transactionManager,
+        feedPartitioner = feedPartitioner,
+        workerTasklet = workerTasklet,
+        initializationTasklet = initializationTasklet,
+        finalizationTasklet = finalizationTasklet,
+        jobExecutionListener = jobExecutionListener,
+        taskExecutor = SyncTaskExecutor(),
+        gridSize = 4,
+      )
   }
 
   @Test

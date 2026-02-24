@@ -7,8 +7,8 @@ import com.mobilispect.backend.route.domain.model.RouteCommonSection
 import org.springframework.stereotype.Component
 
 /**
- * Mapper for bidirectional conversion between RouteCommonSection domain model
- * and RouteCommonSectionEntity data model.
+ * Mapper for bidirectional conversion between RouteCommonSection domain model and
+ * RouteCommonSectionEntity data model.
  */
 @Component
 class RouteCommonSectionMapper {
@@ -30,8 +30,8 @@ class RouteCommonSectionMapper {
     )
 
   /**
-   * Converts domain model to data entity. Requires the route entity to be provided
-   * by the caller for the relationship.
+   * Converts domain model to data entity. Requires the route entity to be provided by the caller
+   * for the relationship.
    *
    * @param domain The domain model to convert
    * @param routeEntity The route entity this common section belongs to
