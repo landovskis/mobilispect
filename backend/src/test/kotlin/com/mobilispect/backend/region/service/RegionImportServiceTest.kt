@@ -8,8 +8,10 @@ import com.mobilispect.backend.region.domain.RegionImportId
 import com.mobilispect.backend.region.domain.RegionImportStatus
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import java.util.Optional
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -118,5 +120,40 @@ class RegionImportServiceTest {
 
     assertThat(result).hasSize(2)
     assertThat(result).containsExactlyElementsOf(imports)
+  }
+
+  @Test
+  fun `failRegionImport marks import as failed and saves it`() {
+    val regionImportId = RegionImportId.random()
+    val regionImport =
+      RegionImport(
+        id = regionImportId,
+        regionOnestopId = "r-test",
+        triggerType = ImportTriggerType.MANUAL,
+        status = RegionImportStatus.RUNNING,
+        totalFeeds = 2,
+      )
+
+    every { regionImportRepository.findByImportId(regionImportId) } returns
+      Optional.of(regionImport)
+    every { regionImportRepository.save(regionImport) } returns regionImport
+
+    service.failRegionImport(regionImportId, "something went wrong")
+
+    assertThat(regionImport.status).isEqualTo(RegionImportStatus.FAILED)
+    assertThat(regionImport.errorMessage).isEqualTo("something went wrong")
+    assertThat(regionImport.completedAt).isNotNull()
+    verify { regionImportRepository.save(regionImport) }
+  }
+
+  @Test
+  fun `failRegionImport throws IllegalArgumentException when import not found`() {
+    val regionImportId = RegionImportId.random()
+
+    every { regionImportRepository.findByImportId(regionImportId) } returns Optional.empty()
+
+    assertThatThrownBy { service.failRegionImport(regionImportId, "error") }
+      .isInstanceOf(IllegalArgumentException::class.java)
+      .hasMessageContaining(regionImportId.toString())
   }
 }

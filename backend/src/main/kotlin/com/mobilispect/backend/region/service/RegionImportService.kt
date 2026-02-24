@@ -5,7 +5,6 @@ import com.mobilispect.backend.region.data.repository.RegionImportRepository
 import com.mobilispect.backend.region.domain.RegionImport
 import com.mobilispect.backend.region.domain.RegionImportId
 import com.mobilispect.backend.region.domain.RegionImportStatus
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
@@ -23,8 +22,6 @@ import org.springframework.transaction.annotation.Transactional
  */
 @Service
 class RegionImportService(private val regionImportRepository: RegionImportRepository) {
-  private val logger = LoggerFactory.getLogger(RegionImportService::class.java)
-
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   fun failRegionImport(regionImportId: RegionImportId, message: String) {
     val regionImport =
