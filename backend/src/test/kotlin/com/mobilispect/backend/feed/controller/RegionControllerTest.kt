@@ -1,8 +1,5 @@
 package com.mobilispect.backend.feed.controller
 
-import com.mobilispect.backend.api.BulkImportResponse
-import com.mobilispect.backend.api.FeedImportResult
-import com.mobilispect.backend.api.FeedImportResultStatus
 import com.mobilispect.backend.api.dto.FeedSpecType as FeedSpecTypeDto
 import com.mobilispect.backend.feed.model.FeedEntity
 import com.mobilispect.backend.feed.model.FeedSpecType
@@ -13,7 +10,6 @@ import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
 import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.controller.RegionController
 import com.mobilispect.backend.region.domain.MetropolitanRegion
-import com.mobilispect.backend.region.domain.RegionImportStatus
 import com.mobilispect.backend.region.service.RegionImportService
 import io.mockk.every
 import io.mockk.mockk
@@ -313,144 +309,6 @@ class RegionControllerTest {
     // Then
     assertThat(response.feeds).hasSize(1)
     assertThat(response.feeds.first().feedOnestopId).isEqualTo("f-active")
-  }
-
-  @Test
-  fun `importAllFeedsForRegion starts bulk import for all active feeds`() {
-    // Given
-    val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
-    val bulkImportResponse =
-      BulkImportResponse(
-        regionImportId = "region-import-123",
-        regionOnestopId = testRegionId,
-        status = RegionImportStatus.PENDING,
-        totalFeeds = 3,
-        startedCount = 3,
-        completedCount = 0,
-        failedCount = 0,
-        skippedCount = 0,
-        results =
-          listOf(
-            FeedImportResult(
-              feedOnestopId = "f-bart",
-              feedName = "BART",
-              status = FeedImportResultStatus.STARTED,
-              message = "Import started successfully",
-              importId = "import-1",
-            ),
-            FeedImportResult(
-              feedOnestopId = "f-muni",
-              feedName = "MUNI",
-              status = FeedImportResultStatus.STARTED,
-              message = "Import started successfully",
-              importId = "import-2",
-            ),
-            FeedImportResult(
-              feedOnestopId = "f-caltrain",
-              feedName = "Caltrain",
-              status = FeedImportResultStatus.STARTED,
-              message = "Import started successfully",
-              importId = "import-3",
-            ),
-          ),
-        startedAt = null,
-      )
-
-    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
-      Optional.of(region)
-    every { regionImportService.import(any(), any()) } returns bulkImportResponse
-
-    // When
-    val result = controller.importAllFeedsForRegion(testRegionId)
-
-    // Then
-    assertThat(result.regionOnestopId).isEqualTo(testRegionId)
-    assertThat(result.totalFeeds).isEqualTo(3)
-    assertThat(result.startedCount).isEqualTo(3)
-    assertThat(result.failedCount).isEqualTo(0)
-    assertThat(result.skippedCount).isEqualTo(0)
-    assertThat(result.results).hasSize(3)
-    verify { regionImportService.import(RegionId(testRegionId), any()) }
-  }
-
-  @Test
-  fun `importAllFeedsForRegion handles mixed results with failures and skips`() {
-    // Given
-    val region = createRegion(testRegionId, testRegionName, autoUpdate = true)
-    val bulkImportResponse =
-      BulkImportResponse(
-        regionImportId = "region-import-456",
-        regionOnestopId = testRegionId,
-        status = RegionImportStatus.PENDING,
-        totalFeeds = 4,
-        startedCount = 2,
-        completedCount = 0,
-        failedCount = 1,
-        skippedCount = 1,
-        results =
-          listOf(
-            FeedImportResult(
-              feedOnestopId = "f-bart",
-              feedName = "BART",
-              status = FeedImportResultStatus.STARTED,
-              message = "Import started successfully",
-              importId = "import-1",
-            ),
-            FeedImportResult(
-              feedOnestopId = "f-muni",
-              feedName = "MUNI",
-              status = FeedImportResultStatus.SKIPPED,
-              message = "Import already in progress",
-            ),
-            FeedImportResult(
-              feedOnestopId = "f-caltrain",
-              feedName = "Caltrain",
-              status = FeedImportResultStatus.FAILED,
-              message = "Feed not found",
-            ),
-            FeedImportResult(
-              feedOnestopId = "f-samtrans",
-              feedName = "SamTrans",
-              status = FeedImportResultStatus.STARTED,
-              message = "Import started successfully",
-              importId = "import-2",
-            ),
-          ),
-        startedAt = null,
-      )
-
-    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
-      Optional.of(region)
-    every { regionImportService.import(any(), any()) } returns bulkImportResponse
-
-    // When
-    val result = controller.importAllFeedsForRegion(testRegionId)
-
-    // Then
-    assertThat(result.totalFeeds).isEqualTo(4)
-    assertThat(result.startedCount).isEqualTo(2)
-    assertThat(result.failedCount).isEqualTo(1)
-    assertThat(result.skippedCount).isEqualTo(1)
-    assertThat(result.results).hasSize(4)
-    assertThat(result.results).anyMatch { it.status == FeedImportResultStatus.STARTED }
-    assertThat(result.results).anyMatch { it.status == FeedImportResultStatus.FAILED }
-    assertThat(result.results).anyMatch { it.status == FeedImportResultStatus.SKIPPED }
-  }
-
-  @Test
-  fun `importAllFeedsForRegion throws not found when region does not exist`() {
-    // Given
-    every { regionRepository.findByRegionOnestopId(RegionId(testRegionId)) } returns
-      Optional.empty()
-
-    // When/Then
-    try {
-      controller.importAllFeedsForRegion(testRegionId)
-      throw AssertionError("Expected ResponseStatusException")
-    } catch (e: ResponseStatusException) {
-      assertThat(e.statusCode.value()).isEqualTo(404)
-      assertThat(e.reason).contains("Region not found")
-    }
   }
 
   private fun createRegion(id: String, name: String, autoUpdate: Boolean): MetropolitanRegion {

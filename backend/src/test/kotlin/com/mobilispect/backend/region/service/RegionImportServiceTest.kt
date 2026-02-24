@@ -1,10 +1,5 @@
 package com.mobilispect.backend.region.service
 
-import com.mobilispect.backend.feed.FeedApi
-import com.mobilispect.backend.feed.domain.model.Feed
-import com.mobilispect.backend.feed.domain.model.ids.FeedId
-import com.mobilispect.backend.feed.model.FeedSpecType
-import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.region.RegionId
 import com.mobilispect.backend.region.data.repository.RegionImportRepository
@@ -13,63 +8,57 @@ import com.mobilispect.backend.region.domain.RegionImportId
 import com.mobilispect.backend.region.domain.RegionImportStatus
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import java.util.Optional
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.batch.core.job.Job
-import org.springframework.batch.core.job.parameters.JobParameters
-import org.springframework.batch.core.launch.JobLauncher
-import org.springframework.core.task.TaskExecutor
 
 class RegionImportServiceTest {
-  private lateinit var feedApi: FeedApi
   private lateinit var regionImportRepository: RegionImportRepository
-  private lateinit var jobLauncher: JobLauncher
-  private lateinit var regionImportJob: Job
-  private lateinit var taskExecutor: TaskExecutor
   private lateinit var service: RegionImportService
 
   @BeforeEach
   fun setUp() {
-    feedApi = mockk()
     regionImportRepository = mockk()
-    jobLauncher = mockk()
-    regionImportJob = mockk { every { name } returns "regionImportJob" }
-    taskExecutor = TaskExecutor { runnable -> runnable.run() }
+    service = RegionImportService(regionImportRepository = regionImportRepository)
+  }
 
-    service =
-      RegionImportService(
-        feedApi = feedApi,
-        regionImportRepository = regionImportRepository,
-        jobLauncher = jobLauncher,
-        regionImportJob = regionImportJob,
-        importLaunchExecutor = taskExecutor,
+  @Test
+  fun `getRegionImport returns import when found`() {
+    val regionImportId = RegionImportId.random()
+    val regionImport =
+      RegionImport(
+        id = regionImportId,
+        regionOnestopId = "r-test",
+        triggerType = ImportTriggerType.MANUAL,
+        status = RegionImportStatus.RUNNING,
+        totalFeeds = 2,
       )
+
+    every { regionImportRepository.findByImportId(regionImportId) } returns
+      Optional.of(regionImport)
+
+    val result = service.getRegionImport(regionImportId)
+
+    assertThat(result).isEqualTo(regionImport)
   }
 
   @Test
-  fun `returns completed response when no active feeds exist`() {
-    val regionId = RegionId("r-empty")
-    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
-    every {
-      regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
-    } returns Optional.empty()
-    every { feedApi.findActiveFeedsByRegion(regionId) } returns emptyList()
+  fun `getRegionImport returns null when not found`() {
+    val regionImportId = RegionImportId.random()
 
-    val response = service.import(regionId, ImportTriggerType.MANUAL)
+    every { regionImportRepository.findByImportId(regionImportId) } returns Optional.empty()
 
-    assertThat(response.status).isEqualTo(RegionImportStatus.COMPLETED)
-    assertThat(response.totalFeeds).isZero()
-    assertThat(response.regionImportId).isNull()
-    verify(exactly = 0) { regionImportRepository.save(any()) }
+    val result = service.getRegionImport(regionImportId)
+
+    assertThat(result).isNull()
   }
 
   @Test
-  fun `returns existing import when one is active`() {
+  fun `getActiveImportForRegion returns active import when one exists`() {
     val regionId = RegionId("r-active")
-    val existingImport =
+    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+    val regionImport =
       RegionImport(
         id = RegionImportId.random(),
         regionOnestopId = regionId.value,
@@ -78,57 +67,56 @@ class RegionImportServiceTest {
         totalFeeds = 3,
       )
 
-    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
     every {
       regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
-    } returns Optional.of(existingImport)
+    } returns Optional.of(regionImport)
 
-    val response = service.import(regionId, ImportTriggerType.MANUAL)
+    val result = service.getActiveImportForRegion(regionId)
 
-    assertThat(response.regionImportId).isEqualTo(existingImport.id.value.toString())
-    assertThat(response.status).isEqualTo(existingImport.status)
-    verify(exactly = 0) { regionImportRepository.save(any()) }
-    verify(exactly = 0) { feedApi.findActiveFeedsByRegion(regionId) }
+    assertThat(result).isEqualTo(regionImport)
   }
 
   @Test
-  fun `creates region import and launches job for active feeds`() {
-    val regionId = RegionId("r-start")
-    val feeds = listOf(feed("f-1", regionId), feed("f-2", regionId))
-    val regionImportId = RegionImportId.random()
-    val savedImport =
-      RegionImport(
-        id = regionImportId,
-        regionOnestopId = regionId.value,
-        triggerType = ImportTriggerType.MANUAL,
-        status = RegionImportStatus.PENDING,
-        totalFeeds = feeds.size,
-      )
-
+  fun `getActiveImportForRegion returns null when no active import`() {
+    val regionId = RegionId("r-quiet")
     val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+
     every {
       regionImportRepository.findActiveByRegionOnestopId(regionId.value, activeStatuses)
     } returns Optional.empty()
-    every { feedApi.findActiveFeedsByRegion(regionId) } returns feeds
-    every { regionImportRepository.save(any()) } returns savedImport
-    every { jobLauncher.run(regionImportJob, any<JobParameters>()) } returns mockk()
 
-    val response = service.import(regionId, ImportTriggerType.MANUAL)
+    val result = service.getActiveImportForRegion(regionId)
 
-    assertThat(response.regionImportId).isEqualTo(regionImportId.value.toString())
-    assertThat(response.totalFeeds).isEqualTo(feeds.size)
-    assertThat(response.status).isEqualTo(RegionImportStatus.PENDING)
-    verify(exactly = 1) { jobLauncher.run(regionImportJob, any<JobParameters>()) }
+    assertThat(result).isNull()
   }
 
-  private fun feed(feedId: String, regionId: RegionId): Feed {
-    return Feed(
-      feedId = FeedId(feedId),
-      name = "Feed $feedId",
-      specType = FeedSpecType.GTFS,
-      downloadUrl = "https://example.com/$feedId.zip",
-      status = FeedStatus.ACTIVE,
-      regionIds = setOf(regionId),
-    )
+  @Test
+  fun `getActiveRegionImports returns all pending and running imports`() {
+    val activeStatuses = listOf(RegionImportStatus.PENDING, RegionImportStatus.RUNNING)
+    val imports =
+      listOf(
+        RegionImport(
+          id = RegionImportId.random(),
+          regionOnestopId = "r-1",
+          triggerType = ImportTriggerType.MANUAL,
+          status = RegionImportStatus.PENDING,
+          totalFeeds = 1,
+        ),
+        RegionImport(
+          id = RegionImportId.random(),
+          regionOnestopId = "r-2",
+          triggerType = ImportTriggerType.MANUAL,
+          status = RegionImportStatus.RUNNING,
+          totalFeeds = 2,
+        ),
+      )
+
+    every { regionImportRepository.findAllByStatusInOrderByCreatedAtAsc(activeStatuses) } returns
+      imports
+
+    val result = service.getActiveRegionImports()
+
+    assertThat(result).hasSize(2)
+    assertThat(result).containsExactlyElementsOf(imports)
   }
 }
