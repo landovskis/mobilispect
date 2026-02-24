@@ -91,7 +91,7 @@ paths:
                       type: Feature
                       geometry:
                         type: MultiPolygon
-                        coordinates: [[[[- 73.58, 45.49], [-73.51, 45.49], [-73.51, 45.51], [-73.58, 45.51], [-73.58, 45.49]]]]
+                        coordinates: [[[[-73.58, 45.49], [-73.51, 45.49], [-73.51, 45.51], [-73.58, 45.51], [-73.58, 45.49]]]]
                       properties:
                         cutoffMinutes: 15
                   - cutoffMinutes: 30
@@ -100,7 +100,7 @@ paths:
                       type: Feature
                       geometry:
                         type: MultiPolygon
-                        coordinates: [[[[- 73.62, 45.47], [-73.47, 45.47], [-73.47, 45.53], [-73.62, 45.53], [-73.62, 45.47]]]]
+                        coordinates: [[[[-73.62, 45.47], [-73.47, 45.47], [-73.47, 45.53], [-73.62, 45.53], [-73.62, 45.47]]]]
                       properties:
                         cutoffMinutes: 30
                 computedAt: "2026-02-19T09:00:01Z"

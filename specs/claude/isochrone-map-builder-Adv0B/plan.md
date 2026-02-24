@@ -13,6 +13,7 @@ origin point within configurable time thresholds (15/30/45/60 min) for three tra
 modes — transit, walking, and cycling.
 
 **Technical approach**:
+
 - **Routing engine**: OpenTripPlanner (OTP) 2.x as a sidecar container; consumes GTFS
   feeds already imported into Mobilispect + OSM extracts
 - **Backend**: New Spring Modulith module `isochrone` — proxies OTP, caches results
@@ -27,15 +28,20 @@ modes — transit, walking, and cycling.
 
 **Language/Version**: Kotlin 2.3, Java 25 (backend); TypeScript / Angular 21 (frontend)
 **Primary Dependencies**:
-  - Backend: Spring Boot 4.0, Spring Modulith, Resilience4j (circuit breaker for OTP calls), Redis (Spring Data Redis / Lettuce)
-  - Frontend: MapLibre GL JS 4.x (`maplibre-gl` npm), Angular Material 21, RxJS 7.8
+
+- Backend: Spring Boot 4.0, Spring Modulith, Resilience4j (circuit breaker for OTP calls),
+  Redis (Spring Data Redis / Lettuce)
+- Frontend: MapLibre GL JS 4.x (`maplibre-gl` npm), Angular Material 21, RxJS 7.8
 **Storage**: No new database tables; Redis for isochrone response cache
-**Testing**: Backend — JUnit 5 / MockK / Testcontainers (PostgreSQL); Frontend — Jest / Playwright (Chromium, Firefox, WebKit)
+**Testing**: Backend — JUnit 5 / MockK / Testcontainers (PostgreSQL);
+Frontend — Jest / Playwright (Chromium, Firefox, WebKit)
 **Target Platform**: Linux server (OTP sidecar), web browser (Angular SPA)
 **Project Type**: Web (frontend + backend)
 **Performance Goals**: API p95 ≤ 200 ms (cache hit); first computation ≤ 5 s (OTP call, acceptable for cold start)
-**Constraints**: OTP must be isolated behind backend proxy (not internet-accessible); WCAG 2.1 AA; 60 fps map interactions
-**Scale/Scope**: Same 5 metro regions as current (Montreal, Toronto, Vancouver, Ottawa, SF Bay); up to ~1 000 unique origin points per hour per region
+**Constraints**: OTP must be isolated behind backend proxy (not internet-accessible);
+WCAG 2.1 AA; 60 fps map interactions
+**Scale/Scope**: Same 5 metro regions as current (Montreal, Toronto, Vancouver, Ottawa, SF Bay);
+up to ~1 000 unique origin points per hour per region
 
 ---
 
@@ -43,15 +49,21 @@ modes — transit, walking, and cycling.
 
 ### Simplicity
 
-- **Projects**: 2 — `backend` (Kotlin Spring), `frontend/web` (Angular). OTP is infrastructure, not a new project. ✓ (≤ 3 max)
-- **Framework direct**: OTP called via its own REST API — no wrapper class hierarchy beyond a thin `OtpClient` data-fetcher. ✓
-- **Single data model**: `IsochroneResult` used end-to-end; separate `OtpIsochroneResponse` only because OTP's schema differs from our API (unavoidable serialisation boundary). ✓
-- **Avoiding patterns**: No Repository pattern (no DB); no Unit of Work. Redis accessed via `StringRedisTemplate` directly. ✓
+- **Projects**: 2 — `backend` (Kotlin Spring), `frontend/web` (Angular). OTP is infrastructure, not a new project.
+  ✓ (≤ 3 max)
+- **Framework direct**: OTP called via its own REST API — no wrapper class hierarchy beyond a thin `OtpClient`
+  data-fetcher. ✓
+- **Single data model**: `IsochroneResult` used end-to-end; separate `OtpIsochroneResponse` only because
+  OTP's schema differs from our API (unavoidable serialisation boundary). ✓
+- **Avoiding patterns**: No Repository pattern (no DB); no Unit of Work. Redis accessed via `StringRedisTemplate`
+  directly. ✓
 
 ### Architecture
 
-- **Spring Modulith boundary**: New module `isochrone` — public API is `IsochroneQueryService` only. No cross-module DB access. ✓
-- **Libraries**: `isochrone` module (Spring Modulith) + `isochrone-map` Angular feature module. Both are self-contained. ✓
+- **Spring Modulith boundary**: New module `isochrone` — public API is `IsochroneQueryService` only.
+  No cross-module DB access. ✓
+- **Libraries**: `isochrone` module (Spring Modulith) + `isochrone-map` Angular feature module.
+  Both are self-contained. ✓
 - **Frontend module**: Angular lazy-loaded feature module at `/isochrone` route. ✓
 
 ### Testing (NON-NEGOTIABLE)
@@ -65,7 +77,8 @@ modes — transit, walking, and cycling.
 ### Observability
 
 - Structured logging: computation start/end, cache hit/miss, OTP latency — all via SLF4J MDC ✓
-- Metrics: `isochrone.computation.duration`, `isochrone.cache.hits`, `isochrone.cache.misses`, `isochrone.otp.errors` via Micrometer ✓
+- Metrics: `isochrone.computation.duration`, `isochrone.cache.hits`, `isochrone.cache.misses`,
+  `isochrone.otp.errors` via Micrometer ✓
 - Traces: OpenTelemetry span from HTTP request → OTP call → cache write ✓
 
 ### Versioning
@@ -79,7 +92,7 @@ modes — transit, walking, and cycling.
 
 ### Documentation (this feature)
 
-```
+```text
 specs/claude/isochrone-map-builder-Adv0B/
 ├── plan.md              ← this file
 ├── research.md          ← Phase 0 ✓
@@ -92,7 +105,7 @@ specs/claude/isochrone-map-builder-Adv0B/
 
 ### Backend Source (new isochrone module)
 
-```
+```text
 backend/src/main/kotlin/com/mobilispect/backend/isochrone/
 ├── IsochroneModule.kt              ← Spring Modulith module marker
 ├── domain/
@@ -103,8 +116,7 @@ backend/src/main/kotlin/com/mobilispect/backend/isochrone/
 ├── application/
 │   └── IsochroneQueryService.kt    ← public module API
 ├── internal/
-│   ├── OtpClient.kt                ← HTTP client to OTP (WebClient)
-│   ├── OtpIsochroneRequest.kt      ← OTP-specific request shape
+│   ├── OtpClient.kt                ← HTTP client to OTP (WebClient; builds query params directly)
 │   ├── OtpIsochroneResponse.kt     ← OTP-specific response shape
 │   └── IsochroneCache.kt           ← Redis cache adapter
 └── api/
@@ -128,7 +140,7 @@ backend/src/integrationTest/kotlin/com/mobilispect/backend/isochrone/
 
 ### Backend Infrastructure (OTP config)
 
-```
+```text
 backend/src/main/resources/
 └── application.yml   ← new `mobilispect.otp.*` config block
 
@@ -141,7 +153,7 @@ docker-compose.yml    ← new `otp` service
 
 ### Frontend Source (new isochrone-map module)
 
-```
+```text
 frontend/web/src/app/isochrone-map/
 ├── isochrone-map.routes.ts              ← lazy-loaded route definition
 ├── models/
@@ -177,7 +189,7 @@ frontend/web/e2e/
 
 ### ADRs (required before implementation)
 
-```
+```text
 docs/adr/
 ├── 0011-otp-as-routing-engine.md
 └── 0012-maplibre-gl-js-map-library.md
@@ -188,6 +200,7 @@ docs/adr/
 ## Phase 0: Research — COMPLETE
 
 See `research.md`. All unknowns resolved:
+
 - [x] Routing engine: OpenTripPlanner 2.x
 - [x] Map library: MapLibre GL JS 4.x
 - [x] Cache strategy: Redis, 1 h / 24 h TTL
@@ -203,15 +216,17 @@ See `research.md`. All unknowns resolved:
 See `data-model.md`, `contracts/isochrone-api.yaml`, and `quickstart.md`.
 
 **Entities designed**:
+
 - `IsochroneRequest`, `IsochroneResult`, `IsochroneBand`, `TravelMode` (backend)
 - `IsochroneRequest`, `IsochroneResponse`, `IsochroneBand` (frontend TypeScript)
-- OTP internal DTOs: `OtpIsochroneRequest`, `OtpIsochroneResponse`
+- OTP internal DTO: `OtpIsochroneResponse` (no request DTO — OtpClient builds query params directly)
 
 **Contract**: OpenAPI 3.1 — `GET /api/v1/isochrones` with full request/response schema
 
 **No DB migrations required** — isochrone computation is stateless (Redis cache only)
 
 **Infrastructure additions**:
+
 - OTP sidecar in `docker-compose.yml`
 - `mobilispect.otp.base-url` and `mobilispect.otp.timeout-seconds` in `application.yml`
 - `maplibre-gl` npm package in `frontend/web/package.json`
@@ -233,6 +248,7 @@ infrastructure library needed.
 Base: `templates/tasks-template.md`
 
 **Source inputs**:
+
 - `contracts/isochrone-api.yaml` → contract test tasks
 - `data-model.md` → model/DTO creation tasks
 - `quickstart.md` → integration scenario tasks
@@ -241,6 +257,7 @@ Base: `templates/tasks-template.md`
 ### Task Categories and Ordering
 
 **Chunk A — Foundation (no dependencies)**
+
 1. Write ADR 0011 (OTP routing engine)
 2. Write ADR 0012 (MapLibre GL JS)
 3. Add OTP sidecar to `docker-compose.yml`
@@ -291,14 +308,15 @@ Base: `templates/tasks-template.md`
 38. Run `pre-commit run --all-files`
 
 **Estimated tasks**: 38 numbered, dependency-ordered tasks
-**Parallel opportunities** [P]: ADR writing (1+2 parallel), backend RED tests (5-9 parallel once domain objects exist), frontend RED tests (17-22 parallel), frontend GREEN components (26-29 parallel)
+**Parallel opportunities** [P]: ADR writing (1+2 parallel), backend RED tests (5-9 parallel once domain objects exist),
+frontend RED tests (17-22 parallel), frontend GREEN components (26-29 parallel)
 
 ---
 
 ## Complexity Tracking
 
 | Item | Justification |
-|---|---|
+| --- | --- |
 | OTP sidecar container | External routing engine is industry standard; building a BFS transit graph is 10× more work and less accurate. ADR 0011 documents decision. |
 | Two OTP-specific internal DTOs | OTP's API schema differs from Mobilispect's API schema. Serialisation boundary is unavoidable. |
 | MapLibre GL JS | No existing map library in project. ADR 0012 required. Leaflet rejected (no WebGL; 60fps target at risk). |
@@ -308,6 +326,7 @@ Base: `templates/tasks-template.md`
 ## Progress Tracking
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning approach described (/plan command)
@@ -316,6 +335,7 @@ Base: `templates/tasks-template.md`
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS
 - [x] Post-Design Constitution Check: PASS
 - [x] All NEEDS CLARIFICATION resolved

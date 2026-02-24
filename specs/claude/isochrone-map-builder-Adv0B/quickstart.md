@@ -12,6 +12,7 @@ An interactive isochrone map that shows areas reachable from any point in a tran
 region within configurable time thresholds, for transit, walking, and cycling.
 
 **User Journey**:
+
 1. User opens the Isochrone Map page (new route: `/isochrone`)
 2. User clicks a point on the map (or types an address)
 3. User selects travel mode: Transit / Walk / Bike
@@ -86,6 +87,7 @@ curl -s "http://localhost:8090/api/v1/isochrones?lat=45.5017&lon=-73.5673&mode=T
 ```
 
 **Expected**:
+
 ```json
 {
   "mode": "TRANSIT",
@@ -154,6 +156,7 @@ Expected: Map renders with base tiles (OpenFreeMap), no polygons yet.
 Click anywhere on the Montreal area.
 
 Expected:
+
 - Loading spinner appears
 - Coloured polygons appear within 3 seconds (first call, uncached)
 - 4 colour bands visible (15/30/45/60 min)
@@ -164,6 +167,7 @@ Expected:
 Click "Walk" tab.
 
 Expected:
+
 - Previous polygons fade out
 - New walk-mode polygons appear (typically smaller, more circular than transit)
 - Legend updates to reflect walk mode
@@ -173,11 +177,13 @@ Expected:
 Click "Bike" tab.
 
 Expected:
+
 - Bike polygons appear (larger than walk, directional)
 
 ### 5. Keyboard Navigation (Accessibility)
 
 Tab through controls:
+
 - Travel mode selector: focusable, arrow-key navigable
 - Time cutoff checkboxes: all focusable, Enter/Space toggles
 - Origin clear button: focusable, Enter clears selection
@@ -189,6 +195,7 @@ Screen reader: All controls have accessible labels; polygon layers have ARIA des
 Toggle dark mode (theme button in app shell).
 
 Expected:
+
 - Map tiles switch to dark style
 - Polygon colours remain distinguishable (WCAG 2.1 AA contrast maintained)
 - Controls follow Material dark theme
@@ -262,7 +269,7 @@ done
 ## Troubleshooting
 
 | Symptom | Likely Cause | Fix |
-|---|---|---|
+| --- | --- | --- |
 | 502 from backend | OTP not running | `docker compose up otp -d` |
 | OTP returns empty features | Graph not built for that region | Ensure GTFS + OSM files in `.otp/graphs/default/` |
 | Map tiles don't load | No internet / tile provider down | Check browser console for tile URL errors |

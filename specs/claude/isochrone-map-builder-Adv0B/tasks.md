@@ -17,10 +17,18 @@ contracts/isochrone-api.yaml, quickstart.md
 - [ ] T001 [P] Write ADR `docs/adr/0011-otp-as-routing-engine.md` documenting the
   decision to use OpenTripPlanner 2.x as the routing/isochrone engine (sections:
   Title, Status, Context, Decision, Consequences, Alternatives — see constitution).
+  - [ ] Submit PR and request review from architecture team (`@arch-team`)
+  - [ ] ADR accepted only after team sign-off is recorded in the PR or ADR Status field
+  - [ ] Update ADR Status from `Proposed` to `Accepted` once approved
+  **This ADR must be accepted before implementation tasks (T007+) may begin.**
 
 - [ ] T002 [P] Write ADR `docs/adr/0012-maplibre-gl-js-map-library.md` documenting
   the decision to use MapLibre GL JS as the frontend map library (same required
   sections; note Leaflet/OpenLayers/Google Maps alternatives considered).
+  - [ ] Submit PR and request review from architecture team (`@arch-team`)
+  - [ ] ADR accepted only after team sign-off is recorded in the PR or ADR Status field
+  - [ ] Update ADR Status from `Proposed` to `Accepted` once approved
+  **This ADR must be accepted before implementation tasks (T026+) may begin.**
 
 - [ ] T003 Add `otp` service to `docker-compose.yml`. Use image
   `docker.io/opentripplanner/opentripplanner:2` with volume mount
@@ -33,12 +41,14 @@ contracts/isochrone-api.yaml, quickstart.md
 
 - [ ] T005 Add OTP configuration block to
   `backend/src/main/resources/application.yml`:
+
   ```yaml
   mobilispect:
     otp:
       base-url: ${OTP_BASE_URL:http://localhost:8080}
       timeout-seconds: ${OTP_TIMEOUT_SECONDS:10}
   ```
+
   Add corresponding env var defaults to `docker-compose.yml` for the backend service.
 
 - [ ] T006 Install `maplibre-gl` npm package in `frontend/web`:
@@ -191,6 +201,7 @@ and verify a red (compilation or assertion) failure.**
 - [ ] T019 Create
   `backend/src/main/kotlin/com/mobilispect/backend/isochrone/internal/RoutingEngineException.kt`
   — sealed class hierarchy:
+
   ```kotlin
   sealed class RoutingEngineException(message: String) : RuntimeException(message)
   class RoutingEngineUnavailableException(cause: Throwable? = null) : RoutingEngineException("OTP unavailable")
@@ -255,6 +266,7 @@ and verify a red (compilation or assertion) failure.**
     colour table), `geojson` (deserialised from raw JSON string to `Any`).
   - `ErrorResponseDto.kt` — data class with `error: String` and `message: String`.
   Include colour mapping:
+
   ```kotlin
   private val BAND_COLORS = mapOf(15 to "#1a9641", 30 to "#a6d96a", 45 to "#ffffbf",
       60 to "#fdae61", 90 to "#d7191c")
@@ -262,15 +274,18 @@ and verify a red (compilation or assertion) failure.**
       BAND_COLORS[cutoffMinutes] ?: BAND_COLORS.entries.minByOrNull {
           abs(it.key - cutoffMinutes) }!!.value
   ```
+
   *(Depends on T014, T015, T016)*
 
 - [ ] T024 Implement
   `backend/src/main/kotlin/com/mobilispect/backend/isochrone/api/IsochroneController.kt`
   — `@RestController @RequestMapping("/api/v1/isochrones")`. Inject
   `IsochroneQueryService`. Single handler:
+
   ```kotlin
   @GetMapping fun get(@ModelAttribute params: IsochroneRequestParams): ResponseEntity<*>
   ```
+
   - Call `params.toDomain()` — catch `IllegalArgumentException` → 400 with
     `ErrorResponseDto("INVALID_PARAMETERS", ex.message)`.
   - Call `IsochroneQueryService.query(request)`.
@@ -282,15 +297,19 @@ and verify a red (compilation or assertion) failure.**
   *(Depends on T022, T023)*
 
 - [ ] T025 Run all backend unit and contract tests:
+
   ```bash
   ./backend/gradlew -p backend test -x integrationTest
   ```
+
   All T007–T011 tests must now be GREEN. Fix any compilation or logic errors
   before proceeding. Then run:
+
   ```bash
   ./backend/gradlew ktlintFormat
   ./backend/gradlew detekt
   ```
+
   *(Depends on T024)*
 
 ---
@@ -461,15 +480,19 @@ and verify a red (compilation or assertion) failure.**
   *(Depends on T034, T035, T036, T037, T038)*
 
 - [ ] T040 Run all frontend unit tests and fix failures:
+
   ```bash
   cd frontend/web && npm test -- --watchAll=false --testPathPattern=isochrone
   ```
+
   All T026–T030 specs must be GREEN. Then format and lint:
+
   ```bash
   npm run format
   npm run lint -- --fix
   npm run ng lint
   ```
+
   *(Depends on T039)*
 
 ---
@@ -477,37 +500,47 @@ and verify a red (compilation or assertion) failure.**
 ## Phase 3.10 — Validation
 
 - [ ] T041 Validate backend test coverage meets the ≥ 80% constitutional threshold:
+
   ```bash
   ./scripts/validate-coverage.sh backend
   ```
+
   If below threshold, add targeted unit tests to the weakest area (most likely
   `IsochroneCache` or `OtpClient`) and re-run.
 
 - [ ] T042 Validate frontend test coverage meets the ≥ 80% constitutional threshold:
+
   ```bash
   ./scripts/validate-coverage.sh frontend/web
   ```
+
   Add tests if below threshold.
 
 - [ ] T043 Run Playwright E2E tests across all three browsers:
+
   ```bash
   cd frontend/web && npm run e2e -- --grep="isochrone"
   ```
+
   Tests run against Chromium, Firefox, and WebKit (configured in `playwright.config.ts`).
   All must pass. Fix any failures — do not skip browsers.
 
 - [ ] T044 Run Spring Modulith boundary verification:
+
   ```bash
   ./backend/gradlew -p backend test --tests '*ModularityTests'
   ```
+
   Assert no illegal cross-module access introduced by the new `isochrone` module.
   If `ModularityTests` doesn't exist yet, create it at
   `backend/src/test/kotlin/com/mobilispect/backend/ModularityTests.kt`.
 
 - [ ] T045 Run all pre-commit hooks on all files:
+
   ```bash
   pre-commit run --all-files
   ```
+
   All hooks must pass (ktlint, detekt, Prettier, ESLint, ng lint, test execution,
   coverage validation). Fix any remaining issues.
 
@@ -515,7 +548,7 @@ and verify a red (compilation or assertion) failure.**
 
 ## Dependency Graph
 
-```
+```text
 T001,T002 (ADRs)           ← no deps, [P] together
 T003,T004,T005,T006        ← no deps, [P] together
    ↓
@@ -554,13 +587,15 @@ T041,T042,T043,T044,T045   ← validation, sequential order shown
 ## Parallel Execution Examples
 
 ### Chunk 1 — ADRs (T001 + T002)
-```
+
+```text
 Task agent A: "Write docs/adr/0011-otp-as-routing-engine.md"
 Task agent B: "Write docs/adr/0012-maplibre-gl-js-map-library.md"
 ```
 
 ### Chunk 2 — Infrastructure (T003 + T004 + T005 + T006)
-```
+
+```text
 Task agent A: "Add OTP sidecar to docker-compose.yml (T003)"
 Task agent B: "Update .gitignore for .otp/ artefacts (T004)"
 Task agent C: "Add OTP config block to application.yml (T005)"
@@ -568,7 +603,8 @@ Task agent D: "Install maplibre-gl npm package (T006)"
 ```
 
 ### Chunk 3 — Backend RED tests (T007 + T008 + T009 + T010)
-```
+
+```text
 Task agent A: "Write IsochroneControllerContractTest — confirm FAIL"
 Task agent B: "Write IsochroneQueryServiceTest — confirm FAIL"
 Task agent C: "Write OtpClientTest with WireMock — confirm FAIL"
@@ -576,13 +612,15 @@ Task agent D: "Write IsochroneCacheTest — confirm FAIL"
 ```
 
 ### Chunk 4 — Domain objects (T012 + T013)
-```
+
+```text
 Task agent A: "Create TravelMode.kt"
 Task agent B: "Create IsochroneBand.kt"
 ```
 
 ### Chunk 5 — Frontend RED tests (T026–T031)
-```
+
+```text
 Task agent A: "Write IsochroneService spec — confirm FAIL"
 Task agent B: "Write IsochroneMapComponent spec — confirm FAIL"
 Task agent C: "Write TravelModeSelectorComponent spec — confirm FAIL"
@@ -591,7 +629,8 @@ Task agent D: "Write CutoffSelectorComponent spec — confirm FAIL"
 ```
 
 ### Chunk 6 — Frontend leaf components (T035 + T036 + T037)
-```
+
+```text
 Task agent A: "Implement TravelModeSelectorComponent"
 Task agent B: "Implement CutoffSelectorComponent"
 Task agent C: "Implement IsochroneLegendComponent"
@@ -600,6 +639,7 @@ Task agent C: "Implement IsochroneLegendComponent"
 ---
 
 ## Validation Checklist
+
 *(Gate before marking tasks complete)*
 
 - [x] All contracts have corresponding tests — `isochrone-api.yaml` → T007 covers
