@@ -4,19 +4,19 @@ import com.mobilispect.backend.route.domain.model.RouteVariant
 import org.springframework.stereotype.Service
 
 /**
- * Service for detecting the longest continuous section of stops shared by ALL variants
- * in a given direction.
+ * Service for detecting the longest continuous section of stops shared by ALL variants in a given
+ * direction.
  *
- * Unlike the general CommonSectionDetectionService which finds pairwise overlaps,
- * this service finds the single longest sequence of consecutive stops that appears
- * in ALL provided variants.
+ * Unlike the general CommonSectionDetectionService which finds pairwise overlaps, this service
+ * finds the single longest sequence of consecutive stops that appears in ALL provided variants.
  */
 interface RouteCommonSectionDetectionService {
   /**
    * Detects the longest continuous section of stops shared by all variants.
    *
    * @param variants List of route variants to analyze (should all be from same route/direction)
-   * @return CommonSectionResult containing the stop IDs and names, or null if no common section found
+   * @return CommonSectionResult containing the stop IDs and names, or null if no common section
+   *   found
    */
   fun detectCommonSection(variants: List<RouteVariant>): CommonSectionResult?
 }
@@ -27,10 +27,7 @@ interface RouteCommonSectionDetectionService {
  * @property stopIds Pipe-separated list of stop IDs (e.g., "stop1|stop2|stop3")
  * @property stopNames List of stop names in order
  */
-data class CommonSectionResult(
-  val stopIds: String,
-  val stopNames: List<String>,
-)
+data class CommonSectionResult(val stopIds: String, val stopNames: List<String>)
 
 @Service
 class RouteCommonSectionDetectionServiceImpl : RouteCommonSectionDetectionService {
@@ -50,15 +47,10 @@ class RouteCommonSectionDetectionServiceImpl : RouteCommonSectionDetectionServic
     // Get corresponding stop names from the first variant (they should be consistent)
     val stopNames = findStopNamesForSequence(longestCommon, stopSequences[0], stopNameSequences[0])
 
-    return CommonSectionResult(
-      stopIds = longestCommon.joinToString("|"),
-      stopNames = stopNames,
-    )
+    return CommonSectionResult(stopIds = longestCommon.joinToString("|"), stopNames = stopNames)
   }
 
-  /**
-   * Finds the longest continuous sequence of stops that appears in ALL stop sequences.
-   */
+  /** Finds the longest continuous sequence of stops that appears in ALL stop sequences. */
   private fun findLongestCommonContinuousSequence(sequences: List<List<String>>): List<String> {
     if (sequences.isEmpty()) return emptyList()
 
@@ -89,10 +81,11 @@ class RouteCommonSectionDetectionServiceImpl : RouteCommonSectionDetectionServic
     return longestCommon
   }
 
-  /**
-   * Checks if a sequence contains a continuous subsequence.
-   */
-  private fun containsContinuousSequence(sequence: List<String>, subsequence: List<String>): Boolean {
+  /** Checks if a sequence contains a continuous subsequence. */
+  private fun containsContinuousSequence(
+    sequence: List<String>,
+    subsequence: List<String>,
+  ): Boolean {
     if (subsequence.size > sequence.size) return false
     if (subsequence.isEmpty()) return true
 
@@ -105,13 +98,11 @@ class RouteCommonSectionDetectionServiceImpl : RouteCommonSectionDetectionServic
     return false
   }
 
-  /**
-   * Finds the stop names corresponding to a sequence of stop IDs.
-   */
+  /** Finds the stop names corresponding to a sequence of stop IDs. */
   private fun findStopNamesForSequence(
     stopIds: List<String>,
     fullStopSequence: List<String>,
-    fullStopNameSequence: List<String>
+    fullStopNameSequence: List<String>,
   ): List<String> {
     if (fullStopNameSequence.isEmpty()) {
       return stopIds // Fallback to stop IDs if names not available

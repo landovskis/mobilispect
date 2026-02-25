@@ -1,6 +1,5 @@
 package com.mobilispect.backend.region.controller
 
-import com.mobilispect.backend.api.BulkImportResponse
 import com.mobilispect.backend.api.dto.FeedDTO
 import com.mobilispect.backend.api.dto.FeedSpecType
 import com.mobilispect.backend.api.dto.FeedStatus
@@ -8,7 +7,6 @@ import com.mobilispect.backend.api.dto.FeedsResponse
 import com.mobilispect.backend.api.dto.MetropolitanRegionDTO
 import com.mobilispect.backend.api.dto.RegionsResponse
 import com.mobilispect.backend.feed.model.FeedEntity
-import com.mobilispect.backend.feed.model.ImportTriggerType
 import com.mobilispect.backend.feed.repository.FeedAuthenticationRepository
 import com.mobilispect.backend.feed.repository.FeedRepository
 import com.mobilispect.backend.feed.repository.MetropolitanRegionRepository
@@ -24,7 +22,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -113,30 +110,6 @@ class RegionController(
     val feedDtos = feeds.map { toFeedDto(region.regionOnestopId.value, it) }
 
     return FeedsResponse(feeds = feedDtos, total = feedDtos.size)
-  }
-
-  /**
-   * Start bulk import for all active feeds in a region.
-   *
-   * This endpoint triggers import jobs for all ACTIVE feeds in the specified region. It uses a
-   * continue-on-failure approach, so individual feed failures won't stop the entire operation.
-   * Feeds that already have active imports will be automatically skipped.
-   *
-   * @param regionId The region identifier
-   * @return Summary of the bulk import operation including counts and per-feed results
-   */
-  @PostMapping("/{regionId}/import-all")
-  @Transactional
-  fun importAllFeedsForRegion(@PathVariable regionId: String): BulkImportResponse {
-    // Verify region exists
-    regionRepository.findByRegionOnestopId(RegionId(regionId)).orElseThrow {
-      ResponseStatusException(HttpStatus.NOT_FOUND, "${"Region"} not found: $regionId")
-    }
-
-    return regionImportService.import(
-      regionId = RegionId(regionId),
-      triggerType = ImportTriggerType.MANUAL,
-    )
   }
 
   /**

@@ -1,9 +1,6 @@
 package com.mobilispect.backend.route.api.dto
 
-/**
- * DTO for the longest continuous section of stops shared by ALL variants
- * in a given direction.
- */
+/** DTO for the longest continuous section of stops shared by ALL variants in a given direction. */
 data class RouteCommonSectionDTO(
   val id: String,
   val routeId: String,

@@ -19,8 +19,8 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * Handler that detects and persists the longest continuous section of stops
- * shared by ALL variants in each direction of a route.
+ * Handler that detects and persists the longest continuous section of stops shared by ALL variants
+ * in each direction of a route.
  *
  * This handler:
  * 1. Groups variants by route and direction
@@ -47,7 +47,10 @@ class RouteCommonSectionFeedDataHandler(
     val variants = routeVariantRepository.findAll()
 
     if (variants.isEmpty()) {
-      logger.debug("No route variants found for feed {}, skipping common section detection", feedId.value)
+      logger.debug(
+        "No route variants found for feed {}, skipping common section detection",
+        feedId.value,
+      )
       return ImportResult.Success(0)
     }
 
@@ -69,22 +72,24 @@ class RouteCommonSectionFeedDataHandler(
         if (commonSectionResult != null) {
           // Create RouteCommonSection domain model
           val stopIds = commonSectionResult.stopIds.split("|")
-          val commonSection = RouteCommonSection(
-            id = generateId(routeId, directionId, commonSectionResult.stopIds),
-            routeId = routeId,
-            directionId = directionId,
-            stopPattern = commonSectionResult.stopIds,
-            stopNamePattern = commonSectionResult.stopNames.joinToString("|"),
-            stopCount = stopIds.size,
-            firstStopId = stopIds.first(),
-            lastStopId = stopIds.last(),
-            variantCount = routeVariants.size,
-            createdAt = Instant.now(),
-            updatedAt = Instant.now(),
-          )
+          val commonSection =
+            RouteCommonSection(
+              id = generateId(routeId, directionId, commonSectionResult.stopIds),
+              routeId = routeId,
+              directionId = directionId,
+              stopPattern = commonSectionResult.stopIds,
+              stopNamePattern = commonSectionResult.stopNames.joinToString("|"),
+              stopCount = stopIds.size,
+              firstStopId = stopIds.first(),
+              lastStopId = stopIds.last(),
+              variantCount = routeVariants.size,
+              createdAt = Instant.now(),
+              updatedAt = Instant.now(),
+            )
 
           // Check if already exists
-          val existing = routeCommonSectionRepository.findByRouteIdAndDirectionId(routeId, directionId)
+          val existing =
+            routeCommonSectionRepository.findByRouteIdAndDirectionId(routeId, directionId)
 
           if (existing != null) {
             // Update if pattern changed
@@ -96,10 +101,7 @@ class RouteCommonSectionFeedDataHandler(
                 commonSection.stopCount,
               )
               routeCommonSectionRepository.save(
-                commonSection.copy(
-                  createdAt = existing.createdAt,
-                  updatedAt = Instant.now(),
-                )
+                commonSection.copy(createdAt = existing.createdAt, updatedAt = Instant.now())
               )
               sectionsCreated++
             }
@@ -153,9 +155,7 @@ class RouteCommonSectionFeedDataHandler(
     }
   }
 
-  /**
-   * Generates a deterministic ID (SHA-256 hash) for a route common section.
-   */
+  /** Generates a deterministic ID (SHA-256 hash) for a route common section. */
   private fun generateId(routeId: RouteId, directionId: Int?, stopPattern: String): String {
     val input = "${routeId.value}_${directionId ?: "null"}_$stopPattern"
     val digest = MessageDigest.getInstance("SHA-256")

@@ -1,6 +1,5 @@
 package com.mobilispect.backend
 
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
@@ -34,7 +33,6 @@ import org.springframework.scheduling.annotation.EnableScheduling
 )
 @EnableScheduling
 @EnableAsync
-@EnableBatchProcessing
 class MobilispectApplication
 
 fun main(args: Array<String>) {

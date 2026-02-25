@@ -120,8 +120,8 @@ class FrequencyQueryService(
   }
 
   /**
-   * Get common sections (longest continuous stop sequences shared by all variants)
-   * for a route, grouped by direction.
+   * Get common sections (longest continuous stop sequences shared by all variants) for a route,
+   * grouped by direction.
    *
    * @param routeId The route ID
    * @return List of common sections for each direction
