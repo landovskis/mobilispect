@@ -43,6 +43,7 @@ class ParallelRouteMergeControllerTest {
         feedId = FeedId("f-abc-test"),
         distanceThresholdMeters = 200.0,
         minimumFrequencyMinutes = null,
+        frequencyDifferenceThresholdMinutes = null,
       )
     } returns listOf(group)
 
@@ -70,6 +71,7 @@ class ParallelRouteMergeControllerTest {
         feedId = FeedId("f-abc-test"),
         distanceThresholdMeters = 200.0,
         minimumFrequencyMinutes = 30.0,
+        frequencyDifferenceThresholdMinutes = null,
       )
     } returns emptyList()
 
@@ -89,6 +91,39 @@ class ParallelRouteMergeControllerTest {
         feedId = FeedId("f-abc-test"),
         distanceThresholdMeters = 200.0,
         minimumFrequencyMinutes = 30.0,
+        frequencyDifferenceThresholdMinutes = null,
+      )
+    }
+  }
+
+  @Test
+  fun `GET parallel-routes passes frequencyDifferenceThresholdMinutes to service when provided`() {
+    every {
+      mergeService.findParallelRouteGroups(
+        feedId = FeedId("f-abc-test"),
+        distanceThresholdMeters = 200.0,
+        minimumFrequencyMinutes = null,
+        frequencyDifferenceThresholdMinutes = 10.0,
+      )
+    } returns emptyList()
+
+    val result =
+      mockMvc
+        .get("/api/v1/routes/parallel") {
+          param("feedId", "f-abc-test")
+          param("distanceThresholdMeters", "200.0")
+          param("frequencyDifferenceThresholdMinutes", "10.0")
+          accept(MediaType.APPLICATION_JSON)
+        }
+        .andReturn()
+
+    assertThat(result.response.status).isEqualTo(200)
+    verify(exactly = 1) {
+      mergeService.findParallelRouteGroups(
+        feedId = FeedId("f-abc-test"),
+        distanceThresholdMeters = 200.0,
+        minimumFrequencyMinutes = null,
+        frequencyDifferenceThresholdMinutes = 10.0,
       )
     }
   }

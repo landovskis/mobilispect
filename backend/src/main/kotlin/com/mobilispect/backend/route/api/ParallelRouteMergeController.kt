@@ -26,18 +26,22 @@ class ParallelRouteMergeController(private val mergeService: ParallelRouteMergeS
    *   than this threshold are considered parallel
    * @param minimumFrequencyMinutes Optional ceiling on average headway (minutes); variants with a
    *   longer headway are excluded from the analysis
+   * @param frequencyDifferenceThresholdMinutes Optional maximum allowed headway difference
+   *   (minutes) between two variants for them to be proposed for merging
    */
   @GetMapping("/parallel")
   fun getParallelRoutes(
     @RequestParam feedId: String,
     @RequestParam distanceThresholdMeters: Double,
     @RequestParam(required = false) minimumFrequencyMinutes: Double?,
+    @RequestParam(required = false) frequencyDifferenceThresholdMinutes: Double?,
   ): List<ParallelRouteGroupDTO> =
     mergeService
       .findParallelRouteGroups(
         feedId = FeedId(feedId),
         distanceThresholdMeters = distanceThresholdMeters,
         minimumFrequencyMinutes = minimumFrequencyMinutes,
+        frequencyDifferenceThresholdMinutes = frequencyDifferenceThresholdMinutes,
       )
       .map { ParallelRouteGroupDTO.fromDomain(it) }
 }

@@ -4,6 +4,8 @@ import com.mobilispect.backend.route.RouteId
 import com.mobilispect.backend.route.domain.model.ParallelRouteGroup
 import com.mobilispect.backend.route.domain.model.RouteVariantWithStops
 import com.mobilispect.backend.route.domain.model.StopWithLocation
+import com.mobilispect.backend.route.domain.model.ids.VariantHash
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -24,11 +26,18 @@ interface ParallelRouteDetectionService {
    * @param variants Route variants enriched with stop coordinates
    * @param thresholdMeters Maximum average Hausdorff distance (metres) for two variants to be
    *   considered parallel
+   * @param frequencyByVariant Average headway (minutes) keyed by variant ID; used with
+   *   [frequencyDifferenceThresholdMinutes]
+   * @param frequencyDifferenceThresholdMinutes When set, two variants are only considered parallel
+   *   if the absolute difference between their headways is at or below this value. Variants with no
+   *   entry in [frequencyByVariant] are excluded when this threshold is active.
    * @return Groups of parallel variants; groups with fewer than two variants are omitted
    */
   fun detectParallelRoutes(
     variants: List<RouteVariantWithStops>,
     thresholdMeters: Double,
+    frequencyByVariant: Map<VariantHash, Double?> = emptyMap(),
+    frequencyDifferenceThresholdMinutes: Double? = null,
   ): List<ParallelRouteGroup>
 }
 
@@ -38,6 +47,8 @@ class ParallelRouteDetectionServiceImpl : ParallelRouteDetectionService {
   override fun detectParallelRoutes(
     variants: List<RouteVariantWithStops>,
     thresholdMeters: Double,
+    frequencyByVariant: Map<VariantHash, Double?>,
+    frequencyDifferenceThresholdMinutes: Double?,
   ): List<ParallelRouteGroup> {
     if (variants.size < 2) return emptyList()
 
@@ -45,7 +56,15 @@ class ParallelRouteDetectionServiceImpl : ParallelRouteDetectionService {
     val parallelPairs = mutableListOf<Pair<Int, Int>>()
     for (i in variants.indices) {
       for (j in i + 1 until variants.size) {
-        if (areParallel(variants[i], variants[j], thresholdMeters)) {
+        if (
+          areParallel(
+            variants[i],
+            variants[j],
+            thresholdMeters,
+            frequencyByVariant,
+            frequencyDifferenceThresholdMinutes,
+          )
+        ) {
           parallelPairs.add(i to j)
         }
       }
@@ -77,13 +96,27 @@ class ParallelRouteDetectionServiceImpl : ParallelRouteDetectionService {
 
   // ── private helpers ───────────────────────────────────────────────────────────
 
-  /** Returns true when the average directed Hausdorff distance is ≤ threshold. */
+  /**
+   * Returns true when:
+   * 1. Neither variant has an empty stop list.
+   * 2. When [frequencyDifferenceThreshold] is set, both variants have a known headway and the
+   *    absolute difference is at or below the threshold.
+   * 3. The average directed Hausdorff distance is ≤ [threshold].
+   */
   private fun areParallel(
     a: RouteVariantWithStops,
     b: RouteVariantWithStops,
     threshold: Double,
+    frequencyByVariant: Map<VariantHash, Double?>,
+    frequencyDifferenceThreshold: Double?,
   ): Boolean {
     if (a.stops.isEmpty() || b.stops.isEmpty()) return false
+    if (frequencyDifferenceThreshold != null) {
+      val freqA = frequencyByVariant[a.variant.id]
+      val freqB = frequencyByVariant[b.variant.id]
+      if (freqA == null || freqB == null) return false
+      if (abs(freqA - freqB) > frequencyDifferenceThreshold) return false
+    }
     return averageHausdorffDistance(a, b) <= threshold
   }
 

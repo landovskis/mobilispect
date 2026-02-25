@@ -151,6 +151,62 @@ class ParallelRouteDetectionServiceTest {
     assertThat(result).hasSize(2)
   }
 
+  @Test
+  fun `does not propose merge when frequency difference exceeds threshold`() {
+    val variantA = buildVariantWithStops("v-001", "route-A", listOf(stopA1, stopA2, stopA3))
+    val variantB = buildVariantWithStops("v-002", "route-B", listOf(stopB1, stopB2, stopB3))
+    // A runs every 10 min, B runs every 30 min — difference is 20 min > threshold of 10 min
+    val freqMap = mapOf(variantA.variant.id to 10.0, variantB.variant.id to 30.0)
+
+    val result =
+      service.detectParallelRoutes(
+        listOf(variantA, variantB),
+        thresholdMeters = 200.0,
+        frequencyByVariant = freqMap,
+        frequencyDifferenceThresholdMinutes = 10.0,
+      )
+
+    assertThat(result).isEmpty()
+  }
+
+  @Test
+  fun `proposes merge when frequency difference is within threshold`() {
+    val variantA = buildVariantWithStops("v-001", "route-A", listOf(stopA1, stopA2, stopA3))
+    val variantB = buildVariantWithStops("v-002", "route-B", listOf(stopB1, stopB2, stopB3))
+    // A runs every 10 min, B runs every 15 min — difference is 5 min <= threshold of 10 min
+    val freqMap = mapOf(variantA.variant.id to 10.0, variantB.variant.id to 15.0)
+
+    val result =
+      service.detectParallelRoutes(
+        listOf(variantA, variantB),
+        thresholdMeters = 200.0,
+        frequencyByVariant = freqMap,
+        frequencyDifferenceThresholdMinutes = 10.0,
+      )
+
+    assertThat(result).hasSize(1)
+    assertThat(result.first().routeIds)
+      .containsExactlyInAnyOrder(RouteId("route-A"), RouteId("route-B"))
+  }
+
+  @Test
+  fun `does not propose merge when one variant has no frequency data and threshold is set`() {
+    val variantA = buildVariantWithStops("v-001", "route-A", listOf(stopA1, stopA2, stopA3))
+    val variantB = buildVariantWithStops("v-002", "route-B", listOf(stopB1, stopB2, stopB3))
+    // Only A has frequency data; B is missing
+    val freqMap = mapOf(variantA.variant.id to 10.0)
+
+    val result =
+      service.detectParallelRoutes(
+        listOf(variantA, variantB),
+        thresholdMeters = 200.0,
+        frequencyByVariant = freqMap,
+        frequencyDifferenceThresholdMinutes = 10.0,
+      )
+
+    assertThat(result).isEmpty()
+  }
+
   // ── helpers ──────────────────────────────────────────────────────────────────
 
   private fun buildVariantWithStops(

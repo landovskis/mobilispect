@@ -4,6 +4,7 @@ import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.route.domain.model.ParallelRouteGroup
 import com.mobilispect.backend.route.domain.model.RouteVariantWithStops
 import com.mobilispect.backend.route.domain.model.StopWithLocation
+import com.mobilispect.backend.route.domain.model.ids.VariantHash
 import com.mobilispect.backend.route.domain.repository.FrequencyRepository
 import com.mobilispect.backend.route.domain.repository.RouteVariantRepository
 import com.mobilispect.backend.route.domain.service.ParallelRouteDetectionService
@@ -15,8 +16,9 @@ import org.springframework.stereotype.Service
  *
  * Two route variants are considered parallel when the average Hausdorff distance between their stop
  * corridors is at or below [distanceThresholdMeters]. An optional [minimumFrequencyMinutes]
- * parameter filters out routes whose average headway exceeds the specified value, so only
- * sufficiently-frequent routes are considered for merging.
+ * parameter filters out routes whose average headway exceeds the specified value. An optional
+ * [frequencyDifferenceThresholdMinutes] parameter prevents merging routes whose headways differ by
+ * more than the given amount.
  */
 @Service
 class ParallelRouteMergeService(
@@ -35,12 +37,16 @@ class ParallelRouteMergeService(
    * @param minimumFrequencyMinutes Optional headway ceiling (minutes). When provided, variants
    *   without a frequency record or with an average headway exceeding this value are excluded from
    *   the analysis.
+   * @param frequencyDifferenceThresholdMinutes Optional maximum allowed difference (minutes) between
+   *   the headways of two variants for them to be proposed for merging. Variants with no frequency
+   *   record are excluded when this threshold is active.
    * @return List of parallel route groups; empty when none found
    */
   fun findParallelRouteGroups(
     feedId: FeedId,
     distanceThresholdMeters: Double,
     minimumFrequencyMinutes: Double? = null,
+    frequencyDifferenceThresholdMinutes: Double? = null,
   ): List<ParallelRouteGroup> {
     // ── 1. Load stops for the feed, indexed by GTFS stop ID ──────────────────
     val stopsByGtfsId = stopQueryApi.findStopsByFeed(feedId).associateBy { it.gtfsStopId }
@@ -63,7 +69,18 @@ class ParallelRouteMergeService(
         feedVariants
       }
 
-    // ── 4. Enrich variants with stop coordinates ──────────────────────────────
+    // ── 4. Build frequency map for difference check (if requested) ────────────
+    val frequencyByVariant: Map<VariantHash, Double?> =
+      if (frequencyDifferenceThresholdMinutes != null) {
+        eligibleVariants.associate { v ->
+          val recent = frequencyRepository.findRecentByVariant(v.id.value, 1)
+          v.id to recent.firstOrNull()?.averageHeadway
+        }
+      } else {
+        emptyMap()
+      }
+
+    // ── 5. Enrich variants with stop coordinates ──────────────────────────────
     val variantsWithStops =
       eligibleVariants.map { v ->
         val gtfsStopIds = v.stopPattern.split("|").filter { it.isNotEmpty() }
@@ -74,7 +91,12 @@ class ParallelRouteMergeService(
         RouteVariantWithStops(v, stops)
       }
 
-    // ── 5. Detect and return parallel groups ──────────────────────────────────
-    return detectionService.detectParallelRoutes(variantsWithStops, distanceThresholdMeters)
+    // ── 6. Detect and return parallel groups ──────────────────────────────────
+    return detectionService.detectParallelRoutes(
+      variantsWithStops,
+      distanceThresholdMeters,
+      frequencyByVariant,
+      frequencyDifferenceThresholdMinutes,
+    )
   }
 }
