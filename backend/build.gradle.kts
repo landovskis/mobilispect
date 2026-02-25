@@ -50,12 +50,10 @@ dependencies {
     implementation(libs.protobuf.kotlin)
     implementation(libs.resilience4j.spring)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation(libs.spring.boot.batch)
     implementation(libs.spring.modulith.api)
     runtimeOnly(libs.spring.modulith.runtime)
 
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
-    testImplementation(libs.spring.batch.test)
     testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
@@ -72,10 +70,6 @@ dependencies {
 }
 
 // Define source sets for different test types (Constitutional TDD Requirement)
-// TODO: Fix integrationTest and e2eTest source set classpath configuration.
-// Current issue: Kotlin compiler doesn't pick up spring-batch-core dependencies
-// despite them being in the configuration. The workaround is to skip integration
-// test compilation in CI until this is resolved.
 val integrationTest by sourceSets.creating
 
 val e2eTest by sourceSets.creating
