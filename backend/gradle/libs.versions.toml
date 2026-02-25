@@ -5,8 +5,6 @@ kotlinxCoroutines = "1.8.1"
 kotlinxSerializationCSV = "2.0.0"
 kotlinxSerialization = "1.9.0"
 conveyalGtfs = "6.2.0"
-protobufCompiler = "0.9.4"
-protobuf = "4.27.2"
 resilience4j = "2.2.0"
 springBoot = "4.0.0"
 springDependency = "1.1.7"
@@ -34,7 +32,6 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 # GTFS Parsing
 conveyal-gtfs = { module = "com.conveyal:gtfs-lib", version.ref = "conveyalGtfs" }
 
-protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin", version.ref = "protobuf" }
 
 # Fault Tolerance
 resilience4j-spring = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
@@ -58,8 +55,6 @@ testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
-
-protobuf = { id = "com.google.protobuf", version.ref = "protobufCompiler" }
 
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 spring-dependency = { id = "io.spring.dependency-management", version.ref = "springDependency" }
