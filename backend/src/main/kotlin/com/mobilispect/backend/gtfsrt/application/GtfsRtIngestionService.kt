@@ -1,15 +1,10 @@
 package com.mobilispect.backend.gtfsrt.application
 
-import com.mobilispect.backend.feed.batch.discovery.FeedDiscoveryBatchService
-import com.mobilispect.backend.feed.domain.model.Feed
 import com.mobilispect.backend.feed.domain.repository.FeedRepository
-import com.mobilispect.backend.feed.model.FeedSpecType
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.gtfsrt.domain.model.GtfsRtFetchResult
 import com.mobilispect.backend.gtfsrt.infrastructure.ParallelGtfsRtFetcher
 import io.micrometer.core.instrument.MeterRegistry
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -20,42 +15,43 @@ import org.springframework.stereotype.Service
  * Main GTFS-RT ingestion service.
  *
  * Orchestrates parallel fetching of GTFS-RT feeds with:
- * - On-demand discovery if no feeds exist
  * - Parallel fetching via coroutines
  * - Deduplication to skip unchanged feeds
  * - Processing and persistence of realtime data
+ *
+ * Feed discovery is handled by the Airflow pipeline, which populates feeds into the database.
+ * This service reads active feeds with realtime URLs and ingests them.
  *
  * Per ADR 0011.
  */
 @Service
 class GtfsRtIngestionService(
   private val feedRepository: FeedRepository,
-  private val feedDiscoveryBatchService: FeedDiscoveryBatchService,
   private val fetcher: ParallelGtfsRtFetcher,
   private val processor: GtfsRtProcessingService,
   private val meterRegistry: MeterRegistry,
 ) {
 
   private val logger = LoggerFactory.getLogger(GtfsRtIngestionService::class.java)
-  private val discoveryInProgress = AtomicBoolean(false)
 
   /**
    * Main ingestion entry point. Runs every 30 seconds by default.
    *
-   * 1. Queries for feeds with realtimeFeedUrl
-   * 2. If none found, triggers on-demand discovery
-   * 3. Fetches all feeds in parallel
-   * 4. Processes results (decode, persist)
+   * 1. Queries for active feeds with realtimeFeedUrl
+   * 2. Fetches all feeds in parallel
+   * 3. Processes results (decode, persist)
+   *
+   * Feed discovery is handled by the Airflow pipeline; this service only ingests existing feeds.
    */
   @Scheduled(fixedRateString = "\${gtfsrt.ingestion.interval-ms:30000}")
   fun ingest() = runBlocking {
     val startTime = System.currentTimeMillis()
 
     try {
-      val feeds = getOrDiscoverFeeds()
+      val feeds = feedRepository.findByStatusAndRealtimeFeedUrlNotNull(FeedStatus.ACTIVE)
 
       if (feeds.isEmpty()) {
-        logger.info("No GTFS-RT feeds available after discovery attempt")
+        logger.info("No GTFS-RT feeds available — waiting for Airflow discovery pipeline")
         meterRegistry.counter("gtfsrt.ingestion.no_feeds").increment()
         return@runBlocking
       }
@@ -75,43 +71,6 @@ class GtfsRtIngestionService(
       logger.error("GTFS-RT ingestion cycle failed", e)
       meterRegistry.counter("gtfsrt.ingestion.cycle_error").increment()
     }
-  }
-
-  private suspend fun getOrDiscoverFeeds(): List<Feed> {
-    val feeds = feedRepository.findByStatusAndRealtimeFeedUrlNotNull(FeedStatus.ACTIVE)
-
-    if (feeds.isNotEmpty()) {
-      return feeds
-    }
-
-    // No feeds found — trigger discovery if not already running
-    if (discoveryInProgress.compareAndSet(false, true)) {
-      try {
-        logger.info("No GTFS-RT feeds found, triggering feed discovery")
-        meterRegistry.counter("gtfsrt.discovery.triggered").increment()
-
-        val result = feedDiscoveryBatchService.discoverAll(FeedSpecType.GTFS)
-
-        logger.info(
-          "Feed discovery complete: {} feeds discovered, {} regions found",
-          result.feedsFound,
-          result.regionsFound,
-        )
-      } catch (e: Exception) {
-        logger.error("On-demand feed discovery failed", e)
-      } finally {
-        discoveryInProgress.set(false)
-      }
-    } else {
-      logger.info("Discovery already in progress, waiting...")
-      // Wait for in-progress discovery to complete
-      while (discoveryInProgress.get()) {
-        delay(1000)
-      }
-    }
-
-    // Re-query after discovery
-    return feedRepository.findByStatusAndRealtimeFeedUrlNotNull(FeedStatus.ACTIVE)
   }
 
   private suspend fun handleResult(result: GtfsRtFetchResult, stats: IngestionStats) {

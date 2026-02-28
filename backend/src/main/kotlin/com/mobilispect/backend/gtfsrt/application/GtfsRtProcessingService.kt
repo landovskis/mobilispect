@@ -20,6 +20,9 @@ import com.mobilispect.backend.gtfsrt.domain.model.UnchangedReason
 import com.mobilispect.backend.gtfsrt.domain.model.VehiclePosition
 import com.mobilispect.backend.gtfsrt.domain.model.VehicleStopStatus
 import com.mobilispect.backend.gtfsrt.domain.repository.GtfsRtFeedStateRepository
+import com.mobilispect.backend.gtfsrt.domain.repository.ServiceAlertRepository
+import com.mobilispect.backend.gtfsrt.domain.repository.TripUpdateRepository
+import com.mobilispect.backend.gtfsrt.domain.repository.VehiclePositionRepository
 import io.micrometer.core.instrument.MeterRegistry
 import java.time.Instant
 import org.slf4j.LoggerFactory
@@ -37,6 +40,9 @@ import org.springframework.stereotype.Service
 @Service
 class GtfsRtProcessingService(
   private val feedStateRepository: GtfsRtFeedStateRepository,
+  private val vehiclePositionRepository: VehiclePositionRepository,
+  private val tripUpdateRepository: TripUpdateRepository,
+  private val serviceAlertRepository: ServiceAlertRepository,
   private val meterRegistry: MeterRegistry,
 ) {
 
@@ -115,7 +121,7 @@ class GtfsRtProcessingService(
         parseTripUpdate(feedId, entity)?.let { tripUpdates.add(it) }
       }
       if (entity.hasAlert()) {
-        parseServiceAlert(feedId, entity)?.let { alerts.add(it) }
+        alerts.add(parseServiceAlert(feedId, entity))
       }
     }
 
@@ -257,7 +263,6 @@ class GtfsRtProcessingService(
       GtfsRealtime.TripDescriptor.ScheduleRelationship.CANCELED -> TripScheduleRelationship.CANCELED
       GtfsRealtime.TripDescriptor.ScheduleRelationship.REPLACEMENT -> TripScheduleRelationship.REPLACEMENT
       GtfsRealtime.TripDescriptor.ScheduleRelationship.DUPLICATED -> TripScheduleRelationship.DUPLICATED
-      GtfsRealtime.TripDescriptor.ScheduleRelationship.DELETED -> TripScheduleRelationship.DELETED
     }
   }
 
@@ -304,11 +309,15 @@ class GtfsRtProcessingService(
   }
 
   private fun processEntities(feedId: FeedId, parsedFeed: ParsedGtfsRtFeed): Int {
-    // TODO: Implement entity persistence
-    // - Batch persist vehicle positions to database
-    // - Apply map matching for vehicle positions (ADR 0012)
-    // - Batch persist trip updates
-    // - Batch persist service alerts
+    if (parsedFeed.vehiclePositions.isNotEmpty()) {
+      vehiclePositionRepository.saveAll(parsedFeed.vehiclePositions)
+    }
+    if (parsedFeed.tripUpdates.isNotEmpty()) {
+      tripUpdateRepository.saveAll(parsedFeed.tripUpdates)
+    }
+    if (parsedFeed.alerts.isNotEmpty()) {
+      serviceAlertRepository.saveAll(parsedFeed.alerts)
+    }
 
     val totalCount = parsedFeed.vehiclePositions.size + parsedFeed.tripUpdates.size + parsedFeed.alerts.size
 
@@ -323,7 +332,7 @@ class GtfsRtProcessingService(
       .increment(parsedFeed.alerts.size.toDouble())
 
     logger.info(
-      "Feed {}: parsed {} vehicle positions, {} trip updates, {} alerts",
+      "Feed {}: persisted {} vehicle positions, {} trip updates, {} alerts",
       feedId,
       parsedFeed.vehiclePositions.size,
       parsedFeed.tripUpdates.size,

@@ -5,6 +5,9 @@ import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.gtfsrt.domain.model.GtfsRtFeedState
 import com.mobilispect.backend.gtfsrt.domain.model.GtfsRtFetchResult
 import com.mobilispect.backend.gtfsrt.infrastructure.InMemoryGtfsRtFeedStateRepository
+import com.mobilispect.backend.gtfsrt.infrastructure.InMemoryServiceAlertRepository
+import com.mobilispect.backend.gtfsrt.infrastructure.InMemoryTripUpdateRepository
+import com.mobilispect.backend.gtfsrt.infrastructure.InMemoryVehiclePositionRepository
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import java.time.Instant
 import kotlinx.coroutines.test.runTest
@@ -16,14 +19,26 @@ import kotlin.test.assertIs
 class GtfsRtProcessingServiceTest {
 
   private lateinit var feedStateRepository: InMemoryGtfsRtFeedStateRepository
+  private lateinit var vehiclePositionRepository: InMemoryVehiclePositionRepository
+  private lateinit var tripUpdateRepository: InMemoryTripUpdateRepository
+  private lateinit var serviceAlertRepository: InMemoryServiceAlertRepository
   private lateinit var meterRegistry: SimpleMeterRegistry
   private lateinit var processingService: GtfsRtProcessingService
 
   @BeforeEach
   fun setUp() {
     feedStateRepository = InMemoryGtfsRtFeedStateRepository()
+    vehiclePositionRepository = InMemoryVehiclePositionRepository()
+    tripUpdateRepository = InMemoryTripUpdateRepository()
+    serviceAlertRepository = InMemoryServiceAlertRepository()
     meterRegistry = SimpleMeterRegistry()
-    processingService = GtfsRtProcessingService(feedStateRepository, meterRegistry)
+    processingService = GtfsRtProcessingService(
+      feedStateRepository,
+      vehiclePositionRepository,
+      tripUpdateRepository,
+      serviceAlertRepository,
+      meterRegistry,
+    )
   }
 
   @Test
@@ -210,6 +225,69 @@ class GtfsRtProcessingServiceTest {
 
     assertIs<ProcessingOutcome.Processed>(outcome)
     assertEquals(5, outcome.entityCount)
+  }
+
+  @Test
+  fun `process persists vehicle positions to repository`() = runTest {
+    val feedId = FeedId("test-feed")
+    val timestamp = System.currentTimeMillis() / 1000
+    val result = GtfsRtFetchResult.NewData(
+      feedId = feedId,
+      data = createVehiclePositionFeed(timestamp),
+      contentHash = "abc123",
+      etag = null,
+      lastModified = null,
+      fetchedAt = Instant.now(),
+    )
+
+    processingService.process(result)
+
+    val saved = vehiclePositionRepository.findAll()
+    assertEquals(1, saved.size)
+    assertEquals("vehicle-1", saved[0].vehicleId)
+    assertEquals(feedId, saved[0].feedId)
+  }
+
+  @Test
+  fun `process persists trip updates to repository`() = runTest {
+    val feedId = FeedId("test-feed")
+    val timestamp = System.currentTimeMillis() / 1000
+    val result = GtfsRtFetchResult.NewData(
+      feedId = feedId,
+      data = createTripUpdateFeed(timestamp),
+      contentHash = "abc123",
+      etag = null,
+      lastModified = null,
+      fetchedAt = Instant.now(),
+    )
+
+    processingService.process(result)
+
+    val saved = tripUpdateRepository.findAll()
+    assertEquals(1, saved.size)
+    assertEquals("trip-1", saved[0].tripId)
+    assertEquals(feedId, saved[0].feedId)
+  }
+
+  @Test
+  fun `process persists service alerts to repository`() = runTest {
+    val feedId = FeedId("test-feed")
+    val timestamp = System.currentTimeMillis() / 1000
+    val result = GtfsRtFetchResult.NewData(
+      feedId = feedId,
+      data = createServiceAlertFeed(timestamp),
+      contentHash = "abc123",
+      etag = null,
+      lastModified = null,
+      fetchedAt = Instant.now(),
+    )
+
+    processingService.process(result)
+
+    val saved = serviceAlertRepository.findAll()
+    assertEquals(1, saved.size)
+    assertEquals("alert-1", saved[0].alertId)
+    assertEquals(feedId, saved[0].feedId)
   }
 
   private fun createVehiclePositionFeed(timestamp: Long): ByteArray {

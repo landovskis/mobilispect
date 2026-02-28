@@ -32,7 +32,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 
 # GTFS Parsing
 conveyal-gtfs = { module = "com.conveyal:gtfs-lib", version.ref = "conveyalGtfs" }
-gtfs-realtime-bindings = { module = "com.google.transit:gtfs-realtime-bindings", version.ref = "gtfsRealtimeBindings" }
+gtfs-realtime-bindings = { module = "org.mobilitydata:gtfs-realtime-bindings", version.ref = "gtfsRealtimeBindings" }
 
 # Fault Tolerance
 resilience4j-spring = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
