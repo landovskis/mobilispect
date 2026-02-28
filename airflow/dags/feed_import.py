@@ -2,9 +2,8 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from airflow.decorators import dag, task
-from airflow.operators.python import get_current_context
-from airflow.utils.trigger_rule import TriggerRule
+from airflow.sdk import dag, task, get_current_context
+from airflow.task.trigger_rule import TriggerRule
 
 from pipeline import gtfs, processing
 from pipeline.models import FeedImportPayload, PersistResult
