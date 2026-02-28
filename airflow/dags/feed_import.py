@@ -1,10 +1,13 @@
+import logging
 import os
-from datetime import datetime
+import zipfile
+from datetime import datetime, timedelta
 from typing import Optional
 
-from airflow.decorators import dag, task
-from airflow.operators.python import get_current_context
-from airflow.utils.trigger_rule import TriggerRule
+from airflow.sdk import dag, task, get_current_context
+from airflow.task.trigger_rule import TriggerRule
+
+log = logging.getLogger(__name__)
 
 from pipeline import gtfs, processing
 from pipeline.models import FeedImportPayload, PersistResult
@@ -56,13 +59,16 @@ def feed_import() -> None:
     def should_continue(start_result: FeedImportPayload) -> bool:
         return start_result.get("status") == "STARTED"
 
-    @task
+    @task(retries=3, retry_delay=timedelta(minutes=2))
     def download_feed(start_result: FeedImportPayload) -> str:
         import_id: Optional[str] = start_result["import_id"]
         download_url: Optional[str] = start_result["download_url"]
         if not import_id or not download_url:
             raise RuntimeError("import_id and download_url are required")
+        log.info("Downloading GTFS feed from %s", download_url)
         zip_path = gtfs.download_gtfs_zip(download_url, import_id)
+        if not zipfile.is_zipfile(zip_path):
+            raise RuntimeError(f"Downloaded file is not a valid zip: {download_url}")
         file_size = os.path.getsize(zip_path)
         processing.update_feed_import_file_size(import_id, file_size)
         return zip_path
@@ -76,7 +82,7 @@ def feed_import() -> None:
         gtfs.validate_gtfs_files(extract_dir)
         return extract_dir
 
-    @task
+    @task(retries=3, retry_delay=timedelta(minutes=2))
     def parse_feed(extract_dir: str, start_result: FeedImportPayload) -> str:
         parsed = gtfs.parse_gtfs(extract_dir)
         gtfs.write_metadata(start_result["import_id"], gtfs.snapshot_metadata(parsed))
@@ -97,7 +103,6 @@ def feed_import() -> None:
         processing.persist_stop_spacing(variants, stop_lookup)
         processing.classify_route_variants(variants)
         processing.persist_route_common_sections(variants)
-        processing.calculate_frequencies(parsed, variants)
         return PersistResult(variants=len(variants))
 
     @task(trigger_rule=TriggerRule.ALL_SUCCESS)

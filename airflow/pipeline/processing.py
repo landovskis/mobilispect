@@ -7,8 +7,7 @@ import unicodedata
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import requests
@@ -21,7 +20,6 @@ from .db import (
     feed_imports,
     feed_regions,
     feeds,
-    frequencies,
     get_engine,
     metropolitan_regions,
     new_uuid,
@@ -923,8 +921,8 @@ def persist_route_variants(
 ) -> List[Dict]:
     engine = get_engine()
     now = utc_now()
-    trips_df = parsed.trips.copy()
-    stop_times_df = parsed.stop_times.copy()
+    trips_df = parsed.trips
+    stop_times_df = parsed.stop_times
     if trips_df.empty or stop_times_df.empty:
         return []
 
@@ -1218,124 +1216,3 @@ def persist_route_common_sections(variants: List[Dict]) -> None:
                 )
             )
             conn.execute(stmt)
-
-
-def _departure_minutes(times: Iterable[Optional[str]]) -> List[int]:
-    minutes = []
-    for value in times:
-        seconds = gtfs_lib.parse_time_to_seconds(value)
-        if seconds is None:
-            continue
-        minutes.append(seconds // 60)
-    return minutes
-
-
-def _headway_stats(minutes: List[int]) -> Optional[Tuple[float, float, float, bool]]:
-    if not minutes:
-        return None
-    minutes.sort()
-    headways = [b - a for a, b in zip(minutes, minutes[1:]) if b - a > 0]
-    if not headways:
-        return (None, None, None, True)
-    min_h = min(headways)
-    max_h = max(headways)
-    avg_h = sum(headways) / len(headways)
-    irregular = abs(max_h - min_h) > avg_h
-    return (None if irregular else avg_h, min_h, max_h, irregular)
-
-
-TIME_PERIODS = [
-    ("WEEKDAY_AM_PEAK", 360, 540),
-    ("WEEKDAY_PM_PEAK", 960, 1140),
-    ("WEEKDAY_OFF_PEAK", 540, 960),
-]
-
-
-def _classify_time_period(minute: int) -> Optional[str]:
-    for name, start, end in TIME_PERIODS:
-        if start <= minute < end:
-            return name
-    return None
-
-
-def calculate_frequencies(parsed: gtfs_lib.ParsedGTFS, variants: List[Dict]) -> None:
-    stop_times_df = parsed.stop_times.copy()
-    trips_df = parsed.trips.copy()
-    if stop_times_df.empty or trips_df.empty or not variants:
-        return
-
-    first_departures = (
-        stop_times_df.sort_values(["trip_id", "stop_sequence"])
-        .groupby("trip_id")
-        .first()
-        .reset_index()
-    )
-
-    trip_to_variant: Dict[str, str] = {}
-    trip_stop_patterns = _build_trip_stop_patterns(stop_times_df)
-    for trip_id, stop_ids in trip_stop_patterns.items():
-        if len(stop_ids) >= 2:
-            trip_to_variant[trip_id] = _variant_hash(stop_ids)
-
-    variant_ids = {v["id"] for v in variants}
-
-    period_departures: Dict[Tuple[str, str], List[int]] = defaultdict(list)
-    for _, row in first_departures.iterrows():
-        trip_id = str(row.get("trip_id", ""))
-        variant_id = trip_to_variant.get(trip_id)
-        if not variant_id or variant_id not in variant_ids:
-            continue
-        dep_time = row.get("departure_time") or row.get("arrival_time")
-        seconds = gtfs_lib.parse_time_to_seconds(dep_time)
-        if seconds is None:
-            continue
-        minute = seconds // 60
-        period = _classify_time_period(minute)
-        if period:
-            period_departures[(variant_id, period)].append(minute)
-
-    engine = get_engine()
-    now = utc_now()
-    today = date.today()
-    with engine.begin() as conn:
-        for variant in variants:
-            conn.execute(
-                delete(frequencies).where(frequencies.c.variant_id == variant["id"])
-            )
-
-        for (variant_id, period), minutes in period_departures.items():
-            stats = _headway_stats(minutes)
-            if stats is None:
-                continue
-            avg_h, min_h, max_h, irregular = stats
-            conn.execute(
-                insert(frequencies)
-                .values(
-                    id=new_uuid(),
-                    variant_id=variant_id,
-                    service_date=today,
-                    time_period=period,
-                    average_headway_minutes=avg_h,
-                    min_headway_minutes=min_h,
-                    max_headway_minutes=max_h,
-                    trip_count=len(minutes),
-                    is_irregular=irregular,
-                    calculated_at=now,
-                    created_at=now,
-                )
-                .on_conflict_do_update(
-                    index_elements=[
-                        frequencies.c.variant_id,
-                        frequencies.c.service_date,
-                        frequencies.c.time_period,
-                    ],
-                    set_={
-                        "average_headway_minutes": avg_h,
-                        "min_headway_minutes": min_h,
-                        "max_headway_minutes": max_h,
-                        "trip_count": len(minutes),
-                        "is_irregular": irregular,
-                        "calculated_at": now,
-                    },
-                )
-            )

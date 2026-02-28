@@ -1,10 +1,10 @@
+import re
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
-from airflow.decorators import dag, task
-from airflow.operators.python import get_current_context
-from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-from airflow.utils.trigger_rule import TriggerRule
+from airflow.sdk import dag, task, get_current_context
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
+from airflow.task.trigger_rule import TriggerRule
 
 from pipeline import processing
 from pipeline.models import (
@@ -58,21 +58,26 @@ def region_import() -> None:
         return processing.list_region_feeds(start_result["region_id"])
 
     @task
-    def build_run_confs(start_result: RegionImportStartResult, feeds: List[RegionFeedInfo]) -> List[FeedImportConf]:
-        run_confs: List[FeedImportConf] = []
+    def build_run_confs(start_result: RegionImportStartResult, feeds: List[RegionFeedInfo]) -> List[dict]:
+        run_confs = []
         for index, feed in enumerate(feeds):
-            run_confs.append(
-                FeedImportConf(
-                    feed_id=feed["feed_id"],
+            feed_id = feed["feed_id"]
+            safe_feed_id = re.sub(r"[^a-zA-Z0-9_.-]", "_", feed_id)
+            run_confs.append({
+                "conf": FeedImportConf(
+                    feed_id=feed_id,
                     trigger_type=start_result["trigger_type"],
                     region_import_id=start_result["region_import_id"],
                     sequence=index,
-                )
-            )
+                ),
+                "trigger_run_id": "feed_import__%s" % safe_feed_id,
+            })
         return run_confs
 
     @task(trigger_rule=TriggerRule.ALL_DONE)
-    def finalize_region_import(start_result: RegionImportStartResult) -> str:
+    def finalize_region_import(start_result: Optional[RegionImportStartResult]) -> str:
+        if start_result is None or start_result.get("region_import_id") is None:
+            return "skipped"
         return processing.finalize_region_import(start_result["region_import_id"])
 
     region_id = resolve_region()
@@ -90,7 +95,7 @@ def region_import() -> None:
             reset_dag_run=True,
             poke_interval=30,
         )
-        .expand(conf=run_confs)
+        .expand_kwargs(run_confs)
     )
 
     trigger_feeds >> finalize_region_import(start_result)
