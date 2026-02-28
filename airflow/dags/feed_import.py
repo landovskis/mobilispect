@@ -103,7 +103,6 @@ def feed_import() -> None:
         processing.persist_stop_spacing(variants, stop_lookup)
         processing.classify_route_variants(variants)
         processing.persist_route_common_sections(variants)
-        processing.calculate_frequencies(parsed, variants)
         return PersistResult(variants=len(variants))
 
     @task(trigger_rule=TriggerRule.ALL_SUCCESS)
