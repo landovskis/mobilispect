@@ -17,6 +17,52 @@ env:
   NODE_VERSION: '24.x'
 
 jobs:
+  angular-format:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend/web && npm ci --legacy-peer-deps
+
+      - name: Check Formatting (Prettier)
+        run: cd frontend/web && npx prettier --check "src/**/*.{ts,html,css,scss}"
+
+  angular-lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    needs: angular-format
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend/web && npm ci --legacy-peer-deps
+
+      - name: Run ESLint
+        run: |
+          if node -e "const fs=require('fs');const cfg=JSON.parse(fs.readFileSync('frontend/web/angular.json'));const hasLint=cfg?.projects?.web?.architect?.lint;process.exit(hasLint?0:1)"; then
+            cd frontend/web && npx ng lint
+          else
+            echo "⚠️ No Angular lint target configured; skipping."
+          fi
+
   angular-build:
     name: Build
     runs-on: ubuntu-latest
@@ -33,19 +79,13 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        run: |
-          echo "📦 Installing dependencies..."
-          cd frontend/web && npm ci
+        run: cd frontend/web && npm ci --legacy-peer-deps
 
       - name: Build Development
-        run: |
-          echo "🔧 Building Angular app (development)..."
-          cd frontend/web && npm run build
+        run: cd frontend/web && npm run build
 
       - name: Build Production
-        run: |
-          echo "🔧 Building Angular app (production)..."
-          cd frontend/web && npm run build:prod
+        run: cd frontend/web && npm run build:prod
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -69,14 +109,10 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        run: |
-          echo "📦 Installing dependencies..."
-          cd frontend/web && npm ci
+        run: cd frontend/web && npm ci --legacy-peer-deps
 
       - name: Run Unit Tests
-        run: |
-          echo "🧪 Running unit tests..."
-          cd frontend/web && npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+        run: cd frontend/web && npm test -- --watch=false --code-coverage
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
@@ -103,19 +139,13 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        run: |
-          echo "📦 Installing dependencies..."
-          cd frontend/web && npm ci
+        run: cd frontend/web && npm ci --legacy-peer-deps
 
       - name: Install Playwright Browsers
-        run: |
-          echo "🎭 Installing Playwright browsers..."
-          cd frontend/web && npx playwright install --with-deps chromium firefox webkit
+        run: cd frontend/web && npx playwright install --with-deps chromium firefox webkit
 
       - name: Run E2E Tests
-        run: |
-          echo "🎭 Running E2E tests..."
-          cd frontend/web && npm run e2e
+        run: cd frontend/web && npm run e2e
 
       - name: Upload E2E Results
         uses: actions/upload-artifact@v4
@@ -125,103 +155,3 @@ jobs:
           path: |
             frontend/web/playwright-report/
             frontend/web/test-results/
-
-  angular-lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    needs: angular-format
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/web/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          echo "📦 Installing dependencies..."
-          cd frontend/web && npm ci
-
-      - name: Run ESLint
-        run: |
-          echo "✨ Running ESLint..."
-          if node -e "const fs=require('fs');const cfg=JSON.parse(fs.readFileSync('frontend/web/angular.json'));const hasLint=cfg?.projects?.web?.architect?.lint;process.exit(hasLint?0:1)"; then
-            cd frontend/web && npx ng lint
-          else
-            echo "⚠️ No Angular lint target configured; skipping."
-          fi
-
-  angular-format:
-    name: Formatting
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/web/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          echo "📦 Installing dependencies..."
-          cd frontend/web && npm ci
-
-      - name: Check Formatting (Prettier)
-        run: |
-          echo "✨ Checking code formatting..."
-          cd frontend/web && npx prettier --check "src/**/*.{ts,html,css,scss}"
-
-  angular-accessibility:
-    name: Accessibility
-    runs-on: ubuntu-latest
-    needs: angular-build
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frontend/web/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          echo "📦 Installing dependencies..."
-          cd frontend/web && npm ci
-
-      - name: WCAG Compliance Check
-        run: |
-          echo "♿ Checking WCAG 2.1 AA compliance..."
-          cd frontend/web
-          # Placeholder for axe-core or similar accessibility testing
-          echo "⚠️ Accessibility testing framework to be configured"
-
-  angular-coverage:
-    name: Coverage
-    runs-on: ubuntu-latest
-    needs: angular-test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download Test Coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: angular-test-results
-          path: frontend/web/coverage/
-
-      - name: Verify 80% Coverage (Constitutional Requirement)
-        run: |
-          echo "📊 Verifying 80% coverage constitutional requirement..."
-          # Coverage verification will be based on karma/jasmine output
-          echo "⚠️ Coverage verification to be configured"
