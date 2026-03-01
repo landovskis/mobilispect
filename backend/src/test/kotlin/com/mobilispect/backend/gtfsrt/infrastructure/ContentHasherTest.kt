@@ -54,11 +54,7 @@ class ContentHasherTest {
 
     // Run multiple hashes concurrently
     val threads =
-      (1..10).map {
-        Thread {
-          repeat(100) { results.add(ContentHasher.hash(content)) }
-        }
-      }
+      (1..10).map { Thread { repeat(100) { results.add(ContentHasher.hash(content)) } } }
 
     threads.forEach { it.start() }
     threads.forEach { it.join() }

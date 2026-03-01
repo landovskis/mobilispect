@@ -40,11 +40,7 @@ data class StopTimeUpdate(
 )
 
 /** Predicted arrival or departure time. */
-data class StopTimeEvent(
-  val delay: Int?,
-  val time: Instant?,
-  val uncertainty: Int?,
-)
+data class StopTimeEvent(val delay: Int?, val time: Instant?, val uncertainty: Int?)
 
 /** Relationship of this stop to the static schedule. */
 enum class StopScheduleRelationship {

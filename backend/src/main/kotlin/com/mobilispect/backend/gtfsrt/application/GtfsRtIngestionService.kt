@@ -4,6 +4,7 @@ import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.domain.repository.FeedRepository
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.gtfsrt.domain.model.GtfsRtFetchResult
+import com.mobilispect.backend.gtfsrt.infrastructure.FeedCircuitBreakerRegistry
 import com.mobilispect.backend.gtfsrt.infrastructure.ParallelGtfsRtFetcher
 import io.micrometer.core.instrument.MeterRegistry
 import java.time.Instant
@@ -21,8 +22,8 @@ import org.springframework.stereotype.Service
  * - Deduplication to skip unchanged feeds
  * - Processing and persistence of realtime data
  *
- * Feed discovery is handled by the Airflow pipeline, which populates feeds into the database.
- * This service reads active feeds with realtime URLs and ingests them.
+ * Feed discovery is handled by the Airflow pipeline, which populates feeds into the database. This
+ * service reads active feeds with realtime URLs and ingests them.
  *
  * Per ADR 0011.
  */
@@ -32,13 +33,13 @@ class GtfsRtIngestionService(
   private val fetcher: ParallelGtfsRtFetcher,
   private val processor: GtfsRtProcessingService,
   private val meterRegistry: MeterRegistry,
+  private val circuitBreakerRegistry: FeedCircuitBreakerRegistry,
 ) {
 
   private val logger = LoggerFactory.getLogger(GtfsRtIngestionService::class.java)
 
   /**
    * Main ingestion entry point. Runs every 30 seconds by default.
-   *
    * 1. Queries for active feeds with realtimeFeedUrl
    * 2. Fetches all feeds in parallel
    * 3. Processes results (decode, persist)
@@ -63,9 +64,7 @@ class GtfsRtIngestionService(
 
       val stats = IngestionStats()
 
-      fetcher.fetchAllFeeds(feeds).collect { result ->
-        handleResult(result, stats)
-      }
+      fetcher.fetchAllFeeds(feeds).collect { result -> handleResult(result, stats) }
 
       val duration = System.currentTimeMillis() - startTime
       recordStats(stats, duration)
@@ -83,11 +82,16 @@ class GtfsRtIngestionService(
           is ProcessingOutcome.Processed -> {
             stats.processed++
             stats.entities += outcome.entityCount
-            updateFeedStatus(result.feedId, checkedAt = result.fetchedAt, updatedAt = result.fetchedAt)
+            updateFeedStatus(
+              result.feedId,
+              checkedAt = result.fetchedAt,
+              updatedAt = result.fetchedAt,
+            )
           }
           is ProcessingOutcome.Skipped -> {
             stats.skipped++
-            stats.skipReasons[outcome.reason] = stats.skipReasons.getOrDefault(outcome.reason, 0) + 1
+            stats.skipReasons[outcome.reason] =
+              stats.skipReasons.getOrDefault(outcome.reason, 0) + 1
             updateFeedStatus(result.feedId, checkedAt = result.fetchedAt, updatedAt = null)
           }
         }
@@ -107,10 +111,7 @@ class GtfsRtIngestionService(
   private fun updateFeedStatus(feedId: FeedId, checkedAt: Instant, updatedAt: Instant?) {
     val feed = feedRepository.findById(feedId) ?: return
     feedRepository.save(
-      feed.copy(
-        lastCheckedAt = checkedAt,
-        lastUpdatedAt = updatedAt ?: feed.lastUpdatedAt,
-      )
+      feed.copy(lastCheckedAt = checkedAt, lastUpdatedAt = updatedAt ?: feed.lastUpdatedAt)
     )
   }
 
@@ -135,6 +136,8 @@ class GtfsRtIngestionService(
         .counter("gtfsrt.ingestion.skip_reason", "reason", reason)
         .increment(count.toDouble())
     }
+
+    circuitBreakerRegistry.recordCircuitBreakerStates(meterRegistry)
   }
 }
 

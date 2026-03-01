@@ -7,27 +7,27 @@ import com.mobilispect.backend.gtfsrt.domain.repository.VehiclePositionRepositor
 import org.springframework.stereotype.Repository
 
 @Repository
-class JpaVehiclePositionRepository(
-  private val jpaRepository: VehiclePositionJpaRepository,
-) : VehiclePositionRepository {
+class JpaVehiclePositionRepository(private val jpaRepository: VehiclePositionJpaRepository) :
+  VehiclePositionRepository {
 
   override fun saveAll(positions: List<VehiclePosition>) {
     jpaRepository.saveAll(positions.map { it.toEntity() })
   }
 
-  private fun VehiclePosition.toEntity() = VehiclePositionEntity(
-    feedId = feedId.value,
-    vehicleId = vehicleId,
-    tripId = tripId,
-    routeId = routeId,
-    latitude = latitude,
-    longitude = longitude,
-    bearing = bearing,
-    speed = speed,
-    currentStopSequence = currentStopSequence,
-    currentStatus = currentStatus?.name,
-    timestamp = timestamp,
-    congestionLevel = congestionLevel?.name,
-    occupancyStatus = occupancyStatus?.name,
-  )
+  private fun VehiclePosition.toEntity() =
+    VehiclePositionEntity(
+      feedId = feedId.value,
+      vehicleId = vehicleId,
+      tripId = tripId,
+      routeId = routeId,
+      latitude = latitude,
+      longitude = longitude,
+      bearing = bearing,
+      speed = speed,
+      currentStopSequence = currentStopSequence,
+      currentStatus = currentStatus?.name,
+      timestamp = timestamp,
+      congestionLevel = congestionLevel?.name,
+      occupancyStatus = occupancyStatus?.name,
+    )
 }

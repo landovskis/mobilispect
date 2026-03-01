@@ -45,11 +45,8 @@ sealed class GtfsRtFetchResult {
   }
 
   /** Fetch failed. */
-  data class Failure(
-    override val feedId: FeedId,
-    val error: Throwable,
-    val failedAt: Instant,
-  ) : GtfsRtFetchResult() {
+  data class Failure(override val feedId: FeedId, val error: Throwable, val failedAt: Instant) :
+    GtfsRtFetchResult() {
     override val timestamp: Instant = failedAt
   }
 }

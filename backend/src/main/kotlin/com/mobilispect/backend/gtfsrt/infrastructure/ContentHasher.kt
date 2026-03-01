@@ -5,8 +5,7 @@ import java.security.MessageDigest
 /** Utility for computing SHA-256 content hashes for deduplication. */
 object ContentHasher {
 
-  private val digest =
-    ThreadLocal.withInitial { MessageDigest.getInstance("SHA-256") }
+  private val digest = ThreadLocal.withInitial { MessageDigest.getInstance("SHA-256") }
 
   /**
    * Compute SHA-256 hash of content.

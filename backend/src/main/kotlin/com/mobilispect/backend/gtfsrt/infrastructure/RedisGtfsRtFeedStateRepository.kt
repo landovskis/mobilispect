@@ -12,8 +12,8 @@ import org.springframework.stereotype.Repository
 /**
  * Redis-based implementation of [GtfsRtFeedStateRepository].
  *
- * Stores feed state in Redis with automatic TTL-based expiration.
- * Suitable for production deployments with multiple instances.
+ * Stores feed state in Redis with automatic TTL-based expiration. Suitable for production
+ * deployments with multiple instances.
  *
  * Configuration:
  * - Set `gtfsrt.state.storage=redis` to enable this implementation
@@ -26,7 +26,8 @@ class RedisGtfsRtFeedStateRepository(
   private val ttl: Duration = Duration.ofHours(24),
 ) : GtfsRtFeedStateRepository {
 
-  private val hashOps get() = redisTemplate.opsForHash<String, String>()
+  private val hashOps
+    get() = redisTemplate.opsForHash<String, String>()
 
   companion object {
     private const val KEY_PREFIX = "gtfsrt:state:"

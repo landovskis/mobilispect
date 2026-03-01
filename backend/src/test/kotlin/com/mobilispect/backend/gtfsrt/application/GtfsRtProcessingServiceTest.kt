@@ -10,11 +10,11 @@ import com.mobilispect.backend.gtfsrt.infrastructure.InMemoryTripUpdateRepositor
 import com.mobilispect.backend.gtfsrt.infrastructure.InMemoryVehiclePositionRepository
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import java.time.Instant
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
 
 class GtfsRtProcessingServiceTest {
 
@@ -32,13 +32,14 @@ class GtfsRtProcessingServiceTest {
     tripUpdateRepository = InMemoryTripUpdateRepository()
     serviceAlertRepository = InMemoryServiceAlertRepository()
     meterRegistry = SimpleMeterRegistry()
-    processingService = GtfsRtProcessingService(
-      feedStateRepository,
-      vehiclePositionRepository,
-      tripUpdateRepository,
-      serviceAlertRepository,
-      meterRegistry,
-    )
+    processingService =
+      GtfsRtProcessingService(
+        feedStateRepository,
+        vehiclePositionRepository,
+        tripUpdateRepository,
+        serviceAlertRepository,
+        meterRegistry,
+      )
   }
 
   @Test
@@ -47,14 +48,15 @@ class GtfsRtProcessingServiceTest {
     val timestamp = System.currentTimeMillis() / 1000
     val protobufData = createVehiclePositionFeed(timestamp)
 
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = protobufData,
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = protobufData,
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     val outcome = processingService.process(result)
 
@@ -69,14 +71,15 @@ class GtfsRtProcessingServiceTest {
     val timestamp = System.currentTimeMillis() / 1000
     val protobufData = createTripUpdateFeed(timestamp)
 
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = protobufData,
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = protobufData,
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     val outcome = processingService.process(result)
 
@@ -91,14 +94,15 @@ class GtfsRtProcessingServiceTest {
     val timestamp = System.currentTimeMillis() / 1000
     val protobufData = createServiceAlertFeed(timestamp)
 
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = protobufData,
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = protobufData,
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     val outcome = processingService.process(result)
 
@@ -126,14 +130,15 @@ class GtfsRtProcessingServiceTest {
       )
     )
 
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = protobufData,
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = protobufData,
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     val outcome = processingService.process(result)
 
@@ -147,14 +152,15 @@ class GtfsRtProcessingServiceTest {
     val feedId = FeedId("test-feed")
     val invalidData = "not a valid protobuf".toByteArray()
 
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = invalidData,
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = invalidData,
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     val outcome = processingService.process(result)
 
@@ -168,14 +174,15 @@ class GtfsRtProcessingServiceTest {
     val timestamp = System.currentTimeMillis() / 1000
     val protobufData = createVehiclePositionFeed(timestamp)
 
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = protobufData,
-      contentHash = "abc123",
-      etag = "etag-value",
-      lastModified = "Wed, 01 Jan 2025 00:00:00 GMT",
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = protobufData,
+        contentHash = "abc123",
+        etag = "etag-value",
+        lastModified = "Wed, 01 Jan 2025 00:00:00 GMT",
+        fetchedAt = Instant.now(),
+      )
 
     processingService.process(result)
 
@@ -191,14 +198,15 @@ class GtfsRtProcessingServiceTest {
     val timestamp = System.currentTimeMillis() / 1000
     val protobufData = createVehiclePositionFeed(timestamp)
 
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = protobufData,
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = protobufData,
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     processingService.process(result)
 
@@ -212,14 +220,15 @@ class GtfsRtProcessingServiceTest {
     val timestamp = System.currentTimeMillis() / 1000
     val protobufData = createMultipleVehiclePositionsFeed(timestamp, count = 5)
 
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = protobufData,
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = protobufData,
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     val outcome = processingService.process(result)
 
@@ -231,14 +240,15 @@ class GtfsRtProcessingServiceTest {
   fun `process persists vehicle positions to repository`() = runTest {
     val feedId = FeedId("test-feed")
     val timestamp = System.currentTimeMillis() / 1000
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = createVehiclePositionFeed(timestamp),
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = createVehiclePositionFeed(timestamp),
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     processingService.process(result)
 
@@ -252,14 +262,15 @@ class GtfsRtProcessingServiceTest {
   fun `process persists trip updates to repository`() = runTest {
     val feedId = FeedId("test-feed")
     val timestamp = System.currentTimeMillis() / 1000
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = createTripUpdateFeed(timestamp),
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = createTripUpdateFeed(timestamp),
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     processingService.process(result)
 
@@ -273,14 +284,15 @@ class GtfsRtProcessingServiceTest {
   fun `process persists service alerts to repository`() = runTest {
     val feedId = FeedId("test-feed")
     val timestamp = System.currentTimeMillis() / 1000
-    val result = GtfsRtFetchResult.NewData(
-      feedId = feedId,
-      data = createServiceAlertFeed(timestamp),
-      contentHash = "abc123",
-      etag = null,
-      lastModified = null,
-      fetchedAt = Instant.now(),
-    )
+    val result =
+      GtfsRtFetchResult.NewData(
+        feedId = feedId,
+        data = createServiceAlertFeed(timestamp),
+        contentHash = "abc123",
+        etag = null,
+        lastModified = null,
+        fetchedAt = Instant.now(),
+      )
 
     processingService.process(result)
 
@@ -291,39 +303,36 @@ class GtfsRtProcessingServiceTest {
   }
 
   private fun createVehiclePositionFeed(timestamp: Long): ByteArray {
-    val header = GtfsRealtime.FeedHeader.newBuilder()
-      .setGtfsRealtimeVersion("2.0")
-      .setTimestamp(timestamp)
-      .build()
+    val header =
+      GtfsRealtime.FeedHeader.newBuilder()
+        .setGtfsRealtimeVersion("2.0")
+        .setTimestamp(timestamp)
+        .build()
 
-    val position = GtfsRealtime.Position.newBuilder()
-      .setLatitude(37.7749f)
-      .setLongitude(-122.4194f)
-      .setBearing(90f)
-      .setSpeed(10f)
-      .build()
+    val position =
+      GtfsRealtime.Position.newBuilder()
+        .setLatitude(37.7749f)
+        .setLongitude(-122.4194f)
+        .setBearing(90f)
+        .setSpeed(10f)
+        .build()
 
-    val vehicleDescriptor = GtfsRealtime.VehicleDescriptor.newBuilder()
-      .setId("vehicle-1")
-      .build()
+    val vehicleDescriptor = GtfsRealtime.VehicleDescriptor.newBuilder().setId("vehicle-1").build()
 
-    val tripDescriptor = GtfsRealtime.TripDescriptor.newBuilder()
-      .setTripId("trip-1")
-      .setRouteId("route-1")
-      .build()
+    val tripDescriptor =
+      GtfsRealtime.TripDescriptor.newBuilder().setTripId("trip-1").setRouteId("route-1").build()
 
-    val vehiclePosition = GtfsRealtime.VehiclePosition.newBuilder()
-      .setPosition(position)
-      .setVehicle(vehicleDescriptor)
-      .setTrip(tripDescriptor)
-      .setTimestamp(timestamp)
-      .setCurrentStatus(GtfsRealtime.VehiclePosition.VehicleStopStatus.IN_TRANSIT_TO)
-      .build()
+    val vehiclePosition =
+      GtfsRealtime.VehiclePosition.newBuilder()
+        .setPosition(position)
+        .setVehicle(vehicleDescriptor)
+        .setTrip(tripDescriptor)
+        .setTimestamp(timestamp)
+        .setCurrentStatus(GtfsRealtime.VehiclePosition.VehicleStopStatus.IN_TRANSIT_TO)
+        .build()
 
-    val entity = GtfsRealtime.FeedEntity.newBuilder()
-      .setId("entity-1")
-      .setVehicle(vehiclePosition)
-      .build()
+    val entity =
+      GtfsRealtime.FeedEntity.newBuilder().setId("entity-1").setVehicle(vehiclePosition).build()
 
     return GtfsRealtime.FeedMessage.newBuilder()
       .setHeader(header)
@@ -333,33 +342,33 @@ class GtfsRtProcessingServiceTest {
   }
 
   private fun createMultipleVehiclePositionsFeed(timestamp: Long, count: Int): ByteArray {
-    val header = GtfsRealtime.FeedHeader.newBuilder()
-      .setGtfsRealtimeVersion("2.0")
-      .setTimestamp(timestamp)
-      .build()
+    val header =
+      GtfsRealtime.FeedHeader.newBuilder()
+        .setGtfsRealtimeVersion("2.0")
+        .setTimestamp(timestamp)
+        .build()
 
     val builder = GtfsRealtime.FeedMessage.newBuilder().setHeader(header)
 
     repeat(count) { i ->
-      val position = GtfsRealtime.Position.newBuilder()
-        .setLatitude(37.7749f + i * 0.001f)
-        .setLongitude(-122.4194f + i * 0.001f)
-        .build()
+      val position =
+        GtfsRealtime.Position.newBuilder()
+          .setLatitude(37.7749f + i * 0.001f)
+          .setLongitude(-122.4194f + i * 0.001f)
+          .build()
 
-      val vehicleDescriptor = GtfsRealtime.VehicleDescriptor.newBuilder()
-        .setId("vehicle-$i")
-        .build()
+      val vehicleDescriptor =
+        GtfsRealtime.VehicleDescriptor.newBuilder().setId("vehicle-$i").build()
 
-      val vehiclePosition = GtfsRealtime.VehiclePosition.newBuilder()
-        .setPosition(position)
-        .setVehicle(vehicleDescriptor)
-        .setTimestamp(timestamp)
-        .build()
+      val vehiclePosition =
+        GtfsRealtime.VehiclePosition.newBuilder()
+          .setPosition(position)
+          .setVehicle(vehicleDescriptor)
+          .setTimestamp(timestamp)
+          .build()
 
-      val entity = GtfsRealtime.FeedEntity.newBuilder()
-        .setId("entity-$i")
-        .setVehicle(vehiclePosition)
-        .build()
+      val entity =
+        GtfsRealtime.FeedEntity.newBuilder().setId("entity-$i").setVehicle(vehiclePosition).build()
 
       builder.addEntity(entity)
     }
@@ -368,38 +377,41 @@ class GtfsRtProcessingServiceTest {
   }
 
   private fun createTripUpdateFeed(timestamp: Long): ByteArray {
-    val header = GtfsRealtime.FeedHeader.newBuilder()
-      .setGtfsRealtimeVersion("2.0")
-      .setTimestamp(timestamp)
-      .build()
+    val header =
+      GtfsRealtime.FeedHeader.newBuilder()
+        .setGtfsRealtimeVersion("2.0")
+        .setTimestamp(timestamp)
+        .build()
 
-    val tripDescriptor = GtfsRealtime.TripDescriptor.newBuilder()
-      .setTripId("trip-1")
-      .setRouteId("route-1")
-      .setScheduleRelationship(GtfsRealtime.TripDescriptor.ScheduleRelationship.SCHEDULED)
-      .build()
+    val tripDescriptor =
+      GtfsRealtime.TripDescriptor.newBuilder()
+        .setTripId("trip-1")
+        .setRouteId("route-1")
+        .setScheduleRelationship(GtfsRealtime.TripDescriptor.ScheduleRelationship.SCHEDULED)
+        .build()
 
-    val stopTimeEvent = GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder()
-      .setDelay(120)
-      .setTime(timestamp + 120)
-      .build()
+    val stopTimeEvent =
+      GtfsRealtime.TripUpdate.StopTimeEvent.newBuilder()
+        .setDelay(120)
+        .setTime(timestamp + 120)
+        .build()
 
-    val stopTimeUpdate = GtfsRealtime.TripUpdate.StopTimeUpdate.newBuilder()
-      .setStopSequence(1)
-      .setStopId("stop-1")
-      .setArrival(stopTimeEvent)
-      .build()
+    val stopTimeUpdate =
+      GtfsRealtime.TripUpdate.StopTimeUpdate.newBuilder()
+        .setStopSequence(1)
+        .setStopId("stop-1")
+        .setArrival(stopTimeEvent)
+        .build()
 
-    val tripUpdate = GtfsRealtime.TripUpdate.newBuilder()
-      .setTrip(tripDescriptor)
-      .setTimestamp(timestamp)
-      .addStopTimeUpdate(stopTimeUpdate)
-      .build()
+    val tripUpdate =
+      GtfsRealtime.TripUpdate.newBuilder()
+        .setTrip(tripDescriptor)
+        .setTimestamp(timestamp)
+        .addStopTimeUpdate(stopTimeUpdate)
+        .build()
 
-    val entity = GtfsRealtime.FeedEntity.newBuilder()
-      .setId("entity-1")
-      .setTripUpdate(tripUpdate)
-      .build()
+    val entity =
+      GtfsRealtime.FeedEntity.newBuilder().setId("entity-1").setTripUpdate(tripUpdate).build()
 
     return GtfsRealtime.FeedMessage.newBuilder()
       .setHeader(header)
@@ -409,35 +421,31 @@ class GtfsRtProcessingServiceTest {
   }
 
   private fun createServiceAlertFeed(timestamp: Long): ByteArray {
-    val header = GtfsRealtime.FeedHeader.newBuilder()
-      .setGtfsRealtimeVersion("2.0")
-      .setTimestamp(timestamp)
-      .build()
+    val header =
+      GtfsRealtime.FeedHeader.newBuilder()
+        .setGtfsRealtimeVersion("2.0")
+        .setTimestamp(timestamp)
+        .build()
 
-    val translation = GtfsRealtime.TranslatedString.Translation.newBuilder()
-      .setText("Service disruption on Route 1")
-      .setLanguage("en")
-      .build()
+    val translation =
+      GtfsRealtime.TranslatedString.Translation.newBuilder()
+        .setText("Service disruption on Route 1")
+        .setLanguage("en")
+        .build()
 
-    val headerText = GtfsRealtime.TranslatedString.newBuilder()
-      .addTranslation(translation)
-      .build()
+    val headerText = GtfsRealtime.TranslatedString.newBuilder().addTranslation(translation).build()
 
-    val informedEntity = GtfsRealtime.EntitySelector.newBuilder()
-      .setRouteId("route-1")
-      .build()
+    val informedEntity = GtfsRealtime.EntitySelector.newBuilder().setRouteId("route-1").build()
 
-    val alert = GtfsRealtime.Alert.newBuilder()
-      .setCause(GtfsRealtime.Alert.Cause.ACCIDENT)
-      .setEffect(GtfsRealtime.Alert.Effect.SIGNIFICANT_DELAYS)
-      .setHeaderText(headerText)
-      .addInformedEntity(informedEntity)
-      .build()
+    val alert =
+      GtfsRealtime.Alert.newBuilder()
+        .setCause(GtfsRealtime.Alert.Cause.ACCIDENT)
+        .setEffect(GtfsRealtime.Alert.Effect.SIGNIFICANT_DELAYS)
+        .setHeaderText(headerText)
+        .addInformedEntity(informedEntity)
+        .build()
 
-    val entity = GtfsRealtime.FeedEntity.newBuilder()
-      .setId("alert-1")
-      .setAlert(alert)
-      .build()
+    val entity = GtfsRealtime.FeedEntity.newBuilder().setId("alert-1").setAlert(alert).build()
 
     return GtfsRealtime.FeedMessage.newBuilder()
       .setHeader(header)

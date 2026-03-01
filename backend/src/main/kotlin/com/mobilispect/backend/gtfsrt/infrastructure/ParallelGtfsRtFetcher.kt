@@ -6,13 +6,11 @@ import com.mobilispect.backend.gtfsrt.domain.model.GtfsRtFeedState
 import com.mobilispect.backend.gtfsrt.domain.model.GtfsRtFetchResult
 import com.mobilispect.backend.gtfsrt.domain.model.UnchangedReason
 import com.mobilispect.backend.gtfsrt.domain.repository.GtfsRtFeedStateRepository
-import io.github.resilience4j.circuitbreaker.CircuitBreaker
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Semaphore
@@ -62,9 +60,7 @@ class ParallelGtfsRtFetcher(
     feeds
       .mapNotNull { feed -> feed.realtimeFeedUrl?.let { url -> feed to url } }
       .map { (feed, url) ->
-        async(dispatcher) {
-          semaphore.withPermit { fetchWithResilience(feed, url) }
-        }
+        async(dispatcher) { semaphore.withPermit { fetchWithResilience(feed, url) } }
       }
       .forEach { deferred -> send(deferred.await()) }
   }
@@ -74,22 +70,19 @@ class ParallelGtfsRtFetcher(
 
     return if (circuitBreaker.tryAcquirePermission()) {
       try {
-        val result =
-          withTimeout(timeoutMs) { doFetch(feed.feedId, url) }
+        val result = withTimeout(timeoutMs) { doFetch(feed.feedId, url) }
         circuitBreaker.onSuccess(0, java.util.concurrent.TimeUnit.MILLISECONDS)
         result
       } catch (e: Exception) {
         circuitBreaker.onError(0, java.util.concurrent.TimeUnit.MILLISECONDS, e)
         recordFetchError(feed.feedId, e)
-        GtfsRtFetchResult.Failure(
-          feedId = feed.feedId,
-          error = e,
-          failedAt = Instant.now(),
-        )
+        GtfsRtFetchResult.Failure(feedId = feed.feedId, error = e, failedAt = Instant.now())
       }
     } else {
       logger.debug("Circuit breaker open for feed {}", feed.feedId)
-      meterRegistry.counter("gtfsrt.fetch.circuit_breaker_open", "feed_id", feed.feedId.value).increment()
+      meterRegistry
+        .counter("gtfsrt.fetch.circuit_breaker_open", "feed_id", feed.feedId.value)
+        .increment()
       GtfsRtFetchResult.Failure(
         feedId = feed.feedId,
         error = CircuitBreakerOpenException(feed.feedId),

@@ -70,7 +70,9 @@ class InMemoryGtfsRtFeedStateRepository : GtfsRtFeedStateRepository {
   fun evictExpired(): Int {
     val now = Instant.now()
     val expiredKeys =
-      store.entries.filter { (_, state) -> now.isAfter(state.lastFetchedAt.plus(ttl)) }.map { it.key }
+      store.entries
+        .filter { (_, state) -> now.isAfter(state.lastFetchedAt.plus(ttl)) }
+        .map { it.key }
 
     expiredKeys.forEach { store.remove(it) }
     if (expiredKeys.isNotEmpty()) {

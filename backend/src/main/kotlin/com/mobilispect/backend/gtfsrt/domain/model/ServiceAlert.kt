@@ -22,10 +22,7 @@ data class ServiceAlert(
 )
 
 /** Time range during which an alert is active. */
-data class TimeRange(
-  val start: Instant?,
-  val end: Instant?,
-)
+data class TimeRange(val start: Instant?, val end: Instant?)
 
 /** Selector for entities affected by an alert. */
 data class EntitySelector(

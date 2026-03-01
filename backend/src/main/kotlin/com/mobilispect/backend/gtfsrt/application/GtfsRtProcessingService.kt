@@ -70,7 +70,9 @@ class GtfsRtProcessingService(
 
     // Check GTFS-RT header timestamp (Layer 3 deduplication)
     val headerTimestamp = feedMessage.header.timestamp
-    if (previousState?.gtfsRtTimestamp != null && headerTimestamp <= previousState.gtfsRtTimestamp) {
+    if (
+      previousState?.gtfsRtTimestamp != null && headerTimestamp <= previousState.gtfsRtTimestamp
+    ) {
       logger.debug(
         "Feed {} timestamp {} not newer than previous {}, skipping",
         feedId,
@@ -78,7 +80,11 @@ class GtfsRtProcessingService(
         previousState.gtfsRtTimestamp,
       )
       meterRegistry
-        .counter("gtfsrt.processing.skip_reason", "reason", UnchangedReason.TIMESTAMP_NOT_NEWER.name)
+        .counter(
+          "gtfsrt.processing.skip_reason",
+          "reason",
+          UnchangedReason.TIMESTAMP_NOT_NEWER.name,
+        )
         .increment()
       return ProcessingOutcome.Skipped(feedId, UnchangedReason.TIMESTAMP_NOT_NEWER.name)
     }
@@ -108,7 +114,10 @@ class GtfsRtProcessingService(
     return ProcessingOutcome.Processed(feedId, entityCount)
   }
 
-  private fun parseEntities(feedId: FeedId, feedMessage: GtfsRealtime.FeedMessage): ParsedGtfsRtFeed {
+  private fun parseEntities(
+    feedId: FeedId,
+    feedMessage: GtfsRealtime.FeedMessage,
+  ): ParsedGtfsRtFeed {
     val vehiclePositions = mutableListOf<VehiclePosition>()
     val tripUpdates = mutableListOf<TripUpdate>()
     val alerts = mutableListOf<ServiceAlert>()
@@ -128,7 +137,10 @@ class GtfsRtProcessingService(
     return ParsedGtfsRtFeed(vehiclePositions, tripUpdates, alerts)
   }
 
-  private fun parseVehiclePosition(feedId: FeedId, entity: GtfsRealtime.FeedEntity): VehiclePosition? {
+  private fun parseVehiclePosition(
+    feedId: FeedId,
+    entity: GtfsRealtime.FeedEntity,
+  ): VehiclePosition? {
     val vehicle = entity.vehicle
     if (!vehicle.hasPosition()) return null
 
@@ -145,11 +157,18 @@ class GtfsRtProcessingService(
       longitude = position.longitude.toDouble(),
       bearing = if (position.hasBearing()) position.bearing else null,
       speed = if (position.hasSpeed()) position.speed else null,
-      currentStopSequence = if (vehicle.hasCurrentStopSequence()) vehicle.currentStopSequence else null,
-      currentStatus = if (vehicle.hasCurrentStatus()) mapVehicleStopStatus(vehicle.currentStatus) else null,
-      timestamp = Instant.ofEpochSecond(if (vehicle.hasTimestamp()) vehicle.timestamp else entity.id.hashCode().toLong()),
-      congestionLevel = if (vehicle.hasCongestionLevel()) mapCongestionLevel(vehicle.congestionLevel) else null,
-      occupancyStatus = if (vehicle.hasOccupancyStatus()) mapOccupancyStatus(vehicle.occupancyStatus) else null,
+      currentStopSequence =
+        if (vehicle.hasCurrentStopSequence()) vehicle.currentStopSequence else null,
+      currentStatus =
+        if (vehicle.hasCurrentStatus()) mapVehicleStopStatus(vehicle.currentStatus) else null,
+      timestamp =
+        Instant.ofEpochSecond(
+          if (vehicle.hasTimestamp()) vehicle.timestamp else entity.id.hashCode().toLong()
+        ),
+      congestionLevel =
+        if (vehicle.hasCongestionLevel()) mapCongestionLevel(vehicle.congestionLevel) else null,
+      occupancyStatus =
+        if (vehicle.hasOccupancyStatus()) mapOccupancyStatus(vehicle.occupancyStatus) else null,
     )
   }
 
@@ -167,7 +186,9 @@ class GtfsRtProcessingService(
       vehicleId = vehicle?.id,
       timestamp = Instant.ofEpochSecond(if (tripUpdate.hasTimestamp()) tripUpdate.timestamp else 0),
       delay = if (tripUpdate.hasDelay()) tripUpdate.delay else null,
-      scheduleRelationship = if (trip.hasScheduleRelationship()) mapTripScheduleRelationship(trip.scheduleRelationship) else null,
+      scheduleRelationship =
+        if (trip.hasScheduleRelationship()) mapTripScheduleRelationship(trip.scheduleRelationship)
+        else null,
       stopTimeUpdates = tripUpdate.stopTimeUpdateList.map { parseStopTimeUpdate(it) },
     )
   }
@@ -178,7 +199,9 @@ class GtfsRtProcessingService(
       stopId = if (stu.hasStopId()) stu.stopId else null,
       arrival = if (stu.hasArrival()) parseStopTimeEvent(stu.arrival) else null,
       departure = if (stu.hasDeparture()) parseStopTimeEvent(stu.departure) else null,
-      scheduleRelationship = if (stu.hasScheduleRelationship()) mapStopScheduleRelationship(stu.scheduleRelationship) else null,
+      scheduleRelationship =
+        if (stu.hasScheduleRelationship()) mapStopScheduleRelationship(stu.scheduleRelationship)
+        else null,
     )
   }
 
@@ -199,19 +222,26 @@ class GtfsRtProcessingService(
       cause = if (alert.hasCause()) mapAlertCause(alert.cause) else null,
       effect = if (alert.hasEffect()) mapAlertEffect(alert.effect) else null,
       headerText = if (alert.hasHeaderText()) getTranslatedText(alert.headerText) else null,
-      descriptionText = if (alert.hasDescriptionText()) getTranslatedText(alert.descriptionText) else null,
+      descriptionText =
+        if (alert.hasDescriptionText()) getTranslatedText(alert.descriptionText) else null,
       url = if (alert.hasUrl()) getTranslatedText(alert.url) else null,
-      activePeriods = alert.activePeriodList.map { TimeRange(
-        start = if (it.hasStart()) Instant.ofEpochSecond(it.start) else null,
-        end = if (it.hasEnd()) Instant.ofEpochSecond(it.end) else null,
-      ) },
-      informedEntities = alert.informedEntityList.map { EntitySelector(
-        agencyId = if (it.hasAgencyId()) it.agencyId else null,
-        routeId = if (it.hasRouteId()) it.routeId else null,
-        routeType = if (it.hasRouteType()) it.routeType else null,
-        tripId = if (it.hasTrip() && it.trip.hasTripId()) it.trip.tripId else null,
-        stopId = if (it.hasStopId()) it.stopId else null,
-      ) },
+      activePeriods =
+        alert.activePeriodList.map {
+          TimeRange(
+            start = if (it.hasStart()) Instant.ofEpochSecond(it.start) else null,
+            end = if (it.hasEnd()) Instant.ofEpochSecond(it.end) else null,
+          )
+        },
+      informedEntities =
+        alert.informedEntityList.map {
+          EntitySelector(
+            agencyId = if (it.hasAgencyId()) it.agencyId else null,
+            routeId = if (it.hasRouteId()) it.routeId else null,
+            routeType = if (it.hasRouteType()) it.routeType else null,
+            tripId = if (it.hasTrip() && it.trip.hasTripId()) it.trip.tripId else null,
+            stopId = if (it.hasStopId()) it.stopId else null,
+          )
+        },
       timestamp = Instant.now(),
     )
   }
@@ -219,59 +249,86 @@ class GtfsRtProcessingService(
   private fun getTranslatedText(translatedString: GtfsRealtime.TranslatedString): String? {
     return translatedString.translationList
       .firstOrNull { it.language.isNullOrEmpty() || it.language == "en" }
-      ?.text
-      ?: translatedString.translationList.firstOrNull()?.text
+      ?.text ?: translatedString.translationList.firstOrNull()?.text
   }
 
-  private fun mapVehicleStopStatus(status: GtfsRealtime.VehiclePosition.VehicleStopStatus): VehicleStopStatus {
+  private fun mapVehicleStopStatus(
+    status: GtfsRealtime.VehiclePosition.VehicleStopStatus
+  ): VehicleStopStatus {
     return when (status) {
       GtfsRealtime.VehiclePosition.VehicleStopStatus.INCOMING_AT -> VehicleStopStatus.INCOMING_AT
       GtfsRealtime.VehiclePosition.VehicleStopStatus.STOPPED_AT -> VehicleStopStatus.STOPPED_AT
-      GtfsRealtime.VehiclePosition.VehicleStopStatus.IN_TRANSIT_TO -> VehicleStopStatus.IN_TRANSIT_TO
+      GtfsRealtime.VehiclePosition.VehicleStopStatus.IN_TRANSIT_TO ->
+        VehicleStopStatus.IN_TRANSIT_TO
     }
   }
 
-  private fun mapCongestionLevel(level: GtfsRealtime.VehiclePosition.CongestionLevel): CongestionLevel {
+  private fun mapCongestionLevel(
+    level: GtfsRealtime.VehiclePosition.CongestionLevel
+  ): CongestionLevel {
     return when (level) {
-      GtfsRealtime.VehiclePosition.CongestionLevel.UNKNOWN_CONGESTION_LEVEL -> CongestionLevel.UNKNOWN_CONGESTION_LEVEL
-      GtfsRealtime.VehiclePosition.CongestionLevel.RUNNING_SMOOTHLY -> CongestionLevel.RUNNING_SMOOTHLY
+      GtfsRealtime.VehiclePosition.CongestionLevel.UNKNOWN_CONGESTION_LEVEL ->
+        CongestionLevel.UNKNOWN_CONGESTION_LEVEL
+      GtfsRealtime.VehiclePosition.CongestionLevel.RUNNING_SMOOTHLY ->
+        CongestionLevel.RUNNING_SMOOTHLY
       GtfsRealtime.VehiclePosition.CongestionLevel.STOP_AND_GO -> CongestionLevel.STOP_AND_GO
       GtfsRealtime.VehiclePosition.CongestionLevel.CONGESTION -> CongestionLevel.CONGESTION
-      GtfsRealtime.VehiclePosition.CongestionLevel.SEVERE_CONGESTION -> CongestionLevel.SEVERE_CONGESTION
+      GtfsRealtime.VehiclePosition.CongestionLevel.SEVERE_CONGESTION ->
+        CongestionLevel.SEVERE_CONGESTION
     }
   }
 
-  private fun mapOccupancyStatus(status: GtfsRealtime.VehiclePosition.OccupancyStatus): OccupancyStatus {
+  private fun mapOccupancyStatus(
+    status: GtfsRealtime.VehiclePosition.OccupancyStatus
+  ): OccupancyStatus {
     return when (status) {
       GtfsRealtime.VehiclePosition.OccupancyStatus.EMPTY -> OccupancyStatus.EMPTY
-      GtfsRealtime.VehiclePosition.OccupancyStatus.MANY_SEATS_AVAILABLE -> OccupancyStatus.MANY_SEATS_AVAILABLE
-      GtfsRealtime.VehiclePosition.OccupancyStatus.FEW_SEATS_AVAILABLE -> OccupancyStatus.FEW_SEATS_AVAILABLE
-      GtfsRealtime.VehiclePosition.OccupancyStatus.STANDING_ROOM_ONLY -> OccupancyStatus.STANDING_ROOM_ONLY
-      GtfsRealtime.VehiclePosition.OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY -> OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY
+      GtfsRealtime.VehiclePosition.OccupancyStatus.MANY_SEATS_AVAILABLE ->
+        OccupancyStatus.MANY_SEATS_AVAILABLE
+      GtfsRealtime.VehiclePosition.OccupancyStatus.FEW_SEATS_AVAILABLE ->
+        OccupancyStatus.FEW_SEATS_AVAILABLE
+      GtfsRealtime.VehiclePosition.OccupancyStatus.STANDING_ROOM_ONLY ->
+        OccupancyStatus.STANDING_ROOM_ONLY
+      GtfsRealtime.VehiclePosition.OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY ->
+        OccupancyStatus.CRUSHED_STANDING_ROOM_ONLY
       GtfsRealtime.VehiclePosition.OccupancyStatus.FULL -> OccupancyStatus.FULL
-      GtfsRealtime.VehiclePosition.OccupancyStatus.NOT_ACCEPTING_PASSENGERS -> OccupancyStatus.NOT_ACCEPTING_PASSENGERS
-      GtfsRealtime.VehiclePosition.OccupancyStatus.NO_DATA_AVAILABLE -> OccupancyStatus.NO_DATA_AVAILABLE
+      GtfsRealtime.VehiclePosition.OccupancyStatus.NOT_ACCEPTING_PASSENGERS ->
+        OccupancyStatus.NOT_ACCEPTING_PASSENGERS
+      GtfsRealtime.VehiclePosition.OccupancyStatus.NO_DATA_AVAILABLE ->
+        OccupancyStatus.NO_DATA_AVAILABLE
       GtfsRealtime.VehiclePosition.OccupancyStatus.NOT_BOARDABLE -> OccupancyStatus.NOT_BOARDABLE
     }
   }
 
-  private fun mapTripScheduleRelationship(rel: GtfsRealtime.TripDescriptor.ScheduleRelationship): TripScheduleRelationship {
+  private fun mapTripScheduleRelationship(
+    rel: GtfsRealtime.TripDescriptor.ScheduleRelationship
+  ): TripScheduleRelationship {
     return when (rel) {
-      GtfsRealtime.TripDescriptor.ScheduleRelationship.SCHEDULED -> TripScheduleRelationship.SCHEDULED
+      GtfsRealtime.TripDescriptor.ScheduleRelationship.SCHEDULED ->
+        TripScheduleRelationship.SCHEDULED
       GtfsRealtime.TripDescriptor.ScheduleRelationship.ADDED -> TripScheduleRelationship.ADDED
-      GtfsRealtime.TripDescriptor.ScheduleRelationship.UNSCHEDULED -> TripScheduleRelationship.UNSCHEDULED
+      GtfsRealtime.TripDescriptor.ScheduleRelationship.UNSCHEDULED ->
+        TripScheduleRelationship.UNSCHEDULED
       GtfsRealtime.TripDescriptor.ScheduleRelationship.CANCELED -> TripScheduleRelationship.CANCELED
-      GtfsRealtime.TripDescriptor.ScheduleRelationship.REPLACEMENT -> TripScheduleRelationship.REPLACEMENT
-      GtfsRealtime.TripDescriptor.ScheduleRelationship.DUPLICATED -> TripScheduleRelationship.DUPLICATED
+      GtfsRealtime.TripDescriptor.ScheduleRelationship.REPLACEMENT ->
+        TripScheduleRelationship.REPLACEMENT
+      GtfsRealtime.TripDescriptor.ScheduleRelationship.DUPLICATED ->
+        TripScheduleRelationship.DUPLICATED
     }
   }
 
-  private fun mapStopScheduleRelationship(rel: GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship): StopScheduleRelationship {
+  private fun mapStopScheduleRelationship(
+    rel: GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship
+  ): StopScheduleRelationship {
     return when (rel) {
-      GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SCHEDULED -> StopScheduleRelationship.SCHEDULED
-      GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED -> StopScheduleRelationship.SKIPPED
-      GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA -> StopScheduleRelationship.NO_DATA
-      GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.UNSCHEDULED -> StopScheduleRelationship.UNSCHEDULED
+      GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SCHEDULED ->
+        StopScheduleRelationship.SCHEDULED
+      GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.SKIPPED ->
+        StopScheduleRelationship.SKIPPED
+      GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.NO_DATA ->
+        StopScheduleRelationship.NO_DATA
+      GtfsRealtime.TripUpdate.StopTimeUpdate.ScheduleRelationship.UNSCHEDULED ->
+        StopScheduleRelationship.UNSCHEDULED
     }
   }
 
@@ -319,7 +376,8 @@ class GtfsRtProcessingService(
       serviceAlertRepository.saveAll(parsedFeed.alerts)
     }
 
-    val totalCount = parsedFeed.vehiclePositions.size + parsedFeed.tripUpdates.size + parsedFeed.alerts.size
+    val totalCount =
+      parsedFeed.vehiclePositions.size + parsedFeed.tripUpdates.size + parsedFeed.alerts.size
 
     meterRegistry
       .counter("gtfsrt.processing.vehicle_positions", "feed_id", feedId.value)
@@ -354,13 +412,7 @@ data class ParsedGtfsRtFeed(
 sealed class ProcessingOutcome {
   abstract val feedId: FeedId
 
-  data class Processed(
-    override val feedId: FeedId,
-    val entityCount: Int,
-  ) : ProcessingOutcome()
+  data class Processed(override val feedId: FeedId, val entityCount: Int) : ProcessingOutcome()
 
-  data class Skipped(
-    override val feedId: FeedId,
-    val reason: String,
-  ) : ProcessingOutcome()
+  data class Skipped(override val feedId: FeedId, val reason: String) : ProcessingOutcome()
 }
