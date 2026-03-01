@@ -1,10 +1,12 @@
 package com.mobilispect.backend.gtfsrt.application
 
+import com.mobilispect.backend.feed.domain.model.ids.FeedId
 import com.mobilispect.backend.feed.domain.repository.FeedRepository
 import com.mobilispect.backend.feed.model.FeedStatus
 import com.mobilispect.backend.gtfsrt.domain.model.GtfsRtFetchResult
 import com.mobilispect.backend.gtfsrt.infrastructure.ParallelGtfsRtFetcher
 import io.micrometer.core.instrument.MeterRegistry
+import java.time.Instant
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -81,10 +83,12 @@ class GtfsRtIngestionService(
           is ProcessingOutcome.Processed -> {
             stats.processed++
             stats.entities += outcome.entityCount
+            updateFeedStatus(result.feedId, checkedAt = result.fetchedAt, updatedAt = result.fetchedAt)
           }
           is ProcessingOutcome.Skipped -> {
             stats.skipped++
             stats.skipReasons[outcome.reason] = stats.skipReasons.getOrDefault(outcome.reason, 0) + 1
+            updateFeedStatus(result.feedId, checkedAt = result.fetchedAt, updatedAt = null)
           }
         }
       }
@@ -92,11 +96,22 @@ class GtfsRtIngestionService(
         stats.skipped++
         stats.skipReasons[result.reason.name] =
           stats.skipReasons.getOrDefault(result.reason.name, 0) + 1
+        updateFeedStatus(result.feedId, checkedAt = result.checkedAt, updatedAt = null)
       }
       is GtfsRtFetchResult.Failure -> {
         stats.failed++
       }
     }
+  }
+
+  private fun updateFeedStatus(feedId: FeedId, checkedAt: Instant, updatedAt: Instant?) {
+    val feed = feedRepository.findById(feedId) ?: return
+    feedRepository.save(
+      feed.copy(
+        lastCheckedAt = checkedAt,
+        lastUpdatedAt = updatedAt ?: feed.lastUpdatedAt,
+      )
+    )
   }
 
   private fun recordStats(stats: IngestionStats, durationMs: Long) {
