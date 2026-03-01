@@ -20,7 +20,7 @@ jobs:
   angular-build:
     name: Build
     runs-on: ubuntu-latest
-    needs: angular-format
+    needs: angular-lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -129,6 +129,7 @@ jobs:
   angular-lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: angular-format
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
