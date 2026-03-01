@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend/web && npm ci --legacy-peer-deps
+        run: cd frontend/web && npm ci
 
       - name: Check Formatting (Prettier)
         run: cd frontend/web && npx prettier --check "src/**/*.{ts,html,css,scss}"
@@ -53,7 +53,7 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend/web && npm ci --legacy-peer-deps
+        run: cd frontend/web && npm ci
 
       - name: Run ESLint
         run: |
@@ -79,7 +79,7 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend/web && npm ci --legacy-peer-deps
+        run: cd frontend/web && npm ci
 
       - name: Build Development
         run: cd frontend/web && npm run build
@@ -109,7 +109,7 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend/web && npm ci --legacy-peer-deps
+        run: cd frontend/web && npm ci
 
       - name: Run Unit Tests
         run: cd frontend/web && npm test -- --watch=false --code-coverage
@@ -139,7 +139,7 @@ jobs:
           cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        run: cd frontend/web && npm ci --legacy-peer-deps
+        run: cd frontend/web && npm ci
 
       - name: Install Playwright Browsers
         run: cd frontend/web && npx playwright install --with-deps chromium firefox webkit
