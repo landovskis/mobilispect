@@ -21,6 +21,7 @@ jobs:
   backend-build:
     name: Build
     runs-on: ubuntu-latest
+    needs: backend-format
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -176,7 +177,6 @@ jobs:
   backend-format:
     name: Formatting
     runs-on: ubuntu-latest
-    needs: backend-build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
