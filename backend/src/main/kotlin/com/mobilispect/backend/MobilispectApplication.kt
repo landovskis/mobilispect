@@ -23,6 +23,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
       "com.mobilispect.backend.agency.data.repository",
       "com.mobilispect.backend.feed.repository",
       "com.mobilispect.backend.feed.data.repository",
+      "com.mobilispect.backend.gtfsrt.data.repository",
       "com.mobilispect.backend.region.data.repository",
       "com.mobilispect.backend.route.data.repository",
       "com.mobilispect.backend.route.domain.repository",
