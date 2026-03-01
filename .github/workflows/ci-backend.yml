@@ -49,8 +49,8 @@ jobs:
           echo "🔧 Building Backend..."
           cd backend && ./gradlew classes testClasses -x compileIntegrationTestKotlin -x compileE2eTestKotlin --info
 
-  backend-test:
-    name: Tests
+  backend-unit-test:
+    name: Unit Tests
     runs-on: ubuntu-latest
     needs: backend-build
     steps:
@@ -81,22 +81,55 @@ jobs:
           echo "🧪 Running Unit Tests..."
           cd backend && ./gradlew test --tests '*Test' --tests '*Tests' --continue --info
 
-      - name: Run Integration Tests
-        run: |
-          echo "🧪 Running Integration Tests..."
-          # Skip integration tests until source set configuration is fixed
-          # The integrationTest source set has classpath issues that prevent compilation
-          echo "⚠️ Integration tests temporarily skipped - see build.gradle.kts TODO"
-          # cd backend && ./gradlew integrationTest --continue --info
-
-      - name: Upload Test Results
+      - name: Upload Unit Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: backend-test-results
+          name: backend-unit-test-results
           path: |
-            backend/build/reports/tests/
-            backend/build/test-results/
+            backend/build/reports/tests/test/
+            backend/build/test-results/test/
+
+  backend-integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: backend-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        run: chmod +x backend/gradlew
+
+      - name: Run Integration Tests
+        run: |
+          echo "🧪 Running Integration Tests..."
+          cd backend && ./gradlew integrationTest --continue --info
+
+      - name: Upload Integration Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-integration-test-results
+          path: |
+            backend/build/reports/tests/integrationTest/
+            backend/build/test-results/integrationTest/
 
   backend-code-quality:
     name: Code Quality
@@ -175,7 +208,7 @@ jobs:
   backend-coverage:
     name: Coverage
     runs-on: ubuntu-latest
-    needs: backend-test
+    needs: backend-unit-test
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -219,7 +252,7 @@ jobs:
   backend-summary:
     name: Summary
     runs-on: ubuntu-latest
-    needs: [backend-build, backend-test, backend-code-quality, backend-format, backend-coverage]
+    needs: [backend-build, backend-unit-test, backend-integration-test, backend-code-quality, backend-format, backend-coverage]
     if: always()
     steps:
       - name: Backend CI Summary
@@ -227,14 +260,16 @@ jobs:
           echo "🏛️ BACKEND CI SUMMARY"
           echo "===================="
           echo "Build: ${{ needs.backend-build.result }}"
-          echo "Tests: ${{ needs.backend-test.result }}"
+          echo "Unit Tests: ${{ needs.backend-unit-test.result }}"
+          echo "Integration Tests: ${{ needs.backend-integration-test.result }}"
           echo "Code Quality: ${{ needs.backend-code-quality.result }}"
           echo "Formatting: ${{ needs.backend-format.result }}"
           echo "Coverage: ${{ needs.backend-coverage.result }}"
           echo ""
 
           if [[ "${{ needs.backend-build.result }}" == "failure" ]] || \
-             [[ "${{ needs.backend-test.result }}" == "failure" ]] || \
+             [[ "${{ needs.backend-unit-test.result }}" == "failure" ]] || \
+             [[ "${{ needs.backend-integration-test.result }}" == "failure" ]] || \
              [[ "${{ needs.backend-code-quality.result }}" == "failure" ]] || \
              [[ "${{ needs.backend-format.result }}" == "failure" ]]; then
             echo "❌ Backend CI failed"
