@@ -248,32 +248,3 @@ jobs:
         with:
           name: backend-coverage-reports
           path: backend/build/reports/jacoco/
-
-  backend-summary:
-    name: Summary
-    runs-on: ubuntu-latest
-    needs: [backend-build, backend-unit-test, backend-integration-test, backend-code-quality, backend-format, backend-coverage]
-    if: always()
-    steps:
-      - name: Backend CI Summary
-        run: |
-          echo "🏛️ BACKEND CI SUMMARY"
-          echo "===================="
-          echo "Build: ${{ needs.backend-build.result }}"
-          echo "Unit Tests: ${{ needs.backend-unit-test.result }}"
-          echo "Integration Tests: ${{ needs.backend-integration-test.result }}"
-          echo "Code Quality: ${{ needs.backend-code-quality.result }}"
-          echo "Formatting: ${{ needs.backend-format.result }}"
-          echo "Coverage: ${{ needs.backend-coverage.result }}"
-          echo ""
-
-          if [[ "${{ needs.backend-build.result }}" == "failure" ]] || \
-             [[ "${{ needs.backend-unit-test.result }}" == "failure" ]] || \
-             [[ "${{ needs.backend-integration-test.result }}" == "failure" ]] || \
-             [[ "${{ needs.backend-code-quality.result }}" == "failure" ]] || \
-             [[ "${{ needs.backend-format.result }}" == "failure" ]]; then
-            echo "❌ Backend CI failed"
-            exit 1
-          else
-            echo "✅ Backend CI passed"
-          fi

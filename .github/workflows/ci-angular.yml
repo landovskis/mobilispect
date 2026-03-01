@@ -223,30 +223,3 @@ jobs:
           echo "📊 Verifying 80% coverage constitutional requirement..."
           # Coverage verification will be based on karma/jasmine output
           echo "⚠️ Coverage verification to be configured"
-
-  angular-summary:
-    name: Summary
-    runs-on: ubuntu-latest
-    needs: [angular-build, angular-test, angular-e2e, angular-lint, angular-format]
-    if: always()
-    steps:
-      - name: Angular CI Summary
-        run: |
-          echo "🏛️ ANGULAR CI SUMMARY"
-          echo "====================="
-          echo "Build: ${{ needs.angular-build.result }}"
-          echo "Tests: ${{ needs.angular-test.result }}"
-          echo "E2E: ${{ needs.angular-e2e.result }}"
-          echo "Lint: ${{ needs.angular-lint.result }}"
-          echo "Formatting: ${{ needs.angular-format.result }}"
-          echo ""
-
-          if [[ "${{ needs.angular-build.result }}" == "failure" ]] || \
-             [[ "${{ needs.angular-test.result }}" == "failure" ]] || \
-             [[ "${{ needs.angular-lint.result }}" == "failure" ]] || \
-             [[ "${{ needs.angular-format.result }}" == "failure" ]]; then
-            echo "❌ Angular CI failed"
-            exit 1
-          else
-            echo "✅ Angular CI passed"
-          fi
