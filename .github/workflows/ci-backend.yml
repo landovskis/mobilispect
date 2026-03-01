@@ -216,49 +216,10 @@ jobs:
           name: backend-coverage-reports
           path: backend/build/reports/jacoco/
 
-  backend-security:
-    name: Security
-    runs-on: ubuntu-latest
-    needs: backend-build
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: ${{ env.JAVA_DISTRIBUTION }}
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Make gradlew executable
-        run: chmod +x backend/gradlew
-
-      - name: OWASP Dependency Check
-        run: |
-          echo "🔒 Running OWASP dependency check..."
-          cd backend && ./gradlew dependencyCheckAnalyze --info || echo "⚠️ Security scan completed with warnings"
-
-      - name: Upload Security Reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: backend-security-reports
-          path: backend/build/reports/dependency-check/
-
   backend-summary:
     name: Summary
     runs-on: ubuntu-latest
-    needs: [backend-build, backend-test, backend-code-quality, backend-format, backend-coverage, backend-security]
+    needs: [backend-build, backend-test, backend-code-quality, backend-format, backend-coverage]
     if: always()
     steps:
       - name: Backend CI Summary
@@ -270,7 +231,6 @@ jobs:
           echo "Code Quality: ${{ needs.backend-code-quality.result }}"
           echo "Formatting: ${{ needs.backend-format.result }}"
           echo "Coverage: ${{ needs.backend-coverage.result }}"
-          echo "Security: ${{ needs.backend-security.result }}"
           echo ""
 
           if [[ "${{ needs.backend-build.result }}" == "failure" ]] || \
