@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import math
 import os
 import re
@@ -15,6 +16,7 @@ from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from . import gtfs as gtfs_lib
+from . import otp as _otp
 from .db import (
     agencies,
     feed_imports,
@@ -26,6 +28,7 @@ from .db import (
     region_import_feeds,
     region_imports,
     route_common_sections,
+    route_variant_shape_points,
     route_variant_stops,
     route_variants,
     routes,
@@ -950,6 +953,7 @@ def persist_route_variants(
         variant_id = _variant_hash(stop_ids)
         record = variants_by_id.get(variant_id)
         if not record:
+            shape_id = row.get("shape_id") or None
             variants_by_id[variant_id] = {
                 "id": variant_id,
                 "route_id": route_id,
@@ -962,6 +966,7 @@ def persist_route_variants(
                 "stop_count": len(stop_ids),
                 "first_stop_id": stop_ids[0],
                 "last_stop_id": stop_ids[-1],
+                "shape_id": shape_id,
                 "active": True,
                 "first_seen": now,
                 "last_seen": now,
@@ -986,6 +991,7 @@ def persist_route_variants(
                     stop_count=record["stop_count"],
                     first_stop_id=record["first_stop_id"],
                     last_stop_id=record["last_stop_id"],
+                    shape_id=record["shape_id"],
                     active=True,
                     first_seen=record["first_seen"],
                     last_seen=record["last_seen"],
@@ -1003,6 +1009,7 @@ def persist_route_variants(
                         "stop_count": record["stop_count"],
                         "first_stop_id": record["first_stop_id"],
                         "last_stop_id": record["last_stop_id"],
+                        "shape_id": record["shape_id"],
                         "active": True,
                         "last_seen": record["last_seen"],
                         "updated_at": record["updated_at"],
@@ -1149,6 +1156,102 @@ def _longest_common_sequence(sequences: List[List[str]]) -> List[str]:
             if all(_contains_sequence(seq, subseq) for seq in sequences):
                 return subseq
     return longest
+
+
+log = logging.getLogger(__name__)
+
+
+def match_and_persist_shapes(
+    parsed: gtfs_lib.ParsedGTFS,
+    variant_shape_map: Dict[str, Optional[str]],
+    otp_url: str,
+) -> None:
+    """Map-match GTFS shape points to streets via OTP2 and persist the results.
+
+    For each route variant that has a shape_id, this function:
+      1. Looks up the corresponding shape points from parsed.shapes.
+      2. Sends the points to OTP2 in batches for map-matching.
+      3. Persists both original and matched coordinates (+ street names) to
+         route_variant_shape_points.
+
+    Multiple variants may share the same shape_id; OTP is called once per
+    unique shape to avoid redundant requests.  On OTP failure the raw
+    coordinates are stored with matched_lat/lon = original and street_name = NULL.
+    """
+    shapes_df = parsed.shapes
+    if shapes_df is None or shapes_df.empty or not variant_shape_map:
+        return
+
+    required_cols = {"shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"}
+    if not required_cols.issubset(shapes_df.columns):
+        log.warning(
+            "shapes.txt is missing required columns (%s); skipping shape matching.",
+            required_cols - set(shapes_df.columns),
+        )
+        return
+
+    # Build shape_id → sorted list of raw points
+    shapes_by_id: Dict[str, List[Dict]] = {}
+    for shape_id, group in shapes_df.groupby("shape_id"):
+        sorted_group = group.sort_values("shape_pt_sequence")
+        shapes_by_id[str(shape_id)] = [
+            {"lat": float(row["shape_pt_lat"]), "lon": float(row["shape_pt_lon"])}
+            for _, row in sorted_group.iterrows()
+        ]
+
+    # Phase 1: Run all OTP calls outside any DB transaction.
+    # Cache results by shape_id so variants that share a shape are matched once.
+    match_cache: Dict[str, List[Dict]] = {}
+    variant_rows: Dict[str, List[Dict]] = {}  # variant_id → list of row dicts
+
+    now = utc_now()
+
+    for variant_id, shape_id in variant_shape_map.items():
+        if not shape_id:
+            continue
+        raw_points = shapes_by_id.get(shape_id)
+        if not raw_points:
+            log.debug("No shape points found for shape_id=%s, skipping.", shape_id)
+            continue
+
+        if shape_id not in match_cache:
+            match_cache[shape_id] = _otp.match_shape(otp_url, raw_points)
+
+        matched_points = match_cache[shape_id]
+        variant_rows[variant_id] = [
+            {
+                "variant_id": variant_id,
+                "sequence": seq,
+                "original_lat": raw["lat"],
+                "original_lon": raw["lon"],
+                "matched_lat": matched.get("matched_lat"),
+                "matched_lon": matched.get("matched_lon"),
+                "street_name": matched.get("street_name"),
+                "created_at": now,
+            }
+            for seq, (raw, matched) in enumerate(zip(raw_points, matched_points))
+        ]
+
+    if not variant_rows:
+        return
+
+    # Phase 2: Persist all results in a single transaction.
+    engine = get_engine()
+    with engine.begin() as conn:
+        for variant_id, inserts in variant_rows.items():
+            conn.execute(
+                route_variant_shape_points.delete().where(
+                    route_variant_shape_points.c.variant_id == variant_id
+                )
+            )
+            if inserts:
+                conn.execute(route_variant_shape_points.insert(), inserts)
+
+    log.info(
+        "Persisted shape points for %d variants (%d unique shapes).",
+        len(variant_rows),
+        len(match_cache),
+    )
 
 
 def persist_route_common_sections(variants: List[Dict]) -> None:

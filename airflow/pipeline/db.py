@@ -157,6 +157,7 @@ route_variants = Table(
     Column("last_stop_id", String(255)),
     Column("classification", String(20)),
     Column("average_stop_spacing_meters", Float),
+    Column("shape_id", String(255)),
     Column("active", Boolean),
     Column("first_seen", DateTime(timezone=True)),
     Column("last_seen", DateTime(timezone=True)),
@@ -236,6 +237,19 @@ frequencies = Table(
     Column("trip_count", Integer),
     Column("is_irregular", Boolean),
     Column("calculated_at", DateTime(timezone=True)),
+    Column("created_at", DateTime(timezone=True)),
+)
+
+route_variant_shape_points = Table(
+    "route_variant_shape_points",
+    metadata,
+    Column("variant_id", String(64), primary_key=True),
+    Column("sequence", Integer, primary_key=True),
+    Column("original_lat", Float, nullable=False),
+    Column("original_lon", Float, nullable=False),
+    Column("matched_lat", Float),
+    Column("matched_lon", Float),
+    Column("street_name", String(512)),
     Column("created_at", DateTime(timezone=True)),
 )
 
