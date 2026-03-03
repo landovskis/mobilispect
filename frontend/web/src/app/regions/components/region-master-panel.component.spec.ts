@@ -7,6 +7,7 @@ import {
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError } from 'rxjs';
+import { vi } from 'vitest';
 import { RegionMasterPanelComponent } from './region-master-panel.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
@@ -21,10 +22,10 @@ import {
 describe('RegionMasterPanelComponent', () => {
   let component: RegionMasterPanelComponent;
   let fixture: ComponentFixture<RegionMasterPanelComponent>;
-  let regionService: jasmine.SpyObj<RegionService>;
-  let importService: jasmine.SpyObj<ImportService>;
-  let schedulerService: jasmine.SpyObj<SchedulerService>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let regionService: RegionService;
+  let importService: ImportService;
+  let schedulerService: SchedulerService;
+  let snackBar: MatSnackBar;
 
   const mockRegions: MetropolitanRegion[] = [
     {
@@ -84,31 +85,41 @@ describe('RegionMasterPanelComponent', () => {
   };
 
   beforeEach(async () => {
-    regionService = jasmine.createSpyObj('RegionService', [
-      'listRegions',
-      'clearCache',
-      'sortWithCanadianPriority',
-    ]);
-    importService = jasmine.createSpyObj('ImportService', [
-      'getActiveImports',
-      'startPollingActiveImports',
-      'stopPollingActiveImports',
-      'getActiveImportsObservable',
-    ]);
-    schedulerService = jasmine.createSpyObj('SchedulerService', [
-      'enableFeedAutoUpdate',
-      'disableFeedAutoUpdate',
-    ]);
-    snackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    regionService = {
+      listRegions: vi.fn(),
+      clearCache: vi.fn(),
+      sortWithCanadianPriority: vi.fn(),
+    } as unknown as RegionService;
+    importService = {
+      getActiveImports: vi.fn(),
+      startPollingActiveImports: vi.fn(),
+      stopPollingActiveImports: vi.fn(),
+      getActiveImportsObservable: vi.fn(),
+    } as unknown as ImportService;
+    schedulerService = {
+      enableFeedAutoUpdate: vi.fn(),
+      disableFeedAutoUpdate: vi.fn(),
+    } as unknown as SchedulerService;
+    snackBar = {
+      open: vi.fn(),
+    } as unknown as MatSnackBar;
 
-    regionService.listRegions.and.returnValue(of(mockRegions));
-    regionService.sortWithCanadianPriority.and.callFake((regions) => regions);
-    importService.getActiveImports.and.returnValue(of(mockActiveImports));
-    importService.getActiveImportsObservable.and.returnValue(
+    vi.mocked(regionService.listRegions).mockReturnValue(of(mockRegions));
+    vi.mocked(regionService.sortWithCanadianPriority).mockImplementation(
+      (regions) => regions,
+    );
+    vi.mocked(importService.getActiveImports).mockReturnValue(
       of(mockActiveImports),
     );
-    schedulerService.enableFeedAutoUpdate.and.returnValue(of(undefined));
-    schedulerService.disableFeedAutoUpdate.and.returnValue(of(undefined));
+    vi.mocked(importService.getActiveImportsObservable).mockReturnValue(
+      of(mockActiveImports),
+    );
+    vi.mocked(schedulerService.enableFeedAutoUpdate).mockReturnValue(
+      of(undefined),
+    );
+    vi.mocked(schedulerService.disableFeedAutoUpdate).mockReturnValue(
+      of(undefined),
+    );
 
     await TestBed.configureTestingModule({
       imports: [RegionMasterPanelComponent, NoopAnimationsModule],
@@ -133,7 +144,7 @@ describe('RegionMasterPanelComponent', () => {
     expect(importService.getActiveImportsObservable).toHaveBeenCalled();
     expect(component.regions$.value).toEqual(mockRegions);
     expect(component.activeImports$.value).toEqual(mockActiveImports);
-    expect(component.isLoading$.value).toBeFalse();
+    expect(component.isLoading$.value).toBe(false);
   });
 
   it('updates search term with debounce', fakeAsync(() => {
@@ -185,7 +196,7 @@ describe('RegionMasterPanelComponent', () => {
   });
 
   it('toggles auto-update and refreshes regions', () => {
-    spyOn(component, 'refreshRegions');
+    vi.spyOn(component, 'refreshRegions').mockImplementation(() => {});
 
     component.toggleAutoUpdate(mockRegions[1], true);
 
@@ -193,22 +204,22 @@ describe('RegionMasterPanelComponent', () => {
       'r-test-vancouver',
     );
     expect(snackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('enabled'),
+      expect.stringContaining('enabled'),
       'Close',
       { duration: 3000 },
     );
     expect(component.refreshRegions).toHaveBeenCalled();
-    expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBeFalse();
+    expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(false);
   });
 
   it('handles auto-update errors', () => {
-    schedulerService.enableFeedAutoUpdate.and.returnValue(
+    vi.mocked(schedulerService.enableFeedAutoUpdate).mockReturnValue(
       throwError(() => new Error('Failed to update')),
     );
 
     component.toggleAutoUpdate(mockRegions[1], true);
 
-    expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBeFalse();
+    expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(false);
     expect(snackBar.open).toHaveBeenCalledWith(
       'Failed to update auto-update setting',
       'Close',
@@ -224,7 +235,7 @@ describe('RegionMasterPanelComponent', () => {
   });
 
   it('handles region load errors', () => {
-    regionService.listRegions.and.returnValue(
+    vi.mocked(regionService.listRegions).mockReturnValue(
       throwError(() => new Error('Network error')),
     );
 
@@ -233,7 +244,7 @@ describe('RegionMasterPanelComponent', () => {
     expect(component.error$.value).toBe(
       'Failed to load regions. Please try again.',
     );
-    expect(component.isLoading$.value).toBeFalse();
+    expect(component.isLoading$.value).toBe(false);
   });
 
   it('stops polling on destroy', () => {

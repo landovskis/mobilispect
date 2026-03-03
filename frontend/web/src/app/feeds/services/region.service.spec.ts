@@ -10,6 +10,7 @@ import {
   FeedStatus,
   MetropolitanRegion,
 } from '../models/region.models';
+import { vi } from 'vitest';
 
 describe('RegionService', () => {
   let service: RegionService;
@@ -96,7 +97,7 @@ describe('RegionService', () => {
     service
       .updateRegion('r-1', { autoUpdateEnabled: true })
       .subscribe((updated) => {
-        expect(updated.autoUpdateEnabled).toBeTrue();
+        expect(updated.autoUpdateEnabled).toBe(true);
       });
 
     const req = httpMock.expectOne(`${environment.apiUrl}/feeds/regions/r-1`);
@@ -108,7 +109,7 @@ describe('RegionService', () => {
     });
 
     const cached = service.getCachedRegion('r-1');
-    expect(cached?.autoUpdateEnabled).toBeTrue();
+    expect(cached?.autoUpdateEnabled).toBe(true);
   });
 
   it('lists feeds for a region with query params', () => {
@@ -184,8 +185,8 @@ describe('RegionService', () => {
   });
 
   it('filters regions needing attention and Canadian prioritization', () => {
-    jasmine.clock().install();
-    jasmine.clock().mockDate(new Date('2024-06-02T12:00:00Z'));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-06-02T12:00:00Z'));
 
     internals.regionsCache$.next([
       {
@@ -222,16 +223,16 @@ describe('RegionService', () => {
 
     expect(sorted[0].regionOnestopId).toBe('r-can');
 
-    jasmine.clock().uninstall();
+    vi.useRealTimers();
   });
 
   it('reports cache validity and clearing', () => {
     internals.regionsCache$.next([baseRegion]);
     internals.lastCacheUpdate = Date.now();
-    expect(service.isCacheValid()).toBeTrue();
+    expect(service.isCacheValid()).toBe(true);
 
     service.clearCache();
-    expect(service.isCacheValid()).toBeFalse();
+    expect(service.isCacheValid()).toBe(false);
   });
 
   it('detects Canadian regions by name or id', () => {
@@ -247,8 +248,8 @@ describe('RegionService', () => {
       regionOnestopId: 'r-us',
     });
 
-    expect(canadian).toBeTrue();
-    expect(nonCanadian).toBeFalse();
+    expect(canadian).toBe(true);
+    expect(nonCanadian).toBe(false);
   });
 });
 

@@ -26,7 +26,7 @@ describe('SchedulerService', () => {
 
   it('converts scheduler status dates', () => {
     service.getSchedulerStatus().subscribe((status) => {
-      expect(status.lastRunTime instanceof Date).toBeTrue();
+      expect(status.lastRunTime instanceof Date).toBe(true);
     });
 
     const req = httpMock.expectOne(
@@ -43,7 +43,7 @@ describe('SchedulerService', () => {
 
   it('converts import stats and version timestamps', () => {
     service.getImportStats().subscribe((stats) => {
-      expect(stats.lastAutomaticImportTime instanceof Date).toBeTrue();
+      expect(stats.lastAutomaticImportTime instanceof Date).toBe(true);
     });
 
     const statsReq = httpMock.expectOne(
@@ -58,8 +58,8 @@ describe('SchedulerService', () => {
     });
 
     service.getAllFeedVersions().subscribe((versions) => {
-      expect(versions[0].lastCheckedAt instanceof Date).toBeTrue();
-      expect(versions[0].lastUpdatedAt instanceof Date).toBeTrue();
+      expect(versions[0].lastCheckedAt instanceof Date).toBe(true);
+      expect(versions[0].lastUpdatedAt instanceof Date).toBe(true);
     });
 
     const versionsReq = httpMock.expectOne(
@@ -110,7 +110,7 @@ describe('SchedulerService', () => {
     });
 
     service.getAutoUpdateConfig().subscribe((config) => {
-      expect(config.globalAutoUpdateEnabled).toBeTrue();
+      expect(config.globalAutoUpdateEnabled).toBe(true);
     });
 
     const configReq = httpMock.expectOne(
@@ -133,7 +133,7 @@ describe('SchedulerService', () => {
         retryFailedImports: 0,
       })
       .subscribe((config) => {
-        expect(config.globalAutoUpdateEnabled).toBeFalse();
+        expect(config.globalAutoUpdateEnabled).toBe(false);
       });
 
     const updateReq = httpMock.expectOne(
@@ -169,7 +169,7 @@ describe('SchedulerService', () => {
     });
 
     service.refreshFeedVersion('f-1').subscribe((version) => {
-      expect(version.lastCheckedAt instanceof Date).toBeTrue();
+      expect(version.lastCheckedAt instanceof Date).toBe(true);
     });
 
     const refreshReq = httpMock.expectOne(
@@ -244,7 +244,7 @@ describe('SchedulerService', () => {
 
   it('maps feed update checks', () => {
     service.checkFeedUpdate('f-abc-test').subscribe((hasUpdate) => {
-      expect(hasUpdate).toBeTrue();
+      expect(hasUpdate).toBe(true);
     });
 
     const req = httpMock.expectOne(

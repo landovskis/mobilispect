@@ -78,7 +78,7 @@ export interface RouteCommonSectionDto {
 }
 
 @Injectable({ providedIn: 'root' })
-export class FrequencyService {
+export class RouteService {
   private readonly baseUrl = '/api/v1/routes';
   private readonly http = inject(HttpClient);
 

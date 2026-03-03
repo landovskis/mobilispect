@@ -65,6 +65,6 @@ describe('RegionImportStatusComponent', () => {
 
     const badge = fixture.nativeElement.querySelector('.badge');
     expect(badge.textContent).toContain('Partial');
-    expect(badge.classList.contains('partial')).toBeTrue();
+    expect(badge.classList.contains('partial')).toBe(true);
   });
 });

@@ -1,12 +1,13 @@
 import { RouteBreadcrumbResolver } from './route-breadcrumb.resolver';
-import { FrequencyService, RouteDto } from '../services/frequency.service';
+import { RouteService, RouteDto } from '../services/route.service';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { ActivatedRouteSnapshot } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 
 describe('RouteBreadcrumbResolver', () => {
   let resolver: RouteBreadcrumbResolver;
-  let frequencyServiceSpy: jasmine.SpyObj<FrequencyService>;
+  let routeServiceSpy: RouteService;
 
   const mockRoute: RouteDto = {
     id: 'r-123',
@@ -18,12 +19,12 @@ describe('RouteBreadcrumbResolver', () => {
   };
 
   beforeEach(() => {
-    frequencyServiceSpy = jasmine.createSpyObj('FrequencyService', [
-      'getRoute',
-    ]);
+    routeServiceSpy = {
+      getRoute: vi.fn(),
+    } as unknown as RouteService;
     TestBed.configureTestingModule({
       providers: [
-        { provide: FrequencyService, useValue: frequencyServiceSpy },
+        { provide: RouteService, useValue: routeServiceSpy },
         RouteBreadcrumbResolver,
       ],
     });
@@ -44,22 +45,22 @@ describe('RouteBreadcrumbResolver', () => {
     const label = await firstValueFrom(resolver.resolve(snapshot));
 
     expect(label).toBe('Route');
-    expect(frequencyServiceSpy.getRoute).not.toHaveBeenCalled();
+    expect(routeServiceSpy.getRoute).not.toHaveBeenCalled();
   });
 
   it('formats label with short and long name when both exist', async () => {
-    frequencyServiceSpy.getRoute.and.returnValue(of(mockRoute));
+    vi.mocked(routeServiceSpy.getRoute).mockReturnValue(of(mockRoute));
     const snapshot = createSnapshot(mockRoute.id);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
 
     expect(label).toBe('15 Sainte-Catherine');
-    expect(frequencyServiceSpy.getRoute).toHaveBeenCalledWith(mockRoute.id);
+    expect(routeServiceSpy.getRoute).toHaveBeenCalledWith(mockRoute.id);
   });
 
   it('uses short name when long name is missing', async () => {
     const route = { ...mockRoute, longName: '' };
-    frequencyServiceSpy.getRoute.and.returnValue(of(route));
+    vi.mocked(routeServiceSpy.getRoute).mockReturnValue(of(route));
     const snapshot = createSnapshot(mockRoute.id);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
@@ -69,7 +70,7 @@ describe('RouteBreadcrumbResolver', () => {
 
   it('uses long name when short name is missing', async () => {
     const route = { ...mockRoute, shortName: null };
-    frequencyServiceSpy.getRoute.and.returnValue(of(route));
+    vi.mocked(routeServiceSpy.getRoute).mockReturnValue(of(route));
     const snapshot = createSnapshot(mockRoute.id);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
@@ -78,7 +79,7 @@ describe('RouteBreadcrumbResolver', () => {
   });
 
   it('falls back to route id on api error', async () => {
-    frequencyServiceSpy.getRoute.and.returnValue(
+    vi.mocked(routeServiceSpy.getRoute).mockReturnValue(
       throwError(() => new Error('boom')),
     );
     const snapshot = createSnapshot(mockRoute.id);

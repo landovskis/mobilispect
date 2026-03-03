@@ -10,6 +10,7 @@ import { BehaviorSubject, firstValueFrom, of } from 'rxjs';
 import { FeedImportSummary } from '../../feeds/models';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { vi } from 'vitest';
 
 describe('AppShellComponent', () => {
   let component: AppShellComponent;
@@ -18,21 +19,21 @@ describe('AppShellComponent', () => {
   let activeImports$ = of<FeedImportSummary[] | null>([]);
   const mockImportService = {
     getActiveImportsObservable: () => activeImports$,
-    refreshActiveImports: jasmine.createSpy('refreshActiveImports'),
+    refreshActiveImports: vi.fn(),
   };
 
   const mockMetricsService = {
     discoverFeedCount$: of(0),
     totalImportElements$: of(0),
-    resetSelectedRegion: jasmine.createSpy('resetSelectedRegion'),
+    resetSelectedRegion: vi.fn(),
   };
 
   const mockEventsService = {
-    triggerRefresh: jasmine.createSpy('triggerRefresh'),
+    triggerRefresh: vi.fn(),
   };
 
   const mockRegionService = {
-    clearCache: jasmine.createSpy('clearCache'),
+    clearCache: vi.fn(),
   };
 
   const breakpointState$ = new BehaviorSubject({ matches: false });
@@ -75,8 +76,8 @@ describe('AppShellComponent', () => {
   });
 
   it('navigates when regions breadcrumb is selected', () => {
-    const preventDefault = jasmine.createSpy('preventDefault');
-    const stopPropagation = jasmine.createSpy('stopPropagation');
+    const preventDefault = vi.fn();
+    const stopPropagation = vi.fn();
 
     component.onBreadcrumbSelected({
       breadcrumb: {
@@ -96,8 +97,8 @@ describe('AppShellComponent', () => {
   });
 
   it('ignores breadcrumb selections outside regions', () => {
-    const preventDefault = jasmine.createSpy('preventDefault');
-    const stopPropagation = jasmine.createSpy('stopPropagation');
+    const preventDefault = vi.fn();
+    const stopPropagation = vi.fn();
 
     component.onBreadcrumbSelected({
       breadcrumb: { id: 'feeds', label: 'Feeds', link: ['/feeds/imports'] },
@@ -113,16 +114,16 @@ describe('AppShellComponent', () => {
 
   it('toggles the sidenav only on handset layouts', async () => {
     await component.toggleSidenav();
-    expect(component.sidebarOpened).toBeFalse();
+    expect(component.sidebarOpened).toBe(false);
 
     breakpointState$.next({ matches: true });
     await component.toggleSidenav();
-    expect(component.sidebarOpened).toBeTrue();
+    expect(component.sidebarOpened).toBe(true);
   });
 
   it('updates sidebar state on opened change', () => {
     component.onSidenavOpenedChange(true);
-    expect(component.sidebarOpened).toBeTrue();
+    expect(component.sidebarOpened).toBe(true);
   });
 
   it('falls back to zero active imports when data is missing', async () => {

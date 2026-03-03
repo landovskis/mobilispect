@@ -7,11 +7,11 @@ import {
 
 import { ActivatedRoute } from '@angular/router';
 import {
-  FrequencyService,
+  RouteService,
   RouteDto,
   RouteVariantDto,
   FrequencyDto,
-} from '../../services/frequency.service';
+} from '../../services/route.service';
 import { MatTabsModule } from '@angular/material/tabs';
 import {
   CommonSectionService,
@@ -78,7 +78,7 @@ export class RouteFrequencyComponent implements OnInit {
   selectedDirectionId: number | null = null;
 
   private readonly routeParams = inject(ActivatedRoute);
-  private readonly frequencyService = inject(FrequencyService);
+  private readonly frequencyService = inject(RouteService);
   private readonly commonSectionService = inject(CommonSectionService);
 
   constructor() {}

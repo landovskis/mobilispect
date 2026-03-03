@@ -8,7 +8,9 @@
     "build:prod": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "lint": "ng lint",
-    "test": "ng test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
@@ -36,6 +38,8 @@
     "zone.js": "^0.16.0"
   },
   "devDependencies": {
+    "@analogjs/vite-plugin-angular": "^2.3.0",
+    "@analogjs/vitest-angular": "^2.3.0",
     "@angular-eslint/builder": "21.0.0",
     "@angular-eslint/eslint-plugin": "21.0.0",
     "@angular-eslint/eslint-plugin-template": "21.0.0",
@@ -44,18 +48,14 @@
     "@angular/cli": "21.1.4",
     "@angular/compiler-cli": "^21.1.6",
     "@playwright/test": "^1.57.0",
-    "@types/jasmine": "~5.1.0",
     "@types/sockjs-client": "^1.5.4",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^8.57.0",
-    "jasmine-core": "~5.7.0",
-    "karma": "~6.4.0",
-    "karma-chrome-launcher": "~3.2.0",
-    "karma-coverage": "~2.2.0",
-    "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
+    "jsdom": "^28.1.0",
     "prettier": "^3.8.1",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.18"
   }
 }

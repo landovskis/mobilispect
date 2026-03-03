@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { WebSocketService } from './websocket.service';
+import { vi } from 'vitest';
 
 describe('WebSocketService', () => {
   let service: WebSocketService;
@@ -9,17 +10,17 @@ describe('WebSocketService', () => {
     TestBed.configureTestingModule({});
     service = TestBed.inject(WebSocketService);
     internals = service as unknown as WebSocketServiceInternals;
-    spyOn(console, 'log');
-    spyOn(console, 'warn');
-    spyOn(console, 'error');
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   it('publishes messages when connected', () => {
-    const publishSpy = jasmine.createSpy('publish');
+    const publishSpy = vi.fn();
     internals.stompClient = {
       connected: true,
       publish: publishSpy,
-      deactivate: jasmine.createSpy('deactivate'),
+      deactivate: vi.fn(),
     };
 
     service.send('/topic/test', { type: 'PING' });
@@ -31,11 +32,11 @@ describe('WebSocketService', () => {
   });
 
   it('warns when publishing while disconnected', () => {
-    const publishSpy = jasmine.createSpy('publish');
+    const publishSpy = vi.fn();
     internals.stompClient = {
       connected: false,
       publish: publishSpy,
-      deactivate: jasmine.createSpy('deactivate'),
+      deactivate: vi.fn(),
     };
 
     service.send('/topic/test', { type: 'PING' });
@@ -45,13 +46,13 @@ describe('WebSocketService', () => {
   });
 
   it('subscribes to import progress when connected', () => {
-    const unsubscribeSpy = jasmine.createSpy('unsubscribe');
-    const subscribeSpy = jasmine
-      .createSpy('subscribe')
-      .and.returnValue({ unsubscribe: unsubscribeSpy });
+    const unsubscribeSpy = vi.fn();
+    const subscribeSpy = vi
+      .fn()
+      .mockReturnValue({ unsubscribe: unsubscribeSpy });
     internals.stompClient = {
       subscribe: subscribeSpy,
-      deactivate: jasmine.createSpy('deactivate'),
+      deactivate: vi.fn(),
     };
 
     service.subscribeToImportProgress('import-1');
@@ -59,18 +60,18 @@ describe('WebSocketService', () => {
 
     expect(subscribeSpy).toHaveBeenCalledWith(
       '/topic/import/progress/import-1',
-      jasmine.any(Function),
+      expect.any(Function),
     );
   });
 
   it('subscribes to import status when connected', () => {
-    const unsubscribeSpy = jasmine.createSpy('unsubscribe');
-    const subscribeSpy = jasmine
-      .createSpy('subscribe')
-      .and.returnValue({ unsubscribe: unsubscribeSpy });
+    const unsubscribeSpy = vi.fn();
+    const subscribeSpy = vi
+      .fn()
+      .mockReturnValue({ unsubscribe: unsubscribeSpy });
     internals.stompClient = {
       subscribe: subscribeSpy,
-      deactivate: jasmine.createSpy('deactivate'),
+      deactivate: vi.fn(),
     };
 
     service.subscribeToImportStatus('import-2');
@@ -78,18 +79,18 @@ describe('WebSocketService', () => {
 
     expect(subscribeSpy).toHaveBeenCalledWith(
       '/topic/import/status/import-2',
-      jasmine.any(Function),
+      expect.any(Function),
     );
   });
 
   it('subscribes to system alerts when connected', () => {
-    const unsubscribeSpy = jasmine.createSpy('unsubscribe');
-    const subscribeSpy = jasmine
-      .createSpy('subscribe')
-      .and.returnValue({ unsubscribe: unsubscribeSpy });
+    const unsubscribeSpy = vi.fn();
+    const subscribeSpy = vi
+      .fn()
+      .mockReturnValue({ unsubscribe: unsubscribeSpy });
     internals.stompClient = {
       subscribe: subscribeSpy,
-      deactivate: jasmine.createSpy('deactivate'),
+      deactivate: vi.fn(),
     };
 
     service.subscribeToSystemAlerts();
@@ -97,13 +98,13 @@ describe('WebSocketService', () => {
 
     expect(subscribeSpy).toHaveBeenCalledWith(
       '/topic/system/alerts',
-      jasmine.any(Function),
+      expect.any(Function),
     );
   });
 
   it('unsubscribes from import topics', () => {
-    const unsubscribeProgress = jasmine.createSpy('unsubscribe');
-    const unsubscribeStatus = jasmine.createSpy('unsubscribe');
+    const unsubscribeProgress = vi.fn();
+    const unsubscribeStatus = vi.fn();
     internals.subscriptions.set('/topic/import/progress/import-9', {
       unsubscribe: unsubscribeProgress,
     });

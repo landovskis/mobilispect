@@ -2,11 +2,11 @@ import { inject, Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { FrequencyService } from '../services/frequency.service';
+import { RouteService } from '../services/route.service';
 
 @Injectable({ providedIn: 'root' })
 export class RouteBreadcrumbResolver implements Resolve<string> {
-  private readonly frequencyService = inject(FrequencyService);
+  private readonly frequencyService = inject(RouteService);
 
   constructor() {}
 

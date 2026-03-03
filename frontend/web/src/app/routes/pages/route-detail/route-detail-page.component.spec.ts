@@ -2,31 +2,33 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
 import { RouteDetailPageComponent } from './route-detail-page.component';
-import { FrequencyService } from '../../services/frequency.service';
+import { RouteService } from '../../services/route.service';
 import { CommonSectionService } from '../../services/common-section.service';
+import { vi } from 'vitest';
 
 describe('RouteDetailPageComponent', () => {
   let component: RouteDetailPageComponent;
   let fixture: ComponentFixture<RouteDetailPageComponent>;
-  let mockFrequencyService: jasmine.SpyObj<FrequencyService>;
+  let mockRouteService: RouteService;
   let mockActivatedRoute: ActivatedRoute;
-  let mockCommonSectionService: jasmine.SpyObj<CommonSectionService>;
+  let mockCommonSectionService: CommonSectionService;
 
   beforeEach(async () => {
-    mockFrequencyService = jasmine.createSpyObj('FrequencyService', [
-      'getRoute',
-      'getVariants',
-      'getFrequencies',
-    ]);
-    mockCommonSectionService = jasmine.createSpyObj('CommonSectionService', [
-      'getCommonSectionsForRoute',
-      'getCombinedFrequency',
-    ]);
+    mockRouteService = {
+      getRoute: vi.fn(),
+      getVariants: vi.fn(),
+      getFrequencies: vi.fn(),
+      getCommonSections: vi.fn(),
+    } as unknown as RouteService;
+    mockCommonSectionService = {
+      getCommonSectionsForRoute: vi.fn(),
+      getCombinedFrequency: vi.fn(),
+    } as unknown as CommonSectionService;
 
     mockActivatedRoute = {
       snapshot: {
         paramMap: {
-          get: jasmine.createSpy('get').and.returnValue('test-route-id'),
+          get: vi.fn().mockReturnValue('test-route-id'),
         },
       },
     } as unknown as ActivatedRoute;
@@ -34,7 +36,7 @@ describe('RouteDetailPageComponent', () => {
     await TestBed.configureTestingModule({
       imports: [RouteDetailPageComponent],
       providers: [
-        { provide: FrequencyService, useValue: mockFrequencyService },
+        { provide: RouteService, useValue: mockRouteService },
         { provide: CommonSectionService, useValue: mockCommonSectionService },
         { provide: ActivatedRoute, useValue: mockActivatedRoute },
       ],
@@ -82,12 +84,14 @@ describe('RouteDetailPageComponent', () => {
       },
     ];
 
-    mockFrequencyService.getRoute.and.returnValue(of(mockRoute));
-    mockFrequencyService.getVariants.and.returnValue(of(mockVariants));
-    mockCommonSectionService.getCommonSectionsForRoute.and.returnValue(
-      of(mockSections),
-    );
-    mockCommonSectionService.getCombinedFrequency.and.returnValue(
+    vi.mocked(mockRouteService.getRoute).mockReturnValue(of(mockRoute));
+    vi.mocked(mockRouteService.getVariants).mockReturnValue(of(mockVariants));
+    vi.mocked(mockRouteService.getFrequencies).mockReturnValue(of([]));
+    vi.mocked(mockRouteService.getCommonSections).mockReturnValue(of([]));
+    vi.mocked(
+      mockCommonSectionService.getCommonSectionsForRoute,
+    ).mockReturnValue(of(mockSections));
+    vi.mocked(mockCommonSectionService.getCombinedFrequency).mockReturnValue(
       of({
         commonSectionId: 'section-1',
         timePeriod: 'WEEKDAY_AM_PEAK',
@@ -99,10 +103,8 @@ describe('RouteDetailPageComponent', () => {
 
     fixture.detectChanges();
 
-    expect(mockFrequencyService.getRoute).toHaveBeenCalledWith('test-route-id');
-    expect(mockFrequencyService.getVariants).toHaveBeenCalledWith(
-      'test-route-id',
-    );
+    expect(mockRouteService.getRoute).toHaveBeenCalledWith('test-route-id');
+    expect(mockRouteService.getVariants).toHaveBeenCalledWith('test-route-id');
     expect(
       mockCommonSectionService.getCommonSectionsForRoute,
     ).toHaveBeenCalledWith('test-route-id');

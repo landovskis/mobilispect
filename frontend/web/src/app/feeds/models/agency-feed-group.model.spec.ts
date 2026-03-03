@@ -65,8 +65,8 @@ describe('FeedGroupingUtils', () => {
     expect(bartGroup).toBeDefined();
     expect(bartGroup!.feedsByType.gtfs).toBe(1);
     expect(bartGroup!.feedsByType.gtfsRt).toBe(1);
-    expect(bartGroup!.hasAuthentication).toBeTrue();
-    expect(bartGroup!.hasActiveFeeds).toBeTrue();
+    expect(bartGroup!.hasAuthentication).toBe(true);
+    expect(bartGroup!.hasActiveFeeds).toBe(true);
     expect(bartGroup!.primaryFeed.specType).toBe(FeedSpecType.GTFS);
     expect(bartGroup!.lastUpdatedAt).toBe('2024-06-02T00:00:00Z');
   });
@@ -127,8 +127,8 @@ describe('FeedGroupingUtils', () => {
     ];
 
     const group = FeedGroupingUtils.groupFeedsByAgency(feeds)[0];
-    expect(group.hasActiveFeeds).toBeFalse();
-    expect(group.hasAuthentication).toBeFalse();
+    expect(group.hasActiveFeeds).toBe(false);
+    expect(group.hasAuthentication).toBe(false);
     expect(group.lastUpdatedAt).toBeNull();
     expect(group.primaryFeed.specType).toBe(FeedSpecType.GTFS);
   });

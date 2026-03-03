@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { RouteDto } from '../../services/frequency.service';
+import { RouteDto } from '../../services/route.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 
 @Component({

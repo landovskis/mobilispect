@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { RegionSelectorComponent } from './region-selector.component';
 import { MetropolitanRegion } from '../../feeds/models/region.models';
 import { SimpleChange } from '@angular/core';
@@ -43,7 +44,9 @@ describe('RegionSelectorComponent', () => {
   });
 
   it('selects regions and emits changes', () => {
-    const emitSpy = spyOn(component.regionChange, 'emit');
+    const emitSpy = vi
+      .spyOn(component.regionChange, 'emit')
+      .mockImplementation(() => {});
 
     component.onRegionSelected(baseRegion);
 
@@ -51,7 +54,9 @@ describe('RegionSelectorComponent', () => {
   });
 
   it('clears search and emits empty selection', () => {
-    const emitSpy = spyOn(component.regionChange, 'emit');
+    const emitSpy = vi
+      .spyOn(component.regionChange, 'emit')
+      .mockImplementation(() => {});
 
     component.clearSearch();
 
@@ -76,13 +81,13 @@ describe('RegionSelectorComponent', () => {
       disabled: new SimpleChange(false, true, false),
     });
 
-    expect(component.searchControl.disabled).toBeTrue();
+    expect(component.searchControl.disabled).toBe(true);
 
     component.disabled = false;
     component.ngOnChanges({
       disabled: new SimpleChange(true, false, false),
     });
 
-    expect(component.searchControl.enabled).toBeTrue();
+    expect(component.searchControl.enabled).toBe(true);
   });
 });

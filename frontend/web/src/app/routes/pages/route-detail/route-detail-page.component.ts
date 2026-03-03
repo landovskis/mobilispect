@@ -7,12 +7,12 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import {
-  FrequencyService,
+  RouteService,
   FrequencyDto,
   RouteDto,
   RouteVariantDto,
   RouteCommonSectionDto,
-} from '../../services/frequency.service';
+} from '../../services/route.service';
 import {
   CommonSectionService,
   CommonSectionDto,
@@ -115,7 +115,7 @@ export class RouteDetailPageComponent implements OnInit {
   selectedDirectionId: number | null = null;
 
   private readonly activatedRoute = inject(ActivatedRoute);
-  private readonly frequencyService = inject(FrequencyService);
+  private readonly frequencyService = inject(RouteService);
   private readonly commonSectionService = inject(CommonSectionService);
 
   constructor() {}

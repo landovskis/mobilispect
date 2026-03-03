@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DebugElement } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
+import { vi } from 'vitest';
 import { RegionImportCardComponent } from './region-import-card.component';
 import { FeedImportRowComponent } from './feed-import-row.component';
 import { RegionImportGroup } from '../models/region-import-group.model';
@@ -64,10 +65,12 @@ describe('RegionImportCardComponent', () => {
   };
 
   beforeEach(async () => {
-    const mockImportService = jasmine.createSpyObj('ImportService', [
-      'monitorImportProgress',
-    ]);
-    mockImportService.monitorImportProgress.and.returnValue(new Subject());
+    const mockImportService = {
+      monitorImportProgress: vi.fn(),
+    } as unknown as ImportService;
+    vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(
+      new Subject(),
+    );
 
     await TestBed.configureTestingModule({
       imports: [RegionImportCardComponent],
