@@ -222,7 +222,7 @@ describe('RegionsPageComponent', () => {
       expect(component.selectedRegion$.value).toBeNull();
     });
 
-    it('should handle region loading errors gracefully', (done) => {
+    it('should handle region loading errors gracefully', () => {
       vi.mocked(mockRegionService.getRegion).mockReturnValue(
         throwError(() => new Error('Failed to load region')),
       );
@@ -231,16 +231,11 @@ describe('RegionsPageComponent', () => {
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
 
-      setTimeout(() => {
-        expect(console.error).toHaveBeenCalledWith(
-          'Failed to load region:',
-          expect.any(Error),
-        );
-        component.selectedRegion$.subscribe((region) => {
-          expect(region).toBeNull();
-          done();
-        });
-      }, 100);
+      expect(console.error).toHaveBeenCalledWith(
+        'Failed to load region:',
+        expect.any(Error),
+      );
+      expect(component.selectedRegion$.value).toBeNull();
     });
   });
 
