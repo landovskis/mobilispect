@@ -75,7 +75,7 @@ jobs:
         run: |
           echo "🧪 Running web tests..."
           cd frontend/web && npm ci
-          cd frontend/web && npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+          cd frontend/web && npm run test:coverage
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
