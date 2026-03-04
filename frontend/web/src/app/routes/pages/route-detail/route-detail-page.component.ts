@@ -7,12 +7,12 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import {
-  FrequencyService,
+  RouteService,
   FrequencyDto,
   RouteDto,
   RouteVariantDto,
   RouteCommonSectionDto,
-} from '../../services/frequency.service';
+} from '../../services/route.service';
 import {
   CommonSectionService,
   CommonSectionDto,
@@ -57,13 +57,24 @@ import { MatTabsModule } from '@angular/material/tabs';
       }
 
       @if (selectedDirectionCommonSection) {
-        <div class="mb-4 rounded-lg border border-blue-300 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900">
-          <h3 class="mb-2 text-lg font-semibold text-blue-900 dark:text-blue-100">
-            Core Section ({{ selectedDirectionCommonSection.stopCount }} stops shared by all {{ selectedDirectionCommonSection.variantCount }} variants)
+        <div
+          class="mb-4 rounded-lg border border-blue-300 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900"
+        >
+          <h3
+            class="mb-2 text-lg font-semibold text-blue-900 dark:text-blue-100"
+          >
+            Core Section ({{ selectedDirectionCommonSection.stopCount }} stops
+            shared by all
+            {{ selectedDirectionCommonSection.variantCount }} variants)
           </h3>
           <div class="flex flex-wrap gap-2">
-            @for (stopName of selectedDirectionCommonSection.stopNames; track $index) {
-              <span class="rounded bg-blue-200 px-2 py-1 text-sm text-blue-900 dark:bg-blue-800 dark:text-blue-100">
+            @for (
+              stopName of selectedDirectionCommonSection.stopNames;
+              track $index
+            ) {
+              <span
+                class="rounded bg-blue-200 px-2 py-1 text-sm text-blue-900 dark:bg-blue-800 dark:text-blue-100"
+              >
                 {{ stopName }}
               </span>
             }
@@ -104,7 +115,7 @@ export class RouteDetailPageComponent implements OnInit {
   selectedDirectionId: number | null = null;
 
   private readonly activatedRoute = inject(ActivatedRoute);
-  private readonly frequencyService = inject(FrequencyService);
+  private readonly frequencyService = inject(RouteService);
   private readonly commonSectionService = inject(CommonSectionService);
 
   constructor() {}
@@ -136,11 +147,9 @@ export class RouteDetailPageComponent implements OnInit {
               });
           });
         });
-      this.frequencyService
-        .getCommonSections(routeId)
-        .subscribe((sections) => {
-          this.routeCommonSections = sections;
-        });
+      this.frequencyService.getCommonSections(routeId).subscribe((sections) => {
+        this.routeCommonSections = sections;
+      });
     }
   }
 
@@ -185,7 +194,7 @@ export class RouteDetailPageComponent implements OnInit {
 
   get selectedDirectionCommonSection(): RouteCommonSectionDto | undefined {
     return this.routeCommonSections.find(
-      (section) => (section.directionId ?? null) === this.selectedDirectionId
+      (section) => (section.directionId ?? null) === this.selectedDirectionId,
     );
   }
 

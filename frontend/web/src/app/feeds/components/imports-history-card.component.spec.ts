@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { ImportsHistoryCardComponent } from './imports-history-card.component';
 import { PageEvent } from '@angular/material/paginator';
 
@@ -29,7 +30,7 @@ describe('ImportsHistoryCardComponent', () => {
   });
 
   it('emits page changes', () => {
-    const spy = spyOn(component.pageChange, 'emit');
+    const spy = vi.spyOn(component.pageChange, 'emit');
 
     component.onPageChange(makeEvent(3));
 

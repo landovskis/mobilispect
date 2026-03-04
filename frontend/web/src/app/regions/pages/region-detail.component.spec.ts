@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 import { RegionDetailComponent } from './region-detail.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { MetropolitanRegionDetail } from '../../feeds/models/region.models';
@@ -10,8 +11,8 @@ import { AgencyService } from '../../agencies/services/agency.service';
 describe('RegionDetailComponent', () => {
   let component: RegionDetailComponent;
   let fixture: ComponentFixture<RegionDetailComponent>;
-  let regionServiceSpy: jasmine.SpyObj<RegionService>;
-  let agencyServiceSpy: jasmine.SpyObj<AgencyService>;
+  let regionServiceSpy: RegionService;
+  let agencyServiceSpy: AgencyService;
 
   const mockRegion: MetropolitanRegionDetail = {
     regionOnestopId: 'r-test-region',
@@ -48,15 +49,19 @@ describe('RegionDetailComponent', () => {
   ];
 
   beforeEach(async () => {
-    const regionSpy = jasmine.createSpyObj('RegionService', ['getRegion']);
-    const agencySpy = jasmine.createSpyObj('AgencyService', ['listAgencies']);
-    const routeSpy = jasmine.createSpyObj('ActivatedRoute', [], {
+    const regionSpy = {
+      getRegion: vi.fn(),
+    } as unknown as RegionService;
+    const agencySpy = {
+      listAgencies: vi.fn(),
+    } as unknown as AgencyService;
+    const routeSpy = {
       snapshot: {
         paramMap: {
           get: (key: string) => (key === 'regionId' ? 'r-test-region' : null),
         },
       },
-    });
+    } as unknown as ActivatedRoute;
 
     await TestBed.configureTestingModule({
       imports: [RegionDetailComponent],
@@ -67,12 +72,8 @@ describe('RegionDetailComponent', () => {
       ],
     }).compileComponents();
 
-    regionServiceSpy = TestBed.inject(
-      RegionService,
-    ) as jasmine.SpyObj<RegionService>;
-    agencyServiceSpy = TestBed.inject(
-      AgencyService,
-    ) as jasmine.SpyObj<AgencyService>;
+    regionServiceSpy = TestBed.inject(RegionService);
+    agencyServiceSpy = TestBed.inject(AgencyService);
     fixture = TestBed.createComponent(RegionDetailComponent);
     component = fixture.componentInstance;
   });
@@ -82,8 +83,8 @@ describe('RegionDetailComponent', () => {
   });
 
   it('should load region data and agencies on init', () => {
-    regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
-    agencyServiceSpy.listAgencies.and.returnValue(
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(of(mockRegion));
+    vi.mocked(agencyServiceSpy.listAgencies).mockReturnValue(
       of({
         content: mockAgencies,
         totalElements: 2,
@@ -102,8 +103,8 @@ describe('RegionDetailComponent', () => {
   });
 
   it('should display region information', () => {
-    regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
-    agencyServiceSpy.listAgencies.and.returnValue(
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(of(mockRegion));
+    vi.mocked(agencyServiceSpy.listAgencies).mockReturnValue(
       of({
         content: mockAgencies,
         totalElements: 2,
@@ -121,8 +122,8 @@ describe('RegionDetailComponent', () => {
   });
 
   it('should display agencies list when agencies are available', () => {
-    regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
-    agencyServiceSpy.listAgencies.and.returnValue(
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(of(mockRegion));
+    vi.mocked(agencyServiceSpy.listAgencies).mockReturnValue(
       of({
         content: mockAgencies,
         totalElements: 2,
@@ -142,8 +143,8 @@ describe('RegionDetailComponent', () => {
   });
 
   it('should display message when no agencies are available', () => {
-    regionServiceSpy.getRegion.and.returnValue(of(mockRegion));
-    agencyServiceSpy.listAgencies.and.returnValue(
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(of(mockRegion));
+    vi.mocked(agencyServiceSpy.listAgencies).mockReturnValue(
       of({
         content: [],
         totalElements: 0,
@@ -158,13 +159,13 @@ describe('RegionDetailComponent', () => {
   });
 
   it('should not call services when regionId is missing', () => {
-    const routeWithoutId = jasmine.createSpyObj('ActivatedRoute', [], {
+    const routeWithoutId = {
       snapshot: {
         paramMap: {
           get: () => null,
         },
       },
-    });
+    } as unknown as ActivatedRoute;
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({

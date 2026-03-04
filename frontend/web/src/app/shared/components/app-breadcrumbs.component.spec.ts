@@ -4,17 +4,18 @@ import { Router, NavigationEnd } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AppBreadcrumbService } from '../services/app-breadcrumb.service';
 import { Subject } from 'rxjs';
+import { vi } from 'vitest';
 
 describe('AppBreadcrumbsComponent', () => {
   let fixture: ComponentFixture<AppBreadcrumbsComponent>;
   let component: AppBreadcrumbsComponent;
-  let breadcrumbService: jasmine.SpyObj<AppBreadcrumbService>;
+  let breadcrumbService: AppBreadcrumbService;
   let router: Router;
 
   beforeEach(async () => {
-    const breadcrumbServiceSpy = jasmine.createSpyObj('AppBreadcrumbService', [
-      'getBreadcrumbs',
-    ]);
+    const breadcrumbServiceSpy = {
+      getBreadcrumbs: vi.fn(),
+    } as unknown as AppBreadcrumbService;
 
     await TestBed.configureTestingModule({
       imports: [AppBreadcrumbsComponent, RouterTestingModule],
@@ -25,9 +26,7 @@ describe('AppBreadcrumbsComponent', () => {
 
     fixture = TestBed.createComponent(AppBreadcrumbsComponent);
     component = fixture.componentInstance;
-    breadcrumbService = TestBed.inject(
-      AppBreadcrumbService,
-    ) as jasmine.SpyObj<AppBreadcrumbService>;
+    breadcrumbService = TestBed.inject(AppBreadcrumbService);
     router = TestBed.inject(Router);
   });
 
@@ -37,7 +36,7 @@ describe('AppBreadcrumbsComponent', () => {
 
   it('should load breadcrumbs from service on init', () => {
     const mockCrumbs = [{ id: 'test', label: 'Test', link: ['/'] }];
-    breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
+    vi.mocked(breadcrumbService.getBreadcrumbs).mockReturnValue(mockCrumbs);
 
     fixture.detectChanges(); // ngOnInit
 
@@ -46,11 +45,11 @@ describe('AppBreadcrumbsComponent', () => {
   });
 
   it('should update breadcrumbs on navigation', () => {
-    breadcrumbService.getBreadcrumbs.and.returnValue([]);
+    vi.mocked(breadcrumbService.getBreadcrumbs).mockReturnValue([]);
     fixture.detectChanges();
 
     const mockCrumbs = [{ id: 'new', label: 'New', link: ['/new'] }];
-    breadcrumbService.getBreadcrumbs.and.returnValue(mockCrumbs);
+    vi.mocked(breadcrumbService.getBreadcrumbs).mockReturnValue(mockCrumbs);
 
     const navEnd = new NavigationEnd(1, '/new', '/new');
     const routerEvents = router.events as unknown as Subject<NavigationEnd>;

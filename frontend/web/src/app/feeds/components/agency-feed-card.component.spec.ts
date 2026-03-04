@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { AgencyFeedCardComponent } from './agency-feed-card.component';
 import { Feed, FeedSpecType, FeedStatus } from '../models';
 import { AgencyFeedGroup } from '../models/agency-feed-group.model';
@@ -49,8 +50,7 @@ describe('AgencyFeedCardComponent', () => {
     component.onImport();
 
     if (!emitted) {
-      fail('Expected import feed emission.');
-      return;
+      throw new Error('Expected import feed emission.');
     }
     const result = emitted as unknown as Feed;
     expect(result.feedOnestopId).toBe('f-1');
@@ -70,8 +70,7 @@ describe('AgencyFeedCardComponent', () => {
     component.onImport();
 
     if (!emitted) {
-      fail('Expected import-all emission.');
-      return;
+      throw new Error('Expected import-all emission.');
     }
     const result = emitted as unknown as Feed[];
     expect(result.length).toBe(2);
@@ -85,8 +84,8 @@ describe('AgencyFeedCardComponent', () => {
     ];
     component.agencyGroup = buildGroup(feeds);
 
-    const emitSpy = spyOn(component.importFeed, 'emit');
-    const emitAllSpy = spyOn(component.importAllFeeds, 'emit');
+    const emitSpy = vi.spyOn(component.importFeed, 'emit');
+    const emitAllSpy = vi.spyOn(component.importAllFeeds, 'emit');
 
     component.onImport();
 

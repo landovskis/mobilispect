@@ -11,9 +11,9 @@ import {
 
 import {
   FrequencyDto,
-  FrequencyService,
+  RouteService,
   RouteVariantDto,
-} from '../../services/frequency.service';
+} from '../../services/route.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 
 @Component({
@@ -219,7 +219,7 @@ export class RouteVariantCardComponent {
   @Input() frequencies: FrequencyDto[] = [];
   @Output() selected = new EventEmitter<string>();
 
-  private readonly frequencyService = inject(FrequencyService);
+  private readonly frequencyService = inject(RouteService);
 
   showCompleteSchedule = signal(false);
   isLoadingSchedule = signal(false);

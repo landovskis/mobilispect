@@ -5,6 +5,7 @@ import {
   ProgressUtils,
   TriggerType,
 } from './import.models';
+import { vi } from 'vitest';
 
 describe('ImportUtils', () => {
   const baseImport: FeedImport = {
@@ -24,23 +25,23 @@ describe('ImportUtils', () => {
   };
 
   beforeEach(() => {
-    jasmine.clock().install();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jasmine.clock().uninstall();
+    vi.useRealTimers();
   });
 
   it('detects active and completed states', () => {
-    expect(ImportUtils.isActive(baseImport)).toBeTrue();
-    expect(ImportUtils.isCompleted(baseImport)).toBeFalse();
+    expect(ImportUtils.isActive(baseImport)).toBe(true);
+    expect(ImportUtils.isCompleted(baseImport)).toBe(false);
 
     const completed: FeedImport = {
       ...baseImport,
       status: ImportStatus.COMPLETED,
     };
-    expect(ImportUtils.isActive(completed)).toBeFalse();
-    expect(ImportUtils.isCompleted(completed)).toBeTrue();
+    expect(ImportUtils.isActive(completed)).toBe(false);
+    expect(ImportUtils.isCompleted(completed)).toBe(true);
   });
 
   it('formats status metadata', () => {
@@ -49,16 +50,16 @@ describe('ImportUtils', () => {
         ...baseImport,
         status: ImportStatus.COMPLETED,
       }),
-    ).toBeTrue();
+    ).toBe(true);
     expect(
       ImportUtils.isCancellable({
         ...baseImport,
         status: ImportStatus.RUNNING,
       }),
-    ).toBeTrue();
+    ).toBe(true);
     expect(
       ImportUtils.isCancellable({ ...baseImport, status: ImportStatus.FAILED }),
-    ).toBeFalse();
+    ).toBe(false);
 
     expect(ImportUtils.getStatusDisplayName(ImportStatus.PENDING)).toBe(
       'Pending',
@@ -116,7 +117,7 @@ describe('ImportUtils', () => {
     expect(ImportUtils.getDuration(finished)).toBe('1m 5s');
 
     const now = new Date('2024-01-01T00:02:00Z');
-    jasmine.clock().mockDate(now);
+    vi.setSystemTime(now);
     const running: FeedImport = { ...baseImport, completedAt: null };
 
     expect(ImportUtils.getDuration(running)).toBe('2m 0s');
@@ -147,7 +148,7 @@ describe('ImportUtils', () => {
     expect(ImportUtils.formatEstimatedTimeRemaining(3605)).toBe('1h 0m');
 
     const now = new Date('2024-01-01T12:00:00Z');
-    jasmine.clock().mockDate(now);
+    vi.setSystemTime(now);
 
     const timestamp = new Date('2024-01-01T10:30:00Z').toISOString();
     expect(ImportUtils.formatRelativeTime(timestamp)).toBe('1h ago');
@@ -188,7 +189,7 @@ describe('ProgressUtils', () => {
         currentStep: 'FAILED',
         estimatedTimeRemainingSeconds: null,
       }),
-    ).toBeTrue();
+    ).toBe(true);
 
     expect(
       ProgressUtils.getProgressPercentage({

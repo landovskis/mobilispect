@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Backend (Spring Boot)",
+      "runtimeExecutable": "./backend/gradlew",
+      "runtimeArgs": ["-p", "backend", "bootRun"],
+      "port": 8080
+    },
+    {
+      "name": "Frontend Web (Angular)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend/web", "start"],
+      "port": 4200
+    }
+  ]
+}

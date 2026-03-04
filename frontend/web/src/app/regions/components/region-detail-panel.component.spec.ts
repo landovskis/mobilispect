@@ -3,7 +3,7 @@ import { SimpleChange } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
-import { of, Subject, throwError, firstValueFrom } from 'rxjs';
+import { EMPTY, of, Subject, throwError, firstValueFrom } from 'rxjs';
 import { RegionDetailPanelComponent } from './region-detail-panel.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
@@ -18,16 +18,17 @@ import {
   MetropolitanRegionDetail,
 } from '../../feeds/models/region.models';
 import { RegionImportStatus } from '../../feeds/models/import.models';
+import { vi } from 'vitest';
 
 describe('RegionDetailPanelComponent', () => {
   let component: RegionDetailPanelComponent;
   let fixture: ComponentFixture<RegionDetailPanelComponent>;
-  let mockRegionService: jasmine.SpyObj<RegionService>;
-  let mockImportService: jasmine.SpyObj<ImportService>;
-  let mockAgencyService: jasmine.SpyObj<AgencyService>;
-  let mockMetricsService: jasmine.SpyObj<FeedsMetricsService>;
-  let mockEventsService: jasmine.SpyObj<FeedsEventsService>;
-  let mockSnackBar: jasmine.SpyObj<MatSnackBar>;
+  let mockRegionService: RegionService;
+  let mockImportService: ImportService;
+  let mockAgencyService: AgencyService;
+  let mockMetricsService: FeedsMetricsService;
+  let mockEventsService: FeedsEventsService;
+  let mockSnackBar: MatSnackBar;
 
   const mockRegion: MetropolitanRegion = {
     regionOnestopId: 'r-test-toronto',
@@ -116,37 +117,49 @@ describe('RegionDetailPanelComponent', () => {
   };
 
   beforeEach(async () => {
-    mockRegionService = jasmine.createSpyObj('RegionService', [
-      'getRegion',
-      'listFeedsForRegion',
-    ]);
-    mockImportService = jasmine.createSpyObj('ImportService', [
-      'startImport',
-      'startPollingActiveImports',
-      'refreshActiveImports',
-      'importAllFeedsForRegion',
-      'getActiveRegionImport',
-      'monitorRegionImportProgress',
-      'getActiveImportsObservable',
-      'cancelImport',
-    ]);
-    mockAgencyService = jasmine.createSpyObj('AgencyService', ['listAgencies']);
-    mockMetricsService = jasmine.createSpyObj('FeedsMetricsService', [
-      'setSelectedRegion',
-      'setDiscoverFeedCount',
-    ]);
-    mockEventsService = jasmine.createSpyObj('FeedsEventsService', []);
-    mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
+    mockRegionService = {
+      getRegion: vi.fn(),
+      listFeedsForRegion: vi.fn(),
+    } as unknown as RegionService;
+    mockImportService = {
+      startImport: vi.fn(),
+      startPollingActiveImports: vi.fn(),
+      refreshActiveImports: vi.fn(),
+      importAllFeedsForRegion: vi.fn(),
+      getActiveRegionImport: vi.fn(),
+      monitorRegionImportProgress: vi.fn(),
+      getActiveImportsObservable: vi.fn(),
+      cancelImport: vi.fn(),
+    } as unknown as ImportService;
+    mockAgencyService = {
+      listAgencies: vi.fn(),
+    } as unknown as AgencyService;
+    mockMetricsService = {
+      setSelectedRegion: vi.fn(),
+      setDiscoverFeedCount: vi.fn(),
+    } as unknown as FeedsMetricsService;
+    mockEventsService = {} as unknown as FeedsEventsService;
+    mockSnackBar = {
+      open: vi.fn(),
+    } as unknown as MatSnackBar;
 
-    mockImportService.getActiveImportsObservable.and.returnValue(of([]));
-    mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
-    mockRegionService.listFeedsForRegion.and.returnValue(of(mockFeeds));
-    mockAgencyService.listAgencies.and.returnValue(of(mockAgencies));
-    mockImportService.getActiveRegionImport.and.returnValue(of(null));
-    mockImportService.monitorRegionImportProgress.and.returnValue(
-      of(null as any),
+    vi.mocked(mockImportService.getActiveImportsObservable).mockReturnValue(
+      of([]),
     );
-    mockSnackBar.open.and.returnValue(snackBarRef as any);
+    vi.mocked(mockRegionService.getRegion).mockReturnValue(
+      of(mockRegionDetail),
+    );
+    vi.mocked(mockRegionService.listFeedsForRegion).mockReturnValue(
+      of(mockFeeds),
+    );
+    vi.mocked(mockAgencyService.listAgencies).mockReturnValue(of(mockAgencies));
+    vi.mocked(mockImportService.getActiveRegionImport).mockReturnValue(
+      of(null),
+    );
+    vi.mocked(mockImportService.monitorRegionImportProgress).mockReturnValue(
+      EMPTY,
+    );
+    vi.mocked(mockSnackBar.open).mockReturnValue(snackBarRef as any);
 
     TestBed.overrideComponent(RegionDetailPanelComponent, {
       set: {
@@ -208,7 +221,7 @@ describe('RegionDetailPanelComponent', () => {
     expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
     expect(mockMetricsService.setSelectedRegion).toHaveBeenCalledWith(
       'r-test-toronto',
-      jasmine.any(String),
+      expect.any(String),
     );
   });
 
@@ -232,7 +245,7 @@ describe('RegionDetailPanelComponent', () => {
     });
 
     expect(component.regionImportStatus).toBeNull();
-    expect(component.regionImportLoading).toBeFalse();
+    expect(component.regionImportLoading).toBe(false);
   });
 
   it('groups feeds and updates metrics after feed load', () => {
@@ -246,16 +259,16 @@ describe('RegionDetailPanelComponent', () => {
   });
 
   it('shows retry snackbar when feed load fails', () => {
-    mockRegionService.listFeedsForRegion.and.returnValue(
+    vi.mocked(mockRegionService.listFeedsForRegion).mockReturnValue(
       throwError(() => new Error('Network error')),
     );
 
     setRegion(mockRegion);
 
     expect(mockSnackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Failed to load feeds'),
+      expect.stringContaining('Failed to load feeds'),
       'Retry',
-      jasmine.any(Object),
+      expect.any(Object),
     );
   });
 
@@ -264,7 +277,7 @@ describe('RegionDetailPanelComponent', () => {
 
     const summary = await firstValueFrom(component.summary$);
     expect(summary).toEqual(
-      jasmine.objectContaining({
+      expect.objectContaining({
         name: 'Toronto',
         totalAgencies: 2,
         totalActiveRoutes: 200,
@@ -277,7 +290,7 @@ describe('RegionDetailPanelComponent', () => {
   });
 
   it('starts region import monitoring when active import is running', () => {
-    mockImportService.getActiveRegionImport.and.returnValue(
+    vi.mocked(mockImportService.getActiveRegionImport).mockReturnValue(
       of({
         regionImportId: 'import-1',
         regionOnestopId: 'r-test-toronto',
@@ -294,7 +307,7 @@ describe('RegionDetailPanelComponent', () => {
 
     expect(mockImportService.monitorRegionImportProgress).toHaveBeenCalledWith(
       'import-1',
-      jasmine.any(Object),
+      expect.any(Object),
     );
   });
 
@@ -312,28 +325,28 @@ describe('RegionDetailPanelComponent', () => {
   });
 
   it('handles import errors with retry snackbar', () => {
-    mockImportService.startImport.and.returnValue(
+    vi.mocked(mockImportService.startImport).mockReturnValue(
       throwError(() => ({ error: { message: 'Import failed' } })),
     );
 
     component.importFeed(mockFeeds[0]);
 
     expect(mockSnackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Import failed'),
+      expect.stringContaining('Import failed'),
       'Retry',
-      jasmine.any(Object),
+      expect.any(Object),
     );
   });
 
   it('cancels import and shows success toast', () => {
-    mockImportService.cancelImport.and.returnValue(
+    vi.mocked(mockImportService.cancelImport).mockReturnValue(
       of({ importId: 'import-1' } as any),
     );
 
     component.cancelImport('import-1');
 
     expect(mockSnackBar.open).toHaveBeenCalledWith(
-      jasmine.stringContaining('Import cancelled successfully'),
+      expect.stringContaining('Import cancelled successfully'),
       'Close',
       { duration: 3000 },
     );

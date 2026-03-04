@@ -13,7 +13,7 @@ describe('AgencyCardComponent', () => {
       routesByType: { bus: 2, tram: 0 },
     };
 
-    expect(component.hasRoutes).toBeTrue();
+    expect(component.hasRoutes).toBe(true);
     expect(component.routeTypes).toEqual(['bus', 'tram']);
     expect(component.formatRouteType('BUS')).toBe('Bus');
   });
@@ -30,7 +30,7 @@ describe('AgencyCardComponent', () => {
       routesByType: {},
     };
 
-    expect(component.hasRoutes).toBeFalse();
+    expect(component.hasRoutes).toBe(false);
     expect(component.routeTypes).toEqual([]);
   });
 });

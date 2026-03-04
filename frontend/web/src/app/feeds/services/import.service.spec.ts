@@ -3,7 +3,7 @@ import {
   HttpClientTestingModule,
   HttpTestingController,
 } from '@angular/common/http/testing';
-import { of, EMPTY } from 'rxjs';
+import { firstValueFrom, of, EMPTY } from 'rxjs';
 import { ImportService } from './import.service';
 import { environment } from '../../../environments/environment';
 import { WebSocketService } from './websocket.service';
@@ -17,12 +17,13 @@ import {
   RegionImportStatus,
   RegionImportStatusResponse,
 } from '../models/import.models';
+import { vi } from 'vitest';
 
 describe('ImportService', () => {
   let service: ImportService;
   let httpMock: HttpTestingController;
 
-  let mockWebSocketService: jasmine.SpyObj<WebSocketService>;
+  let mockWebSocketService: WebSocketService;
   let internals: ImportServiceInternals;
 
   const baseImport: FeedImport = {
@@ -80,18 +81,19 @@ describe('ImportService', () => {
   };
 
   beforeEach(() => {
-    mockWebSocketService = jasmine.createSpyObj<WebSocketService>(
-      'WebSocketService',
-      [
-        'connect',
-        'startHeartbeat',
-        'disconnect',
-        'subscribeToImportProgress',
-        'subscribeToImportStatus',
-      ],
+    mockWebSocketService = {
+      connect: vi.fn(),
+      startHeartbeat: vi.fn(),
+      disconnect: vi.fn(),
+      subscribeToImportProgress: vi.fn(),
+      subscribeToImportStatus: vi.fn(),
+    } as unknown as WebSocketService;
+    vi.mocked(mockWebSocketService.subscribeToImportProgress).mockReturnValue(
+      EMPTY,
     );
-    mockWebSocketService.subscribeToImportProgress.and.returnValue(EMPTY);
-    mockWebSocketService.subscribeToImportStatus.and.returnValue(EMPTY);
+    vi.mocked(mockWebSocketService.subscribeToImportStatus).mockReturnValue(
+      EMPTY,
+    );
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
@@ -111,7 +113,7 @@ describe('ImportService', () => {
   });
 
   it('starts imports and triggers polling', () => {
-    spyOn(service, 'startPollingActiveImports');
+    vi.spyOn(service, 'startPollingActiveImports').mockImplementation(() => {});
 
     service.startImport('f-1').subscribe((result) => {
       expect(result.id).toBe('imp-1');
@@ -124,21 +126,20 @@ describe('ImportService', () => {
     expect(service.startPollingActiveImports).toHaveBeenCalled();
   });
 
-  it('wraps backend errors with user-friendly message', (done) => {
-    service.startImport('f-1').subscribe({
-      next: () => fail('Expected error'),
-      error: (error) => {
-        expect(error.isBackendError).toBeTrue();
-        expect(error.message).toContain('Authentication required');
-        done();
-      },
-    });
+  it('wraps backend errors with user-friendly message', async () => {
+    const errorPromise = firstValueFrom(service.startImport('f-1')).catch(
+      (e) => e,
+    );
 
     const req = httpMock.expectOne(`${environment.apiUrl}/feeds/f-1/import`);
     req.flush(
       { message: 'Forbidden' },
       { status: 403, statusText: 'Forbidden' },
     );
+
+    const error = await errorPromise;
+    expect(error.isBackendError).toBe(true);
+    expect(error.message).toContain('Authentication required');
   });
 
   it('formats backend error messages for common statuses', () => {
@@ -211,7 +212,7 @@ describe('ImportService', () => {
   });
 
   it('refreshes active imports on cancel', () => {
-    spyOn(service, 'refreshActiveImports');
+    vi.spyOn(service, 'refreshActiveImports').mockImplementation(() => {});
 
     service.cancelImport('imp-1').subscribe((result) => {
       expect(result.id).toBe('imp-1');
@@ -258,7 +259,7 @@ describe('ImportService', () => {
       status: RegionImportStatus.COMPLETED,
     };
     let callCount = 0;
-    spyOn(service, 'getRegionImportStatus').and.callFake(() => {
+    vi.spyOn(service, 'getRegionImportStatus').mockImplementation(() => {
       callCount++;
       return callCount === 1 ? of(running) : of(completed);
     });
@@ -279,7 +280,7 @@ describe('ImportService', () => {
   }));
 
   it('finds active import for a feed', () => {
-    spyOn(service, 'getActiveImports').and.returnValue(
+    vi.spyOn(service, 'getActiveImports').mockReturnValue(
       of([
         { ...baseImportSummary, feedOnestopId: 'f-1' },
         { ...baseImportSummary, id: 'imp-2', feedOnestopId: 'f-2' },
@@ -292,7 +293,7 @@ describe('ImportService', () => {
   });
 
   it('returns null when no active import matches', () => {
-    spyOn(service, 'getActiveImports').and.returnValue(
+    vi.spyOn(service, 'getActiveImports').mockReturnValue(
       of([{ ...baseImportSummary, feedOnestopId: 'f-1' }]),
     );
 
@@ -302,14 +303,14 @@ describe('ImportService', () => {
   });
 
   it('retries imports based on existing import data', () => {
-    spyOn(service, 'getImport').and.returnValue(
+    vi.spyOn(service, 'getImport').mockReturnValue(
       of({
         ...baseImportDetail,
         feedOnestopId: 'f-9',
         status: ImportStatus.FAILED,
       }),
     );
-    spyOn(service, 'startImport').and.returnValue(
+    vi.spyOn(service, 'startImport').mockReturnValue(
       of({
         ...baseImport,
         id: 'imp-new',
@@ -323,8 +324,8 @@ describe('ImportService', () => {
   });
 
   it('filters recent and failed imports', () => {
-    jasmine.clock().install();
-    jasmine.clock().mockDate(new Date('2024-06-02T12:00:00Z'));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-06-02T12:00:00Z'));
 
     const recent = {
       ...baseImportDetail,
@@ -345,7 +346,7 @@ describe('ImportService', () => {
       status: ImportStatus.FAILED,
     };
 
-    spyOn(service, 'getAllImportHistory').and.callFake((options) => {
+    vi.spyOn(service, 'getAllImportHistory').mockImplementation((options) => {
       if (options?.status === ImportStatus.FAILED) {
         return of({ imports: [failed], totalElements: 1, totalPages: 1 });
       }
@@ -366,11 +367,11 @@ describe('ImportService', () => {
       expect(imports[0].id).toBe('failed');
     });
 
-    jasmine.clock().uninstall();
+    vi.useRealTimers();
   });
 
   it('maps import statistics from active imports', () => {
-    spyOn(service, 'getActiveImports').and.returnValue(
+    vi.spyOn(service, 'getActiveImports').mockReturnValue(
       of([{ ...baseImportSummary }, { ...baseImportSummary, id: 'imp-2' }]),
     );
 
@@ -380,7 +381,7 @@ describe('ImportService', () => {
   });
 
   it('polls active imports on interval', fakeAsync(() => {
-    spyOn(service, 'getActiveImports').and.returnValue(of([]));
+    vi.spyOn(service, 'getActiveImports').mockReturnValue(of([]));
     internals.pollingInterval = 10;
 
     service.startPollingActiveImports();
@@ -393,7 +394,7 @@ describe('ImportService', () => {
 
   it('skips polling when already active', () => {
     internals.isPolling = true;
-    spyOn(service, 'getActiveImports');
+    vi.spyOn(service, 'getActiveImports').mockImplementation(() => of([]));
 
     service.startPollingActiveImports();
 
@@ -401,7 +402,7 @@ describe('ImportService', () => {
   });
 
   it('refreshes active imports on demand', () => {
-    spyOn(service, 'getActiveImports').and.returnValue(of([]));
+    vi.spyOn(service, 'getActiveImports').mockReturnValue(of([]));
 
     service.refreshActiveImports();
 
@@ -409,12 +410,12 @@ describe('ImportService', () => {
   });
 
   it('checks whether an import is running for a feed', () => {
-    spyOn(service, 'getActiveImports').and.returnValue(
+    vi.spyOn(service, 'getActiveImports').mockReturnValue(
       of([{ ...baseImportSummary, feedOnestopId: 'f-1' }]),
     );
 
     service.isImportRunningForFeed('f-1').subscribe((isRunning) => {
-      expect(isRunning).toBeTrue();
+      expect(isRunning).toBe(true);
     });
   });
 
@@ -451,7 +452,7 @@ describe('ImportService', () => {
   });
 
   it('merges progress updates from polling and websocket', fakeAsync(() => {
-    spyOn(service, 'getImportProgress').and.returnValue(
+    vi.spyOn(service, 'getImportProgress').mockReturnValue(
       of({
         progressPercentage: 10,
         totalSteps: 100,
@@ -460,7 +461,7 @@ describe('ImportService', () => {
       }),
     );
 
-    mockWebSocketService.subscribeToImportProgress.and.returnValue(
+    vi.mocked(mockWebSocketService.subscribeToImportProgress).mockReturnValue(
       of({
         progress: {
           importId: 'imp-1',
@@ -489,8 +490,8 @@ describe('ImportService', () => {
 
   it('merges status updates from polling and websocket', fakeAsync(() => {
     const detail = { ...baseImportDetail, status: ImportStatus.RUNNING };
-    spyOn(service, 'getImport').and.returnValue(of(detail));
-    mockWebSocketService.subscribeToImportStatus.and.returnValue(
+    vi.spyOn(service, 'getImport').mockReturnValue(of(detail));
+    vi.mocked(mockWebSocketService.subscribeToImportStatus).mockReturnValue(
       of({
         type: 'IMPORT_STATUS',
         data: {

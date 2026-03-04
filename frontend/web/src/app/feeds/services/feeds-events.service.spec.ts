@@ -8,6 +8,6 @@ describe('FeedsEventsService', () => {
     const refreshPromise = firstValueFrom(service.refresh$.pipe(take(1)));
     service.triggerRefresh();
 
-    await expectAsync(refreshPromise).toBeResolved();
+    await expect(refreshPromise).resolves.toBeUndefined();
   });
 });

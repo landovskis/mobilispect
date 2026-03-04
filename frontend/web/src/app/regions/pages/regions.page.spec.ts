@@ -11,18 +11,19 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { AgencyService } from '../../agencies/services/agency.service';
 import { FeedsMetricsService } from '../../feeds/services/feeds-metrics.service';
 import { FeedsEventsService } from '../../feeds/services/feeds-events.service';
+import { vi } from 'vitest';
 
 describe('RegionsPageComponent', () => {
   let component: RegionsPageComponent;
   let fixture: ComponentFixture<RegionsPageComponent>;
-  let mockRegionService: jasmine.SpyObj<RegionService>;
-  let mockImportService: jasmine.SpyObj<ImportService>;
-  let mockSchedulerService: jasmine.SpyObj<SchedulerService>;
-  let mockSnackBar: jasmine.SpyObj<MatSnackBar>;
-  let mockAgencyService: jasmine.SpyObj<AgencyService>;
-  let mockMetricsService: jasmine.SpyObj<FeedsMetricsService>;
-  let mockEventsService: jasmine.SpyObj<FeedsEventsService>;
-  let mockRouter: jasmine.SpyObj<Router>;
+  let mockRegionService: RegionService;
+  let mockImportService: ImportService;
+  let mockSchedulerService: SchedulerService;
+  let mockSnackBar: MatSnackBar;
+  let mockAgencyService: AgencyService;
+  let mockMetricsService: FeedsMetricsService;
+  let mockEventsService: FeedsEventsService;
+  let mockRouter: Router;
   let paramMapSubject: BehaviorSubject<any>;
   let queryParamMapSubject: BehaviorSubject<any>;
 
@@ -44,55 +45,64 @@ describe('RegionsPageComponent', () => {
   };
 
   beforeEach(async () => {
-    // Create spy objects
-    mockRegionService = jasmine.createSpyObj('RegionService', [
-      'getRegion',
-      'listRegions',
-      'listFeedsForRegion',
-      'sortWithCanadianPriority',
-      'clearCache',
-    ]);
-    mockImportService = jasmine.createSpyObj('ImportService', [
-      'getActiveImports',
-      'startPollingActiveImports',
-      'stopPollingActiveImports',
-      'getActiveImportsObservable',
-      'refreshActiveImports',
-      'getActiveRegionImport',
-      'monitorRegionImportProgress',
-      'startImport',
-      'importAllFeedsForRegion',
-      'cancelImport',
-    ]);
-    mockSchedulerService = jasmine.createSpyObj('SchedulerService', [
-      'enableFeedAutoUpdate',
-      'disableFeedAutoUpdate',
-    ]);
-    mockSnackBar = jasmine.createSpyObj('MatSnackBar', ['open']);
-    mockAgencyService = jasmine.createSpyObj('AgencyService', ['listAgencies']);
-    mockMetricsService = jasmine.createSpyObj('FeedsMetricsService', [
-      'setSelectedRegion',
-      'setDiscoverFeedCount',
-    ]);
-    mockEventsService = jasmine.createSpyObj('FeedsEventsService', ['']);
-    mockRouter = jasmine.createSpyObj('Router', ['navigate']);
+    mockRegionService = {
+      getRegion: vi.fn(),
+      listRegions: vi.fn(),
+      listFeedsForRegion: vi.fn(),
+      sortWithCanadianPriority: vi.fn(),
+      clearCache: vi.fn(),
+    } as unknown as RegionService;
+    mockImportService = {
+      getActiveImports: vi.fn(),
+      startPollingActiveImports: vi.fn(),
+      stopPollingActiveImports: vi.fn(),
+      getActiveImportsObservable: vi.fn(),
+      refreshActiveImports: vi.fn(),
+      getActiveRegionImport: vi.fn(),
+      monitorRegionImportProgress: vi.fn(),
+      startImport: vi.fn(),
+      importAllFeedsForRegion: vi.fn(),
+      cancelImport: vi.fn(),
+    } as unknown as ImportService;
+    mockSchedulerService = {
+      enableFeedAutoUpdate: vi.fn(),
+      disableFeedAutoUpdate: vi.fn(),
+    } as unknown as SchedulerService;
+    mockSnackBar = {
+      open: vi.fn(),
+    } as unknown as MatSnackBar;
+    mockAgencyService = {
+      listAgencies: vi.fn(),
+    } as unknown as AgencyService;
+    mockMetricsService = {
+      setSelectedRegion: vi.fn(),
+      setDiscoverFeedCount: vi.fn(),
+    } as unknown as FeedsMetricsService;
+    mockEventsService = {
+      '': undefined,
+    } as unknown as FeedsEventsService;
+    mockRouter = {
+      navigate: vi.fn(),
+    } as unknown as Router;
 
     // Setup default return values
-    mockRegionService.listRegions.and.returnValue(of([mockRegion]));
-    mockRegionService.listFeedsForRegion.and.returnValue(of([]));
-    mockRegionService.sortWithCanadianPriority.and.callFake(
+    vi.mocked(mockRegionService.listRegions).mockReturnValue(of([mockRegion]));
+    vi.mocked(mockRegionService.listFeedsForRegion).mockReturnValue(of([]));
+    vi.mocked(mockRegionService.sortWithCanadianPriority).mockImplementation(
       (regions) => regions,
     );
-    mockImportService.getActiveImports.and.returnValue(of([]));
-    mockImportService.getActiveImportsObservable.and.returnValue(
+    vi.mocked(mockImportService.getActiveImports).mockReturnValue(of([]));
+    vi.mocked(mockImportService.getActiveImportsObservable).mockReturnValue(
       new BehaviorSubject([]).asObservable(),
     );
-    mockImportService.getActiveRegionImport.and.returnValue(of(null));
-    mockImportService.monitorRegionImportProgress.and.returnValue(
+    vi.mocked(mockImportService.getActiveRegionImport).mockReturnValue(
+      of(null),
+    );
+    vi.mocked(mockImportService.monitorRegionImportProgress).mockReturnValue(
       of(null as any),
     );
-    mockImportService.startImport.and.returnValue(of({} as any));
-    mockImportService.importAllFeedsForRegion.and.returnValue(
+    vi.mocked(mockImportService.startImport).mockReturnValue(of({} as any));
+    vi.mocked(mockImportService.importAllFeedsForRegion).mockReturnValue(
       of({
         totalFeeds: 0,
         startedCount: 0,
@@ -100,11 +110,13 @@ describe('RegionsPageComponent', () => {
         skippedCount: 0,
       } as any),
     );
-    mockImportService.cancelImport.and.returnValue(of({} as any));
-    mockAgencyService.listAgencies.and.returnValue(
+    vi.mocked(mockImportService.cancelImport).mockReturnValue(of({} as any));
+    vi.mocked(mockAgencyService.listAgencies).mockReturnValue(
       of({ content: [], totalElements: 0, totalPages: 0 } as any),
     );
-    mockSnackBar.open.and.returnValue({ onAction: () => of(null) } as any);
+    vi.mocked(mockSnackBar.open).mockReturnValue({
+      onAction: () => of(null),
+    } as any);
 
     // Create subjects for route params
     paramMapSubject = new BehaviorSubject(convertToParamMap({}));
@@ -144,39 +156,39 @@ describe('RegionsPageComponent', () => {
   });
 
   describe('initialization', () => {
-    it('should initialize with no selected region', (done) => {
+    it('should initialize with no selected region', () => {
       fixture.detectChanges();
 
-      component.selectedRegion$.subscribe((region) => {
-        expect(region).toBeNull();
-        done();
-      });
+      expect(component.selectedRegion$.value).toBeNull();
     });
 
     it('should subscribe to route parameter changes on init', () => {
-      spyOn(component['route'].paramMap, 'pipe').and.returnValue(
+      vi.spyOn((component as any)['route'].paramMap, 'pipe').mockReturnValue(
         of(convertToParamMap({})),
       );
 
       component.ngOnInit();
 
-      expect(component['route'].paramMap.pipe).toHaveBeenCalled();
+      expect((component as any)['route'].paramMap.pipe).toHaveBeenCalled();
     });
 
     it('should subscribe to query parameter changes on init', () => {
-      spyOn(component['route'].queryParamMap, 'pipe').and.returnValue(
-        of(convertToParamMap({})),
-      );
+      vi.spyOn(
+        (component as any)['route'].queryParamMap,
+        'pipe',
+      ).mockReturnValue(of(convertToParamMap({})));
 
       component.ngOnInit();
 
-      expect(component['route'].queryParamMap.pipe).toHaveBeenCalled();
+      expect((component as any)['route'].queryParamMap.pipe).toHaveBeenCalled();
     });
   });
 
   describe('route parameter handling', () => {
     it('should load region when regionId param is present', () => {
-      mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
+        of(mockRegionDetail),
+      );
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
@@ -186,57 +198,44 @@ describe('RegionsPageComponent', () => {
       );
     });
 
-    it('should update selectedRegion$ when region loads successfully', (done) => {
-      mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
+    it('should update selectedRegion$ when region loads successfully', () => {
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
+        of(mockRegionDetail),
+      );
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
 
-      setTimeout(() => {
-        component.selectedRegion$.subscribe((region) => {
-          expect(region).toEqual(mockRegionDetail);
-          done();
-        });
-      }, 100);
+      expect(component.selectedRegion$.value).toEqual(mockRegionDetail);
     });
 
-    it('should clear selectedRegion$ when regionId param is removed', (done) => {
-      mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
+    it('should clear selectedRegion$ when regionId param is removed', () => {
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
+        of(mockRegionDetail),
+      );
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
+      expect(component.selectedRegion$.value).toEqual(mockRegionDetail);
 
-      setTimeout(() => {
-        paramMapSubject.next(convertToParamMap({}));
-
-        setTimeout(() => {
-          component.selectedRegion$.subscribe((region) => {
-            expect(region).toBeNull();
-            done();
-          });
-        }, 100);
-      }, 100);
+      paramMapSubject.next(convertToParamMap({}));
+      expect(component.selectedRegion$.value).toBeNull();
     });
 
-    it('should handle region loading errors gracefully', (done) => {
-      mockRegionService.getRegion.and.returnValue(
+    it('should handle region loading errors gracefully', () => {
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
         throwError(() => new Error('Failed to load region')),
       );
-      spyOn(console, 'error');
+      vi.spyOn(console, 'error').mockImplementation(() => {});
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
 
-      setTimeout(() => {
-        expect(console.error).toHaveBeenCalledWith(
-          'Failed to load region:',
-          jasmine.any(Error),
-        );
-        component.selectedRegion$.subscribe((region) => {
-          expect(region).toBeNull();
-          done();
-        });
-      }, 100);
+      expect(console.error).toHaveBeenCalledWith(
+        'Failed to load region:',
+        expect.any(Error),
+      );
+      expect(component.selectedRegion$.value).toBeNull();
     });
   });
 
@@ -254,7 +253,9 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should not redirect when both path and query params are present', () => {
-      mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
+        of(mockRegionDetail),
+      );
 
       // Set route snapshot to have regionId
       const route = TestBed.inject(ActivatedRoute);
@@ -301,8 +302,8 @@ describe('RegionsPageComponent', () => {
 
   describe('component lifecycle', () => {
     it('should complete destroy$ subject on destroy', () => {
-      const destroySpy = spyOn(component['destroy$'], 'next');
-      const completeSpy = spyOn(component['destroy$'], 'complete');
+      const destroySpy = vi.spyOn((component as any)['destroy$'], 'next');
+      const completeSpy = vi.spyOn((component as any)['destroy$'], 'complete');
 
       component.ngOnDestroy();
 
@@ -311,12 +312,14 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should unsubscribe from observables on destroy', () => {
-      mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
+        of(mockRegionDetail),
+      );
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
 
-      const subscription = component['destroy$'].subscribe();
+      const subscription = (component as any)['destroy$'].subscribe();
       expect(subscription.closed).toBe(false);
 
       component.ngOnDestroy();
@@ -339,7 +342,9 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should pass selectedRegion to master panel', () => {
-      mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
+        of(mockRegionDetail),
+      );
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
@@ -353,7 +358,9 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should pass selectedRegion to detail panel', () => {
-      mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
+        of(mockRegionDetail),
+      );
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
@@ -366,19 +373,18 @@ describe('RegionsPageComponent', () => {
       expect(detailPanel).toBeTruthy();
     });
 
-    it('should apply has-selection class when region is selected', (done) => {
-      mockRegionService.getRegion.and.returnValue(of(mockRegionDetail));
+    it('should apply has-selection class when region is selected', () => {
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(
+        of(mockRegionDetail),
+      );
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
+      fixture.detectChanges();
 
-      setTimeout(() => {
-        fixture.detectChanges();
-        const container =
-          fixture.nativeElement.querySelector('.regions-container');
-        expect(container.classList.contains('has-selection')).toBe(true);
-        done();
-      }, 100);
+      const container =
+        fixture.nativeElement.querySelector('.regions-container');
+      expect(container.classList.contains('has-selection')).toBe(true);
     });
 
     it('should not apply has-selection class when no region is selected', () => {

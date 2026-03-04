@@ -7,10 +7,11 @@ import {
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { ActivatedRouteSnapshot } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
+import { vi } from 'vitest';
 
 describe('RegionBreadcrumbResolver', () => {
   let resolver: RegionBreadcrumbResolver;
-  let regionServiceSpy: jasmine.SpyObj<RegionService>;
+  let regionServiceSpy: RegionService;
 
   const mockRegion: MetropolitanRegion = {
     regionOnestopId: 'r-montr-al-qu-bec-canada',
@@ -30,10 +31,10 @@ describe('RegionBreadcrumbResolver', () => {
   };
 
   beforeEach(() => {
-    regionServiceSpy = jasmine.createSpyObj('RegionService', [
-      'getRegion',
-      'getCachedRegion',
-    ]);
+    regionServiceSpy = {
+      getRegion: vi.fn(),
+      getCachedRegion: vi.fn(),
+    } as unknown as RegionService;
     TestBed.configureTestingModule({
       providers: [
         { provide: RegionService, useValue: regionServiceSpy },
@@ -62,7 +63,7 @@ describe('RegionBreadcrumbResolver', () => {
   });
 
   it('uses cached region display name when available', async () => {
-    regionServiceSpy.getCachedRegion.and.returnValue(mockRegion);
+    vi.mocked(regionServiceSpy.getCachedRegion).mockReturnValue(mockRegion);
     const snapshot = createSnapshot(mockRegion.regionOnestopId);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
@@ -75,8 +76,8 @@ describe('RegionBreadcrumbResolver', () => {
   });
 
   it('fetches region when cache is missing and formats display name', async () => {
-    regionServiceSpy.getCachedRegion.and.returnValue(undefined);
-    regionServiceSpy.getRegion.and.returnValue(of(mockRegionDetail));
+    vi.mocked(regionServiceSpy.getCachedRegion).mockReturnValue(undefined);
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(of(mockRegionDetail));
     const snapshot = createSnapshot(mockRegion.regionOnestopId);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
@@ -91,8 +92,8 @@ describe('RegionBreadcrumbResolver', () => {
   });
 
   it('falls back to humanized slug when api call fails', async () => {
-    regionServiceSpy.getCachedRegion.and.returnValue(undefined);
-    regionServiceSpy.getRegion.and.returnValue(
+    vi.mocked(regionServiceSpy.getCachedRegion).mockReturnValue(undefined);
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(
       throwError(() => new Error('boom')),
     );
     const snapshot = createSnapshot(mockRegion.regionOnestopId);
@@ -106,8 +107,8 @@ describe('RegionBreadcrumbResolver', () => {
   });
 
   it('humanizes short region slugs', async () => {
-    regionServiceSpy.getCachedRegion.and.returnValue(undefined);
-    regionServiceSpy.getRegion.and.returnValue(
+    vi.mocked(regionServiceSpy.getCachedRegion).mockReturnValue(undefined);
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(
       throwError(() => new Error('boom')),
     );
     const snapshot = createSnapshot('r-ny');
@@ -118,8 +119,8 @@ describe('RegionBreadcrumbResolver', () => {
   });
 
   it('handles empty slugs by falling back to region id', async () => {
-    regionServiceSpy.getCachedRegion.and.returnValue(undefined);
-    regionServiceSpy.getRegion.and.returnValue(
+    vi.mocked(regionServiceSpy.getCachedRegion).mockReturnValue(undefined);
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(
       throwError(() => new Error('boom')),
     );
     const snapshot = createSnapshot('r-');

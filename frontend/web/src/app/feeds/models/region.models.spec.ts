@@ -6,6 +6,7 @@ import {
   MetropolitanRegion,
   RegionUtils,
 } from './region.models';
+import { vi } from 'vitest';
 
 describe('RegionUtils', () => {
   const baseRegion: Omit<MetropolitanRegion, 'name' | 'adm0Name' | 'adm1Name'> =
@@ -19,11 +20,11 @@ describe('RegionUtils', () => {
     };
 
   beforeEach(() => {
-    jasmine.clock().install();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jasmine.clock().uninstall();
+    vi.useRealTimers();
   });
 
   it('deduplicates repeating location parts in display name', () => {
@@ -63,7 +64,7 @@ describe('RegionUtils', () => {
 
   it('detects auto-update settings and recent checks', () => {
     const now = new Date('2024-06-01T12:00:00Z');
-    jasmine.clock().mockDate(now);
+    vi.setSystemTime(now);
 
     const region: MetropolitanRegion = {
       ...baseRegion,
@@ -74,8 +75,8 @@ describe('RegionUtils', () => {
       lastCheckAt: new Date('2024-06-01T10:30:00Z').toISOString(),
     };
 
-    expect(RegionUtils.hasAutoUpdatesEnabled(region)).toBeTrue();
-    expect(RegionUtils.hasBeenCheckedRecently(region)).toBeTrue();
+    expect(RegionUtils.hasAutoUpdatesEnabled(region)).toBe(true);
+    expect(RegionUtils.hasBeenCheckedRecently(region)).toBe(true);
   });
 
   it('handles missing or stale check timestamps', () => {
@@ -87,9 +88,9 @@ describe('RegionUtils', () => {
         adm0Name: null,
         lastCheckAt: null,
       }),
-    ).toBeFalse();
+    ).toBe(false);
 
-    jasmine.clock().mockDate(new Date('2024-06-01T12:00:00Z'));
+    vi.setSystemTime(new Date('2024-06-01T12:00:00Z'));
     const oldCheck: MetropolitanRegion = {
       ...baseRegion,
       name: 'Old',
@@ -98,12 +99,12 @@ describe('RegionUtils', () => {
       lastCheckAt: new Date('2024-05-30T12:00:00Z').toISOString(),
     };
 
-    expect(RegionUtils.hasBeenCheckedRecently(oldCheck)).toBeFalse();
+    expect(RegionUtils.hasBeenCheckedRecently(oldCheck)).toBe(false);
   });
 
   it('formats last check time for different ranges', () => {
     const now = new Date('2024-06-02T12:00:00Z');
-    jasmine.clock().mockDate(now);
+    vi.setSystemTime(now);
 
     const region: MetropolitanRegion = {
       ...baseRegion,
@@ -151,17 +152,17 @@ describe('FeedUtils', () => {
   };
 
   beforeEach(() => {
-    jasmine.clock().install();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jasmine.clock().uninstall();
+    vi.useRealTimers();
   });
 
   it('evaluates availability and feed type helpers', () => {
-    expect(FeedUtils.isAvailableForImport(baseFeed)).toBeTrue();
-    expect(FeedUtils.isStaticFeed(baseFeed)).toBeTrue();
-    expect(FeedUtils.isRealTimeFeed(baseFeed)).toBeFalse();
+    expect(FeedUtils.isAvailableForImport(baseFeed)).toBe(true);
+    expect(FeedUtils.isStaticFeed(baseFeed)).toBe(true);
+    expect(FeedUtils.isRealTimeFeed(baseFeed)).toBe(false);
   });
 
   it('maps display names and status metadata', () => {
@@ -184,18 +185,18 @@ describe('FeedUtils', () => {
 
   it('checks recent updates and formats timestamps', () => {
     const now = new Date('2024-06-10T12:00:00Z');
-    jasmine.clock().mockDate(now);
+    vi.setSystemTime(now);
 
     const recentFeed: Feed = {
       ...baseFeed,
       lastUpdatedAt: new Date('2024-06-08T10:00:00Z').toISOString(),
     };
 
-    expect(FeedUtils.hasBeenUpdatedRecently(recentFeed)).toBeTrue();
+    expect(FeedUtils.hasBeenUpdatedRecently(recentFeed)).toBe(true);
     expect(FeedUtils.formatLastUpdated(recentFeed)).toBe(
       new Date('2024-06-08T10:00:00Z').toLocaleDateString(),
     );
     expect(FeedUtils.formatLastUpdated(baseFeed)).toBe('Never updated');
-    expect(FeedUtils.hasBeenUpdatedRecently(baseFeed)).toBeFalse();
+    expect(FeedUtils.hasBeenUpdatedRecently(baseFeed)).toBe(false);
   });
 });

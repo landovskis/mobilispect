@@ -9,12 +9,12 @@ import {
   TriggerType,
   ImportProgress,
 } from '../models/import.models';
+import { vi } from 'vitest';
 
 describe('FeedImportRowComponent', () => {
   let component: FeedImportRowComponent;
   let fixture: ComponentFixture<FeedImportRowComponent>;
-  let mockImportService: jasmine.SpyObj<ImportService>;
-  let mockChangeDetectorRef: jasmine.SpyObj<ChangeDetectorRef>;
+  let mockImportService: ImportService;
 
   const mockFeedImport: FeedImportSummary = {
     id: 'import-1',
@@ -42,12 +42,14 @@ describe('FeedImportRowComponent', () => {
   };
 
   beforeEach(async () => {
-    mockImportService = jasmine.createSpyObj('ImportService', [
-      'monitorImportProgress',
-    ]);
+    mockImportService = {
+      monitorImportProgress: vi.fn(),
+    } as unknown as ImportService;
 
     // Default: return observable that never emits (for tests that don't care about progress)
-    mockImportService.monitorImportProgress.and.returnValue(new Subject());
+    vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(
+      new Subject(),
+    );
 
     await TestBed.configureTestingModule({
       imports: [FeedImportRowComponent],
@@ -56,11 +58,6 @@ describe('FeedImportRowComponent', () => {
 
     fixture = TestBed.createComponent(FeedImportRowComponent);
     component = fixture.componentInstance;
-
-    // Spy on the actual ChangeDetectorRef injected into the component
-    mockChangeDetectorRef = jasmine.createSpyObj('ChangeDetectorRef', [
-      'markForCheck',
-    ]);
   });
 
   it('should create', () => {
@@ -102,12 +99,14 @@ describe('FeedImportRowComponent', () => {
     // Given: Component with feed import and progress observable
     component.feedImport = mockFeedImport;
     const progressSubject = new Subject<ImportProgress>();
-    mockImportService.monitorImportProgress.and.returnValue(
+    vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(
       progressSubject.asObservable(),
     );
 
     // Spy on the actual ChangeDetectorRef
-    const cdrSpy = spyOn(component['cdr'] as ChangeDetectorRef, 'markForCheck');
+    const cdrSpy = vi
+      .spyOn(component['cdr'] as unknown as ChangeDetectorRef, 'markForCheck')
+      .mockImplementation(() => {});
 
     // When: Component initializes
     fixture.detectChanges();
@@ -240,12 +239,14 @@ describe('FeedImportRowComponent', () => {
     // Given: Component with active subscription
     component.feedImport = mockFeedImport;
     const progressSubject = new Subject<ImportProgress>();
-    mockImportService.monitorImportProgress.and.returnValue(
+    vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(
       progressSubject.asObservable(),
     );
 
     // Spy on the actual ChangeDetectorRef
-    const cdrSpy = spyOn(component['cdr'] as ChangeDetectorRef, 'markForCheck');
+    const cdrSpy = vi
+      .spyOn(component['cdr'] as unknown as ChangeDetectorRef, 'markForCheck')
+      .mockImplementation(() => {});
 
     // When: Component initializes
     fixture.detectChanges();
@@ -255,9 +256,9 @@ describe('FeedImportRowComponent', () => {
 
     // Then: destroy$ subject is completed (subscription cleanup)
     // We can verify this by trying to emit - destroyed subjects won't trigger updates
-    const initialCallCount = cdrSpy.calls.count();
+    const initialCallCount = cdrSpy.mock.calls.length;
     progressSubject.next(mockProgress);
-    expect(cdrSpy.calls.count()).toBe(initialCallCount);
+    expect(cdrSpy.mock.calls.length).toBe(initialCallCount);
   });
 
   describe('getStatusClass', () => {

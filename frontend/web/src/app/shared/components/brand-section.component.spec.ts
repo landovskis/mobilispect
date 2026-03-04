@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { BrandSectionComponent } from './brand-section.component';
 
 describe('BrandSectionComponent', () => {
@@ -6,10 +7,10 @@ describe('BrandSectionComponent', () => {
     component.collapsible = false;
     component.expanded = true;
 
-    const emitSpy = spyOn(component.expandedChange, 'emit');
+    const emitSpy = vi.spyOn(component.expandedChange, 'emit');
     component.toggle();
 
-    expect(component.expanded).toBeTrue();
+    expect(component.expanded).toBe(true);
     expect(emitSpy).not.toHaveBeenCalled();
   });
 
@@ -18,10 +19,10 @@ describe('BrandSectionComponent', () => {
     component.collapsible = true;
     component.expanded = true;
 
-    const emitSpy = spyOn(component.expandedChange, 'emit');
+    const emitSpy = vi.spyOn(component.expandedChange, 'emit');
     component.toggle();
 
-    expect(component.expanded).toBeFalse();
+    expect(component.expanded).toBe(false);
     expect(emitSpy).toHaveBeenCalledWith(false);
   });
 });

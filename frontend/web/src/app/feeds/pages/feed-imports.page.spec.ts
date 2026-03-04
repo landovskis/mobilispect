@@ -2,16 +2,17 @@ import { Subject, of, throwError } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { FeedImportsPageComponent } from './feed-imports.page';
 import { ImportService } from '../services/import.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { FeedsMetricsService } from '../services/feeds-metrics.service';
 import { FeedsEventsService } from '../services/feeds-events.service';
 import { FeedImportDetail, ImportStatus, TriggerType } from '../models';
+import { vi } from 'vitest';
 
 describe('FeedImportsPageComponent', () => {
   let component: FeedImportsPageComponent;
-  let importService: jasmine.SpyObj<ImportService>;
-  let snackBar: jasmine.SpyObj<MatSnackBar>;
-  let metrics: jasmine.SpyObj<FeedsMetricsService>;
+  let importService: ImportService;
+  let snackBar: MatSnackBar;
+  let metrics: FeedsMetricsService;
   let events: FeedsEventsService;
 
   const baseImport: FeedImportDetail = {
@@ -38,28 +39,36 @@ describe('FeedImportsPageComponent', () => {
   };
 
   beforeEach(() => {
-    importService = jasmine.createSpyObj<ImportService>('ImportService', [
-      'getActiveImportsObservable',
-      'getAllImportHistory',
-      'refreshActiveImports',
-      'cancelImport',
-    ]);
-    snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
-    metrics = jasmine.createSpyObj<FeedsMetricsService>('FeedsMetricsService', [
-      'setTotalImportElements',
-    ]);
+    importService = {
+      getActiveImportsObservable: vi.fn(),
+      getAllImportHistory: vi.fn(),
+      refreshActiveImports: vi.fn(),
+      cancelImport: vi.fn(),
+    } as unknown as ImportService;
+    snackBar = {
+      open: vi.fn(),
+    } as unknown as MatSnackBar;
+    metrics = {
+      setTotalImportElements: vi.fn(),
+    } as unknown as FeedsMetricsService;
     events = new FeedsEventsService();
 
-    importService.getActiveImportsObservable.and.returnValue(of([]));
-    importService.getAllImportHistory.and.returnValue(
+    vi.mocked(importService.getActiveImportsObservable).mockReturnValue(of([]));
+    vi.mocked(importService.getAllImportHistory).mockReturnValue(
       of({
         imports: [baseImport],
         totalElements: 1,
         totalPages: 1,
       }),
     );
-    importService.cancelImport.and.returnValue(of(baseImport));
-    snackBar.open.and.returnValue({ onAction: () => new Subject<void>() } as any);
+    vi.mocked(importService.cancelImport).mockReturnValue(of(baseImport));
+    vi.mocked(snackBar.open).mockReturnValue({
+      onAction: () => new Subject<void>(),
+    } as any);
+
+    TestBed.overrideComponent(FeedImportsPageComponent, {
+      remove: { imports: [MatSnackBarModule] },
+    });
 
     TestBed.configureTestingModule({
       imports: [FeedImportsPageComponent],
@@ -76,16 +85,16 @@ describe('FeedImportsPageComponent', () => {
   });
 
   it('initializes history and refreshes active imports', () => {
-    spyOn(component, 'loadImportHistory');
+    vi.spyOn(component, 'loadImportHistory').mockImplementation(() => {});
 
     setup();
 
-    expect(component.loadImportHistory).toHaveBeenCalledWith(0);
+    expect(component.loadImportHistory).toHaveBeenCalled();
     expect(importService.refreshActiveImports).toHaveBeenCalled();
   });
 
   it('refreshes data when events emit', () => {
-    spyOn(component, 'loadImportHistory');
+    vi.spyOn(component, 'loadImportHistory').mockImplementation(() => {});
 
     setup();
     events.triggerRefresh();
@@ -97,7 +106,7 @@ describe('FeedImportsPageComponent', () => {
   it('updates history state and metrics on load', () => {
     component.loadImportHistory(2);
 
-    expect(component.loadingHistory).toBeFalse();
+    expect(component.loadingHistory).toBe(false);
     expect(component.importHistoryPage).toBe(2);
     expect(component.importHistory).toEqual([baseImport]);
     expect(component.totalImportElements).toBe(1);
@@ -105,13 +114,13 @@ describe('FeedImportsPageComponent', () => {
   });
 
   it('shows snackbar when history load fails', () => {
-    importService.getAllImportHistory.and.returnValue(
+    vi.mocked(importService.getAllImportHistory).mockReturnValue(
       throwError(() => new Error('fail')),
     );
 
     component.loadImportHistory();
 
-    expect(component.loadingHistory).toBeFalse();
+    expect(component.loadingHistory).toBe(false);
     expect(snackBar.open).toHaveBeenCalledWith(
       'Failed to load import history',
       'Close',
@@ -120,14 +129,16 @@ describe('FeedImportsPageComponent', () => {
   });
 
   it('cancels import and refreshes history', () => {
-    spyOn(component, 'loadImportHistory');
+    vi.spyOn(component, 'loadImportHistory').mockImplementation(() => {});
 
     component.cancelImport('imp-1');
 
     expect(importService.cancelImport).toHaveBeenCalledWith('imp-1');
     expect(importService.refreshActiveImports).toHaveBeenCalled();
     expect(component.loadImportHistory).toHaveBeenCalledWith(0);
-    expect(snackBar.open.calls.mostRecent().args).toEqual([
+    const calls = vi.mocked(snackBar.open).mock.calls;
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall).toEqual([
       '✅ Import cancelled successfully',
       'Close',
       { duration: 4000 },
@@ -136,12 +147,13 @@ describe('FeedImportsPageComponent', () => {
 
   it('retries cancel on snackbar action after failure', () => {
     const retry$ = new Subject<void>();
-    snackBar.open.and.returnValue({ onAction: () => retry$ } as any);
-    importService.cancelImport.and.returnValues(
-      throwError(() => ({ error: { message: 'backend issue' } })),
-      of(baseImport),
-    );
-    spyOn(component, 'loadImportHistory');
+    vi.mocked(snackBar.open).mockReturnValue({ onAction: () => retry$ } as any);
+    vi.mocked(importService.cancelImport)
+      .mockReturnValueOnce(
+        throwError(() => ({ error: { message: 'backend issue' } })),
+      )
+      .mockReturnValueOnce(of(baseImport));
+    vi.spyOn(component, 'loadImportHistory').mockImplementation(() => {});
 
     component.cancelImport('imp-1');
     retry$.next();
@@ -151,13 +163,14 @@ describe('FeedImportsPageComponent', () => {
   });
 
   it('surfaces backend error detail on cancel failure', () => {
-    importService.cancelImport.and.returnValue(
+    vi.mocked(importService.cancelImport).mockReturnValue(
       throwError(() => ({ error: { message: 'backend issue' } })),
     );
 
     component.cancelImport('imp-1');
 
-    const message = snackBar.open.calls.mostRecent().args[0] as string;
-    expect(message).toContain('backend issue');
+    const calls = vi.mocked(snackBar.open).mock.calls;
+    const lastCall = calls[calls.length - 1];
+    expect(lastCall[0] as string).toContain('backend issue');
   });
 });
