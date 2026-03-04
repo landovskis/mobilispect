@@ -22,13 +22,13 @@ repos:
     hooks:
       - id: backend-hooks
         name: Backend Hooks (delegated)
-        entry: bash -c 'cd backend && pre-commit run --config .pre-commit-config.yaml'
+        entry: bash -c 'cd backend && pre-commit run --all-files --config .pre-commit-config.yaml'
         language: system
         files: '^backend/'
         pass_filenames: false
       - id: mobile-hooks
         name: Mobile Hooks (delegated)
-        entry: bash -c 'cd frontend/mobile && pre-commit run --config .pre-commit-config.yaml'
+        entry: bash -c 'cd frontend/mobile && pre-commit run --all-files --config .pre-commit-config.yaml'
         language: system
         files: '^frontend/mobile/'
         pass_filenames: false
