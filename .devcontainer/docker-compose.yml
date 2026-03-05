@@ -136,6 +136,10 @@ services:
       MOBILISPECT_GTFS_STORAGE_ROOT: /var/lib/mobilispect/gtfs
       MOBILISPECT_DATABASE_URL: postgresql+psycopg2://${MOBILISPECT_DB_USER}:${MOBILISPECT_DB_PASSWORD}@${MOBILISPECT_DB_HOST}:${MOBILISPECT_DB_PORT}/${MOBILISPECT_DB_NAME}
       MOBILISPECT_OTP_URL: http://otp:8080
+      MOBILISPECT_OTP_DATA_DIR: /var/opentripplanner
+      MOBILISPECT_OTP_IMAGE: docker.io/opentripplanner/opentripplanner:2.7.0
+      MOBILISPECT_OTP_VOLUME: devcontainer_otp-data
+      MOBILISPECT_OTP_CONTAINER: devcontainer-otp-1
       AIRFLOW_DB_HOST: postgres
       AIRFLOW_DB_PORT: "5432"
       AIRFLOW_DB_NAME: airflow
@@ -151,6 +155,8 @@ services:
       - ../airflow/dags:/opt/airflow/dags:cached
       - ../airflow/pipeline:/opt/airflow/pipeline:cached
       - gtfs-data:/var/lib/mobilispect/gtfs
+      - otp-data:/var/opentripplanner
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8081:8080"
     command:
