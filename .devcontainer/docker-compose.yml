@@ -126,7 +126,9 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
-      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
+      AIRFLOW_ADMIN_USER: admin
+      AIRFLOW_ADMIN_PASSWORD: admin # pragma: allowlist secret
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "admin:admin" # pragma: allowlist secret
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
       AIRFLOW__API__JWT_EXPIRATION_TIME: "3600"
       PYTHONPATH: /opt/airflow
@@ -144,12 +146,12 @@ services:
       AIRFLOW_DB_PORT: "5432"
       AIRFLOW_DB_NAME: airflow
       AIRFLOW_DB_USER: airflow
-      AIRFLOW_DB_PASSWORD: airflow
+      AIRFLOW_DB_PASSWORD: airflow # pragma: allowlist secret
       MOBILISPECT_DB_HOST: postgres
       MOBILISPECT_DB_PORT: "5432"
       MOBILISPECT_DB_NAME: mobilispect
       MOBILISPECT_DB_USER: airflow
-      MOBILISPECT_DB_PASSWORD: airflow
+      MOBILISPECT_DB_PASSWORD: airflow # pragma: allowlist secret
     volumes:
       - ..:/workspaces:cached
       - ../airflow/dags:/opt/airflow/dags:cached
@@ -163,7 +165,7 @@ services:
       [
         "bash",
         "-lc",
-        "printf '{\"%s\":\"%s\"}\\n' \"$AIRFLOW_ADMIN_USER\" \"$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && mkdir -p /var/lib/mobilispect/gtfs && chmod 777 /var/lib/mobilispect/gtfs && pip install --no-cache-dir -r /workspaces/airflow/requirements.txt && airflow api-server --host 0.0.0.0 --port 8080 & airflow scheduler & airflow dag-processor"
+        "printf '{\"%s\":\"%s\"}\\n' \"$$AIRFLOW_ADMIN_USER\" \"$$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && mkdir -p /var/lib/mobilispect/gtfs && chmod 777 /var/lib/mobilispect/gtfs || true && pip install --no-cache-dir -r /workspaces/airflow/requirements.txt && airflow api-server --host 0.0.0.0 --port 8080 & airflow scheduler & airflow dag-processor"
       ]
 
   airflow-init:
@@ -174,10 +176,12 @@ services:
       mobilispect-init:
         condition: service_completed_successfully
     environment:
+      AIRFLOW_ADMIN_USER: admin
+      AIRFLOW_ADMIN_PASSWORD: admin # pragma: allowlist secret
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
-      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "admin:admin" # pragma: allowlist secret
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
       AIRFLOW__API__JWT_EXPIRATION_TIME: "3600"
       PYTHONPATH: /opt/airflow
@@ -190,12 +194,12 @@ services:
       AIRFLOW_DB_PORT: "5432"
       AIRFLOW_DB_NAME: airflow
       AIRFLOW_DB_USER: airflow
-      AIRFLOW_DB_PASSWORD: airflow
+      AIRFLOW_DB_PASSWORD: airflow # pragma: allowlist secret
       MOBILISPECT_DB_HOST: postgres
       MOBILISPECT_DB_PORT: "5432"
       MOBILISPECT_DB_NAME: mobilispect
       MOBILISPECT_DB_USER: airflow
-      MOBILISPECT_DB_PASSWORD: airflow
+      MOBILISPECT_DB_PASSWORD: airflow # pragma: allowlist secret
     volumes:
       - ..:/workspaces:cached
       - ../airflow/dags:/opt/airflow/dags:cached
@@ -205,7 +209,7 @@ services:
       [
         "bash",
         "-lc",
-        "printf '{\"%s\":\"%s\"}\\n' \"$AIRFLOW_ADMIN_USER\" \"$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && pip install --no-cache-dir -r /workspaces/airflow/requirements.txt && for i in $(seq 1 30); do airflow db migrate && break; echo \"waiting for airflow db\"; sleep 2; done"
+        "printf '{\"%s\":\"%s\"}\\n' \"$$AIRFLOW_ADMIN_USER\" \"$$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && pip install --no-cache-dir -r /workspaces/airflow/requirements.txt && for i in $(seq 1 30); do airflow db migrate && break; echo \"waiting for airflow db\"; sleep 2; done"
       ]
 
   # OTP (OpenTripPlanner 2) — map-matching service for GTFS shape points.
