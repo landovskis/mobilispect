@@ -103,7 +103,15 @@ def feed_import() -> None:
         processing.persist_stop_spacing(variants, stop_lookup)
         processing.classify_route_variants(variants)
         processing.persist_route_common_sections(variants)
-        return PersistResult(variants=len(variants))
+        variant_shape_map = {v["id"]: v.get("shape_id") for v in variants}
+        return PersistResult(variants=len(variants), variant_shape_map=variant_shape_map)
+
+    @task(retries=2, retry_delay=timedelta(minutes=1))
+    def match_shapes(persist_result: PersistResult, parsed_path: str, start_result: FeedImportPayload) -> None:
+        otp_url = os.environ.get("MOBILISPECT_OTP_URL", "http://otp:8080")
+        parsed = gtfs.load_parsed(parsed_path)
+        variant_shape_map = persist_result.get("variant_shape_map") or {}
+        processing.match_and_persist_shapes(parsed, variant_shape_map, otp_url)
 
     @task(trigger_rule=TriggerRule.ALL_SUCCESS)
     def finalize_success(start_result: FeedImportPayload) -> None:
@@ -133,15 +141,17 @@ def feed_import() -> None:
     validated = validate_feed(extract_dir)
     parsed_path = parse_feed(validated, started)
     persisted = persist_feed(parsed_path, started)
+    matched = match_shapes(persisted, parsed_path, started)
 
     proceed >> zip_path
-    persisted >> finalize_success(started)
+    matched >> finalize_success(started)
     [
         zip_path,
         extract_dir,
         validated,
         parsed_path,
         persisted,
+        matched,
     ] >> finalize_failure(started)
 
 

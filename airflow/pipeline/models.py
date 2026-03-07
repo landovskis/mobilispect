@@ -1,6 +1,4 @@
-from typing import Optional
-
-from typing import TypedDict
+from typing import Dict, Optional, TypedDict
 
 
 # ---------------------------------------------------------------------------
@@ -64,3 +62,4 @@ class PersistResult(TypedDict):
     """Result of persisting parsed GTFS data."""
 
     variants: int
+    variant_shape_map: Dict[str, Optional[str]]  # variant_id → shape_id (None when absent)

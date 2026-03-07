@@ -24,7 +24,7 @@ repos:
         name: Backend Hooks (delegated)
         entry: bash -c 'cd backend && pre-commit run --all-files --config .pre-commit-config.yaml'
         language: system
-        files: '^backend/'
+        files: '^backend/.*\.(kt|kts|gradle\.kts|gradle)$'
         pass_filenames: false
       - id: mobile-hooks
         name: Mobile Hooks (delegated)

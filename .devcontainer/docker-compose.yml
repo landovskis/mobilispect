@@ -126,37 +126,46 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
-      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
+      AIRFLOW_ADMIN_USER: admin
+      AIRFLOW_ADMIN_PASSWORD: admin # pragma: allowlist secret
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "admin:admin" # pragma: allowlist secret
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
       AIRFLOW__API__JWT_EXPIRATION_TIME: "3600"
       PYTHONPATH: /opt/airflow
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow # pragma: allowlist secret
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       MOBILISPECT_TRANSITLAND_API_KEY: ${MOBILISPECT_TRANSITLAND_API_KEY}
       MOBILISPECT_GTFS_STORAGE_ROOT: /var/lib/mobilispect/gtfs
       MOBILISPECT_DATABASE_URL: postgresql+psycopg2://${MOBILISPECT_DB_USER}:${MOBILISPECT_DB_PASSWORD}@${MOBILISPECT_DB_HOST}:${MOBILISPECT_DB_PORT}/${MOBILISPECT_DB_NAME}
+      MOBILISPECT_OTP_URL: http://otp:8080
+      MOBILISPECT_OTP_DATA_DIR: /var/opentripplanner
+      MOBILISPECT_OTP_IMAGE: docker.io/opentripplanner/opentripplanner:2.7.0
+      MOBILISPECT_OTP_VOLUME: devcontainer_otp-data
+      MOBILISPECT_OTP_CONTAINER: devcontainer-otp-1
       AIRFLOW_DB_HOST: postgres
       AIRFLOW_DB_PORT: "5432"
       AIRFLOW_DB_NAME: airflow
       AIRFLOW_DB_USER: airflow
-      AIRFLOW_DB_PASSWORD: airflow
+      AIRFLOW_DB_PASSWORD: airflow # pragma: allowlist secret
       MOBILISPECT_DB_HOST: postgres
       MOBILISPECT_DB_PORT: "5432"
       MOBILISPECT_DB_NAME: mobilispect
       MOBILISPECT_DB_USER: airflow
-      MOBILISPECT_DB_PASSWORD: airflow
+      MOBILISPECT_DB_PASSWORD: airflow # pragma: allowlist secret
     volumes:
       - ..:/workspaces:cached
       - ../airflow/dags:/opt/airflow/dags:cached
       - ../airflow/pipeline:/opt/airflow/pipeline:cached
       - gtfs-data:/var/lib/mobilispect/gtfs
+      - otp-data:/var/opentripplanner
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8081:8080"
     command:
       [
         "bash",
         "-lc",
-        "printf '{\"%s\":\"%s\"}\\n' \"$AIRFLOW_ADMIN_USER\" \"$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && mkdir -p /var/lib/mobilispect/gtfs && chmod 777 /var/lib/mobilispect/gtfs && pip install --no-cache-dir -r /workspaces/airflow/requirements.txt && airflow api-server --host 0.0.0.0 --port 8080 & airflow scheduler & airflow dag-processor"
+        "printf '{\"%s\":\"%s\"}\\n' \"$$AIRFLOW_ADMIN_USER\" \"$$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && mkdir -p /var/lib/mobilispect/gtfs && chmod 777 /var/lib/mobilispect/gtfs || true && pip install --no-cache-dir -r /workspaces/airflow/requirements.txt && airflow api-server --host 0.0.0.0 --port 8080 & airflow scheduler & airflow dag-processor"
       ]
 
   airflow-init:
@@ -167,14 +176,16 @@ services:
       mobilispect-init:
         condition: service_completed_successfully
     environment:
+      AIRFLOW_ADMIN_USER: admin
+      AIRFLOW_ADMIN_PASSWORD: admin # pragma: allowlist secret
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
-      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "${AIRFLOW_ADMIN_USER}:${AIRFLOW_ADMIN_PASSWORD}" # pragma: allowlist secret
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "admin:admin" # pragma: allowlist secret
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
       AIRFLOW__API__JWT_EXPIRATION_TIME: "3600"
       PYTHONPATH: /opt/airflow
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@${AIRFLOW_DB_HOST}:${AIRFLOW_DB_PORT}/${AIRFLOW_DB_NAME}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow # pragma: allowlist secret
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
       MOBILISPECT_TRANSITLAND_API_KEY: ${MOBILISPECT_TRANSITLAND_API_KEY}
       MOBILISPECT_GTFS_STORAGE_ROOT: /var/lib/mobilispect/gtfs
@@ -183,12 +194,12 @@ services:
       AIRFLOW_DB_PORT: "5432"
       AIRFLOW_DB_NAME: airflow
       AIRFLOW_DB_USER: airflow
-      AIRFLOW_DB_PASSWORD: airflow
+      AIRFLOW_DB_PASSWORD: airflow # pragma: allowlist secret
       MOBILISPECT_DB_HOST: postgres
       MOBILISPECT_DB_PORT: "5432"
       MOBILISPECT_DB_NAME: mobilispect
       MOBILISPECT_DB_USER: airflow
-      MOBILISPECT_DB_PASSWORD: airflow
+      MOBILISPECT_DB_PASSWORD: airflow # pragma: allowlist secret
     volumes:
       - ..:/workspaces:cached
       - ../airflow/dags:/opt/airflow/dags:cached
@@ -198,12 +209,34 @@ services:
       [
         "bash",
         "-lc",
-        "printf '{\"%s\":\"%s\"}\\n' \"$AIRFLOW_ADMIN_USER\" \"$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && pip install --no-cache-dir -r /workspaces/airflow/requirements.txt && for i in $(seq 1 30); do airflow db migrate && break; echo \"waiting for airflow db\"; sleep 2; done"
+        "printf '{\"%s\":\"%s\"}\\n' \"$$AIRFLOW_ADMIN_USER\" \"$$AIRFLOW_ADMIN_PASSWORD\" > /opt/airflow/simple_auth_manager_passwords.json && chmod 600 /opt/airflow/simple_auth_manager_passwords.json && pip install --no-cache-dir -r /workspaces/airflow/requirements.txt && for i in $(seq 1 30); do airflow db migrate && break; echo \"waiting for airflow db\"; sleep 2; done"
       ]
+
+  # OTP (OpenTripPlanner 2) — map-matching service for GTFS shape points.
+  # OTP requires OSM and GTFS data to build a graph before it can serve routes.
+  # Place PBF + GTFS files in the otp-data volume and run OTP once with --build
+  # to generate a Graph.obj, then restart with --load --serve (the default cmd).
+  # If the graph is absent OTP will start but serve no routes; the pipeline
+  # falls back to raw coordinates automatically.
+  otp:
+    image: docker.io/opentripplanner/opentripplanner:2.7.0
+    command: ["--load", "--serve"]
+    restart: on-failure
+    volumes:
+      - otp-data:/var/opentripplanner
+    ports:
+      - "8082:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/otp/routers/default || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
 
 volumes:
   gradle-cache:
   postgres-data:
   airflow-postgres-data:
   gtfs-data:
+  otp-data:
   db-secrets:
