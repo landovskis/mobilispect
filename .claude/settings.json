@@ -20,6 +20,26 @@
             "timeout": 30000
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$file\" ] && echo \"$file\" | grep -q '\\.kt$' && echo \"$file\" | grep -q 'backend/'; then cd /Users/alex/src/mobilispect && ./backend/gradlew -p backend compileKotlin -q 2>&1; fi",
+            "timeout": 120000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$file\" ] && echo \"$file\" | grep -q '\\.ts$' && echo \"$file\" | grep -q 'frontend/web'; then cd /Users/alex/src/mobilispect/frontend/web && npx tsc -p tsconfig.app.json --noEmit 2>&1; fi",
+            "timeout": 60000
+          }
+        ]
       }
     ],
     "PreToolUse": [
