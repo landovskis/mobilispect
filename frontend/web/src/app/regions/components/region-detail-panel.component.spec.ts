@@ -143,22 +143,12 @@ describe('RegionDetailPanelComponent', () => {
       open: vi.fn(),
     } as unknown as MatSnackBar;
 
-    vi.mocked(mockImportService.getActiveImportsObservable).mockReturnValue(
-      of([]),
-    );
-    vi.mocked(mockRegionService.getRegion).mockReturnValue(
-      of(mockRegionDetail),
-    );
-    vi.mocked(mockRegionService.listFeedsForRegion).mockReturnValue(
-      of(mockFeeds),
-    );
+    vi.mocked(mockImportService.getActiveImportsObservable).mockReturnValue(of([]));
+    vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
+    vi.mocked(mockRegionService.listFeedsForRegion).mockReturnValue(of(mockFeeds));
     vi.mocked(mockAgencyService.listAgencies).mockReturnValue(of(mockAgencies));
-    vi.mocked(mockImportService.getActiveRegionImport).mockReturnValue(
-      of(null),
-    );
-    vi.mocked(mockImportService.monitorRegionImportProgress).mockReturnValue(
-      EMPTY,
-    );
+    vi.mocked(mockImportService.getActiveRegionImport).mockReturnValue(of(null));
+    vi.mocked(mockImportService.monitorRegionImportProgress).mockReturnValue(EMPTY);
     vi.mocked(mockSnackBar.open).mockReturnValue(snackBarRef as any);
 
     TestBed.overrideComponent(RegionDetailPanelComponent, {
@@ -205,23 +195,15 @@ describe('RegionDetailPanelComponent', () => {
   it('loads data and metrics when region is set', () => {
     setRegion(mockRegion);
 
-    expect(mockRegionService.listFeedsForRegion).toHaveBeenCalledWith(
-      'r-test-toronto',
-    );
+    expect(mockRegionService.listFeedsForRegion).toHaveBeenCalledWith('r-test-toronto');
     expect(mockRegionService.getRegion).toHaveBeenCalledWith('r-test-toronto');
-    expect(mockAgencyService.listAgencies).toHaveBeenCalledWith(
-      0,
-      100,
-      'r-test-toronto',
-    );
-    expect(mockImportService.getActiveRegionImport).toHaveBeenCalledWith(
-      'r-test-toronto',
-    );
+    expect(mockAgencyService.listAgencies).toHaveBeenCalledWith(0, 100, 'r-test-toronto');
+    expect(mockImportService.getActiveRegionImport).toHaveBeenCalledWith('r-test-toronto');
     expect(mockImportService.startPollingActiveImports).toHaveBeenCalled();
     expect(mockImportService.refreshActiveImports).toHaveBeenCalled();
     expect(mockMetricsService.setSelectedRegion).toHaveBeenCalledWith(
       'r-test-toronto',
-      expect.any(String),
+      expect.any(String)
     );
   });
 
@@ -253,14 +235,12 @@ describe('RegionDetailPanelComponent', () => {
 
     expect(component.regionFeeds).toEqual(mockFeeds);
     expect(component.agencyGroups.length).toBeGreaterThan(0);
-    expect(mockMetricsService.setDiscoverFeedCount).toHaveBeenCalledWith(
-      mockFeeds.length,
-    );
+    expect(mockMetricsService.setDiscoverFeedCount).toHaveBeenCalledWith(mockFeeds.length);
   });
 
   it('shows retry snackbar when feed load fails', () => {
     vi.mocked(mockRegionService.listFeedsForRegion).mockReturnValue(
-      throwError(() => new Error('Network error')),
+      throwError(() => new Error('Network error'))
     );
 
     setRegion(mockRegion);
@@ -268,7 +248,7 @@ describe('RegionDetailPanelComponent', () => {
     expect(mockSnackBar.open).toHaveBeenCalledWith(
       expect.stringContaining('Failed to load feeds'),
       'Retry',
-      expect.any(Object),
+      expect.any(Object)
     );
   });
 
@@ -281,7 +261,7 @@ describe('RegionDetailPanelComponent', () => {
         name: 'Toronto',
         totalAgencies: 2,
         totalActiveRoutes: 200,
-      }),
+      })
     );
 
     const agencies = await firstValueFrom(component.agencies$);
@@ -300,14 +280,14 @@ describe('RegionDetailPanelComponent', () => {
         totalFeeds: 2,
         completedFeeds: 0,
         failedFeeds: 0,
-      } as any),
+      } as any)
     );
 
     setRegion(mockRegion);
 
     expect(mockImportService.monitorRegionImportProgress).toHaveBeenCalledWith(
       'import-1',
-      expect.any(Object),
+      expect.any(Object)
     );
   });
 
@@ -326,7 +306,7 @@ describe('RegionDetailPanelComponent', () => {
 
   it('handles import errors with retry snackbar', () => {
     vi.mocked(mockImportService.startImport).mockReturnValue(
-      throwError(() => ({ error: { message: 'Import failed' } })),
+      throwError(() => ({ error: { message: 'Import failed' } }))
     );
 
     component.importFeed(mockFeeds[0]);
@@ -334,21 +314,19 @@ describe('RegionDetailPanelComponent', () => {
     expect(mockSnackBar.open).toHaveBeenCalledWith(
       expect.stringContaining('Import failed'),
       'Retry',
-      expect.any(Object),
+      expect.any(Object)
     );
   });
 
   it('cancels import and shows success toast', () => {
-    vi.mocked(mockImportService.cancelImport).mockReturnValue(
-      of({ importId: 'import-1' } as any),
-    );
+    vi.mocked(mockImportService.cancelImport).mockReturnValue(of({ importId: 'import-1' } as any));
 
     component.cancelImport('import-1');
 
     expect(mockSnackBar.open).toHaveBeenCalledWith(
       expect.stringContaining('Import cancelled successfully'),
       'Close',
-      { duration: 3000 },
+      { duration: 3000 }
     );
   });
 });

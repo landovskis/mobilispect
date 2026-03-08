@@ -11,10 +11,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
-import {
-  AppBreadcrumbService,
-  Breadcrumb,
-} from '../services/app-breadcrumb.service';
+import { AppBreadcrumbService, Breadcrumb } from '../services/app-breadcrumb.service';
 export type { Breadcrumb };
 import { Subject } from 'rxjs';
 import { filter, startWith, takeUntil } from 'rxjs/operators';
@@ -113,11 +110,9 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.router.events
       .pipe(
-        filter(
-          (event): event is NavigationEnd => event instanceof NavigationEnd,
-        ),
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
         startWith(null), // Trigger initial load
-        takeUntil(this.destroy$),
+        takeUntil(this.destroy$)
       )
       .subscribe(() => {
         this.updateBreadcrumbs();
@@ -130,9 +125,7 @@ export class AppBreadcrumbsComponent implements OnInit, OnDestroy {
   }
 
   private updateBreadcrumbs(): void {
-    const crumbs = this.breadcrumbService.getBreadcrumbs(
-      this.router.routerState.root.snapshot,
-    );
+    const crumbs = this.breadcrumbService.getBreadcrumbs(this.router.routerState.root.snapshot);
     this.breadcrumbs = crumbs.length
       ? crumbs
       : [{ id: 'regions', label: 'Regions', link: ['/regions'] }];

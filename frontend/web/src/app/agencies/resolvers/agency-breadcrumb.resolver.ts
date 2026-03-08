@@ -14,7 +14,7 @@ export class AgencyBreadcrumbResolver implements Resolve<string> {
 
     return this.agencyService.getAgency(agencyId).pipe(
       map((agency) => agency.name || this.humanize(agencyId)),
-      catchError(() => of(this.humanize(agencyId))),
+      catchError(() => of(this.humanize(agencyId)))
     );
   }
 

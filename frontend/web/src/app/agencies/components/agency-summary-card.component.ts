@@ -9,30 +9,16 @@ import { BrandCardComponent } from '../../shared/components/brand-card.component
   standalone: true,
   imports: [BrandCardComponent, BrandBadgeComponent],
   template: `
-    <app-brand-card
-      [title]="agency.name"
-      [badge]="agency.routeCount + ' routes'"
-    >
-      <div
-        class="meta flex flex-wrap gap-2"
-        aria-label="agency summary"
-        role="list"
-      >
-        @if (
-          agency.averageHeadwayMinutes !== null &&
-          agency.averageHeadwayMinutes !== undefined
-        ) {
+    <app-brand-card [title]="agency.name" [badge]="agency.routeCount + ' routes'">
+      <div class="meta flex flex-wrap gap-2" aria-label="agency summary" role="list">
+        @if (agency.averageHeadwayMinutes !== null && agency.averageHeadwayMinutes !== undefined) {
           <app-brand-badge
             role="listitem"
             variant="neutral"
             [label]="agency.averageHeadwayMinutes + ' min avg headway'"
           ></app-brand-badge>
         } @else {
-          <app-brand-badge
-            role="listitem"
-            variant="neutral"
-            label="Headway TBD"
-          ></app-brand-badge>
+          <app-brand-badge role="listitem" variant="neutral" label="Headway TBD"></app-brand-badge>
         }
       </div>
     </app-brand-card>

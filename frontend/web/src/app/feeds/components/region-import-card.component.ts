@@ -1,10 +1,4 @@
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RegionImportGroup } from '../models/region-import-group.model';
@@ -23,12 +17,7 @@ import { FeedImportRowComponent } from './feed-import-row.component';
 @Component({
   selector: 'app-region-import-card',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatProgressBarModule,
-    BrandCardComponent,
-    FeedImportRowComponent,
-  ],
+  imports: [CommonModule, MatProgressBarModule, BrandCardComponent, FeedImportRowComponent],
   template: `
     <app-brand-card
       [title]="regionGroup.regionName"
@@ -58,10 +47,7 @@ import { FeedImportRowComponent } from './feed-import-row.component';
         [attr.aria-label]="'Feeds importing for ' + regionGroup.regionName"
       >
         @for (feedImport of regionGroup.feedImports; track feedImport.id) {
-          <app-feed-import-row
-            [feedImport]="feedImport"
-            (stopImport)="onStopImport($event)"
-          />
+          <app-feed-import-row [feedImport]="feedImport" (stopImport)="onStopImport($event)" />
         }
       </div>
     </app-brand-card>

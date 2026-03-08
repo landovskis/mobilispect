@@ -5,11 +5,7 @@ import { RegionListComponent } from './region-list.component';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { SchedulerService } from '../../feeds/services/scheduler.service';
-import {
-  FeedImportSummary,
-  ImportStatus,
-  TriggerType,
-} from '../../feeds/models/import.models';
+import { FeedImportSummary, ImportStatus, TriggerType } from '../../feeds/models/import.models';
 import { MetropolitanRegion } from '../../feeds/models/region.models';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -70,21 +66,11 @@ describe('RegionListComponent', () => {
     } as unknown as MatSnackBar;
 
     vi.mocked(regionService.listRegions).mockReturnValue(of([baseRegion]));
-    vi.mocked(regionService.sortWithCanadianPriority).mockImplementation(
-      (regions) => regions,
-    );
-    vi.mocked(importService.getActiveImports).mockReturnValue(
-      of([baseImportSummary]),
-    );
-    vi.mocked(importService.getActiveImportsObservable).mockReturnValue(
-      of([baseImportSummary]),
-    );
-    vi.mocked(schedulerService.enableFeedAutoUpdate).mockReturnValue(
-      of(void 0),
-    );
-    vi.mocked(schedulerService.disableFeedAutoUpdate).mockReturnValue(
-      of(void 0),
-    );
+    vi.mocked(regionService.sortWithCanadianPriority).mockImplementation((regions) => regions);
+    vi.mocked(importService.getActiveImports).mockReturnValue(of([baseImportSummary]));
+    vi.mocked(importService.getActiveImportsObservable).mockReturnValue(of([baseImportSummary]));
+    vi.mocked(schedulerService.enableFeedAutoUpdate).mockReturnValue(of(void 0));
+    vi.mocked(schedulerService.disableFeedAutoUpdate).mockReturnValue(of(void 0));
     vi.mocked(schedulerService.checkFeedUpdate).mockReturnValue(of(true));
     vi.mocked(schedulerService.getAllFeedVersions).mockReturnValue(of([]));
 
@@ -112,16 +98,12 @@ describe('RegionListComponent', () => {
   });
 
   it('handles region load errors', () => {
-    vi.mocked(regionService.listRegions).mockReturnValue(
-      throwError(() => new Error('fail')),
-    );
+    vi.mocked(regionService.listRegions).mockReturnValue(throwError(() => new Error('fail')));
 
     component.ngOnInit();
 
     expect(component.isLoading$.value).toBe(false);
-    expect(component.error$.value).toBe(
-      'Failed to load regions. Please try again.',
-    );
+    expect(component.error$.value).toBe('Failed to load regions. Please try again.');
   });
 
   it('filters regions by search term and auto-update flag', fakeAsync(() => {
@@ -204,9 +186,7 @@ describe('RegionListComponent', () => {
       },
     ]);
 
-    expect(
-      component.hasActiveImport({ ...baseRegion, regionOnestopId: 'r-1' }),
-    ).toBe(true);
+    expect(component.hasActiveImport({ ...baseRegion, regionOnestopId: 'r-1' })).toBe(true);
   });
 
   it('computes total feeds from filtered regions', async () => {
@@ -224,13 +204,11 @@ describe('RegionListComponent', () => {
 
     component.toggleAutoUpdate(baseRegion, true);
 
-    expect(schedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith(
-      'r-test',
-    );
+    expect(schedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith('r-test');
     expect(snackBar.open).toHaveBeenCalledWith(
       expect.stringContaining('Automatic updates enabled'),
       'Close',
-      { duration: 3000 },
+      { duration: 3000 }
     );
     expect(component.refreshRegions).toHaveBeenCalled();
     expect(component.isUpdatingAutoUpdate.has('r-test')).toBe(false);
@@ -239,17 +217,15 @@ describe('RegionListComponent', () => {
 
   it('handles auto-update errors', () => {
     vi.mocked(schedulerService.enableFeedAutoUpdate).mockReturnValue(
-      throwError(() => new Error('fail')),
+      throwError(() => new Error('fail'))
     );
 
     component.toggleAutoUpdate(baseRegion, true);
 
     expect(component.isUpdatingAutoUpdate.has('r-test')).toBe(false);
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to update auto-update setting',
-      'Close',
-      { duration: 3000 },
-    );
+    expect(snackBar.open).toHaveBeenCalledWith('Failed to update auto-update setting', 'Close', {
+      duration: 3000,
+    });
   });
 
   it('checks for updates and stores version status', () => {

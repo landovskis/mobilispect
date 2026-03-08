@@ -1,17 +1,8 @@
-import {
-  Component,
-  Input,
-  Output,
-  EventEmitter,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  AppBreadcrumbsComponent,
-  BreadcrumbSelection,
-} from './app-breadcrumbs.component';
+import { AppBreadcrumbsComponent, BreadcrumbSelection } from './app-breadcrumbs.component';
 
 @Component({
   selector: 'app-bar',
@@ -68,7 +59,4 @@ export class AppBarComponent {
   @Output() breadcrumbSelected = new EventEmitter<BreadcrumbSelection>();
 }
 
-export type {
-  Breadcrumb,
-  BreadcrumbSelection,
-} from './app-breadcrumbs.component';
+export type { Breadcrumb, BreadcrumbSelection } from './app-breadcrumbs.component';

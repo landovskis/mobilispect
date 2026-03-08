@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { MatIconModule } from '@angular/material/icon';
 
@@ -16,15 +10,10 @@ import { MatIconModule } from '@angular/material/icon';
   standalone: true,
   imports: [MatIconModule],
   template: `
-    <section
-      class="brand-section block rounded-2xl px-5 py-4"
-      [class.collapsible]="collapsible"
-    >
+    <section class="brand-section block rounded-2xl px-5 py-4" [class.collapsible]="collapsible">
       <header class="section-header mb-3 flex items-center gap-3">
         @if (icon) {
-          <div
-            class="icon-wrap inline-flex h-9 w-9 items-center justify-center rounded-[10px]"
-          >
+          <div class="icon-wrap inline-flex h-9 w-9 items-center justify-center rounded-[10px]">
             <mat-icon>{{ icon }}</mat-icon>
           </div>
         }
@@ -45,9 +34,7 @@ import { MatIconModule } from '@angular/material/icon';
               class="toggle inline-flex items-center justify-center rounded-[10px] px-2 py-1.5"
               (click)="toggle()"
               [attr.aria-expanded]="expanded"
-              [attr.aria-label]="
-                expanded ? 'Collapse section' : 'Expand section'
-              "
+              [attr.aria-label]="expanded ? 'Collapse section' : 'Expand section'"
             >
               <mat-icon [class.rotated]="expanded">expand_more</mat-icon>
             </button>

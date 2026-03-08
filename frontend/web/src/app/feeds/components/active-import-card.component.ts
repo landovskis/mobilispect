@@ -44,30 +44,20 @@ import { ImportService } from '../services/import.service';
         <div class="progress-section mb-4">
           <!-- Step indicator -->
           <div class="step-indicator mb-2 flex items-center gap-2">
-            <span
-              class="step-count text-sm font-semibold text-[var(--mat-sys-primary)]"
-            >
+            <span class="step-count text-sm font-semibold text-[var(--mat-sys-primary)]">
               Step {{ getCurrentStepNumber() }} of
               {{ currentProgress.totalSteps }}
             </span>
-            <span class="step-divider text-[var(--mat-sys-on-surface-variant)]"
-              >•</span
-            >
-            <span
-              class="progress-step text-sm italic text-[var(--mat-sys-on-surface-variant)]"
-            >
+            <span class="step-divider text-[var(--mat-sys-on-surface-variant)]">•</span>
+            <span class="progress-step text-sm italic text-[var(--mat-sys-on-surface-variant)]">
               {{ currentProgress.currentStep }}
             </span>
           </div>
 
           <!-- Progress bar with percentage -->
           <div class="progress-bar-section">
-            <div
-              class="progress-details mb-2 flex items-center justify-between gap-3"
-            >
-              <span
-                class="progress-percentage text-lg font-bold text-[var(--mat-sys-primary)]"
-              >
+            <div class="progress-details mb-2 flex items-center justify-between gap-3">
+              <span class="progress-percentage text-lg font-bold text-[var(--mat-sys-primary)]">
                 {{ currentProgress.progressPercentage }}%
               </span>
             </div>
@@ -83,18 +73,10 @@ import { ImportService } from '../services/import.service';
             currentProgress.estimatedTimeRemainingSeconds !== null &&
             currentProgress.estimatedTimeRemainingSeconds > 0
           ) {
-            <div
-              class="time-remaining mt-2 text-sm text-[var(--mat-sys-on-surface-variant)]"
-            >
-              <mat-icon class="inline-block align-middle text-base"
-                >schedule</mat-icon
-              >
+            <div class="time-remaining mt-2 text-sm text-[var(--mat-sys-on-surface-variant)]">
+              <mat-icon class="inline-block align-middle text-base">schedule</mat-icon>
               Est. time remaining:
-              {{
-                formatTimeRemaining(
-                  currentProgress.estimatedTimeRemainingSeconds
-                )
-              }}
+              {{ formatTimeRemaining(currentProgress.estimatedTimeRemainingSeconds) }}
             </div>
           }
         </div>
@@ -230,8 +212,7 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
     if (!this.currentProgress) return 0;
     // Calculate current step based on progress percentage
     return Math.ceil(
-      (this.currentProgress.progressPercentage / 100) *
-        this.currentProgress.totalSteps,
+      (this.currentProgress.progressPercentage / 100) * this.currentProgress.totalSteps
     );
   }
 
@@ -246,15 +227,11 @@ export class ActiveImportCardComponent implements OnInit, OnDestroy {
     const remainingSeconds = seconds % 60;
 
     if (minutes < 60) {
-      return remainingSeconds > 0
-        ? `${minutes}m ${remainingSeconds}s`
-        : `${minutes}m`;
+      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
     }
 
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    return remainingMinutes > 0
-      ? `${hours}h ${remainingMinutes}m`
-      : `${hours}h`;
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
   }
 }

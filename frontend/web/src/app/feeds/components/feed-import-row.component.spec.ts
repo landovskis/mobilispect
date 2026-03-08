@@ -47,9 +47,7 @@ describe('FeedImportRowComponent', () => {
     } as unknown as ImportService;
 
     // Default: return observable that never emits (for tests that don't care about progress)
-    vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(
-      new Subject(),
-    );
+    vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(new Subject());
 
     await TestBed.configureTestingModule({
       imports: [FeedImportRowComponent],
@@ -100,7 +98,7 @@ describe('FeedImportRowComponent', () => {
     component.feedImport = mockFeedImport;
     const progressSubject = new Subject<ImportProgress>();
     vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(
-      progressSubject.asObservable(),
+      progressSubject.asObservable()
     );
 
     // Spy on the actual ChangeDetectorRef
@@ -165,9 +163,7 @@ describe('FeedImportRowComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const stopButton = compiled.querySelector('button[aria-label]');
     expect(stopButton).toBeTruthy();
-    expect(stopButton?.getAttribute('aria-label')).toContain(
-      'Stop import for BART',
-    );
+    expect(stopButton?.getAttribute('aria-label')).toContain('Stop import for BART');
 
     // And: Row has listitem role
     const row = compiled.querySelector('[role="listitem"]');
@@ -240,7 +236,7 @@ describe('FeedImportRowComponent', () => {
     component.feedImport = mockFeedImport;
     const progressSubject = new Subject<ImportProgress>();
     vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(
-      progressSubject.asObservable(),
+      progressSubject.asObservable()
     );
 
     // Spy on the actual ChangeDetectorRef

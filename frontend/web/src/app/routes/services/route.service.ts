@@ -87,49 +87,36 @@ export class RouteService {
   }
 
   getVariants(routeId: string): Observable<RouteVariantDto[]> {
-    return this.http.get<RouteVariantDto[]>(
-      `${this.baseUrl}/${routeId}/variants`,
-    );
+    return this.http.get<RouteVariantDto[]>(`${this.baseUrl}/${routeId}/variants`);
   }
 
   getFrequencies(variantId: string, date?: string): Observable<FrequencyDto[]> {
     const params: Record<string, string> = {};
     if (date) params['date'] = date;
-    return this.http.get<FrequencyDto[]>(
-      `${this.baseUrl}/variants/${variantId}/frequencies`,
-      { params },
-    );
+    return this.http.get<FrequencyDto[]>(`${this.baseUrl}/variants/${variantId}/frequencies`, {
+      params,
+    });
   }
 
-  getRouteHourlyFrequencies(
-    routeId: string,
-    date: string,
-  ): Observable<RouteHourlyFrequencyDto[]> {
+  getRouteHourlyFrequencies(routeId: string, date: string): Observable<RouteHourlyFrequencyDto[]> {
     return this.http.get<RouteHourlyFrequencyDto[]>(
       `${this.baseUrl}/${routeId}/hourly-frequencies`,
-      { params: { date } },
+      { params: { date } }
     );
   }
 
-  getVariantHourlyFrequencies(
-    variantId: string,
-    date: string,
-  ): Observable<HourlyFrequencyDto[]> {
+  getVariantHourlyFrequencies(variantId: string, date: string): Observable<HourlyFrequencyDto[]> {
     return this.http.get<HourlyFrequencyDto[]>(
       `${this.baseUrl}/variants/${variantId}/hourly-frequencies`,
-      { params: { date } },
+      { params: { date } }
     );
   }
 
   getCompleteSchedule(variantId: string): Observable<string[]> {
-    return this.http.get<string[]>(
-      `${this.baseUrl}/variants/${variantId}/schedule`,
-    );
+    return this.http.get<string[]>(`${this.baseUrl}/variants/${variantId}/schedule`);
   }
 
   getCommonSections(routeId: string): Observable<RouteCommonSectionDto[]> {
-    return this.http.get<RouteCommonSectionDto[]>(
-      `${this.baseUrl}/${routeId}/common-sections`,
-    );
+    return this.http.get<RouteCommonSectionDto[]>(`${this.baseUrl}/${routeId}/common-sections`);
   }
 }

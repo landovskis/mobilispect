@@ -38,7 +38,7 @@ export const ROUTES_ROUTES: Routes = [
     path: 'routes/:routeId',
     loadComponent: () =>
       import('./pages/route-frequency/route-frequency.component').then(
-        (m) => m.RouteFrequencyComponent,
+        (m) => m.RouteFrequencyComponent
       ),
     resolve: {
       breadcrumb: RouteBreadcrumbResolver,

@@ -24,7 +24,7 @@ export class RegionBreadcrumbResolver implements Resolve<string> {
 
     return this.regionService.getRegion(regionId).pipe(
       map((region) => RegionUtils.getDisplayName(region)),
-      catchError(() => of(this.humanizeRegionId(regionId))),
+      catchError(() => of(this.humanizeRegionId(regionId)))
     );
   }
 
@@ -36,9 +36,7 @@ export class RegionBreadcrumbResolver implements Resolve<string> {
       const city = parts.slice(0, -2).join(' ');
       const adm1 = parts[parts.length - 2];
       const country = parts[parts.length - 1];
-      return [city, adm1, country]
-        .map((part) => this.capitalizeWord(part))
-        .join(', ');
+      return [city, adm1, country].map((part) => this.capitalizeWord(part)).join(', ');
     }
 
     return parts.map((part) => this.capitalizeWord(part)).join(' ') || regionId;

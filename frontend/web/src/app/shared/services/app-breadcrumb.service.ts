@@ -19,11 +19,9 @@ export class AppBreadcrumbService {
   private buildBreadcrumbsFromRoute(
     route: ActivatedRouteSnapshot,
     url: string = '',
-    crumbs: Breadcrumb[] = [],
+    crumbs: Breadcrumb[] = []
   ): Breadcrumb[] {
-    const children = route.children.filter(
-      (child) => child.outlet === 'primary',
-    );
+    const children = route.children.filter((child) => child.outlet === 'primary');
 
     if (!children.length) {
       return crumbs;

@@ -8,20 +8,8 @@ import {
   ChangeDetectionStrategy,
   inject,
 } from '@angular/core';
-import {
-  Observable,
-  Subject,
-  BehaviorSubject,
-  timer,
-  combineLatest,
-} from 'rxjs';
-import {
-  takeUntil,
-  map,
-  startWith,
-  switchMap,
-  catchError,
-} from 'rxjs/operators';
+import { Observable, Subject, BehaviorSubject, timer, combineLatest } from 'rxjs';
+import { takeUntil, map, startWith, switchMap, catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
@@ -49,20 +37,13 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
   template: `
     @if (importId) {
       <div class="progress-monitor w-full max-w-[600px]">
-        <app-brand-card
-          class="progress-card mb-4"
-          [ngClass]="'status-' + progressStatus"
-        >
+        <app-brand-card class="progress-card mb-4" [ngClass]="'status-' + progressStatus">
           <div card-header>
             <div class="flex items-center gap-2 text-white font-semibold">
-              <mat-icon [ngClass]="getIconClass()">{{
-                getStatusIcon()
-              }}</mat-icon>
+              <mat-icon [ngClass]="getIconClass()">{{ getStatusIcon() }}</mat-icon>
               Import Progress
             </div>
-            <div card-subtitle class="text-white/90">
-              Import ID: {{ importId }}
-            </div>
+            <div card-subtitle class="text-white/90">Import ID: {{ importId }}</div>
           </div>
 
           <div card-content>
@@ -70,9 +51,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
               <div class="progress-info">
                 <!-- Progress Bar -->
                 <div class="progress-section mb-4 flex items-center gap-4">
-                  <div
-                    class="progress-percentage min-w-[60px] text-2xl font-bold"
-                  >
+                  <div class="progress-percentage min-w-[60px] text-2xl font-bold">
                     {{ data.progress.progressPercentage }}%
                   </div>
                   <mat-progress-bar
@@ -113,10 +92,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                   @if (data.estimatedCompletion) {
                     <div class="estimated-completion flex items-center gap-2">
                       <mat-icon>event</mat-icon>
-                      <span
-                        >Est. Completion:
-                        {{ data.estimatedCompletion | date: 'short' }}</span
-                      >
+                      <span>Est. Completion: {{ data.estimatedCompletion | date: 'short' }}</span>
                     </div>
                   }
                 </div>
@@ -259,17 +235,12 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
   private readonly progressWebSocketService = inject(ProgressWebSocketService);
 
   constructor() {
-    this.connectionStatus$ =
-      this.progressWebSocketService.getConnectionStatus();
+    this.connectionStatus$ = this.progressWebSocketService.getConnectionStatus();
 
     this.displayData$ = combineLatest([
       this.progress$,
       timer(0, 1000), // Update every second for timing
-    ]).pipe(
-      map(([progress]) =>
-        progress ? this.calculateDisplayData(progress) : null,
-      ),
-    );
+    ]).pipe(map(([progress]) => (progress ? this.calculateDisplayData(progress) : null)));
   }
 
   ngOnInit(): void {
@@ -294,19 +265,15 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
           this.isLoading$.next(true);
           this.error$.next(null);
 
-          return this.progressWebSocketService
-            .subscribeToImportProgress(this.importId)
-            .pipe(
-              catchError((error) => {
-                this.error$.next(
-                  error.message || 'Failed to connect to progress updates',
-                );
-                this.isLoading$.next(false);
-                return [];
-              }),
-            );
+          return this.progressWebSocketService.subscribeToImportProgress(this.importId).pipe(
+            catchError((error) => {
+              this.error$.next(error.message || 'Failed to connect to progress updates');
+              this.isLoading$.next(false);
+              return [];
+            })
+          );
         }),
-        takeUntil(this.destroy$),
+        takeUntil(this.destroy$)
       )
       .subscribe({
         next: (progress) => {
@@ -342,18 +309,11 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
     const duration = Math.floor((now.getTime() - startTime.getTime()) / 1000);
 
     let estimatedCompletion: Date | undefined;
-    if (
-      progress.estimatedTimeRemainingSeconds &&
-      progress.estimatedTimeRemainingSeconds > 0
-    ) {
-      estimatedCompletion = new Date(
-        now.getTime() + progress.estimatedTimeRemainingSeconds * 1000,
-      );
+    if (progress.estimatedTimeRemainingSeconds && progress.estimatedTimeRemainingSeconds > 0) {
+      estimatedCompletion = new Date(now.getTime() + progress.estimatedTimeRemainingSeconds * 1000);
     }
 
-    const progressBarColor = this.getProgressBarColor(
-      progress.progressPercentage,
-    );
+    const progressBarColor = this.getProgressBarColor(progress.progressPercentage);
 
     return {
       progress,
@@ -363,9 +323,7 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
     };
   }
 
-  private getProgressBarColor(
-    percentage: number,
-  ): 'primary' | 'accent' | 'warn' {
+  private getProgressBarColor(percentage: number): 'primary' | 'accent' | 'warn' {
     if (percentage >= 100) return 'accent';
     if (percentage >= 75) return 'primary';
     return 'primary';
@@ -408,15 +366,10 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
   }
 
   getCurrentStepIndex(progress: ImportProgress): number {
-    return Math.floor(
-      (progress.progressPercentage / 100) * progress.totalSteps,
-    );
+    return Math.floor((progress.progressPercentage / 100) * progress.totalSteps);
   }
 
-  getStepColor(
-    stepIndex: number,
-    progress: ImportProgress,
-  ): 'primary' | 'accent' | undefined {
+  getStepColor(stepIndex: number, progress: ImportProgress): 'primary' | 'accent' | undefined {
     const currentStep = this.getCurrentStepIndex(progress);
     if (stepIndex < currentStep) return 'accent';
     if (stepIndex === currentStep) return 'primary';
@@ -443,11 +396,7 @@ export class ProgressMonitorComponent implements OnInit, OnDestroy {
   }
 
   onCancel(): void {
-    if (
-      confirm(
-        'Are you sure you want to cancel this import? This action cannot be undone.',
-      )
-    ) {
+    if (confirm('Are you sure you want to cancel this import? This action cannot be undone.')) {
       this.cancelRequested.emit(this.importId);
     }
   }

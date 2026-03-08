@@ -179,7 +179,7 @@ export class RegionUtils {
         part
           .split(',')
           .map((piece) => piece.trim())
-          .filter((piece) => piece.length > 0),
+          .filter((piece) => piece.length > 0)
       );
 
     const seen = new Set<string>();

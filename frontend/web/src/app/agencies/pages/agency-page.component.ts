@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { AgencyService } from '../services/agency.service';
@@ -17,12 +12,7 @@ import { map } from 'rxjs/operators';
 @Component({
   selector: 'app-agency-page',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    BrandSectionComponent,
-    AgencyRouteCardComponent,
-  ],
+  imports: [CommonModule, RouterModule, BrandSectionComponent, AgencyRouteCardComponent],
   template: `
     <div class="flex flex-col gap-6">
       <app-brand-section
@@ -39,9 +29,7 @@ import { map } from 'rxjs/operators';
             @if (agency.averageHeadwayMinutes) {
               <div class="info-item flex flex-col gap-1">
                 <span class="info-label">Average Headway:</span>
-                <span class="info-value"
-                  >{{ agency.averageHeadwayMinutes }} min</span
-                >
+                <span class="info-value">{{ agency.averageHeadwayMinutes }} min</span>
               </div>
             }
           </div>
@@ -62,9 +50,7 @@ import { map } from 'rxjs/operators';
             }
           </div>
           @if (routesResponse.content.length === 0) {
-            <p class="no-routes py-6 text-center italic">
-              No routes found for this agency.
-            </p>
+            <p class="no-routes py-6 text-center italic">No routes found for this agency.</p>
           }
         } @else {
           <p>Loading routes...</p>
@@ -110,14 +96,12 @@ export class AgencyPageComponent implements OnInit {
     const agencyId = this.route.snapshot.paramMap.get('agencyId');
     if (agencyId) {
       this.agency$ = this.agencyService.getAgency(agencyId);
-      this.routes$ = this.agencyService
-        .listRoutesByAgency(agencyId, 0, 500)
-        .pipe(
-          map((response) => ({
-            ...response,
-            content: this.sortRoutes(response.content),
-          })),
-        );
+      this.routes$ = this.agencyService.listRoutesByAgency(agencyId, 0, 500).pipe(
+        map((response) => ({
+          ...response,
+          content: this.sortRoutes(response.content),
+        }))
+      );
     }
   }
 
@@ -126,11 +110,7 @@ export class AgencyPageComponent implements OnInit {
       const keyA = this.getRouteSortKey(a);
       const keyB = this.getRouteSortKey(b);
 
-      if (
-        keyA.number !== undefined &&
-        keyB.number !== undefined &&
-        keyA.number !== keyB.number
-      ) {
+      if (keyA.number !== undefined && keyB.number !== undefined && keyA.number !== keyB.number) {
         return keyA.number - keyB.number;
       }
 

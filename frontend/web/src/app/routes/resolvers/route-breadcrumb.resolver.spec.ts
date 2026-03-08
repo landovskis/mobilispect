@@ -23,10 +23,7 @@ describe('RouteBreadcrumbResolver', () => {
       getRoute: vi.fn(),
     } as unknown as RouteService;
     TestBed.configureTestingModule({
-      providers: [
-        { provide: RouteService, useValue: routeServiceSpy },
-        RouteBreadcrumbResolver,
-      ],
+      providers: [{ provide: RouteService, useValue: routeServiceSpy }, RouteBreadcrumbResolver],
     });
     resolver = TestBed.inject(RouteBreadcrumbResolver);
   });
@@ -79,9 +76,7 @@ describe('RouteBreadcrumbResolver', () => {
   });
 
   it('falls back to route id on api error', async () => {
-    vi.mocked(routeServiceSpy.getRoute).mockReturnValue(
-      throwError(() => new Error('boom')),
-    );
+    vi.mocked(routeServiceSpy.getRoute).mockReturnValue(throwError(() => new Error('boom')));
     const snapshot = createSnapshot(mockRoute.id);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));

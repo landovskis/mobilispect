@@ -15,8 +15,7 @@ export const routes: Routes = [
       },
       {
         path: 'regions',
-        loadChildren: () =>
-          import('./routes/routes.routes').then((m) => m.ROUTES_ROUTES),
+        loadChildren: () => import('./routes/routes.routes').then((m) => m.ROUTES_ROUTES),
         data: {
           breadcrumb: 'Regions',
         },
@@ -25,9 +24,7 @@ export const routes: Routes = [
       {
         path: 'feeds',
         loadChildren: () =>
-          import('./feeds/feed-management.routes').then(
-            (m) => m.FEED_MANAGEMENT_ROUTES,
-          ),
+          import('./feeds/feed-management.routes').then((m) => m.FEED_MANAGEMENT_ROUTES),
         data: {
           title: 'Feeds',
           breadcrumb: 'Feeds',
@@ -40,9 +37,7 @@ export const routes: Routes = [
           {
             path: ':agencyId',
             loadComponent: () =>
-              import('./agencies/pages/agency-page.component').then(
-                (m) => m.AgencyPageComponent,
-              ),
+              import('./agencies/pages/agency-page.component').then((m) => m.AgencyPageComponent),
             resolve: {
               breadcrumb: AgencyBreadcrumbResolver,
             },
@@ -53,7 +48,7 @@ export const routes: Routes = [
         path: 'routes/:routeId',
         loadComponent: () =>
           import('./routes/pages/route-detail/route-detail-page.component').then(
-            (m) => m.RouteDetailPageComponent,
+            (m) => m.RouteDetailPageComponent
           ),
         resolve: {
           breadcrumb: RouteBreadcrumbResolver,

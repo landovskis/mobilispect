@@ -88,19 +88,13 @@ describe('RegionsPageComponent', () => {
     // Setup default return values
     vi.mocked(mockRegionService.listRegions).mockReturnValue(of([mockRegion]));
     vi.mocked(mockRegionService.listFeedsForRegion).mockReturnValue(of([]));
-    vi.mocked(mockRegionService.sortWithCanadianPriority).mockImplementation(
-      (regions) => regions,
-    );
+    vi.mocked(mockRegionService.sortWithCanadianPriority).mockImplementation((regions) => regions);
     vi.mocked(mockImportService.getActiveImports).mockReturnValue(of([]));
     vi.mocked(mockImportService.getActiveImportsObservable).mockReturnValue(
-      new BehaviorSubject([]).asObservable(),
+      new BehaviorSubject([]).asObservable()
     );
-    vi.mocked(mockImportService.getActiveRegionImport).mockReturnValue(
-      of(null),
-    );
-    vi.mocked(mockImportService.monitorRegionImportProgress).mockReturnValue(
-      of(null as any),
-    );
+    vi.mocked(mockImportService.getActiveRegionImport).mockReturnValue(of(null));
+    vi.mocked(mockImportService.monitorRegionImportProgress).mockReturnValue(of(null as any));
     vi.mocked(mockImportService.startImport).mockReturnValue(of({} as any));
     vi.mocked(mockImportService.importAllFeedsForRegion).mockReturnValue(
       of({
@@ -108,11 +102,11 @@ describe('RegionsPageComponent', () => {
         startedCount: 0,
         failedCount: 0,
         skippedCount: 0,
-      } as any),
+      } as any)
     );
     vi.mocked(mockImportService.cancelImport).mockReturnValue(of({} as any));
     vi.mocked(mockAgencyService.listAgencies).mockReturnValue(
-      of({ content: [], totalElements: 0, totalPages: 0 } as any),
+      of({ content: [], totalElements: 0, totalPages: 0 } as any)
     );
     vi.mocked(mockSnackBar.open).mockReturnValue({
       onAction: () => of(null),
@@ -164,7 +158,7 @@ describe('RegionsPageComponent', () => {
 
     it('should subscribe to route parameter changes on init', () => {
       vi.spyOn((component as any)['route'].paramMap, 'pipe').mockReturnValue(
-        of(convertToParamMap({})),
+        of(convertToParamMap({}))
       );
 
       component.ngOnInit();
@@ -173,10 +167,9 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should subscribe to query parameter changes on init', () => {
-      vi.spyOn(
-        (component as any)['route'].queryParamMap,
-        'pipe',
-      ).mockReturnValue(of(convertToParamMap({})));
+      vi.spyOn((component as any)['route'].queryParamMap, 'pipe').mockReturnValue(
+        of(convertToParamMap({}))
+      );
 
       component.ngOnInit();
 
@@ -186,22 +179,16 @@ describe('RegionsPageComponent', () => {
 
   describe('route parameter handling', () => {
     it('should load region when regionId param is present', () => {
-      vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        of(mockRegionDetail),
-      );
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
 
-      expect(mockRegionService.getRegion).toHaveBeenCalledWith(
-        'r-test-toronto',
-      );
+      expect(mockRegionService.getRegion).toHaveBeenCalledWith('r-test-toronto');
     });
 
     it('should update selectedRegion$ when region loads successfully', () => {
-      vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        of(mockRegionDetail),
-      );
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
@@ -210,9 +197,7 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should clear selectedRegion$ when regionId param is removed', () => {
-      vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        of(mockRegionDetail),
-      );
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
@@ -224,17 +209,14 @@ describe('RegionsPageComponent', () => {
 
     it('should handle region loading errors gracefully', () => {
       vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        throwError(() => new Error('Failed to load region')),
+        throwError(() => new Error('Failed to load region'))
       );
       vi.spyOn(console, 'error').mockImplementation(() => {});
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
 
-      expect(console.error).toHaveBeenCalledWith(
-        'Failed to load region:',
-        expect.any(Error),
-      );
+      expect(console.error).toHaveBeenCalledWith('Failed to load region:', expect.any(Error));
       expect(component.selectedRegion$.value).toBeNull();
     });
   });
@@ -242,20 +224,15 @@ describe('RegionsPageComponent', () => {
   describe('query parameter handling (backwards compatibility)', () => {
     it('should redirect when region query param is present and no path param', () => {
       fixture.detectChanges();
-      queryParamMapSubject.next(
-        convertToParamMap({ region: 'r-test-toronto' }),
-      );
+      queryParamMapSubject.next(convertToParamMap({ region: 'r-test-toronto' }));
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith(
-        ['/regions', 'r-test-toronto'],
-        { replaceUrl: true },
-      );
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/regions', 'r-test-toronto'], {
+        replaceUrl: true,
+      });
     });
 
     it('should not redirect when both path and query params are present', () => {
-      vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        of(mockRegionDetail),
-      );
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
 
       // Set route snapshot to have regionId
       const route = TestBed.inject(ActivatedRoute);
@@ -264,9 +241,7 @@ describe('RegionsPageComponent', () => {
       });
 
       fixture.detectChanges();
-      queryParamMapSubject.next(
-        convertToParamMap({ region: 'r-test-toronto' }),
-      );
+      queryParamMapSubject.next(convertToParamMap({ region: 'r-test-toronto' }));
 
       // Navigate should only be called once (from paramMap), not from queryParam
       expect(mockRouter.navigate).not.toHaveBeenCalled();
@@ -284,19 +259,13 @@ describe('RegionsPageComponent', () => {
     it('should navigate to region detail when region is selected', () => {
       component.onRegionSelected(mockRegion);
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith([
-        '/regions',
-        'r-test-toronto',
-      ]);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/regions', 'r-test-toronto']);
     });
 
     it('should navigate to region detail when details are requested', () => {
       component.onRegionDetailsRequested(mockRegion);
 
-      expect(mockRouter.navigate).toHaveBeenCalledWith([
-        '/regions',
-        'r-test-toronto',
-      ]);
+      expect(mockRouter.navigate).toHaveBeenCalledWith(['/regions', 'r-test-toronto']);
     });
   });
 
@@ -312,9 +281,7 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should unsubscribe from observables on destroy', () => {
-      vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        of(mockRegionDetail),
-      );
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
@@ -342,56 +309,44 @@ describe('RegionsPageComponent', () => {
     });
 
     it('should pass selectedRegion to master panel', () => {
-      vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        of(mockRegionDetail),
-      );
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
       fixture.detectChanges();
 
-      const masterPanel = fixture.debugElement.query(
-        (el) => el.name === 'app-region-master-panel',
-      );
+      const masterPanel = fixture.debugElement.query((el) => el.name === 'app-region-master-panel');
 
       expect(masterPanel).toBeTruthy();
     });
 
     it('should pass selectedRegion to detail panel', () => {
-      vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        of(mockRegionDetail),
-      );
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
       fixture.detectChanges();
 
-      const detailPanel = fixture.debugElement.query(
-        (el) => el.name === 'app-region-detail-panel',
-      );
+      const detailPanel = fixture.debugElement.query((el) => el.name === 'app-region-detail-panel');
 
       expect(detailPanel).toBeTruthy();
     });
 
     it('should apply has-selection class when region is selected', () => {
-      vi.mocked(mockRegionService.getRegion).mockReturnValue(
-        of(mockRegionDetail),
-      );
+      vi.mocked(mockRegionService.getRegion).mockReturnValue(of(mockRegionDetail));
 
       fixture.detectChanges();
       paramMapSubject.next(convertToParamMap({ regionId: 'r-test-toronto' }));
       fixture.detectChanges();
 
-      const container =
-        fixture.nativeElement.querySelector('.regions-container');
+      const container = fixture.nativeElement.querySelector('.regions-container');
       expect(container.classList.contains('has-selection')).toBe(true);
     });
 
     it('should not apply has-selection class when no region is selected', () => {
       fixture.detectChanges();
 
-      const container =
-        fixture.nativeElement.querySelector('.regions-container');
+      const container = fixture.nativeElement.querySelector('.regions-container');
       expect(container.classList.contains('has-selection')).toBe(false);
     });
   });
@@ -400,9 +355,7 @@ describe('RegionsPageComponent', () => {
     it('should have master-detail-layout class', () => {
       fixture.detectChanges();
 
-      const container = fixture.nativeElement.querySelector(
-        '.master-detail-layout',
-      );
+      const container = fixture.nativeElement.querySelector('.master-detail-layout');
       expect(container).toBeTruthy();
     });
 

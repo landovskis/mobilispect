@@ -31,20 +31,15 @@ export class CommonSectionService {
   private readonly http = inject(HttpClient);
 
   getCommonSectionsForRoute(routeId: string): Observable<CommonSectionDto[]> {
-    return this.http.get<CommonSectionDto[]>(
-      `${this.baseUrl}/routes/${routeId}`,
-    );
+    return this.http.get<CommonSectionDto[]>(`${this.baseUrl}/routes/${routeId}`);
   }
 
   getCombinedFrequency(
     sectionId: string,
-    timePeriod: string,
+    timePeriod: string
   ): Observable<CombinedFrequencyDto | null> {
-    return this.http.get<CombinedFrequencyDto | null>(
-      `${this.baseUrl}/${sectionId}/frequency`,
-      {
-        params: { timePeriod },
-      },
-    );
+    return this.http.get<CombinedFrequencyDto | null>(`${this.baseUrl}/${sectionId}/frequency`, {
+      params: { timePeriod },
+    });
   }
 }

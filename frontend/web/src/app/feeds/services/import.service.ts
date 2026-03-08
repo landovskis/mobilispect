@@ -1,13 +1,6 @@
 import { Injectable, OnDestroy, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import {
-  Observable,
-  BehaviorSubject,
-  timer,
-  of,
-  merge,
-  firstValueFrom,
-} from 'rxjs';
+import { Observable, BehaviorSubject, timer, of, merge, firstValueFrom } from 'rxjs';
 import {
   map,
   tap,
@@ -78,41 +71,31 @@ export class ImportService implements OnDestroy {
   /**
    * Starts a new feed import
    */
-  startImport(
-    feedOnestopId: string,
-    request?: ImportRequest,
-  ): Observable<FeedImport> {
+  startImport(feedOnestopId: string, request?: ImportRequest): Observable<FeedImport> {
     const body = request || { force: false };
-    return this.http
-      .post<FeedImport>(`${this.apiUrl}/${feedOnestopId}/import`, body)
-      .pipe(
-        tap(() => {
-          // Start polling for active imports to update UI
-          this.startPollingActiveImports();
-        }),
-        catchError((error) => {
-          console.error('Import API error:', error);
-          // Re-throw the error with enhanced information
-          throw {
-            ...error,
-            message: this.getErrorMessage(error),
-            isBackendError: true,
-          };
-        }),
-      );
+    return this.http.post<FeedImport>(`${this.apiUrl}/${feedOnestopId}/import`, body).pipe(
+      tap(() => {
+        // Start polling for active imports to update UI
+        this.startPollingActiveImports();
+      }),
+      catchError((error) => {
+        console.error('Import API error:', error);
+        // Re-throw the error with enhanced information
+        throw {
+          ...error,
+          message: this.getErrorMessage(error),
+          isBackendError: true,
+        };
+      })
+    );
   }
 
   /**
    * Starts bulk import for all active feeds in a region
    */
-  importAllFeedsForRegion(
-    regionOnestopId: string,
-  ): Observable<BulkImportResponse> {
+  importAllFeedsForRegion(regionOnestopId: string): Observable<BulkImportResponse> {
     return this.http
-      .post<BulkImportResponse>(
-        `${this.apiUrl}/regions/${regionOnestopId}/import-all`,
-        {},
-      )
+      .post<BulkImportResponse>(`${this.apiUrl}/regions/${regionOnestopId}/import-all`, {})
       .pipe(
         tap(() => {
           // Start polling for active imports to update UI
@@ -126,19 +109,17 @@ export class ImportService implements OnDestroy {
             message: this.getErrorMessage(error),
             isBackendError: true,
           };
-        }),
+        })
       );
   }
 
   /**
    * Gets the active region import for a region (if any)
    */
-  getActiveRegionImport(
-    regionOnestopId: string,
-  ): Observable<RegionImportStatusResponse | null> {
+  getActiveRegionImport(regionOnestopId: string): Observable<RegionImportStatusResponse | null> {
     return this.http
       .get<RegionImportStatusResponse | null>(
-        `${this.apiUrl}/regions/${regionOnestopId}/imports/active`,
+        `${this.apiUrl}/regions/${regionOnestopId}/imports/active`
       )
       .pipe(catchError(() => of(null)));
   }
@@ -146,11 +127,9 @@ export class ImportService implements OnDestroy {
   /**
    * Gets a region import status by its ID
    */
-  getRegionImportStatus(
-    regionImportId: string,
-  ): Observable<RegionImportStatusResponse> {
+  getRegionImportStatus(regionImportId: string): Observable<RegionImportStatusResponse> {
     return this.http.get<RegionImportStatusResponse>(
-      `${this.apiUrl}/regions/imports/${regionImportId}`,
+      `${this.apiUrl}/regions/imports/${regionImportId}`
     );
   }
 
@@ -159,18 +138,18 @@ export class ImportService implements OnDestroy {
    */
   monitorRegionImportProgress(
     regionImportId: string,
-    stopSignal?: Observable<void>,
+    stopSignal?: Observable<void>
   ): Observable<RegionImportStatusResponse> {
     const polling$ = timer(0, this.pollingInterval).pipe(
       switchMap(() => this.getRegionImportStatus(regionImportId)),
-      distinctUntilChanged((prev, curr) => prev.status === curr.status),
+      distinctUntilChanged((prev, curr) => prev.status === curr.status)
     );
 
     const stop$ =
       stopSignal ??
       polling$.pipe(
         filter((status) => this.isRegionImportTerminal(status.status)),
-        map(() => undefined as void),
+        map(() => undefined as void)
       );
 
     return polling$.pipe(takeUntil(stop$));
@@ -216,7 +195,7 @@ export class ImportService implements OnDestroy {
       page?: number;
       size?: number;
       status?: ImportStatus;
-    },
+    }
   ): Observable<{
     imports: FeedImportDetail[];
     totalElements: number;
@@ -242,7 +221,7 @@ export class ImportService implements OnDestroy {
           imports: response.imports,
           totalElements: response.page.totalElements,
           totalPages: response.page.totalPages,
-        })),
+        }))
       );
   }
 
@@ -250,46 +229,38 @@ export class ImportService implements OnDestroy {
    * Gets detailed information about a specific import
    */
   getImport(importId: string): Observable<FeedImportDetail> {
-    return this.http.get<FeedImportDetail>(
-      `${this.apiUrl}/imports/${importId}`,
-    );
+    return this.http.get<FeedImportDetail>(`${this.apiUrl}/imports/${importId}`);
   }
 
   /**
    * Cancels a running import
    */
   cancelImport(importId: string): Observable<FeedImport> {
-    return this.http
-      .delete<FeedImport>(`${this.apiUrl}/imports/${importId}`)
-      .pipe(
-        tap(() => {
-          // Refresh active imports after cancellation
-          this.refreshActiveImports();
-        }),
-      );
+    return this.http.delete<FeedImport>(`${this.apiUrl}/imports/${importId}`).pipe(
+      tap(() => {
+        // Refresh active imports after cancellation
+        this.refreshActiveImports();
+      })
+    );
   }
 
   /**
    * Gets import progress for a specific import
    */
   getImportProgress(importId: string): Observable<ImportProgress> {
-    return this.http.get<ImportProgress>(
-      `${this.apiUrl}/imports/${importId}/progress`,
-    );
+    return this.http.get<ImportProgress>(`${this.apiUrl}/imports/${importId}/progress`);
   }
 
   /**
    * Gets all active imports
    */
   getActiveImports(): Observable<FeedImportSummary[]> {
-    return this.http
-      .get<ActiveImportsResponse>(`${this.apiUrl}/imports/active`)
-      .pipe(
-        map((response) => response.imports),
-        tap((imports) => {
-          this.activeImports$.next(imports);
-        }),
-      );
+    return this.http.get<ActiveImportsResponse>(`${this.apiUrl}/imports/active`).pipe(
+      map((response) => response.imports),
+      tap((imports) => {
+        this.activeImports$.next(imports);
+      })
+    );
   }
 
   /**
@@ -309,9 +280,7 @@ export class ImportService implements OnDestroy {
     timer(0, this.pollingInterval)
       .pipe(
         switchMap(() => this.getActiveImports()),
-        distinctUntilChanged(
-          (prev, curr) => JSON.stringify(prev) === JSON.stringify(curr),
-        ),
+        distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr))
       )
       .subscribe();
   }
@@ -335,7 +304,7 @@ export class ImportService implements OnDestroy {
    */
   monitorImportProgress(
     importId: string,
-    stopSignal?: Observable<void>,
+    stopSignal?: Observable<void>
   ): Observable<ImportProgress> {
     // HTTP polling as fallback
     const polling$ = timer(0, 5000).pipe(
@@ -343,49 +312,40 @@ export class ImportService implements OnDestroy {
       distinctUntilChanged(
         (prev, curr) =>
           prev.progressPercentage === curr.progressPercentage &&
-          prev.currentStep === curr.currentStep,
+          prev.currentStep === curr.currentStep
       ),
       catchError((error) => {
         console.warn('HTTP polling failed, continuing...', error);
         return of(null);
-      }),
+      })
     );
 
     // WebSocket real-time updates (STOMP protocol)
-    const webSocket$ = this.webSocketService
-      .subscribeToImportProgress(importId)
-      .pipe(
-        map((msg) => {
-          // Backend sends ProgressUpdate: { progress?: ImportProgress, completed?: boolean, error?: string }
-          if (!msg.progress) {
-            console.warn(
-              'Received WebSocket message without progress field:',
-              msg,
-            );
-            return null;
-          }
+    const webSocket$ = this.webSocketService.subscribeToImportProgress(importId).pipe(
+      map((msg) => {
+        // Backend sends ProgressUpdate: { progress?: ImportProgress, completed?: boolean, error?: string }
+        if (!msg.progress) {
+          console.warn('Received WebSocket message without progress field:', msg);
+          return null;
+        }
 
-          const progress = msg.progress;
-          return {
-            importId: progress.importId,
-            progressPercentage: progress.progressPercentage,
-            totalSteps: progress.totalSteps || 8,
-            currentStep: progress.currentStep,
-            estimatedTimeRemainingSeconds:
-              progress.estimatedTimeRemainingSeconds || null,
-            startedAt: progress.startedAt,
-            lastUpdatedAt: progress.lastUpdatedAt,
-          } as ImportProgress;
-        }),
-        filter((progress): progress is ImportProgress => progress !== null),
-        catchError((error) => {
-          console.warn(
-            'WebSocket progress updates failed, using HTTP polling only',
-            error,
-          );
-          return of(null);
-        }),
-      );
+        const progress = msg.progress;
+        return {
+          importId: progress.importId,
+          progressPercentage: progress.progressPercentage,
+          totalSteps: progress.totalSteps || 8,
+          currentStep: progress.currentStep,
+          estimatedTimeRemainingSeconds: progress.estimatedTimeRemainingSeconds || null,
+          startedAt: progress.startedAt,
+          lastUpdatedAt: progress.lastUpdatedAt,
+        } as ImportProgress;
+      }),
+      filter((progress): progress is ImportProgress => progress !== null),
+      catchError((error) => {
+        console.warn('WebSocket progress updates failed, using HTTP polling only', error);
+        return of(null);
+      })
+    );
 
     // Merge both streams, preferring WebSocket updates when available
     const combined$ = merge(polling$.pipe(startWith(null)), webSocket$).pipe(
@@ -393,8 +353,8 @@ export class ImportService implements OnDestroy {
       distinctUntilChanged(
         (prev, curr) =>
           prev!.progressPercentage === curr!.progressPercentage &&
-          prev!.currentStep === curr!.currentStep,
-      ),
+          prev!.currentStep === curr!.currentStep
+      )
     ) as Observable<ImportProgress>;
 
     return stopSignal ? combined$.pipe(takeUntil(stopSignal)) : combined$;
@@ -405,7 +365,7 @@ export class ImportService implements OnDestroy {
    */
   monitorImportStatus(
     importId: string,
-    stopSignal?: Observable<void>,
+    stopSignal?: Observable<void>
   ): Observable<FeedImportDetail> {
     // HTTP polling as fallback
     const polling$ = timer(0, 3000).pipe(
@@ -414,30 +374,22 @@ export class ImportService implements OnDestroy {
       catchError((error) => {
         console.warn('HTTP status polling failed, continuing...', error);
         return of(null);
-      }),
+      })
     );
 
     // WebSocket real-time status updates
-    const webSocket$ = this.webSocketService
-      .subscribeToImportStatus(importId)
-      .pipe(
-        switchMap(() => this.getImport(importId)), // Fetch full details when status changes
-        catchError((error) => {
-          console.warn(
-            'WebSocket status updates failed, using HTTP polling only',
-            error,
-          );
-          return of(null);
-        }),
-      );
+    const webSocket$ = this.webSocketService.subscribeToImportStatus(importId).pipe(
+      switchMap(() => this.getImport(importId)), // Fetch full details when status changes
+      catchError((error) => {
+        console.warn('WebSocket status updates failed, using HTTP polling only', error);
+        return of(null);
+      })
+    );
 
     // Merge both streams
     const combined$ = merge(polling$.pipe(startWith(null)), webSocket$).pipe(
-      filter(
-        (importDetail): importDetail is FeedImportDetail =>
-          importDetail !== null,
-      ),
-      distinctUntilChanged((prev, curr) => prev!.status === curr!.status),
+      filter((importDetail): importDetail is FeedImportDetail => importDetail !== null),
+      distinctUntilChanged((prev, curr) => prev!.status === curr!.status)
     ) as Observable<FeedImportDetail>;
 
     return stopSignal ? combined$.pipe(takeUntil(stopSignal)) : combined$;
@@ -470,15 +422,13 @@ export class ImportService implements OnDestroy {
       params = params.set('triggerType', options.triggerType);
     }
 
-    return this.http
-      .get<ImportsResponse>(`${this.apiUrl}/imports`, { params })
-      .pipe(
-        map((response) => ({
-          imports: response.imports,
-          totalElements: response.page.totalElements,
-          totalPages: response.page.totalPages,
-        })),
-      );
+    return this.http.get<ImportsResponse>(`${this.apiUrl}/imports`, { params }).pipe(
+      map((response) => ({
+        imports: response.imports,
+        totalElements: response.page.totalElements,
+        totalPages: response.page.totalPages,
+      }))
+    );
   }
 
   /**
@@ -500,7 +450,7 @@ export class ImportService implements OnDestroy {
         failedImports: 0, // Would come from backend
         activeImports: activeImports.length,
         averageImportTime: 0, // Would come from backend
-      })),
+      }))
     );
   }
 
@@ -509,24 +459,18 @@ export class ImportService implements OnDestroy {
    */
   isImportRunningForFeed(feedOnestopId: string): Observable<boolean> {
     return this.getActiveImports().pipe(
-      map((activeImports) =>
-        activeImports.some((imp) => imp.feedOnestopId === feedOnestopId),
-      ),
+      map((activeImports) => activeImports.some((imp) => imp.feedOnestopId === feedOnestopId))
     );
   }
 
   /**
    * Gets the current active import for a feed (if any)
    */
-  getActiveImportForFeed(
-    feedOnestopId: string,
-  ): Observable<FeedImportSummary | null> {
+  getActiveImportForFeed(feedOnestopId: string): Observable<FeedImportSummary | null> {
     return this.getActiveImports().pipe(
       map(
-        (activeImports) =>
-          activeImports.find((imp) => imp.feedOnestopId === feedOnestopId) ||
-          null,
-      ),
+        (activeImports) => activeImports.find((imp) => imp.feedOnestopId === feedOnestopId) || null
+      )
     );
   }
 
@@ -536,9 +480,7 @@ export class ImportService implements OnDestroy {
   retryImport(importId: string): Observable<FeedImport> {
     // Get the original import details and start a new import
     return this.getImport(importId).pipe(
-      switchMap((importDetail) =>
-        this.startImport(importDetail.feedOnestopId, { force: true }),
-      ),
+      switchMap((importDetail) => this.startImport(importDetail.feedOnestopId, { force: true }))
     );
   }
 
@@ -553,8 +495,8 @@ export class ImportService implements OnDestroy {
           id,
           status: 'FAILED' as const,
           error: error.message || 'Unknown error',
-        }),
-      ),
+        })
+      )
     );
     return Promise.all(cancelRequests);
   }
@@ -569,8 +511,8 @@ export class ImportService implements OnDestroy {
           const importDate = new Date(imp.createdAt);
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
           return importDate > twentyFourHoursAgo;
-        }),
-      ),
+        })
+      )
     );
   }
 
@@ -579,7 +521,7 @@ export class ImportService implements OnDestroy {
    */
   getFailedImports(): Observable<FeedImport[]> {
     return this.getAllImportHistory({ status: ImportStatus.FAILED }).pipe(
-      map((response) => response.imports),
+      map((response) => response.imports)
     );
   }
 

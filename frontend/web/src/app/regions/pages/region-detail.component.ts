@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
@@ -64,9 +59,7 @@ interface RegionSummary {
             }
           </div>
           @if (agenciesResponse.content.length === 0) {
-            <p class="no-agencies py-4 text-center italic">
-              No agencies found for this region.
-            </p>
+            <p class="no-agencies py-4 text-center italic">No agencies found for this region.</p>
           }
         } @else {
           <p>Loading agencies...</p>
@@ -119,10 +112,8 @@ export class RegionDetailComponent implements OnInit {
       this.agencies$ = this.agencyService.listAgencies(0, 100, regionId).pipe(
         map((response) => ({
           ...response,
-          content: [...response.content].sort((a, b) =>
-            a.name.localeCompare(b.name),
-          ),
-        })),
+          content: [...response.content].sort((a, b) => a.name.localeCompare(b.name)),
+        }))
       );
 
       // Compute summary from region and agencies data
@@ -133,7 +124,7 @@ export class RegionDetailComponent implements OnInit {
           // Sum active route counts across all agencies
           const totalActiveRoutes = agencies.reduce(
             (sum, agency) => sum + agency.activeRouteCount,
-            0,
+            0
           );
 
           return {
@@ -141,7 +132,7 @@ export class RegionDetailComponent implements OnInit {
             totalAgencies: agencies.length,
             totalActiveRoutes,
           };
-        }),
+        })
       );
     }
   }

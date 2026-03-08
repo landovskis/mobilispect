@@ -26,8 +26,7 @@ describe('AgencyFeedCardComponent', () => {
     primaryFeed: feeds[0],
     feedsByType: {
       gtfs: feeds.filter((feed) => feed.specType === FeedSpecType.GTFS).length,
-      gtfsRt: feeds.filter((feed) => feed.specType === FeedSpecType.GTFS_RT)
-        .length,
+      gtfsRt: feeds.filter((feed) => feed.specType === FeedSpecType.GTFS_RT).length,
     },
     hasActiveFeeds: feeds.some((feed) => feed.status === FeedStatus.ACTIVE),
     hasAuthentication: feeds.some((feed) => feed.hasAuthentication),
@@ -79,9 +78,7 @@ describe('AgencyFeedCardComponent', () => {
 
   it('does not emit when there are no active feeds', () => {
     const component = new AgencyFeedCardComponent();
-    const feeds = [
-      { ...baseFeed, feedOnestopId: 'f-1', status: FeedStatus.INACTIVE },
-    ];
+    const feeds = [{ ...baseFeed, feedOnestopId: 'f-1', status: FeedStatus.INACTIVE }];
     component.agencyGroup = buildGroup(feeds);
 
     const emitSpy = vi.spyOn(component.importFeed, 'emit');
@@ -96,9 +93,7 @@ describe('AgencyFeedCardComponent', () => {
   it('builds tooltips based on active feed count', () => {
     const component = new AgencyFeedCardComponent();
 
-    component.agencyGroup = buildGroup([
-      { ...baseFeed, status: FeedStatus.INACTIVE },
-    ]);
+    component.agencyGroup = buildGroup([{ ...baseFeed, status: FeedStatus.INACTIVE }]);
     expect(component.getImportTooltip()).toBe('No active feeds available');
 
     component.agencyGroup = buildGroup([{ ...baseFeed, name: 'Metro Feed' }]);
@@ -108,9 +103,7 @@ describe('AgencyFeedCardComponent', () => {
       { ...baseFeed, feedOnestopId: 'f-1' },
       { ...baseFeed, feedOnestopId: 'f-2' },
     ]);
-    expect(component.getImportTooltip()).toBe(
-      'Import all 2 active feeds from this agency',
-    );
+    expect(component.getImportTooltip()).toBe('Import all 2 active feeds from this agency');
   });
 
   it('counts active feeds', () => {

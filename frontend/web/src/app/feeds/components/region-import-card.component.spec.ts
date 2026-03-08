@@ -6,11 +6,7 @@ import { vi } from 'vitest';
 import { RegionImportCardComponent } from './region-import-card.component';
 import { FeedImportRowComponent } from './feed-import-row.component';
 import { RegionImportGroup } from '../models/region-import-group.model';
-import {
-  FeedImportSummary,
-  ImportStatus,
-  TriggerType,
-} from '../models/import.models';
+import { FeedImportSummary, ImportStatus, TriggerType } from '../models/import.models';
 import { ImportService } from '../services/import.service';
 
 describe('RegionImportCardComponent', () => {
@@ -68,9 +64,7 @@ describe('RegionImportCardComponent', () => {
     const mockImportService = {
       monitorImportProgress: vi.fn(),
     } as unknown as ImportService;
-    vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(
-      new Subject(),
-    );
+    vi.mocked(mockImportService.monitorImportProgress).mockReturnValue(new Subject());
 
     await TestBed.configureTestingModule({
       imports: [RegionImportCardComponent],
@@ -109,9 +103,7 @@ describe('RegionImportCardComponent', () => {
 
     // Then: Aggregate progress bar exists
     const compiled = fixture.nativeElement as HTMLElement;
-    const progressBar = compiled.querySelector(
-      '.region-aggregate-progress mat-progress-bar',
-    );
+    const progressBar = compiled.querySelector('.region-aggregate-progress mat-progress-bar');
     expect(progressBar).toBeTruthy();
 
     // And: Progress percentage is displayed
@@ -126,9 +118,7 @@ describe('RegionImportCardComponent', () => {
     fixture.detectChanges();
 
     // Then: Two feed import row components are rendered
-    const feedRows = fixture.debugElement.queryAll(
-      By.directive(FeedImportRowComponent),
-    );
+    const feedRows = fixture.debugElement.queryAll(By.directive(FeedImportRowComponent));
     expect(feedRows.length).toBe(2);
   });
 
@@ -158,9 +148,7 @@ describe('RegionImportCardComponent', () => {
 
     // Then: Average progress is 62.5%
     const compiled = fixture.nativeElement as HTMLElement;
-    const progressText = compiled.querySelector(
-      '.progress-percentage',
-    )?.textContent;
+    const progressText = compiled.querySelector('.progress-percentage')?.textContent;
     expect(progressText).toContain('62.5%');
   });
 
@@ -191,9 +179,7 @@ describe('RegionImportCardComponent', () => {
     fixture.detectChanges();
 
     // Then: Single feed is displayed
-    const feedRows = fixture.debugElement.queryAll(
-      By.directive(FeedImportRowComponent),
-    );
+    const feedRows = fixture.debugElement.queryAll(By.directive(FeedImportRowComponent));
     expect(feedRows.length).toBe(1);
 
     // And: Badge shows "1 feeds" (or "1 feed" if singularized in template)
@@ -221,9 +207,7 @@ describe('RegionImportCardComponent', () => {
     fixture.detectChanges();
 
     // Then: Both feeds are displayed (including failed one)
-    const feedRows = fixture.debugElement.queryAll(
-      By.directive(FeedImportRowComponent),
-    );
+    const feedRows = fixture.debugElement.queryAll(By.directive(FeedImportRowComponent));
     expect(feedRows.length).toBe(2);
   });
 

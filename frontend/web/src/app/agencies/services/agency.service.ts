@@ -16,11 +16,9 @@ export class AgencyService {
   listAgencies(
     page: number = 0,
     size: number = 20,
-    regionId?: string,
+    regionId?: string
   ): Observable<AgencyListResponse> {
-    const params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
+    const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
     const url = regionId
       ? `${this.apiUrl}/regions/${regionId}/agencies`
       : `${this.apiUrl}/agencies`;
@@ -34,14 +32,11 @@ export class AgencyService {
   listRoutesByAgency(
     agencyId: string,
     page: number = 0,
-    size: number = 500,
+    size: number = 500
   ): Observable<RouteListResponse> {
-    const params = new HttpParams()
-      .set('page', page.toString())
-      .set('size', size.toString());
-    return this.http.get<RouteListResponse>(
-      `${this.apiUrl}/agencies/${agencyId}/routes`,
-      { params },
-    );
+    const params = new HttpParams().set('page', page.toString()).set('size', size.toString());
+    return this.http.get<RouteListResponse>(`${this.apiUrl}/agencies/${agencyId}/routes`, {
+      params,
+    });
   }
 }

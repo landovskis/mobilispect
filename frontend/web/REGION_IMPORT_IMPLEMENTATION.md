@@ -204,7 +204,7 @@ Files:
 this.activeImports$.pipe(
   map((imports) => RegionImportGroupingUtils.groupImportsByRegion(imports)),
   map((groups) => RegionImportGroupingUtils.sortRegionGroups(groups)),
-  shareReplay(1),
+  shareReplay(1)
 );
 ```
 
@@ -215,10 +215,15 @@ this.activeImports$.pipe(
 ### Basic Usage
 
 ```typescript
-import { ActiveImportsCardComponent } from "@app/feeds/components";
+import { ActiveImportsCardComponent } from '@app/feeds/components';
 
 @Component({
-  template: ` <app-active-imports-card [activeImports$]="activeImports$" (cancelImport)="onCancelImport($event)" /> `,
+  template: `
+    <app-active-imports-card
+      [activeImports$]="activeImports$"
+      (cancelImport)="onCancelImport($event)"
+    />
+  `,
 })
 export class FeedImportsPage {
   activeImports$ = this.importService.getActiveImportsObservable();
@@ -234,9 +239,9 @@ export class FeedImportsPage {
 Since all components are standalone, import them directly:
 
 ```typescript
-import { ActiveImportsCardComponent } from "@app/feeds/components/active-imports-card.component";
-import { RegionImportCardComponent } from "@app/feeds/components/region-import-card.component";
-import { FeedImportRowComponent } from "@app/feeds/components/feed-import-row.component";
+import { ActiveImportsCardComponent } from '@app/feeds/components/active-imports-card.component';
+import { RegionImportCardComponent } from '@app/feeds/components/region-import-card.component';
+import { FeedImportRowComponent } from '@app/feeds/components/feed-import-row.component';
 ```
 
 ## Testing

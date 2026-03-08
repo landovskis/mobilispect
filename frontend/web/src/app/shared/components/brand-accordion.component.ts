@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  Input,
-  TemplateRef,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, TemplateRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 export interface BrandAccordionItem {
@@ -45,10 +40,9 @@ export interface BrandAccordionItem {
             </div>
             <div class="header-meta ml-auto flex items-center gap-2.5">
               @if (item.badge) {
-                <span
-                  class="badge rounded-full px-2.5 py-1 text-[0.85rem] font-bold"
-                  >{{ item.badge }}</span
-                >
+                <span class="badge rounded-full px-2.5 py-1 text-[0.85rem] font-bold">{{
+                  item.badge
+                }}</span>
               }
               <span
                 class="chevron inline-block h-3 w-3 border-b-2 border-r-2"

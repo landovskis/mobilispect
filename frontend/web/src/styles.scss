@@ -1,6 +1,6 @@
-@use "./styles/tokens";
-@use "./_theme.scss";
-@use "tailwindcss";
+@use './styles/tokens';
+@use './_theme.scss';
+@use 'tailwindcss';
 
 html,
 body {
@@ -27,7 +27,7 @@ body.dark-theme {
 
 /* Material Icons fallback */
 .material-icons {
-  font-family: "Material Icons";
+  font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -38,7 +38,7 @@ body.dark-theme {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: "liga";
+  -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
 
@@ -46,13 +46,13 @@ body.dark-theme {
 /* Using a consistent border-radius scale: 4px, 8px, 12px, 16px */
 
 /* Input elements */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="search"],
-input[type="tel"],
-input[type="url"],
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='search'],
+input[type='tel'],
+input[type='url'],
 textarea,
 select {
   border-radius: 8px;
@@ -91,7 +91,7 @@ code {
 }
 
 /* Buttons (for non-Material buttons) */
-button:not([class*="mat-"]) {
+button:not([class*='mat-']) {
   border-radius: 8px;
 }
 

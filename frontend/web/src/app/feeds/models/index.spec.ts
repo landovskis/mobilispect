@@ -16,9 +16,7 @@ describe('TypeGuards', () => {
       feedCount: 3,
     };
     expect(TypeGuards.isMetropolitanRegion(valid)).toBe(true);
-    expect(TypeGuards.isMetropolitanRegion({ ...valid, feedCount: '3' })).toBe(
-      false,
-    );
+    expect(TypeGuards.isMetropolitanRegion({ ...valid, feedCount: '3' })).toBe(false);
   });
 
   it('validates feeds', () => {
@@ -43,9 +41,7 @@ describe('TypeGuards', () => {
     };
     expect(TypeGuards.isFeedImport(valid)).toBe(true);
     expect(TypeGuards.isFeedImport({ ...valid, status: 'other' })).toBe(false);
-    expect(TypeGuards.isFeedImport({ ...valid, triggerType: 'other' })).toBe(
-      false,
-    );
+    expect(TypeGuards.isFeedImport({ ...valid, triggerType: 'other' })).toBe(false);
   });
 
   it('validates import progress', () => {
@@ -55,9 +51,7 @@ describe('TypeGuards', () => {
       currentStep: 'Processing',
     };
     expect(TypeGuards.isImportProgress(valid)).toBe(true);
-    expect(TypeGuards.isImportProgress({ ...valid, totalSteps: '10' })).toBe(
-      false,
-    );
+    expect(TypeGuards.isImportProgress({ ...valid, totalSteps: '10' })).toBe(false);
   });
 
   it('validates progress update messages', () => {
@@ -68,9 +62,7 @@ describe('TypeGuards', () => {
       currentStep: 'Queued',
     };
     expect(TypeGuards.isProgressUpdateMessage(valid)).toBe(true);
-    expect(
-      TypeGuards.isProgressUpdateMessage({ ...valid, importId: 123 }),
-    ).toBe(false);
+    expect(TypeGuards.isProgressUpdateMessage({ ...valid, importId: 123 })).toBe(false);
   });
 
   it('validates system alert messages', () => {
@@ -80,20 +72,14 @@ describe('TypeGuards', () => {
       message: 'Something happened',
     };
     expect(TypeGuards.isSystemAlertMessage(valid)).toBe(true);
-    expect(TypeGuards.isSystemAlertMessage({ ...valid, type: 'notice' })).toBe(
-      false,
-    );
-    expect(TypeGuards.isSystemAlertMessage({ ...valid, title: 12 })).toBe(
-      false,
-    );
+    expect(TypeGuards.isSystemAlertMessage({ ...valid, type: 'notice' })).toBe(false);
+    expect(TypeGuards.isSystemAlertMessage({ ...valid, title: 12 })).toBe(false);
   });
 });
 
 describe('FEED_MANAGEMENT_CONSTANTS', () => {
   it('exposes known endpoints and UI defaults', () => {
-    expect(FEED_MANAGEMENT_CONSTANTS.API_ENDPOINTS.FEEDS).toContain(
-      '/api/feeds/feeds',
-    );
+    expect(FEED_MANAGEMENT_CONSTANTS.API_ENDPOINTS.FEEDS).toContain('/api/feeds/feeds');
     expect(FEED_MANAGEMENT_CONSTANTS.UI.DEFAULT_PAGE_SIZE).toBe(20);
   });
 });

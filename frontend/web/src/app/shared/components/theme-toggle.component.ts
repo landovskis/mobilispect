@@ -44,9 +44,7 @@ import { ThemeService } from '../../core/services/theme.service';
 })
 export class ThemeToggleComponent {
   private readonly themeService = inject(ThemeService);
-  readonly isDarkMode$ = this.themeService.activeTheme$.pipe(
-    map((theme) => theme === 'dark'),
-  );
+  readonly isDarkMode$ = this.themeService.activeTheme$.pipe(map((theme) => theme === 'dark'));
 
   toggleTheme(): void {
     this.themeService.toggle();

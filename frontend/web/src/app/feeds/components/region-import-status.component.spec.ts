@@ -1,8 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import {
-  RegionImportStatus,
-  RegionImportStatusResponse,
-} from '../models/import.models';
+import { RegionImportStatus, RegionImportStatusResponse } from '../models/import.models';
 import { RegionImportStatusComponent } from './region-import-status.component';
 
 const baseStatus: RegionImportStatusResponse = {

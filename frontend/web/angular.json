@@ -14,10 +14,7 @@
           "builder": "@angular/build:application",
           "options": {
             "browser": "src/main.ts",
-            "polyfills": [
-              "src/polyfills.ts",
-              "zone.js"
-            ],
+            "polyfills": ["src/polyfills.ts", "zone.js"],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
@@ -25,12 +22,8 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.scss"
-            ],
-            "allowedCommonJsDependencies": [
-              "sockjs-client"
-            ]
+            "styles": ["src/styles.scss"],
+            "allowedCommonJsDependencies": ["sockjs-client"]
           },
           "configurations": {
             "production": {
@@ -80,10 +73,7 @@
         "lint": {
           "builder": "@angular-eslint/builder:lint",
           "options": {
-            "lintFilePatterns": [
-              "src/**/*.ts",
-              "src/**/*.html"
-            ]
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
           }
         }
       }

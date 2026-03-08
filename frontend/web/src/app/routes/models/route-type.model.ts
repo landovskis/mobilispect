@@ -180,7 +180,7 @@ export function getRouteTypeFromGtfsValue(gtfsValue: number): RouteType {
   const routeType = GtfsValuesToRouteType[gtfsValue];
   if (!routeType) {
     throw new Error(
-      `Unknown GTFS route type: ${gtfsValue}. Valid values: ${Object.keys(GtfsValuesToRouteType).join(', ')}`,
+      `Unknown GTFS route type: ${gtfsValue}. Valid values: ${Object.keys(GtfsValuesToRouteType).join(', ')}`
     );
   }
   return routeType;

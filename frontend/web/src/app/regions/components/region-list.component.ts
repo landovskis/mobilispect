@@ -1,12 +1,4 @@
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  Output,
-  EventEmitter,
-  Input,
-  inject,
-} from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,17 +12,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, Subject, BehaviorSubject, combineLatest } from 'rxjs';
-import {
-  map,
-  takeUntil,
-  debounceTime,
-  distinctUntilChanged,
-  startWith,
-} from 'rxjs/operators';
-import {
-  MetropolitanRegion,
-  RegionUtils,
-} from '../../feeds/models/region.models';
+import { map, takeUntil, debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
+import { MetropolitanRegion, RegionUtils } from '../../feeds/models/region.models';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { SchedulerService } from '../../feeds/services/scheduler.service';
@@ -72,10 +55,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
     <div class="region-list-container mx-auto max-w-[1200px] p-4 max-md:p-3">
       <!-- Search and Filters -->
       <div class="search-section mb-6 flex flex-col gap-4 max-md:mb-4">
-        <mat-form-field
-          class="search-field w-full max-w-[400px]"
-          appearance="outline"
-        >
+        <mat-form-field class="search-field w-full max-w-[400px]" appearance="outline">
           <mat-label>Search regions</mat-label>
           <input
             matInput
@@ -87,10 +67,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
         </mat-form-field>
 
         <div class="filter-chips flex flex-wrap gap-2">
-          <mat-chip-listbox
-            [multiple]="false"
-            [hideSingleSelectionIndicator]="true"
-          >
+          <mat-chip-listbox [multiple]="false" [hideSingleSelectionIndicator]="true">
             <mat-chip-option
               [selected]="autoUpdateFilter === undefined"
               (click)="setAutoUpdateFilter(undefined)"
@@ -130,11 +107,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
         >
           <mat-icon class="mb-4" color="warn">error</mat-icon>
           <p>{{ error }}</p>
-          <app-brand-button
-            variant="primary"
-            size="sm"
-            (click)="refreshRegions()"
-          >
+          <app-brand-button variant="primary" size="sm" (click)="refreshRegions()">
             <mat-icon>refresh</mat-icon>
             <span>Retry</span>
           </app-brand-button>
@@ -144,15 +117,11 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
       <!-- Regions Grid -->
       @if ((isLoading$ | async) === false && (error$ | async) === null) {
         @if (filteredRegions$ | async; as regions) {
-          <div
-            class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3"
-          >
+          <div class="regions-grid mb-6 grid gap-4 max-md:gap-3 md:grid-cols-2 xl:grid-cols-3">
             @for (region of regions; track region.regionOnestopId) {
               <app-brand-card
                 class="region-card cursor-pointer transition-all"
-                [class.selected]="
-                  selectedRegion?.regionOnestopId === region.regionOnestopId
-                "
+                [class.selected]="selectedRegion?.regionOnestopId === region.regionOnestopId"
                 [title]="getDisplayName(region)"
                 [subtitle]="region.regionOnestopId"
                 [badge]="
@@ -162,9 +131,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 "
                 [hasFooter]="true"
                 (click)="selectRegion(region)"
-                [attr.aria-label]="
-                  'Select ' + getDisplayName(region) + ' region'
-                "
+                [attr.aria-label]="'Select ' + getDisplayName(region) + ' region'"
                 tabindex="0"
                 (keydown.enter)="selectRegion(region)"
                 (keydown.space)="selectRegion(region)"
@@ -183,13 +150,9 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                           'auto-update-disabled': !region.autoUpdateEnabled,
                         }"
                       >
-                        {{
-                          region.autoUpdateEnabled ? 'sync' : 'sync_disabled'
-                        }}
+                        {{ region.autoUpdateEnabled ? 'sync' : 'sync_disabled' }}
                       </mat-icon>
-                      <span>{{
-                        region.autoUpdateEnabled ? 'Auto-update' : 'Manual only'
-                      }}</span>
+                      <span>{{ region.autoUpdateEnabled ? 'Auto-update' : 'Manual only' }}</span>
                     </div>
 
                     @if (region.lastCheckAt) {
@@ -205,12 +168,8 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                   <app-brand-button
                     variant="accent"
                     size="sm"
-                    (click)="
-                      $event.stopPropagation(); viewRegionDetails(region)
-                    "
-                    [attr.aria-label]="
-                      'View details for ' + getDisplayName(region)
-                    "
+                    (click)="$event.stopPropagation(); viewRegionDetails(region)"
+                    [attr.aria-label]="'View details for ' + getDisplayName(region)"
                   >
                     <mat-icon>info</mat-icon>
                     <span>Details</span>
@@ -221,9 +180,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                     mat-icon-button
                     [matMenuTriggerFor]="autoUpdateMenu"
                     (click)="$event.stopPropagation()"
-                    [attr.aria-label]="
-                      'Auto-update settings for ' + getDisplayName(region)
-                    "
+                    [attr.aria-label]="'Auto-update settings for ' + getDisplayName(region)"
                     matTooltip="Auto-update settings"
                   >
                     <mat-icon>settings</mat-icon>
@@ -247,9 +204,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                         <mat-slide-toggle
                           [checked]="region.autoUpdateEnabled"
                           (change)="toggleAutoUpdate(region, $event.checked)"
-                          [disabled]="
-                            isUpdatingAutoUpdate.has(region.regionOnestopId)
-                          "
+                          [disabled]="isUpdatingAutoUpdate.has(region.regionOnestopId)"
                         >
                         </mat-slide-toggle>
                       </div>
@@ -262,9 +217,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                           <button
                             mat-icon-button
                             (click)="checkForUpdates(region)"
-                            [disabled]="
-                              isCheckingUpdates.has(region.regionOnestopId)
-                            "
+                            [disabled]="isCheckingUpdates.has(region.regionOnestopId)"
                             matTooltip="Check for feed updates"
                           >
                             <mat-icon>update</mat-icon>
@@ -276,11 +229,8 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                         <div
                           class="control-item version-info flex flex-col items-start gap-2 border-b border-[var(--mdc-theme-outline)] py-2 last:border-b-0"
                         >
-                          <div
-                            class="version-item flex w-full items-center gap-2"
-                          >
-                            <span
-                              class="version-label min-w-[100px] font-medium"
+                          <div class="version-item flex w-full items-center gap-2">
+                            <span class="version-label min-w-[100px] font-medium"
                               >Last checked:</span
                             >
                             <span
@@ -294,12 +244,8 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                             </span>
                           </div>
                           @if (versionStatus.hasUpdate) {
-                            <div
-                              class="version-item flex w-full items-center gap-2"
-                            >
-                              <mat-icon class="update-available"
-                                >new_releases</mat-icon
-                              >
+                            <div class="version-item flex w-full items-center gap-2">
+                              <mat-icon class="update-available">new_releases</mat-icon>
                               <span class="update-text">Update available</span>
                             </div>
                           }
@@ -313,9 +259,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                     size="sm"
                     (click)="$event.stopPropagation(); selectRegion(region)"
                     [disabled]="region.feedCount === 0"
-                    [attr.aria-label]="
-                      'Select ' + getDisplayName(region) + ' for import'
-                    "
+                    [attr.aria-label]="'Select ' + getDisplayName(region) + ' for import'"
                   >
                     <mat-icon>play_arrow</mat-icon>
                     <span>Select</span>
@@ -351,9 +295,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
           <div
             class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3"
           >
-            <span class="stat-number">{{
-              (filteredRegions$ | async)?.length || 0
-            }}</span>
+            <span class="stat-number">{{ (filteredRegions$ | async)?.length || 0 }}</span>
             <span class="stat-label">Regions</span>
           </div>
 
@@ -367,9 +309,7 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
           <div
             class="stat-card flex min-w-[80px] flex-col items-center rounded-lg bg-[var(--mdc-theme-surface)] px-4 py-3"
           >
-            <span class="stat-number">{{
-              (activeImports$ | async)?.length || 0
-            }}</span>
+            <span class="stat-number">{{ (activeImports$ | async)?.length || 0 }}</span>
             <span class="stat-label">Active Imports</span>
           </div>
         </div>
@@ -491,9 +431,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
   searchTerm = '';
   private searchTerm$ = new BehaviorSubject<string>('');
   autoUpdateFilter: boolean | undefined = undefined;
-  private autoUpdateFilter$ = new BehaviorSubject<boolean | undefined>(
-    undefined,
-  );
+  private autoUpdateFilter$ = new BehaviorSubject<boolean | undefined>(undefined);
 
   // Data streams
   regions$ = new BehaviorSubject<MetropolitanRegion[]>([]);
@@ -529,8 +467,8 @@ export class RegionListComponent implements OnInit, OnDestroy {
       this.autoUpdateFilter$.pipe(startWith(undefined)),
     ]).pipe(
       map(([regions, searchTerm, autoUpdateFilter]) =>
-        this.filterRegions(regions, searchTerm, autoUpdateFilter),
-      ),
+        this.filterRegions(regions, searchTerm, autoUpdateFilter)
+      )
     );
   }
 
@@ -593,7 +531,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
   private filterRegions(
     regions: MetropolitanRegion[],
     searchTerm: string,
-    autoUpdateFilter: boolean | undefined,
+    autoUpdateFilter: boolean | undefined
   ): MetropolitanRegion[] {
     let filtered = regions;
 
@@ -615,9 +553,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
 
     // Apply auto-update filter
     if (autoUpdateFilter !== undefined) {
-      filtered = filtered.filter(
-        (region) => region.autoUpdateEnabled === autoUpdateFilter,
-      );
+      filtered = filtered.filter((region) => region.autoUpdateEnabled === autoUpdateFilter);
     }
 
     // Prioritize Canadian regions by default
@@ -642,10 +578,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
     // Refresh UI to reflect new feed counts and timestamps
     this.refreshRegions();
 
-    if (
-      this.selectedRegion &&
-      this.selectedRegion.regionOnestopId === region.regionOnestopId
-    ) {
+    if (this.selectedRegion && this.selectedRegion.regionOnestopId === region.regionOnestopId) {
       this.regionSelected.emit(this.selectedRegion);
     }
   }
@@ -672,9 +605,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
     return activeImports.some(
       (imp) =>
         imp.regionName === region.name ||
-        activeImports.some((imp2) =>
-          imp2.feedOnestopId.includes(region.regionOnestopId),
-        ),
+        activeImports.some((imp2) => imp2.feedOnestopId.includes(region.regionOnestopId))
     );
   }
 
@@ -683,17 +614,13 @@ export class RegionListComponent implements OnInit, OnDestroy {
     return activeImports.filter(
       (imp) =>
         imp.regionName === region.name ||
-        activeImports.some((imp2) =>
-          imp2.feedOnestopId.includes(region.regionOnestopId),
-        ),
+        activeImports.some((imp2) => imp2.feedOnestopId.includes(region.regionOnestopId))
     ).length;
   }
 
   getTotalFeeds(): Observable<number> {
     return this.filteredRegions$.pipe(
-      map((regions) =>
-        regions.reduce((total, region) => total + region.feedCount, 0),
-      ),
+      map((regions) => regions.reduce((total, region) => total + region.feedCount, 0))
     );
   }
 
@@ -752,9 +679,7 @@ export class RegionListComponent implements OnInit, OnDestroy {
           this.isCheckingUpdates.delete(regionId);
 
           const name = this.getDisplayName(region);
-          const message = hasUpdate
-            ? `Updates available for ${name}`
-            : `${name} is up to date`;
+          const message = hasUpdate ? `Updates available for ${name}` : `${name} is up to date`;
 
           this.snackBar.open(message, 'Close', { duration: 3000 });
 

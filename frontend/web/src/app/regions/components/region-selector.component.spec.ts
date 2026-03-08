@@ -44,9 +44,7 @@ describe('RegionSelectorComponent', () => {
   });
 
   it('selects regions and emits changes', () => {
-    const emitSpy = vi
-      .spyOn(component.regionChange, 'emit')
-      .mockImplementation(() => {});
+    const emitSpy = vi.spyOn(component.regionChange, 'emit').mockImplementation(() => {});
 
     component.onRegionSelected(baseRegion);
 
@@ -54,9 +52,7 @@ describe('RegionSelectorComponent', () => {
   });
 
   it('clears search and emits empty selection', () => {
-    const emitSpy = vi
-      .spyOn(component.regionChange, 'emit')
-      .mockImplementation(() => {});
+    const emitSpy = vi.spyOn(component.regionChange, 'emit').mockImplementation(() => {});
 
     component.clearSearch();
 

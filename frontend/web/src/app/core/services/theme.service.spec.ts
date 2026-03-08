@@ -4,18 +4,15 @@ import { vi } from 'vitest';
 
 const buildMediaQueryStub = (
   matches: boolean,
-  registerHandler?: (handler: (event: MediaQueryListEvent) => void) => void,
+  registerHandler?: (handler: (event: MediaQueryListEvent) => void) => void
 ): MediaQueryList => ({
   matches,
   media: '(prefers-color-scheme: dark)',
   onchange: null,
-  addEventListener: (
-    _eventName: string,
-    handler: EventListenerOrEventListenerObject,
-  ) => registerHandler?.(handler as (event: MediaQueryListEvent) => void),
+  addEventListener: (_eventName: string, handler: EventListenerOrEventListenerObject) =>
+    registerHandler?.(handler as (event: MediaQueryListEvent) => void),
   removeEventListener: () => {},
-  addListener: (handler: (event: MediaQueryListEvent) => void) =>
-    registerHandler?.(handler),
+  addListener: (handler: (event: MediaQueryListEvent) => void) => registerHandler?.(handler),
   removeListener: () => {},
   dispatchEvent: () => false,
 });
@@ -27,9 +24,7 @@ describe('ThemeService', () => {
   });
 
   it('prefers system color scheme when no stored preference', () => {
-    vi.spyOn(window, 'matchMedia').mockReturnValue(
-      buildMediaQueryStub(true) as MediaQueryList,
-    );
+    vi.spyOn(window, 'matchMedia').mockReturnValue(buildMediaQueryStub(true) as MediaQueryList);
 
     const service = TestBed.inject(ThemeService);
 
@@ -39,22 +34,16 @@ describe('ThemeService', () => {
   });
 
   it('persists explicit theme preference and updates body classes', () => {
-    vi.spyOn(window, 'matchMedia').mockReturnValue(
-      buildMediaQueryStub(false) as MediaQueryList,
-    );
+    vi.spyOn(window, 'matchMedia').mockReturnValue(buildMediaQueryStub(false) as MediaQueryList);
 
     const service = TestBed.inject(ThemeService);
 
     service.setPreference('dark');
-    expect(localStorage.getItem('mobilispect-theme')).toBe(
-      'dark' as ThemePreference,
-    );
+    expect(localStorage.getItem('mobilispect-theme')).toBe('dark' as ThemePreference);
     expect(document.body.classList.contains('dark-theme')).toBe(true);
 
     service.setPreference('light');
-    expect(localStorage.getItem('mobilispect-theme')).toBe(
-      'light' as ThemePreference,
-    );
+    expect(localStorage.getItem('mobilispect-theme')).toBe('light' as ThemePreference);
     expect(document.body.classList.contains('dark-theme')).toBe(false);
     expect(document.body.classList.contains('light-theme')).toBe(true);
   });
@@ -64,7 +53,7 @@ describe('ThemeService', () => {
     vi.spyOn(window, 'matchMedia').mockReturnValue(
       buildMediaQueryStub(false, (handler) => {
         changeHandler = handler;
-      }) as MediaQueryList,
+      }) as MediaQueryList
     );
 
     TestBed.inject(ThemeService);

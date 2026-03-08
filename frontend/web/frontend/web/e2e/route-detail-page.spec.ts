@@ -7,38 +7,35 @@ test.describe('RouteDetailPage', () => {
   const testSectionId = 'section-1';
 
   test.beforeEach(async ({ page }) => {
-    await page.route(
-      '**/api/v1/routes/variants/*/frequencies*',
-      async (route) => {
-        const url = route.request().url();
-        if (url.includes(testVariantId)) {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify([
-              {
-                id: 'freq-1',
-                variantId: testVariantId,
-                serviceDate: testDate,
-                timePeriod: 'WEEKDAY_AM_PEAK',
-                averageHeadwayMinutes: 12,
-                minHeadwayMinutes: 10,
-                maxHeadwayMinutes: 15,
-                tripCount: 8,
-                isIrregular: false,
-              },
-            ]),
-          });
-          return;
-        }
-
+    await page.route('**/api/v1/routes/variants/*/frequencies*', async (route) => {
+      const url = route.request().url();
+      if (url.includes(testVariantId)) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify([]),
+          body: JSON.stringify([
+            {
+              id: 'freq-1',
+              variantId: testVariantId,
+              serviceDate: testDate,
+              timePeriod: 'WEEKDAY_AM_PEAK',
+              averageHeadwayMinutes: 12,
+              minHeadwayMinutes: 10,
+              maxHeadwayMinutes: 15,
+              tripCount: 8,
+              isIrregular: false,
+            },
+          ]),
         });
-      },
-    );
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
 
     await page.route('**/api/v1/routes/*/variants', async (route) => {
       await route.fulfill({
@@ -91,22 +88,19 @@ test.describe('RouteDetailPage', () => {
       });
     });
 
-    await page.route(
-      '**/api/v1/common-sections/*/frequency*',
-      async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            commonSectionId: testSectionId,
-            timePeriod: 'WEEKDAY_AM_PEAK',
-            averageHeadwayMinutes: 10,
-            tripCount: 12,
-            isIrregular: false,
-          }),
-        });
-      },
-    );
+    await page.route('**/api/v1/common-sections/*/frequency*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          commonSectionId: testSectionId,
+          timePeriod: 'WEEKDAY_AM_PEAK',
+          averageHeadwayMinutes: 10,
+          tripCount: 12,
+          isIrregular: false,
+        }),
+      });
+    });
 
     await page.goto(`/routes/${testRouteId}`);
   });
@@ -141,9 +135,7 @@ test.describe('RouteDetailPage', () => {
 
     const responsePromise = page.waitForResponse((response) => {
       return (
-        response
-          .url()
-          .includes(`/api/v1/routes/variants/${testVariantId}/frequencies`) &&
+        response.url().includes(`/api/v1/routes/variants/${testVariantId}/frequencies`) &&
         response.url().includes('date=2025-04-01')
       );
     });

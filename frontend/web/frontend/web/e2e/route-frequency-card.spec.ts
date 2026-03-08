@@ -7,49 +7,46 @@ test.describe('RouteFrequencyCard', () => {
   const testSectionId = 'section-1';
 
   test.beforeEach(async ({ page }) => {
-    await page.route(
-      '**/api/v1/routes/variants/*/frequencies*',
-      async (route) => {
-        const url = route.request().url();
-        if (url.includes(testVariantId)) {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify([
-              {
-                id: 'freq-1',
-                variantId: testVariantId,
-                serviceDate: testDate,
-                timePeriod: 'WEEKDAY_AM_PEAK',
-                averageHeadwayMinutes: 12,
-                minHeadwayMinutes: 10,
-                maxHeadwayMinutes: 15,
-                tripCount: 8,
-                isIrregular: false,
-              },
-              {
-                id: 'freq-2',
-                variantId: testVariantId,
-                serviceDate: testDate,
-                timePeriod: 'WEEKDAY_PM_PEAK',
-                averageHeadwayMinutes: 15,
-                minHeadwayMinutes: 12,
-                maxHeadwayMinutes: 18,
-                tripCount: 6,
-                isIrregular: false,
-              },
-            ]),
-          });
-          return;
-        }
-
+    await page.route('**/api/v1/routes/variants/*/frequencies*', async (route) => {
+      const url = route.request().url();
+      if (url.includes(testVariantId)) {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify([]),
+          body: JSON.stringify([
+            {
+              id: 'freq-1',
+              variantId: testVariantId,
+              serviceDate: testDate,
+              timePeriod: 'WEEKDAY_AM_PEAK',
+              averageHeadwayMinutes: 12,
+              minHeadwayMinutes: 10,
+              maxHeadwayMinutes: 15,
+              tripCount: 8,
+              isIrregular: false,
+            },
+            {
+              id: 'freq-2',
+              variantId: testVariantId,
+              serviceDate: testDate,
+              timePeriod: 'WEEKDAY_PM_PEAK',
+              averageHeadwayMinutes: 15,
+              minHeadwayMinutes: 12,
+              maxHeadwayMinutes: 18,
+              tripCount: 6,
+              isIrregular: false,
+            },
+          ]),
         });
-      },
-    );
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
 
     await page.route('**/api/v1/routes/*/variants', async (route) => {
       await route.fulfill({
@@ -102,39 +99,34 @@ test.describe('RouteFrequencyCard', () => {
       });
     });
 
-    await page.route(
-      '**/api/v1/common-sections/*/frequency*',
-      async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            commonSectionId: testSectionId,
-            timePeriod: 'WEEKDAY_AM_PEAK',
-            averageHeadwayMinutes: 10,
-            tripCount: 12,
-            isIrregular: false,
-            contributions: [
-              {
-                routeId: testRouteId,
-                averageHeadwayMinutes: 10,
-                tripCount: 12,
-                isIrregular: false,
-              },
-            ],
-          }),
-        });
-      },
-    );
+    await page.route('**/api/v1/common-sections/*/frequency*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          commonSectionId: testSectionId,
+          timePeriod: 'WEEKDAY_AM_PEAK',
+          averageHeadwayMinutes: 10,
+          tripCount: 12,
+          isIrregular: false,
+          contributions: [
+            {
+              routeId: testRouteId,
+              averageHeadwayMinutes: 10,
+              tripCount: 12,
+              isIrregular: false,
+            },
+          ],
+        }),
+      });
+    });
 
     await page.goto(`/regions/routes/${testRouteId}`);
   });
 
   test('renders route card details and frequency content', async ({ page }) => {
     await expect(page.getByText('Riverfront Express')).toBeVisible();
-    await expect(
-      page.locator('.card-subtitle', { hasText: '10' }),
-    ).toBeVisible();
+    await expect(page.locator('.card-subtitle', { hasText: '10' })).toBeVisible();
 
     const datePicker = page.locator('input[type="date"]');
     await expect(datePicker).toBeVisible();

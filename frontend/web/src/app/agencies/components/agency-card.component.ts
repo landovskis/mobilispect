@@ -15,11 +15,7 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
       class="agency-card-link block transition-transform hover:-translate-y-0.5"
     >
       <app-brand-card [title]="agency.name">
-        <div
-          class="meta flex flex-wrap gap-2"
-          aria-label="agency details"
-          role="list"
-        >
+        <div class="meta flex flex-wrap gap-2" aria-label="agency details" role="list">
           @if (agency.routesByType && hasRoutes) {
             <div class="route-types flex flex-wrap gap-1">
               @for (type of routeTypes; track type) {
@@ -27,9 +23,7 @@ import { BrandBadgeComponent } from '../../shared/components/brand-badge.compone
                   <app-brand-badge
                     role="listitem"
                     variant="neutral"
-                    [label]="
-                      formatRouteType(type) + ': ' + agency.routesByType[type]
-                    "
+                    [label]="formatRouteType(type) + ': ' + agency.routesByType[type]"
                   ></app-brand-badge>
                 }
               }
@@ -61,9 +55,7 @@ export class AgencyCardComponent {
   @Input() agency!: AgencyDTO;
 
   get hasRoutes(): boolean {
-    return Object.values(this.agency.routesByType || {}).some(
-      (count) => count > 0,
-    );
+    return Object.values(this.agency.routesByType || {}).some((count) => count > 0);
   }
 
   get routeTypes(): string[] {

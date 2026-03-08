@@ -1,10 +1,4 @@
-import {
-  FeedImport,
-  ImportStatus,
-  ImportUtils,
-  ProgressUtils,
-  TriggerType,
-} from './import.models';
+import { FeedImport, ImportStatus, ImportUtils, ProgressUtils, TriggerType } from './import.models';
 import { vi } from 'vitest';
 
 describe('ImportUtils', () => {
@@ -49,56 +43,30 @@ describe('ImportUtils', () => {
       ImportUtils.isSuccessful({
         ...baseImport,
         status: ImportStatus.COMPLETED,
-      }),
+      })
     ).toBe(true);
     expect(
       ImportUtils.isCancellable({
         ...baseImport,
         status: ImportStatus.RUNNING,
-      }),
+      })
     ).toBe(true);
-    expect(
-      ImportUtils.isCancellable({ ...baseImport, status: ImportStatus.FAILED }),
-    ).toBe(false);
+    expect(ImportUtils.isCancellable({ ...baseImport, status: ImportStatus.FAILED })).toBe(false);
 
-    expect(ImportUtils.getStatusDisplayName(ImportStatus.PENDING)).toBe(
-      'Pending',
-    );
-    expect(ImportUtils.getStatusDisplayName(ImportStatus.RUNNING)).toBe(
-      'Running',
-    );
-    expect(ImportUtils.getStatusDisplayName(ImportStatus.FAILED)).toBe(
-      'Failed',
-    );
-    expect(ImportUtils.getStatusDisplayName(ImportStatus.CANCELLED)).toBe(
-      'Cancelled',
-    );
-    expect(ImportUtils.getStatusDisplayName('other' as ImportStatus)).toBe(
-      'other',
-    );
+    expect(ImportUtils.getStatusDisplayName(ImportStatus.PENDING)).toBe('Pending');
+    expect(ImportUtils.getStatusDisplayName(ImportStatus.RUNNING)).toBe('Running');
+    expect(ImportUtils.getStatusDisplayName(ImportStatus.FAILED)).toBe('Failed');
+    expect(ImportUtils.getStatusDisplayName(ImportStatus.CANCELLED)).toBe('Cancelled');
+    expect(ImportUtils.getStatusDisplayName('other' as ImportStatus)).toBe('other');
 
-    expect(ImportUtils.getStatusColorClass(ImportStatus.PENDING)).toBe(
-      'chip-neutral',
-    );
-    expect(ImportUtils.getStatusColorClass(ImportStatus.RUNNING)).toBe(
-      'chip-warning',
-    );
-    expect(ImportUtils.getStatusColorClass(ImportStatus.FAILED)).toBe(
-      'chip-error',
-    );
-    expect(ImportUtils.getStatusColorClass(ImportStatus.CANCELLED)).toBe(
-      'chip-neutral',
-    );
-    expect(ImportUtils.getStatusColorClass('other' as ImportStatus)).toBe(
-      'chip-neutral',
-    );
+    expect(ImportUtils.getStatusColorClass(ImportStatus.PENDING)).toBe('chip-neutral');
+    expect(ImportUtils.getStatusColorClass(ImportStatus.RUNNING)).toBe('chip-warning');
+    expect(ImportUtils.getStatusColorClass(ImportStatus.FAILED)).toBe('chip-error');
+    expect(ImportUtils.getStatusColorClass(ImportStatus.CANCELLED)).toBe('chip-neutral');
+    expect(ImportUtils.getStatusColorClass('other' as ImportStatus)).toBe('chip-neutral');
 
-    expect(ImportUtils.getTriggerTypeDisplayName(TriggerType.AUTOMATIC)).toBe(
-      'Automatic',
-    );
-    expect(ImportUtils.getTriggerTypeDisplayName('other' as TriggerType)).toBe(
-      'other',
-    );
+    expect(ImportUtils.getTriggerTypeDisplayName(TriggerType.AUTOMATIC)).toBe('Automatic');
+    expect(ImportUtils.getTriggerTypeDisplayName('other' as TriggerType)).toBe('other');
   });
 
   it('formats file size and duration', () => {
@@ -136,9 +104,7 @@ describe('ImportUtils', () => {
     };
     expect(ImportUtils.getDuration(longRun)).toBe('2h 10m');
 
-    expect(
-      ImportUtils.getDuration({ ...baseImport, startedAt: null }),
-    ).toBeNull();
+    expect(ImportUtils.getDuration({ ...baseImport, startedAt: null })).toBeNull();
   });
 
   it('formats estimated remaining time and relative timestamps', () => {
@@ -152,21 +118,15 @@ describe('ImportUtils', () => {
 
     const timestamp = new Date('2024-01-01T10:30:00Z').toISOString();
     expect(ImportUtils.formatRelativeTime(timestamp)).toBe('1h ago');
-    expect(
-      ImportUtils.formatRelativeTime(
-        new Date('2024-01-01T11:59:30Z').toISOString(),
-      ),
-    ).toBe('Just now');
-    expect(
-      ImportUtils.formatRelativeTime(
-        new Date('2024-01-01T11:30:00Z').toISOString(),
-      ),
-    ).toBe('30m ago');
-    expect(
-      ImportUtils.formatRelativeTime(
-        new Date('2023-12-30T12:00:00Z').toISOString(),
-      ),
-    ).toBe('2d ago');
+    expect(ImportUtils.formatRelativeTime(new Date('2024-01-01T11:59:30Z').toISOString())).toBe(
+      'Just now'
+    );
+    expect(ImportUtils.formatRelativeTime(new Date('2024-01-01T11:30:00Z').toISOString())).toBe(
+      '30m ago'
+    );
+    expect(ImportUtils.formatRelativeTime(new Date('2023-12-30T12:00:00Z').toISOString())).toBe(
+      '2d ago'
+    );
   });
 });
 
@@ -179,7 +139,7 @@ describe('ProgressUtils', () => {
         totalSteps: 100,
         currentStep: 'FAILED',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     ).toBe(0);
 
     expect(
@@ -188,7 +148,7 @@ describe('ProgressUtils', () => {
         totalSteps: 100,
         currentStep: 'FAILED',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     ).toBe(true);
 
     expect(
@@ -197,7 +157,7 @@ describe('ProgressUtils', () => {
         totalSteps: 100,
         currentStep: 'DONE',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     ).toBe(100);
   });
 
@@ -209,7 +169,7 @@ describe('ProgressUtils', () => {
         totalSteps: 100,
         currentStep: 'FAILED',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     ).toBe('bg-red-500');
     expect(
       ProgressUtils.getProgressColorClass({
@@ -217,7 +177,7 @@ describe('ProgressUtils', () => {
         totalSteps: 100,
         currentStep: 'DONE',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     ).toBe('bg-green-500');
     expect(
       ProgressUtils.getProgressColorClass({
@@ -225,7 +185,7 @@ describe('ProgressUtils', () => {
         totalSteps: 100,
         currentStep: 'RUNNING',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     ).toBe('bg-blue-500');
     expect(
       ProgressUtils.getProgressColorClass({
@@ -233,7 +193,7 @@ describe('ProgressUtils', () => {
         totalSteps: 100,
         currentStep: 'RUNNING',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     ).toBe('bg-yellow-500');
     expect(
       ProgressUtils.getProgressColorClass({
@@ -241,7 +201,7 @@ describe('ProgressUtils', () => {
         totalSteps: 100,
         currentStep: 'RUNNING',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     ).toBe('bg-gray-400');
   });
 });

@@ -23,14 +23,10 @@ describe('FeedGroupingUtils', () => {
     expect(FeedGroupingUtils.extractAgencyId('f-dr5-nyct~rt')).toBe('nyct');
     expect(FeedGroupingUtils.extractAgencyId('invalid')).toBe('invalid');
 
-    expect(FeedGroupingUtils.extractAgencyName('Metro Transit GTFS')).toBe(
-      'Metro Transit',
-    );
-    expect(FeedGroupingUtils.extractAgencyName('Metro Transit - RT')).toBe(
-      'Metro Transit',
-    );
+    expect(FeedGroupingUtils.extractAgencyName('Metro Transit GTFS')).toBe('Metro Transit');
+    expect(FeedGroupingUtils.extractAgencyName('Metro Transit - RT')).toBe('Metro Transit');
     expect(FeedGroupingUtils.extractAgencyName('Metro Transit Realtime')).toBe(
-      'Metro Transit Realtime',
+      'Metro Transit Realtime'
     );
   });
 
@@ -89,21 +85,13 @@ describe('FeedGroupingUtils', () => {
 
     expect(groups[0].agencyName).toBe('Alpha Transit');
 
-    expect(FeedGroupingUtils.getFeedTypeLabel(FeedSpecType.GTFS)).toBe(
-      'Static',
+    expect(FeedGroupingUtils.getFeedTypeLabel(FeedSpecType.GTFS)).toBe('Static');
+    expect(FeedGroupingUtils.getFeedTypeLabel('UNKNOWN' as FeedSpecType)).toBe('UNKNOWN');
+    expect(FeedGroupingUtils.getFeedTypeIcon(FeedSpecType.GTFS_RT)).toBe('real_time_tracking');
+    expect(FeedGroupingUtils.getFeedTypeIcon('UNKNOWN' as FeedSpecType)).toBe('feed');
+    expect(FeedGroupingUtils.getFeedTypeColorClass('UNKNOWN' as FeedSpecType)).toBe(
+      'feed-type-default'
     );
-    expect(FeedGroupingUtils.getFeedTypeLabel('UNKNOWN' as FeedSpecType)).toBe(
-      'UNKNOWN',
-    );
-    expect(FeedGroupingUtils.getFeedTypeIcon(FeedSpecType.GTFS_RT)).toBe(
-      'real_time_tracking',
-    );
-    expect(FeedGroupingUtils.getFeedTypeIcon('UNKNOWN' as FeedSpecType)).toBe(
-      'feed',
-    );
-    expect(
-      FeedGroupingUtils.getFeedTypeColorClass('UNKNOWN' as FeedSpecType),
-    ).toBe('feed-type-default');
   });
 
   it('handles agencies with inactive feeds and missing timestamps', () => {
