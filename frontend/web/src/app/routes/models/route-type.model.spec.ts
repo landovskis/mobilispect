@@ -17,9 +17,7 @@ describe('Route type helpers', () => {
   it('maps GTFS values and validates invalid codes', () => {
     expect(getRouteTypeGtfsValue(RouteType.SUBWAY)).toBe(1);
     expect(getRouteTypeFromGtfsValue(3)).toBe(RouteType.BUS);
-    expect(() => getRouteTypeFromGtfsValue(999)).toThrowError(
-      /Unknown GTFS route type/,
-    );
+    expect(() => getRouteTypeFromGtfsValue(999)).toThrowError(/Unknown GTFS route type/);
   });
 
   it('returns all route types', () => {

@@ -47,9 +47,7 @@ describe('WebSocketService', () => {
 
   it('subscribes to import progress when connected', () => {
     const unsubscribeSpy = vi.fn();
-    const subscribeSpy = vi
-      .fn()
-      .mockReturnValue({ unsubscribe: unsubscribeSpy });
+    const subscribeSpy = vi.fn().mockReturnValue({ unsubscribe: unsubscribeSpy });
     internals.stompClient = {
       subscribe: subscribeSpy,
       deactivate: vi.fn(),
@@ -60,15 +58,13 @@ describe('WebSocketService', () => {
 
     expect(subscribeSpy).toHaveBeenCalledWith(
       '/topic/import/progress/import-1',
-      expect.any(Function),
+      expect.any(Function)
     );
   });
 
   it('subscribes to import status when connected', () => {
     const unsubscribeSpy = vi.fn();
-    const subscribeSpy = vi
-      .fn()
-      .mockReturnValue({ unsubscribe: unsubscribeSpy });
+    const subscribeSpy = vi.fn().mockReturnValue({ unsubscribe: unsubscribeSpy });
     internals.stompClient = {
       subscribe: subscribeSpy,
       deactivate: vi.fn(),
@@ -79,15 +75,13 @@ describe('WebSocketService', () => {
 
     expect(subscribeSpy).toHaveBeenCalledWith(
       '/topic/import/status/import-2',
-      expect.any(Function),
+      expect.any(Function)
     );
   });
 
   it('subscribes to system alerts when connected', () => {
     const unsubscribeSpy = vi.fn();
-    const subscribeSpy = vi
-      .fn()
-      .mockReturnValue({ unsubscribe: unsubscribeSpy });
+    const subscribeSpy = vi.fn().mockReturnValue({ unsubscribe: unsubscribeSpy });
     internals.stompClient = {
       subscribe: subscribeSpy,
       deactivate: vi.fn(),
@@ -96,10 +90,7 @@ describe('WebSocketService', () => {
     service.subscribeToSystemAlerts();
     internals.connectionStatus$.next('CONNECTED');
 
-    expect(subscribeSpy).toHaveBeenCalledWith(
-      '/topic/system/alerts',
-      expect.any(Function),
-    );
+    expect(subscribeSpy).toHaveBeenCalledWith('/topic/system/alerts', expect.any(Function));
   });
 
   it('unsubscribes from import topics', () => {
@@ -125,14 +116,12 @@ type WebSocketServiceInternals = {
     publish?: (args: { destination: string; body: string }) => void;
     subscribe?: (
       topic: string,
-      callback: (message: unknown) => void,
+      callback: (message: unknown) => void
     ) => { unsubscribe: () => void };
     deactivate?: () => void;
   } | null;
   connectionStatus$: {
-    next: (
-      status: 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR',
-    ) => void;
+    next: (status: 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'ERROR') => void;
   };
   subscriptions: Map<string, { unsubscribe: () => void }>;
 };

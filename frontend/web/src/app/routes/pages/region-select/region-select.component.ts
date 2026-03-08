@@ -1,9 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  inject,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { RegionService } from '../../../feeds/services/region.service';
@@ -22,19 +17,13 @@ import { BrandButtonComponent } from '../../../shared/components/brand-button.co
     >
       <div class="regions flex flex-col gap-3" role="list">
         @for (region of regions; track region.regionOnestopId) {
-          <div
-            class="region flex items-center justify-between border-b py-2"
-            role="listitem"
-          >
+          <div class="region flex items-center justify-between border-b py-2" role="listitem">
             <div class="info flex flex-col gap-0.5">
               <div class="name">{{ region.name }}</div>
               <small>{{ region.adm0Name }} {{ region.adm1Name }}</small>
               <small>Feeds: {{ region.feedCount }}</small>
             </div>
-            <app-brand-button
-              variant="primary"
-              (click)="select(region.regionOnestopId)"
-            >
+            <app-brand-button variant="primary" (click)="select(region.regionOnestopId)">
               View region
             </app-brand-button>
           </div>

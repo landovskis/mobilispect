@@ -1,8 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { firstValueFrom, of, EMPTY } from 'rxjs';
 import { ImportService } from './import.service';
 import { environment } from '../../../environments/environment';
@@ -88,19 +85,12 @@ describe('ImportService', () => {
       subscribeToImportProgress: vi.fn(),
       subscribeToImportStatus: vi.fn(),
     } as unknown as WebSocketService;
-    vi.mocked(mockWebSocketService.subscribeToImportProgress).mockReturnValue(
-      EMPTY,
-    );
-    vi.mocked(mockWebSocketService.subscribeToImportStatus).mockReturnValue(
-      EMPTY,
-    );
+    vi.mocked(mockWebSocketService.subscribeToImportProgress).mockReturnValue(EMPTY);
+    vi.mocked(mockWebSocketService.subscribeToImportStatus).mockReturnValue(EMPTY);
 
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [
-        ImportService,
-        { provide: WebSocketService, useValue: mockWebSocketService },
-      ],
+      providers: [ImportService, { provide: WebSocketService, useValue: mockWebSocketService }],
     });
 
     service = TestBed.inject(ImportService);
@@ -127,15 +117,10 @@ describe('ImportService', () => {
   });
 
   it('wraps backend errors with user-friendly message', async () => {
-    const errorPromise = firstValueFrom(service.startImport('f-1')).catch(
-      (e) => e,
-    );
+    const errorPromise = firstValueFrom(service.startImport('f-1')).catch((e) => e);
 
     const req = httpMock.expectOne(`${environment.apiUrl}/feeds/f-1/import`);
-    req.flush(
-      { message: 'Forbidden' },
-      { status: 403, statusText: 'Forbidden' },
-    );
+    req.flush({ message: 'Forbidden' }, { status: 403, statusText: 'Forbidden' });
 
     const error = await errorPromise;
     expect(error.isBackendError).toBe(true);
@@ -147,15 +132,9 @@ describe('ImportService', () => {
 
     expect(getErrorMessage({ status: 0 })).toContain('Cannot connect');
     expect(getErrorMessage({ status: 404 })).toContain('Feed not found');
-    expect(getErrorMessage({ status: 503 })).toContain(
-      'temporarily unavailable',
-    );
-    expect(getErrorMessage({ status: 500, statusText: 'Oops' })).toContain(
-      'Oops',
-    );
-    expect(
-      getErrorMessage({ status: 400, error: { message: 'Bad request' } }),
-    ).toBe('Bad request');
+    expect(getErrorMessage({ status: 503 })).toContain('temporarily unavailable');
+    expect(getErrorMessage({ status: 500, statusText: 'Oops' })).toContain('Oops');
+    expect(getErrorMessage({ status: 400, error: { message: 'Bad request' } })).toBe('Bad request');
   });
 
   it('maps import history and query params', () => {
@@ -171,7 +150,7 @@ describe('ImportService', () => {
       });
 
     const req = httpMock.expectOne(
-      (request) => request.url === `${environment.apiUrl}/feeds/f-1/imports`,
+      (request) => request.url === `${environment.apiUrl}/feeds/f-1/imports`
     );
     expect(req.request.params.get('page')).toBe('1');
     expect(req.request.params.get('size')).toBe('10');
@@ -195,7 +174,7 @@ describe('ImportService', () => {
     });
 
     const req = httpMock.expectOne(
-      (request) => request.url === `${environment.apiUrl}/feeds/f-1/imports`,
+      (request) => request.url === `${environment.apiUrl}/feeds/f-1/imports`
     );
     expect(req.request.params.keys().length).toBe(0);
     req.flush({
@@ -230,9 +209,7 @@ describe('ImportService', () => {
       expect(imports.length).toBe(1);
     });
 
-    const req = httpMock.expectOne(
-      `${environment.apiUrl}/feeds/imports/active`,
-    );
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/imports/active`);
     req.flush({ imports: [{ ...baseImportSummary }], total: 1 });
 
     service.getActiveImportsObservable().subscribe((imports) => {
@@ -245,9 +222,7 @@ describe('ImportService', () => {
       expect(status?.regionImportId).toBe('reg-1');
     });
 
-    const req = httpMock.expectOne(
-      `${environment.apiUrl}/feeds/regions/r-1/imports/active`,
-    );
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/regions/r-1/imports/active`);
     expect(req.request.method).toBe('GET');
     req.flush({ ...baseRegionImport });
   });
@@ -266,17 +241,13 @@ describe('ImportService', () => {
     internals.pollingInterval = 10;
 
     const results: RegionImportStatusResponse[] = [];
-    service
-      .monitorRegionImportProgress('reg-1')
-      .subscribe((status) => results.push(status));
+    service.monitorRegionImportProgress('reg-1').subscribe((status) => results.push(status));
 
     tick(0);
     tick(internals.pollingInterval);
 
     expect(results.length).toBeGreaterThan(0);
-    expect(results[results.length - 1].status).toBe(
-      RegionImportStatus.COMPLETED,
-    );
+    expect(results[results.length - 1].status).toBe(RegionImportStatus.COMPLETED);
   }));
 
   it('finds active import for a feed', () => {
@@ -284,7 +255,7 @@ describe('ImportService', () => {
       of([
         { ...baseImportSummary, feedOnestopId: 'f-1' },
         { ...baseImportSummary, id: 'imp-2', feedOnestopId: 'f-2' },
-      ]),
+      ])
     );
 
     service.getActiveImportForFeed('f-2').subscribe((result) => {
@@ -294,7 +265,7 @@ describe('ImportService', () => {
 
   it('returns null when no active import matches', () => {
     vi.spyOn(service, 'getActiveImports').mockReturnValue(
-      of([{ ...baseImportSummary, feedOnestopId: 'f-1' }]),
+      of([{ ...baseImportSummary, feedOnestopId: 'f-1' }])
     );
 
     service.getActiveImportForFeed('f-2').subscribe((result) => {
@@ -308,14 +279,14 @@ describe('ImportService', () => {
         ...baseImportDetail,
         feedOnestopId: 'f-9',
         status: ImportStatus.FAILED,
-      }),
+      })
     );
     vi.spyOn(service, 'startImport').mockReturnValue(
       of({
         ...baseImport,
         id: 'imp-new',
         feedOnestopId: 'f-9',
-      }),
+      })
     );
 
     service.retryImport('imp-1').subscribe((result) => {
@@ -372,7 +343,7 @@ describe('ImportService', () => {
 
   it('maps import statistics from active imports', () => {
     vi.spyOn(service, 'getActiveImports').mockReturnValue(
-      of([{ ...baseImportSummary }, { ...baseImportSummary, id: 'imp-2' }]),
+      of([{ ...baseImportSummary }, { ...baseImportSummary, id: 'imp-2' }])
     );
 
     service.getImportStatistics().subscribe((stats) => {
@@ -411,7 +382,7 @@ describe('ImportService', () => {
 
   it('checks whether an import is running for a feed', () => {
     vi.spyOn(service, 'getActiveImports').mockReturnValue(
-      of([{ ...baseImportSummary, feedOnestopId: 'f-1' }]),
+      of([{ ...baseImportSummary, feedOnestopId: 'f-1' }])
     );
 
     service.isImportRunningForFeed('f-1').subscribe((isRunning) => {
@@ -432,7 +403,7 @@ describe('ImportService', () => {
       });
 
     const req = httpMock.expectOne(
-      (request) => request.url === `${environment.apiUrl}/feeds/imports`,
+      (request) => request.url === `${environment.apiUrl}/feeds/imports`
     );
     expect(req.request.params.get('page')).toBe('2');
     expect(req.request.params.get('size')).toBe('5');
@@ -458,7 +429,7 @@ describe('ImportService', () => {
         totalSteps: 100,
         currentStep: 'Init',
         estimatedTimeRemainingSeconds: null,
-      }),
+      })
     );
 
     vi.mocked(mockWebSocketService.subscribeToImportProgress).mockReturnValue(
@@ -474,13 +445,11 @@ describe('ImportService', () => {
           startedAt: '2024-01-01T00:00:00Z',
           lastUpdatedAt: '2024-01-01T00:00:05Z',
         },
-      }),
+      })
     );
 
     const results: ImportProgress[] = [];
-    service
-      .monitorImportProgress('imp-1')
-      .subscribe((value) => results.push(value));
+    service.monitorImportProgress('imp-1').subscribe((value) => results.push(value));
 
     tick(0);
 
@@ -499,13 +468,11 @@ describe('ImportService', () => {
           status: ImportStatus.RUNNING,
         },
         timestamp: '2024-01-01T00:00:00Z',
-      }),
+      })
     );
 
     const results: FeedImportDetail[] = [];
-    service
-      .monitorImportStatus('imp-1')
-      .subscribe((value) => results.push(value));
+    service.monitorImportStatus('imp-1').subscribe((value) => results.push(value));
 
     tick(0);
 

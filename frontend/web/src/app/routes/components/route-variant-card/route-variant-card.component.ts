@@ -9,11 +9,7 @@ import {
   signal,
 } from '@angular/core';
 
-import {
-  FrequencyDto,
-  RouteService,
-  RouteVariantDto,
-} from '../../services/route.service';
+import { FrequencyDto, RouteService, RouteVariantDto } from '../../services/route.service';
 import { BrandCardComponent } from '../../../shared/components/brand-card.component';
 
 @Component({
@@ -79,9 +75,7 @@ import { BrandCardComponent } from '../../../shared/components/brand-card.compon
               } @else if (completeDepartures().length > 0) {
                 <div class="departures-grid">
                   @for (time of completeDepartures(); track time) {
-                    <span class="departure-time">{{
-                      formatDepartureTime(time)
-                    }}</span>
+                    <span class="departure-time">{{ formatDepartureTime(time) }}</span>
                   }
                 </div>
               } @else {
@@ -253,9 +247,7 @@ export class RouteVariantCardComponent {
 
     const first = this.formatTime(variant.firstDepartureTime);
     const last = this.formatTime(variant.lastDepartureTime);
-    const trips = variant.scheduleTripCount
-      ? ` (${variant.scheduleTripCount} trips)`
-      : '';
+    const trips = variant.scheduleTripCount ? ` (${variant.scheduleTripCount} trips)` : '';
 
     return `${first} - ${last}${trips}`;
   }
@@ -305,10 +297,7 @@ export class RouteVariantCardComponent {
   formatClassification(value: string): string {
     return value
       .split('_')
-      .map(
-        (segment) =>
-          segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase(),
-      )
+      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
       .join(' ');
   }
 }

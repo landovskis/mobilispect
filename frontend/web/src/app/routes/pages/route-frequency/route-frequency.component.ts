@@ -1,9 +1,4 @@
-import {
-  Component,
-  OnInit,
-  ChangeDetectionStrategy,
-  inject,
-} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 
 import { ActivatedRoute } from '@angular/router';
 import {
@@ -32,10 +27,7 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
     MatTabsModule,
   ],
   template: `
-    <app-brand-card
-      [title]="route?.longName"
-      [subtitle]="route?.shortName || undefined"
-    >
+    <app-brand-card [title]="route?.longName" [subtitle]="route?.shortName || undefined">
       @if (directionTabs.length > 1) {
         <mat-tab-group
           class="mb-4"
@@ -58,10 +50,7 @@ import { CommonSectionDisplayComponent } from '../../components/common-section-d
         }
       </div>
 
-      <app-common-section-display
-        [sections]="commonSections"
-        [combined]="combinedBySection"
-      >
+      <app-common-section-display [sections]="commonSections" [combined]="combinedBySection">
       </app-common-section-display>
     </app-brand-card>
   `,
@@ -102,18 +91,16 @@ export class RouteFrequencyComponent implements OnInit {
       }
       this.loadFirstVariantForDirection();
     });
-    this.commonSectionService
-      .getCommonSectionsForRoute(this.routeId)
-      .subscribe((sections) => {
-        this.commonSections = sections;
-        sections.forEach((section) => {
-          this.commonSectionService
-            .getCombinedFrequency(section.id, 'WEEKDAY_AM_PEAK')
-            .subscribe((freq) => {
-              if (freq) this.combinedBySection[section.id] = freq;
-            });
-        });
+    this.commonSectionService.getCommonSectionsForRoute(this.routeId).subscribe((sections) => {
+      this.commonSections = sections;
+      sections.forEach((section) => {
+        this.commonSectionService
+          .getCombinedFrequency(section.id, 'WEEKDAY_AM_PEAK')
+          .subscribe((freq) => {
+            if (freq) this.combinedBySection[section.id] = freq;
+          });
       });
+    });
   }
 
   loadFrequencies(variantId: string): void {
@@ -124,15 +111,11 @@ export class RouteFrequencyComponent implements OnInit {
   }
 
   get directionTabs(): { id: number | null; label: string; key: string }[] {
-    const ids = Array.from(
-      new Set(this.variants.map((variant) => variant.directionId ?? null)),
-    );
+    const ids = Array.from(new Set(this.variants.map((variant) => variant.directionId ?? null)));
     const ordered: Array<number | null> = [];
     if (ids.includes(0)) ordered.push(0);
     if (ids.includes(1)) ordered.push(1);
-    ids
-      .filter((id) => id !== 0 && id !== 1 && id !== null)
-      .forEach((id) => ordered.push(id));
+    ids.filter((id) => id !== 0 && id !== 1 && id !== null).forEach((id) => ordered.push(id));
     if (ids.includes(null)) ordered.push(null);
     return ordered.map((id) => ({
       id,
@@ -144,13 +127,10 @@ export class RouteFrequencyComponent implements OnInit {
   get filteredVariants(): RouteVariantDto[] {
     if (this.selectedDirectionId === null) {
       return this.variants.filter(
-        (variant) =>
-          variant.directionId === null || variant.directionId === undefined,
+        (variant) => variant.directionId === null || variant.directionId === undefined
       );
     }
-    return this.variants.filter(
-      (variant) => variant.directionId === this.selectedDirectionId,
-    );
+    return this.variants.filter((variant) => variant.directionId === this.selectedDirectionId);
   }
 
   selectDirection(directionId: number | null): void {
@@ -166,9 +146,7 @@ export class RouteFrequencyComponent implements OnInit {
   }
 
   get selectedDirectionIndex(): number {
-    const index = this.directionTabs.findIndex(
-      (tab) => tab.id === this.selectedDirectionId,
-    );
+    const index = this.directionTabs.findIndex((tab) => tab.id === this.selectedDirectionId);
     return index === -1 ? 0 : index;
   }
 

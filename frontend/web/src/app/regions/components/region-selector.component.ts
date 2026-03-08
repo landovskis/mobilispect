@@ -12,10 +12,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  MetropolitanRegion,
-  RegionUtils,
-} from '../../feeds/models/region.models';
+import { MetropolitanRegion, RegionUtils } from '../../feeds/models/region.models';
 import { Observable, Subject, of } from 'rxjs';
 import { map, startWith, takeUntil } from 'rxjs/operators';
 
@@ -70,9 +67,7 @@ import { map, startWith, takeUntil } from 'rxjs/operators';
                     <span
                       class="region-feed-count inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-[0.78rem] font-semibold"
                     >
-                      {{ region.feedCount }} feed{{
-                        region.feedCount !== 1 ? 's' : ''
-                      }}
+                      {{ region.feedCount }} feed{{ region.feedCount !== 1 ? 's' : '' }}
                     </span>
                   }
                 </div>
@@ -260,7 +255,7 @@ export class RegionSelectorComponent implements OnInit, OnDestroy, OnChanges {
     this.filteredRegions$ = this.searchControl.valueChanges.pipe(
       startWith(''),
       map((value) => this._filterRegions(value)),
-      takeUntil(this.destroy$),
+      takeUntil(this.destroy$)
     );
 
     this.updateControlState();

@@ -21,7 +21,7 @@ export class RouteBreadcrumbResolver implements Resolve<string> {
         }
         return route.shortName || route.longName || routeId;
       }),
-      catchError(() => of(routeId)),
+      catchError(() => of(routeId))
     );
   }
 }

@@ -1,9 +1,4 @@
-import {
-  Component,
-  OnInit,
-  ChangeDetectionStrategy,
-  inject,
-} from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 
 import { Router, RouterModule } from '@angular/router';
 import { RegionService } from '../../feeds/services/region.service';
@@ -15,12 +10,7 @@ import { RegionSelectorComponent } from '../components/region-selector.component
 @Component({
   selector: 'app-region-list',
   standalone: true,
-  imports: [
-    RouterModule,
-    BrandCardComponent,
-    BrandButtonComponent,
-    RegionSelectorComponent,
-  ],
+  imports: [RouterModule, BrandCardComponent, BrandButtonComponent, RegionSelectorComponent],
   template: `
     <app-brand-card title="Regions" subtitle="All regions with imported feeds">
       <app-region-selector
@@ -46,9 +36,7 @@ import { RegionSelectorComponent } from '../components/region-selector.component
             (keydown.enter)="goToRegion(region.regionOnestopId)"
             (keydown.space)="goToRegion(region.regionOnestopId)"
           >
-            <div
-              class="info flex flex-col gap-0.5 text-[var(--mat-sys-on-surface,#0f172a)]"
-            >
+            <div class="info flex flex-col gap-0.5 text-[var(--mat-sys-on-surface,#0f172a)]">
               <div class="name">{{ region.name }}</div>
               <small>{{ region.adm0Name }} {{ region.adm1Name }}</small>
               <small>Feeds: {{ region.feedCount }}</small>
@@ -103,9 +91,7 @@ export class RegionListComponent implements OnInit {
 
   onRegionChange(regionId: string): void {
     this.selectedRegionId = regionId;
-    this.filteredRegions = this.regions.filter(
-      (r) => r.regionOnestopId === regionId,
-    );
+    this.filteredRegions = this.regions.filter((r) => r.regionOnestopId === regionId);
   }
 
   clearSelection(): void {

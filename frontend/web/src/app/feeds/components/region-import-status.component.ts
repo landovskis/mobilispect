@@ -2,10 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import {
-  RegionImportStatus,
-  RegionImportStatusResponse,
-} from '../models/import.models';
+import { RegionImportStatus, RegionImportStatusResponse } from '../models/import.models';
 
 @Component({
   selector: 'app-region-import-status',
@@ -43,9 +40,7 @@ import {
           </div>
           <div class="progress-meta mt-2 flex flex-wrap gap-4 text-sm">
             <span>{{ progressPercent }}% complete</span>
-            <span
-              >{{ completedTotal }} / {{ status.totalFeeds }} processed</span
-            >
+            <span>{{ completedTotal }} / {{ status.totalFeeds }} processed</span>
             <span>{{ status.failedCount }} failed</span>
             <span>{{ status.skippedCount }} skipped</span>
           </div>
@@ -144,19 +139,12 @@ export class RegionImportStatusComponent {
 
   get completedTotal(): number {
     if (!this.status) return 0;
-    return (
-      this.status.completedCount +
-      this.status.failedCount +
-      this.status.skippedCount
-    );
+    return this.status.completedCount + this.status.failedCount + this.status.skippedCount;
   }
 
   get progressPercent(): number {
     if (!this.status || !this.status.totalFeeds) return 0;
-    return Math.min(
-      100,
-      Math.round((this.completedTotal / this.status.totalFeeds) * 100),
-    );
+    return Math.min(100, Math.round((this.completedTotal / this.status.totalFeeds) * 100));
   }
 
   get statusLabel(): string {

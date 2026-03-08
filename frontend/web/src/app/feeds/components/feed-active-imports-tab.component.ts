@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -56,17 +50,14 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
             >
             <p>No active imports at this time.</p>
             <p class="hint mt-2 text-sm text-[#999]">
-              Start an import from the regions view to see real-time progress
-              here.
+              Start an import from the regions view to see real-time progress here.
             </p>
           </div>
         }
 
         @for (activeImport of activeImports; track activeImport.id) {
           <div class="active-import-card active-import-item mb-4">
-            <div
-              class="import-header flex items-start gap-2 max-md:flex-col max-md:gap-1"
-            >
+            <div class="import-header flex items-start gap-2 max-md:flex-col max-md:gap-1">
               <mat-checkbox
                 [checked]="selectedImportIds?.has(activeImport.id)"
                 (change)="
@@ -78,14 +69,10 @@ import { BrandButtonComponent } from '../../shared/components/brand-button.compo
                 class="import-checkbox mr-3 max-md:mr-0"
               ></mat-checkbox>
               <h3 class="m-0 flex-1 font-semibold">
-                <mat-icon class="import-icon mr-2 align-middle"
-                  >download</mat-icon
-                >
+                <mat-icon class="import-icon mr-2 align-middle">download</mat-icon>
                 {{ activeImport.feedName }}
               </h3>
-              <p
-                class="import-subtitle m-0 mt-1 flex-1 text-[#666] max-md:mt-0"
-              >
+              <p class="import-subtitle m-0 mt-1 flex-1 text-[#666] max-md:mt-0">
                 {{ activeImport.regionName }} • Started:
                 {{ activeImport.startedAt | date: 'short' }}
               </p>

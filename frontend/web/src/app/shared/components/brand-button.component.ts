@@ -14,9 +14,7 @@ type BrandButtonSize = 'sm' | 'md';
       class="brand-button inline-flex items-center justify-center gap-2 rounded-[10px] border font-bold tracking-[0.01em]"
       [ngClass]="[
         variant,
-        size === 'sm'
-          ? 'px-3 py-2 text-sm rounded-lg'
-          : 'px-4 py-2.5 text-base',
+        size === 'sm' ? 'px-3 py-2 text-sm rounded-lg' : 'px-4 py-2.5 text-base',
         block ? 'w-full' : '',
       ]"
       [disabled]="disabled"

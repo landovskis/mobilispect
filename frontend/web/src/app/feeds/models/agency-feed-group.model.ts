@@ -63,10 +63,7 @@ export class FeedGroupingUtils {
    */
   static extractAgencyName(feedName: string): string {
     return feedName
-      .replace(
-        /\s*(GTFS|gtfs)(\s*(static|Static|Realtime|realtime|RT|rt))?$/i,
-        '',
-      )
+      .replace(/\s*(GTFS|gtfs)(\s*(static|Static|Realtime|realtime|RT|rt))?$/i, '')
       .replace(/\s*-\s*(static|Static|Realtime|realtime|RT|rt)$/i, '')
       .trim();
   }
@@ -90,16 +87,8 @@ export class FeedGroupingUtils {
     return Array.from(groupMap.entries()).map(([agencyId, agencyFeeds]) => {
       // Sort feeds: GTFS first, then GTFS-RT
       const sortedFeeds = agencyFeeds.sort((a, b) => {
-        if (
-          a.specType === FeedSpecType.GTFS &&
-          b.specType !== FeedSpecType.GTFS
-        )
-          return -1;
-        if (
-          a.specType !== FeedSpecType.GTFS &&
-          b.specType === FeedSpecType.GTFS
-        )
-          return 1;
+        if (a.specType === FeedSpecType.GTFS && b.specType !== FeedSpecType.GTFS) return -1;
+        if (a.specType !== FeedSpecType.GTFS && b.specType === FeedSpecType.GTFS) return 1;
         return a.name.localeCompare(b.name);
       });
 
@@ -107,9 +96,7 @@ export class FeedGroupingUtils {
       const agencyName = this.extractAgencyName(primaryFeed.name);
 
       // Check if any feed is active
-      const hasActiveFeeds = agencyFeeds.some(
-        (f) => f.status === FeedStatus.ACTIVE,
-      );
+      const hasActiveFeeds = agencyFeeds.some((f) => f.status === FeedStatus.ACTIVE);
 
       // Check if any feed has authentication
       const hasAuthentication = agencyFeeds.some((f) => f.hasAuthentication);
@@ -124,10 +111,8 @@ export class FeedGroupingUtils {
 
       // Count feeds by type
       const feedsByType = {
-        gtfs: agencyFeeds.filter((f) => f.specType === FeedSpecType.GTFS)
-          .length,
-        gtfsRt: agencyFeeds.filter((f) => f.specType === FeedSpecType.GTFS_RT)
-          .length,
+        gtfs: agencyFeeds.filter((f) => f.specType === FeedSpecType.GTFS).length,
+        gtfsRt: agencyFeeds.filter((f) => f.specType === FeedSpecType.GTFS_RT).length,
       };
 
       return {

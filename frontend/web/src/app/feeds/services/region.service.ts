@@ -34,19 +34,14 @@ export class RegionService {
   private readonly http = inject(HttpClient);
 
   // Cache for regions list to improve performance
-  private regionsCache$ = new BehaviorSubject<MetropolitanRegion[] | null>(
-    null,
-  );
+  private regionsCache$ = new BehaviorSubject<MetropolitanRegion[] | null>(null);
   private lastCacheUpdate = 0;
   private readonly CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
   /**
    * Lists all available metropolitan regions
    */
-  listRegions(
-    autoUpdateEnabled?: boolean,
-    forceRefresh = false,
-  ): Observable<MetropolitanRegion[]> {
+  listRegions(autoUpdateEnabled?: boolean, forceRefresh = false): Observable<MetropolitanRegion[]> {
     // Check cache first
     const cachedRegions = this.regionsCache$.value;
     const cacheAge = Date.now() - this.lastCacheUpdate;
@@ -54,11 +49,7 @@ export class RegionService {
     if (!forceRefresh && cachedRegions && cacheAge < this.CACHE_DURATION_MS) {
       return this.regionsCache$
         .asObservable()
-        .pipe(
-          map((regions) =>
-            this.filterRegionsByAutoUpdate(regions || [], autoUpdateEnabled),
-          ),
-        );
+        .pipe(map((regions) => this.filterRegionsByAutoUpdate(regions || [], autoUpdateEnabled)));
     }
 
     // Build query parameters
@@ -74,13 +65,11 @@ export class RegionService {
         this.regionsCache$.next(regions);
         this.lastCacheUpdate = Date.now();
       }),
-      map((regions) =>
-        this.filterRegionsByAutoUpdate(regions, autoUpdateEnabled),
-      ),
+      map((regions) => this.filterRegionsByAutoUpdate(regions, autoUpdateEnabled)),
       catchError((error) => {
         console.error('Failed to load regions', error);
         return throwError(() => error);
-      }),
+      })
     );
   }
 
@@ -88,9 +77,7 @@ export class RegionService {
    * Gets detailed information about a specific region
    */
   getRegion(regionOnestopId: string): Observable<MetropolitanRegionDetail> {
-    return this.http.get<MetropolitanRegionDetail>(
-      `${this.apiUrl}/${regionOnestopId}`,
-    );
+    return this.http.get<MetropolitanRegionDetail>(`${this.apiUrl}/${regionOnestopId}`);
   }
 
   /**
@@ -98,24 +85,20 @@ export class RegionService {
    */
   updateRegion(
     regionOnestopId: string,
-    update: RegionUpdateRequest,
+    update: RegionUpdateRequest
   ): Observable<MetropolitanRegion> {
-    return this.http
-      .patch<MetropolitanRegion>(`${this.apiUrl}/${regionOnestopId}`, update)
-      .pipe(
-        tap((updatedRegion) => {
-          // Update cache with the new region data
-          const currentRegions = this.regionsCache$.value;
-          if (currentRegions) {
-            const updatedRegions = currentRegions.map((region) =>
-              region.regionOnestopId === regionOnestopId
-                ? updatedRegion
-                : region,
-            );
-            this.regionsCache$.next(updatedRegions);
-          }
-        }),
-      );
+    return this.http.patch<MetropolitanRegion>(`${this.apiUrl}/${regionOnestopId}`, update).pipe(
+      tap((updatedRegion) => {
+        // Update cache with the new region data
+        const currentRegions = this.regionsCache$.value;
+        if (currentRegions) {
+          const updatedRegions = currentRegions.map((region) =>
+            region.regionOnestopId === regionOnestopId ? updatedRegion : region
+          );
+          this.regionsCache$.next(updatedRegions);
+        }
+      })
+    );
   }
 
   /**
@@ -126,7 +109,7 @@ export class RegionService {
     options?: {
       specType?: FeedSpecType;
       status?: FeedStatus;
-    },
+    }
   ): Observable<Feed[]> {
     let params = new HttpParams();
     if (options?.specType) {
@@ -144,13 +127,8 @@ export class RegionService {
   /**
    * Triggers feed discovery for a region (managers only)
    */
-  discoverFeedsForRegion(
-    regionOnestopId: string,
-  ): Observable<FeedDiscoveryResult> {
-    return this.http.post<FeedDiscoveryResult>(
-      `${this.apiUrl}/${regionOnestopId}/discover`,
-      {},
-    );
+  discoverFeedsForRegion(regionOnestopId: string): Observable<FeedDiscoveryResult> {
+    return this.http.post<FeedDiscoveryResult>(`${this.apiUrl}/${regionOnestopId}/discover`, {});
   }
 
   /**
@@ -165,9 +143,7 @@ export class RegionService {
    * Gets a region from the in-memory cache (if available)
    */
   getCachedRegion(regionOnestopId: string): MetropolitanRegion | undefined {
-    return this.regionsCache$.value?.find(
-      (region) => region.regionOnestopId === regionOnestopId,
-    );
+    return this.regionsCache$.value?.find((region) => region.regionOnestopId === regionOnestopId);
   }
 
   /**
@@ -182,9 +158,7 @@ export class RegionService {
    */
   isCacheValid(): boolean {
     const cacheAge = Date.now() - this.lastCacheUpdate;
-    return (
-      this.regionsCache$.value !== null && cacheAge < this.CACHE_DURATION_MS
-    );
+    return this.regionsCache$.value !== null && cacheAge < this.CACHE_DURATION_MS;
   }
 
   /**
@@ -192,15 +166,13 @@ export class RegionService {
    */
   private filterRegionsByAutoUpdate(
     regions: MetropolitanRegion[],
-    autoUpdateEnabled?: boolean,
+    autoUpdateEnabled?: boolean
   ): MetropolitanRegion[] {
     if (autoUpdateEnabled === undefined) {
       return regions;
     }
 
-    return regions.filter(
-      (region) => region.autoUpdateEnabled === autoUpdateEnabled,
-    );
+    return regions.filter((region) => region.autoUpdateEnabled === autoUpdateEnabled);
   }
 
   /**
@@ -212,11 +184,9 @@ export class RegionService {
         regions.filter(
           (region) =>
             region.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            region.regionOnestopId
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()),
-        ),
-      ),
+            region.regionOnestopId.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      )
     );
   }
 
@@ -225,9 +195,7 @@ export class RegionService {
    */
   getTopRegionsByFeedCount(limit = 10): Observable<MetropolitanRegion[]> {
     return this.listRegions().pipe(
-      map((regions) =>
-        regions.sort((a, b) => b.feedCount - a.feedCount).slice(0, limit),
-      ),
+      map((regions) => regions.sort((a, b) => b.feedCount - a.feedCount).slice(0, limit))
     );
   }
 
@@ -251,8 +219,8 @@ export class RegionService {
           const lastCheck = new Date(region.lastCheckAt);
           const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
           return lastCheck <= twentyFourHoursAgo;
-        }),
-      ),
+        })
+      )
     );
   }
 
@@ -325,9 +293,7 @@ export class RegionService {
 
     // Check for Canadian province or city names
     return (
-      canadianProvinces.some((province) =>
-        nameAndId.includes(province.toLowerCase()),
-      ) ||
+      canadianProvinces.some((province) => nameAndId.includes(province.toLowerCase())) ||
       canadianCities.some((city) => nameAndId.includes(city.toLowerCase())) ||
       nameAndId.includes('canada') ||
       nameAndId.includes('canadian')
@@ -337,9 +303,7 @@ export class RegionService {
   /**
    * Sorts regions to prioritize Canadian regions first
    */
-  sortWithCanadianPriority(
-    regions: MetropolitanRegion[],
-  ): MetropolitanRegion[] {
+  sortWithCanadianPriority(regions: MetropolitanRegion[]): MetropolitanRegion[] {
     return regions.sort((a, b) => {
       const aIsCanadian = this.isCanadianRegion(a);
       const bIsCanadian = this.isCanadianRegion(b);

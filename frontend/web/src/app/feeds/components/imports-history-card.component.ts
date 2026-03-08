@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -55,14 +49,9 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
       [collapsible]="true"
       [(expanded)]="isExpanded"
     >
-      <div
-        section-actions
-        class="panel-actions inline-flex items-center gap-2.5"
-      >
+      <div section-actions class="panel-actions inline-flex items-center gap-2.5">
         @if (history && history.length > 0) {
-          <span class="count-badge rounded-full px-2.5 py-1">{{
-            totalItems
-          }}</span>
+          <span class="count-badge rounded-full px-2.5 py-1">{{ totalItems }}</span>
         }
       </div>
 
@@ -80,14 +69,10 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
 
       <!-- Empty State -->
       @if (!loading && (!history || history.length === 0)) {
-        <div
-          class="empty-state flex flex-col items-center gap-1.5 p-6 text-center"
-        >
+        <div class="empty-state flex flex-col items-center gap-1.5 p-6 text-center">
           <mat-icon class="empty-icon">history</mat-icon>
           <p class="empty-title m-0">No import history available yet.</p>
-          <p class="empty-subtitle max-w-[340px] m-0">
-            Start an import to see it appear here.
-          </p>
+          <p class="empty-subtitle max-w-[340px] m-0">Start an import to see it appear here.</p>
         </div>
       }
 
@@ -101,10 +86,7 @@ import { BrandSectionComponent } from '../../shared/components/brand-section.com
                 [title]="importItem.feedName || importItem.feedOnestopId"
                 [subtitle]="importItem.regionName"
               >
-                <div
-                  card-content
-                  class="history-card-content flex flex-col gap-3"
-                >
+                <div card-content class="history-card-content flex flex-col gap-3">
                   <div class="history-meta flex flex-wrap items-center gap-3">
                     <app-brand-badge
                       [variant]="statusToBadge(importItem.status)"

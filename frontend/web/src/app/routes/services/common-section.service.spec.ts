@@ -1,8 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { CommonSectionService } from './common-section.service';
 
 describe('CommonSectionService', () => {
@@ -50,7 +47,7 @@ describe('CommonSectionService', () => {
     const req = httpMock.expectOne(
       (request) =>
         request.url === '/api/v1/common-sections/section-2/frequency' &&
-        request.params.get('timePeriod') === 'PM',
+        request.params.get('timePeriod') === 'PM'
     );
     req.flush({
       commonSectionId: 'section-2',

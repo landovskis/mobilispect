@@ -1,8 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RouteService } from './route.service';
 
 describe('RouteService', () => {
@@ -66,9 +63,7 @@ describe('RouteService', () => {
       expect(frequencies[0].variantId).toBe('variant-1');
     });
 
-    const req = httpMock.expectOne(
-      '/api/v1/routes/variants/variant-1/frequencies',
-    );
+    const req = httpMock.expectOne('/api/v1/routes/variants/variant-1/frequencies');
     expect(req.request.method).toBe('GET');
     expect(req.request.params.has('date')).toBe(false);
     req.flush([
@@ -86,25 +81,19 @@ describe('RouteService', () => {
   it('fetches frequencies for a variant with date', () => {
     service.getFrequencies('variant-1', '2024-01-15').subscribe();
 
-    const req = httpMock.expectOne(
-      '/api/v1/routes/variants/variant-1/frequencies?date=2024-01-15',
-    );
+    const req = httpMock.expectOne('/api/v1/routes/variants/variant-1/frequencies?date=2024-01-15');
     expect(req.request.method).toBe('GET');
     expect(req.request.params.get('date')).toBe('2024-01-15');
     req.flush([]);
   });
 
   it('fetches hourly frequencies for a route', () => {
-    service
-      .getRouteHourlyFrequencies('route-1', '2024-01-15')
-      .subscribe((data) => {
-        expect(data.length).toBe(1);
-        expect(data[0].routeId).toBe('route-1');
-      });
+    service.getRouteHourlyFrequencies('route-1', '2024-01-15').subscribe((data) => {
+      expect(data.length).toBe(1);
+      expect(data[0].routeId).toBe('route-1');
+    });
 
-    const req = httpMock.expectOne(
-      '/api/v1/routes/route-1/hourly-frequencies?date=2024-01-15',
-    );
+    const req = httpMock.expectOne('/api/v1/routes/route-1/hourly-frequencies?date=2024-01-15');
     expect(req.request.method).toBe('GET');
     req.flush([
       {
@@ -119,15 +108,13 @@ describe('RouteService', () => {
   });
 
   it('fetches hourly frequencies for a variant', () => {
-    service
-      .getVariantHourlyFrequencies('variant-1', '2024-01-15')
-      .subscribe((data) => {
-        expect(data.length).toBe(1);
-        expect(data[0].variantId).toBe('variant-1');
-      });
+    service.getVariantHourlyFrequencies('variant-1', '2024-01-15').subscribe((data) => {
+      expect(data.length).toBe(1);
+      expect(data[0].variantId).toBe('variant-1');
+    });
 
     const req = httpMock.expectOne(
-      '/api/v1/routes/variants/variant-1/hourly-frequencies?date=2024-01-15',
+      '/api/v1/routes/variants/variant-1/hourly-frequencies?date=2024-01-15'
     );
     expect(req.request.method).toBe('GET');
     req.flush([
@@ -146,9 +133,7 @@ describe('RouteService', () => {
       expect(times).toEqual(['06:00', '06:15', '06:30']);
     });
 
-    const req = httpMock.expectOne(
-      '/api/v1/routes/variants/variant-1/schedule',
-    );
+    const req = httpMock.expectOne('/api/v1/routes/variants/variant-1/schedule');
     expect(req.request.method).toBe('GET');
     req.flush(['06:00', '06:15', '06:30']);
   });

@@ -1,15 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { RegionService } from './region.service';
 import { environment } from '../../../environments/environment';
-import {
-  FeedSpecType,
-  FeedStatus,
-  MetropolitanRegion,
-} from '../models/region.models';
+import { FeedSpecType, FeedStatus, MetropolitanRegion } from '../models/region.models';
 import { vi } from 'vitest';
 
 describe('RegionService', () => {
@@ -51,7 +44,7 @@ describe('RegionService', () => {
     });
 
     const req = httpMock.expectOne(
-      (request) => request.url === `${environment.apiUrl}/feeds/regions`,
+      (request) => request.url === `${environment.apiUrl}/feeds/regions`
     );
     expect(req.request.params.get('autoUpdateEnabled')).toBe('true');
     req.flush({
@@ -94,11 +87,9 @@ describe('RegionService', () => {
       { ...baseRegion, regionOnestopId: 'r-2', autoUpdateEnabled: false },
     ]);
 
-    service
-      .updateRegion('r-1', { autoUpdateEnabled: true })
-      .subscribe((updated) => {
-        expect(updated.autoUpdateEnabled).toBe(true);
-      });
+    service.updateRegion('r-1', { autoUpdateEnabled: true }).subscribe((updated) => {
+      expect(updated.autoUpdateEnabled).toBe(true);
+    });
 
     const req = httpMock.expectOne(`${environment.apiUrl}/feeds/regions/r-1`);
     expect(req.request.method).toBe('PATCH');
@@ -123,8 +114,7 @@ describe('RegionService', () => {
       });
 
     const req = httpMock.expectOne(
-      (request) =>
-        request.url === `${environment.apiUrl}/feeds/regions/r-1/feeds`,
+      (request) => request.url === `${environment.apiUrl}/feeds/regions/r-1/feeds`
     );
     expect(req.request.params.get('specType')).toBe(FeedSpecType.GTFS);
     expect(req.request.params.get('status')).toBe(FeedStatus.ACTIVE);
@@ -154,9 +144,7 @@ describe('RegionService', () => {
       expect(result.feedsDiscovered).toBe(2);
     });
 
-    const req = httpMock.expectOne(
-      `${environment.apiUrl}/feeds/regions/r-1/discover`,
-    );
+    const req = httpMock.expectOne(`${environment.apiUrl}/feeds/regions/r-1/discover`);
     expect(req.request.method).toBe('POST');
     req.flush({
       regionOnestopId: 'r-1',

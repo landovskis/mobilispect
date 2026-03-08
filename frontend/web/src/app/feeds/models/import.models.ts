@@ -238,8 +238,7 @@ export class ImportUtils {
    */
   static isActive(importRecord: FeedImport): boolean {
     return (
-      importRecord.status === ImportStatus.PENDING ||
-      importRecord.status === ImportStatus.RUNNING
+      importRecord.status === ImportStatus.PENDING || importRecord.status === ImportStatus.RUNNING
     );
   }
 
@@ -266,8 +265,7 @@ export class ImportUtils {
    */
   static isCancellable(importRecord: FeedImport): boolean {
     return (
-      importRecord.status === ImportStatus.PENDING ||
-      importRecord.status === ImportStatus.RUNNING
+      importRecord.status === ImportStatus.PENDING || importRecord.status === ImportStatus.RUNNING
     );
   }
 
@@ -464,10 +462,7 @@ export class RegionImportUtils {
    * Checks if a region import status is active (not yet completed)
    */
   static isActive(status: RegionImportStatus): boolean {
-    return (
-      status === RegionImportStatus.PENDING ||
-      status === RegionImportStatus.RUNNING
-    );
+    return status === RegionImportStatus.PENDING || status === RegionImportStatus.RUNNING;
   }
 
   /**
@@ -529,14 +524,10 @@ export class RegionImportUtils {
   /**
    * Gets the progress percentage for a region import
    */
-  static getProgressPercentage(
-    regionImport: RegionImportStatusResponse,
-  ): number {
+  static getProgressPercentage(regionImport: RegionImportStatusResponse): number {
     if (regionImport.totalFeeds === 0) return 100;
     const completed =
-      regionImport.completedCount +
-      regionImport.failedCount +
-      regionImport.skippedCount;
+      regionImport.completedCount + regionImport.failedCount + regionImport.skippedCount;
     return Math.round((completed / regionImport.totalFeeds) * 100);
   }
 }

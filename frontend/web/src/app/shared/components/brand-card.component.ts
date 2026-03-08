@@ -27,10 +27,9 @@ import { MatIconModule } from '@angular/material/icon';
             }
           </div>
           @if (badge) {
-            <span
-              class="card-badge ml-auto rounded-full px-3 py-1 text-[0.85rem] font-bold"
-              >{{ badge }}</span
-            >
+            <span class="card-badge ml-auto rounded-full px-3 py-1 text-[0.85rem] font-bold">{{
+              badge
+            }}</span>
           }
         </header>
       }
@@ -54,8 +53,7 @@ import { MatIconModule } from '@angular/material/icon';
         background: var(--mat-sys-surface, var(--ms-color-background, #ffffff));
         color: var(--mat-sys-on-surface, var(--ms-color-ink, #111827));
         box-shadow: none;
-        border: 1px solid
-          var(--mat-sys-outline, var(--ms-color-border, #d1d5db));
+        border: 1px solid var(--mat-sys-outline, var(--ms-color-border, #d1d5db));
       }
 
       .brand-card.border {
@@ -83,10 +81,7 @@ import { MatIconModule } from '@angular/material/icon';
 
       .card-subtitle {
         font-size: 0.95rem;
-        color: var(
-          --mat-sys-on-surface-variant,
-          var(--ms-color-muted, #6b7280)
-        );
+        color: var(--mat-sys-on-surface-variant, var(--ms-color-muted, #6b7280));
       }
 
       .card-badge {
@@ -123,10 +118,7 @@ import { MatIconModule } from '@angular/material/icon';
       }
 
       :host-context(.dark-theme) .brand-card {
-        background: var(
-          --mat-sys-surface,
-          var(--ms-color-surface-elevated, #0f172a)
-        );
+        background: var(--mat-sys-surface, var(--ms-color-surface-elevated, #0f172a));
         color: var(--mat-sys-on-surface, var(--ms-color-text-primary, #e5f1ff));
         border-color: var(--mat-sys-outline, rgba(148, 163, 184, 0.24));
         box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
@@ -137,10 +129,7 @@ import { MatIconModule } from '@angular/material/icon';
       }
 
       :host-context(.dark-theme) .card-subtitle {
-        color: var(
-          --mat-sys-on-surface-variant,
-          var(--ms-color-text-secondary, #94a3b8)
-        );
+        color: var(--mat-sys-on-surface-variant, var(--ms-color-text-secondary, #94a3b8));
       }
 
       :host-context(.dark-theme) .card-badge {

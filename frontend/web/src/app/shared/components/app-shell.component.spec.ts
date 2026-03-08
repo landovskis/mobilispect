@@ -43,12 +43,7 @@ describe('AppShellComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [
-        AppShellComponent,
-        MatSnackBarModule,
-        NoopAnimationsModule,
-        RouterTestingModule,
-      ],
+      imports: [AppShellComponent, MatSnackBarModule, NoopAnimationsModule, RouterTestingModule],
       providers: [
         { provide: ImportService, useValue: mockImportService },
         { provide: FeedsMetricsService, useValue: mockMetricsService },

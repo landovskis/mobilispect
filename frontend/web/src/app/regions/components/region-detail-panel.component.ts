@@ -20,10 +20,7 @@ import {
   Feed,
   RegionUtils,
 } from '../../feeds/models/region.models';
-import {
-  AgencyFeedGroup,
-  FeedGroupingUtils,
-} from '../../feeds/models/agency-feed-group.model';
+import { AgencyFeedGroup, FeedGroupingUtils } from '../../feeds/models/agency-feed-group.model';
 import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { AgencyService } from '../../agencies/services/agency.service';
@@ -81,27 +78,20 @@ interface RegionSummary {
     <div class="region-detail-container">
       @if (!region) {
         <!-- Empty State - No Region Selected -->
-        <div
-          class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center"
-        >
+        <div class="empty-state flex flex-col items-center justify-center px-6 py-16 text-center">
           <mat-icon class="empty-icon mb-4 text-[64px] text-[rgba(0,0,0,0.3)]"
             >travel_explore</mat-icon
           >
-          <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">
-            No Region Selected
-          </h3>
+          <h3 class="mb-2 text-xl font-semibold text-[rgba(0,0,0,0.7)]">No Region Selected</h3>
           <p class="max-w-[400px] text-sm text-[rgba(0,0,0,0.6)]">
-            Select a region from the list to view its transit feeds and
-            agencies.
+            Select a region from the list to view its transit feeds and agencies.
           </p>
         </div>
       } @else {
         <!-- Region Header -->
         <div class="region-header mb-6">
           <div class="flex items-center justify-between">
-            <h2
-              class="text-2xl font-semibold text-[var(--mdc-theme-on-surface)]"
-            >
+            <h2 class="text-2xl font-semibold text-[var(--mdc-theme-on-surface)]">
               {{ getDisplayName(region) }}
             </h2>
             <!-- Import All Feeds Button -->
@@ -114,16 +104,11 @@ interface RegionSummary {
                 class="import-all-button"
               >
                 @if (isImportingAll) {
-                  <mat-spinner
-                    diameter="20"
-                    class="mr-2 inline-block"
-                  ></mat-spinner>
+                  <mat-spinner diameter="20" class="mr-2 inline-block"></mat-spinner>
                 } @else {
                   <mat-icon class="mr-1">cloud_download</mat-icon>
                 }
-                <span>{{
-                  isImportingAll ? 'Importing...' : 'Import All Feeds'
-                }}</span>
+                <span>{{ isImportingAll ? 'Importing...' : 'Import All Feeds' }}</span>
               </button>
             }
           </div>
@@ -146,9 +131,7 @@ interface RegionSummary {
                   {{ region.autoUpdateEnabled ? 'sync' : 'sync_disabled' }}
                 </mat-icon>
                 <span>{{
-                  region.autoUpdateEnabled
-                    ? 'Auto-update enabled'
-                    : 'Manual updates'
+                  region.autoUpdateEnabled ? 'Auto-update enabled' : 'Manual updates'
                 }}</span>
               </div>
             }
@@ -186,21 +169,15 @@ interface RegionSummary {
 
         <div class="tab-content pt-4">
           @if (loadingOverview) {
-            <div
-              class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12"
-            >
+            <div class="loading-state flex flex-col items-center justify-center gap-4 px-6 py-12">
               <mat-spinner diameter="40"></mat-spinner>
-              <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">
-                Loading overview...
-              </p>
+              <p class="text-sm text-[var(--mdc-theme-on-surface-variant)]">Loading overview...</p>
             </div>
           } @else {
             <!-- Summary Statistics -->
             @if (summary$ | async; as summary) {
               <div class="summary-section mb-6">
-                <h3
-                  class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]"
-                >
+                <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">
                   Summary
                 </h3>
                 <div class="summary-grid grid gap-4 md:grid-cols-2">
@@ -225,14 +202,10 @@ interface RegionSummary {
             <!-- Agencies Grid -->
             @if (agencies$ | async; as agenciesResponse) {
               <div class="agencies-section">
-                <h3
-                  class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]"
-                >
+                <h3 class="mb-4 text-lg font-semibold text-[var(--mdc-theme-on-surface)]">
                   Agencies
                 </h3>
-                <div
-                  class="agencies-grid grid gap-4 md:grid-cols-1 xl:grid-cols-2"
-                >
+                <div class="agencies-grid grid gap-4 md:grid-cols-1 xl:grid-cols-2">
                   @for (agency of agenciesResponse.content; track agency) {
                     <app-agency-card [agency]="agency"></app-agency-card>
                   }
@@ -335,7 +308,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     private readonly snackBar: MatSnackBar,
     private readonly metrics: FeedsMetricsService,
     private readonly events: FeedsEventsService,
-    private readonly cdr: ChangeDetectorRef,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -348,7 +321,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         this.importService.startPollingActiveImports();
         this.metrics.setSelectedRegion(
           this.region.regionOnestopId,
-          this.getDisplayName(this.region),
+          this.getDisplayName(this.region)
         );
       } else {
         this.regionImportStatus = null;
@@ -382,7 +355,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         next: (feeds) => {
           this.regionFeeds = feeds;
           this.agencyGroups = FeedGroupingUtils.sortAgencyGroups(
-            FeedGroupingUtils.groupFeedsByAgency(feeds),
+            FeedGroupingUtils.groupFeedsByAgency(feeds)
           );
           this.metrics.setDiscoverFeedCount(feeds.length);
           this.loadingFeeds = false;
@@ -419,14 +392,12 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
           .onAction()
           .subscribe(() => this.loadOverviewForRegion(regionId));
         return of(null as unknown as MetropolitanRegionDetail);
-      }),
+      })
     );
     this.agencies$ = this.agencyService.listAgencies(0, 100, regionId).pipe(
       map((response) => ({
         ...response,
-        content: [...response.content].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        ),
+        content: [...response.content].sort((a, b) => a.name.localeCompare(b.name)),
       })),
       catchError((error) => {
         console.error('Failed to load agencies:', error);
@@ -443,7 +414,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
           totalElements: 0,
           totalPages: 0,
         } as AgencyListResponse);
-      }),
+      })
     );
 
     // Compute summary from region and agencies data
@@ -457,7 +428,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         // Sum active route counts across all agencies
         const totalActiveRoutes = agencies.reduce(
           (sum, agency) => sum + agency.activeRouteCount,
-          0,
+          0
         );
 
         return {
@@ -465,7 +436,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
           totalAgencies: agencies.length,
           totalActiveRoutes,
         };
-      }),
+      })
     );
 
     // Ensure the loading flag is cleared once the first overview emission arrives.
@@ -505,26 +476,20 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
   }
 
   private watchActiveRegionImports(regionId: string): void {
-    this.activeRegionImportGroup$ = this.importService
-      .getActiveImportsObservable()
-      .pipe(
-        map((imports) => {
-          const groups =
-            RegionImportGroupingUtils.groupImportsByRegion(imports);
-          const group = groups.find(
-            (candidate) => candidate.regionOnestopId === regionId,
-          );
-          if (!group) {
-            return null;
-          }
-          const regionName =
-            this.getDisplayName(this.region) || group.regionName;
-          return {
-            ...group,
-            regionName,
-          };
-        }),
-      );
+    this.activeRegionImportGroup$ = this.importService.getActiveImportsObservable().pipe(
+      map((imports) => {
+        const groups = RegionImportGroupingUtils.groupImportsByRegion(imports);
+        const group = groups.find((candidate) => candidate.regionOnestopId === regionId);
+        if (!group) {
+          return null;
+        }
+        const regionName = this.getDisplayName(this.region) || group.regionName;
+        return {
+          ...group,
+          regionName,
+        };
+      })
+    );
     this.importService.refreshActiveImports();
   }
 
@@ -548,8 +513,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         },
         error: (error) => {
           console.error('Failed to start import:', error);
-          const errorMessage =
-            error.message || error.error?.message || 'Unknown error occurred';
+          const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
           this.snackBar
             .open(`❌ Import failed: ${errorMessage}`, 'Retry', {
               duration: 8000,
@@ -582,7 +546,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     if (feedCount > 20) {
       const confirmed = window.confirm(
         `You are about to import ${feedCount} feeds for ${this.getDisplayName(this.region)}. ` +
-          `This may take some time. Continue?`,
+          `This may take some time. Continue?`
       );
       if (!confirmed) {
         return;
@@ -590,8 +554,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
     }
 
     this.isImportingAll = true;
-    const regionName =
-      this.getDisplayName(this.region) || this.region.regionOnestopId;
+    const regionName = this.getDisplayName(this.region) || this.region.regionOnestopId;
 
     this.snackBar.open(`Starting bulk import for ${regionName}...`, 'Close', {
       duration: 2000,
@@ -612,8 +575,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
         error: (error) => {
           console.error('Failed to start bulk import:', error);
           this.isImportingAll = false;
-          const errorMessage =
-            error.message || error.error?.message || 'Unknown error occurred';
+          const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
           this.snackBar
             .open(`❌ Bulk import failed: ${errorMessage}`, 'Retry', {
               duration: 8000,
@@ -628,10 +590,7 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
   /**
    * Display bulk import results in a snackbar
    */
-  private showBulkImportResults(
-    result: BulkImportResponse,
-    regionName: string,
-  ): void {
+  private showBulkImportResults(result: BulkImportResponse, regionName: string): void {
     const { totalFeeds, startedCount, failedCount, skippedCount } = result;
 
     // Build summary message
@@ -717,16 +676,11 @@ export class RegionDetailPanelComponent implements OnChanges, OnDestroy {
           });
         },
         error: (error) => {
-          const errorMessage =
-            error?.message || error?.error?.message || 'Unknown error';
-          this.snackBar.open(
-            `❌ Failed to cancel import: ${errorMessage}`,
-            'Close',
-            {
-              duration: 8000,
-              panelClass: ['error-snackbar'],
-            },
-          );
+          const errorMessage = error?.message || error?.error?.message || 'Unknown error';
+          this.snackBar.open(`❌ Failed to cancel import: ${errorMessage}`, 'Close', {
+            duration: 8000,
+            panelClass: ['error-snackbar'],
+          });
         },
       });
   }

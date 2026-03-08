@@ -34,10 +34,7 @@ import { FeedImportSummary } from '../../feeds/models';
   ],
   template: `
     <div class="flex min-h-screen flex-col">
-      <app-bar
-        (refresh)="onRefresh()"
-        (breadcrumbSelected)="onBreadcrumbSelected($event)"
-      >
+      <app-bar (refresh)="onRefresh()" (breadcrumbSelected)="onBreadcrumbSelected($event)">
         <div toolbar-actions>
           @if (isHandset$ | async) {
             <button
@@ -53,19 +50,14 @@ import { FeedImportSummary } from '../../feeds/models';
         </div>
       </app-bar>
 
-      <mat-sidenav-container
-        class="flex-1 bg-transparent md:h-[calc(100vh-64px)] max-md:h-auto"
-      >
+      <mat-sidenav-container class="flex-1 bg-transparent md:h-[calc(100vh-64px)] max-md:h-auto">
         <mat-sidenav
           class="app-sidenav border-r border-[#E1F3FF] bg-white pb-8 pt-7 text-[#0B3558] max-md:border-b max-md:border-r-0"
           [mode]="(isHandset$ | async) ? 'over' : 'side'"
           [opened]="(isHandset$ | async) ? sidebarOpened : true"
           (openedChange)="onSidenavOpenedChange($event)"
         >
-          <nav
-            class="flex flex-col gap-4 sticky top-24 max-md:static"
-            aria-label="Feed navigation"
-          >
+          <nav class="flex flex-col gap-4 sticky top-24 max-md:static" aria-label="Feed navigation">
             <div
               class="sidebar-heading mb-1 px-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280]"
             >
@@ -83,10 +75,9 @@ import { FeedImportSummary } from '../../feeds/models';
               <span class="nav-label">Feed Imports</span>
               @let totalImports = totalImportElements$ | async;
               @if ((totalImports ?? 0) > 0) {
-                <span
-                  class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                  >{{ totalImports }}</span
-                >
+                <span class="nav-count ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold">{{
+                  totalImports
+                }}</span>
               }
               @let activeImports = activeImportCount$ | async;
               @if ((activeImports ?? 0) > 0) {
@@ -111,9 +102,7 @@ import { FeedImportSummary } from '../../feeds/models';
         </mat-sidenav>
 
         <mat-sidenav-content>
-          <div
-            class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-6 max-md:p-4"
-          >
+          <div class="content-area min-h-[calc(100vh-64px)] bg-[#fafafa] p-6 max-md:p-4">
             <div class="mx-auto w-full max-w-[1600px]">
               <section
                 class="view-content min-h-[calc(100vh-160px)] rounded-2xl bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)] max-md:p-4"
@@ -179,12 +168,7 @@ import { FeedImportSummary } from '../../feeds/models';
       }
 
       .sidebar-link.active {
-        background: linear-gradient(
-          90deg,
-          #0b4f8a 0%,
-          #0b4f8a 60%,
-          #00a7c4 100%
-        );
+        background: linear-gradient(90deg, #0b4f8a 0%, #0b4f8a 60%, #00a7c4 100%);
         color: #e5f1ff;
         box-shadow: 0 12px 28px rgba(11, 79, 138, 0.28);
         border-color: transparent;
@@ -283,12 +267,7 @@ import { FeedImportSummary } from '../../feeds/models';
       }
 
       :host-context(.dark-theme) .sidebar-link.active {
-        background: linear-gradient(
-          90deg,
-          #0b4f8a 0%,
-          #0b4f8a 60%,
-          #00a7c4 100%
-        );
+        background: linear-gradient(90deg, #0b4f8a 0%, #0b4f8a 60%, #00a7c4 100%);
         border-color: transparent;
         color: #e5f1ff;
         box-shadow: 0 12px 28px rgba(11, 79, 138, 0.5);
@@ -334,22 +313,15 @@ export class AppShellComponent implements OnDestroy {
   private readonly regionService = inject(RegionService);
 
   constructor() {
-    this.isHandset$ = this.breakpointObserver
-      .observe('(max-width: 768px)')
-      .pipe(
-        map((result) => result.matches),
-        shareReplay({ bufferSize: 1, refCount: true }),
-      );
+    this.isHandset$ = this.breakpointObserver.observe('(max-width: 768px)').pipe(
+      map((result) => result.matches),
+      shareReplay({ bufferSize: 1, refCount: true })
+    );
     this.discoverFeedCount$ = this.metrics.discoverFeedCount$;
     this.totalImportElements$ = this.metrics.totalImportElements$;
     this.activeImportCount$ = this.importService
       .getActiveImportsObservable()
-      .pipe(
-        map(
-          (imports: FeedImportSummary[] | null | undefined) =>
-            imports?.length ?? 0,
-        ),
-      );
+      .pipe(map((imports: FeedImportSummary[] | null | undefined) => imports?.length ?? 0));
   }
 
   ngOnDestroy(): void {

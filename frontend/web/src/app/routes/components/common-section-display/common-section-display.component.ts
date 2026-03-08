@@ -1,10 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
-import {
-  CombinedFrequencyDto,
-  CommonSectionDto,
-} from '../../services/common-section.service';
+import { CombinedFrequencyDto, CommonSectionDto } from '../../services/common-section.service';
 
 @Component({
   selector: 'app-common-section-display',
@@ -17,24 +14,16 @@ import {
       <div class="sections grid gap-3 md:grid-cols-2">
         @for (section of sections; track section.id) {
           <div class="section-card rounded-xl p-3">
-            <div
-              class="header flex flex-wrap items-center justify-between gap-2"
-            >
-              <div class="title text-sm font-semibold">
-                {{ section.stopCount }} stops
-              </div>
-              <div class="chip text-xs">
-                {{ section.variants.length }} variants
-              </div>
+            <div class="header flex flex-wrap items-center justify-between gap-2">
+              <div class="title text-sm font-semibold">{{ section.stopCount }} stops</div>
+              <div class="chip text-xs">{{ section.variants.length }} variants</div>
             </div>
             <div class="pattern text-xs">{{ section.stopPattern }}</div>
             @if (combined[section.id]) {
               <div class="metrics text-xs">
                 <span>
                   Avg headway:
-                  {{
-                    formatHeadway(combined[section.id].averageHeadwayMinutes)
-                  }}
+                  {{ formatHeadway(combined[section.id].averageHeadwayMinutes) }}
                 </span>
                 <span>Trips: {{ combined[section.id].tripCount }}</span>
                 @if (combined[section.id].isIrregular) {

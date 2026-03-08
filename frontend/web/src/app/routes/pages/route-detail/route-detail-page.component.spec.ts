@@ -88,9 +88,7 @@ describe('RouteDetailPageComponent', () => {
     vi.mocked(mockRouteService.getVariants).mockReturnValue(of(mockVariants));
     vi.mocked(mockRouteService.getFrequencies).mockReturnValue(of([]));
     vi.mocked(mockRouteService.getCommonSections).mockReturnValue(of([]));
-    vi.mocked(
-      mockCommonSectionService.getCommonSectionsForRoute,
-    ).mockReturnValue(of(mockSections));
+    vi.mocked(mockCommonSectionService.getCommonSectionsForRoute).mockReturnValue(of(mockSections));
     vi.mocked(mockCommonSectionService.getCombinedFrequency).mockReturnValue(
       of({
         commonSectionId: 'section-1',
@@ -98,16 +96,16 @@ describe('RouteDetailPageComponent', () => {
         averageHeadwayMinutes: 10,
         tripCount: 12,
         isIrregular: false,
-      }),
+      })
     );
 
     fixture.detectChanges();
 
     expect(mockRouteService.getRoute).toHaveBeenCalledWith('test-route-id');
     expect(mockRouteService.getVariants).toHaveBeenCalledWith('test-route-id');
-    expect(
-      mockCommonSectionService.getCommonSectionsForRoute,
-    ).toHaveBeenCalledWith('test-route-id');
+    expect(mockCommonSectionService.getCommonSectionsForRoute).toHaveBeenCalledWith(
+      'test-route-id'
+    );
   });
 
   it('should return route type label', () => {

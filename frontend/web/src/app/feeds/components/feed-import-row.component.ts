@@ -14,11 +14,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import {
-  FeedImportSummary,
-  ImportProgress,
-  ImportStatus,
-} from '../models/import.models';
+import { FeedImportSummary, ImportProgress, ImportStatus } from '../models/import.models';
 import { ImportService } from '../services/import.service';
 
 /**
@@ -38,9 +34,7 @@ import { ImportService } from '../services/import.service';
     <div class="feed-row" role="listitem">
       <div class="feed-info">
         <mat-icon class="feed-icon">rss_feed</mat-icon>
-        <span class="feed-name">{{
-          feedImport.feedName || feedImport.feedOnestopId
-        }}</span>
+        <span class="feed-name">{{ feedImport.feedName || feedImport.feedOnestopId }}</span>
         <span class="status-badge" [ngClass]="getStatusClass()">
           {{ feedImport.status }}
         </span>
@@ -53,9 +47,7 @@ import { ImportService } from '../services/import.service';
           color="primary"
         ></mat-progress-bar>
         <div class="progress-details">
-          <span class="step-info">{{
-            currentProgress?.currentStep || 'Starting...'
-          }}</span>
+          <span class="step-info">{{ currentProgress?.currentStep || 'Starting...' }}</span>
           @if (currentProgress?.estimatedTimeRemainingSeconds) {
             <span class="time-remaining">{{ formatTimeRemaining() }}</span>
           }
@@ -66,9 +58,7 @@ import { ImportService } from '../services/import.service';
         mat-icon-button
         color="warn"
         (click)="onStop()"
-        [attr.aria-label]="
-          'Stop import for ' + (feedImport.feedName || feedImport.feedOnestopId)
-        "
+        [attr.aria-label]="'Stop import for ' + (feedImport.feedName || feedImport.feedOnestopId)"
         class="stop-button"
       >
         <mat-icon>stop_circle</mat-icon>
@@ -210,7 +200,7 @@ export class FeedImportRowComponent implements OnInit, OnDestroy {
 
   constructor(
     private importService: ImportService,
-    private cdr: ChangeDetectorRef,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {

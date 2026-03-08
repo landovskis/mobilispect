@@ -89,17 +89,13 @@ describe('RegionDetailComponent', () => {
         content: mockAgencies,
         totalElements: 2,
         totalPages: 1,
-      }),
+      })
     );
 
     fixture.detectChanges();
 
     expect(regionServiceSpy.getRegion).toHaveBeenCalledWith('r-test-region');
-    expect(agencyServiceSpy.listAgencies).toHaveBeenCalledWith(
-      0,
-      100,
-      'r-test-region',
-    );
+    expect(agencyServiceSpy.listAgencies).toHaveBeenCalledWith(0, 100, 'r-test-region');
   });
 
   it('should display region information', () => {
@@ -109,7 +105,7 @@ describe('RegionDetailComponent', () => {
         content: mockAgencies,
         totalElements: 2,
         totalPages: 1,
-      }),
+      })
     );
 
     fixture.detectChanges();
@@ -128,16 +124,14 @@ describe('RegionDetailComponent', () => {
         content: mockAgencies,
         totalElements: 2,
         totalPages: 1,
-      }),
+      })
     );
 
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement;
     expect(compiled.textContent).toContain('Agencies');
-    expect(compiled.textContent).toContain(
-      'Transit agencies serving this region',
-    );
+    expect(compiled.textContent).toContain('Transit agencies serving this region');
     const agencyCards = compiled.querySelectorAll('app-agency-card');
     expect(agencyCards.length).toBe(2);
   });
@@ -149,7 +143,7 @@ describe('RegionDetailComponent', () => {
         content: [],
         totalElements: 0,
         totalPages: 0,
-      }),
+      })
     );
 
     fixture.detectChanges();

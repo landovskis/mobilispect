@@ -1,9 +1,4 @@
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  ChangeDetectionStrategy,
-} from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, BehaviorSubject } from 'rxjs';
@@ -47,9 +42,7 @@ import { RegionDetailPanelComponent } from '../components/region-detail-panel.co
 
       <!-- Detail Panel (Right/Bottom) - Region Details and Feeds -->
       <div class="detail-panel">
-        <app-region-detail-panel
-          [region]="selectedRegion$ | async"
-        ></app-region-detail-panel>
+        <app-region-detail-panel [region]="selectedRegion$ | async"></app-region-detail-panel>
       </div>
     </div>
   `,
@@ -150,7 +143,7 @@ export class RegionsPageComponent implements OnInit, OnDestroy {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly regionService: RegionService,
+    private readonly regionService: RegionService
   ) {}
 
   ngOnInit(): void {
@@ -165,20 +158,15 @@ export class RegionsPageComponent implements OnInit, OnDestroy {
     });
 
     // Also support legacy query parameter ?region=xyz for backwards compatibility
-    this.route.queryParamMap
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((queryParams) => {
-        const regionIdFromQuery = queryParams.get('region');
-        if (
-          regionIdFromQuery &&
-          !this.route.snapshot.paramMap.get('regionId')
-        ) {
-          // Redirect to new URL format
-          this.router.navigate(['/regions', regionIdFromQuery], {
-            replaceUrl: true,
-          });
-        }
-      });
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe((queryParams) => {
+      const regionIdFromQuery = queryParams.get('region');
+      if (regionIdFromQuery && !this.route.snapshot.paramMap.get('regionId')) {
+        // Redirect to new URL format
+        this.router.navigate(['/regions', regionIdFromQuery], {
+          replaceUrl: true,
+        });
+      }
+    });
   }
 
   ngOnDestroy(): void {

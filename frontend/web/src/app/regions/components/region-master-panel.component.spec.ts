@@ -1,9 +1,4 @@
-import {
-  ComponentFixture,
-  TestBed,
-  fakeAsync,
-  tick,
-} from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { of, throwError } from 'rxjs';
@@ -13,11 +8,7 @@ import { RegionService } from '../../feeds/services/region.service';
 import { ImportService } from '../../feeds/services/import.service';
 import { SchedulerService } from '../../feeds/services/scheduler.service';
 import { MetropolitanRegion } from '../../feeds/models/region.models';
-import {
-  FeedImportSummary,
-  ImportStatus,
-  TriggerType,
-} from '../../feeds/models/import.models';
+import { FeedImportSummary, ImportStatus, TriggerType } from '../../feeds/models/import.models';
 
 describe('RegionMasterPanelComponent', () => {
   let component: RegionMasterPanelComponent;
@@ -105,21 +96,11 @@ describe('RegionMasterPanelComponent', () => {
     } as unknown as MatSnackBar;
 
     vi.mocked(regionService.listRegions).mockReturnValue(of(mockRegions));
-    vi.mocked(regionService.sortWithCanadianPriority).mockImplementation(
-      (regions) => regions,
-    );
-    vi.mocked(importService.getActiveImports).mockReturnValue(
-      of(mockActiveImports),
-    );
-    vi.mocked(importService.getActiveImportsObservable).mockReturnValue(
-      of(mockActiveImports),
-    );
-    vi.mocked(schedulerService.enableFeedAutoUpdate).mockReturnValue(
-      of(undefined),
-    );
-    vi.mocked(schedulerService.disableFeedAutoUpdate).mockReturnValue(
-      of(undefined),
-    );
+    vi.mocked(regionService.sortWithCanadianPriority).mockImplementation((regions) => regions);
+    vi.mocked(importService.getActiveImports).mockReturnValue(of(mockActiveImports));
+    vi.mocked(importService.getActiveImportsObservable).mockReturnValue(of(mockActiveImports));
+    vi.mocked(schedulerService.enableFeedAutoUpdate).mockReturnValue(of(undefined));
+    vi.mocked(schedulerService.disableFeedAutoUpdate).mockReturnValue(of(undefined));
 
     await TestBed.configureTestingModule({
       imports: [RegionMasterPanelComponent, NoopAnimationsModule],
@@ -200,31 +181,25 @@ describe('RegionMasterPanelComponent', () => {
 
     component.toggleAutoUpdate(mockRegions[1], true);
 
-    expect(schedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith(
-      'r-test-vancouver',
-    );
-    expect(snackBar.open).toHaveBeenCalledWith(
-      expect.stringContaining('enabled'),
-      'Close',
-      { duration: 3000 },
-    );
+    expect(schedulerService.enableFeedAutoUpdate).toHaveBeenCalledWith('r-test-vancouver');
+    expect(snackBar.open).toHaveBeenCalledWith(expect.stringContaining('enabled'), 'Close', {
+      duration: 3000,
+    });
     expect(component.refreshRegions).toHaveBeenCalled();
     expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(false);
   });
 
   it('handles auto-update errors', () => {
     vi.mocked(schedulerService.enableFeedAutoUpdate).mockReturnValue(
-      throwError(() => new Error('Failed to update')),
+      throwError(() => new Error('Failed to update'))
     );
 
     component.toggleAutoUpdate(mockRegions[1], true);
 
     expect(component.isUpdatingAutoUpdate.has('r-test-vancouver')).toBe(false);
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Failed to update auto-update setting',
-      'Close',
-      { duration: 3000 },
-    );
+    expect(snackBar.open).toHaveBeenCalledWith('Failed to update auto-update setting', 'Close', {
+      duration: 3000,
+    });
   });
 
   it('calculates active import count', () => {
@@ -236,14 +211,12 @@ describe('RegionMasterPanelComponent', () => {
 
   it('handles region load errors', () => {
     vi.mocked(regionService.listRegions).mockReturnValue(
-      throwError(() => new Error('Network error')),
+      throwError(() => new Error('Network error'))
     );
 
     setup();
 
-    expect(component.error$.value).toBe(
-      'Failed to load regions. Please try again.',
-    );
+    expect(component.error$.value).toBe('Failed to load regions. Please try again.');
     expect(component.isLoading$.value).toBe(false);
   });
 

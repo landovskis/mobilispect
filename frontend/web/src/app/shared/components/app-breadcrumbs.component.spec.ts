@@ -19,9 +19,7 @@ describe('AppBreadcrumbsComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [AppBreadcrumbsComponent, RouterTestingModule],
-      providers: [
-        { provide: AppBreadcrumbService, useValue: breadcrumbServiceSpy },
-      ],
+      providers: [{ provide: AppBreadcrumbService, useValue: breadcrumbServiceSpy }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppBreadcrumbsComponent);

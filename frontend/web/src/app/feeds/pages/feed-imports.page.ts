@@ -133,8 +133,7 @@ export class FeedImportsPageComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Failed to cancel import:', error);
-          const errorMessage =
-            error.message || error.error?.message || 'Unknown error occurred';
+          const errorMessage = error.message || error.error?.message || 'Unknown error occurred';
           this.snackBar
             .open(`❌ Failed to cancel import: ${errorMessage}`, 'Retry', {
               duration: 8000,

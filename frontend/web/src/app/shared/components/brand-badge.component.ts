@@ -14,13 +14,9 @@ type BrandBadgeVariant = 'good' | 'mixed' | 'bad' | 'neutral' | 'indeterminate';
       [ngClass]="variant"
     >
       @if (icon) {
-        <mat-icon class="text-[18px] leading-none" aria-hidden="true">{{
-          icon
-        }}</mat-icon>
+        <mat-icon class="text-[18px] leading-none" aria-hidden="true">{{ icon }}</mat-icon>
       }
-      <span class="badge-label inline-flex items-center">{{
-        label || variant
-      }}</span>
+      <span class="badge-label inline-flex items-center">{{ label || variant }}</span>
     </span>
   `,
   styles: [

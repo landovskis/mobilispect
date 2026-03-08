@@ -1,9 +1,6 @@
 import { RegionBreadcrumbResolver } from './region-breadcrumb.resolver';
 import { RegionService } from '../../feeds/services/region.service';
-import {
-  MetropolitanRegion,
-  MetropolitanRegionDetail,
-} from '../../feeds/models/region.models';
+import { MetropolitanRegion, MetropolitanRegionDetail } from '../../feeds/models/region.models';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { ActivatedRouteSnapshot } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
@@ -36,10 +33,7 @@ describe('RegionBreadcrumbResolver', () => {
       getCachedRegion: vi.fn(),
     } as unknown as RegionService;
     TestBed.configureTestingModule({
-      providers: [
-        { provide: RegionService, useValue: regionServiceSpy },
-        RegionBreadcrumbResolver,
-      ],
+      providers: [{ provide: RegionService, useValue: regionServiceSpy }, RegionBreadcrumbResolver],
     });
     resolver = TestBed.inject(RegionBreadcrumbResolver);
   });
@@ -69,9 +63,7 @@ describe('RegionBreadcrumbResolver', () => {
     const label = await firstValueFrom(resolver.resolve(snapshot));
 
     expect(label).toBe('Montréal, Québec, Canada');
-    expect(regionServiceSpy.getCachedRegion).toHaveBeenCalledWith(
-      mockRegion.regionOnestopId,
-    );
+    expect(regionServiceSpy.getCachedRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
     expect(regionServiceSpy.getRegion).not.toHaveBeenCalled();
   });
 
@@ -83,34 +75,24 @@ describe('RegionBreadcrumbResolver', () => {
     const label = await firstValueFrom(resolver.resolve(snapshot));
 
     expect(label).toBe('Montréal, Québec, Canada');
-    expect(regionServiceSpy.getCachedRegion).toHaveBeenCalledWith(
-      mockRegion.regionOnestopId,
-    );
-    expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(
-      mockRegion.regionOnestopId,
-    );
+    expect(regionServiceSpy.getCachedRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
+    expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
   });
 
   it('falls back to humanized slug when api call fails', async () => {
     vi.mocked(regionServiceSpy.getCachedRegion).mockReturnValue(undefined);
-    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(
-      throwError(() => new Error('boom')),
-    );
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(throwError(() => new Error('boom')));
     const snapshot = createSnapshot(mockRegion.regionOnestopId);
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
 
     expect(label).toBe('Montr al qu, Bec, Canada');
-    expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(
-      mockRegion.regionOnestopId,
-    );
+    expect(regionServiceSpy.getRegion).toHaveBeenCalledWith(mockRegion.regionOnestopId);
   });
 
   it('humanizes short region slugs', async () => {
     vi.mocked(regionServiceSpy.getCachedRegion).mockReturnValue(undefined);
-    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(
-      throwError(() => new Error('boom')),
-    );
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(throwError(() => new Error('boom')));
     const snapshot = createSnapshot('r-ny');
 
     const label = await firstValueFrom(resolver.resolve(snapshot));
@@ -120,9 +102,7 @@ describe('RegionBreadcrumbResolver', () => {
 
   it('handles empty slugs by falling back to region id', async () => {
     vi.mocked(regionServiceSpy.getCachedRegion).mockReturnValue(undefined);
-    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(
-      throwError(() => new Error('boom')),
-    );
+    vi.mocked(regionServiceSpy.getRegion).mockReturnValue(throwError(() => new Error('boom')));
     const snapshot = createSnapshot('r-');
 
     const label = await firstValueFrom(resolver.resolve(snapshot));

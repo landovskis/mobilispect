@@ -1,10 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
@@ -29,12 +23,7 @@ import { ActiveImportCardComponent } from './active-import-card.component';
 @Component({
   selector: 'app-active-imports-card',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatIconModule,
-    BrandSectionComponent,
-    ActiveImportCardComponent,
-  ],
+  imports: [CommonModule, MatIconModule, BrandSectionComponent, ActiveImportCardComponent],
   template: `
     <app-brand-section
       class="active-imports-panel mb-6 block"
@@ -44,14 +33,9 @@ import { ActiveImportCardComponent } from './active-import-card.component';
       [collapsible]="true"
       [(expanded)]="isExpanded"
     >
-      <div
-        section-actions
-        class="panel-actions inline-flex items-center gap-2.5"
-      >
+      <div section-actions class="panel-actions inline-flex items-center gap-2.5">
         @if (activeImports$ | async; as activeImports) {
-          <span class="count-badge rounded-full px-2.5 py-1">{{
-            activeImports.length
-          }}</span>
+          <span class="count-badge rounded-full px-2.5 py-1">{{ activeImports.length }}</span>
         }
       </div>
 
@@ -67,14 +51,10 @@ import { ActiveImportCardComponent } from './active-import-card.component';
             }
           </div>
         } @else {
-          <div
-            class="empty-state flex flex-col items-center gap-1.5 p-6 text-center"
-          >
+          <div class="empty-state flex flex-col items-center gap-1.5 p-6 text-center">
             <mat-icon class="empty-icon">cloud_done</mat-icon>
             <p class="empty-title m-0">No active imports</p>
-            <p class="empty-subtitle max-w-[340px] m-0">
-              Select a region to see its imports here.
-            </p>
+            <p class="empty-subtitle max-w-[340px] m-0">Select a region to see its imports here.</p>
           </div>
         }
       }

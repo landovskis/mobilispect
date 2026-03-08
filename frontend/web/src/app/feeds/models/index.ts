@@ -12,12 +12,7 @@ export * from './region.models';
 export * from './import.models';
 
 // Import types for TypeGuards
-import {
-  MetropolitanRegion,
-  Feed,
-  FeedSpecType,
-  FeedStatus,
-} from './region.models';
+import { MetropolitanRegion, Feed, FeedSpecType, FeedStatus } from './region.models';
 import {
   FeedImport,
   ImportProgress,
@@ -106,9 +101,7 @@ export class TypeGuards {
       typeof candidate['feedOnestopId'] === 'string' &&
       typeof candidate['regionOnestopId'] === 'string' &&
       typeof candidate['name'] === 'string' &&
-      Object.values(FeedSpecType).includes(
-        candidate['specType'] as FeedSpecType,
-      ) &&
+      Object.values(FeedSpecType).includes(candidate['specType'] as FeedSpecType) &&
       Object.values(FeedStatus).includes(candidate['status'] as FeedStatus)
     );
   }
@@ -122,12 +115,8 @@ export class TypeGuards {
     return (
       typeof candidate['id'] === 'string' &&
       typeof candidate['feedOnestopId'] === 'string' &&
-      Object.values(ImportStatus).includes(
-        candidate['status'] as ImportStatus,
-      ) &&
-      Object.values(TriggerType).includes(
-        candidate['triggerType'] as TriggerType,
-      )
+      Object.values(ImportStatus).includes(candidate['status'] as ImportStatus) &&
+      Object.values(TriggerType).includes(candidate['triggerType'] as TriggerType)
     );
   }
 

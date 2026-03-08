@@ -1,8 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import {
-  HttpClientTestingModule,
-  HttpTestingController,
-} from '@angular/common/http/testing';
+import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AgencyService } from './agency.service';
 import { environment } from '../../../environments/environment';
 import { RouteType } from '../../routes/models/route-type.model';
@@ -31,7 +28,7 @@ describe('AgencyService', () => {
     });
 
     const req = httpMock.expectOne(
-      (request) => request.url === `${environment.apiUrl}/regions/r-1/agencies`,
+      (request) => request.url === `${environment.apiUrl}/regions/r-1/agencies`
     );
     expect(req.request.params.get('page')).toBe('2');
     expect(req.request.params.get('size')).toBe('50');
@@ -58,9 +55,7 @@ describe('AgencyService', () => {
       expect(response.totalPages).toBe(2);
     });
 
-    const req = httpMock.expectOne(
-      (request) => request.url === `${environment.apiUrl}/agencies`,
-    );
+    const req = httpMock.expectOne((request) => request.url === `${environment.apiUrl}/agencies`);
     expect(req.request.params.get('page')).toBe('0');
     expect(req.request.params.get('size')).toBe('20');
 
@@ -96,7 +91,7 @@ describe('AgencyService', () => {
     });
 
     const req = httpMock.expectOne(
-      (request) => request.url === `${environment.apiUrl}/agencies/a-3/routes`,
+      (request) => request.url === `${environment.apiUrl}/agencies/a-3/routes`
     );
     expect(req.request.params.get('page')).toBe('1');
     expect(req.request.params.get('size')).toBe('25');
