@@ -86,33 +86,38 @@ open frontend/web/coverage/lcov-report/index.html
 
 If below 80%, add more tests and repeat from Step 1.
 
-### Step 10: Pre-Commit Verification
-
-```bash
-# Run all pre-commit hooks manually
-pre-commit run --all-files
-```
-
-All hooks must pass ✓
-
-### Step 11: Commit Your Changes
+### Step 10: Commit Your Changes
 
 ```bash
 git add .
 git commit -m "feat: your feature description"
 ```
 
-Pre-commit hooks will run automatically. If they fail, fix issues and retry.
+The pre-commit Husky hook runs automatically and checks formatting and linting.
+If it fails, fix issues and retry.
 
-## Pre-Commit Hooks
+### Step 11: Push Your Changes
 
-Web-specific hooks enforced via `.pre-commit-config.yaml`:
+```bash
+git push
+```
 
-- **Prettier**: Code formatting (auto-fixes on commit)
-- **ESLint**: Linting and code quality (blocks commit on errors)
-- **Jest**: Unit tests execution (fast feedback)
-- **ng lint**: Angular-specific linting (template checks)
-- **Coverage validation**: ≥80% threshold
+The pre-push Husky hook runs automatically and checks tests, coverage (≥80%),
+and security scan. If it fails, fix issues and retry.
+
+## Git Hooks (Husky)
+
+Web checks are divided between hooks:
+
+**pre-commit** (runs on `git commit` — fast):
+
+- `prettier --check` — formatting validation
+- `ng lint` — ESLint + Angular-specific linting
+
+**pre-push** (runs on `git push` — thorough):
+
+- `npm test` — vitest unit tests
+- `scripts/validate-coverage.sh` — ≥80% coverage requirement
 
 ## Quick Reference Commands
 
@@ -130,13 +135,10 @@ npm run lint -- --fix
 npm run ng lint
 
 # Run tests in watch mode
-npm test -- --watch
+npm run test:watch
 
 # Run tests with coverage
-npm test -- --coverage --watchAll=false
-
-# Run all pre-commit hooks
-pre-commit run --all-files
+npm run test:coverage
 
 # Build for production
 npm run build

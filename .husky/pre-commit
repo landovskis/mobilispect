@@ -1,0 +1,77 @@
+#!/bin/sh
+# Pre-commit hook — fast checks only (formatting, linting, basic hygiene)
+# Runs in ~30s. Thorough checks (tests, coverage, security) run on pre-push.
+
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+# ─── Basic file hygiene ────────────────────────────────────────────────
+
+# Merge conflict markers
+if echo "$STAGED_FILES" | xargs grep -lP '^(<{7} |>{7} |={7}$)' -- 2>/dev/null | grep .; then
+  echo "❌ Merge conflict markers found. Resolve before committing."
+  exit 1
+fi
+
+# Private key detection (exclude hook scripts themselves)
+CANDIDATE_FILES=$(echo "$STAGED_FILES" | grep -v '^\.husky/' || true)
+if [ -n "$CANDIDATE_FILES" ] && echo "$CANDIDATE_FILES" | xargs grep -l \
+    'BEGIN RSA PRIVATE' \
+    -- 2>/dev/null | grep .; then
+  echo "❌ Private key detected in staged files. Remove before committing."
+  exit 1
+fi
+
+# Large files (>1MB)
+while IFS= read -r file; do
+  if [ -f "$file" ]; then
+    size=$(wc -c < "$file")
+    if [ "$size" -gt 1048576 ]; then
+      echo "❌ Large file detected: $file ($(( size / 1024 ))KB). Keep files under 1MB."
+      exit 1
+    fi
+  fi
+done <<EOF
+$STAGED_FILES
+EOF
+
+# ─── Secret detection ──────────────────────────────────────────────────
+if command -v detect-secrets-hook >/dev/null 2>&1 && [ -f .secrets.baseline ]; then
+  echo "🔒 Scanning for secrets..."
+  # shellcheck disable=SC2046
+  detect-secrets-hook --baseline .secrets.baseline $(echo "$STAGED_FILES" | tr '\n' ' ') || exit 1
+fi
+
+# ─── Backend: format + lint (Kotlin files only) ────────────────────────
+BACKEND_CHANGED=$(echo "$STAGED_FILES" | grep -E '^backend/.*\.(kt|kts)$' || true)
+if [ -n "$BACKEND_CHANGED" ]; then
+  echo "🔍 Running backend format and lint checks..."
+  cd backend
+  ./gradlew ktfmtFormat ktlintCheck || exit 1
+  cd ..
+fi
+
+# ─── Web frontend: format + lint ──────────────────────────────────────
+WEB_CHANGED=$(echo "$STAGED_FILES" | grep '^frontend/web/' || true)
+if [ -n "$WEB_CHANGED" ]; then
+  echo "🔍 Running web format and lint checks..."
+  cd frontend/web
+  npm run format:check || exit 1
+  npm run lint || exit 1
+  cd ../..
+fi
+
+# ─── Markdown lint ─────────────────────────────────────────────────────
+MD_CHANGED=$(echo "$STAGED_FILES" | grep '\.md$' | grep -v '^\.specify/\|^\.claude/\|^\.codex/' || true)
+if [ -n "$MD_CHANGED" ]; then
+  if command -v markdownlint >/dev/null 2>&1; then
+    echo "🔍 Running markdown lint..."
+    # shellcheck disable=SC2086
+    markdownlint $MD_CHANGED || exit 1
+  fi
+fi
+
+echo "✅ Pre-commit checks passed"
