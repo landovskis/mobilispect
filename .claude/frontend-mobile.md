@@ -191,39 +191,38 @@ If below 80%, add more tests and repeat from Step 1.
 
 ### Final Steps (All Platforms)
 
-#### Step 9: Pre-Commit Verification
-
-```bash
-# Run all pre-commit hooks manually
-pre-commit run --all-files
-```
-
-All hooks must pass ✓
-
-#### Step 10: Commit Your Changes
+#### Step 9: Commit Your Changes
 
 ```bash
 git add .
 git commit -m "feat: your feature description"
 ```
 
-Pre-commit hooks will run automatically. If they fail, fix issues and retry.
+The pre-commit Husky hook runs automatically. If it fails, fix issues and retry.
 
-## Pre-Commit Hooks
+#### Step 10: Push Your Changes
 
-Mobile-specific hooks enforced via `.pre-commit-config.yaml`:
+```bash
+git push
+```
 
-### Android
-- **ktlint**: Kotlin code formatting (auto-fixes on commit)
-- **Android lint**: Platform-specific linting (blocks commit on errors)
-- **Unit tests**: JUnit tests must pass
-- **Coverage validation**: ≥80% threshold
+The pre-push Husky hook runs automatically and checks tests, coverage, and
+security. If it fails, fix issues and retry.
 
-### iOS
-- **SwiftFormat**: Code formatting (auto-fixes on commit)
-- **SwiftLint**: Linting and code quality (blocks commit on warnings)
-- **XCTest**: Unit tests execution (must pass)
-- **Coverage validation**: ≥80% threshold
+## Git Hooks (Husky)
+
+Mobile checks are divided between hooks:
+
+**pre-commit** (runs on `git commit` — fast):
+
+- Android: `ktfmtFormat` + `ktlintCheck`
+- iOS: `swiftformat` + `swiftlint`
+
+**pre-push** (runs on `git push` — thorough):
+
+- Android: `testDebugUnitTest` unit tests
+- iOS: `xcodebuild test`
+- `scripts/validate-coverage.sh` — ≥80% coverage requirement
 
 ## Quick Reference Commands
 
@@ -273,12 +272,6 @@ xcodebuild test -project iosApp.xcodeproj -scheme iosApp -destination 'platform=
 
 # Build
 xcodebuild -project iosApp.xcodeproj -scheme iosApp -configuration Debug
-```
-
-### All Platforms
-```bash
-# Run all pre-commit hooks
-pre-commit run --all-files
 ```
 
 ## IDE Integration

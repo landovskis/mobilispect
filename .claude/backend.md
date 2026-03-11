@@ -27,7 +27,7 @@ suite execution times.
 ```
 
 Integration tests use Testcontainers and can take several minutes. Reserve
-full test runs for pre-commit/pre-push validation.
+full test runs for pre-push validation.
 
 ## Development Workflow
 
@@ -102,32 +102,41 @@ All tests must pass ✓
 
 If below 80%, add more tests and repeat from Step 1.
 
-### Step 9: Pre-Commit Verification
-
-```bash
-# Run all pre-commit hooks manually
-pre-commit run --all-files
-```
-
-All hooks must pass ✓
-
-### Step 10: Commit Your Changes
+### Step 9: Commit Your Changes
 
 ```bash
 git add .
 git commit -m "feat: your feature description"
 ```
 
-Pre-commit hooks will run automatically. If they fail, fix issues and retry.
+The pre-commit Husky hook runs automatically and checks formatting and linting.
+If it fails, fix issues and retry.
 
-## Pre-Commit Hooks
+### Step 10: Push Your Changes
 
-Backend-specific hooks enforced via `.pre-commit-config.yaml`:
+```bash
+git push
+```
 
-- **ktlint**: Kotlin code formatting (auto-fixes on commit)
-- **detekt**: Static analysis (blocks commit on violations)
-- **Test execution**: Unit tests must pass (integration tests run in CI)
-- **Coverage validation**: ≥80% threshold via `scripts/validate-coverage.sh`
+The pre-push Husky hook runs automatically and checks tests, static analysis,
+coverage (≥80%), and security scan. If it fails, fix issues and retry.
+
+## Git Hooks (Husky)
+
+Backend checks are divided between hooks:
+
+**pre-commit** (runs on `git commit` — fast):
+
+- `ktfmtFormat` — auto-formats Kotlin code
+- `ktlintCheck` — Kotlin linting
+
+**pre-push** (runs on `git push` — thorough):
+
+- `test -x integrationTest` — unit tests must pass
+- `detekt` — static analysis
+- `verifyModulith` — Spring Modulith module boundary verification
+- `scripts/validate-coverage.sh` — ≥80% coverage requirement
+- `scripts/security-scan.sh` — OWASP dependency check
 
 ## Quick Reference Commands
 
@@ -146,9 +155,6 @@ Backend-specific hooks enforced via `.pre-commit-config.yaml`:
 
 # Check coverage
 ./scripts/validate-coverage.sh backend
-
-# Run all pre-commit hooks
-pre-commit run --all-files
 
 # Run integration tests (slow - Testcontainers)
 ./backend/gradlew integrationTest

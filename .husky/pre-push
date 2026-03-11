@@ -1,0 +1,40 @@
+#!/bin/sh
+# Pre-push hook — thorough checks (tests, static analysis, coverage, security)
+# Runs before every push. May take several minutes.
+
+echo "🚀 Running pre-push checks..."
+
+# ─── Backend: unit tests ───────────────────────────────────────────────
+echo ""
+echo "🧪 Running backend unit tests..."
+cd backend
+./gradlew test -x integrationTest || exit 1
+
+# ─── Backend: static analysis ─────────────────────────────────────────
+echo ""
+echo "🔍 Running backend static analysis (detekt)..."
+./gradlew detekt || exit 1
+
+# ─── Backend: module boundary verification ────────────────────────────
+echo ""
+echo "🏛  Verifying Spring Modulith module boundaries..."
+./gradlew verifyModulith || exit 1
+cd ..
+
+# ─── Web: unit tests ──────────────────────────────────────────────────
+echo ""
+echo "🧪 Running web unit tests..."
+cd frontend/web
+npm test || exit 1
+cd ../..
+
+# ─── Test coverage validation (≥80% constitutional requirement) ────────
+echo ""
+./scripts/validate-coverage.sh || exit 1
+
+# ─── Security scan (OWASP dependency check) ───────────────────────────
+echo ""
+./scripts/security-scan.sh || exit 1
+
+echo ""
+echo "✅ Pre-push checks passed"

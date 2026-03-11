@@ -36,34 +36,56 @@ constitution. Core principles:
 
 All changes must pass:
 
-- **Pre-Commit**: Tests pass, formatting applied, linting clean, security scan
+- **Pre-Commit**: Formatting applied, linting clean, secret detection
+- **Pre-Push**: Tests pass, static analysis, module boundaries, coverage ≥80%, security scan
 - **Pre-Merge**: Code review approved, CI/CD passes, performance tests,
   contract tests
 - **Pre-Deploy**: E2E tests pass, load testing, security scan,
   DB migration validated
 
-### Pre-Commit Hook Enforcement
+### Git Hook Enforcement
 
-Constitutional pre-commit checks are enforced via:
+Constitutional quality gates are enforced via **Husky** git hooks.
+Checks are divided between pre-commit (fast) and pre-push (thorough).
 
 #### Git Hooks Setup
 
 ```bash
-# Install pre-commit framework
-pip install pre-commit
-
-# Initialize hooks from .pre-commit-config.yaml
-pre-commit install
+# Install Node.js dependencies and initialize Husky hooks
+npm install
 ```
+
+#### Hook Responsibilities
+
+| Stage | Checks | Speed |
+|-------|--------|-------|
+| **pre-commit** | File hygiene, secret detection, formatting, linting, markdown lint | ~30s |
+| **pre-push** | Unit tests, static analysis, module boundaries, coverage (≥80%), security scan | Minutes |
+
+#### pre-commit checks (fast feedback)
+
+- Merge conflict markers, private key detection, large files (>1MB)
+- `detect-secrets` baseline scan
+- Backend Kotlin: `ktfmtFormat` + `ktlintCheck`
+- Web: `prettier --check` + `ng lint`
+- Markdown: `markdownlint`
+
+#### pre-push checks (thorough validation)
+
+- Backend: unit tests (`test -x integrationTest`)
+- Backend: `detekt` static analysis
+- Backend: `verifyModulith` module boundary verification
+- Web: `vitest` unit tests
+- Coverage validation ≥80% (`scripts/validate-coverage.sh`)
+- Security scan / OWASP dependency check (`scripts/security-scan.sh`)
 
 #### Enforcement Mechanism
 
-- Hooks **BLOCK** commits that fail constitutional requirements
+- Hooks **BLOCK** commits/pushes that fail constitutional requirements
 - No bypass allowed without explicit ADR documenting exception
 - Failed hooks display specific remediation commands
-- Developers can run `pre-commit run --all-files` for full validation
 
-See platform-specific files for detailed hook configuration.
+See platform-specific files for detailed command reference.
 
 ### ADR Requirements
 
