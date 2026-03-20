@@ -33,6 +33,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-database-postgresql")
@@ -45,6 +46,7 @@ dependencies {
     implementation(libs.conveyal.gtfs) {
         exclude(group = "org.slf4j", module = "slf4j-simple")
     }
+    implementation(libs.gtfs.realtime.bindings)
     implementation(libs.resilience4j.spring)
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation(libs.spring.modulith.api)

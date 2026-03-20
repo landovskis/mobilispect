@@ -85,4 +85,8 @@ class FeedRepositoryImpl(
   @Transactional(readOnly = true)
   override fun findByStatusAndRealtimeFeedUrlNotNull(status: FeedStatus): List<Feed> =
     jpaRepository.findByStatusAndRealtimeFeedUrlNotNull(status.dbValue).map { mapper.toDomain(it) }
+
+  @Transactional(readOnly = true)
+  override fun findByStatus(status: FeedStatus): List<Feed> =
+    jpaRepository.findByStatus(status.dbValue).map { mapper.toDomain(it) }
 }
