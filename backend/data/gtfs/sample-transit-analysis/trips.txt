@@ -1,9 +1,0 @@
-route_id,service_id,trip_id,trip_headsign,direction_id
-100,WKD,T100-EST-1,Est,0
-100,WKD,T100-EST-2,Est,0
-100,WKD,T100-EST-3,Est,0
-100,WKD,T100-EST-4,Est,0
-100,WKD,T100-OUEST-1,Ouest,1
-100,WKD,T100-OUEST-2,Ouest,1
-100,WKD,T100-OUEST-3,Ouest,1
-100,WKD,T100-OUEST-4,Ouest,1

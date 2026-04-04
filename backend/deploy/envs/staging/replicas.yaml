@@ -1,7 +1,0 @@
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mobilispect-api
-spec:
-  replicas: 3
