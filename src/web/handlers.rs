@@ -120,6 +120,8 @@ struct ScorecardTemplate {
     benchmarks: Vec<Benchmark>,
     floor_pct: f64,
     ceiling_pct: f64,
+    floor_city: String,
+    ceiling_city: String,
     routes_meeting_floor: usize,
     worst_gap: Option<f64>,
     period_days: i64,
@@ -134,6 +136,8 @@ pub async fn scorecard(State(state): State<AppState>) -> Html<String> {
     let floor_pct = benchmarks.first().map(|b| b.on_time_pct).unwrap_or(89.0);
     let floor_speed = benchmarks.first().map(|b| b.speed_vs_scheduled_pct).unwrap_or(3.0);
     let ceiling_pct = benchmarks.last().map(|b| b.on_time_pct).unwrap_or(96.0);
+    let floor_city = benchmarks.first().map(|b| b.city.clone()).unwrap_or_else(|| "Helsinki".to_string());
+    let ceiling_city = benchmarks.last().map(|b| b.city.clone()).unwrap_or_else(|| "Tokyo".to_string());
 
     let routes_meeting_floor = routes.iter().filter(|r| {
         r.avg_on_time_pct.map_or(false, |p| p >= floor_pct)
@@ -151,6 +155,8 @@ pub async fn scorecard(State(state): State<AppState>) -> Html<String> {
         benchmarks,
         floor_pct,
         ceiling_pct,
+        floor_city,
+        ceiling_city,
         routes_meeting_floor,
         worst_gap,
         period_days,

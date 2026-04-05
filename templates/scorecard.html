@@ -72,23 +72,28 @@
         <div class="value">{{ routes.len() }}</div>
       </div>
       <div class="stat">
-        <div class="label">Meeting Helsinki floor</div>
+        <div class="label">Meeting {{ floor_city }} floor</div>
         <div class="value">{{ routes_meeting_floor }}</div>
       </div>
       <div class="stat">
-        <div class="label">Worst gap vs Helsinki</div>
+        <div class="label">Worst gap vs {{ floor_city }}</div>
         <div class="value">
           {% if let Some(g) = worst_gap %}
             {% if *g >= 0.0 %}+{{ (*g).round() as i64 }}pp{% else %}{{ (*g).round() as i64 }}pp{% endif %}
           {% else %}—{% endif %}
         </div>
+        {% if let Some(g) = worst_gap %}
+        <div style="font-size:0.75rem;color:#888;margin-top:0.25rem;">
+          {% if *g >= 0.0 %}all routes above floor{% else %}below {{ floor_city }} standard{% endif %}
+        </div>
+        {% endif %}
       </div>
     </div>
 
     <div class="note">
       Columns show percentage-point gap between each route's on-time % and each world-class system.
-      <strong>Helsinki (89%)</strong> is the floor — the weakest world-class benchmark.
-      <strong>Tokyo (96%)</strong> is the ceiling.
+      <strong>{{ floor_city }} ({{ floor_pct }}%)</strong> is the floor — the weakest world-class benchmark.
+      <strong>{{ ceiling_city }} ({{ ceiling_pct }}%)</strong> is the ceiling.
       Period: last {{ period_days }} days · Generated {{ generated_at }}
     </div>
 

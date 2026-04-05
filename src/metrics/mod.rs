@@ -677,6 +677,9 @@ mod tests {
         assert_eq!(benchmarks[3].city, "Tokyo");
         assert!((benchmarks[0].on_time_pct - 89.0).abs() < 0.01);
         assert!((benchmarks[3].on_time_pct - 96.0).abs() < 0.01);
+        // Tie-break by city ASC: Singapore (92.0) before Zurich (92.0)
+        assert_eq!(benchmarks[1].city, "Singapore");
+        assert_eq!(benchmarks[2].city, "Zurich");
     }
 
     // ── ScorecardRoute tests ──────────────────────────────────────────────────
@@ -781,6 +784,66 @@ mod tests {
     fn speed_class_is_empty_string_without_data() {
         let r = make_scorecard_route(None, None);
         assert_eq!(r.speed_class(), "");
+    }
+
+    #[test]
+    fn on_time_gap_class_is_gap_pos_when_route_beats_benchmark() {
+        let r = make_scorecard_route(Some(93.0), None);
+        assert_eq!(r.on_time_gap_class(&89.0), "gap-pos");
+    }
+
+    #[test]
+    fn on_time_gap_class_is_gap_neg_when_route_below_benchmark() {
+        let r = make_scorecard_route(Some(71.0), None);
+        assert_eq!(r.on_time_gap_class(&89.0), "gap-neg");
+    }
+
+    #[test]
+    fn on_time_gap_class_is_empty_without_data() {
+        let r = make_scorecard_route(None, None);
+        assert_eq!(r.on_time_gap_class(&89.0), "");
+    }
+
+    #[test]
+    fn status_class_is_green_at_or_above_ceiling() {
+        let r = make_scorecard_route(Some(96.0), None);
+        assert_eq!(r.status_class(&89.0, &96.0), "green");
+    }
+
+    #[test]
+    fn status_class_is_yellow_between_floor_and_ceiling() {
+        let r = make_scorecard_route(Some(91.0), None);
+        assert_eq!(r.status_class(&89.0, &96.0), "yellow");
+    }
+
+    #[test]
+    fn status_class_is_red_under_floor() {
+        let r = make_scorecard_route(Some(71.0), None);
+        assert_eq!(r.status_class(&89.0, &96.0), "red");
+    }
+
+    #[test]
+    fn status_class_is_none_without_data() {
+        let r = make_scorecard_route(None, None);
+        assert_eq!(r.status_class(&89.0, &96.0), "none");
+    }
+
+    #[test]
+    fn speed_class_is_slower_when_large_positive_deficit() {
+        let r = make_scorecard_route(None, Some(12.0));
+        assert_eq!(r.speed_class(), "slower");
+    }
+
+    #[test]
+    fn speed_class_is_faster_when_negative_deficit() {
+        let r = make_scorecard_route(None, Some(-3.0));
+        assert_eq!(r.speed_class(), "faster");
+    }
+
+    #[test]
+    fn speed_class_is_onpace_within_one_pct() {
+        let r = make_scorecard_route(None, Some(0.5));
+        assert_eq!(r.speed_class(), "onpace");
     }
 
     #[tokio::test]
