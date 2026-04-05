@@ -478,12 +478,13 @@ impl ScorecardRoute {
         }
     }
 
-    /// CSS class for speed cell: "slower" / "faster" / "onpace".
+    /// CSS class for speed cell: "slower" / "faster" / "onpace" / "".
     pub fn speed_class(&self) -> &'static str {
         match self.speed_vs_scheduled_pct {
             Some(d) if d > 1.0 => "slower",
             Some(d) if d < -1.0 => "faster",
-            _ => "onpace",
+            Some(_) => "onpace",
+            None => "",
         }
     }
 
@@ -501,15 +502,15 @@ pub async fn load_benchmarks(db: &Database) -> Result<Vec<Benchmark>> {
     let rows: Vec<Benchmark> = sqlx::query_as(
         "SELECT id, system_name, city, on_time_pct, speed_vs_scheduled_pct, source_url, year
          FROM benchmarks
-         ORDER BY on_time_pct ASC",
+         ORDER BY on_time_pct ASC, city ASC",
     )
     .fetch_all(&db.pool)
     .await?;
     Ok(rows)
 }
 
-/// Fetch per-route scorecard data: on-time % and speed deficit averaged over last 7 days.
-pub async fn scorecard_routes(db: &Database) -> Result<Vec<ScorecardRoute>> {
+/// Fetch per-route scorecard data: on-time % and speed deficit averaged over specified days.
+pub async fn scorecard_routes(db: &Database, days: i64) -> Result<Vec<ScorecardRoute>> {
     let rows: Vec<ScorecardRoute> = sqlx::query_as(
         "SELECT
            ot.route_id,
@@ -520,7 +521,7 @@ pub async fn scorecard_routes(db: &Database) -> Result<Vec<ScorecardRoute>> {
          FROM (
            SELECT route_id, ROUND(AVG(on_time_pct), 1) AS avg_on_time_pct
            FROM route_daily
-           WHERE service_date >= DATE('now', '-7 days')
+           WHERE service_date >= DATE('now', '-' || ? || ' days')
            GROUP BY route_id
          ) ot
          JOIN routes r ON r.route_id = ot.route_id
@@ -535,13 +536,15 @@ pub async fn scorecard_routes(db: &Database) -> Result<Vec<ScorecardRoute>> {
            LEFT JOIN (
              SELECT route_id, direction_id, AVG(actual_speed_mps) AS avg_actual
              FROM route_speed_daily
-             WHERE service_date >= DATE('now', '-7 days')
+             WHERE service_date >= DATE('now', '-' || ? || ' days')
              GROUP BY route_id, direction_id
            ) rsd ON rsd.route_id = rs.route_id AND rsd.direction_id = rs.direction_id
            GROUP BY rs.route_id
          ) sp ON sp.route_id = ot.route_id
          ORDER BY CAST(r.short_name AS INTEGER), r.short_name",
     )
+    .bind(days)
+    .bind(days)
     .fetch_all(&db.pool)
     .await?;
     Ok(rows)
@@ -715,7 +718,7 @@ mod tests {
     }
 
     #[test]
-    fn on_time_gap_display_negative_shows_no_plus() {
+    fn on_time_gap_display_negative_shows_minus_prefix() {
         let r = make_scorecard_route(Some(71.0), None);
         assert_eq!(r.on_time_gap_display(89.0), "-18pp");
     }
@@ -774,6 +777,12 @@ mod tests {
         assert_eq!(r.speed_display(), "—");
     }
 
+    #[test]
+    fn speed_class_is_empty_string_without_data() {
+        let r = make_scorecard_route(None, None);
+        assert_eq!(r.speed_class(), "");
+    }
+
     #[tokio::test]
     async fn scorecard_routes_returns_per_route_summary() {
         let db = test_db().await;
@@ -785,7 +794,7 @@ mod tests {
              VALUES ('R1', date('now', '-1 day'), 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
-        let routes = scorecard_routes(&db).await.unwrap();
+        let routes = scorecard_routes(&db, 7).await.unwrap();
 
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].route_id, "R1");
@@ -814,7 +823,7 @@ mod tests {
              VALUES ('R1', date('now', '-1 day'), 0, 8.0, 5, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
-        let routes = scorecard_routes(&db).await.unwrap();
+        let routes = scorecard_routes(&db, 7).await.unwrap();
 
         assert_eq!(routes.len(), 1);
         let deficit = routes[0].speed_vs_scheduled_pct.unwrap();
@@ -832,7 +841,7 @@ mod tests {
              VALUES ('R1', date('now', '-1 day'), 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
-        let routes = scorecard_routes(&db).await.unwrap();
+        let routes = scorecard_routes(&db, 7).await.unwrap();
 
         assert_eq!(routes.len(), 1);
         assert!(routes[0].speed_vs_scheduled_pct.is_none());
