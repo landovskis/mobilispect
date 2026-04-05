@@ -24,6 +24,7 @@ pub async fn serve(db: &Database, config: &Config) -> Result<()> {
         .route("/", get(handlers::dashboard))
         .route("/report", get(handlers::report))
         .route("/speed", get(handlers::speed_page))
+        .route("/scorecard", get(handlers::scorecard))
         .route("/routes/:route_id", get(handlers::route_detail))
         .route("/hotspots", get(handlers::hotspots))
         .route("/compute", get(handlers::compute))

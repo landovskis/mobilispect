@@ -4,7 +4,7 @@ use chrono::{NaiveDate, Utc};
 use serde::Deserialize;
 use serde_json;
 
-use crate::metrics::{compute_route_daily, route_summary, route_trend, stop_hotspots, RouteSummary, RouteTrend, StopHotspot};
+use crate::metrics::{compute_route_daily, load_benchmarks, route_summary, route_trend, scorecard_routes, stop_hotspots, Benchmark, RouteSummary, RouteTrend, ScorecardRoute, StopHotspot};
 use crate::speed::{compute_route_speed_daily, route_speed_summary, RouteSpeedSummary};
 use crate::web::AppState;
 
@@ -110,6 +110,52 @@ pub async fn route_detail(
 pub async fn speed_page(State(state): State<AppState>) -> Html<String> {
     let speeds = route_speed_summary(&state.db).await.unwrap_or_default();
     let tmpl = SpeedTemplate { speeds };
+    Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+}
+
+#[derive(Template)]
+#[template(path = "scorecard.html")]
+struct ScorecardTemplate {
+    routes: Vec<ScorecardRoute>,
+    benchmarks: Vec<Benchmark>,
+    floor_pct: f64,
+    ceiling_pct: f64,
+    routes_meeting_floor: usize,
+    worst_gap: Option<f64>,
+    period_days: i64,
+    generated_at: String,
+}
+
+pub async fn scorecard(State(state): State<AppState>) -> Html<String> {
+    let period_days: i64 = 7;
+    let benchmarks = load_benchmarks(&state.db).await.unwrap_or_default();
+    let routes = scorecard_routes(&state.db, period_days).await.unwrap_or_default();
+
+    let floor_pct = benchmarks.first().map(|b| b.on_time_pct).unwrap_or(89.0);
+    let floor_speed = benchmarks.first().map(|b| b.speed_vs_scheduled_pct).unwrap_or(3.0);
+    let ceiling_pct = benchmarks.last().map(|b| b.on_time_pct).unwrap_or(96.0);
+
+    let routes_meeting_floor = routes.iter().filter(|r| {
+        r.avg_on_time_pct.map_or(false, |p| p >= floor_pct)
+            && r.speed_vs_scheduled_pct.map_or(true, |s| s <= floor_speed) // no speed data = assume meets floor
+    }).count();
+
+    let worst_gap = routes.iter()
+        .filter_map(|r| r.on_time_gap_vs(floor_pct))
+        .reduce(f64::min);
+
+    let generated_at = Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
+
+    let tmpl = ScorecardTemplate {
+        routes,
+        benchmarks,
+        floor_pct,
+        ceiling_pct,
+        routes_meeting_floor,
+        worst_gap,
+        period_days,
+        generated_at,
+    };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
 
