@@ -430,8 +430,8 @@ impl ScorecardRoute {
     }
 
     /// "+Xpp", "-Xpp", or "—".
-    pub fn on_time_gap_display(&self, benchmark_pct: f64) -> String {
-        match self.on_time_gap_vs(benchmark_pct) {
+    pub fn on_time_gap_display(&self, benchmark_pct: &f64) -> String {
+        match self.on_time_gap_vs(*benchmark_pct) {
             None => "—".to_string(),
             Some(g) if g >= 0.0 => format!("+{g:.0}pp"),
             Some(g) => format!("{g:.0}pp"),
@@ -439,8 +439,8 @@ impl ScorecardRoute {
     }
 
     /// CSS class for gap cell: "gap-pos" (green), "gap-neg" (red), or "".
-    pub fn on_time_gap_class(&self, benchmark_pct: f64) -> &'static str {
-        match self.on_time_gap_vs(benchmark_pct) {
+    pub fn on_time_gap_class(&self, benchmark_pct: &f64) -> &'static str {
+        match self.on_time_gap_vs(*benchmark_pct) {
             Some(g) if g >= 0.0 => "gap-pos",
             Some(_) => "gap-neg",
             None => "",
@@ -449,20 +449,20 @@ impl ScorecardRoute {
 
     /// "World class" / "Competitive" / "Below all" / "No data".
     /// floor_pct = Helsinki (89.0), ceiling_pct = Tokyo (96.0).
-    pub fn status_label(&self, floor_pct: f64, ceiling_pct: f64) -> &'static str {
+    pub fn status_label(&self, floor_pct: &f64, ceiling_pct: &f64) -> &'static str {
         match self.avg_on_time_pct {
-            Some(p) if p >= ceiling_pct => "World class",
-            Some(p) if p >= floor_pct => "Competitive",
+            Some(p) if p >= *ceiling_pct => "World class",
+            Some(p) if p >= *floor_pct => "Competitive",
             Some(_) => "Below all",
             None => "No data",
         }
     }
 
     /// CSS badge class: "green" / "yellow" / "red" / "none".
-    pub fn status_class(&self, floor_pct: f64, ceiling_pct: f64) -> &'static str {
+    pub fn status_class(&self, floor_pct: &f64, ceiling_pct: &f64) -> &'static str {
         match self.avg_on_time_pct {
-            Some(p) if p >= ceiling_pct => "green",
-            Some(p) if p >= floor_pct => "yellow",
+            Some(p) if p >= *ceiling_pct => "green",
+            Some(p) if p >= *floor_pct => "yellow",
             Some(_) => "red",
             None => "none",
         }
@@ -714,43 +714,43 @@ mod tests {
     #[test]
     fn on_time_gap_display_positive_shows_plus_prefix() {
         let r = make_scorecard_route(Some(93.0), None);
-        assert_eq!(r.on_time_gap_display(89.0), "+4pp");
+        assert_eq!(r.on_time_gap_display(&89.0), "+4pp");
     }
 
     #[test]
     fn on_time_gap_display_negative_shows_minus_prefix() {
         let r = make_scorecard_route(Some(71.0), None);
-        assert_eq!(r.on_time_gap_display(89.0), "-18pp");
+        assert_eq!(r.on_time_gap_display(&89.0), "-18pp");
     }
 
     #[test]
     fn on_time_gap_display_no_data_shows_dash() {
         let r = make_scorecard_route(None, None);
-        assert_eq!(r.on_time_gap_display(89.0), "—");
+        assert_eq!(r.on_time_gap_display(&89.0), "—");
     }
 
     #[test]
     fn status_label_world_class_at_or_above_ceiling() {
         let r = make_scorecard_route(Some(96.0), None);
-        assert_eq!(r.status_label(89.0, 96.0), "World class");
+        assert_eq!(r.status_label(&89.0, &96.0), "World class");
     }
 
     #[test]
     fn status_label_competitive_between_floor_and_ceiling() {
         let r = make_scorecard_route(Some(91.0), None);
-        assert_eq!(r.status_label(89.0, 96.0), "Competitive");
+        assert_eq!(r.status_label(&89.0, &96.0), "Competitive");
     }
 
     #[test]
     fn status_label_below_all_under_floor() {
         let r = make_scorecard_route(Some(71.0), None);
-        assert_eq!(r.status_label(89.0, 96.0), "Below all");
+        assert_eq!(r.status_label(&89.0, &96.0), "Below all");
     }
 
     #[test]
     fn status_label_no_data_when_none() {
         let r = make_scorecard_route(None, None);
-        assert_eq!(r.status_label(89.0, 96.0), "No data");
+        assert_eq!(r.status_label(&89.0, &96.0), "No data");
     }
 
     #[test]
