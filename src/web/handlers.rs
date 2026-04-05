@@ -4,7 +4,7 @@ use chrono::{NaiveDate, Utc};
 use serde::Deserialize;
 use serde_json;
 
-use crate::metrics::{compute_route_daily, route_summary, stop_hotspots, RouteSummary, StopHotspot};
+use crate::metrics::{compute_route_daily, route_summary, route_trend, stop_hotspots, RouteSummary, RouteTrend, StopHotspot};
 use crate::speed::{compute_route_speed_daily, route_speed_summary, RouteSpeedSummary};
 use crate::web::AppState;
 
@@ -81,6 +81,30 @@ pub async fn api_routes(
 #[template(path = "speed.html")]
 struct SpeedTemplate {
     speeds: Vec<RouteSpeedSummary>,
+}
+
+#[derive(Template)]
+#[template(path = "route_detail.html")]
+struct RouteDetailTemplate {
+    trend: RouteTrend,
+    trend_json: String,
+    period_days: i64,
+}
+
+pub async fn route_detail(
+    State(state): State<AppState>,
+    axum::extract::Path(route_id): axum::extract::Path<String>,
+) -> Html<String> {
+    let period_days: i64 = 30;
+    match route_trend(&state.db, &route_id, period_days).await {
+        Ok(Some(trend)) => {
+            let trend_json = serde_json::to_string(&trend.days).unwrap_or_default();
+            let tmpl = RouteDetailTemplate { trend, trend_json, period_days };
+            Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+        }
+        Ok(None) => Html(format!("<p>Route '{route_id}' not found or no data yet.</p>")),
+        Err(e) => Html(format!("<p>Error: {e}</p>")),
+    }
 }
 
 pub async fn speed_page(State(state): State<AppState>) -> Html<String> {

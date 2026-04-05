@@ -63,7 +63,7 @@
       <tbody>
         {% for s in speeds %}
         <tr>
-          <td><span class="route-id">{{ s.short_name }}</span></td>
+          <td><a href="/routes/{{ s.route_id }}" style="text-decoration:none;"><span class="route-id">{{ s.short_name }}</span></a></td>
           <td>{{ s.long_name }}</td>
           <td class="dir">{{ s.direction_label() }}</td>
           <td>{{ s.scheduled_speed_kmh() }} km/h</td>
