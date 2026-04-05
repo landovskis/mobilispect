@@ -3,6 +3,7 @@ mod db;
 mod gtfs;
 mod maintenance;
 mod metrics;
+mod speed;
 mod web;
 
 use anyhow::Result;
@@ -33,6 +34,8 @@ async fn main() -> Result<()> {
     for agency in &config.agencies {
         info!("Loading static GTFS for agency: {}", agency.name);
         gtfs::static_feed::load_if_needed(&db, &agency.gtfs_static_url).await?;
+        speed::compute_route_speed(&db).await?;
+        info!("Computed scheduled speed for all routes");
 
         let db_rt = db.clone();
         let agency_rt = agency.clone();

@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde_json;
 
 use crate::metrics::{compute_route_daily, route_summary, stop_hotspots, RouteSummary, StopHotspot};
+use crate::speed::{compute_route_speed_daily, route_speed_summary, RouteSpeedSummary};
 use crate::web::AppState;
 
 #[derive(Template)]
@@ -76,6 +77,18 @@ pub async fn api_routes(
     })
 }
 
+/// Return scheduled average speed per route+direction as JSON.
+pub async fn api_route_speed(
+    State(state): State<AppState>,
+) -> Result<axum::Json<Vec<RouteSpeedSummary>>, (axum::http::StatusCode, axum::Json<serde_json::Value>)> {
+    route_speed_summary(&state.db).await.map(axum::Json).map_err(|e| {
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            axum::Json(serde_json::json!({ "error": e.to_string() })),
+        )
+    })
+}
+
 /// Trigger on-time computation for today (and optionally a past date via ?date=YYYY-MM-DD).
 pub async fn compute(
     State(state): State<AppState>,
@@ -88,11 +101,14 @@ pub async fn compute(
 
     // Use the first configured agency for UTC offset and on-time threshold calculations.
     let agency = &state.config.agencies[0];
-    match compute_route_daily(&state.db, &state.config, agency, date).await {
-        Ok(()) => Html(format!(
-            "<p>✓ Computed on-time performance for <strong>{date}</strong>. \
-             <a href='/'>View dashboard</a></p>"
-        )),
-        Err(e) => Html(format!("<p>Error: {e}</p>")),
+    if let Err(e) = compute_route_daily(&state.db, &state.config, agency, date).await {
+        return Html(format!("<p>Error computing on-time: {e}</p>"));
     }
+    if let Err(e) = compute_route_speed_daily(&state.db, date).await {
+        return Html(format!("<p>Error computing speed: {e}</p>"));
+    }
+    Html(format!(
+        "<p>✓ Computed on-time performance and speed for <strong>{date}</strong>. \
+         <a href='/'>View dashboard</a></p>"
+    ))
 }
