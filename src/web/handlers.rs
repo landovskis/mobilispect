@@ -25,14 +25,14 @@ struct ReportTemplate {
 
 pub async fn dashboard(State(state): State<AppState>) -> Html<String> {
     let period_days: i64 = 7;
-    let routes = route_summary(&state.db, period_days).await.unwrap_or_default();
+    let routes = route_summary(&state.db, period_days, None).await.unwrap_or_default();
     let tmpl = DashboardTemplate { routes, period_days };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
 
 pub async fn report(State(state): State<AppState>) -> Html<String> {
     let period_days: i64 = 7;
-    let routes = route_summary(&state.db, period_days).await.unwrap_or_default();
+    let routes = route_summary(&state.db, period_days, None).await.unwrap_or_default();
     let generated_at = Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
     let tmpl = ReportTemplate { routes, period_days, generated_at };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
@@ -69,7 +69,7 @@ pub async fn api_routes(
     Query(params): Query<ApiRoutesParams>,
 ) -> Result<axum::Json<Vec<RouteSummary>>, (axum::http::StatusCode, axum::Json<serde_json::Value>)> {
     let days = params.days.unwrap_or(7);
-    route_summary(&state.db, days).await.map(axum::Json).map_err(|e| {
+    route_summary(&state.db, days, None).await.map(axum::Json).map_err(|e| {
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(serde_json::json!({ "error": e.to_string() })),
@@ -93,16 +93,16 @@ struct RouteDetailTemplate {
 
 pub async fn route_detail(
     State(state): State<AppState>,
-    axum::extract::Path(route_id): axum::extract::Path<String>,
+    axum::extract::Path((agency_id, route_id)): axum::extract::Path<(String, String)>,
 ) -> Html<String> {
     let period_days: i64 = 30;
-    match route_trend(&state.db, &route_id, period_days).await {
+    match route_trend(&state.db, &agency_id, &route_id, period_days).await {
         Ok(Some(trend)) => {
             let trend_json = serde_json::to_string(&trend.days).unwrap_or_default();
             let tmpl = RouteDetailTemplate { trend, trend_json, period_days };
             Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
         }
-        Ok(None) => Html(format!("<p>Route '{route_id}' not found or no data yet.</p>")),
+        Ok(None) => Html(format!("<p>Route '{agency_id}/{route_id}' not found or no data yet.</p>")),
         Err(e) => Html(format!("<p>Error: {e}</p>")),
     }
 }
@@ -187,13 +187,13 @@ pub async fn compute(
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or_else(|| Utc::now().date_naive());
 
-    // Use the first configured agency for UTC offset and on-time threshold calculations.
-    let agency = &state.config.agencies[0];
-    if let Err(e) = compute_route_daily(&state.db, &state.config, agency, date).await {
-        return Html(format!("<p>Error computing on-time: {e}</p>"));
-    }
-    if let Err(e) = compute_route_speed_daily(&state.db, date).await {
-        return Html(format!("<p>Error computing speed: {e}</p>"));
+    for agency in &state.config.agencies {
+        if let Err(e) = compute_route_daily(&state.db, &state.config, agency, date).await {
+            return Html(format!("<p>Error computing on-time for {}: {e}</p>", agency.name));
+        }
+        if let Err(e) = compute_route_speed_daily(&state.db, agency, date).await {
+            return Html(format!("<p>Error computing speed for {}: {e}</p>", agency.name));
+        }
     }
     Html(format!(
         "<p>✓ Computed on-time performance and speed for <strong>{date}</strong>. \
