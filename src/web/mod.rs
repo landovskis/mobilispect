@@ -23,6 +23,7 @@ pub async fn serve(db: &Database, config: &Config) -> Result<()> {
     let app = Router::new()
         .route("/", get(handlers::dashboard))
         .route("/report", get(handlers::report))
+        .route("/hotspots", get(handlers::hotspots))
         .route("/compute", get(handlers::compute))
         .layer(TraceLayer::new_for_http())
         .with_state(state);

@@ -1,8 +1,9 @@
 use askama::Template;
 use axum::{extract::State, response::Html};
 use chrono::{NaiveDate, Utc};
+use serde_json;
 
-use crate::metrics::{compute_route_daily, route_summary, RouteSummary};
+use crate::metrics::{compute_route_daily, route_summary, stop_hotspots, RouteSummary, StopHotspot};
 use crate::web::AppState;
 
 #[derive(Template)]
@@ -32,6 +33,24 @@ pub async fn report(State(state): State<AppState>) -> Html<String> {
     let routes = route_summary(&state.db, period_days).await.unwrap_or_default();
     let generated_at = Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
     let tmpl = ReportTemplate { routes, period_days, generated_at };
+    Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+}
+
+#[derive(Template)]
+#[template(path = "hotspots.html")]
+struct HotspotsTemplate {
+    hotspots: Vec<StopHotspot>,
+    hotspots_json: String,
+    period_days: i64,
+}
+
+pub async fn hotspots(State(state): State<AppState>) -> Html<String> {
+    let period_days: i64 = 7;
+    let hotspots = stop_hotspots(&state.db, &state.config, period_days, 100)
+        .await
+        .unwrap_or_default();
+    let hotspots_json = serde_json::to_string(&hotspots).unwrap_or_default();
+    let tmpl = HotspotsTemplate { hotspots, hotspots_json, period_days };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
 
