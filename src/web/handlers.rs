@@ -12,6 +12,7 @@ use crate::web::AppState;
 #[template(path = "dashboard.html")]
 struct DashboardTemplate {
     routes: Vec<RouteSummary>,
+    speeds: Vec<RouteSpeedSummary>,
     period_days: i64,
 }
 
@@ -26,7 +27,8 @@ struct ReportTemplate {
 pub async fn dashboard(State(state): State<AppState>) -> Html<String> {
     let period_days: i64 = 7;
     let routes = route_summary(&state.db, period_days).await.unwrap_or_default();
-    let tmpl = DashboardTemplate { routes, period_days };
+    let speeds = route_speed_summary(&state.db).await.unwrap_or_default();
+    let tmpl = DashboardTemplate { routes, speeds, period_days };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
 

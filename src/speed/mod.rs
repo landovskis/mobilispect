@@ -19,9 +19,48 @@ pub struct RouteSpeedSummary {
 }
 
 impl RouteSpeedSummary {
-    /// Speed in km/h, rounded to one decimal place.
+    /// Scheduled speed in km/h, rounded to one decimal place.
     pub fn scheduled_speed_kmh(&self) -> f64 {
         (self.scheduled_speed_mps * 3.6 * 10.0).round() / 10.0
+    }
+
+    pub fn actual_speed_display(&self) -> String {
+        match self.actual_speed_mps {
+            Some(s) => format!("{:.1} km/h", s * 3.6),
+            None => "—".to_string(),
+        }
+    }
+
+    pub fn live_speed_display(&self) -> String {
+        match self.live_speed_mps {
+            Some(s) => format!("{:.1} km/h", s * 3.6),
+            None => "—".to_string(),
+        }
+    }
+
+    /// Percentage by which actual speed lags scheduled speed.
+    /// Positive = slower than scheduled, negative = faster.
+    /// None if no actual speed data.
+    pub fn speed_deficit_pct(&self) -> Option<f64> {
+        let actual = self.actual_speed_mps?;
+        if self.scheduled_speed_mps == 0.0 {
+            return None;
+        }
+        Some((self.scheduled_speed_mps - actual) / self.scheduled_speed_mps * 100.0)
+    }
+
+    /// "—", "+X% faster", or "X% slower" relative to schedule.
+    pub fn speed_vs_scheduled_display(&self) -> String {
+        match self.speed_deficit_pct() {
+            None => "—".to_string(),
+            Some(d) if d > 1.0 => format!("{d:.0}% slower"),
+            Some(d) if d < -1.0 => format!("{:.0}% faster", d.abs()),
+            Some(_) => "On pace".to_string(),
+        }
+    }
+
+    pub fn direction_label(&self) -> &'static str {
+        if self.direction_id == 0 { "Outbound" } else { "Inbound" }
     }
 }
 
@@ -510,19 +549,69 @@ mod tests {
         assert!(summary[0].actual_speed_mps.is_none(), "expected None without history");
     }
 
-    #[test]
-    fn scheduled_speed_kmh_converts_correctly() {
-        let s = RouteSpeedSummary {
+    fn make_summary(scheduled: f64, actual: Option<f64>) -> RouteSpeedSummary {
+        RouteSpeedSummary {
             route_id: "R1".into(),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             direction_id: 0,
-            scheduled_speed_mps: 10.0,
+            scheduled_speed_mps: scheduled,
             trip_count: 1,
             live_speed_mps: None,
-            actual_speed_mps: None,
-        };
+            actual_speed_mps: actual,
+        }
+    }
+
+    #[test]
+    fn scheduled_speed_kmh_converts_correctly() {
+        let s = make_summary(10.0, None);
         // 10 m/s * 3.6 = 36.0 km/h
         assert_eq!(s.scheduled_speed_kmh(), 36.0);
+    }
+
+    #[test]
+    fn speed_deficit_pct_is_none_without_actual_data() {
+        let s = make_summary(10.0, None);
+        assert!(s.speed_deficit_pct().is_none());
+    }
+
+    #[test]
+    fn speed_deficit_pct_positive_when_slower_than_scheduled() {
+        // scheduled 10 m/s, actual 8 m/s → 20% slower
+        let s = make_summary(10.0, Some(8.0));
+        let pct = s.speed_deficit_pct().unwrap();
+        assert!((pct - 20.0).abs() < 0.01, "expected 20.0%, got {pct}");
+    }
+
+    #[test]
+    fn speed_deficit_pct_negative_when_faster_than_scheduled() {
+        // scheduled 10 m/s, actual 11 m/s → -10% (faster)
+        let s = make_summary(10.0, Some(11.0));
+        let pct = s.speed_deficit_pct().unwrap();
+        assert!((pct - (-10.0)).abs() < 0.01, "expected -10.0%, got {pct}");
+    }
+
+    #[test]
+    fn speed_vs_scheduled_display_shows_slower() {
+        let s = make_summary(10.0, Some(8.0));
+        assert_eq!(s.speed_vs_scheduled_display(), "20% slower");
+    }
+
+    #[test]
+    fn speed_vs_scheduled_display_shows_faster() {
+        let s = make_summary(10.0, Some(11.0));
+        assert_eq!(s.speed_vs_scheduled_display(), "10% faster");
+    }
+
+    #[test]
+    fn speed_vs_scheduled_display_shows_on_pace_within_one_pct() {
+        let s = make_summary(10.0, Some(10.05)); // 0.5% faster — within threshold
+        assert_eq!(s.speed_vs_scheduled_display(), "On pace");
+    }
+
+    #[test]
+    fn speed_vs_scheduled_display_is_dash_without_data() {
+        let s = make_summary(10.0, None);
+        assert_eq!(s.speed_vs_scheduled_display(), "—");
     }
 }

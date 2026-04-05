@@ -81,6 +81,37 @@
       </tbody>
     </table>
   </div>
+  {% if !speeds.is_empty() %}
+  <div class="container">
+    <h2 style="font-size:1rem;font-weight:600;color:#555;margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">
+      Average Speed by Route
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Route</th>
+          <th>Direction</th>
+          <th>Scheduled</th>
+          <th>Actual (7d)</th>
+          <th>Live (1h)</th>
+          <th>vs Schedule</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in speeds %}
+        <tr>
+          <td><span class="route-id">{{ s.short_name }}</span></td>
+          <td style="color:#888;font-size:0.85rem;">{{ s.direction_label() }}</td>
+          <td>{{ s.scheduled_speed_kmh() }} km/h</td>
+          <td>{{ s.actual_speed_display() }}</td>
+          <td>{{ s.live_speed_display() }}</td>
+          <td>{{ s.speed_vs_scheduled_display() }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
   <footer>Mobilispect · Last 7 days · Data: STM GTFS-RT</footer>
 </body>
 </html>
