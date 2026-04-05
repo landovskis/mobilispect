@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::Utc;
 use tracing::{error, info};
 
-use crate::config::Config;
+use crate::config::AgencyConfig;
 use crate::db::Database;
 
 // GTFS-RT protobuf types — generated from the official .proto file
@@ -13,26 +13,26 @@ pub mod proto {
 
 use prost::Message;
 
-pub async fn poll_loop(db: &Database, config: &Config) {
-    let interval = std::time::Duration::from_secs(config.poll_interval_secs);
+pub async fn poll_loop(db: &Database, agency: &AgencyConfig, poll_interval_secs: u64) {
+    let interval = std::time::Duration::from_secs(poll_interval_secs);
     loop {
-        if let Err(e) = poll_once(db, config).await {
-            error!("GTFS-RT poll error: {}", e);
+        if let Err(e) = poll_once(db, agency).await {
+            error!("GTFS-RT poll error ({}): {}", agency.slug, e);
         }
         tokio::time::sleep(interval).await;
     }
 }
 
-async fn poll_once(db: &Database, config: &Config) -> Result<()> {
+async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
 
     // Fetch VehiclePositions
-    let vp_bytes = fetch_feed(&config.gtfs_rt_vehicle_positions_url, config.gtfs_api_key.as_deref()).await?;
+    let vp_bytes = fetch_feed(&agency.gtfs_rt_vehicle_positions_url, agency.gtfs_api_key.as_deref()).await?;
     let vp_feed = proto::FeedMessage::decode(vp_bytes.as_ref())?;
     let vp_count = store_vehicle_positions(db, &vp_feed, &now).await?;
 
     // Fetch TripUpdates
-    let tu_bytes = fetch_feed(&config.gtfs_rt_trip_updates_url, config.gtfs_api_key.as_deref()).await?;
+    let tu_bytes = fetch_feed(&agency.gtfs_rt_trip_updates_url, agency.gtfs_api_key.as_deref()).await?;
     let tu_feed = proto::FeedMessage::decode(tu_bytes.as_ref())?;
     let tu_count = store_trip_updates(db, &tu_feed, &now).await?;
 

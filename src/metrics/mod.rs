@@ -3,11 +3,11 @@ use chrono::NaiveDate;
 use serde::Serialize;
 use tracing::info;
 
-use crate::config::Config;
+use crate::config::{AgencyConfig, Config};
 use crate::db::Database;
 
 /// Compute on-time performance for all routes on a given service date.
-pub async fn compute_route_daily(db: &Database, config: &Config, service_date: NaiveDate) -> Result<()> {
+pub async fn compute_route_daily(db: &Database, config: &Config, agency: &AgencyConfig, service_date: NaiveDate) -> Result<()> {
     let date_str = service_date.to_string();
     let now = chrono::Utc::now().to_rfc3339();
 
@@ -27,7 +27,7 @@ pub async fn compute_route_daily(db: &Database, config: &Config, service_date: N
         // Also handles feeds that provide delay directly.
         // Scheduled times are in agency local time; append UTC offset to get correct Unix epoch.
         // e.g. "18:51:00" + date + "-04:00" → correct UTC Unix timestamp.
-        let offset = &config.agency_utc_offset;
+        let offset = &agency.agency_utc_offset;
         let delays: Vec<i64> = sqlx::query_as::<_, (Option<i64>,)>(
             "SELECT
                CAST(COALESCE(
@@ -142,7 +142,7 @@ pub async fn compute_route_daily(db: &Database, config: &Config, service_date: N
     Ok(())
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, serde::Serialize)]
 pub struct RouteSummary {
     pub route_id: String,
     pub short_name: String,
@@ -225,11 +225,11 @@ impl StopHotspot {
 /// Only includes stops with at least `min_observations` events.
 pub async fn stop_hotspots(
     db: &Database,
-    config: &Config,
+    agency: &AgencyConfig,
     days: i64,
     limit: i64,
 ) -> Result<Vec<StopHotspot>> {
-    let offset = &config.agency_utc_offset;
+    let offset = &agency.agency_utc_offset;
     let rows: Vec<StopHotspot> = sqlx::query_as(
         "SELECT
            s.stop_id,

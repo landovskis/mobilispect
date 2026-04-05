@@ -1,6 +1,7 @@
 use askama::Template;
-use axum::{extract::State, response::Html};
+use axum::{extract::{Query, State}, response::Html};
 use chrono::{NaiveDate, Utc};
+use serde::Deserialize;
 use serde_json;
 
 use crate::metrics::{compute_route_daily, route_summary, stop_hotspots, RouteSummary, StopHotspot};
@@ -46,12 +47,33 @@ struct HotspotsTemplate {
 
 pub async fn hotspots(State(state): State<AppState>) -> Html<String> {
     let period_days: i64 = 7;
-    let hotspots = stop_hotspots(&state.db, &state.config, period_days, 100)
+    // Use the first configured agency for hotspot UTC offset calculation.
+    let agency = &state.config.agencies[0];
+    let hotspots = stop_hotspots(&state.db, agency, period_days, 100)
         .await
         .unwrap_or_default();
     let hotspots_json = serde_json::to_string(&hotspots).unwrap_or_default();
     let tmpl = HotspotsTemplate { hotspots, hotspots_json, period_days };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+}
+
+#[derive(Deserialize)]
+pub struct ApiRoutesParams {
+    days: Option<i64>,
+}
+
+/// Return route performance summary as JSON. Accepts optional ?days=N query param (default 7).
+pub async fn api_routes(
+    State(state): State<AppState>,
+    Query(params): Query<ApiRoutesParams>,
+) -> Result<axum::Json<Vec<RouteSummary>>, (axum::http::StatusCode, axum::Json<serde_json::Value>)> {
+    let days = params.days.unwrap_or(7);
+    route_summary(&state.db, days).await.map(axum::Json).map_err(|e| {
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            axum::Json(serde_json::json!({ "error": e.to_string() })),
+        )
+    })
 }
 
 /// Trigger on-time computation for today (and optionally a past date via ?date=YYYY-MM-DD).
@@ -64,7 +86,9 @@ pub async fn compute(
         .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
         .unwrap_or_else(|| Utc::now().date_naive());
 
-    match compute_route_daily(&state.db, &state.config, date).await {
+    // Use the first configured agency for UTC offset and on-time threshold calculations.
+    let agency = &state.config.agencies[0];
+    match compute_route_daily(&state.db, &state.config, agency, date).await {
         Ok(()) => Html(format!(
             "<p>✓ Computed on-time performance for <strong>{date}</strong>. \
              <a href='/'>View dashboard</a></p>"

@@ -1,6 +1,7 @@
 mod config;
 mod db;
 mod gtfs;
+mod maintenance;
 mod metrics;
 mod web;
 
@@ -23,16 +24,29 @@ async fn main() -> Result<()> {
     let db = Database::connect(&config.database_url).await?;
     db.migrate().await?;
 
-    info!("Mobilispect starting — agency: {}", config.agency_name);
+    info!(
+        "Mobilispect starting — {} agency/agencies configured",
+        config.agencies.len()
+    );
 
-    // Load static GTFS on startup if not already loaded
-    gtfs::static_feed::load_if_needed(&db, &config.gtfs_static_url).await?;
+    // Load static GTFS and start a GTFS-RT poll loop for each configured agency.
+    for agency in &config.agencies {
+        info!("Loading static GTFS for agency: {}", agency.name);
+        gtfs::static_feed::load_if_needed(&db, &agency.gtfs_static_url).await?;
 
-    // Start background task: poll GTFS-RT every 30s
-    let db_rt = db.clone();
-    let config_rt = config.clone();
+        let db_rt = db.clone();
+        let agency_rt = agency.clone();
+        let poll_interval = config.poll_interval_secs;
+        tokio::spawn(async move {
+            gtfs::realtime::poll_loop(&db_rt, &agency_rt, poll_interval).await;
+        });
+    }
+
+    // Start background task: data retention cleanup once per day
+    let db_maint = db.clone();
+    let config_maint = config.clone();
     tokio::spawn(async move {
-        gtfs::realtime::poll_loop(&db_rt, &config_rt).await;
+        maintenance::retention_loop(&db_maint, &config_maint).await;
     });
 
     // Start web server
