@@ -23,6 +23,7 @@ pub async fn serve(db: &Database, config: &Config) -> Result<()> {
     let app = Router::new()
         .route("/", get(handlers::dashboard))
         .route("/report", get(handlers::report))
+        .route("/speed", get(handlers::speed_page))
         .route("/hotspots", get(handlers::hotspots))
         .route("/compute", get(handlers::compute))
         .route("/api/routes", get(handlers::api_routes))

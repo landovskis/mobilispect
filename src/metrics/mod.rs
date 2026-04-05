@@ -285,7 +285,7 @@ pub async fn route_summary(db: &Database, days: i64) -> Result<Vec<RouteSummary>
          JOIN routes r ON rd.route_id = r.route_id
          WHERE rd.service_date >= DATE('now', '-' || ? || ' days')
          GROUP BY rd.route_id, r.short_name, r.long_name
-         ORDER BY avg_on_time_pct ASC",
+         ORDER BY CAST(r.short_name AS INTEGER), r.short_name",
     )
     .bind(days)
     .fetch_all(&db.pool)

@@ -62,6 +62,16 @@ impl RouteSpeedSummary {
     pub fn direction_label(&self) -> &'static str {
         if self.direction_id == 0 { "Outbound" } else { "Inbound" }
     }
+
+    /// CSS class for the vs-schedule cell: "slower", "faster", or "onpace".
+    pub fn speed_class(&self) -> &'static str {
+        match self.speed_deficit_pct() {
+            Some(d) if d > 1.0 => "slower",
+            Some(d) if d < -1.0 => "faster",
+            Some(_) => "onpace",
+            None => "onpace",
+        }
+    }
 }
 
 /// Haversine distance between two lat/lon points, in meters.
@@ -299,7 +309,7 @@ pub async fn route_speed_summary(db: &Database) -> Result<Vec<RouteSpeedSummary>
            WHERE service_date >= DATE('now', '-7 days')
            GROUP BY route_id, direction_id
          ) hist ON hist.route_id = rs.route_id AND hist.direction_id = rs.direction_id
-         ORDER BY r.short_name, rs.direction_id",
+         ORDER BY CAST(r.short_name AS INTEGER), r.short_name, rs.direction_id",
     )
     .fetch_all(&db.pool)
     .await?;
