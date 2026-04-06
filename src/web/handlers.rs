@@ -108,7 +108,7 @@ pub async fn route_detail(
 }
 
 pub async fn speed_page(State(state): State<AppState>) -> Html<String> {
-    let speeds = route_speed_summary(&state.db).await.unwrap_or_default();
+    let speeds = route_speed_summary(&state.db, None).await.unwrap_or_default();
     let tmpl = SpeedTemplate { speeds };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
@@ -169,7 +169,7 @@ pub async fn scorecard(State(state): State<AppState>) -> Html<String> {
 pub async fn api_route_speed(
     State(state): State<AppState>,
 ) -> Result<axum::Json<Vec<RouteSpeedSummary>>, (axum::http::StatusCode, axum::Json<serde_json::Value>)> {
-    route_speed_summary(&state.db).await.map(axum::Json).map_err(|e| {
+    route_speed_summary(&state.db, None).await.map(axum::Json).map_err(|e| {
         (
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             axum::Json(serde_json::json!({ "error": e.to_string() })),
