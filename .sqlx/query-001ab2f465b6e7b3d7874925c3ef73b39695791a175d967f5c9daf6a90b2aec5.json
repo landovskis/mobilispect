@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO vehicle_positions\n             (observed_at, trip_id, vehicle_id, latitude, longitude, bearing, speed, current_status, stop_sequence)\n             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": []
+  },
+  "hash": "001ab2f465b6e7b3d7874925c3ef73b39695791a175d967f5c9daf6a90b2aec5"
+}

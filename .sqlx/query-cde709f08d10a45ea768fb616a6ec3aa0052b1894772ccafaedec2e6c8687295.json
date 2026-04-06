@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM vehicle_positions WHERE observed_at < datetime('now', printf('-%d days', ?))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "cde709f08d10a45ea768fb616a6ec3aa0052b1894772ccafaedec2e6c8687295"
+}

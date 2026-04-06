@@ -29,16 +29,16 @@ async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
     // Fetch VehiclePositions
     let vp_bytes = fetch_feed(&agency.gtfs_rt_vehicle_positions_url, agency.gtfs_api_key.as_deref()).await?;
     let vp_feed = proto::FeedMessage::decode(vp_bytes.as_ref())?;
-    let vp_count = store_vehicle_positions(db, &vp_feed, &now).await?;
+    let vp_count = store_vehicle_positions(db, &vp_feed, &now, &agency.slug).await?;
 
     // Fetch TripUpdates
     let tu_bytes = fetch_feed(&agency.gtfs_rt_trip_updates_url, agency.gtfs_api_key.as_deref()).await?;
     let tu_feed = proto::FeedMessage::decode(tu_bytes.as_ref())?;
-    let tu_count = store_trip_updates(db, &tu_feed, &now).await?;
+    let tu_count = store_trip_updates(db, &tu_feed, &now, &agency.slug).await?;
 
     info!(
-        "GTFS-RT poll complete: {} vehicle positions, {} stop time events",
-        vp_count, tu_count
+        "GTFS-RT poll complete ({}): {} vehicle positions, {} stop time events",
+        agency.slug, vp_count, tu_count
     );
     Ok(())
 }
@@ -57,6 +57,7 @@ async fn store_vehicle_positions(
     db: &Database,
     feed: &proto::FeedMessage,
     observed_at: &str,
+    agency_id: &str,
 ) -> Result<usize> {
     let mut count = 0;
     for entity in &feed.entity {
@@ -74,8 +75,9 @@ async fn store_vehicle_positions(
 
         sqlx::query!(
             "INSERT INTO vehicle_positions
-             (observed_at, trip_id, vehicle_id, latitude, longitude, bearing, speed, current_status, stop_sequence)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             (agency_id, observed_at, trip_id, vehicle_id, latitude, longitude, bearing, speed, current_status, stop_sequence)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            agency_id,
             observed_at,
             trip_id,
             vehicle_id,
@@ -97,6 +99,7 @@ async fn store_trip_updates(
     db: &Database,
     feed: &proto::FeedMessage,
     observed_at: &str,
+    agency_id: &str,
 ) -> Result<usize> {
     let mut count = 0;
     for entity in &feed.entity {
@@ -114,9 +117,10 @@ async fn store_trip_updates(
 
             sqlx::query!(
                 "INSERT INTO stop_time_events
-                 (observed_at, trip_id, stop_id, stop_sequence, arrival_delay, departure_delay,
+                 (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_delay, departure_delay,
                   arrival_time_unix, departure_time_unix)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                agency_id,
                 observed_at,
                 trip_id,
                 stop_id,

@@ -33,9 +33,9 @@ async fn main() -> Result<()> {
     // Load static GTFS and start a GTFS-RT poll loop for each configured agency.
     for agency in &config.agencies {
         info!("Loading static GTFS for agency: {}", agency.name);
-        gtfs::static_feed::load_if_needed(&db, &agency.gtfs_static_url).await?;
-        speed::compute_route_speed(&db).await?;
-        info!("Computed scheduled speed for all routes");
+        gtfs::static_feed::load_if_needed(&db, agency).await?;
+        speed::compute_route_speed(&db, agency).await?;
+        info!("Computed scheduled speed for agency: {}", agency.name);
 
         let db_rt = db.clone();
         let agency_rt = agency.clone();

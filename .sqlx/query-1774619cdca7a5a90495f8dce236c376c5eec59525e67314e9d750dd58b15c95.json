@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO stop_time_events\n                 (observed_at, trip_id, stop_id, stop_sequence, arrival_delay, departure_delay,\n                  arrival_time_unix, departure_time_unix)\n                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "1774619cdca7a5a90495f8dce236c376c5eec59525e67314e9d750dd58b15c95"
+}

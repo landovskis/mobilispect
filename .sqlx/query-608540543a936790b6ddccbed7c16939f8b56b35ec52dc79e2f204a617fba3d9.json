@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO trip_results\n             (trip_id, service_date, route_id, on_time, avg_delay_secs, max_delay_secs, completed, computed_at)\n             VALUES (?, ?, ?, ?, ?, ?, 1, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "608540543a936790b6ddccbed7c16939f8b56b35ec52dc79e2f204a617fba3d9"
+}
