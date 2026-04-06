@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT value FROM feed_info WHERE key = 'gtfs_static_version'",
+  "query": "SELECT value FROM feed_info WHERE key = ?",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,11 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false
     ]
   },
-  "hash": "74adcbb4fc68c9c985307f9e93c1cb19d0b8455c7e4a918d76b454264e4e02ff"
+  "hash": "2ff7c1605cfab4d33106d5dba409f91ef9755a4c92a778411ee97cc30b1fb2e8"
 }

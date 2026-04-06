@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO feed_info (key, value, updated_at) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "1ccda41b45d1510e4a0ee8b3d5d0e408b8efedbb6e2853e058cd664895f3c275"
+}

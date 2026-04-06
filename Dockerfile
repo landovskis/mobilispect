@@ -1,7 +1,7 @@
 # =============================================================================
 # Stage 1 — Builder
 # =============================================================================
-FROM rust:1.83-slim AS builder
+FROM rust:slim AS builder
 
 # Install build-time dependencies:
 #   - pkg-config: needed by openssl-sys to locate libssl
@@ -15,24 +15,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /build
 
-# Copy dependency manifests first so the cargo dependency layer is cached
-# independently of source changes.
-COPY Cargo.toml Cargo.lock ./
+# sqlx uses compile-time query verification; SQLX_OFFLINE=true uses the cached
+# query metadata in .sqlx/ instead of requiring a live database connection.
+ENV SQLX_OFFLINE=true
 
-# Create a stub main so `cargo build --release` can compile all deps without
-# the real source tree. The stub is replaced in the next COPY step.
-RUN mkdir -p src && echo 'fn main() {}' > src/main.rs \
-    && cargo build --release \
-    && rm -rf src
+COPY . .
 
-# Copy the full source tree (including proto/ for build.rs).
-COPY build.rs ./
-COPY proto/ proto/
-COPY src/ src/
-COPY migrations/ migrations/
-
-# Touch main.rs so Cargo knows it changed and rebuilds the final binary.
-RUN touch src/main.rs && cargo build --release
+RUN cargo build --release
 
 # =============================================================================
 # Stage 2 — Runtime
@@ -59,11 +48,11 @@ RUN mkdir -p /data && chown mobilispect:mobilispect /data
 # macro that embeds migration SQL directly into the binary.
 COPY --from=builder /build/target/release/mobilispect /usr/local/bin/mobilispect
 
-# Persistent volume for the SQLite database file.
-VOLUME ["/data"]
+# /data is used for the SQLite database file. Mount a Railway volume at /data
+# via the Railway dashboard — do not use the VOLUME directive (banned by Railway).
 
 # Default to an absolute path inside the /data volume so the SQLite file
-# survives container restarts when /data is mounted as a named volume.
+# survives container restarts when a Railway volume is mounted there.
 ENV DATABASE_URL=sqlite:///data/mobilispect.db
 
 # The application listens on port 3000 by default (BIND_ADDRESS=0.0.0.0:3000).
