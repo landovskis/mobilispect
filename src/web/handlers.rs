@@ -8,11 +8,19 @@ use crate::metrics::{compute_route_daily, load_benchmarks, route_summary, route_
 use crate::speed::{compute_route_speed_daily, route_speed_summary, RouteSpeedSummary};
 use crate::web::AppState;
 
+#[derive(Deserialize)]
+pub struct AgencyFilterParams {
+    agency: Option<String>,
+}
+
 #[derive(Template)]
 #[template(path = "dashboard.html")]
 struct DashboardTemplate {
     routes: Vec<RouteSummary>,
     period_days: i64,
+    agencies: Vec<(String, String)>,
+    agency_names: std::collections::HashMap<String, String>,
+    active_agency: String,
 }
 
 #[derive(Template)]
@@ -23,10 +31,19 @@ struct ReportTemplate {
     generated_at: String,
 }
 
-pub async fn dashboard(State(state): State<AppState>) -> Html<String> {
+pub async fn dashboard(
+    State(state): State<AppState>,
+    Query(params): Query<AgencyFilterParams>,
+) -> Html<String> {
     let period_days: i64 = 7;
-    let routes = route_summary(&state.db, period_days, None).await.unwrap_or_default();
-    let tmpl = DashboardTemplate { routes, period_days };
+    let active_agency = params.agency.unwrap_or_default();
+    let filter = if active_agency.is_empty() { None } else { Some(active_agency.as_str()) };
+    let routes = route_summary(&state.db, period_days, filter).await.unwrap_or_default();
+    let agencies: Vec<(String, String)> = state.config.agencies.iter()
+        .map(|a| (a.slug.clone(), a.name.clone()))
+        .collect();
+    let agency_names: std::collections::HashMap<String, String> = agencies.iter().cloned().collect();
+    let tmpl = DashboardTemplate { routes, period_days, agencies, agency_names, active_agency };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
 
