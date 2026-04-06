@@ -30,13 +30,25 @@ async fn main() -> Result<()> {
         config.agencies.len()
     );
 
-    // Load static GTFS and start a GTFS-RT poll loop for each configured agency.
+    // Load static GTFS for all agencies in parallel. Any failure aborts startup.
+    let mut set: tokio::task::JoinSet<Result<()>> = tokio::task::JoinSet::new();
     for agency in &config.agencies {
-        info!("Loading static GTFS for agency: {}", agency.name);
-        gtfs::static_feed::load_if_needed(&db, agency).await?;
-        speed::compute_route_speed(&db, agency).await?;
-        info!("Computed scheduled speed for agency: {}", agency.name);
+        let db = db.clone();
+        let agency = agency.clone();
+        set.spawn(async move {
+            info!("Loading static GTFS for agency: {}", agency.name);
+            gtfs::static_feed::load_if_needed(&db, &agency).await?;
+            speed::compute_route_speed(&db, &agency).await?;
+            info!("Computed scheduled speed for agency: {}", agency.name);
+            Ok(())
+        });
+    }
+    while let Some(res) = set.join_next().await {
+        res??;
+    }
 
+    // Start a GTFS-RT poll loop for each agency.
+    for agency in &config.agencies {
         let db_rt = db.clone();
         let agency_rt = agency.clone();
         let poll_interval = config.poll_interval_secs;
