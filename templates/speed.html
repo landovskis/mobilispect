@@ -74,9 +74,9 @@
         </tr>
       </thead>
       <tbody>
-        {% for s in speeds %}
+        {% for (s, agency_name) in &speeds %}
         <tr>
-          <td><a href="/routes/{{ s.agency_id }}/{{ s.route_id }}" style="text-decoration:none;"><span class="route-id">{% if let Some(n) = agency_names.get(s.agency_id.as_str()) %}{{ n }} {% endif %}{{ s.short_name }}</span></a></td>
+          <td><a href="/routes/{{ s.agency_id }}/{{ s.route_id }}" style="text-decoration:none;"><span class="route-id">{{ agency_name }} {{ s.short_name }}</span></a></td>
           <td>{{ s.long_name }}</td>
           <td class="dir">{{ s.direction_label() }}</td>
           <td>{{ s.scheduled_speed_kmh() }} km/h</td>
