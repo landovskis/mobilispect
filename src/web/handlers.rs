@@ -1,11 +1,11 @@
 use askama::Template;
 use axum::{extract::{Query, State}, response::Html};
-use chrono::{NaiveDate, Utc};
+use chrono::Utc;
 use serde::Deserialize;
 use serde_json;
 
-use crate::metrics::{compute_route_daily, load_benchmarks, route_summary, route_trend, scorecard_routes, stop_hotspots, Benchmark, RouteSummary, RouteTrend, ScorecardRoute, StopHotspot};
-use crate::speed::{compute_route_speed_daily, route_speed_summary, RouteSpeedSummary};
+use crate::metrics::{load_benchmarks, route_summary, route_trend, scorecard_routes, stop_hotspots, Benchmark, RouteSummary, RouteTrend, ScorecardRoute, StopHotspot};
+use crate::speed::{route_speed_summary, RouteSpeedSummary};
 use crate::web::AppState;
 
 #[derive(Deserialize)]
@@ -69,7 +69,9 @@ struct HotspotsTemplate {
 
 pub async fn hotspots(State(state): State<AppState>) -> Html<String> {
     let period_days: i64 = 7;
-    // Use the first configured agency for hotspot UTC offset calculation.
+    // All monitored agencies share the same UTC offset (Montreal area), so using the
+    // first agency's offset for time-bucketing is correct in practice. If agencies
+    // from different timezones are ever added, this should be revisited.
     let agency = &state.config.agencies[0];
     let hotspots = stop_hotspots(&state.db, agency, period_days, 100)
         .await
@@ -228,26 +230,3 @@ pub async fn api_route_speed(
     })
 }
 
-/// Trigger on-time computation for today (and optionally a past date via ?date=YYYY-MM-DD).
-pub async fn compute(
-    State(state): State<AppState>,
-    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
-) -> Html<String> {
-    let date: NaiveDate = params
-        .get("date")
-        .and_then(|s| NaiveDate::parse_from_str(s, "%Y-%m-%d").ok())
-        .unwrap_or_else(|| Utc::now().date_naive());
-
-    for agency in &state.config.agencies {
-        if let Err(e) = compute_route_daily(&state.db, &state.config, agency, date).await {
-            return Html(format!("<p>Error computing on-time for {}: {e}</p>", agency.name));
-        }
-        if let Err(e) = compute_route_speed_daily(&state.db, agency, date).await {
-            return Html(format!("<p>Error computing speed for {}: {e}</p>", agency.name));
-        }
-    }
-    Html(format!(
-        "<p>✓ Computed on-time performance and speed for <strong>{date}</strong>. \
-         <a href='/'>View dashboard</a></p>"
-    ))
-}
