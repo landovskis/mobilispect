@@ -31,6 +31,12 @@
     .faster { color: #27ae60; }
     .onpace { color: #555; }
     footer { text-align: center; padding: 2rem; color: #aaa; font-size: 0.8rem; }
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .filter-bar a { padding: 0.35rem 0.75rem; border-radius: 20px; background: white;
+                    border: 1px solid #ddd; font-size: 0.85rem; text-decoration: none;
+                    color: #555; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .filter-bar a:hover { border-color: #999; color: #222; }
+    .filter-bar a.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
   </style>
 </head>
 <body>
@@ -49,6 +55,12 @@
       <strong>Actual (7d)</strong> — derived from stop arrival times, last 7 days &nbsp;·&nbsp;
       <strong>Live (1h)</strong> — GPS speed from vehicles in the last hour
     </div>
+    <div class="filter-bar">
+      <a href="/speed" class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
+      {% for (slug, name) in &agencies %}
+      <a href="/speed?agency={{ slug }}" class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
+      {% endfor %}
+    </div>
     <table>
       <thead>
         <tr>
@@ -64,7 +76,7 @@
       <tbody>
         {% for s in speeds %}
         <tr>
-          <td><a href="/routes/{{ s.route_id }}" style="text-decoration:none;"><span class="route-id">{{ s.short_name }}</span></a></td>
+          <td><a href="/routes/{{ s.agency_id }}/{{ s.route_id }}" style="text-decoration:none;"><span class="route-id">{% if let Some(n) = agency_names.get(s.agency_id.as_str()) %}{{ n }} {% endif %}{{ s.short_name }}</span></a></td>
           <td>{{ s.long_name }}</td>
           <td class="dir">{{ s.direction_label() }}</td>
           <td>{{ s.scheduled_speed_kmh() }} km/h</td>

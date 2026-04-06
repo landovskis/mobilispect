@@ -98,6 +98,9 @@ pub async fn api_routes(
 #[template(path = "speed.html")]
 struct SpeedTemplate {
     speeds: Vec<RouteSpeedSummary>,
+    agencies: Vec<(String, String)>,
+    agency_names: std::collections::HashMap<String, String>,
+    active_agency: String,
 }
 
 #[derive(Template)]
@@ -124,9 +127,18 @@ pub async fn route_detail(
     }
 }
 
-pub async fn speed_page(State(state): State<AppState>) -> Html<String> {
-    let speeds = route_speed_summary(&state.db, None).await.unwrap_or_default();
-    let tmpl = SpeedTemplate { speeds };
+pub async fn speed_page(
+    State(state): State<AppState>,
+    Query(params): Query<AgencyFilterParams>,
+) -> Html<String> {
+    let active_agency = params.agency.unwrap_or_default();
+    let filter = if active_agency.is_empty() { None } else { Some(active_agency.as_str()) };
+    let speeds = route_speed_summary(&state.db, filter).await.unwrap_or_default();
+    let agencies: Vec<(String, String)> = state.config.agencies.iter()
+        .map(|a| (a.slug.clone(), a.name.clone()))
+        .collect();
+    let agency_names: std::collections::HashMap<String, String> = agencies.iter().cloned().collect();
+    let tmpl = SpeedTemplate { speeds, agencies, agency_names, active_agency };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
 
