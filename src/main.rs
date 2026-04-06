@@ -7,7 +7,7 @@ mod speed;
 mod web;
 
 use anyhow::Result;
-use tracing::info;
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 use crate::config::Config;
@@ -30,30 +30,41 @@ async fn main() -> Result<()> {
         config.agencies.len()
     );
 
-    // Load static GTFS for all agencies in parallel. Any failure aborts startup.
-    let mut set: tokio::task::JoinSet<Result<()>> = tokio::task::JoinSet::new();
+    // Load static GTFS for all agencies in parallel. Failed agencies are logged
+    // and skipped; the process continues with the remaining agencies.
+    let mut set: tokio::task::JoinSet<(config::AgencyConfig, Result<()>)> =
+        tokio::task::JoinSet::new();
     for agency in &config.agencies {
         let db = db.clone();
         let agency = agency.clone();
         set.spawn(async move {
             info!("Loading static GTFS for agency: {}", agency.name);
-            gtfs::static_feed::load_if_needed(&db, &agency).await?;
-            speed::compute_route_speed(&db, &agency).await?;
-            info!("Computed scheduled speed for agency: {}", agency.name);
-            Ok(())
+            let result = async {
+                gtfs::static_feed::load_if_needed(&db, &agency).await?;
+                speed::compute_route_speed(&db, &agency).await?;
+                info!("Computed scheduled speed for agency: {}", agency.name);
+                Ok(())
+            }
+            .await;
+            (agency, result)
         });
     }
+
+    let mut loaded = Vec::new();
     while let Some(res) = set.join_next().await {
-        res??;
+        let (agency, result) = res?;
+        match result {
+            Ok(()) => loaded.push(agency),
+            Err(e) => warn!("Skipping {}: failed to load static GTFS: {e:#}", agency.name),
+        }
     }
 
-    // Start a GTFS-RT poll loop for each agency.
-    for agency in &config.agencies {
+    // Start a GTFS-RT poll loop for each successfully loaded agency.
+    for agency in loaded {
         let db_rt = db.clone();
-        let agency_rt = agency.clone();
         let poll_interval = config.poll_interval_secs;
         tokio::spawn(async move {
-            gtfs::realtime::poll_loop(&db_rt, &agency_rt, poll_interval).await;
+            gtfs::realtime::poll_loop(&db_rt, &agency, poll_interval).await;
         });
     }
 
