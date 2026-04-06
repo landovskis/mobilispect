@@ -1,9 +1,12 @@
 use std::time::Duration;
 
+use chrono::Utc;
 use tracing::info;
 
 use crate::config::Config;
 use crate::db::Database;
+use crate::metrics::compute_route_daily;
+use crate::speed::compute_route_speed_daily;
 
 pub async fn retention_loop(db: &Database, config: &Config) {
     let mut interval = tokio::time::interval(Duration::from_secs(86400));
@@ -46,6 +49,18 @@ pub async fn retention_loop(db: &Database, config: &Config) {
             }
             Err(e) => {
                 tracing::error!(error = %e, "Failed to delete old rows from vehicle_positions");
+            }
+        }
+
+        let today = Utc::now().date_naive();
+        for agency in &config.agencies {
+            match compute_route_daily(db, config, agency, today).await {
+                Ok(()) => info!(agency = %agency.slug, "Computed daily on-time metrics"),
+                Err(e) => tracing::error!(agency = %agency.slug, error = %e, "Failed to compute daily on-time metrics"),
+            }
+            match compute_route_speed_daily(db, agency, today).await {
+                Ok(()) => info!(agency = %agency.slug, "Computed daily speed metrics"),
+                Err(e) => tracing::error!(agency = %agency.slug, error = %e, "Failed to compute daily speed metrics"),
             }
         }
     }
