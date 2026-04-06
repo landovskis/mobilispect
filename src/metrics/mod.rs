@@ -548,44 +548,87 @@ pub async fn load_benchmarks(db: &Database) -> Result<Vec<Benchmark>> {
 }
 
 /// Fetch per-route scorecard data: on-time % and speed deficit averaged over specified days.
-pub async fn scorecard_routes(db: &Database, days: i64) -> Result<Vec<ScorecardRoute>> {
-    let rows: Vec<ScorecardRoute> = sqlx::query_as(
-        "SELECT
-           ot.agency_id,
-           ot.route_id,
-           r.short_name,
-           r.long_name,
-           ot.avg_on_time_pct,
-           sp.speed_vs_scheduled_pct
-         FROM (
-           SELECT agency_id, route_id, ROUND(AVG(on_time_pct), 1) AS avg_on_time_pct
-           FROM route_daily
-           WHERE service_date >= DATE('now', '-' || ? || ' days')
-           GROUP BY agency_id, route_id
-         ) ot
-         JOIN routes r ON r.agency_id = ot.agency_id AND r.route_id = ot.route_id
-         LEFT JOIN (
-           SELECT rs.agency_id, rs.route_id,
-             ROUND(AVG(
-               CASE WHEN rs.scheduled_speed_mps > 0 AND rsd.avg_actual IS NOT NULL
-                 THEN (rs.scheduled_speed_mps - rsd.avg_actual) / rs.scheduled_speed_mps * 100.0
-                 ELSE NULL END
-             ), 1) AS speed_vs_scheduled_pct
-           FROM route_speed rs
-           LEFT JOIN (
-             SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) AS avg_actual
-             FROM route_speed_daily
-             WHERE service_date >= DATE('now', '-' || ? || ' days')
-             GROUP BY agency_id, route_id, direction_id
-           ) rsd ON rsd.agency_id = rs.agency_id AND rsd.route_id = rs.route_id AND rsd.direction_id = rs.direction_id
-           GROUP BY rs.agency_id, rs.route_id
-         ) sp ON sp.agency_id = ot.agency_id AND sp.route_id = ot.route_id
-         ORDER BY ot.agency_id, CAST(r.short_name AS INTEGER), r.short_name",
-    )
-    .bind(days)
-    .bind(days)
-    .fetch_all(&db.pool)
-    .await?;
+/// If `agency_filter` is Some, only returns routes for that agency.
+pub async fn scorecard_routes(db: &Database, days: i64, agency_filter: Option<&str>) -> Result<Vec<ScorecardRoute>> {
+    let rows: Vec<ScorecardRoute> = match agency_filter {
+        None => sqlx::query_as(
+            "SELECT
+               ot.agency_id,
+               ot.route_id,
+               r.short_name,
+               r.long_name,
+               ot.avg_on_time_pct,
+               sp.speed_vs_scheduled_pct
+             FROM (
+               SELECT agency_id, route_id, ROUND(AVG(on_time_pct), 1) AS avg_on_time_pct
+               FROM route_daily
+               WHERE service_date >= DATE('now', '-' || ? || ' days')
+               GROUP BY agency_id, route_id
+             ) ot
+             JOIN routes r ON r.agency_id = ot.agency_id AND r.route_id = ot.route_id
+             LEFT JOIN (
+               SELECT rs.agency_id, rs.route_id,
+                 ROUND(AVG(
+                   CASE WHEN rs.scheduled_speed_mps > 0 AND rsd.avg_actual IS NOT NULL
+                     THEN (rs.scheduled_speed_mps - rsd.avg_actual) / rs.scheduled_speed_mps * 100.0
+                     ELSE NULL END
+                 ), 1) AS speed_vs_scheduled_pct
+               FROM route_speed rs
+               LEFT JOIN (
+                 SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) AS avg_actual
+                 FROM route_speed_daily
+                 WHERE service_date >= DATE('now', '-' || ? || ' days')
+                 GROUP BY agency_id, route_id, direction_id
+               ) rsd ON rsd.agency_id = rs.agency_id AND rsd.route_id = rs.route_id AND rsd.direction_id = rs.direction_id
+               GROUP BY rs.agency_id, rs.route_id
+             ) sp ON sp.agency_id = ot.agency_id AND sp.route_id = ot.route_id
+             ORDER BY ot.agency_id, CAST(r.short_name AS INTEGER), r.short_name",
+        )
+        .bind(days)
+        .bind(days)
+        .fetch_all(&db.pool)
+        .await?,
+
+        Some(agency) => sqlx::query_as(
+            "SELECT
+               ot.agency_id,
+               ot.route_id,
+               r.short_name,
+               r.long_name,
+               ot.avg_on_time_pct,
+               sp.speed_vs_scheduled_pct
+             FROM (
+               SELECT agency_id, route_id, ROUND(AVG(on_time_pct), 1) AS avg_on_time_pct
+               FROM route_daily
+               WHERE service_date >= DATE('now', '-' || ? || ' days')
+                 AND agency_id = ?
+               GROUP BY agency_id, route_id
+             ) ot
+             JOIN routes r ON r.agency_id = ot.agency_id AND r.route_id = ot.route_id
+             LEFT JOIN (
+               SELECT rs.agency_id, rs.route_id,
+                 ROUND(AVG(
+                   CASE WHEN rs.scheduled_speed_mps > 0 AND rsd.avg_actual IS NOT NULL
+                     THEN (rs.scheduled_speed_mps - rsd.avg_actual) / rs.scheduled_speed_mps * 100.0
+                     ELSE NULL END
+                 ), 1) AS speed_vs_scheduled_pct
+               FROM route_speed rs
+               LEFT JOIN (
+                 SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) AS avg_actual
+                 FROM route_speed_daily
+                 WHERE service_date >= DATE('now', '-' || ? || ' days')
+                 GROUP BY agency_id, route_id, direction_id
+               ) rsd ON rsd.agency_id = rs.agency_id AND rsd.route_id = rs.route_id AND rsd.direction_id = rs.direction_id
+               GROUP BY rs.agency_id, rs.route_id
+             ) sp ON sp.agency_id = ot.agency_id AND sp.route_id = ot.route_id
+             ORDER BY ot.agency_id, CAST(r.short_name AS INTEGER), r.short_name",
+        )
+        .bind(days)
+        .bind(agency)
+        .bind(days)
+        .fetch_all(&db.pool)
+        .await?,
+    };
     Ok(rows)
 }
 
@@ -897,7 +940,7 @@ mod tests {
              VALUES ('test', 'R1', date('now', '-1 day'), 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
-        let routes = scorecard_routes(&db, 7).await.unwrap();
+        let routes = scorecard_routes(&db, 7, None).await.unwrap();
 
         assert_eq!(routes.len(), 1);
         assert_eq!(routes[0].route_id, "R1");
@@ -926,7 +969,7 @@ mod tests {
              VALUES ('test', 'R1', date('now', '-1 day'), 0, 8.0, 5, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
-        let routes = scorecard_routes(&db, 7).await.unwrap();
+        let routes = scorecard_routes(&db, 7, None).await.unwrap();
 
         assert_eq!(routes.len(), 1);
         let deficit = routes[0].speed_vs_scheduled_pct.unwrap();
@@ -944,7 +987,7 @@ mod tests {
              VALUES ('test', 'R1', date('now', '-1 day'), 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
-        let routes = scorecard_routes(&db, 7).await.unwrap();
+        let routes = scorecard_routes(&db, 7, None).await.unwrap();
 
         assert_eq!(routes.len(), 1);
         assert!(routes[0].speed_vs_scheduled_pct.is_none());
@@ -974,6 +1017,34 @@ mod tests {
         assert_eq!(stm[0].agency_id, "stm");
 
         let rtl = route_summary(&db, 30, Some("rtl")).await.unwrap();
+        assert_eq!(rtl.len(), 1);
+        assert_eq!(rtl[0].agency_id, "rtl");
+    }
+
+    #[tokio::test]
+    async fn scorecard_routes_filters_by_agency() {
+        let db = test_db().await;
+        sqlx::query!("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query!("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query!(
+            "INSERT INTO route_daily (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
+             VALUES ('stm', 'R1', date('now', '-1 day'), 80.0, 60.0, 10, 12, '2026-01-01T12:00:00Z')"
+        ).execute(&db.pool).await.unwrap();
+        sqlx::query!(
+            "INSERT INTO route_daily (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
+             VALUES ('rtl', 'R2', date('now', '-1 day'), 70.0, 90.0, 8, 10, '2026-01-01T12:00:00Z')"
+        ).execute(&db.pool).await.unwrap();
+
+        let all = scorecard_routes(&db, 30, None).await.unwrap();
+        assert_eq!(all.len(), 2);
+
+        let stm = scorecard_routes(&db, 30, Some("stm")).await.unwrap();
+        assert_eq!(stm.len(), 1);
+        assert_eq!(stm[0].agency_id, "stm");
+
+        let rtl = scorecard_routes(&db, 30, Some("rtl")).await.unwrap();
         assert_eq!(rtl.len(), 1);
         assert_eq!(rtl[0].agency_id, "rtl");
     }

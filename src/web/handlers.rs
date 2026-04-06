@@ -131,7 +131,7 @@ struct ScorecardTemplate {
 pub async fn scorecard(State(state): State<AppState>) -> Html<String> {
     let period_days: i64 = 7;
     let benchmarks = load_benchmarks(&state.db).await.unwrap_or_default();
-    let routes = scorecard_routes(&state.db, period_days).await.unwrap_or_default();
+    let routes = scorecard_routes(&state.db, period_days, None).await.unwrap_or_default();
 
     let floor_pct = benchmarks.first().map(|b| b.on_time_pct).unwrap_or(89.0);
     let floor_speed = benchmarks.first().map(|b| b.speed_vs_scheduled_pct).unwrap_or(3.0);
