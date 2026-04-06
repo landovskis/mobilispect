@@ -29,6 +29,7 @@ struct ReportTemplate {
     routes: Vec<RouteSummary>,
     period_days: i64,
     generated_at: String,
+    agency_names: std::collections::HashMap<String, String>,
 }
 
 pub async fn dashboard(
@@ -51,7 +52,10 @@ pub async fn report(State(state): State<AppState>) -> Html<String> {
     let period_days: i64 = 7;
     let routes = route_summary(&state.db, period_days, None).await.unwrap_or_default();
     let generated_at = Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
-    let tmpl = ReportTemplate { routes, period_days, generated_at };
+    let agency_names: std::collections::HashMap<String, String> = state.config.agencies.iter()
+        .map(|a| (a.slug.clone(), a.name.clone()))
+        .collect();
+    let tmpl = ReportTemplate { routes, period_days, generated_at, agency_names };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
 

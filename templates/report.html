@@ -47,7 +47,7 @@
     <tbody>
       {% for route in routes %}
       <tr>
-        <td><span class="route-id">{{ route.short_name }}</span></td>
+        <td><span class="route-id">{% if let Some(n) = agency_names.get(route.agency_id.as_str()) %}{{ n }} {% endif %}{{ route.short_name }}</span></td>
         <td>{{ route.long_name }}</td>
         <td><span class="{{ route.status_class() }}">{{ route.on_time_display() }}</span></td>
         <td>{{ route.delay_display() }}</td>
