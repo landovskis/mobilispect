@@ -143,12 +143,20 @@ struct ScorecardTemplate {
     worst_gap: Option<f64>,
     period_days: i64,
     generated_at: String,
+    agencies: Vec<(String, String)>,
+    agency_names: std::collections::HashMap<String, String>,
+    active_agency: String,
 }
 
-pub async fn scorecard(State(state): State<AppState>) -> Html<String> {
+pub async fn scorecard(
+    State(state): State<AppState>,
+    Query(params): Query<AgencyFilterParams>,
+) -> Html<String> {
     let period_days: i64 = 7;
+    let active_agency = params.agency.unwrap_or_default();
+    let filter = if active_agency.is_empty() { None } else { Some(active_agency.as_str()) };
     let benchmarks = load_benchmarks(&state.db).await.unwrap_or_default();
-    let routes = scorecard_routes(&state.db, period_days, None).await.unwrap_or_default();
+    let routes = scorecard_routes(&state.db, period_days, filter).await.unwrap_or_default();
 
     let floor_pct = benchmarks.first().map(|b| b.on_time_pct).unwrap_or(89.0);
     let floor_speed = benchmarks.first().map(|b| b.speed_vs_scheduled_pct).unwrap_or(3.0);
@@ -158,7 +166,7 @@ pub async fn scorecard(State(state): State<AppState>) -> Html<String> {
 
     let routes_meeting_floor = routes.iter().filter(|r| {
         r.avg_on_time_pct.map_or(false, |p| p >= floor_pct)
-            && r.speed_vs_scheduled_pct.map_or(true, |s| s <= floor_speed) // no speed data = assume meets floor
+            && r.speed_vs_scheduled_pct.map_or(true, |s| s <= floor_speed)
     }).count();
 
     let worst_gap = routes.iter()
@@ -167,17 +175,15 @@ pub async fn scorecard(State(state): State<AppState>) -> Html<String> {
 
     let generated_at = Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
 
+    let agencies: Vec<(String, String)> = state.config.agencies.iter()
+        .map(|a| (a.slug.clone(), a.name.clone()))
+        .collect();
+    let agency_names: std::collections::HashMap<String, String> = agencies.iter().cloned().collect();
+
     let tmpl = ScorecardTemplate {
-        routes,
-        benchmarks,
-        floor_pct,
-        ceiling_pct,
-        floor_city,
-        ceiling_city,
-        routes_meeting_floor,
-        worst_gap,
-        period_days,
-        generated_at,
+        routes, benchmarks, floor_pct, ceiling_pct, floor_city, ceiling_city,
+        routes_meeting_floor, worst_gap, period_days, generated_at,
+        agencies, agency_names, active_agency,
     };
     Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
 }
