@@ -98,10 +98,15 @@ pub async fn api_routes(
     })
 }
 
+struct SpeedRow {
+    speed: RouteSpeedSummary,
+    agency_name: String,
+}
+
 #[derive(Template)]
 #[template(path = "speed.html")]
 struct SpeedTemplate {
-    speeds: Vec<(RouteSpeedSummary, String)>,
+    speeds: Vec<SpeedRow>,
     agencies: Vec<(String, String)>,
     active_agency: String,
 }
@@ -140,13 +145,13 @@ pub async fn speed_page(
         .map(|a| (a.slug.clone(), a.name.clone()))
         .collect();
     let agency_names: std::collections::HashMap<String, String> = agencies.iter().cloned().collect();
-    let speeds = route_speed_summary(&state.db, filter)
+    let speeds: Vec<SpeedRow> = route_speed_summary(&state.db, filter)
         .await
         .unwrap_or_default()
         .into_iter()
         .map(|s| {
-            let name = agency_names.get(&s.agency_id).cloned().unwrap_or_else(|| s.agency_id.clone());
-            (s, name)
+            let agency_name = agency_names.get(&s.agency_id).cloned().unwrap_or_else(|| s.agency_id.clone());
+            SpeedRow { speed: s, agency_name }
         })
         .collect();
     let tmpl = SpeedTemplate { speeds, agencies, active_agency };

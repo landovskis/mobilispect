@@ -74,15 +74,15 @@
         </tr>
       </thead>
       <tbody>
-        {% for (s, agency_name) in &speeds %}
+        {% for row in &speeds %}
         <tr>
-          <td><a href="/routes/{{ s.agency_id }}/{{ s.route_id }}" style="text-decoration:none;"><span class="route-id">{{ agency_name }} {{ s.short_name }}</span></a></td>
-          <td>{{ s.long_name }}</td>
-          <td class="dir">{{ s.direction_label() }}</td>
-          <td>{{ s.scheduled_speed_kmh() }} km/h</td>
-          <td>{{ s.actual_speed_display() }}</td>
-          <td>{{ s.live_speed_display() }}</td>
-          <td><span class="{{ s.speed_class() }}">{{ s.speed_vs_scheduled_display() }}</span></td>
+          <td><a href="/routes/{{ row.speed.agency_id }}/{{ row.speed.route_id }}" style="text-decoration:none;"><span class="route-id">{{ row.agency_name }} {{ row.speed.short_name }}</span></a></td>
+          <td>{{ row.speed.long_name }}</td>
+          <td class="dir">{{ row.speed.direction_label() }}</td>
+          <td>{{ row.speed.scheduled_speed_kmh() }} km/h</td>
+          <td>{{ row.speed.actual_speed_display() }}</td>
+          <td>{{ row.speed.live_speed_display() }}</td>
+          <td><span class="{{ row.speed.speed_class() }}">{{ row.speed.speed_vs_scheduled_display() }}</span></td>
         </tr>
         {% endfor %}
       </tbody>
