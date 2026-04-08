@@ -36,12 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user for the process.
-RUN groupadd --system mobilispect \
-    && useradd --system --gid mobilispect --no-create-home mobilispect
-
-# Create the data directory for the SQLite database file.
-RUN mkdir -p /data && chown mobilispect:mobilispect /data
+RUN mkdir -p /data
 
 # Copy only the compiled binary from the builder stage.
 # NOTE: migrations/ is NOT copied here. sqlx::migrate!() is a compile-time
@@ -57,7 +52,5 @@ ENV DATABASE_URL=sqlite:///data/mobilispect.db
 
 # The application listens on port 3000 by default (BIND_ADDRESS=0.0.0.0:3000).
 EXPOSE 3000
-
-USER mobilispect
 
 ENTRYPOINT ["/usr/local/bin/mobilispect"]
