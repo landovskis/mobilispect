@@ -97,8 +97,11 @@ impl Config {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(30),
-            bind_address: std::env::var("BIND_ADDRESS")
-                .unwrap_or_else(|_| "0.0.0.0:3000".to_string()),
+            bind_address: if let Ok(port) = std::env::var("PORT") {
+                format!("0.0.0.0:{port}")
+            } else {
+                std::env::var("BIND_ADDRESS").unwrap_or_else(|_| "0.0.0.0:3000".to_string())
+            },
             // Industry standard: -60s (early) to +300s (5 min late)
             on_time_early_threshold_secs: std::env::var("ON_TIME_EARLY_THRESHOLD_SECS")
                 .ok()
