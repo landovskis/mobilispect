@@ -514,7 +514,7 @@ pub async fn route_speed_by_day_type(
              LEFT JOIN route_speed_hourly rsh
                ON rsh.agency_id = rs.agency_id AND rsh.route_id = rs.route_id AND rsh.direction_id = rs.direction_id
                AND rsh.hour_utc >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYY-MM-DD HH24')
-             GROUP BY rs.agency_id, rs.route_id, rs.direction_id
+             GROUP BY rs.agency_id, rs.route_id, r.short_name, r.long_name, rs.direction_id
              ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
         .fetch_all(&db.pool)
@@ -536,7 +536,7 @@ pub async fn route_speed_by_day_type(
                ON rsh.agency_id = rs.agency_id AND rsh.route_id = rs.route_id AND rsh.direction_id = rs.direction_id
                AND rsh.hour_utc >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYY-MM-DD HH24')
              WHERE rs.agency_id = $1
-             GROUP BY rs.agency_id, rs.route_id, rs.direction_id
+             GROUP BY rs.agency_id, rs.route_id, r.short_name, r.long_name, rs.direction_id
              ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
         .bind(agency)
