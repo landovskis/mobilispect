@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "mobilispect"
-path = "src/main.rs"
+name = "mobilispect-server"
+path = "src/bin/server.rs"
+
+[[bin]]
+name = "mobilispect-worker"
+path = "src/bin/worker.rs"
 
 [dependencies]
 # Async runtime

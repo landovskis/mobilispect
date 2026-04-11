@@ -1,17 +1,10 @@
-mod config;
-mod db;
-mod gtfs;
-mod maintenance;
-mod metrics;
-mod speed;
-mod web;
-
 use anyhow::Result;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
-use crate::config::Config;
-use crate::db::Database;
+use mobilispect::config::Config;
+use mobilispect::db::Database;
+use mobilispect::{gtfs, maintenance, speed};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,13 +19,13 @@ async fn main() -> Result<()> {
     db.migrate().await?;
 
     info!(
-        "Mobilispect starting — {} agency/agencies configured",
+        "Mobilispect worker starting — {} agency/agencies configured",
         config.agencies.len()
     );
 
     // Load static GTFS for all agencies in parallel. Failed agencies are logged
     // and skipped; the process continues with the remaining agencies.
-    let mut set: tokio::task::JoinSet<(config::AgencyConfig, Result<()>)> =
+    let mut set: tokio::task::JoinSet<(mobilispect::config::AgencyConfig, Result<()>)> =
         tokio::task::JoinSet::new();
     for agency in &config.agencies {
         let db = db.clone();
@@ -83,8 +76,8 @@ async fn main() -> Result<()> {
         }
     });
 
-    // Start web server
-    web::serve(&db, &config).await?;
+    // Block forever — the spawned tasks do the work
+    std::future::pending::<()>().await;
 
     Ok(())
 }
