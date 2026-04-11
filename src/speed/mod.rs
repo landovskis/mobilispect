@@ -108,7 +108,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
         "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
          FROM trips t
          JOIN scheduled_stops ss ON ss.trip_id = t.trip_id AND ss.agency_id = t.agency_id
-         WHERE t.agency_id = ?
+         WHERE t.agency_id = $1
          GROUP BY t.route_id, t.direction_id
          HAVING COUNT(ss.stop_sequence) >= 2",
     )
@@ -118,7 +118,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
 
     for (route_id, direction_id) in &combos {
         let trips: Vec<(String,)> = sqlx::query_as(
-            "SELECT trip_id FROM trips WHERE agency_id = ? AND route_id = ? AND COALESCE(direction_id, 0) = ?",
+            "SELECT trip_id FROM trips WHERE agency_id = $1 AND route_id = $2 AND COALESCE(direction_id, 0) = $3",
         )
         .bind(agency_id)
         .bind(route_id)
@@ -133,7 +133,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
                 "SELECT s.stop_lat, s.stop_lon, ss.arrival_time
                  FROM scheduled_stops ss
                  JOIN stops s ON s.stop_id = ss.stop_id AND s.agency_id = ss.agency_id
-                 WHERE ss.agency_id = ? AND ss.trip_id = ?
+                 WHERE ss.agency_id = $1 AND ss.trip_id = $2
                  ORDER BY ss.stop_sequence",
             )
             .bind(agency_id)
@@ -172,9 +172,13 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
         let trip_count = trip_speeds.len() as i64;
 
         sqlx::query!(
-            "INSERT OR REPLACE INTO route_speed
+            "INSERT INTO route_speed
              (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
-             VALUES (?, ?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (agency_id, route_id, direction_id) DO UPDATE SET
+               scheduled_speed_mps = EXCLUDED.scheduled_speed_mps,
+               trip_count = EXCLUDED.trip_count,
+               computed_at = EXCLUDED.computed_at",
             agency_id,
             route_id,
             direction_id,
@@ -201,7 +205,7 @@ pub async fn compute_route_speed_daily(db: &Database, agency: &AgencyConfig, ser
         "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
          FROM stop_time_events ste
          JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-         WHERE ste.agency_id = ? AND DATE(ste.observed_at) = ?
+         WHERE ste.agency_id = $1 AND ste.observed_at::TIMESTAMPTZ::DATE = $2::DATE
            AND ste.arrival_time_unix IS NOT NULL",
     )
     .bind(agency_id)
@@ -214,9 +218,9 @@ pub async fn compute_route_speed_daily(db: &Database, agency: &AgencyConfig, ser
             "SELECT DISTINCT ste.trip_id
              FROM stop_time_events ste
              JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-             WHERE t.agency_id = ? AND t.route_id = ?
-               AND COALESCE(t.direction_id, 0) = ?
-               AND DATE(ste.observed_at) = ?
+             WHERE t.agency_id = $1 AND t.route_id = $2
+               AND COALESCE(t.direction_id, 0) = $3
+               AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
                AND ste.arrival_time_unix IS NOT NULL",
         )
         .bind(agency_id)
@@ -236,8 +240,8 @@ pub async fn compute_route_speed_daily(db: &Database, agency: &AgencyConfig, ser
                  JOIN scheduled_stops ss
                    ON ss.trip_id = ste.trip_id AND ss.stop_id = ste.stop_id AND ss.agency_id = ste.agency_id
                  JOIN stops s ON s.stop_id = ste.stop_id AND s.agency_id = ste.agency_id
-                 WHERE ste.agency_id = ? AND ste.trip_id = ?
-                   AND DATE(ste.observed_at) = ?
+                 WHERE ste.agency_id = $1 AND ste.trip_id = $2
+                   AND ste.observed_at::TIMESTAMPTZ::DATE = $3::DATE
                    AND ste.arrival_time_unix IS NOT NULL
                  GROUP BY ss.stop_sequence, s.stop_lat, s.stop_lon
                  ORDER BY ss.stop_sequence",
@@ -274,9 +278,13 @@ pub async fn compute_route_speed_daily(db: &Database, agency: &AgencyConfig, ser
         let trip_count = trip_speeds.len() as i64;
 
         sqlx::query!(
-            "INSERT OR REPLACE INTO route_speed_daily
+            "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             ON CONFLICT (agency_id, route_id, service_date, direction_id) DO UPDATE SET
+               actual_speed_mps = EXCLUDED.actual_speed_mps,
+               trip_count = EXCLUDED.trip_count,
+               computed_at = EXCLUDED.computed_at",
             agency_id,
             route_id,
             date_str,
@@ -316,16 +324,16 @@ pub async fn route_speed_summary(db: &Database, agency_filter: Option<&str>) -> 
                FROM vehicle_positions vp
                JOIN trips t ON t.trip_id = vp.trip_id AND t.agency_id = vp.agency_id
                WHERE vp.speed IS NOT NULL
-                 AND vp.observed_at >= datetime('now', '-1 hour')
+                 AND vp.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '1 hour'
                GROUP BY t.agency_id, t.route_id
              ) live ON live.agency_id = rs.agency_id AND live.route_id = rs.route_id
              LEFT JOIN (
                SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) as avg_actual_speed
                FROM route_speed_daily
-               WHERE service_date >= DATE('now', '-7 days')
+               WHERE service_date >= (CURRENT_DATE - INTERVAL '7 days')::TEXT
                GROUP BY agency_id, route_id, direction_id
              ) hist ON hist.agency_id = rs.agency_id AND hist.route_id = rs.route_id AND hist.direction_id = rs.direction_id
-             ORDER BY rs.agency_id, CAST(r.short_name AS INTEGER), r.short_name, rs.direction_id",
+             ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
         .fetch_all(&db.pool)
         .await?,
@@ -348,17 +356,17 @@ pub async fn route_speed_summary(db: &Database, agency_filter: Option<&str>) -> 
                FROM vehicle_positions vp
                JOIN trips t ON t.trip_id = vp.trip_id AND t.agency_id = vp.agency_id
                WHERE vp.speed IS NOT NULL
-                 AND vp.observed_at >= datetime('now', '-1 hour')
+                 AND vp.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '1 hour'
                GROUP BY t.agency_id, t.route_id
              ) live ON live.agency_id = rs.agency_id AND live.route_id = rs.route_id
              LEFT JOIN (
                SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) as avg_actual_speed
                FROM route_speed_daily
-               WHERE service_date >= DATE('now', '-7 days')
+               WHERE service_date >= (CURRENT_DATE - INTERVAL '7 days')::TEXT
                GROUP BY agency_id, route_id, direction_id
              ) hist ON hist.agency_id = rs.agency_id AND hist.route_id = rs.route_id AND hist.direction_id = rs.direction_id
-             WHERE rs.agency_id = ?
-             ORDER BY rs.agency_id, CAST(r.short_name AS INTEGER), r.short_name, rs.direction_id",
+             WHERE rs.agency_id = $1
+             ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
         .bind(agency)
         .fetch_all(&db.pool)
@@ -377,8 +385,8 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
         "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
          FROM stop_time_events ste
          JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-         WHERE ste.agency_id = ? AND ste.arrival_time_unix IS NOT NULL
-           AND ste.observed_at >= datetime('now', '-4 hours')",
+         WHERE ste.agency_id = $1 AND ste.arrival_time_unix IS NOT NULL
+           AND ste.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '4 hours'",
     )
     .bind(agency_id)
     .fetch_all(&db.pool)
@@ -389,10 +397,10 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
             "SELECT DISTINCT ste.trip_id
              FROM stop_time_events ste
              JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-             WHERE t.agency_id = ? AND t.route_id = ?
-               AND COALESCE(t.direction_id, 0) = ?
+             WHERE t.agency_id = $1 AND t.route_id = $2
+               AND COALESCE(t.direction_id, 0) = $3
                AND ste.arrival_time_unix IS NOT NULL
-               AND ste.observed_at >= datetime('now', '-4 hours')",
+               AND ste.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '4 hours'",
         )
         .bind(agency_id)
         .bind(route_id)
@@ -411,7 +419,7 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
                  JOIN scheduled_stops ss
                    ON ss.trip_id = ste.trip_id AND ss.stop_id = ste.stop_id AND ss.agency_id = ste.agency_id
                  JOIN stops s ON s.stop_id = ste.stop_id AND s.agency_id = ste.agency_id
-                 WHERE ste.agency_id = ? AND ste.trip_id = ?
+                 WHERE ste.agency_id = $1 AND ste.trip_id = $2
                    AND ste.arrival_time_unix IS NOT NULL
                  GROUP BY ss.stop_sequence, s.stop_lat, s.stop_lon
                  ORDER BY ss.stop_sequence",
@@ -449,9 +457,13 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
             let avg_speed = speeds.iter().sum::<f64>() / speeds.len() as f64;
             let trip_count = speeds.len() as i64;
             sqlx::query(
-                "INSERT OR REPLACE INTO route_speed_hourly
+                "INSERT INTO route_speed_hourly
                  (agency_id, route_id, direction_id, hour_utc, actual_speed_mps, trip_count, computed_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)",
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 ON CONFLICT (agency_id, route_id, direction_id, hour_utc) DO UPDATE SET
+                   actual_speed_mps = EXCLUDED.actual_speed_mps,
+                   trip_count = EXCLUDED.trip_count,
+                   computed_at = EXCLUDED.computed_at",
             )
             .bind(agency_id.as_str())
             .bind(route_id.as_str())
@@ -494,16 +506,16 @@ pub async fn route_speed_by_day_type(
                r.short_name,
                r.long_name,
                rs.direction_id,
-               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) IN ('1','2','3','4','5') THEN rsh.actual_speed_mps END) as weekday_speed_mps,
-               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) = '6' THEN rsh.actual_speed_mps END) as saturday_speed_mps,
-               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) = '0' THEN rsh.actual_speed_mps END) as sunday_speed_mps
+               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT IN (1,2,3,4,5) THEN rsh.actual_speed_mps END) as weekday_speed_mps,
+               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT = 6 THEN rsh.actual_speed_mps END) as saturday_speed_mps,
+               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT = 0 THEN rsh.actual_speed_mps END) as sunday_speed_mps
              FROM route_speed rs
              JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
              LEFT JOIN route_speed_hourly rsh
                ON rsh.agency_id = rs.agency_id AND rsh.route_id = rs.route_id AND rsh.direction_id = rs.direction_id
-               AND rsh.hour_utc >= strftime('%Y-%m-%d %H', datetime('now', '-90 days'))
+               AND rsh.hour_utc >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYY-MM-DD HH24')
              GROUP BY rs.agency_id, rs.route_id, rs.direction_id
-             ORDER BY rs.agency_id, CAST(r.short_name AS INTEGER), r.short_name, rs.direction_id",
+             ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
         .fetch_all(&db.pool)
         .await?,
@@ -515,17 +527,17 @@ pub async fn route_speed_by_day_type(
                r.short_name,
                r.long_name,
                rs.direction_id,
-               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) IN ('1','2','3','4','5') THEN rsh.actual_speed_mps END) as weekday_speed_mps,
-               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) = '6' THEN rsh.actual_speed_mps END) as saturday_speed_mps,
-               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) = '0' THEN rsh.actual_speed_mps END) as sunday_speed_mps
+               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT IN (1,2,3,4,5) THEN rsh.actual_speed_mps END) as weekday_speed_mps,
+               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT = 6 THEN rsh.actual_speed_mps END) as saturday_speed_mps,
+               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT = 0 THEN rsh.actual_speed_mps END) as sunday_speed_mps
              FROM route_speed rs
              JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
              LEFT JOIN route_speed_hourly rsh
                ON rsh.agency_id = rs.agency_id AND rsh.route_id = rs.route_id AND rsh.direction_id = rs.direction_id
-               AND rsh.hour_utc >= strftime('%Y-%m-%d %H', datetime('now', '-90 days'))
-             WHERE rs.agency_id = ?
+               AND rsh.hour_utc >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYY-MM-DD HH24')
+             WHERE rs.agency_id = $1
              GROUP BY rs.agency_id, rs.route_id, rs.direction_id
-             ORDER BY rs.agency_id, CAST(r.short_name AS INTEGER), r.short_name, rs.direction_id",
+             ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
         .bind(agency)
         .fetch_all(&db.pool)
@@ -537,19 +549,8 @@ pub async fn route_speed_by_day_type(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::sqlite::SqlitePoolOptions;
+    use sqlx::PgPool;
     use crate::config::AgencyConfig;
-
-    async fn test_db() -> Database {
-        let pool = SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .unwrap();
-        let db = Database { pool };
-        db.migrate().await.unwrap();
-        db
-    }
 
     fn test_agency() -> AgencyConfig {
         AgencyConfig {
@@ -592,24 +593,22 @@ mod tests {
         assert_eq!(parse_time_secs("not-a-time"), None);
     }
 
-    #[tokio::test]
-    async fn compute_route_speed_stores_result_for_simple_route() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn compute_route_speed_stores_result_for_simple_route(pool: PgPool) {
+        let db = Database { pool };
 
-        // Insert route, trip, two stops.
-        // S1 → S2: lat diff = 0.01° ≈ 1111 m, scheduled time = 600 s → ~1.852 m/s
-        sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')"
         ).execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')"
         ).execute(&db.pool).await.unwrap();
 
@@ -623,18 +622,17 @@ mod tests {
         .unwrap();
 
         let (speed, count) = row;
-        // haversine(45.50,-73.50, 45.51,-73.50) ≈ 1111 m / 600 s ≈ 1.852 m/s
         assert!((speed - 1.852).abs() < 0.05, "expected ~1.852 m/s, got {speed}");
         assert_eq!(count, 1);
     }
 
-    #[tokio::test]
-    async fn route_speed_summary_returns_route_names() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn route_speed_summary_returns_route_names(pool: PgPool) {
+        let db = Database { pool };
 
-        sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '42', 'The Answer', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '42', 'The Answer', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed VALUES ('test', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
@@ -648,23 +646,23 @@ mod tests {
         assert_eq!(summary[0].trip_count, 5);
     }
 
-    #[tokio::test]
-    async fn route_speed_summary_includes_live_speed_from_recent_vehicles() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn route_speed_summary_includes_live_speed_from_recent_vehicles(pool: PgPool) {
+        let db = Database { pool };
 
-        sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '10', 'Route 10', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         // Vehicle active now with speed 15 m/s.
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO vehicle_positions
              (agency_id, observed_at, trip_id, latitude, longitude, speed)
-             VALUES ('test', datetime('now'), 'T1', 45.5, -73.5, 15.0)"
+             VALUES ('test', NOW()::TEXT, 'T1', 45.5, -73.5, 15.0)"
         ).execute(&db.pool).await.unwrap();
 
         let summary = route_speed_summary(&db, None).await.unwrap();
@@ -674,21 +672,21 @@ mod tests {
         assert!((live - 15.0).abs() < 0.01, "expected 15.0 m/s, got {live}");
     }
 
-    #[tokio::test]
-    async fn route_speed_summary_live_speed_is_none_when_no_recent_vehicles() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn route_speed_summary_live_speed_is_none_when_no_recent_vehicles(pool: PgPool) {
+        let db = Database { pool };
 
-        sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '10', 'Route 10', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         // Vehicle last seen 2 hours ago — outside the 1-hour window.
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO vehicle_positions
              (agency_id, observed_at, trip_id, latitude, longitude, speed)
-             VALUES ('test', datetime('now', '-2 hours'), 'T1', 45.5, -73.5, 15.0)"
+             VALUES ('test', (NOW() - INTERVAL '2 hours')::TEXT, 'T1', 45.5, -73.5, 15.0)"
         ).execute(&db.pool).await.unwrap();
 
         let summary = route_speed_summary(&db, None).await.unwrap();
@@ -697,41 +695,37 @@ mod tests {
         assert!(summary[0].live_speed_mps.is_none(), "expected None for stale vehicle");
     }
 
-    #[tokio::test]
-    async fn compute_route_speed_daily_stores_actual_speed() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn compute_route_speed_daily_stores_actual_speed(pool: PgPool) {
+        let db = Database { pool };
 
-        // S1 → S2: ~1111 m. Actual time: 900 s → ~1.235 m/s (slower than scheduled).
-        sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')"
         ).execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')"
         ).execute(&db.pool).await.unwrap();
 
-        // Actual arrivals: S1 at 08:00, S2 at 08:15 (900 s gap).
-        let t_s1: i64 = 1767225600; // 2026-01-01 08:00:00 UTC (approx)
+        let t_s1: i64 = 1767225600;
         let t_s2: i64 = t_s1 + 900;
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO stop_time_events
              (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('test', '2026-01-01T08:00:00Z', 'T1', 'S1', 1, ?)",
-            t_s1
-        ).execute(&db.pool).await.unwrap();
-        sqlx::query!(
+             VALUES ('test', '2026-01-01T08:00:00Z', 'T1', 'S1', 1, $1)"
+        ).bind(t_s1).execute(&db.pool).await.unwrap();
+        sqlx::query(
             "INSERT INTO stop_time_events
              (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('test', '2026-01-01T08:15:00Z', 'T1', 'S2', 2, ?)",
-            t_s2
-        ).execute(&db.pool).await.unwrap();
+             VALUES ('test', '2026-01-01T08:15:00Z', 'T1', 'S2', 2, $1)"
+        ).bind(t_s2).execute(&db.pool).await.unwrap();
 
         let date = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
         compute_route_speed_daily(&db, &test_agency(), date).await.unwrap();
@@ -746,24 +740,23 @@ mod tests {
         .unwrap();
 
         let (speed, count) = row;
-        // haversine(45.50,-73.50, 45.51,-73.50) ≈ 1111 m / 900 s ≈ 1.235 m/s
         assert!((speed - 1.235).abs() < 0.05, "expected ~1.235 m/s, got {speed}");
         assert_eq!(count, 1);
     }
 
-    #[tokio::test]
-    async fn route_speed_summary_includes_actual_speed_from_history() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn route_speed_summary_includes_actual_speed_from_history(pool: PgPool) {
+        let db = Database { pool };
 
-        sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('test', 'R1', date('now', '-1 day'), 0, 6.5, 10, '2026-01-01T00:00:00Z')"
+             VALUES ('test', 'R1', (CURRENT_DATE - 1)::TEXT, 0, 6.5, 10, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         let summary = route_speed_summary(&db, None).await.unwrap();
@@ -773,16 +766,15 @@ mod tests {
         assert!((actual - 6.5).abs() < 0.01, "expected 6.5 m/s, got {actual}");
     }
 
-    #[tokio::test]
-    async fn route_speed_summary_actual_speed_is_none_when_no_history() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn route_speed_summary_actual_speed_is_none_when_no_history(pool: PgPool) {
+        let db = Database { pool };
 
-        sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
-        // No route_speed_daily rows inserted.
 
         let summary = route_speed_summary(&db, None).await.unwrap();
 
@@ -790,18 +782,18 @@ mod tests {
         assert!(summary[0].actual_speed_mps.is_none(), "expected None without history");
     }
 
-    #[tokio::test]
-    async fn route_speed_summary_filters_by_agency() {
-        let db = test_db().await;
-        sqlx::query!("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
+    #[sqlx::test]
+    async fn route_speed_summary_filters_by_agency(pool: PgPool) {
+        let db = Database { pool };
+        sqlx::query("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
             .execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
              VALUES ('stm', 'R1', 0, 5.5, 10, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
              VALUES ('rtl', 'R2', 0, 6.0, 8, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();

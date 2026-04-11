@@ -17,7 +17,7 @@ pub async fn retention_loop(db: &Database, config: &Config) {
         let days = config.retention_days as i64;
 
         match sqlx::query!(
-            "DELETE FROM stop_time_events WHERE observed_at < datetime('now', printf('-%d days', ?))",
+            "DELETE FROM stop_time_events WHERE observed_at::TIMESTAMPTZ < NOW() - ($1::BIGINT * INTERVAL '1 day')",
             days
         )
         .execute(&db.pool)
@@ -35,7 +35,7 @@ pub async fn retention_loop(db: &Database, config: &Config) {
         }
 
         match sqlx::query!(
-            "DELETE FROM vehicle_positions WHERE observed_at < datetime('now', printf('-%d days', ?))",
+            "DELETE FROM vehicle_positions WHERE observed_at::TIMESTAMPTZ < NOW() - ($1::BIGINT * INTERVAL '1 day')",
             days
         )
         .execute(&db.pool)

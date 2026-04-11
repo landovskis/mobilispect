@@ -92,7 +92,7 @@ impl Config {
         Ok(Self {
             agencies,
             database_url: std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "sqlite://mobilispect.db".to_string()),
+                .context("DATABASE_URL must be set")?,
             poll_interval_secs: std::env::var("POLL_INTERVAL_SECS")
                 .ok()
                 .and_then(|v| v.parse().ok())

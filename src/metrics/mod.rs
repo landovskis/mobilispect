@@ -70,7 +70,7 @@ pub async fn compute_route_daily(db: &Database, config: &Config, agency: &Agency
         "SELECT DISTINCT t.trip_id, t.route_id
          FROM trips t
          JOIN stop_time_events ste ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-         WHERE t.agency_id = ? AND DATE(ste.observed_at) = ?",
+         WHERE t.agency_id = $1 AND ste.observed_at::TIMESTAMPTZ::DATE::TEXT = $2",
         agency_id,
         date_str,
     )
@@ -90,20 +90,21 @@ pub async fn compute_route_daily(db: &Database, config: &Config, agency: &Agency
                  ste.arrival_delay,
                  CASE WHEN ste.arrival_time_unix IS NOT NULL
                    THEN ste.arrival_time_unix -
-                        CAST(strftime('%s',
-                          ? || 'T' ||
-                          CASE WHEN CAST(substr(ss.arrival_time,1,2) AS INTEGER) >= 24
-                            THEN printf('%02d', CAST(substr(ss.arrival_time,1,2) AS INTEGER) - 24)
-                                 || substr(ss.arrival_time,3)
+                        EXTRACT(EPOCH FROM (
+                          $1 || 'T' ||
+                          CASE WHEN SUBSTRING(ss.arrival_time, 1, 2)::INTEGER >= 24
+                            THEN LPAD((SUBSTRING(ss.arrival_time, 1, 2)::INTEGER - 24)::TEXT, 2, '0')
+                                 || SUBSTRING(ss.arrival_time, 3)
                             ELSE ss.arrival_time
-                          END || ?) AS INTEGER)
+                          END || $2
+                        )::TIMESTAMPTZ)::BIGINT
                    ELSE NULL
                  END
-               ) AS INTEGER) as delay
+               ) AS BIGINT) as delay
              FROM stop_time_events ste
              JOIN scheduled_stops ss
                ON ss.trip_id = ste.trip_id AND ss.stop_id = ste.stop_id AND ss.agency_id = ste.agency_id
-             WHERE ste.trip_id = ? AND ste.agency_id = ? AND DATE(ste.observed_at) = ?
+             WHERE ste.trip_id = $3 AND ste.agency_id = $4 AND ste.observed_at::TIMESTAMPTZ::DATE::TEXT = $5
                AND (ste.arrival_delay IS NOT NULL OR ste.arrival_time_unix IS NOT NULL)",
         )
         .bind(&date_str)
@@ -128,9 +129,16 @@ pub async fn compute_route_daily(db: &Database, config: &Config, agency: &Agency
         };
 
         sqlx::query!(
-            "INSERT OR REPLACE INTO trip_results
+            "INSERT INTO trip_results
              (agency_id, trip_id, service_date, route_id, on_time, avg_delay_secs, max_delay_secs, completed, computed_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 1, $8)
+             ON CONFLICT (agency_id, trip_id, service_date) DO UPDATE SET
+               route_id = EXCLUDED.route_id,
+               on_time = EXCLUDED.on_time,
+               avg_delay_secs = EXCLUDED.avg_delay_secs,
+               max_delay_secs = EXCLUDED.max_delay_secs,
+               completed = EXCLUDED.completed,
+               computed_at = EXCLUDED.computed_at",
             agency_id,
             trip.trip_id,
             date_str,
@@ -146,7 +154,7 @@ pub async fn compute_route_daily(db: &Database, config: &Config, agency: &Agency
 
     // Aggregate to route_daily using non-macro query for complex aggregation
     let routes: Vec<(String,)> = sqlx::query_as(
-        "SELECT DISTINCT route_id FROM trip_results WHERE agency_id = ? AND service_date = ?",
+        "SELECT DISTINCT route_id FROM trip_results WHERE agency_id = $1 AND service_date = $2",
     )
     .bind(agency_id)
     .bind(&date_str)
@@ -159,9 +167,9 @@ pub async fn compute_route_daily(db: &Database, config: &Config, agency: &Agency
                COUNT(*) as trips_run,
                COALESCE(SUM(on_time), 0) as on_time_count,
                COALESCE(AVG(avg_delay_secs), 0.0) as avg_delay,
-               (SELECT COUNT(*) FROM trips WHERE agency_id = ? AND route_id = ?) as trips_total
+               (SELECT COUNT(*) FROM trips WHERE agency_id = $1 AND route_id = $2) as trips_total
              FROM trip_results
-             WHERE agency_id = ? AND route_id = ? AND service_date = ?",
+             WHERE agency_id = $3 AND route_id = $4 AND service_date = $5",
         )
         .bind(agency_id)
         .bind(route_id)
@@ -179,9 +187,15 @@ pub async fn compute_route_daily(db: &Database, config: &Config, agency: &Agency
         };
 
         sqlx::query!(
-            "INSERT OR REPLACE INTO route_daily
+            "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (agency_id, route_id, service_date) DO UPDATE SET
+               on_time_pct = EXCLUDED.on_time_pct,
+               avg_delay_secs = EXCLUDED.avg_delay_secs,
+               trips_run = EXCLUDED.trips_run,
+               trips_total = EXCLUDED.trips_total,
+               computed_at = EXCLUDED.computed_at",
             agency_id,
             route_id,
             date_str,
@@ -302,27 +316,28 @@ pub async fn stop_hotspots(
            ROUND(AVG(CAST(COALESCE(
              ste.arrival_delay,
              CASE WHEN ste.arrival_time_unix IS NOT NULL
-               THEN ste.arrival_time_unix - CAST(strftime('%s',
-                 DATE(ste.observed_at) || 'T' ||
-                 CASE WHEN CAST(substr(ss.arrival_time,1,2) AS INTEGER) >= 24
-                   THEN printf('%02d', CAST(substr(ss.arrival_time,1,2) AS INTEGER) - 24)
-                        || substr(ss.arrival_time,3)
+               THEN ste.arrival_time_unix - EXTRACT(EPOCH FROM (
+                 ste.observed_at::TIMESTAMPTZ::DATE::TEXT || 'T' ||
+                 CASE WHEN SUBSTRING(ss.arrival_time, 1, 2)::INTEGER >= 24
+                   THEN LPAD((SUBSTRING(ss.arrival_time, 1, 2)::INTEGER - 24)::TEXT, 2, '0')
+                        || SUBSTRING(ss.arrival_time, 3)
                    ELSE ss.arrival_time
-                 END || ?) AS INTEGER)
+                 END || $1
+               )::TIMESTAMPTZ)::BIGINT
                ELSE NULL
              END
-           ) AS REAL)), 0) as avg_delay_secs,
+           ) AS DOUBLE PRECISION))::NUMERIC, 0) as avg_delay_secs,
            COUNT(*) as observation_count
          FROM stop_time_events ste
          JOIN scheduled_stops ss
            ON ss.trip_id = ste.trip_id AND ss.stop_id = ste.stop_id AND ss.agency_id = ste.agency_id
          JOIN stops s ON s.stop_id = ste.stop_id AND s.agency_id = ste.agency_id
-         WHERE ste.observed_at >= datetime('now', '-' || ? || ' days')
+         WHERE ste.observed_at::TIMESTAMPTZ >= NOW() - ($2::BIGINT * INTERVAL '1 day')
            AND (ste.arrival_delay IS NOT NULL OR ste.arrival_time_unix IS NOT NULL)
          GROUP BY s.stop_id, s.stop_name, s.stop_lat, s.stop_lon
          HAVING COUNT(*) >= 5
          ORDER BY avg_delay_secs DESC
-         LIMIT ?",
+         LIMIT $3",
     )
     .bind(offset)
     .bind(days)
@@ -337,7 +352,7 @@ pub async fn stop_hotspots(
 pub async fn route_trend(db: &Database, agency_id: &str, route_id: &str, days: i64) -> Result<Option<RouteTrend>> {
     // Verify route exists.
     let route: Option<(String, String)> = sqlx::query_as(
-        "SELECT short_name, long_name FROM routes WHERE agency_id = ? AND route_id = ?",
+        "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
     )
     .bind(agency_id)
     .bind(route_id)
@@ -359,8 +374,8 @@ pub async fn route_trend(db: &Database, agency_id: &str, route_id: &str, days: i
          FROM route_daily rd
          LEFT JOIN route_speed_daily rsd
            ON rsd.agency_id = rd.agency_id AND rsd.route_id = rd.route_id AND rsd.service_date = rd.service_date
-         WHERE rd.agency_id = ? AND rd.route_id = ?
-           AND rd.service_date >= DATE('now', '-' || ? || ' days')
+         WHERE rd.agency_id = $1 AND rd.route_id = $2
+           AND rd.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
          GROUP BY rd.service_date, rd.on_time_pct, rd.avg_delay_secs
          ORDER BY rd.service_date",
     )
@@ -396,16 +411,18 @@ pub async fn route_summary(db: &Database, days: i64, agency_filter: Option<&str>
                rd.route_id,
                r.short_name,
                r.long_name,
-               ROUND(AVG(rd.on_time_pct), 1) as avg_on_time_pct,
-               ROUND(AVG(rd.avg_delay_secs), 0) as avg_delay_secs,
-               SUM(rd.trips_run) as trips_run,
-               SUM(rd.trips_total) as trips_total,
+               ROUND(AVG(rd.on_time_pct)::NUMERIC, 1)::FLOAT8 as avg_on_time_pct,
+               ROUND(AVG(rd.avg_delay_secs)::NUMERIC, 0)::FLOAT8 as avg_delay_secs,
+               SUM(rd.trips_run)::BIGINT as trips_run,
+               SUM(rd.trips_total)::BIGINT as trips_total,
                COUNT(rd.service_date) as days_measured
              FROM route_daily rd
              JOIN routes r ON rd.agency_id = r.agency_id AND rd.route_id = r.route_id
-             WHERE rd.service_date >= DATE('now', '-' || ? || ' days')
+             WHERE rd.service_date >= (CURRENT_DATE - $1::INT * INTERVAL '1 day')::TEXT
              GROUP BY rd.agency_id, rd.route_id, r.short_name, r.long_name
-             ORDER BY rd.agency_id, CAST(r.short_name AS INTEGER), r.short_name",
+             ORDER BY rd.agency_id,
+               CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
+               r.short_name",
         )
         .bind(days)
         .fetch_all(&db.pool)
@@ -417,17 +434,19 @@ pub async fn route_summary(db: &Database, days: i64, agency_filter: Option<&str>
                rd.route_id,
                r.short_name,
                r.long_name,
-               ROUND(AVG(rd.on_time_pct), 1) as avg_on_time_pct,
-               ROUND(AVG(rd.avg_delay_secs), 0) as avg_delay_secs,
-               SUM(rd.trips_run) as trips_run,
-               SUM(rd.trips_total) as trips_total,
+               ROUND(AVG(rd.on_time_pct)::NUMERIC, 1)::FLOAT8 as avg_on_time_pct,
+               ROUND(AVG(rd.avg_delay_secs)::NUMERIC, 0)::FLOAT8 as avg_delay_secs,
+               SUM(rd.trips_run)::BIGINT as trips_run,
+               SUM(rd.trips_total)::BIGINT as trips_total,
                COUNT(rd.service_date) as days_measured
              FROM route_daily rd
              JOIN routes r ON rd.agency_id = r.agency_id AND rd.route_id = r.route_id
-             WHERE rd.service_date >= DATE('now', '-' || ? || ' days')
-               AND rd.agency_id = ?
+             WHERE rd.service_date >= (CURRENT_DATE - $1::INT * INTERVAL '1 day')::TEXT
+               AND rd.agency_id = $2
              GROUP BY rd.agency_id, rd.route_id, r.short_name, r.long_name
-             ORDER BY rd.agency_id, CAST(r.short_name AS INTEGER), r.short_name",
+             ORDER BY rd.agency_id,
+               CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
+               r.short_name",
         )
         .bind(days)
         .bind(agency)
@@ -560,9 +579,9 @@ pub async fn scorecard_routes(db: &Database, days: i64, agency_filter: Option<&s
                ot.avg_on_time_pct,
                sp.speed_vs_scheduled_pct
              FROM (
-               SELECT agency_id, route_id, ROUND(AVG(on_time_pct), 1) AS avg_on_time_pct
+               SELECT agency_id, route_id, ROUND(AVG(on_time_pct)::NUMERIC, 1)::FLOAT8 AS avg_on_time_pct
                FROM route_daily
-               WHERE service_date >= DATE('now', '-' || ? || ' days')
+               WHERE service_date >= (CURRENT_DATE - $1::INT * INTERVAL '1 day')::TEXT
                GROUP BY agency_id, route_id
              ) ot
              JOIN routes r ON r.agency_id = ot.agency_id AND r.route_id = ot.route_id
@@ -572,17 +591,19 @@ pub async fn scorecard_routes(db: &Database, days: i64, agency_filter: Option<&s
                    CASE WHEN rs.scheduled_speed_mps > 0 AND rsd.avg_actual IS NOT NULL
                      THEN (rs.scheduled_speed_mps - rsd.avg_actual) / rs.scheduled_speed_mps * 100.0
                      ELSE NULL END
-                 ), 1) AS speed_vs_scheduled_pct
+                 )::NUMERIC, 1)::FLOAT8 AS speed_vs_scheduled_pct
                FROM route_speed rs
                LEFT JOIN (
                  SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) AS avg_actual
                  FROM route_speed_daily
-                 WHERE service_date >= DATE('now', '-' || ? || ' days')
+                 WHERE service_date >= (CURRENT_DATE - $2::INT * INTERVAL '1 day')::TEXT
                  GROUP BY agency_id, route_id, direction_id
                ) rsd ON rsd.agency_id = rs.agency_id AND rsd.route_id = rs.route_id AND rsd.direction_id = rs.direction_id
                GROUP BY rs.agency_id, rs.route_id
              ) sp ON sp.agency_id = ot.agency_id AND sp.route_id = ot.route_id
-             ORDER BY ot.agency_id, CAST(r.short_name AS INTEGER), r.short_name",
+             ORDER BY ot.agency_id,
+               CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
+               r.short_name",
         )
         .bind(days)
         .bind(days)
@@ -598,10 +619,10 @@ pub async fn scorecard_routes(db: &Database, days: i64, agency_filter: Option<&s
                ot.avg_on_time_pct,
                sp.speed_vs_scheduled_pct
              FROM (
-               SELECT agency_id, route_id, ROUND(AVG(on_time_pct), 1) AS avg_on_time_pct
+               SELECT agency_id, route_id, ROUND(AVG(on_time_pct)::NUMERIC, 1)::FLOAT8 AS avg_on_time_pct
                FROM route_daily
-               WHERE service_date >= DATE('now', '-' || ? || ' days')
-                 AND agency_id = ?
+               WHERE service_date >= (CURRENT_DATE - $1::INT * INTERVAL '1 day')::TEXT
+                 AND agency_id = $3
                GROUP BY agency_id, route_id
              ) ot
              JOIN routes r ON r.agency_id = ot.agency_id AND r.route_id = ot.route_id
@@ -611,21 +632,24 @@ pub async fn scorecard_routes(db: &Database, days: i64, agency_filter: Option<&s
                    CASE WHEN rs.scheduled_speed_mps > 0 AND rsd.avg_actual IS NOT NULL
                      THEN (rs.scheduled_speed_mps - rsd.avg_actual) / rs.scheduled_speed_mps * 100.0
                      ELSE NULL END
-                 ), 1) AS speed_vs_scheduled_pct
+                 )::NUMERIC, 1)::FLOAT8 AS speed_vs_scheduled_pct
                FROM route_speed rs
                LEFT JOIN (
                  SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) AS avg_actual
                  FROM route_speed_daily
-                 WHERE service_date >= DATE('now', '-' || ? || ' days')
+                 WHERE service_date >= (CURRENT_DATE - $2::INT * INTERVAL '1 day')::TEXT
                  GROUP BY agency_id, route_id, direction_id
                ) rsd ON rsd.agency_id = rs.agency_id AND rsd.route_id = rs.route_id AND rsd.direction_id = rs.direction_id
                GROUP BY rs.agency_id, rs.route_id
              ) sp ON sp.agency_id = ot.agency_id AND sp.route_id = ot.route_id
-             ORDER BY ot.agency_id, CAST(r.short_name AS INTEGER), r.short_name",
+             WHERE ot.agency_id = $3
+             ORDER BY ot.agency_id,
+               CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
+               r.short_name",
         )
         .bind(days)
-        .bind(agency)
         .bind(days)
+        .bind(agency)
         .fetch_all(&db.pool)
         .await?,
     };
@@ -635,30 +659,19 @@ pub async fn scorecard_routes(db: &Database, days: i64, agency_filter: Option<&s
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::sqlite::SqlitePoolOptions;
+    use sqlx::PgPool;
     use crate::db::Database;
 
-    async fn test_db() -> Database {
-        let pool = SqlitePoolOptions::new()
-            .max_connections(1)
-            .connect("sqlite::memory:")
-            .await
-            .unwrap();
+    #[sqlx::test]
+    async fn route_trend_returns_none_for_unknown_route(pool: PgPool) {
         let db = Database { pool };
-        db.migrate().await.unwrap();
-        db
-    }
-
-    #[tokio::test]
-    async fn route_trend_returns_none_for_unknown_route() {
-        let db = test_db().await;
         let result = route_trend(&db, "test", "NONEXISTENT", 30).await.unwrap();
         assert!(result.is_none());
     }
 
-    #[tokio::test]
-    async fn route_trend_returns_daily_points_with_on_time_data() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn route_trend_returns_daily_points_with_on_time_data(pool: PgPool) {
+        let db = Database { pool };
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!(
@@ -681,9 +694,9 @@ mod tests {
         assert!((trend.days[0].on_time_pct.unwrap() - 72.5).abs() < 0.01);
     }
 
-    #[tokio::test]
-    async fn route_trend_includes_speed_when_available() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn route_trend_includes_speed_when_available(pool: PgPool) {
+        let db = Database { pool };
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!(
@@ -749,9 +762,9 @@ mod tests {
 
     // ── Benchmark tests ──────────────────────────────────────────────────────
 
-    #[tokio::test]
-    async fn load_benchmarks_returns_all_seeded_rows() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn load_benchmarks_returns_all_seeded_rows(pool: PgPool) {
+        let db = Database { pool };
         let benchmarks = load_benchmarks(&db).await.unwrap();
         assert_eq!(benchmarks.len(), 4);
         // Ordered ASC by on_time_pct: Helsinki first, Tokyo last.
@@ -929,15 +942,15 @@ mod tests {
         assert_eq!(r.speed_class(), "onpace");
     }
 
-    #[tokio::test]
-    async fn scorecard_routes_returns_per_route_summary() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn scorecard_routes_returns_per_route_summary(pool: PgPool) {
+        let db = Database { pool };
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', date('now', '-1 day'), 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
+             VALUES ('test', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         let routes = scorecard_routes(&db, 7, None).await.unwrap();
@@ -949,15 +962,15 @@ mod tests {
         assert!((pct - 72.5).abs() < 0.1);
     }
 
-    #[tokio::test]
-    async fn scorecard_routes_includes_speed_deficit_when_available() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn scorecard_routes_includes_speed_deficit_when_available(pool: PgPool) {
+        let db = Database { pool };
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', date('now', '-1 day'), 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
+             VALUES ('test', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
         // scheduled: 10.0 m/s, actual: 8.0 m/s → deficit = 20%
         sqlx::query!(
@@ -966,7 +979,7 @@ mod tests {
         sqlx::query!(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('test', 'R1', date('now', '-1 day'), 0, 8.0, 5, '2026-01-01T00:00:00Z')"
+             VALUES ('test', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 0, 8.0, 5, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         let routes = scorecard_routes(&db, 7, None).await.unwrap();
@@ -976,15 +989,15 @@ mod tests {
         assert!((deficit - 20.0).abs() < 0.5, "expected ~20%, got {deficit}");
     }
 
-    #[tokio::test]
-    async fn scorecard_routes_speed_is_none_when_no_speed_data() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn scorecard_routes_speed_is_none_when_no_speed_data(pool: PgPool) {
+        let db = Database { pool };
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', date('now', '-1 day'), 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
+             VALUES ('test', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         let routes = scorecard_routes(&db, 7, None).await.unwrap();
@@ -993,20 +1006,20 @@ mod tests {
         assert!(routes[0].speed_vs_scheduled_pct.is_none());
     }
 
-    #[tokio::test]
-    async fn route_summary_filters_by_agency() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn route_summary_filters_by_agency(pool: PgPool) {
+        let db = Database { pool };
         sqlx::query!("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!(
             "INSERT INTO route_daily (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('stm', 'R1', date('now', '-1 day'), 80.0, 60.0, 10, 12, '2026-01-01T12:00:00Z')"
+             VALUES ('stm', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 80.0, 60.0, 10, 12, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
         sqlx::query!(
             "INSERT INTO route_daily (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('rtl', 'R2', date('now', '-1 day'), 70.0, 90.0, 8, 10, '2026-01-01T12:00:00Z')"
+             VALUES ('rtl', 'R2', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 70.0, 90.0, 8, 10, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         let all = route_summary(&db, 30, None).await.unwrap();
@@ -1021,20 +1034,20 @@ mod tests {
         assert_eq!(rtl[0].agency_id, "rtl");
     }
 
-    #[tokio::test]
-    async fn scorecard_routes_filters_by_agency() {
-        let db = test_db().await;
+    #[sqlx::test]
+    async fn scorecard_routes_filters_by_agency(pool: PgPool) {
+        let db = Database { pool };
         sqlx::query!("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
             .execute(&db.pool).await.unwrap();
         sqlx::query!(
             "INSERT INTO route_daily (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('stm', 'R1', date('now', '-1 day'), 80.0, 60.0, 10, 12, '2026-01-01T12:00:00Z')"
+             VALUES ('stm', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 80.0, 60.0, 10, 12, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
         sqlx::query!(
             "INSERT INTO route_daily (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('rtl', 'R2', date('now', '-1 day'), 70.0, 90.0, 8, 10, '2026-01-01T12:00:00Z')"
+             VALUES ('rtl', 'R2', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 70.0, 90.0, 8, 10, '2026-01-01T12:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         let all = scorecard_routes(&db, 30, None).await.unwrap();

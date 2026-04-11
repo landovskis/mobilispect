@@ -5,8 +5,7 @@ use tracing::{info, warn};
 use crate::config::AgencyConfig;
 use crate::db::Database;
 
-/// Rows to bundle per INSERT statement. SQLite limit is 999 params (32766 in recent builds).
-/// 6 params per scheduled_stop row → 500 rows = 3000 params, well within limits.
+/// Rows to bundle per INSERT statement.
 const CHUNK: usize = 500;
 
 /// Load static GTFS data into the database if not already present for this agency.
@@ -42,27 +41,22 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
         gtfs.stops.len()
     );
 
-    // Enable bulk-load optimisations for this session
-    sqlx::query("PRAGMA journal_mode = WAL").execute(&db.pool).await?;
-    sqlx::query("PRAGMA synchronous = OFF").execute(&db.pool).await?;
-    sqlx::query("PRAGMA cache_size = -64000").execute(&db.pool).await?; // 64 MB cache
-
     // Drop stale data for this agency and bulk-insert in one transaction
     let mut tx = db.pool.begin().await?;
     let slug = &agency.slug;
-    sqlx::query("DELETE FROM scheduled_stops WHERE agency_id = ?")
+    sqlx::query("DELETE FROM scheduled_stops WHERE agency_id = $1")
         .bind(slug)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM trips WHERE agency_id = ?")
+    sqlx::query("DELETE FROM trips WHERE agency_id = $1")
         .bind(slug)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM stops WHERE agency_id = ?")
+    sqlx::query("DELETE FROM stops WHERE agency_id = $1")
         .bind(slug)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM routes WHERE agency_id = ?")
+    sqlx::query("DELETE FROM routes WHERE agency_id = $1")
         .bind(slug)
         .execute(&mut *tx)
         .await?;
@@ -72,9 +66,6 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
     load_stops(&mut tx, slug, &gtfs).await?;
     load_scheduled_stops(&mut tx, slug, &gtfs).await?;
     tx.commit().await?;
-
-    // Restore safe sync mode after bulk load
-    sqlx::query("PRAGMA synchronous = NORMAL").execute(&db.pool).await?;
 
     set_stored_version(db, &agency.slug, &feed_version).await?;
     info!("Static GTFS load complete for {}", agency.slug);
@@ -105,7 +96,22 @@ fn direction_to_int(d: &DirectionType) -> i64 {
     }
 }
 
-type Tx<'a> = sqlx::Transaction<'a, sqlx::Sqlite>;
+type Tx<'a> = sqlx::Transaction<'a, sqlx::Postgres>;
+
+/// Generate Postgres-style numbered placeholders for a bulk INSERT.
+/// E.g. pg_placeholders(2, 3) → "($1,$2,$3),($4,$5,$6)"
+fn pg_placeholders(rows: usize, cols: usize) -> String {
+    (0..rows)
+        .map(|r| {
+            let params = (0..cols)
+                .map(|c| format!("${}", r * cols + c + 1))
+                .collect::<Vec<_>>()
+                .join(",");
+            format!("({params})")
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
 
 async fn load_routes(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()> {
     let rows: Vec<(String, String, String, String, i64)> = gtfs
@@ -123,9 +129,13 @@ async fn load_routes(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()
         .collect();
 
     for chunk in rows.chunks(CHUNK) {
-        let placeholders = chunk.iter().map(|_| "(?,?,?,?,?)").collect::<Vec<_>>().join(",");
+        let placeholders = pg_placeholders(chunk.len(), 5);
         let sql = format!(
-            "INSERT OR REPLACE INTO routes (agency_id, route_id, short_name, long_name, route_type) VALUES {placeholders}"
+            "INSERT INTO routes (agency_id, route_id, short_name, long_name, route_type) VALUES {placeholders}
+             ON CONFLICT (agency_id, route_id) DO UPDATE SET
+               short_name = EXCLUDED.short_name,
+               long_name = EXCLUDED.long_name,
+               route_type = EXCLUDED.route_type"
         );
         let mut q = sqlx::query(&sql);
         for (aid, id, short, long, rt) in chunk {
@@ -154,9 +164,14 @@ async fn load_trips(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()>
         .collect();
 
     for chunk in rows.chunks(CHUNK) {
-        let placeholders = chunk.iter().map(|_| "(?,?,?,?,?,?)").collect::<Vec<_>>().join(",");
+        let placeholders = pg_placeholders(chunk.len(), 6);
         let sql = format!(
-            "INSERT OR REPLACE INTO trips (agency_id, trip_id, route_id, service_id, direction_id, trip_headsign) VALUES {placeholders}"
+            "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id, trip_headsign) VALUES {placeholders}
+             ON CONFLICT (agency_id, trip_id) DO UPDATE SET
+               route_id = EXCLUDED.route_id,
+               service_id = EXCLUDED.service_id,
+               direction_id = EXCLUDED.direction_id,
+               trip_headsign = EXCLUDED.trip_headsign"
         );
         let mut q = sqlx::query(&sql);
         for (aid, id, route, svc, dir, head) in chunk {
@@ -178,9 +193,13 @@ async fn load_stops(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()>
     }
 
     for chunk in rows.chunks(CHUNK) {
-        let placeholders = chunk.iter().map(|_| "(?,?,?,?,?)").collect::<Vec<_>>().join(",");
+        let placeholders = pg_placeholders(chunk.len(), 5);
         let sql = format!(
-            "INSERT OR REPLACE INTO stops (agency_id, stop_id, stop_name, stop_lat, stop_lon) VALUES {placeholders}"
+            "INSERT INTO stops (agency_id, stop_id, stop_name, stop_lat, stop_lon) VALUES {placeholders}
+             ON CONFLICT (agency_id, stop_id) DO UPDATE SET
+               stop_name = EXCLUDED.stop_name,
+               stop_lat = EXCLUDED.stop_lat,
+               stop_lon = EXCLUDED.stop_lon"
         );
         let mut q = sqlx::query(&sql);
         for (aid, id, name, lat, lon) in chunk {
@@ -210,10 +229,14 @@ async fn load_scheduled_stops(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> 
 
     let total = rows.len();
     for (i, chunk) in rows.chunks(CHUNK).enumerate() {
-        let placeholders = chunk.iter().map(|_| "(?,?,?,?,?,?)").collect::<Vec<_>>().join(",");
+        let placeholders = pg_placeholders(chunk.len(), 6);
         let sql = format!(
-            "INSERT OR REPLACE INTO scheduled_stops \
-             (agency_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time) VALUES {placeholders}"
+            "INSERT INTO scheduled_stops \
+             (agency_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time) VALUES {placeholders}
+             ON CONFLICT (agency_id, trip_id, stop_sequence) DO UPDATE SET
+               stop_id = EXCLUDED.stop_id,
+               arrival_time = EXCLUDED.arrival_time,
+               departure_time = EXCLUDED.departure_time"
         );
         let mut q = sqlx::query(&sql);
         for (aid, tid, sid, seq, arr, dep) in chunk {
@@ -221,7 +244,6 @@ async fn load_scheduled_stops(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> 
         }
         q.execute(&mut **tx).await?;
 
-        // Progress every 100k rows
         let done = (i + 1) * CHUNK;
         if done % 100_000 < CHUNK {
             info!("  scheduled_stops: {}/{} rows", done.min(total), total);
@@ -248,7 +270,7 @@ fn format_gtfs_time(secs: Option<u32>) -> String {
 async fn get_stored_version(db: &Database, agency_slug: &str) -> Result<Option<String>> {
     let key = format!("gtfs_static_version_{agency_slug}");
     let row = sqlx::query!(
-        "SELECT value FROM feed_info WHERE key = ?",
+        "SELECT value FROM feed_info WHERE key = $1",
         key,
     )
     .fetch_optional(&db.pool)
@@ -260,7 +282,8 @@ async fn set_stored_version(db: &Database, agency_slug: &str, version: &str) -> 
     let key = format!("gtfs_static_version_{agency_slug}");
     let now = chrono::Utc::now().to_rfc3339();
     sqlx::query!(
-        "INSERT OR REPLACE INTO feed_info (key, value, updated_at) VALUES (?, ?, ?)",
+        "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
         key,
         version,
         now,

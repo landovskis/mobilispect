@@ -21,7 +21,7 @@ gtfs-structures = "0.26"
 prost = "0.13"
 
 # Database
-sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "chrono", "migrate"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "migrate"] }
 
 # Web server
 axum = { version = "0.7", features = ["macros"] }

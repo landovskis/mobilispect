@@ -36,19 +36,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /data
-
 # Copy only the compiled binary from the builder stage.
 # NOTE: migrations/ is NOT copied here. sqlx::migrate!() is a compile-time
 # macro that embeds migration SQL directly into the binary.
 COPY --from=builder /build/target/release/mobilispect /usr/local/bin/mobilispect
 
-# /data is used for the SQLite database file. Mount a Railway volume at /data
-# via the Railway dashboard — do not use the VOLUME directive (banned by Railway).
-
-# Default to an absolute path inside the /data volume so the SQLite file
-# survives container restarts when a Railway volume is mounted there.
-ENV DATABASE_URL=sqlite:///data/mobilispect.db
+# DATABASE_URL must be set at runtime to a Postgres connection string.
+# On Railway, reference the Postgres plugin: postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE
 
 # The application listens on port 3000 by default (BIND_ADDRESS=0.0.0.0:3000).
 EXPOSE 3000

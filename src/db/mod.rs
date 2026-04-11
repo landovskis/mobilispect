@@ -1,17 +1,17 @@
 use anyhow::Result;
-use sqlx::{sqlite::{SqliteConnectOptions, SqlitePoolOptions}, SqlitePool};
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use sqlx::PgPool;
 use std::str::FromStr;
 
 #[derive(Clone, Debug)]
 pub struct Database {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
 }
 
 impl Database {
     pub async fn connect(database_url: &str) -> Result<Self> {
-        let options = SqliteConnectOptions::from_str(database_url)?
-            .create_if_missing(true);
-        let pool = SqlitePoolOptions::new()
+        let options = PgConnectOptions::from_str(database_url)?;
+        let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect_with(options)
             .await?;
