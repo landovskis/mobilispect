@@ -64,7 +64,11 @@ async fn main() -> Result<()> {
         let db_rt = db.clone();
         let poll_interval = config.poll_interval_secs;
         tokio::spawn(async move {
-            gtfs::realtime::poll_loop(&db_rt, &agency, poll_interval).await;
+            loop {
+                gtfs::realtime::poll_loop(&db_rt, &agency, poll_interval).await;
+                warn!(agency = %agency.name, "RT poll loop exited unexpectedly, restarting in 30s");
+                tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+            }
         });
     }
 
@@ -72,7 +76,11 @@ async fn main() -> Result<()> {
     let db_maint = db.clone();
     let config_maint = config.clone();
     tokio::spawn(async move {
-        maintenance::retention_loop(&db_maint, &config_maint).await;
+        loop {
+            maintenance::retention_loop(&db_maint, &config_maint).await;
+            warn!("Maintenance loop exited unexpectedly, restarting in 30s");
+            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+        }
     });
 
     // Start web server
