@@ -39,7 +39,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy only the compiled binary from the builder stage.
 # NOTE: migrations/ is NOT copied here. sqlx::migrate!() is a compile-time
 # macro that embeds migration SQL directly into the binary.
-COPY --from=builder /build/target/release/mobilispect /usr/local/bin/mobilispect
+COPY --from=builder /build/target/release/mobilispect-server /usr/local/bin/mobilispect-server
+COPY --from=builder /build/target/release/mobilispect-worker /usr/local/bin/mobilispect-worker
 
 # DATABASE_URL must be set at runtime to a Postgres connection string.
 # On Railway, reference the Postgres plugin: postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE
@@ -47,4 +48,5 @@ COPY --from=builder /build/target/release/mobilispect /usr/local/bin/mobilispect
 # The application listens on port 3000 by default (BIND_ADDRESS=0.0.0.0:3000).
 EXPOSE 3000
 
-ENTRYPOINT ["/usr/local/bin/mobilispect"]
+# Default to server; override with: docker run <image> mobilispect-worker
+ENTRYPOINT ["/usr/local/bin/mobilispect-server"]
