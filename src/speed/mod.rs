@@ -5,6 +5,9 @@ use serde::Serialize;
 use crate::config::AgencyConfig;
 use crate::db::Database;
 
+pub mod card;
+pub use card::{build_speed_cards, RouteSpeedCard};
+
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteSpeedSummary {
     pub agency_id: String,
