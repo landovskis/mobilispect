@@ -13,30 +13,22 @@
     header h1 { font-size: 1.4rem; font-weight: 600; }
     header a { color: #aaa; font-size: 0.85rem; text-decoration: none; }
     header a:hover { color: white; }
-    .container { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
-    .note { background: white; border-radius: 8px; padding: 0.75rem 1rem;
-            margin-bottom: 1.5rem; font-size: 0.85rem; color: #555;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    table { width: 100%; border-collapse: collapse; background: white;
-            border-radius: 8px; overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    thead { background: #f0f0f0; }
-    th { padding: 0.75rem 1rem; text-align: left; font-size: 0.8rem;
-         text-transform: uppercase; letter-spacing: 0.05em; color: #555; }
-    td { padding: 0.75rem 1rem; border-top: 1px solid #eee; font-size: 0.9rem; }
-    tr:hover td { background: #fafafa; }
-    .route-id { font-family: monospace; font-weight: 600; font-size: 0.95rem; }
-    .dir { color: #888; font-size: 0.85rem; }
-    .slower { color: #c0392b; }
-    .faster { color: #27ae60; }
-    .onpace { color: #555; }
-    footer { text-align: center; padding: 2rem; color: #aaa; font-size: 0.8rem; }
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
     .filter-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
     .filter-bar a { padding: 0.35rem 0.75rem; border-radius: 20px; background: white;
                     border: 1px solid #ddd; font-size: 0.85rem; text-decoration: none;
                     color: #555; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
     .filter-bar a:hover { border-color: #999; color: #222; }
     .filter-bar a.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
+    .card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    @media (max-width: 900px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px) { .card-grid { grid-template-columns: 1fr; } }
+    .card { background: white; border-radius: 8px; padding: 1rem 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .route-num { font-family: monospace; font-weight: 700; font-size: 1rem; }
+    .route-name { font-size: 0.8rem; color: #666; margin-top: 0.15rem; margin-bottom: 0.75rem; }
+    .no-data { color: #aaa; font-size: 0.9rem; text-align: center; padding: 3rem 0; }
+    footer { text-align: center; padding: 2rem; color: #aaa; font-size: 0.8rem; }
   </style>
 </head>
 <body>
@@ -50,44 +42,47 @@
     </nav>
   </header>
   <div class="container">
-    <div class="note">
-      <strong>Scheduled</strong> — planned speed from GTFS timetable &nbsp;·&nbsp;
-      <strong>Actual (7d)</strong> — derived from stop arrival times, last 7 days &nbsp;·&nbsp;
-      <strong>Live (1h)</strong> — GPS speed from vehicles in the last hour
-    </div>
     <div class="filter-bar">
       <a href="/speed" class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
       {% for (slug, name) in &agencies %}
       <a href="/speed?agency={{ slug }}" class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
       {% endfor %}
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Route</th>
-          <th>Name</th>
-          <th>Direction</th>
-          <th>Scheduled</th>
-          <th>Actual (7d)</th>
-          <th>Live (1h)</th>
-          <th>vs Schedule</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in &speeds %}
-        <tr>
-          <td><a href="/routes/{{ row.speed.agency_id }}/{{ row.speed.route_id }}" style="text-decoration:none;"><span class="route-id">{{ row.agency_name }} {{ row.speed.short_name }}</span></a></td>
-          <td>{{ row.speed.long_name }}</td>
-          <td class="dir">{{ row.speed.direction_label() }}</td>
-          <td>{{ row.speed.scheduled_speed_kmh() }} km/h</td>
-          <td>{{ row.speed.actual_speed_display() }}</td>
-          <td>{{ row.speed.live_speed_display() }}</td>
-          <td><span class="{{ row.speed.speed_class() }}">{{ row.speed.speed_vs_scheduled_display() }}</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% if cards.is_empty() %}
+    <p class="no-data">No speed data available yet. Data appears after the daily compute runs.</p>
+    {% else %}
+    <div class="card-grid">
+      {% for card in &cards %}
+      <div class="card">
+        <div class="route-num">{{ card.agency_name }} {{ card.short_name }}</div>
+        <div class="route-name">{{ card.long_name }}</div>
+        <canvas id="chart-{{ card.idx }}" height="160"></canvas>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
   </div>
   <footer>Mobilispect · Data: STM GTFS-RT</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+    {% for card in &cards %}
+    new Chart(document.getElementById('chart-{{ card.idx }}'), {
+      type: 'bar',
+      data: {
+        labels: ['Weekday', 'Saturday', 'Sunday'],
+        datasets: {{ card.chart_json|safe }}
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'km/h' }, ticks: { font: { size: 10 } } },
+          x: { ticks: { font: { size: 10 } } }
+        }
+      }
+    });
+    {% endfor %}
+  </script>
 </body>
 </html>

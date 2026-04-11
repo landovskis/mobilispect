@@ -4,6 +4,7 @@ use tracing::{error, info};
 
 use crate::config::AgencyConfig;
 use crate::db::Database;
+use crate::speed::compute_route_speed_hourly;
 
 // GTFS-RT protobuf types — generated from the official .proto file
 // Include the generated code from build.rs output
@@ -35,6 +36,8 @@ async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let tu_bytes = fetch_feed(&agency.gtfs_rt_trip_updates_url, agency.gtfs_api_key.as_deref()).await?;
     let tu_feed = proto::FeedMessage::decode(tu_bytes.as_ref())?;
     let tu_count = store_trip_updates(db, &tu_feed, &now, &agency.slug).await?;
+
+    compute_route_speed_hourly(db, agency).await?;
 
     info!(
         "GTFS-RT poll complete ({}): {} vehicle positions, {} stop time events",

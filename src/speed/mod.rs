@@ -367,6 +367,173 @@ pub async fn route_speed_summary(db: &Database, agency_filter: Option<&str>) -> 
     Ok(rows)
 }
 
+/// Compute actual average speed per route+direction for each UTC hour, from stop arrival times
+/// observed in the last 4 hours. Called after every GTFS-RT poll so the data stays fresh.
+pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) -> Result<()> {
+    let now = Utc::now().to_rfc3339();
+    let agency_id = &agency.slug;
+
+    let combos: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
+         FROM stop_time_events ste
+         JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
+         WHERE ste.agency_id = ? AND ste.arrival_time_unix IS NOT NULL
+           AND ste.observed_at >= datetime('now', '-4 hours')",
+    )
+    .bind(agency_id)
+    .fetch_all(&db.pool)
+    .await?;
+
+    for (route_id, direction_id) in &combos {
+        let trips: Vec<(String,)> = sqlx::query_as(
+            "SELECT DISTINCT ste.trip_id
+             FROM stop_time_events ste
+             JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
+             WHERE t.agency_id = ? AND t.route_id = ?
+               AND COALESCE(t.direction_id, 0) = ?
+               AND ste.arrival_time_unix IS NOT NULL
+               AND ste.observed_at >= datetime('now', '-4 hours')",
+        )
+        .bind(agency_id)
+        .bind(route_id)
+        .bind(direction_id)
+        .fetch_all(&db.pool)
+        .await?;
+
+        // Accumulate per-hour speed samples: hour_utc -> Vec<speed_mps>
+        let mut hour_speeds: std::collections::HashMap<String, Vec<f64>> =
+            std::collections::HashMap::new();
+
+        for (trip_id,) in &trips {
+            let stops: Vec<(f64, f64, i64)> = sqlx::query_as(
+                "SELECT s.stop_lat, s.stop_lon, MAX(ste.arrival_time_unix) as arrival_time_unix
+                 FROM stop_time_events ste
+                 JOIN scheduled_stops ss
+                   ON ss.trip_id = ste.trip_id AND ss.stop_id = ste.stop_id AND ss.agency_id = ste.agency_id
+                 JOIN stops s ON s.stop_id = ste.stop_id AND s.agency_id = ste.agency_id
+                 WHERE ste.agency_id = ? AND ste.trip_id = ?
+                   AND ste.arrival_time_unix IS NOT NULL
+                 GROUP BY ss.stop_sequence, s.stop_lat, s.stop_lon
+                 ORDER BY ss.stop_sequence",
+            )
+            .bind(agency_id)
+            .bind(trip_id)
+            .fetch_all(&db.pool)
+            .await?;
+
+            if stops.len() < 2 {
+                continue;
+            }
+
+            let total_distance_m: f64 = stops
+                .windows(2)
+                .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
+                .sum();
+
+            let first_unix = stops.first().unwrap().2;
+            let last_unix = stops.last().unwrap().2;
+            let duration_secs = (last_unix - first_unix) as f64;
+
+            if total_distance_m > 0.0 && duration_secs > 0.0 {
+                let hour_utc = chrono::DateTime::from_timestamp(first_unix, 0)
+                    .map(|dt: chrono::DateTime<Utc>| dt.format("%Y-%m-%d %H").to_string())
+                    .unwrap_or_else(|| "1970-01-01 00".to_string());
+                hour_speeds
+                    .entry(hour_utc)
+                    .or_default()
+                    .push(total_distance_m / duration_secs);
+            }
+        }
+
+        for (hour_utc, speeds) in &hour_speeds {
+            let avg_speed = speeds.iter().sum::<f64>() / speeds.len() as f64;
+            let trip_count = speeds.len() as i64;
+            sqlx::query(
+                "INSERT OR REPLACE INTO route_speed_hourly
+                 (agency_id, route_id, direction_id, hour_utc, actual_speed_mps, trip_count, computed_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)",
+            )
+            .bind(agency_id.as_str())
+            .bind(route_id.as_str())
+            .bind(direction_id)
+            .bind(hour_utc.as_str())
+            .bind(avg_speed)
+            .bind(trip_count)
+            .bind(now.as_str())
+            .execute(&db.pool)
+            .await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Per-route, per-direction average speed broken down by day type (weekday / Saturday / Sunday).
+/// Averaged over the last 90 days of `route_speed_hourly` data.
+#[derive(Debug, sqlx::FromRow)]
+pub struct RouteSpeedDayType {
+    pub agency_id: String,
+    pub route_id: String,
+    pub short_name: String,
+    pub long_name: String,
+    pub direction_id: i64,
+    pub weekday_speed_mps: Option<f64>,
+    pub saturday_speed_mps: Option<f64>,
+    pub sunday_speed_mps: Option<f64>,
+}
+
+pub async fn route_speed_by_day_type(
+    db: &Database,
+    agency_filter: Option<&str>,
+) -> Result<Vec<RouteSpeedDayType>> {
+    let rows = match agency_filter {
+        None => sqlx::query_as(
+            "SELECT
+               rs.agency_id,
+               rs.route_id,
+               r.short_name,
+               r.long_name,
+               rs.direction_id,
+               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) IN ('1','2','3','4','5') THEN rsh.actual_speed_mps END) as weekday_speed_mps,
+               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) = '6' THEN rsh.actual_speed_mps END) as saturday_speed_mps,
+               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) = '0' THEN rsh.actual_speed_mps END) as sunday_speed_mps
+             FROM route_speed rs
+             JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
+             LEFT JOIN route_speed_hourly rsh
+               ON rsh.agency_id = rs.agency_id AND rsh.route_id = rs.route_id AND rsh.direction_id = rs.direction_id
+               AND rsh.hour_utc >= strftime('%Y-%m-%d %H', datetime('now', '-90 days'))
+             GROUP BY rs.agency_id, rs.route_id, rs.direction_id
+             ORDER BY rs.agency_id, CAST(r.short_name AS INTEGER), r.short_name, rs.direction_id",
+        )
+        .fetch_all(&db.pool)
+        .await?,
+
+        Some(agency) => sqlx::query_as(
+            "SELECT
+               rs.agency_id,
+               rs.route_id,
+               r.short_name,
+               r.long_name,
+               rs.direction_id,
+               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) IN ('1','2','3','4','5') THEN rsh.actual_speed_mps END) as weekday_speed_mps,
+               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) = '6' THEN rsh.actual_speed_mps END) as saturday_speed_mps,
+               AVG(CASE WHEN strftime('%w', substr(rsh.hour_utc, 1, 10)) = '0' THEN rsh.actual_speed_mps END) as sunday_speed_mps
+             FROM route_speed rs
+             JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
+             LEFT JOIN route_speed_hourly rsh
+               ON rsh.agency_id = rs.agency_id AND rsh.route_id = rs.route_id AND rsh.direction_id = rs.direction_id
+               AND rsh.hour_utc >= strftime('%Y-%m-%d %H', datetime('now', '-90 days'))
+             WHERE rs.agency_id = ?
+             GROUP BY rs.agency_id, rs.route_id, rs.direction_id
+             ORDER BY rs.agency_id, CAST(r.short_name AS INTEGER), r.short_name, rs.direction_id",
+        )
+        .bind(agency)
+        .fetch_all(&db.pool)
+        .await?,
+    };
+    Ok(rows)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
