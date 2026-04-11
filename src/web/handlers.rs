@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json;
 
 use crate::metrics::{load_benchmarks, route_summary, route_trend, scorecard_routes, stop_hotspots, Benchmark, RouteSummary, RouteTrend, ScorecardRoute, StopHotspot};
-use crate::speed::{route_speed_by_day_type, route_speed_summary, RouteSpeedDayType, RouteSpeedSummary};
+use crate::speed::{build_speed_cards, route_speed_by_day_type, route_speed_summary, RouteSpeedCard, RouteSpeedSummary};
 use crate::web::AppState;
 
 #[derive(Deserialize)]
@@ -100,80 +100,12 @@ pub async fn api_routes(
     })
 }
 
-struct RouteSpeedCard {
-    idx: usize,
-    agency_name: String,
-    short_name: String,
-    long_name: String,
-    chart_json: String,
-}
-
 #[derive(Template)]
 #[template(path = "speed.html")]
 struct SpeedTemplate {
     cards: Vec<RouteSpeedCard>,
     agencies: Vec<(String, String)>,
     active_agency: String,
-}
-
-fn speed_kmh_json(mps: Option<f64>) -> serde_json::Value {
-    match mps {
-        Some(s) => {
-            let kmh = (s * 3.6 * 10.0).round() / 10.0;
-            serde_json::Number::from_f64(kmh)
-                .map(serde_json::Value::Number)
-                .unwrap_or(serde_json::Value::Null)
-        }
-        None => serde_json::Value::Null,
-    }
-}
-
-fn day_type_data(row: Option<&RouteSpeedDayType>) -> serde_json::Value {
-    match row {
-        Some(r) => serde_json::json!([
-            speed_kmh_json(r.weekday_speed_mps),
-            speed_kmh_json(r.saturday_speed_mps),
-            speed_kmh_json(r.sunday_speed_mps),
-        ]),
-        None => serde_json::json!([null, null, null]),
-    }
-}
-
-fn build_speed_cards(
-    rows: Vec<RouteSpeedDayType>,
-    agency_names: &std::collections::HashMap<String, String>,
-) -> Vec<RouteSpeedCard> {
-    let mut cards: Vec<RouteSpeedCard> = Vec::new();
-    let mut i = 0;
-    while i < rows.len() {
-        let agency_id = rows[i].agency_id.clone();
-        let route_id = rows[i].route_id.clone();
-        let mut j = i;
-        while j < rows.len() && rows[j].agency_id == agency_id && rows[j].route_id == route_id {
-            j += 1;
-        }
-        let route_rows = &rows[i..j];
-        let first = &rows[i];
-        let agency_name = agency_names
-            .get(&first.agency_id)
-            .cloned()
-            .unwrap_or_else(|| first.agency_id.clone());
-        let outbound = route_rows.iter().find(|r| r.direction_id == 0);
-        let inbound = route_rows.iter().find(|r| r.direction_id == 1);
-        let datasets = serde_json::json!([
-            { "label": "Outbound", "data": day_type_data(outbound), "backgroundColor": "#2980b9" },
-            { "label": "Inbound",  "data": day_type_data(inbound),  "backgroundColor": "#27ae60" },
-        ]);
-        cards.push(RouteSpeedCard {
-            idx: cards.len(),
-            agency_name,
-            short_name: first.short_name.clone(),
-            long_name: first.long_name.clone(),
-            chart_json: serde_json::to_string(&datasets).unwrap_or_default(),
-        });
-        i = j;
-    }
-    cards
 }
 
 #[derive(Template)]
