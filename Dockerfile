@@ -48,5 +48,5 @@ COPY --from=builder /build/target/release/mobilispect-worker /usr/local/bin/mobi
 # The application listens on port 3000 by default (BIND_ADDRESS=0.0.0.0:3000).
 EXPOSE 3000
 
-# Default to server; override with: docker run <image> mobilispect-worker
+# Default to server; override with: docker run --entrypoint /usr/local/bin/mobilispect-worker <image>
 ENTRYPOINT ["/usr/local/bin/mobilispect-server"]

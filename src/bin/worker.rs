@@ -16,7 +16,6 @@ async fn main() -> Result<()> {
 
     let config = Config::from_env()?;
     let db = Database::connect(&config.database_url).await?;
-    db.migrate().await?;
 
     info!(
         "Mobilispect worker starting — {} agency/agencies configured",
