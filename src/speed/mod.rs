@@ -659,6 +659,86 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn compute_route_speed_stores_result_for_both_directions() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        // Trip in direction 0 (outbound): S1 → S2
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Outbound')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        // Trip in direction 1 (inbound): S2 → S1
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T2', 'R1', 'WD', 1, 'Inbound')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        // Outbound: S1 at 08:00, S2 at 08:10
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        // Inbound: S2 at 09:00, S1 at 09:10
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T2', 'S2', 1, '09:00:00', '09:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T2', 'S1', 2, '09:10:00', '09:10:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        compute_route_speed(&db, &test_agency()).await.unwrap();
+
+        let rows: Vec<(i64, f64)> = sqlx::query_as(
+            "SELECT direction_id, scheduled_speed_mps FROM route_speed WHERE route_id = 'R1' ORDER BY direction_id",
+        )
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+
+        assert_eq!(
+            rows.len(),
+            2,
+            "expected one row per direction, got {}",
+            rows.len()
+        );
+        assert_eq!(rows[0].0, 0, "first row should be direction 0");
+        assert_eq!(rows[1].0, 1, "second row should be direction 1");
+        // Both directions cover the same distance in the same time, so speeds should match.
+        assert!(
+            (rows[0].1 - rows[1].1).abs() < 0.01,
+            "outbound and inbound speeds should be equal, got {} vs {}",
+            rows[0].1,
+            rows[1].1
+        );
+    }
+
+    #[tokio::test]
     async fn route_speed_summary_returns_route_names() {
         let td = test_utils::setup().await;
         let db = td.db;
