@@ -922,6 +922,85 @@ mod tests {
         assert_eq!(rtl[0].agency_id, "rtl");
     }
 
+    #[tokio::test]
+    async fn compute_route_speed_hourly_stores_avg_speed_per_hour() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        // Use timestamps within the last 4 hours so the hourly query picks them up.
+        let t_s1 = chrono::Utc::now().timestamp() - 1800; // 30 min ago
+        let t_s2 = t_s1 + 900; // 15 min later
+
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
+             VALUES ('test', NOW()::TEXT, 'T1', 'S1', 1, $1)",
+        )
+        .bind(t_s1)
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
+             VALUES ('test', NOW()::TEXT, 'T1', 'S2', 2, $1)",
+        )
+        .bind(t_s2)
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        compute_route_speed_hourly(&db, &test_agency())
+            .await
+            .unwrap();
+
+        let row: (f64, i64) = sqlx::query_as(
+            "SELECT actual_speed_mps, trip_count
+             FROM route_speed_hourly
+             WHERE agency_id = 'test' AND route_id = 'R1' AND direction_id = 0",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+
+        let (speed, count) = row;
+        // Distance S1→S2 ≈ 1111 m over 900 s ≈ 1.235 m/s
+        assert!(
+            (speed - 1.235).abs() < 0.05,
+            "expected ~1.235 m/s, got {speed}"
+        );
+        assert_eq!(count, 1);
+    }
+
     fn make_summary(scheduled: f64, actual: Option<f64>) -> RouteSpeedSummary {
         RouteSpeedSummary {
             agency_id: "test".into(),
