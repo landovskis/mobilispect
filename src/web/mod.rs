@@ -1,5 +1,5 @@
 use anyhow::Result;
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use tower_http::trace::TraceLayer;
 use tracing::info;
 

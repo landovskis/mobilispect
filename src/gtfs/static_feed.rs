@@ -175,7 +175,13 @@ async fn load_trips(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()>
         );
         let mut q = sqlx::query(&sql);
         for (aid, id, route, svc, dir, head) in chunk {
-            q = q.bind(aid).bind(id).bind(route).bind(svc).bind(dir).bind(head);
+            q = q
+                .bind(aid)
+                .bind(id)
+                .bind(route)
+                .bind(svc)
+                .bind(dir)
+                .bind(head);
         }
         q.execute(&mut **tx).await?;
     }
@@ -187,7 +193,13 @@ async fn load_stops(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()>
     let mut rows: Vec<(String, String, String, f64, f64)> = Vec::new();
     for (id, stop) in &gtfs.stops {
         match (stop.latitude, stop.longitude) {
-            (Some(lat), Some(lon)) => rows.push((agency_id.to_string(), id.clone(), stop.name.clone(), lat, lon)),
+            (Some(lat), Some(lon)) => rows.push((
+                agency_id.to_string(),
+                id.clone(),
+                stop.name.clone(),
+                lat,
+                lon,
+            )),
             _ => warn!("Stop {} missing coordinates, skipping", id),
         }
     }
@@ -240,7 +252,13 @@ async fn load_scheduled_stops(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> 
         );
         let mut q = sqlx::query(&sql);
         for (aid, tid, sid, seq, arr, dep) in chunk {
-            q = q.bind(aid).bind(tid).bind(sid).bind(seq).bind(arr).bind(dep);
+            q = q
+                .bind(aid)
+                .bind(tid)
+                .bind(sid)
+                .bind(seq)
+                .bind(arr)
+                .bind(dep);
         }
         q.execute(&mut **tx).await?;
 
@@ -269,12 +287,9 @@ fn format_gtfs_time(secs: Option<u32>) -> String {
 
 async fn get_stored_version(db: &Database, agency_slug: &str) -> Result<Option<String>> {
     let key = format!("gtfs_static_version_{agency_slug}");
-    let row = sqlx::query!(
-        "SELECT value FROM feed_info WHERE key = $1",
-        key,
-    )
-    .fetch_optional(&db.pool)
-    .await?;
+    let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
+        .fetch_optional(&db.pool)
+        .await?;
     Ok(row.map(|r| r.value))
 }
 

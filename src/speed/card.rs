@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::speed::RouteSpeedDayType;
+use std::collections::HashMap;
 
 pub struct RouteSpeedCard {
     pub idx: usize,
@@ -73,7 +73,12 @@ pub fn build_speed_cards(
 mod tests {
     use super::*;
 
-    fn make_row(agency_id: &str, route_id: &str, direction_id: i64, weekday: Option<f64>) -> RouteSpeedDayType {
+    fn make_row(
+        agency_id: &str,
+        route_id: &str,
+        direction_id: i64,
+        weekday: Option<f64>,
+    ) -> RouteSpeedDayType {
         RouteSpeedDayType {
             agency_id: agency_id.to_string(),
             route_id: route_id.to_string(),

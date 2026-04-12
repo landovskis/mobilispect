@@ -47,7 +47,10 @@ async fn main() -> Result<()> {
         let (agency, result) = res?;
         match result {
             Ok(()) => loaded.push(agency),
-            Err(e) => warn!("Skipping {}: failed to load static GTFS: {e:#}", agency.name),
+            Err(e) => warn!(
+                "Skipping {}: failed to load static GTFS: {e:#}",
+                agency.name
+            ),
         }
     }
 

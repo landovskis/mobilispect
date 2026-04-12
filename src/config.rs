@@ -40,10 +40,8 @@ impl Config {
                             slug: slug.clone(),
                             name: std::env::var(format!("AGENCY_{i}_NAME"))
                                 .unwrap_or_else(|_| slug.to_uppercase()),
-                            gtfs_static_url: std::env::var(format!(
-                                "AGENCY_{i}_GTFS_STATIC_URL"
-                            ))
-                            .with_context(|| {
+                            gtfs_static_url: std::env::var(format!("AGENCY_{i}_GTFS_STATIC_URL"))
+                                .with_context(|| {
                                 format!("AGENCY_{i}_GTFS_STATIC_URL must be set")
                             })?,
                             gtfs_rt_vehicle_positions_url: std::env::var(format!(
@@ -75,8 +73,7 @@ impl Config {
                 slug: std::env::var("AGENCY_NAME")
                     .unwrap_or_else(|_| "stm".to_string())
                     .to_lowercase(),
-                name: std::env::var("AGENCY_NAME")
-                    .unwrap_or_else(|_| "STM".to_string()),
+                name: std::env::var("AGENCY_NAME").unwrap_or_else(|_| "STM".to_string()),
                 gtfs_static_url: std::env::var("GTFS_STATIC_URL")
                     .context("GTFS_STATIC_URL must be set")?,
                 gtfs_rt_vehicle_positions_url: std::env::var("GTFS_RT_VEHICLE_POSITIONS_URL")
@@ -91,8 +88,7 @@ impl Config {
 
         Ok(Self {
             agencies,
-            database_url: std::env::var("DATABASE_URL")
-                .context("DATABASE_URL must be set")?,
+            database_url: std::env::var("DATABASE_URL").context("DATABASE_URL must be set")?,
             poll_interval_secs: std::env::var("POLL_INTERVAL_SECS")
                 .ok()
                 .and_then(|v| v.parse().ok())

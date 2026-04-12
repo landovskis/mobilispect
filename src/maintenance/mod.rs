@@ -56,11 +56,15 @@ pub async fn retention_loop(db: &Database, config: &Config) {
         for agency in &config.agencies {
             match compute_route_daily(db, config, agency, today).await {
                 Ok(()) => info!(agency = %agency.slug, "Computed daily on-time metrics"),
-                Err(e) => tracing::error!(agency = %agency.slug, error = %e, "Failed to compute daily on-time metrics"),
+                Err(e) => {
+                    tracing::error!(agency = %agency.slug, error = %e, "Failed to compute daily on-time metrics")
+                }
             }
             match compute_route_speed_daily(db, agency, today).await {
                 Ok(()) => info!(agency = %agency.slug, "Computed daily speed metrics"),
-                Err(e) => tracing::error!(agency = %agency.slug, error = %e, "Failed to compute daily speed metrics"),
+                Err(e) => {
+                    tracing::error!(agency = %agency.slug, error = %e, "Failed to compute daily speed metrics")
+                }
             }
         }
     }
