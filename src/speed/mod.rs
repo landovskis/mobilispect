@@ -632,50 +632,43 @@ pub async fn route_speed_by_day_type(
     db: &Database,
     agency_filter: Option<&str>,
 ) -> Result<Vec<RouteSpeedDayType>> {
-    let rows = match agency_filter {
-        None => sqlx::query_as(
-            "SELECT
-               rs.agency_id,
-               rs.route_id,
-               r.short_name,
-               r.long_name,
-               rs.direction_id,
-               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT IN (1,2,3,4,5) THEN rsh.actual_speed_mps END) as weekday_speed_mps,
-               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT = 6 THEN rsh.actual_speed_mps END) as saturday_speed_mps,
-               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT = 0 THEN rsh.actual_speed_mps END) as sunday_speed_mps
-             FROM route_speed rs
-             JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
-             LEFT JOIN route_speed_hourly rsh
-               ON rsh.agency_id = rs.agency_id AND rsh.route_id = rs.route_id AND rsh.direction_id = rs.direction_id
-               AND rsh.hour_utc >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYY-MM-DD HH24')
-             GROUP BY rs.agency_id, rs.route_id, r.short_name, r.long_name, rs.direction_id
-             ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
-        )
-        .fetch_all(&db.pool)
-        .await?,
+    let base_sql = "SELECT
+          rs.agency_id,
+          rs.route_id,
+          r.short_name,
+          r.long_name,
+          rs.direction_id,
+          wd.scheduled_speed_mps  AS weekday_speed_mps,
+          sat.scheduled_speed_mps AS saturday_speed_mps,
+          sun.scheduled_speed_mps AS sunday_speed_mps
+        FROM route_speed rs
+        JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
+        LEFT JOIN route_speed_day_type wd
+          ON wd.agency_id = rs.agency_id AND wd.route_id = rs.route_id
+         AND wd.direction_id = rs.direction_id AND wd.day_type = 'weekday'
+        LEFT JOIN route_speed_day_type sat
+          ON sat.agency_id = rs.agency_id AND sat.route_id = rs.route_id
+         AND sat.direction_id = rs.direction_id AND sat.day_type = 'saturday'
+        LEFT JOIN route_speed_day_type sun
+          ON sun.agency_id = rs.agency_id AND sun.route_id = rs.route_id
+         AND sun.direction_id = rs.direction_id AND sun.day_type = 'sunday'";
 
-        Some(agency) => sqlx::query_as(
-            "SELECT
-               rs.agency_id,
-               rs.route_id,
-               r.short_name,
-               r.long_name,
-               rs.direction_id,
-               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT IN (1,2,3,4,5) THEN rsh.actual_speed_mps END) as weekday_speed_mps,
-               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT = 6 THEN rsh.actual_speed_mps END) as saturday_speed_mps,
-               AVG(CASE WHEN EXTRACT(DOW FROM SUBSTRING(rsh.hour_utc, 1, 10)::DATE)::INT = 0 THEN rsh.actual_speed_mps END) as sunday_speed_mps
-             FROM route_speed rs
-             JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
-             LEFT JOIN route_speed_hourly rsh
-               ON rsh.agency_id = rs.agency_id AND rsh.route_id = rs.route_id AND rsh.direction_id = rs.direction_id
-               AND rsh.hour_utc >= TO_CHAR(NOW() - INTERVAL '90 days', 'YYYY-MM-DD HH24')
-             WHERE rs.agency_id = $1
-             GROUP BY rs.agency_id, rs.route_id, r.short_name, r.long_name, rs.direction_id
-             ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
-        )
-        .bind(agency)
-        .fetch_all(&db.pool)
-        .await?,
+    let order_sql = "ORDER BY rs.agency_id,
+          CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
+          r.short_name, rs.direction_id";
+
+    let rows = match agency_filter {
+        None => {
+            sqlx::query_as(&format!("{base_sql} {order_sql}"))
+                .fetch_all(&db.pool)
+                .await?
+        }
+        Some(agency) => {
+            sqlx::query_as(&format!("{base_sql} WHERE rs.agency_id = $1 {order_sql}"))
+                .bind(agency)
+                .fetch_all(&db.pool)
+                .await?
+        }
     };
     Ok(rows)
 }
@@ -1443,6 +1436,56 @@ mod tests {
             (sun.1 - 1.235).abs() < 0.05,
             "sunday speed ~1.235 m/s, got {}",
             sun.1
+        );
+    }
+
+    #[tokio::test]
+    async fn route_speed_by_day_type_returns_scheduled_speeds_from_calendar() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('test','R1','1','Route 1',3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO route_speed VALUES ('test','R1',0,10.0,5,'2026-01-01T00:00:00Z')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed_day_type
+             (agency_id,route_id,direction_id,day_type,scheduled_speed_mps,trip_count,computed_at)
+             VALUES ('test','R1',0,'weekday',8.0,10,'2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed_day_type
+             (agency_id,route_id,direction_id,day_type,scheduled_speed_mps,trip_count,computed_at)
+             VALUES ('test','R1',0,'saturday',6.0,5,'2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let rows = route_speed_by_day_type(&db, Some("test")).await.unwrap();
+
+        assert_eq!(rows.len(), 1);
+        let r = &rows[0];
+        assert!(
+            (r.weekday_speed_mps.unwrap() - 8.0).abs() < 0.01,
+            "weekday speed should be 8.0, got {:?}",
+            r.weekday_speed_mps
+        );
+        assert!(
+            (r.saturday_speed_mps.unwrap() - 6.0).abs() < 0.01,
+            "saturday speed should be 6.0, got {:?}",
+            r.saturday_speed_mps
+        );
+        assert!(
+            r.sunday_speed_mps.is_none(),
+            "sunday should be None when no row exists"
         );
     }
 }
