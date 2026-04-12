@@ -60,11 +60,16 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
         .bind(slug)
         .execute(&mut *tx)
         .await?;
+    sqlx::query("DELETE FROM calendar WHERE agency_id = $1")
+        .bind(slug)
+        .execute(&mut *tx)
+        .await?;
 
     load_routes(&mut tx, slug, &gtfs).await?;
     load_trips(&mut tx, slug, &gtfs).await?;
     load_stops(&mut tx, slug, &gtfs).await?;
     load_scheduled_stops(&mut tx, slug, &gtfs).await?;
+    load_calendar(&mut tx, slug, &gtfs.calendar).await?;
     tx.commit().await?;
 
     set_stored_version(db, &agency.slug, &feed_version).await?;
@@ -282,6 +287,106 @@ fn format_gtfs_time(secs: Option<u32>) -> String {
             let sec = s % 60;
             format!("{h:02}:{m:02}:{sec:02}")
         }
+    }
+}
+
+async fn load_calendar(
+    tx: &mut Tx<'_>,
+    agency_id: &str,
+    calendar: &std::collections::HashMap<String, gtfs_structures::Calendar>,
+) -> Result<()> {
+    for cal in calendar.values() {
+        sqlx::query(
+            "INSERT INTO calendar
+             (agency_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             ON CONFLICT (agency_id, service_id) DO UPDATE SET
+               monday    = EXCLUDED.monday,
+               tuesday   = EXCLUDED.tuesday,
+               wednesday = EXCLUDED.wednesday,
+               thursday  = EXCLUDED.thursday,
+               friday    = EXCLUDED.friday,
+               saturday  = EXCLUDED.saturday,
+               sunday    = EXCLUDED.sunday",
+        )
+        .bind(agency_id)
+        .bind(&cal.id)
+        .bind(cal.monday)
+        .bind(cal.tuesday)
+        .bind(cal.wednesday)
+        .bind(cal.thursday)
+        .bind(cal.friday)
+        .bind(cal.saturday)
+        .bind(cal.sunday)
+        .execute(&mut **tx)
+        .await?;
+    }
+    info!("Loaded {} calendar entries", calendar.len());
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::test_utils;
+    use chrono::NaiveDate;
+    use gtfs_structures::Calendar;
+    use std::collections::HashMap;
+
+    #[tokio::test]
+    async fn load_calendar_inserts_service_day_flags() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let mut tx = db.pool.begin().await.unwrap();
+
+        let mut calendar: HashMap<String, Calendar> = HashMap::new();
+        calendar.insert(
+            "WD".to_string(),
+            Calendar {
+                id: "WD".to_string(),
+                monday: true,
+                tuesday: true,
+                wednesday: true,
+                thursday: true,
+                friday: true,
+                saturday: false,
+                sunday: false,
+                start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                end_date: NaiveDate::from_ymd_opt(2026, 12, 31).unwrap(),
+            },
+        );
+        calendar.insert(
+            "SAT".to_string(),
+            Calendar {
+                id: "SAT".to_string(),
+                monday: false,
+                tuesday: false,
+                wednesday: false,
+                thursday: false,
+                friday: false,
+                saturday: true,
+                sunday: false,
+                start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                end_date: NaiveDate::from_ymd_opt(2026, 12, 31).unwrap(),
+            },
+        );
+
+        load_calendar(&mut tx, "stm", &calendar).await.unwrap();
+        tx.commit().await.unwrap();
+
+        let rows: Vec<(String, bool, bool, bool)> = sqlx::query_as(
+            "SELECT service_id, monday, saturday, sunday FROM calendar WHERE agency_id = 'stm' ORDER BY service_id",
+        )
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+
+        assert_eq!(rows.len(), 2);
+        let wd = rows.iter().find(|r| r.0 == "WD").unwrap();
+        assert!(wd.1, "WD monday should be true");
+        assert!(!wd.2, "WD saturday should be false");
+        let sat = rows.iter().find(|r| r.0 == "SAT").unwrap();
+        assert!(sat.2, "SAT saturday should be true");
     }
 }
 
