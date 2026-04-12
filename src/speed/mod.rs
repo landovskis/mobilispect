@@ -200,6 +200,126 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
     Ok(())
 }
 
+/// Compute scheduled average speed per route+direction broken down by day type
+/// (weekday / saturday / sunday) using GTFS calendar data.
+/// Stores results in `route_speed_day_type`.
+pub async fn compute_route_speed_by_day_type(db: &Database, agency: &AgencyConfig) -> Result<()> {
+    let now = Utc::now().to_rfc3339();
+    let agency_id = &agency.slug;
+
+    let combos: Vec<(String, i64)> = sqlx::query_as(
+        "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
+         FROM trips t
+         JOIN scheduled_stops ss ON ss.trip_id = t.trip_id AND ss.agency_id = t.agency_id
+         WHERE t.agency_id = $1
+         GROUP BY t.route_id, t.direction_id
+         HAVING COUNT(ss.stop_sequence) >= 2",
+    )
+    .bind(agency_id)
+    .fetch_all(&db.pool)
+    .await?;
+
+    for (route_id, direction_id) in &combos {
+        let trips: Vec<(String, String)> = sqlx::query_as(
+            "SELECT t.trip_id, t.service_id FROM trips t
+             WHERE t.agency_id = $1 AND t.route_id = $2 AND COALESCE(t.direction_id, 0) = $3",
+        )
+        .bind(agency_id)
+        .bind(route_id)
+        .bind(direction_id)
+        .fetch_all(&db.pool)
+        .await?;
+
+        // day_type -> Vec<speed_mps>
+        let mut day_speeds: std::collections::HashMap<&'static str, Vec<f64>> =
+            std::collections::HashMap::new();
+
+        for (trip_id, service_id) in &trips {
+            let cal: Option<(bool, bool, bool, bool, bool, bool, bool)> = sqlx::query_as(
+                "SELECT monday, tuesday, wednesday, thursday, friday, saturday, sunday
+                 FROM calendar WHERE agency_id = $1 AND service_id = $2",
+            )
+            .bind(agency_id)
+            .bind(service_id)
+            .fetch_optional(&db.pool)
+            .await?;
+
+            let Some((mon, tue, wed, thu, fri, sat, sun)) = cal else {
+                continue;
+            };
+
+            let stops: Vec<(f64, f64, String)> = sqlx::query_as(
+                "SELECT s.stop_lat, s.stop_lon, ss.arrival_time
+                 FROM scheduled_stops ss
+                 JOIN stops s ON s.stop_id = ss.stop_id AND s.agency_id = ss.agency_id
+                 WHERE ss.agency_id = $1 AND ss.trip_id = $2
+                 ORDER BY ss.stop_sequence",
+            )
+            .bind(agency_id)
+            .bind(trip_id)
+            .fetch_all(&db.pool)
+            .await?;
+
+            if stops.len() < 2 {
+                continue;
+            }
+
+            let total_distance_m: f64 = stops
+                .windows(2)
+                .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
+                .sum();
+
+            let first_secs = parse_time_secs(&stops.first().unwrap().2);
+            let last_secs = parse_time_secs(&stops.last().unwrap().2);
+            let duration_secs = match (first_secs, last_secs) {
+                (Some(f), Some(l)) if l > f => (l - f) as f64,
+                _ => continue,
+            };
+
+            if total_distance_m <= 0.0 || duration_secs <= 0.0 {
+                continue;
+            }
+
+            let speed = total_distance_m / duration_secs;
+
+            if mon || tue || wed || thu || fri {
+                day_speeds.entry("weekday").or_default().push(speed);
+            }
+            if sat {
+                day_speeds.entry("saturday").or_default().push(speed);
+            }
+            if sun {
+                day_speeds.entry("sunday").or_default().push(speed);
+            }
+        }
+
+        for (day_type, speeds) in &day_speeds {
+            let avg_speed = speeds.iter().sum::<f64>() / speeds.len() as f64;
+            let trip_count = speeds.len() as i64;
+            sqlx::query(
+                "INSERT INTO route_speed_day_type
+                 (agency_id, route_id, direction_id, day_type, scheduled_speed_mps, trip_count, computed_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 ON CONFLICT (agency_id, route_id, direction_id, day_type) DO UPDATE SET
+                   scheduled_speed_mps = EXCLUDED.scheduled_speed_mps,
+                   trip_count          = EXCLUDED.trip_count,
+                   computed_at         = EXCLUDED.computed_at",
+            )
+            .bind(agency_id.as_str())
+            .bind(route_id.as_str())
+            .bind(direction_id)
+            .bind(*day_type)
+            .bind(avg_speed)
+            .bind(trip_count)
+            .bind(now.as_str())
+            .execute(&db.pool)
+            .await?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Compute actual average speed per route+direction for a service date from stop arrival times.
 /// Uses `stop_time_events.arrival_time_unix` to determine actual travel time per trip.
 pub async fn compute_route_speed_daily(
@@ -1214,5 +1334,115 @@ mod tests {
     fn speed_vs_scheduled_display_is_dash_without_data() {
         let s = make_summary(10.0, None);
         assert_eq!(s.speed_vs_scheduled_display(), "—");
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_by_day_type_stores_speed_per_day_type() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T_WD',  'R1', 'WD',  0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T_SAT', 'R1', 'SAT', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T_SUN', 'R1', 'SUN', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+
+        // Calendar: WD = Mon-Fri, SAT = Saturday only, SUN = Sunday only.
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('test','WD', true,true,true,true,true,false,false)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('test','SAT',false,false,false,false,false,true,false)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('test','SUN',false,false,false,false,false,false,true)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        // Two stops ~1111 m apart.
+        sqlx::query("INSERT INTO stops VALUES ('test','S1','Stop 1',45.50,-73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test','S2','Stop 2',45.51,-73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+
+        // WD: 10 min → ~1.852 m/s; SAT: 20 min → ~0.926 m/s; SUN: 15 min → ~1.235 m/s
+        for (trip_id, arr) in [
+            ("T_WD", "08:10:00"),
+            ("T_SAT", "08:20:00"),
+            ("T_SUN", "08:15:00"),
+        ] {
+            sqlx::query(&format!(
+                "INSERT INTO scheduled_stops VALUES ('test','{trip_id}','S1',1,'08:00:00','08:00:00')"
+            )).execute(&db.pool).await.unwrap();
+            sqlx::query(&format!(
+                "INSERT INTO scheduled_stops VALUES ('test','{trip_id}','S2',2,'{arr}','{arr}')"
+            ))
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+
+        compute_route_speed_by_day_type(&db, &test_agency())
+            .await
+            .unwrap();
+
+        let rows: Vec<(String, f64, i64)> = sqlx::query_as(
+            "SELECT day_type, scheduled_speed_mps, trip_count
+             FROM route_speed_day_type
+             WHERE agency_id = 'test' AND route_id = 'R1' AND direction_id = 0
+             ORDER BY day_type",
+        )
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+
+        assert_eq!(rows.len(), 3, "expected one row per day type");
+
+        let sat = rows.iter().find(|r| r.0 == "saturday").unwrap();
+        let sun = rows.iter().find(|r| r.0 == "sunday").unwrap();
+        let wd = rows.iter().find(|r| r.0 == "weekday").unwrap();
+
+        assert_eq!(wd.2, 1, "weekday trip_count");
+        assert_eq!(sat.2, 1, "saturday trip_count");
+        assert_eq!(sun.2, 1, "sunday trip_count");
+
+        assert!(
+            (wd.1 - 1.852).abs() < 0.05,
+            "weekday speed ~1.852 m/s, got {}",
+            wd.1
+        );
+        assert!(
+            (sat.1 - 0.926).abs() < 0.05,
+            "saturday speed ~0.926 m/s, got {}",
+            sat.1
+        );
+        assert!(
+            (sun.1 - 1.235).abs() < 0.05,
+            "sunday speed ~1.235 m/s, got {}",
+            sun.1
+        );
     }
 }
