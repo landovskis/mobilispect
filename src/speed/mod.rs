@@ -6,7 +6,7 @@ use crate::config::AgencyConfig;
 use crate::db::Database;
 
 pub mod card;
-pub use card::{build_speed_cards, RouteSpeedCard};
+pub use card::{RouteSpeedCard, build_speed_cards};
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteSpeedSummary {
@@ -65,7 +65,11 @@ impl RouteSpeedSummary {
     }
 
     pub fn direction_label(&self) -> &'static str {
-        if self.direction_id == 0 { "Outbound" } else { "Inbound" }
+        if self.direction_id == 0 {
+            "Outbound"
+        } else {
+            "Inbound"
+        }
     }
 
     /// CSS class for the vs-schedule cell: "slower", "faster", or "onpace".
@@ -198,7 +202,11 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
 
 /// Compute actual average speed per route+direction for a service date from stop arrival times.
 /// Uses `stop_time_events.arrival_time_unix` to determine actual travel time per trip.
-pub async fn compute_route_speed_daily(db: &Database, agency: &AgencyConfig, service_date: NaiveDate) -> Result<()> {
+pub async fn compute_route_speed_daily(
+    db: &Database,
+    agency: &AgencyConfig,
+    service_date: NaiveDate,
+) -> Result<()> {
     let date_str = service_date.to_string();
     let now = Utc::now().to_rfc3339();
     let agency_id = &agency.slug;
@@ -307,7 +315,10 @@ pub async fn compute_route_speed_daily(db: &Database, agency: &AgencyConfig, ser
 /// Live speed: average from vehicle positions in the last hour.
 /// Actual speed: average from route_speed_daily over the last 7 days.
 /// If `agency_filter` is Some, only returns routes for that agency.
-pub async fn route_speed_summary(db: &Database, agency_filter: Option<&str>) -> Result<Vec<RouteSpeedSummary>> {
+pub async fn route_speed_summary(
+    db: &Database,
+    agency_filter: Option<&str>,
+) -> Result<Vec<RouteSpeedSummary>> {
     let rows: Vec<RouteSpeedSummary> = match agency_filter {
         None => sqlx::query_as(
             "SELECT
@@ -552,8 +563,8 @@ pub async fn route_speed_by_day_type(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::PgPool;
     use crate::config::AgencyConfig;
+    use crate::db::test_utils;
 
     fn test_agency() -> AgencyConfig {
         AgencyConfig {
@@ -596,24 +607,39 @@ mod tests {
         assert_eq!(parse_time_secs("not-a-time"), None);
     }
 
-    #[sqlx::test]
-    async fn compute_route_speed_stores_result_for_simple_route(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn compute_route_speed_stores_result_for_simple_route() {
+        let td = test_utils::setup().await;
+        let db = td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         compute_route_speed(&db, &test_agency()).await.unwrap();
 
@@ -625,19 +651,28 @@ mod tests {
         .unwrap();
 
         let (speed, count) = row;
-        assert!((speed - 1.852).abs() < 0.05, "expected ~1.852 m/s, got {speed}");
+        assert!(
+            (speed - 1.852).abs() < 0.05,
+            "expected ~1.852 m/s, got {speed}"
+        );
         assert_eq!(count, 1);
     }
 
-    #[sqlx::test]
-    async fn route_speed_summary_returns_route_names(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_speed_summary_returns_route_names() {
+        let td = test_utils::setup().await;
+        let db = td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '42', 'The Answer', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         let summary = route_speed_summary(&db, None).await.unwrap();
 
@@ -649,24 +684,35 @@ mod tests {
         assert_eq!(summary[0].trip_count, 5);
     }
 
-    #[sqlx::test]
-    async fn route_speed_summary_includes_live_speed_from_recent_vehicles(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_speed_summary_includes_live_speed_from_recent_vehicles() {
+        let td = test_utils::setup().await;
+        let db = td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '10', 'Route 10', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         // Vehicle active now with speed 15 m/s.
         sqlx::query(
             "INSERT INTO vehicle_positions
              (agency_id, observed_at, trip_id, latitude, longitude, speed)
-             VALUES ('test', NOW()::TEXT, 'T1', 45.5, -73.5, 15.0)"
-        ).execute(&db.pool).await.unwrap();
+             VALUES ('test', NOW()::TEXT, 'T1', 45.5, -73.5, 15.0)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         let summary = route_speed_summary(&db, None).await.unwrap();
 
@@ -675,87 +721,133 @@ mod tests {
         assert!((live - 15.0).abs() < 0.01, "expected 15.0 m/s, got {live}");
     }
 
-    #[sqlx::test]
-    async fn route_speed_summary_live_speed_is_none_when_no_recent_vehicles(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_speed_summary_live_speed_is_none_when_no_recent_vehicles() {
+        let td = test_utils::setup().await;
+        let db = td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '10', 'Route 10', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         // Vehicle last seen 2 hours ago — outside the 1-hour window.
         sqlx::query(
             "INSERT INTO vehicle_positions
              (agency_id, observed_at, trip_id, latitude, longitude, speed)
-             VALUES ('test', (NOW() - INTERVAL '2 hours')::TEXT, 'T1', 45.5, -73.5, 15.0)"
-        ).execute(&db.pool).await.unwrap();
+             VALUES ('test', (NOW() - INTERVAL '2 hours')::TEXT, 'T1', 45.5, -73.5, 15.0)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         let summary = route_speed_summary(&db, None).await.unwrap();
 
         assert_eq!(summary.len(), 1);
-        assert!(summary[0].live_speed_mps.is_none(), "expected None for stale vehicle");
+        assert!(
+            summary[0].live_speed_mps.is_none(),
+            "expected None for stale vehicle"
+        );
     }
 
-    #[sqlx::test]
-    async fn compute_route_speed_daily_stores_actual_speed(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn compute_route_speed_daily_stores_actual_speed() {
+        let td = test_utils::setup().await;
+        let db = td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         let t_s1: i64 = 1767225600;
         let t_s2: i64 = t_s1 + 900;
         sqlx::query(
             "INSERT INTO stop_time_events
              (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('test', '2026-01-01T08:00:00Z', 'T1', 'S1', 1, $1)"
-        ).bind(t_s1).execute(&db.pool).await.unwrap();
+             VALUES ('test', '2026-01-01T08:00:00Z', 'T1', 'S1', 1, $1)",
+        )
+        .bind(t_s1)
+        .execute(&db.pool)
+        .await
+        .unwrap();
         sqlx::query(
             "INSERT INTO stop_time_events
              (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('test', '2026-01-01T08:15:00Z', 'T1', 'S2', 2, $1)"
-        ).bind(t_s2).execute(&db.pool).await.unwrap();
+             VALUES ('test', '2026-01-01T08:15:00Z', 'T1', 'S2', 2, $1)",
+        )
+        .bind(t_s2)
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         let date = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
-        compute_route_speed_daily(&db, &test_agency(), date).await.unwrap();
+        compute_route_speed_daily(&db, &test_agency(), date)
+            .await
+            .unwrap();
 
         let row: (f64, i64) = sqlx::query_as(
             "SELECT actual_speed_mps, trip_count
              FROM route_speed_daily
-             WHERE route_id = 'R1' AND service_date = '2026-01-01' AND direction_id = 0"
+             WHERE route_id = 'R1' AND service_date = '2026-01-01' AND direction_id = 0",
         )
         .fetch_one(&db.pool)
         .await
         .unwrap();
 
         let (speed, count) = row;
-        assert!((speed - 1.235).abs() < 0.05, "expected ~1.235 m/s, got {speed}");
+        assert!(
+            (speed - 1.235).abs() < 0.05,
+            "expected ~1.235 m/s, got {speed}"
+        );
         assert_eq!(count, 1);
     }
 
-    #[sqlx::test]
-    async fn route_speed_summary_includes_actual_speed_from_history(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_speed_summary_includes_actual_speed_from_history() {
+        let td = test_utils::setup().await;
+        let db = td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
         sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
@@ -766,32 +858,49 @@ mod tests {
 
         assert_eq!(summary.len(), 1);
         let actual = summary[0].actual_speed_mps.expect("expected actual speed");
-        assert!((actual - 6.5).abs() < 0.01, "expected 6.5 m/s, got {actual}");
+        assert!(
+            (actual - 6.5).abs() < 0.01,
+            "expected 6.5 m/s, got {actual}"
+        );
     }
 
-    #[sqlx::test]
-    async fn route_speed_summary_actual_speed_is_none_when_no_history(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_speed_summary_actual_speed_is_none_when_no_history() {
+        let td = test_utils::setup().await;
+        let db = td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         let summary = route_speed_summary(&db, None).await.unwrap();
 
         assert_eq!(summary.len(), 1);
-        assert!(summary[0].actual_speed_mps.is_none(), "expected None without history");
+        assert!(
+            summary[0].actual_speed_mps.is_none(),
+            "expected None without history"
+        );
     }
 
-    #[sqlx::test]
-    async fn route_speed_summary_filters_by_agency(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_speed_summary_filters_by_agency() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         sqlx::query("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
             "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
              VALUES ('stm', 'R1', 0, 5.5, 10, '2026-01-01T00:00:00Z')"

@@ -25,7 +25,9 @@ impl RouteTrend {
     /// Percentage change in speed from the first 7 days to the last 7 days.
     /// Positive = faster, negative = slower. None if fewer than 14 days with speed data.
     pub fn speed_change_pct(&self) -> Option<f64> {
-        let speed_days: Vec<f64> = self.days.iter()
+        let speed_days: Vec<f64> = self
+            .days
+            .iter()
             .filter_map(|d| d.actual_speed_mps)
             .collect();
         if speed_days.len() < 14 {
@@ -34,7 +36,9 @@ impl RouteTrend {
         let n = speed_days.len();
         let first_avg = speed_days[..7].iter().sum::<f64>() / 7.0;
         let last_avg = speed_days[n - 7..].iter().sum::<f64>() / 7.0;
-        if first_avg == 0.0 { return None; }
+        if first_avg == 0.0 {
+            return None;
+        }
         Some((last_avg - first_avg) / first_avg * 100.0)
     }
 
@@ -61,7 +65,12 @@ use crate::config::{AgencyConfig, Config};
 use crate::db::Database;
 
 /// Compute on-time performance for all routes on a given service date.
-pub async fn compute_route_daily(db: &Database, config: &Config, agency: &AgencyConfig, service_date: NaiveDate) -> Result<()> {
+pub async fn compute_route_daily(
+    db: &Database,
+    config: &Config,
+    agency: &AgencyConfig,
+    service_date: NaiveDate,
+) -> Result<()> {
     let date_str = service_date.to_string();
     let now = chrono::Utc::now().to_rfc3339();
     let agency_id = &agency.slug;
@@ -117,7 +126,9 @@ pub async fn compute_route_daily(db: &Database, config: &Config, agency: &Agency
         .into_iter()
         .filter_map(|(d,)| d)
         .collect();
-        if delays.is_empty() { continue; }
+        if delays.is_empty() {
+            continue;
+        }
         let avg_delay = delays.iter().sum::<i64>() as f64 / delays.len() as f64;
         let max_delay = delays.iter().copied().max().unwrap_or(0) as f64;
         let on_time_flag: i64 = if delays.iter().all(|&d| {
@@ -349,7 +360,12 @@ pub async fn stop_hotspots(
 
 /// Fetch per-day trend data for a single route (last N days).
 /// Returns None if the route doesn't exist or has no computed data.
-pub async fn route_trend(db: &Database, agency_id: &str, route_id: &str, days: i64) -> Result<Option<RouteTrend>> {
+pub async fn route_trend(
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+    days: i64,
+) -> Result<Option<RouteTrend>> {
     // Verify route exists.
     let route: Option<(String, String)> = sqlx::query_as(
         "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
@@ -389,9 +405,17 @@ pub async fn route_trend(db: &Database, agency_id: &str, route_id: &str, days: i
         return Ok(None);
     }
 
-    let trend_days = points.into_iter().map(|(service_date, on_time_pct, avg_delay_secs, actual_speed_mps)| {
-        DailyTrendPoint { service_date, on_time_pct, avg_delay_secs, actual_speed_mps }
-    }).collect();
+    let trend_days = points
+        .into_iter()
+        .map(
+            |(service_date, on_time_pct, avg_delay_secs, actual_speed_mps)| DailyTrendPoint {
+                service_date,
+                on_time_pct,
+                avg_delay_secs,
+                actual_speed_mps,
+            },
+        )
+        .collect();
 
     Ok(Some(RouteTrend {
         route_id: route_id.to_string(),
@@ -403,7 +427,11 @@ pub async fn route_trend(db: &Database, agency_id: &str, route_id: &str, days: i
 
 /// Fetch route performance summary for the dashboard (last N days).
 /// If `agency_filter` is Some, only returns routes for that agency.
-pub async fn route_summary(db: &Database, days: i64, agency_filter: Option<&str>) -> Result<Vec<RouteSummary>> {
+pub async fn route_summary(
+    db: &Database,
+    days: i64,
+    agency_filter: Option<&str>,
+) -> Result<Vec<RouteSummary>> {
     let rows: Vec<RouteSummary> = match agency_filter {
         None => sqlx::query_as(
             "SELECT
@@ -568,7 +596,11 @@ pub async fn load_benchmarks(db: &Database) -> Result<Vec<Benchmark>> {
 
 /// Fetch per-route scorecard data: on-time % and speed deficit averaged over specified days.
 /// If `agency_filter` is Some, only returns routes for that agency.
-pub async fn scorecard_routes(db: &Database, days: i64, agency_filter: Option<&str>) -> Result<Vec<ScorecardRoute>> {
+pub async fn scorecard_routes(
+    db: &Database,
+    days: i64,
+    agency_filter: Option<&str>,
+) -> Result<Vec<ScorecardRoute>> {
     let rows: Vec<ScorecardRoute> = match agency_filter {
         None => sqlx::query_as(
             "SELECT
@@ -659,21 +691,24 @@ pub async fn scorecard_routes(db: &Database, days: i64, agency_filter: Option<&s
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::PgPool;
-    use crate::db::Database;
+    use crate::db::test_utils;
 
-    #[sqlx::test]
-    async fn route_trend_returns_none_for_unknown_route(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_trend_returns_none_for_unknown_route() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         let result = route_trend(&db, "test", "NONEXISTENT", 30).await.unwrap();
         assert!(result.is_none());
     }
 
-    #[sqlx::test]
-    async fn route_trend_returns_daily_points_with_on_time_data(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_trend_returns_daily_points_with_on_time_data() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
@@ -694,11 +729,14 @@ mod tests {
         assert!((trend.days[0].on_time_pct.unwrap() - 72.5).abs() < 0.01);
     }
 
-    #[sqlx::test]
-    async fn route_trend_includes_speed_when_available(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_trend_includes_speed_when_available() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
@@ -719,11 +757,15 @@ mod tests {
     #[test]
     fn speed_change_pct_returns_none_with_too_few_days() {
         let trend = RouteTrend {
-            route_id: "R1".into(), short_name: "45".into(), long_name: "PAPINEAU".into(),
-            days: vec![
-                DailyTrendPoint { service_date: "2026-01-01".into(), on_time_pct: None,
-                                  avg_delay_secs: None, actual_speed_mps: Some(5.0) },
-            ],
+            route_id: "R1".into(),
+            short_name: "45".into(),
+            long_name: "PAPINEAU".into(),
+            days: vec![DailyTrendPoint {
+                service_date: "2026-01-01".into(),
+                on_time_pct: None,
+                avg_delay_secs: None,
+                actual_speed_mps: Some(5.0),
+            }],
         };
         assert!(trend.speed_change_pct().is_none());
     }
@@ -731,14 +773,19 @@ mod tests {
     #[test]
     fn speed_change_pct_negative_when_route_slows_down() {
         // First 7 days: 6.0 m/s, last 7 days: 5.0 m/s → -16.7%
-        let days: Vec<DailyTrendPoint> = (0..14).map(|i| DailyTrendPoint {
-            service_date: format!("2026-01-{:02}", i + 1),
-            on_time_pct: None,
-            avg_delay_secs: None,
-            actual_speed_mps: Some(if i < 7 { 6.0 } else { 5.0 }),
-        }).collect();
+        let days: Vec<DailyTrendPoint> = (0..14)
+            .map(|i| DailyTrendPoint {
+                service_date: format!("2026-01-{:02}", i + 1),
+                on_time_pct: None,
+                avg_delay_secs: None,
+                actual_speed_mps: Some(if i < 7 { 6.0 } else { 5.0 }),
+            })
+            .collect();
         let trend = RouteTrend {
-            route_id: "R1".into(), short_name: "45".into(), long_name: "PAPINEAU".into(), days,
+            route_id: "R1".into(),
+            short_name: "45".into(),
+            long_name: "PAPINEAU".into(),
+            days,
         };
         let pct = trend.speed_change_pct().unwrap();
         assert!((pct - (-16.667)).abs() < 0.1, "expected ~-16.7%, got {pct}");
@@ -747,14 +794,19 @@ mod tests {
     #[test]
     fn speed_change_pct_positive_when_route_improves() {
         // First 7 days: 5.0 m/s, last 7 days: 6.0 m/s → +20%
-        let days: Vec<DailyTrendPoint> = (0..14).map(|i| DailyTrendPoint {
-            service_date: format!("2026-01-{:02}", i + 1),
-            on_time_pct: None,
-            avg_delay_secs: None,
-            actual_speed_mps: Some(if i < 7 { 5.0 } else { 6.0 }),
-        }).collect();
+        let days: Vec<DailyTrendPoint> = (0..14)
+            .map(|i| DailyTrendPoint {
+                service_date: format!("2026-01-{:02}", i + 1),
+                on_time_pct: None,
+                avg_delay_secs: None,
+                actual_speed_mps: Some(if i < 7 { 5.0 } else { 6.0 }),
+            })
+            .collect();
         let trend = RouteTrend {
-            route_id: "R1".into(), short_name: "45".into(), long_name: "PAPINEAU".into(), days,
+            route_id: "R1".into(),
+            short_name: "45".into(),
+            long_name: "PAPINEAU".into(),
+            days,
         };
         let pct = trend.speed_change_pct().unwrap();
         assert!((pct - 20.0).abs() < 0.1, "expected ~20%, got {pct}");
@@ -762,9 +814,10 @@ mod tests {
 
     // ── Benchmark tests ──────────────────────────────────────────────────────
 
-    #[sqlx::test]
-    async fn load_benchmarks_returns_all_seeded_rows(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn load_benchmarks_returns_all_seeded_rows() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         let benchmarks = load_benchmarks(&db).await.unwrap();
         assert_eq!(benchmarks.len(), 4);
         // Ordered ASC by on_time_pct: Helsinki first, Tokyo last.
@@ -942,11 +995,14 @@ mod tests {
         assert_eq!(r.speed_class(), "onpace");
     }
 
-    #[sqlx::test]
-    async fn scorecard_routes_returns_per_route_summary(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn scorecard_routes_returns_per_route_summary() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
@@ -962,11 +1018,14 @@ mod tests {
         assert!((pct - 72.5).abs() < 0.1);
     }
 
-    #[sqlx::test]
-    async fn scorecard_routes_includes_speed_deficit_when_available(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn scorecard_routes_includes_speed_deficit_when_available() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
@@ -975,7 +1034,10 @@ mod tests {
         // scheduled: 10.0 m/s, actual: 8.0 m/s → deficit = 20%
         sqlx::query!(
             "INSERT INTO route_speed VALUES ('test', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')"
-        ).execute(&db.pool).await.unwrap();
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
         sqlx::query!(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
@@ -989,11 +1051,14 @@ mod tests {
         assert!((deficit - 20.0).abs() < 0.5, "expected ~20%, got {deficit}");
     }
 
-    #[sqlx::test]
-    async fn scorecard_routes_speed_is_none_when_no_speed_data(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn scorecard_routes_speed_is_none_when_no_speed_data() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         sqlx::query!("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
@@ -1006,13 +1071,18 @@ mod tests {
         assert!(routes[0].speed_vs_scheduled_pct.is_none());
     }
 
-    #[sqlx::test]
-    async fn route_summary_filters_by_agency(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn route_summary_filters_by_agency() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         sqlx::query!("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!(
             "INSERT INTO route_daily (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
              VALUES ('stm', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 80.0, 60.0, 10, 12, '2026-01-01T12:00:00Z')"
@@ -1034,13 +1104,18 @@ mod tests {
         assert_eq!(rtl[0].agency_id, "rtl");
     }
 
-    #[sqlx::test]
-    async fn scorecard_routes_filters_by_agency(pool: PgPool) {
-        let db = Database { pool };
+    #[tokio::test]
+    async fn scorecard_routes_filters_by_agency() {
+        let td = test_utils::setup().await;
+        let db = td.db;
         sqlx::query!("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
-            .execute(&db.pool).await.unwrap();
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query!(
             "INSERT INTO route_daily (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
              VALUES ('stm', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 80.0, 60.0, 10, 12, '2026-01-01T12:00:00Z')"

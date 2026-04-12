@@ -1,7 +1,7 @@
 [package]
 name = "mobilispect"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
 name = "mobilispect-server"
@@ -55,6 +55,14 @@ bytes = "1"
 # Error handling
 anyhow = "1"
 thiserror = "2"
+
+[package.metadata.bin]
+cargo-watch = { version = "8" }
+
+[dev-dependencies]
+testcontainers = "0.21"
+testcontainers-modules = { version = "0.9", features = ["postgres"] }
+tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
 # For compiling GTFS-RT .proto files
