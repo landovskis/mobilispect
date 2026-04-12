@@ -614,8 +614,8 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
     Ok(())
 }
 
-/// Per-route, per-direction average speed broken down by day type (weekday / Saturday / Sunday).
-/// Averaged over the last 90 days of `route_speed_hourly` data.
+/// Per-route, per-direction scheduled speed broken down by day type
+/// (weekday / Saturday / Sunday), sourced from `route_speed_day_type`.
 #[derive(Debug, sqlx::FromRow)]
 pub struct RouteSpeedDayType {
     pub agency_id: String,
