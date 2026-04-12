@@ -659,6 +659,74 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn compute_route_speed_averages_across_all_service_days() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        // Three trips: weekday, Saturday, Sunday — each on the same stop pair.
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T_WD', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T_SAT', 'R1', 'SAT', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T_SUN', 'R1', 'SUN', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        // Weekday: 10 min → ~1.852 m/s
+        for (trip_id, dep, arr) in [
+            ("T_WD", "08:00:00", "08:10:00"),
+            ("T_SAT", "08:00:00", "08:20:00"), // 20 min → ~0.926 m/s
+            ("T_SUN", "08:00:00", "08:15:00"), // 15 min → ~1.235 m/s
+        ] {
+            sqlx::query(&format!(
+                "INSERT INTO scheduled_stops VALUES ('test', '{trip_id}', 'S1', 1, '{dep}', '{dep}')"
+            ))
+            .execute(&db.pool)
+            .await
+            .unwrap();
+            sqlx::query(&format!(
+                "INSERT INTO scheduled_stops VALUES ('test', '{trip_id}', 'S2', 2, '{arr}', '{arr}')"
+            ))
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+
+        compute_route_speed(&db, &test_agency()).await.unwrap();
+
+        let row: (f64, i64) = sqlx::query_as(
+            "SELECT scheduled_speed_mps, trip_count FROM route_speed WHERE route_id = 'R1' AND direction_id = 0",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+
+        let (speed, count) = row;
+        // Average of 1.852, 0.926, 1.235 ≈ 1.338 m/s
+        assert_eq!(count, 3, "expected one trip per service day");
+        assert!(
+            (speed - 1.338).abs() < 0.05,
+            "expected ~1.338 m/s (average across WD/SAT/SUN), got {speed}"
+        );
+    }
+
+    #[tokio::test]
     async fn compute_route_speed_stores_result_for_both_directions() {
         let td = test_utils::setup().await;
         let db = td.db;
