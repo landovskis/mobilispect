@@ -1,0 +1,22 @@
+<div class="card">
+  <div class="route-num">{{ card.agency_name }} {{ card.short_name }}</div>
+  <div class="route-name">{{ card.long_name }}</div>
+  <canvas id="chart-{{ card.idx }}" height="160"></canvas>
+</div>
+<script>
+new Chart(document.getElementById('chart-{{ card.idx }}'), {
+  type: 'bar',
+  data: {
+    labels: ['Weekday', 'Saturday', 'Sunday'],
+    datasets: {{ card.chart_json|safe }}
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: 'km/h' }, ticks: { font: { size: 10 } } },
+      x: { ticks: { font: { size: 10 } } }
+    }
+  }
+});
+</script>
