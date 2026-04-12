@@ -34,7 +34,11 @@ async fn main() -> Result<()> {
             let result = async {
                 gtfs::static_feed::load_if_needed(&db, &agency).await?;
                 speed::compute_route_speed(&db, &agency).await?;
-                info!("Computed scheduled speed for agency: {}", agency.name);
+                speed::compute_route_speed_by_day_type(&db, &agency).await?;
+                info!(
+                    "Computed scheduled speed (all day types) for agency: {}",
+                    agency.name
+                );
                 Ok(())
             }
             .await;
