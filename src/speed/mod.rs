@@ -6,7 +6,15 @@ use crate::config::AgencyConfig;
 use crate::db::Database;
 
 pub mod card;
-pub use card::{RouteSpeedCard, build_speed_cards};
+pub use card::{DirectionSpeedChart, RouteSpeedCard, build_speed_cards};
+
+pub(crate) fn direction_label(direction_id: i64) -> &'static str {
+    match direction_id {
+        0 => "Outbound",
+        1 => "Inbound",
+        _ => "Unknown",
+    }
+}
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteSpeedSummary {
@@ -65,11 +73,7 @@ impl RouteSpeedSummary {
     }
 
     pub fn direction_label(&self) -> &'static str {
-        if self.direction_id == 0 {
-            "Outbound"
-        } else {
-            "Inbound"
-        }
+        direction_label(self.direction_id)
     }
 
     /// CSS class for the vs-schedule cell: "slower", "faster", or "onpace".
@@ -626,13 +630,32 @@ pub struct RouteSpeedDayType {
     pub weekday_speed_mps: Option<f64>,
     pub saturday_speed_mps: Option<f64>,
     pub sunday_speed_mps: Option<f64>,
+    pub actual_weekday_speed_mps: Option<f64>,
+    pub actual_saturday_speed_mps: Option<f64>,
+    pub actual_sunday_speed_mps: Option<f64>,
 }
 
 pub async fn route_speed_by_day_type(
     db: &Database,
     agency_filter: Option<&str>,
 ) -> Result<Vec<RouteSpeedDayType>> {
-    let base_sql = "SELECT
+    let base_sql = "WITH actual_by_day_type AS (
+            SELECT
+                agency_id,
+                route_id,
+                direction_id,
+                AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) BETWEEN 1 AND 5
+                         THEN actual_speed_mps END) AS actual_weekday_speed_mps,
+                AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) = 6
+                         THEN actual_speed_mps END) AS actual_saturday_speed_mps,
+                AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) = 0
+                         THEN actual_speed_mps END) AS actual_sunday_speed_mps
+            FROM route_speed_daily
+            WHERE service_date::date >= CURRENT_DATE - INTERVAL '28 days'
+              AND actual_speed_mps IS NOT NULL
+            GROUP BY agency_id, route_id, direction_id
+        )
+        SELECT
           rs.agency_id,
           rs.route_id,
           r.short_name,
@@ -640,7 +663,10 @@ pub async fn route_speed_by_day_type(
           rs.direction_id,
           wd.scheduled_speed_mps  AS weekday_speed_mps,
           sat.scheduled_speed_mps AS saturday_speed_mps,
-          sun.scheduled_speed_mps AS sunday_speed_mps
+          sun.scheduled_speed_mps AS sunday_speed_mps,
+          act.actual_weekday_speed_mps,
+          act.actual_saturday_speed_mps,
+          act.actual_sunday_speed_mps
         FROM route_speed rs
         JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
         LEFT JOIN route_speed_day_type wd
@@ -651,25 +677,21 @@ pub async fn route_speed_by_day_type(
          AND sat.direction_id = rs.direction_id AND sat.day_type = 'saturday'
         LEFT JOIN route_speed_day_type sun
           ON sun.agency_id = rs.agency_id AND sun.route_id = rs.route_id
-         AND sun.direction_id = rs.direction_id AND sun.day_type = 'sunday'";
+         AND sun.direction_id = rs.direction_id AND sun.day_type = 'sunday'
+        LEFT JOIN actual_by_day_type act
+          ON act.agency_id = rs.agency_id AND act.route_id = rs.route_id
+         AND act.direction_id = rs.direction_id";
 
     let order_sql = "ORDER BY rs.agency_id,
           CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
           r.short_name, rs.direction_id";
 
-    let rows = match agency_filter {
-        None => {
-            sqlx::query_as(&format!("{base_sql} {order_sql}"))
-                .fetch_all(&db.pool)
-                .await?
-        }
-        Some(agency) => {
-            sqlx::query_as(&format!("{base_sql} WHERE rs.agency_id = $1 {order_sql}"))
-                .bind(agency)
-                .fetch_all(&db.pool)
-                .await?
-        }
-    };
+    let rows = sqlx::query_as(&format!(
+        "{base_sql} WHERE ($1::text IS NULL OR rs.agency_id = $1) {order_sql}"
+    ))
+    .bind(agency_filter)
+    .fetch_all(&db.pool)
+    .await?;
     Ok(rows)
 }
 
@@ -1486,6 +1508,252 @@ mod tests {
         assert!(
             r.sunday_speed_mps.is_none(),
             "sunday should be None when no row exists"
+        );
+    }
+
+    /// Integration test: calendar_dates.txt only (no calendar.txt) → speed by day type is computed.
+    /// This covers the STM case where the feed uses calendar_dates exclusively.
+    #[tokio::test]
+    async fn compute_route_speed_by_day_type_with_calendar_dates_only() {
+        use crate::gtfs::static_feed::load_calendar_from_dates;
+        use chrono::NaiveDate;
+        use gtfs_structures::{CalendarDate, Exception};
+        use std::collections::HashMap;
+
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        // Seed routes, trips with service_ids that only appear in calendar_dates.
+        sqlx::query("INSERT INTO routes VALUES ('test','R1','1','Route 1',3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        for (trip_id, svc) in [
+            ("T_WD", "SVC_WD"),
+            ("T_SAT", "SVC_SAT"),
+            ("T_SUN", "SVC_SUN"),
+        ] {
+            sqlx::query(&format!(
+                "INSERT INTO trips VALUES ('test','{trip_id}','R1','{svc}',0,'Dest')"
+            ))
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+        for (sid, lat) in [("S1", 45.50_f64), ("S2", 45.51_f64)] {
+            sqlx::query(&format!(
+                "INSERT INTO stops VALUES ('test','{sid}','Stop',$1,-73.50)"
+            ))
+            .bind(lat)
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+        // WD: 10 min → ~1.852 m/s  SAT: 20 min → ~0.926 m/s  SUN: 15 min → ~1.235 m/s
+        for (trip_id, arr) in [
+            ("T_WD", "08:10:00"),
+            ("T_SAT", "08:20:00"),
+            ("T_SUN", "08:15:00"),
+        ] {
+            sqlx::query(&format!(
+                "INSERT INTO scheduled_stops VALUES ('test','{trip_id}','S1',1,'08:00:00','08:00:00')"
+            ))
+            .execute(&db.pool)
+            .await
+            .unwrap();
+            sqlx::query(&format!(
+                "INSERT INTO scheduled_stops VALUES ('test','{trip_id}','S2',2,'{arr}','{arr}')"
+            ))
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+
+        // Synthesize calendar from calendar_dates — no calendar.txt entries exist.
+        // 2026-01-05 = Monday, 2026-01-10 = Saturday, 2026-01-11 = Sunday
+        let mut calendar_dates: HashMap<String, Vec<CalendarDate>> = HashMap::new();
+        calendar_dates.insert(
+            "SVC_WD".to_string(),
+            vec![CalendarDate {
+                service_id: "SVC_WD".to_string(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 5).unwrap(),
+                exception_type: Exception::Added,
+            }],
+        );
+        calendar_dates.insert(
+            "SVC_SAT".to_string(),
+            vec![CalendarDate {
+                service_id: "SVC_SAT".to_string(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 10).unwrap(),
+                exception_type: Exception::Added,
+            }],
+        );
+        calendar_dates.insert(
+            "SVC_SUN".to_string(),
+            vec![CalendarDate {
+                service_id: "SVC_SUN".to_string(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 11).unwrap(),
+                exception_type: Exception::Added,
+            }],
+        );
+        let mut tx = db.pool.begin().await.unwrap();
+        load_calendar_from_dates(&mut tx, "test", &calendar_dates)
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+
+        compute_route_speed_by_day_type(&db, &test_agency())
+            .await
+            .unwrap();
+
+        let rows: Vec<(String, f64)> = sqlx::query_as(
+            "SELECT day_type, scheduled_speed_mps
+             FROM route_speed_day_type
+             WHERE agency_id = 'test' AND route_id = 'R1' AND direction_id = 0
+             ORDER BY day_type",
+        )
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+
+        assert_eq!(
+            rows.len(),
+            3,
+            "expected one row per day type, got {}",
+            rows.len()
+        );
+
+        let wd = rows.iter().find(|r| r.0 == "weekday").unwrap();
+        let sat = rows.iter().find(|r| r.0 == "saturday").unwrap();
+        let sun = rows.iter().find(|r| r.0 == "sunday").unwrap();
+
+        assert!(
+            (wd.1 - 1.852).abs() < 0.05,
+            "weekday ~1.852 m/s, got {}",
+            wd.1
+        );
+        assert!(
+            (sat.1 - 0.926).abs() < 0.05,
+            "saturday ~0.926 m/s, got {}",
+            sat.1
+        );
+        assert!(
+            (sun.1 - 1.235).abs() < 0.05,
+            "sunday ~1.235 m/s, got {}",
+            sun.1
+        );
+    }
+
+    #[tokio::test]
+    async fn route_speed_by_day_type_filters_by_agency() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('agency_a', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO routes VALUES ('agency_b', 'R2', '2', 'Route 2', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('agency_a', 'R1', 0, 10.0, 1, '2026-01-01')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('agency_b', 'R2', 0, 12.0, 1, '2026-01-01')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+
+        let rows = route_speed_by_day_type(&db, Some("agency_a"))
+            .await
+            .unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].agency_id, "agency_a");
+        assert_eq!(rows[0].route_id, "R1");
+    }
+
+    #[tokio::test]
+    async fn route_speed_by_day_type_includes_actual_speed_by_day_type() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        // Set up route, trip, stops
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        compute_route_speed(&db, &test_agency()).await.unwrap();
+
+        // Seed route_speed_day_type for the scheduled side
+        sqlx::query(
+            "INSERT INTO route_speed_day_type
+             (agency_id, route_id, direction_id, day_type, scheduled_speed_mps, trip_count, computed_at)
+             VALUES ('test', 'R1', 0, 'weekday', 1.852, 1, '2026-01-01')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        // Seed route_speed_daily with a recent weekday row (2026-04-07 = Monday)
+        // and an old row that should be excluded (2024-01-01)
+        sqlx::query(
+            "INSERT INTO route_speed_daily
+             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
+             VALUES ('test', 'R1', '2026-04-07', 0, 2.0, 1, '2026-04-07')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed_daily
+             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
+             VALUES ('test', 'R1', '2024-01-01', 0, 99.0, 1, '2024-01-01')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let rows = route_speed_by_day_type(&db, None).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        let row = &rows[0];
+        assert!(
+            row.actual_weekday_speed_mps.is_some(),
+            "expected weekday actual speed to be populated"
+        );
+        let actual_kmh = row.actual_weekday_speed_mps.unwrap() * 3.6;
+        assert!(
+            (actual_kmh - 7.2).abs() < 0.1,
+            "expected ~7.2 km/h (2.0 m/s), got {actual_kmh}"
+        );
+        assert!(
+            row.actual_saturday_speed_mps.is_none(),
+            "expected saturday actual to be None (no saturday data)"
         );
     }
 }

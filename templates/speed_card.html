@@ -1,25 +1,34 @@
 <div class="card">
   <div class="route-num">{{ card.agency_name }} {{ card.short_name }}</div>
   <div class="route-name">{{ card.long_name }}</div>
-  <canvas id="chart-{{ card.idx }}" height="160"></canvas>
+  <div class="chart-row">
+    {% for chart in &card.charts %}
+    <div class="chart-col">
+      <div class="chart-title">{{ chart.title }}</div>
+      <canvas id="{{ chart.chart_id }}" height="160"></canvas>
+    </div>
+    {% endfor %}
+  </div>
 </div>
 <script>
-new Chart(document.getElementById('chart-{{ card.idx }}'), {
+{% for chart in &card.charts %}
+new Chart(document.getElementById('{{ chart.chart_id }}'), {
   type: 'bar',
   data: {
     labels: ['Weekday', 'Saturday', 'Sunday'],
-    datasets: {{ card.chart_json|safe }}
+    datasets: {{ chart.chart_json|safe }}
   },
   options: {
     responsive: true,
     plugins: {
-        legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
-        title: { display: true, text: 'Average Speed (km/h)' }
-      },
+      legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } },
+      title: { display: true, text: 'Speed (km/h)' }
+    },
     scales: {
       y: { beginAtZero: true, title: { display: true, text: 'km/h' }, ticks: { font: { size: 10 } } },
       x: { ticks: { font: { size: 10 } } }
     }
   }
 });
+{% endfor %}
 </script>

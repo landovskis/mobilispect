@@ -1,12 +1,18 @@
 use crate::speed::RouteSpeedDayType;
 use std::collections::HashMap;
 
+pub struct DirectionSpeedChart {
+    pub chart_id: String,
+    pub title: String,
+    pub chart_json: String,
+}
+
 pub struct RouteSpeedCard {
     pub idx: usize,
     pub agency_name: String,
     pub short_name: String,
     pub long_name: String,
-    pub chart_json: String,
+    pub charts: Vec<DirectionSpeedChart>,
 }
 
 fn speed_kmh_json(mps: Option<f64>) -> serde_json::Value {
@@ -21,50 +27,61 @@ fn speed_kmh_json(mps: Option<f64>) -> serde_json::Value {
     }
 }
 
-fn day_type_data(row: Option<&RouteSpeedDayType>) -> serde_json::Value {
-    match row {
-        Some(r) => serde_json::json!([
-            speed_kmh_json(r.weekday_speed_mps),
-            speed_kmh_json(r.saturday_speed_mps),
-            speed_kmh_json(r.sunday_speed_mps),
-        ]),
-        None => serde_json::json!([null, null, null]),
-    }
+fn direction_datasets(row: &RouteSpeedDayType) -> serde_json::Value {
+    serde_json::json!([
+        {
+            "label": "Scheduled",
+            "backgroundColor": "#2980b9",
+            "data": [
+                speed_kmh_json(row.weekday_speed_mps),
+                speed_kmh_json(row.saturday_speed_mps),
+                speed_kmh_json(row.sunday_speed_mps),
+            ]
+        },
+        {
+            "label": "Actual",
+            "backgroundColor": "#e67e22",
+            "data": [
+                speed_kmh_json(row.actual_weekday_speed_mps),
+                speed_kmh_json(row.actual_saturday_speed_mps),
+                speed_kmh_json(row.actual_sunday_speed_mps),
+            ]
+        },
+    ])
 }
 
 pub fn build_speed_cards(
     rows: Vec<RouteSpeedDayType>,
     agency_names: &HashMap<String, String>,
 ) -> Vec<RouteSpeedCard> {
+    debug_assert!(
+        rows.windows(2)
+            .all(|w| { (&w[0].agency_id, &w[0].route_id) <= (&w[1].agency_id, &w[1].route_id) }),
+        "build_speed_cards: rows must be sorted by (agency_id, route_id)"
+    );
     let mut cards: Vec<RouteSpeedCard> = Vec::new();
-    let mut i = 0;
-    while i < rows.len() {
-        let agency_id = rows[i].agency_id.clone();
-        let route_id = rows[i].route_id.clone();
-        let mut j = i;
-        while j < rows.len() && rows[j].agency_id == agency_id && rows[j].route_id == route_id {
-            j += 1;
-        }
-        let route_rows = &rows[i..j];
-        let first = &rows[i];
+    for route_rows in rows.chunk_by(|a, b| a.agency_id == b.agency_id && a.route_id == b.route_id) {
+        let first = &route_rows[0];
         let agency_name = agency_names
             .get(&first.agency_id)
             .cloned()
             .unwrap_or_else(|| first.agency_id.clone());
-        let outbound = route_rows.iter().find(|r| r.direction_id == 0);
-        let inbound = route_rows.iter().find(|r| r.direction_id == 1);
-        let datasets = serde_json::json!([
-            { "label": "Outbound", "data": day_type_data(outbound), "backgroundColor": "#2980b9" },
-            { "label": "Inbound",  "data": day_type_data(inbound),  "backgroundColor": "#27ae60" },
-        ]);
+        let card_idx = cards.len();
+        let charts: Vec<DirectionSpeedChart> = route_rows
+            .iter()
+            .map(|row| DirectionSpeedChart {
+                chart_id: format!("chart-{card_idx}-{}", row.direction_id),
+                title: super::direction_label(row.direction_id).to_string(),
+                chart_json: serde_json::to_string(&direction_datasets(row)).unwrap_or_default(),
+            })
+            .collect();
         cards.push(RouteSpeedCard {
-            idx: cards.len(),
+            idx: card_idx,
             agency_name,
             short_name: first.short_name.clone(),
             long_name: first.long_name.clone(),
-            chart_json: serde_json::to_string(&datasets).unwrap_or_default(),
+            charts,
         });
-        i = j;
     }
     cards
 }
@@ -88,6 +105,9 @@ mod tests {
             weekday_speed_mps: weekday,
             saturday_speed_mps: None,
             sunday_speed_mps: None,
+            actual_weekday_speed_mps: None,
+            actual_saturday_speed_mps: None,
+            actual_sunday_speed_mps: None,
         }
     }
 
@@ -142,5 +162,68 @@ mod tests {
     fn build_speed_cards_empty_input_returns_empty() {
         let cards = build_speed_cards(vec![], &HashMap::new());
         assert!(cards.is_empty());
+    }
+
+    #[test]
+    fn direction_datasets_includes_scheduled_and_actual() {
+        let row = RouteSpeedDayType {
+            agency_id: "stm".to_string(),
+            route_id: "R1".to_string(),
+            short_name: "R1".to_string(),
+            long_name: "Route R1".to_string(),
+            direction_id: 0,
+            weekday_speed_mps: Some(10.0),
+            saturday_speed_mps: None,
+            sunday_speed_mps: None,
+            actual_weekday_speed_mps: Some(9.0),
+            actual_saturday_speed_mps: None,
+            actual_sunday_speed_mps: None,
+        };
+        let datasets = direction_datasets(&row);
+        let arr = datasets.as_array().unwrap();
+        assert_eq!(arr.len(), 2);
+        assert_eq!(arr[0]["label"], "Scheduled");
+        assert_eq!(arr[0]["backgroundColor"], "#2980b9");
+        assert_eq!(arr[1]["label"], "Actual");
+        assert_eq!(arr[1]["backgroundColor"], "#e67e22");
+    }
+
+    #[test]
+    fn build_speed_cards_single_direction_produces_one_chart() {
+        let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
+        let names = HashMap::new();
+        let cards = build_speed_cards(rows, &names);
+        assert_eq!(cards[0].charts.len(), 1);
+        assert_eq!(cards[0].charts[0].title, "Outbound");
+    }
+
+    #[test]
+    fn build_speed_cards_both_directions_produce_two_charts() {
+        let rows = vec![
+            make_row("stm", "R1", 0, Some(8.0)),
+            make_row("stm", "R1", 1, Some(7.5)),
+        ];
+        let names = HashMap::new();
+        let cards = build_speed_cards(rows, &names);
+        assert_eq!(cards[0].charts.len(), 2);
+        assert_eq!(cards[0].charts[0].title, "Outbound");
+        assert_eq!(cards[0].charts[1].title, "Inbound");
+    }
+
+    #[test]
+    fn build_speed_cards_chart_ids_are_unique() {
+        let rows = vec![
+            make_row("stm", "R1", 0, Some(8.0)),
+            make_row("stm", "R1", 1, Some(7.5)),
+            make_row("stm", "R2", 0, None),
+        ];
+        let names = HashMap::new();
+        let cards = build_speed_cards(rows, &names);
+        let ids: Vec<&str> = cards
+            .iter()
+            .flat_map(|c| c.charts.iter().map(|ch| ch.chart_id.as_str()))
+            .collect();
+        let unique: std::collections::HashSet<_> = ids.iter().collect();
+        assert_eq!(ids.len(), unique.len(), "chart IDs must be globally unique");
     }
 }
