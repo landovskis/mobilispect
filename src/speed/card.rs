@@ -54,11 +54,6 @@ pub fn build_speed_cards(
     rows: Vec<RouteSpeedDayType>,
     agency_names: &HashMap<String, String>,
 ) -> Vec<RouteSpeedCard> {
-    debug_assert!(
-        rows.windows(2)
-            .all(|w| { (&w[0].agency_id, &w[0].route_id) <= (&w[1].agency_id, &w[1].route_id) }),
-        "build_speed_cards: rows must be sorted by (agency_id, route_id)"
-    );
     let mut cards: Vec<RouteSpeedCard> = Vec::new();
     for route_rows in rows.chunk_by(|a, b| a.agency_id == b.agency_id && a.route_id == b.route_id) {
         let first = &route_rows[0];
@@ -225,5 +220,18 @@ mod tests {
             .collect();
         let unique: std::collections::HashSet<_> = ids.iter().collect();
         assert_eq!(ids.len(), unique.len(), "chart IDs must be globally unique");
+    }
+
+    #[test]
+    fn build_speed_cards_handles_route_ids_not_in_lexicographic_order() {
+        // SQL sorts by short_name, not route_id. Route "uuid-z" (short_name "1") comes
+        // before "uuid-a" (short_name "2") even though "uuid-z" > "uuid-a" lexicographically.
+        let rows = vec![
+            make_row("stm", "uuid-z", 0, Some(8.0)),
+            make_row("stm", "uuid-a", 0, Some(7.0)),
+        ];
+        let names = HashMap::new();
+        let cards = build_speed_cards(rows, &names);
+        assert_eq!(cards.len(), 2);
     }
 }
