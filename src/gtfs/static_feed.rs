@@ -1,5 +1,6 @@
 use anyhow::Result;
-use gtfs_structures::{DirectionType, Gtfs, RouteType};
+use chrono::Datelike;
+use gtfs_structures::{DirectionType, Exception, Gtfs, RouteType};
 use tracing::{info, warn};
 
 use crate::config::AgencyConfig;
@@ -70,6 +71,7 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
     load_stops(&mut tx, slug, &gtfs).await?;
     load_scheduled_stops(&mut tx, slug, &gtfs).await?;
     load_calendar(&mut tx, slug, &gtfs.calendar).await?;
+    load_calendar_from_dates(&mut tx, slug, &gtfs.calendar_dates).await?;
     tx.commit().await?;
 
     set_stored_version(db, &agency.slug, &feed_version).await?;
@@ -325,6 +327,70 @@ async fn load_calendar(
     Ok(())
 }
 
+/// Synthesize calendar rows from `calendar_dates.txt` for service_ids that have no
+/// entry in `calendar.txt`. For each such service, inspects the Added dates and sets
+/// the day-of-week flags based on which weekdays those dates fall on.
+/// Uses `ON CONFLICT DO NOTHING` so real `calendar.txt` rows are never overwritten.
+pub(crate) async fn load_calendar_from_dates(
+    tx: &mut Tx<'_>,
+    agency_id: &str,
+    calendar_dates: &std::collections::HashMap<String, Vec<gtfs_structures::CalendarDate>>,
+) -> Result<()> {
+    let mut synthesized = 0usize;
+    for (service_id, dates) in calendar_dates {
+        let mut monday = false;
+        let mut tuesday = false;
+        let mut wednesday = false;
+        let mut thursday = false;
+        let mut friday = false;
+        let mut saturday = false;
+        let mut sunday = false;
+
+        for cd in dates {
+            if cd.exception_type != Exception::Added {
+                continue;
+            }
+            match cd.date.weekday() {
+                chrono::Weekday::Mon => monday = true,
+                chrono::Weekday::Tue => tuesday = true,
+                chrono::Weekday::Wed => wednesday = true,
+                chrono::Weekday::Thu => thursday = true,
+                chrono::Weekday::Fri => friday = true,
+                chrono::Weekday::Sat => saturday = true,
+                chrono::Weekday::Sun => sunday = true,
+            }
+        }
+
+        if !monday && !tuesday && !wednesday && !thursday && !friday && !saturday && !sunday {
+            continue;
+        }
+
+        sqlx::query(
+            "INSERT INTO calendar
+             (agency_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             ON CONFLICT (agency_id, service_id) DO NOTHING",
+        )
+        .bind(agency_id)
+        .bind(service_id.as_str())
+        .bind(monday)
+        .bind(tuesday)
+        .bind(wednesday)
+        .bind(thursday)
+        .bind(friday)
+        .bind(saturday)
+        .bind(sunday)
+        .execute(&mut **tx)
+        .await?;
+        synthesized += 1;
+    }
+    info!(
+        "Synthesized {} calendar entries from calendar_dates",
+        synthesized
+    );
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -387,6 +453,137 @@ mod tests {
         assert!(!wd.2, "WD saturday should be false");
         let sat = rows.iter().find(|r| r.0 == "SAT").unwrap();
         assert!(sat.2, "SAT saturday should be true");
+    }
+
+    #[tokio::test]
+    async fn load_calendar_from_dates_synthesizes_day_flags_from_added_dates() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let mut tx = db.pool.begin().await.unwrap();
+
+        // 2026-01-05 = Mon, 2026-01-09 = Fri, 2026-01-10 = Sat, 2026-01-11 = Sun
+        let mut calendar_dates: HashMap<String, Vec<gtfs_structures::CalendarDate>> =
+            HashMap::new();
+        calendar_dates.insert(
+            "WD".to_string(),
+            vec![
+                gtfs_structures::CalendarDate {
+                    service_id: "WD".to_string(),
+                    date: NaiveDate::from_ymd_opt(2026, 1, 5).unwrap(),
+                    exception_type: gtfs_structures::Exception::Added,
+                },
+                gtfs_structures::CalendarDate {
+                    service_id: "WD".to_string(),
+                    date: NaiveDate::from_ymd_opt(2026, 1, 9).unwrap(),
+                    exception_type: gtfs_structures::Exception::Added,
+                },
+            ],
+        );
+        calendar_dates.insert(
+            "SAT".to_string(),
+            vec![gtfs_structures::CalendarDate {
+                service_id: "SAT".to_string(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 10).unwrap(),
+                exception_type: gtfs_structures::Exception::Added,
+            }],
+        );
+        calendar_dates.insert(
+            "SUN".to_string(),
+            vec![gtfs_structures::CalendarDate {
+                service_id: "SUN".to_string(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 11).unwrap(),
+                exception_type: gtfs_structures::Exception::Added,
+            }],
+        );
+
+        load_calendar_from_dates(&mut tx, "stm", &calendar_dates)
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+
+        let rows: Vec<(String, bool, bool, bool, bool, bool, bool, bool)> = sqlx::query_as(
+            "SELECT service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday
+             FROM calendar WHERE agency_id = 'stm' ORDER BY service_id",
+        )
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+
+        assert_eq!(rows.len(), 3);
+
+        let wd = rows.iter().find(|r| r.0 == "WD").unwrap();
+        assert!(wd.1, "WD monday");
+        assert!(!wd.2, "WD tuesday");
+        assert!(!wd.3, "WD wednesday");
+        assert!(!wd.4, "WD thursday");
+        assert!(wd.5, "WD friday");
+        assert!(!wd.6, "WD saturday");
+        assert!(!wd.7, "WD sunday");
+
+        let sat = rows.iter().find(|r| r.0 == "SAT").unwrap();
+        assert!(!sat.1, "SAT monday");
+        assert!(sat.6, "SAT saturday");
+        assert!(!sat.7, "SAT sunday");
+
+        let sun = rows.iter().find(|r| r.0 == "SUN").unwrap();
+        assert!(!sun.1, "SUN monday");
+        assert!(!sun.6, "SUN saturday");
+        assert!(sun.7, "SUN sunday");
+    }
+
+    #[tokio::test]
+    async fn load_calendar_from_dates_does_not_overwrite_calendar_txt_entry() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let mut tx = db.pool.begin().await.unwrap();
+
+        // Load a real calendar.txt entry: WD is weekdays-only
+        let mut calendar: HashMap<String, Calendar> = HashMap::new();
+        calendar.insert(
+            "WD".to_string(),
+            Calendar {
+                id: "WD".to_string(),
+                monday: true,
+                tuesday: true,
+                wednesday: true,
+                thursday: true,
+                friday: true,
+                saturday: false,
+                sunday: false,
+                start_date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                end_date: NaiveDate::from_ymd_opt(2026, 12, 31).unwrap(),
+            },
+        );
+        load_calendar(&mut tx, "stm", &calendar).await.unwrap();
+
+        // calendar_dates claims WD runs on Saturday — should be ignored
+        let mut calendar_dates: HashMap<String, Vec<gtfs_structures::CalendarDate>> =
+            HashMap::new();
+        calendar_dates.insert(
+            "WD".to_string(),
+            vec![gtfs_structures::CalendarDate {
+                service_id: "WD".to_string(),
+                date: NaiveDate::from_ymd_opt(2026, 1, 10).unwrap(), // Saturday
+                exception_type: gtfs_structures::Exception::Added,
+            }],
+        );
+        load_calendar_from_dates(&mut tx, "stm", &calendar_dates)
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+
+        let row: (bool, bool) = sqlx::query_as(
+            "SELECT saturday, monday FROM calendar WHERE agency_id = 'stm' AND service_id = 'WD'",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+
+        assert!(
+            !row.0,
+            "saturday should remain false — calendar.txt takes precedence"
+        );
+        assert!(row.1, "monday should still be true");
     }
 }
 
