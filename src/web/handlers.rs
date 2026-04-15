@@ -234,7 +234,16 @@ pub async fn speed_page(
     State(state): State<AppState>,
     Query(params): Query<SpeedParams>,
 ) -> Html<String> {
-    let active_agency = params.agency.unwrap_or_default();
+    let agencies: Vec<(String, String)> = state
+        .config
+        .agencies
+        .iter()
+        .map(|a| (a.slug.clone(), a.name.clone()))
+        .collect();
+    let active_agency = params
+        .agency
+        .filter(|s| agencies.iter().any(|(slug, _)| slug == s))
+        .unwrap_or_default();
     let active_sort = match params.sort.as_deref() {
         Some("scheduled") => "scheduled",
         Some("actual") => "actual",
@@ -246,12 +255,6 @@ pub async fn speed_page(
     } else {
         Some(active_agency.as_str())
     };
-    let agencies: Vec<(String, String)> = state
-        .config
-        .agencies
-        .iter()
-        .map(|a| (a.slug.clone(), a.name.clone()))
-        .collect();
     let agency_names: std::collections::HashMap<String, String> =
         agencies.iter().cloned().collect();
     let rows = route_speed_by_day_type(&state.db, filter)
