@@ -13,6 +13,11 @@ pub struct RouteSpeedCard {
     pub short_name: String,
     pub long_name: String,
     pub charts: Vec<DirectionSpeedChart>,
+    /// Average scheduled speed across all day types and directions (m/s).
+    pub avg_scheduled_speed_mps: Option<f64>,
+    /// Average actual speed across all day types and directions (m/s).
+    /// None when no actual speed data exists for this route.
+    pub avg_actual_speed_mps: Option<f64>,
 }
 
 fn speed_kmh_json(mps: Option<f64>) -> serde_json::Value {
@@ -24,6 +29,16 @@ fn speed_kmh_json(mps: Option<f64>) -> serde_json::Value {
                 .unwrap_or(serde_json::Value::Null)
         }
         None => serde_json::Value::Null,
+    }
+}
+
+/// Returns the mean of all `Some` values in `iter`, or `None` if there are none.
+fn avg_speeds(iter: impl Iterator<Item = Option<f64>>) -> Option<f64> {
+    let vals: Vec<f64> = iter.flatten().collect();
+    if vals.is_empty() {
+        None
+    } else {
+        Some(vals.iter().sum::<f64>() / vals.len() as f64)
     }
 }
 
@@ -70,12 +85,28 @@ pub fn build_speed_cards(
                 chart_json: serde_json::to_string(&direction_datasets(row)).unwrap_or_default(),
             })
             .collect();
+        let avg_scheduled_speed_mps = avg_speeds(route_rows.iter().flat_map(|r| {
+            [
+                r.weekday_speed_mps,
+                r.saturday_speed_mps,
+                r.sunday_speed_mps,
+            ]
+        }));
+        let avg_actual_speed_mps = avg_speeds(route_rows.iter().flat_map(|r| {
+            [
+                r.actual_weekday_speed_mps,
+                r.actual_saturday_speed_mps,
+                r.actual_sunday_speed_mps,
+            ]
+        }));
         cards.push(RouteSpeedCard {
             idx: card_idx,
             agency_name,
             short_name: first.short_name.clone(),
             long_name: first.long_name.clone(),
             charts,
+            avg_scheduled_speed_mps,
+            avg_actual_speed_mps,
         });
     }
     cards
@@ -233,5 +264,90 @@ mod tests {
         let names = HashMap::new();
         let cards = build_speed_cards(rows, &names);
         assert_eq!(cards.len(), 2);
+    }
+
+    #[test]
+    fn build_speed_cards_computes_avg_scheduled_speed() {
+        // Two directions, weekday only. avg = (8.0 + 6.0) / 2 = 7.0 m/s
+        let rows = vec![
+            RouteSpeedDayType {
+                agency_id: "stm".into(),
+                route_id: "R1".into(),
+                short_name: "R1".into(),
+                long_name: "Route R1".into(),
+                direction_id: 0,
+                weekday_speed_mps: Some(8.0),
+                saturday_speed_mps: None,
+                sunday_speed_mps: None,
+                actual_weekday_speed_mps: None,
+                actual_saturday_speed_mps: None,
+                actual_sunday_speed_mps: None,
+            },
+            RouteSpeedDayType {
+                agency_id: "stm".into(),
+                route_id: "R1".into(),
+                short_name: "R1".into(),
+                long_name: "Route R1".into(),
+                direction_id: 1,
+                weekday_speed_mps: Some(6.0),
+                saturday_speed_mps: None,
+                sunday_speed_mps: None,
+                actual_weekday_speed_mps: None,
+                actual_saturday_speed_mps: None,
+                actual_sunday_speed_mps: None,
+            },
+        ];
+        let cards = build_speed_cards(rows, &HashMap::new());
+        let avg = cards[0].avg_scheduled_speed_mps.unwrap();
+        assert!((avg - 7.0).abs() < 0.001, "expected 7.0, got {avg}");
+    }
+
+    #[test]
+    fn build_speed_cards_avg_scheduled_uses_all_day_types() {
+        // One direction, three day types: (9.0 + 6.0 + 3.0) / 3 = 6.0
+        let rows = vec![RouteSpeedDayType {
+            agency_id: "stm".into(),
+            route_id: "R1".into(),
+            short_name: "R1".into(),
+            long_name: "Route R1".into(),
+            direction_id: 0,
+            weekday_speed_mps: Some(9.0),
+            saturday_speed_mps: Some(6.0),
+            sunday_speed_mps: Some(3.0),
+            actual_weekday_speed_mps: None,
+            actual_saturday_speed_mps: None,
+            actual_sunday_speed_mps: None,
+        }];
+        let cards = build_speed_cards(rows, &HashMap::new());
+        let avg = cards[0].avg_scheduled_speed_mps.unwrap();
+        assert!((avg - 6.0).abs() < 0.001, "expected 6.0, got {avg}");
+    }
+
+    #[test]
+    fn build_speed_cards_avg_actual_is_none_when_no_actual_data() {
+        let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
+        let cards = build_speed_cards(rows, &HashMap::new());
+        assert!(cards[0].avg_actual_speed_mps.is_none());
+    }
+
+    #[test]
+    fn build_speed_cards_computes_avg_actual_speed() {
+        // actual weekday = 5.0, actual saturday = 7.0 → avg = 6.0
+        let rows = vec![RouteSpeedDayType {
+            agency_id: "stm".into(),
+            route_id: "R1".into(),
+            short_name: "R1".into(),
+            long_name: "Route R1".into(),
+            direction_id: 0,
+            weekday_speed_mps: Some(8.0),
+            saturday_speed_mps: None,
+            sunday_speed_mps: None,
+            actual_weekday_speed_mps: Some(5.0),
+            actual_saturday_speed_mps: Some(7.0),
+            actual_sunday_speed_mps: None,
+        }];
+        let cards = build_speed_cards(rows, &HashMap::new());
+        let avg = cards[0].avg_actual_speed_mps.unwrap();
+        assert!((avg - 6.0).abs() < 0.001, "expected 6.0, got {avg}");
     }
 }
