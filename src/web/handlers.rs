@@ -202,12 +202,19 @@ pub async fn route_detail(
 
 fn sort_speed_cards(cards: &mut Vec<RouteSpeedCard>, sort: &str) {
     match sort {
-        "scheduled" => cards.sort_by(|a, b| {
-            a.avg_scheduled_speed_mps
-                .partial_cmp(&b.avg_scheduled_speed_mps)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then(a.short_name.cmp(&b.short_name))
-        }),
+        "scheduled" => {
+            cards.sort_by(
+                |a, b| match (a.avg_scheduled_speed_mps, b.avg_scheduled_speed_mps) {
+                    (Some(x), Some(y)) => x
+                        .partial_cmp(&y)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                        .then(a.short_name.cmp(&b.short_name)),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => a.short_name.cmp(&b.short_name),
+                },
+            )
+        }
         "actual" => cards.sort_by(
             |a, b| match (a.avg_actual_speed_mps, b.avg_actual_speed_mps) {
                 (Some(x), Some(y)) => x
@@ -228,7 +235,12 @@ pub async fn speed_page(
     Query(params): Query<SpeedParams>,
 ) -> Html<String> {
     let active_agency = params.agency.unwrap_or_default();
-    let active_sort = params.sort.unwrap_or_default();
+    let active_sort = match params.sort.as_deref() {
+        Some("scheduled") => "scheduled",
+        Some("actual") => "actual",
+        _ => "name",
+    }
+    .to_string();
     let filter = if active_agency.is_empty() {
         None
     } else {
@@ -388,6 +400,18 @@ mod tests {
         }
     }
 
+    fn card_no_scheduled(short_name: &str) -> RouteSpeedCard {
+        RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            short_name: short_name.into(),
+            long_name: short_name.into(),
+            charts: vec![],
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+        }
+    }
+
     #[test]
     fn sort_scheduled_orders_ascending_by_scheduled_speed() {
         let mut cards = vec![card("B", 10.0, None), card("A", 5.0, None)];
@@ -425,5 +449,13 @@ mod tests {
         let mut cards = vec![card("B", 5.0, None), card("A", 10.0, None)];
         sort_speed_cards(&mut cards, "bogus");
         assert_eq!(cards[0].short_name, "B");
+    }
+
+    #[test]
+    fn sort_scheduled_puts_none_last() {
+        let mut cards = vec![card_no_scheduled("A"), card("B", 5.0, None)];
+        sort_speed_cards(&mut cards, "scheduled");
+        assert_eq!(cards[0].short_name, "B");
+        assert_eq!(cards[1].short_name, "A");
     }
 }
