@@ -262,6 +262,9 @@ pub async fn speed_page(
         .unwrap_or_default();
     let mut cards = build_speed_cards(rows, &agency_names);
     sort_speed_cards(&mut cards, &active_sort);
+    for (i, card) in cards.iter_mut().enumerate() {
+        card.idx = i;
+    }
     let tmpl = SpeedTemplate {
         cards,
         agencies,
@@ -460,5 +463,12 @@ mod tests {
         sort_speed_cards(&mut cards, "scheduled");
         assert_eq!(cards[0].short_name, "B");
         assert_eq!(cards[1].short_name, "A");
+    }
+
+    #[test]
+    fn sort_scheduled_breaks_ties_by_name() {
+        let mut cards = vec![card("Z", 5.0, None), card("A", 5.0, None)];
+        sort_speed_cards(&mut cards, "scheduled");
+        assert_eq!(cards[0].short_name, "A");
     }
 }
