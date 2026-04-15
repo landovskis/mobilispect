@@ -14,12 +14,15 @@
     header a { color: #aaa; font-size: 0.85rem; text-decoration: none; }
     header a:hover { color: white; }
     .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
-    .filter-bar a { padding: 0.35rem 0.75rem; border-radius: 20px; background: white;
-                    border: 1px solid #ddd; font-size: 0.85rem; text-decoration: none;
-                    color: #555; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .filter-bar a:hover { border-color: #999; color: #222; }
-    .filter-bar a.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
+    .controls { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+    .control-label { font-size: 0.78rem; color: #888; font-weight: 500;
+                     min-width: 4.5rem; text-align: right; padding-right: 0.25rem; }
+    .control-row a { padding: 0.3rem 0.7rem; border-radius: 20px; background: white;
+                     border: 1px solid #ddd; font-size: 0.82rem; text-decoration: none;
+                     color: #555; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .control-row a:hover { border-color: #999; color: #222; }
+    .control-row a.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
     .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
     @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr; } }
     .card { background: white; border-radius: 8px; padding: 1rem 1.25rem;
@@ -28,6 +31,7 @@
     .route-name { font-size: 0.8rem; color: #666; margin-top: 0.15rem; margin-bottom: 0.75rem; }
     .chart-row { display: flex; gap: 0.75rem; }
     .chart-col { flex: 1; min-width: 0; }
+    .chart-col:only-child { max-width: 50%; margin: 0 auto; }
     .chart-title { font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 0.25rem; color: #444; }
     .no-data { color: #aaa; font-size: 0.9rem; text-align: center; padding: 3rem 0; }
     footer { text-align: center; padding: 2rem; color: #aaa; font-size: 0.8rem; }
@@ -45,11 +49,25 @@
     </nav>
   </header>
   <div class="container">
-    <div class="filter-bar">
-      <a href="/speed" class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
-      {% for (slug, name) in &agencies %}
-      <a href="/speed?agency={{ slug }}" class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
-      {% endfor %}
+    <div class="controls">
+      <div class="control-row">
+        <span class="control-label">Agency:</span>
+        <a href="/speed{% if active_sort != "name" %}?sort={{ active_sort }}{% endif %}"
+           class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
+        {% for (slug, name) in &agencies %}
+        <a href="/speed?agency={{ slug }}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
+           class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
+        {% endfor %}
+      </div>
+      <div class="control-row">
+        <span class="control-label">Sort by:</span>
+        <a href="/speed{% if !active_agency.is_empty() %}?agency={{ active_agency }}{% endif %}"
+           class="{% if active_sort == "name" %}active{% endif %}">Name</a>
+        <a href="/speed?sort=scheduled{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}"
+           class="{% if active_sort == "scheduled" %}active{% endif %}">Slowest scheduled</a>
+        <a href="/speed?sort=actual{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}"
+           class="{% if active_sort == "actual" %}active{% endif %}">Slowest actual</a>
+      </div>
     </div>
     {% if cards.is_empty() %}
     <p class="no-data">No speed data available yet. Data appears after the daily compute runs.</p>
