@@ -13,10 +13,12 @@ pub struct RouteSpeedCard {
     pub short_name: String,
     pub long_name: String,
     pub charts: Vec<DirectionSpeedChart>,
-    /// Average scheduled speed across all day types and directions (m/s).
+    /// Sort key: unweighted mean of all non-None scheduled speed values across
+    /// all day types (weekday/Saturday/Sunday) and directions. Routes with fewer
+    /// non-None slots contribute proportionally less weight.
     pub avg_scheduled_speed_mps: Option<f64>,
-    /// Average actual speed across all day types and directions (m/s).
-    /// None when no actual speed data exists for this route.
+    /// Sort key: unweighted mean of all non-None actual speed values across
+    /// all day types and directions. `None` when no actual speed data exists.
     pub avg_actual_speed_mps: Option<f64>,
 }
 
@@ -32,14 +34,12 @@ fn speed_kmh_json(mps: Option<f64>) -> serde_json::Value {
     }
 }
 
-/// Returns the mean of all `Some` values in `iter`, or `None` if there are none.
+/// Returns the unweighted mean of all `Some` values in `iter`, or `None` if all are `None`.
 fn avg_speeds(iter: impl Iterator<Item = Option<f64>>) -> Option<f64> {
-    let vals: Vec<f64> = iter.flatten().collect();
-    if vals.is_empty() {
-        None
-    } else {
-        Some(vals.iter().sum::<f64>() / vals.len() as f64)
-    }
+    let (sum, count) = iter
+        .flatten()
+        .fold((0.0_f64, 0usize), |(s, n), v| (s + v, n + 1));
+    (count > 0).then(|| sum / count as f64)
 }
 
 fn direction_datasets(row: &RouteSpeedDayType) -> serde_json::Value {
@@ -349,5 +349,13 @@ mod tests {
         let cards = build_speed_cards(rows, &HashMap::new());
         let avg = cards[0].avg_actual_speed_mps.unwrap();
         assert!((avg - 6.0).abs() < 0.001, "expected 6.0, got {avg}");
+    }
+
+    #[test]
+    fn build_speed_cards_avg_scheduled_is_none_when_all_scheduled_speeds_none() {
+        // make_row sets weekday to None and saturday/sunday are always None
+        let rows = vec![make_row("stm", "R1", 0, None)];
+        let cards = build_speed_cards(rows, &HashMap::new());
+        assert!(cards[0].avg_scheduled_speed_mps.is_none());
     }
 }
