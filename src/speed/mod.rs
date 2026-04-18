@@ -112,6 +112,109 @@ fn parse_time_secs(s: &str) -> Option<u32> {
     Some(h * 3600 + m * 60 + sec)
 }
 
+/// A single stop-to-stop segment along a route direction.
+pub struct StopSpacing {
+    pub to_stop_name: String,
+    /// Haversine distance from the previous stop to this stop, in metres.
+    pub distance_m: f64,
+    /// True when `distance_m > 1.5 × avg_spacing_m` for this direction.
+    pub is_outlier: bool,
+    /// Pixel width for the strip segment (scaled so the longest segment = 200px).
+    pub width_px: u32,
+}
+
+/// All stop spacings for one direction of a route.
+pub struct DirectionStopSpacings {
+    pub direction_id: i64,
+    /// Name of the terminal (last) stop — used as the direction label.
+    pub direction_name: String,
+    /// Name of the first stop — rendered as the leftmost dot in the strip.
+    pub first_stop_name: String,
+    /// Mean distance between consecutive stops, in metres.
+    pub avg_spacing_m: f64,
+    pub spacings: Vec<StopSpacing>,
+}
+
+/// Raw row returned by the stop spacings SQL query.
+#[derive(sqlx::FromRow)]
+struct StopSpacingRow {
+    direction_id: i64,
+    to_stop_name: String,
+    distance_m: Option<f64>,
+    is_first: bool,
+    is_last: bool,
+}
+
+impl StopSpacing {
+    pub fn distance_display(&self) -> String {
+        if self.distance_m >= 1000.0 {
+            format!("{:.1} km", self.distance_m / 1000.0)
+        } else {
+            format!("{:.0} m", self.distance_m)
+        }
+    }
+}
+
+fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpacings> {
+    let mut result: Vec<DirectionStopSpacings> = Vec::new();
+    let mut i = 0;
+    while i < rows.len() {
+        let dir_id = rows[i].direction_id;
+        let end = rows[i..]
+            .iter()
+            .position(|r| r.direction_id != dir_id)
+            .map(|p| i + p)
+            .unwrap_or(rows.len());
+        let dir_rows = &rows[i..end];
+
+        let first_stop_name = dir_rows
+            .iter()
+            .find(|r| r.is_first)
+            .map(|r| r.to_stop_name.clone())
+            .unwrap_or_default();
+
+        let direction_name = dir_rows
+            .iter()
+            .find(|r| r.is_last)
+            .map(|r| r.to_stop_name.clone())
+            .unwrap_or_default();
+
+        let distances: Vec<(String, f64)> = dir_rows
+            .iter()
+            .filter_map(|r| r.distance_m.map(|d| (r.to_stop_name.clone(), d)))
+            .collect();
+
+        let avg_spacing_m = if distances.is_empty() {
+            0.0
+        } else {
+            distances.iter().map(|(_, d)| d).sum::<f64>() / distances.len() as f64
+        };
+
+        let max_dist = distances.iter().map(|(_, d)| *d).fold(0.0_f64, f64::max);
+        let threshold = avg_spacing_m * 1.5;
+
+        let spacings = distances
+            .into_iter()
+            .map(|(name, dist)| StopSpacing {
+                to_stop_name: name,
+                distance_m: dist,
+                is_outlier: dist > threshold,
+                width_px: ((dist / max_dist.max(1.0)) * 200.0) as u32,
+            })
+            .collect();
+
+        result.push(DirectionStopSpacings {
+            direction_id: dir_id,
+            direction_name,
+            first_stop_name,
+            avg_spacing_m,
+            spacings,
+        });
+        i = end;
+    }
+    result
+}
+
 /// Compute scheduled average speed (m/s) for every route+direction and store in `route_speed`.
 /// Reads only static GTFS tables — safe to call on startup after GTFS load.
 pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result<()> {
@@ -2001,6 +2104,153 @@ mod tests {
         assert!(
             (spacing - 1111.0).abs() < 10.0,
             "expected ~1111 m spacing, got {spacing}"
+        );
+    }
+
+    #[test]
+    fn build_direction_spacings_flags_outliers() {
+        // distances: [100, 100, 300] → avg = 166.7, threshold = 1.5 × 166.7 = 250
+        // only the 300m segment is an outlier
+        let rows = vec![
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "A".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "B".into(),
+                distance_m: Some(100.0),
+                is_first: false,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "C".into(),
+                distance_m: Some(100.0),
+                is_first: false,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "D".into(),
+                distance_m: Some(300.0),
+                is_first: false,
+                is_last: true,
+            },
+        ];
+        let result = build_direction_spacings(rows);
+        assert_eq!(result.len(), 1);
+        let s = &result[0].spacings;
+        assert!(!s[0].is_outlier, "100m should not be an outlier");
+        assert!(!s[1].is_outlier, "100m should not be an outlier");
+        assert!(s[2].is_outlier, "300m > 250 threshold should be an outlier");
+    }
+
+    #[test]
+    fn build_direction_spacings_sets_first_and_direction_names() {
+        let rows = vec![
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "Origin".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "Middle".into(),
+                distance_m: Some(200.0),
+                is_first: false,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "Terminal".into(),
+                distance_m: Some(200.0),
+                is_first: false,
+                is_last: true,
+            },
+        ];
+        let result = build_direction_spacings(rows);
+        assert_eq!(result[0].first_stop_name, "Origin");
+        assert_eq!(result[0].direction_name, "Terminal");
+    }
+
+    #[test]
+    fn build_direction_spacings_groups_two_directions() {
+        let rows = vec![
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "A".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "B".into(),
+                distance_m: Some(300.0),
+                is_first: false,
+                is_last: true,
+            },
+            StopSpacingRow {
+                direction_id: 1,
+                to_stop_name: "X".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 1,
+                to_stop_name: "Y".into(),
+                distance_m: Some(400.0),
+                is_first: false,
+                is_last: true,
+            },
+        ];
+        let result = build_direction_spacings(rows);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].direction_id, 0);
+        assert_eq!(result[1].direction_id, 1);
+    }
+
+    #[test]
+    fn build_direction_spacings_width_px_max_is_200() {
+        let rows = vec![
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "A".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "B".into(),
+                distance_m: Some(100.0),
+                is_first: false,
+                is_last: false,
+            },
+            StopSpacingRow {
+                direction_id: 0,
+                to_stop_name: "C".into(),
+                distance_m: Some(1000.0),
+                is_first: false,
+                is_last: true,
+            },
+        ];
+        let result = build_direction_spacings(rows);
+        let spacings = &result[0].spacings;
+        assert_eq!(
+            spacings[1].width_px, 200,
+            "max distance should map to 200px"
+        );
+        assert!(
+            spacings[0].width_px < 200,
+            "smaller distance should map to less than 200px"
         );
     }
 }
