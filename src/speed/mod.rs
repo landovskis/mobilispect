@@ -29,6 +29,8 @@ pub struct RouteSpeedSummary {
     pub live_speed_mps: Option<f64>,
     /// Average actual speed over the last 7 days from stop arrival times (m/s). None if no history.
     pub actual_speed_mps: Option<f64>,
+    /// Name of the last stop for this route+direction. None if stop data is unavailable.
+    pub last_stop_name: Option<String>,
 }
 
 impl RouteSpeedSummary {
@@ -72,8 +74,10 @@ impl RouteSpeedSummary {
         }
     }
 
-    pub fn direction_label(&self) -> &'static str {
-        direction_label(self.direction_id)
+    pub fn direction_label(&self) -> String {
+        self.last_stop_name
+            .clone()
+            .unwrap_or_else(|| direction_label(self.direction_id).to_string())
     }
 
     /// CSS class for the vs-schedule cell: "slower", "faster", or "onpace".
@@ -454,7 +458,8 @@ pub async fn route_speed_summary(
                rs.scheduled_speed_mps,
                rs.trip_count,
                live.avg_live_speed as live_speed_mps,
-               hist.avg_actual_speed as actual_speed_mps
+               hist.avg_actual_speed as actual_speed_mps,
+               lsn.stop_name as last_stop_name
              FROM route_speed rs
              JOIN routes r ON rs.agency_id = r.agency_id AND rs.route_id = r.route_id
              LEFT JOIN (
@@ -471,6 +476,23 @@ pub async fn route_speed_summary(
                WHERE service_date >= (CURRENT_DATE - INTERVAL '7 days')::TEXT
                GROUP BY agency_id, route_id, direction_id
              ) hist ON hist.agency_id = rs.agency_id AND hist.route_id = rs.route_id AND hist.direction_id = rs.direction_id
+             LEFT JOIN (
+               SELECT DISTINCT ON (t.agency_id, t.route_id, COALESCE(t.direction_id, 0))
+                 t.agency_id, t.route_id, COALESCE(t.direction_id, 0) AS direction_id,
+                 s.stop_name
+               FROM trips t
+               JOIN (
+                 SELECT agency_id, trip_id, stop_id
+                 FROM (
+                   SELECT agency_id, trip_id, stop_id,
+                          ROW_NUMBER() OVER (PARTITION BY agency_id, trip_id ORDER BY stop_sequence DESC) AS rn
+                   FROM scheduled_stops
+                 ) ranked
+                 WHERE rn = 1
+               ) last_ss ON last_ss.agency_id = t.agency_id AND last_ss.trip_id = t.trip_id
+               JOIN stops s ON s.agency_id = t.agency_id AND s.stop_id = last_ss.stop_id
+               ORDER BY t.agency_id, t.route_id, COALESCE(t.direction_id, 0)
+             ) lsn ON lsn.agency_id = rs.agency_id AND lsn.route_id = rs.route_id AND lsn.direction_id = rs.direction_id
              ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
         .fetch_all(&db.pool)
@@ -486,7 +508,8 @@ pub async fn route_speed_summary(
                rs.scheduled_speed_mps,
                rs.trip_count,
                live.avg_live_speed as live_speed_mps,
-               hist.avg_actual_speed as actual_speed_mps
+               hist.avg_actual_speed as actual_speed_mps,
+               lsn.stop_name as last_stop_name
              FROM route_speed rs
              JOIN routes r ON rs.agency_id = r.agency_id AND rs.route_id = r.route_id
              LEFT JOIN (
@@ -503,6 +526,23 @@ pub async fn route_speed_summary(
                WHERE service_date >= (CURRENT_DATE - INTERVAL '7 days')::TEXT
                GROUP BY agency_id, route_id, direction_id
              ) hist ON hist.agency_id = rs.agency_id AND hist.route_id = rs.route_id AND hist.direction_id = rs.direction_id
+             LEFT JOIN (
+               SELECT DISTINCT ON (t.agency_id, t.route_id, COALESCE(t.direction_id, 0))
+                 t.agency_id, t.route_id, COALESCE(t.direction_id, 0) AS direction_id,
+                 s.stop_name
+               FROM trips t
+               JOIN (
+                 SELECT agency_id, trip_id, stop_id
+                 FROM (
+                   SELECT agency_id, trip_id, stop_id,
+                          ROW_NUMBER() OVER (PARTITION BY agency_id, trip_id ORDER BY stop_sequence DESC) AS rn
+                   FROM scheduled_stops
+                 ) ranked
+                 WHERE rn = 1
+               ) last_ss ON last_ss.agency_id = t.agency_id AND last_ss.trip_id = t.trip_id
+               JOIN stops s ON s.agency_id = t.agency_id AND s.stop_id = last_ss.stop_id
+               ORDER BY t.agency_id, t.route_id, COALESCE(t.direction_id, 0)
+             ) lsn ON lsn.agency_id = rs.agency_id AND lsn.route_id = rs.route_id AND lsn.direction_id = rs.direction_id
              WHERE rs.agency_id = $1
              ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
@@ -633,6 +673,8 @@ pub struct RouteSpeedDayType {
     pub actual_weekday_speed_mps: Option<f64>,
     pub actual_saturday_speed_mps: Option<f64>,
     pub actual_sunday_speed_mps: Option<f64>,
+    /// Name of the last stop for this route+direction. None if stop data is unavailable.
+    pub last_stop_name: Option<String>,
 }
 
 pub async fn route_speed_by_day_type(
@@ -654,6 +696,23 @@ pub async fn route_speed_by_day_type(
             WHERE service_date::date >= CURRENT_DATE - INTERVAL '28 days'
               AND actual_speed_mps IS NOT NULL
             GROUP BY agency_id, route_id, direction_id
+        ),
+        last_stop_per_route_dir AS (
+            SELECT DISTINCT ON (t.agency_id, t.route_id, COALESCE(t.direction_id, 0))
+              t.agency_id, t.route_id, COALESCE(t.direction_id, 0) AS direction_id,
+              s.stop_name
+            FROM trips t
+            JOIN (
+              SELECT agency_id, trip_id, stop_id
+              FROM (
+                SELECT agency_id, trip_id, stop_id,
+                       ROW_NUMBER() OVER (PARTITION BY agency_id, trip_id ORDER BY stop_sequence DESC) AS rn
+                FROM scheduled_stops
+              ) ranked
+              WHERE rn = 1
+            ) last_ss ON last_ss.agency_id = t.agency_id AND last_ss.trip_id = t.trip_id
+            JOIN stops s ON s.agency_id = t.agency_id AND s.stop_id = last_ss.stop_id
+            ORDER BY t.agency_id, t.route_id, COALESCE(t.direction_id, 0)
         )
         SELECT
           rs.agency_id,
@@ -666,7 +725,8 @@ pub async fn route_speed_by_day_type(
           sun.scheduled_speed_mps AS sunday_speed_mps,
           act.actual_weekday_speed_mps,
           act.actual_saturday_speed_mps,
-          act.actual_sunday_speed_mps
+          act.actual_sunday_speed_mps,
+          lsn.stop_name AS last_stop_name
         FROM route_speed rs
         JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
         LEFT JOIN route_speed_day_type wd
@@ -680,7 +740,10 @@ pub async fn route_speed_by_day_type(
          AND sun.direction_id = rs.direction_id AND sun.day_type = 'sunday'
         LEFT JOIN actual_by_day_type act
           ON act.agency_id = rs.agency_id AND act.route_id = rs.route_id
-         AND act.direction_id = rs.direction_id";
+         AND act.direction_id = rs.direction_id
+        LEFT JOIN last_stop_per_route_dir lsn
+          ON lsn.agency_id = rs.agency_id AND lsn.route_id = rs.route_id
+         AND lsn.direction_id = rs.direction_id";
 
     let order_sql = "ORDER BY rs.agency_id,
           CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
@@ -1295,6 +1358,7 @@ mod tests {
             trip_count: 1,
             live_speed_mps: None,
             actual_speed_mps: actual,
+            last_stop_name: None,
         }
     }
 
@@ -1754,6 +1818,106 @@ mod tests {
         assert!(
             row.actual_saturday_speed_mps.is_none(),
             "expected saturday actual to be None (no saturday data)"
+        );
+    }
+
+    #[tokio::test]
+    async fn route_speed_summary_includes_last_stop_name() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test','S1','First Stop',45.50,-73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test','S2','Last Stop',45.51,-73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test','T1','S1',1,'08:00:00','08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test','T1','S2',2,'08:10:00','08:10:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let summary = route_speed_summary(&db, None).await.unwrap();
+
+        assert_eq!(summary.len(), 1);
+        assert_eq!(
+            summary[0].last_stop_name.as_deref(),
+            Some("Last Stop"),
+            "expected last stop name to be the terminal stop"
+        );
+    }
+
+    #[tokio::test]
+    async fn route_speed_by_day_type_includes_last_stop_name() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test','S1','First Stop',45.50,-73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test','S2','Last Stop',45.51,-73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test','T1','S1',1,'08:00:00','08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test','T1','S2',2,'08:10:00','08:10:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let rows = route_speed_by_day_type(&db, None).await.unwrap();
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(
+            rows[0].last_stop_name.as_deref(),
+            Some("Last Stop"),
+            "expected last stop name to be the terminal stop"
         );
     }
 }

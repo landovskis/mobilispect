@@ -81,7 +81,10 @@ pub fn build_speed_cards(
             .iter()
             .map(|row| DirectionSpeedChart {
                 chart_id: format!("chart-{card_idx}-{}", row.direction_id),
-                title: super::direction_label(row.direction_id).to_string(),
+                title: row
+                    .last_stop_name
+                    .clone()
+                    .unwrap_or_else(|| super::direction_label(row.direction_id).to_string()),
                 chart_json: serde_json::to_string(&direction_datasets(row)).unwrap_or_default(),
             })
             .collect();
@@ -134,6 +137,7 @@ mod tests {
             actual_weekday_speed_mps: None,
             actual_saturday_speed_mps: None,
             actual_sunday_speed_mps: None,
+            last_stop_name: None,
         }
     }
 
@@ -204,6 +208,7 @@ mod tests {
             actual_weekday_speed_mps: Some(9.0),
             actual_saturday_speed_mps: None,
             actual_sunday_speed_mps: None,
+            last_stop_name: None,
         };
         let datasets = direction_datasets(&row);
         let arr = datasets.as_array().unwrap();
@@ -282,6 +287,7 @@ mod tests {
                 actual_weekday_speed_mps: None,
                 actual_saturday_speed_mps: None,
                 actual_sunday_speed_mps: None,
+                last_stop_name: None,
             },
             RouteSpeedDayType {
                 agency_id: "stm".into(),
@@ -295,6 +301,7 @@ mod tests {
                 actual_weekday_speed_mps: None,
                 actual_saturday_speed_mps: None,
                 actual_sunday_speed_mps: None,
+                last_stop_name: None,
             },
         ];
         let cards = build_speed_cards(rows, &HashMap::new());
@@ -317,6 +324,7 @@ mod tests {
             actual_weekday_speed_mps: None,
             actual_saturday_speed_mps: None,
             actual_sunday_speed_mps: None,
+            last_stop_name: None,
         }];
         let cards = build_speed_cards(rows, &HashMap::new());
         let avg = cards[0].avg_scheduled_speed_mps.unwrap();
@@ -345,6 +353,7 @@ mod tests {
             actual_weekday_speed_mps: Some(5.0),
             actual_saturday_speed_mps: Some(7.0),
             actual_sunday_speed_mps: None,
+            last_stop_name: None,
         }];
         let cards = build_speed_cards(rows, &HashMap::new());
         let avg = cards[0].avg_actual_speed_mps.unwrap();
@@ -357,5 +366,25 @@ mod tests {
         let rows = vec![make_row("stm", "R1", 0, None)];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].avg_scheduled_speed_mps.is_none());
+    }
+
+    #[test]
+    fn build_speed_cards_uses_last_stop_name_as_chart_title() {
+        let rows = vec![RouteSpeedDayType {
+            agency_id: "stm".into(),
+            route_id: "R1".into(),
+            short_name: "R1".into(),
+            long_name: "Route R1".into(),
+            direction_id: 0,
+            weekday_speed_mps: Some(8.0),
+            saturday_speed_mps: None,
+            sunday_speed_mps: None,
+            actual_weekday_speed_mps: None,
+            actual_saturday_speed_mps: None,
+            actual_sunday_speed_mps: None,
+            last_stop_name: Some("Downtown".to_string()),
+        }];
+        let cards = build_speed_cards(rows, &HashMap::new());
+        assert_eq!(cards[0].charts[0].title, "Downtown");
     }
 }
