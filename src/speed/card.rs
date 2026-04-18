@@ -5,6 +5,17 @@ pub struct DirectionSpeedChart {
     pub chart_id: String,
     pub title: String,
     pub chart_json: String,
+    pub avg_stop_spacing_m: Option<f64>,
+}
+
+impl DirectionSpeedChart {
+    pub fn avg_stop_spacing_display(&self) -> String {
+        match self.avg_stop_spacing_m {
+            None => "—".to_string(),
+            Some(m) if m >= 1000.0 => format!("{:.1} km", m / 1000.0),
+            Some(m) => format!("{:.0} m", m),
+        }
+    }
 }
 
 pub struct RouteSpeedCard {
@@ -86,6 +97,7 @@ pub fn build_speed_cards(
                     .clone()
                     .unwrap_or_else(|| super::direction_label(row.direction_id).to_string()),
                 chart_json: serde_json::to_string(&direction_datasets(row)).unwrap_or_default(),
+                avg_stop_spacing_m: row.avg_stop_spacing_m,
             })
             .collect();
         let avg_scheduled_speed_mps = avg_speeds(route_rows.iter().flat_map(|r| {
@@ -138,6 +150,7 @@ mod tests {
             actual_saturday_speed_mps: None,
             actual_sunday_speed_mps: None,
             last_stop_name: None,
+            avg_stop_spacing_m: None,
         }
     }
 
@@ -209,6 +222,7 @@ mod tests {
             actual_saturday_speed_mps: None,
             actual_sunday_speed_mps: None,
             last_stop_name: None,
+            avg_stop_spacing_m: None,
         };
         let datasets = direction_datasets(&row);
         let arr = datasets.as_array().unwrap();
@@ -288,6 +302,7 @@ mod tests {
                 actual_saturday_speed_mps: None,
                 actual_sunday_speed_mps: None,
                 last_stop_name: None,
+                avg_stop_spacing_m: None,
             },
             RouteSpeedDayType {
                 agency_id: "stm".into(),
@@ -302,6 +317,7 @@ mod tests {
                 actual_saturday_speed_mps: None,
                 actual_sunday_speed_mps: None,
                 last_stop_name: None,
+                avg_stop_spacing_m: None,
             },
         ];
         let cards = build_speed_cards(rows, &HashMap::new());
@@ -325,6 +341,7 @@ mod tests {
             actual_saturday_speed_mps: None,
             actual_sunday_speed_mps: None,
             last_stop_name: None,
+            avg_stop_spacing_m: None,
         }];
         let cards = build_speed_cards(rows, &HashMap::new());
         let avg = cards[0].avg_scheduled_speed_mps.unwrap();
@@ -354,6 +371,7 @@ mod tests {
             actual_saturday_speed_mps: Some(7.0),
             actual_sunday_speed_mps: None,
             last_stop_name: None,
+            avg_stop_spacing_m: None,
         }];
         let cards = build_speed_cards(rows, &HashMap::new());
         let avg = cards[0].avg_actual_speed_mps.unwrap();
@@ -366,6 +384,14 @@ mod tests {
         let rows = vec![make_row("stm", "R1", 0, None)];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].avg_scheduled_speed_mps.is_none());
+    }
+
+    #[test]
+    fn build_speed_cards_chart_carries_avg_stop_spacing() {
+        let mut row = make_row("stm", "R1", 0, Some(8.0));
+        row.avg_stop_spacing_m = Some(450.0);
+        let cards = build_speed_cards(vec![row], &HashMap::new());
+        assert_eq!(cards[0].charts[0].avg_stop_spacing_m, Some(450.0));
     }
 
     #[test]
@@ -383,6 +409,7 @@ mod tests {
             actual_saturday_speed_mps: None,
             actual_sunday_speed_mps: None,
             last_stop_name: Some("Downtown".to_string()),
+            avg_stop_spacing_m: None,
         }];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert_eq!(cards[0].charts[0].title, "Downtown");

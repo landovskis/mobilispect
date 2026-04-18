@@ -6,6 +6,7 @@
     <div class="chart-col">
       <div class="chart-title">{{ chart.title }}</div>
       <canvas id="{{ chart.chart_id }}" height="160"></canvas>
+      <div class="stop-spacing">Avg stop spacing: {{ chart.avg_stop_spacing_display() }}</div>
     </div>
     {% endfor %}
   </div>
