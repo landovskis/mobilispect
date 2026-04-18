@@ -398,6 +398,8 @@ mod tests {
         RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
             short_name: short_name.into(),
             long_name: short_name.into(),
             charts: vec![],
@@ -410,6 +412,8 @@ mod tests {
         RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
             short_name: short_name.into(),
             long_name: short_name.into(),
             charts: vec![],

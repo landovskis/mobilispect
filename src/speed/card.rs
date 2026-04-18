@@ -21,6 +21,8 @@ impl DirectionSpeedChart {
 pub struct RouteSpeedCard {
     pub idx: usize,
     pub agency_name: String,
+    pub agency_id: String,
+    pub route_id: String,
     pub short_name: String,
     pub long_name: String,
     pub charts: Vec<DirectionSpeedChart>,
@@ -117,6 +119,8 @@ pub fn build_speed_cards(
         cards.push(RouteSpeedCard {
             idx: card_idx,
             agency_name,
+            agency_id: first.agency_id.clone(),
+            route_id: first.route_id.clone(),
             short_name: first.short_name.clone(),
             long_name: first.long_name.clone(),
             charts,
@@ -413,5 +417,14 @@ mod tests {
         }];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert_eq!(cards[0].charts[0].title, "Downtown");
+    }
+
+    #[test]
+    fn build_speed_cards_carries_agency_id_and_route_id() {
+        let rows = vec![make_row("stm", "R99", 0, None)];
+        let names = HashMap::new();
+        let cards = build_speed_cards(rows, &names);
+        assert_eq!(cards[0].agency_id, "stm");
+        assert_eq!(cards[0].route_id, "R99");
     }
 }
