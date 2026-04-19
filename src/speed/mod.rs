@@ -229,7 +229,6 @@ pub struct DirectionSpeedTrend {
 }
 
 /// Raw row returned by the speed trend SQL query.
-#[allow(dead_code)] // removed when route_speed_trend_by_direction (Task 5) is added
 #[derive(sqlx::FromRow)]
 struct SpeedTrendRow {
     direction_id: i64,
@@ -237,7 +236,6 @@ struct SpeedTrendRow {
     actual_speed_mps: f64,
 }
 
-#[allow(dead_code)] // removed when route_speed_trend_by_direction (Task 5) is added
 fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> {
     use chrono::Datelike;
     use std::str::FromStr;
@@ -328,6 +326,33 @@ pub async fn route_stop_spacings(
     .await?;
 
     Ok(build_direction_spacings(rows))
+}
+
+/// Fetch per-day actual speed for a single route, grouped by direction and day type.
+/// `days` controls how many days back to look (use 28 to match other data windows).
+pub async fn route_speed_trend_by_direction(
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+    days: i64,
+) -> Result<Vec<DirectionSpeedTrend>> {
+    let rows: Vec<SpeedTrendRow> = sqlx::query_as(
+        "SELECT COALESCE(direction_id, 0) AS direction_id,
+                service_date::text AS service_date,
+                actual_speed_mps
+         FROM route_speed_daily
+         WHERE agency_id = $1
+           AND route_id = $2
+           AND service_date::date >= (CURRENT_DATE - $3::BIGINT * INTERVAL '1 day')
+         ORDER BY direction_id, service_date",
+    )
+    .bind(agency_id)
+    .bind(route_id)
+    .bind(days)
+    .fetch_all(&db.pool)
+    .await?;
+
+    Ok(build_direction_trends(rows))
 }
 
 /// Compute scheduled average speed (m/s) for every route+direction and store in `route_speed`.
@@ -2476,6 +2501,54 @@ mod tests {
     async fn route_stop_spacings_returns_empty_for_unknown_route() {
         let td = test_utils::setup().await;
         let result = route_stop_spacings(&td.db, "test", "NONEXISTENT").await.unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[tokio::test]
+    async fn route_speed_trend_by_direction_groups_and_buckets() {
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        // 2024-01-01 = Monday (weekday), 2024-01-06 = Saturday, 2024-01-07 = Sunday
+        for (date, dir, speed) in [
+            ("2024-01-01", 0_i64, 5.0_f64),
+            ("2024-01-06", 0, 6.0),
+            ("2024-01-07", 0, 7.0),
+            ("2024-01-01", 1, 4.0),
+        ] {
+            sqlx::query(
+                "INSERT INTO route_speed_daily
+                 (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
+                 VALUES ('test', 'R1', $1, $2, $3, 1, 'now')",
+            )
+            .bind(date)
+            .bind(dir)
+            .bind(speed)
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+
+        let trends = route_speed_trend_by_direction(db, "test", "R1", 1000).await.unwrap();
+        assert_eq!(trends.len(), 2, "two directions");
+
+        let dir0 = trends.iter().find(|t| t.direction_id == 0).unwrap();
+        assert_eq!(dir0.weekday.len(), 1);
+        assert_eq!(dir0.weekday[0].0, "2024-01-01");
+        assert!((dir0.weekday[0].1 - 5.0).abs() < 0.001);
+        assert_eq!(dir0.saturday.len(), 1);
+        assert_eq!(dir0.sunday.len(), 1);
+
+        let dir1 = trends.iter().find(|t| t.direction_id == 1).unwrap();
+        assert_eq!(dir1.weekday.len(), 1);
+        assert!(dir1.saturday.is_empty());
+        assert!(dir1.sunday.is_empty());
+    }
+
+    #[tokio::test]
+    async fn route_speed_trend_by_direction_returns_empty_when_no_data() {
+        let td = test_utils::setup().await;
+        let result = route_speed_trend_by_direction(&td.db, "test", "R1", 28).await.unwrap();
         assert!(result.is_empty());
     }
 }
