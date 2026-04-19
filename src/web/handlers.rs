@@ -696,4 +696,35 @@ mod e2e_tests {
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
+
+    #[tokio::test]
+    async fn speed_page_shows_classification_badge_for_rapid_route() {
+        let td = test_utils::setup().await;
+        // R1: two stops ~1111 m apart (0.01° lat). Single segment → avg = 1111 m → Rapid.
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Terminus')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'First',   45.500, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Terminus', 45.510, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')")
+            .execute(&td.db.pool).await.unwrap();
+
+        let state = AppState { db: td.db, config: test_config() };
+        let app = build_router(state);
+        let response = app
+            .oneshot(Request::builder().uri("/speed?agency=test").body(Body::empty()).unwrap())
+            .await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Rapid"), "speed page HTML should contain 'Rapid' badge text");
+        assert!(html.contains("badge--rapid"), "speed page HTML should contain 'badge--rapid' CSS class");
+    }
 }

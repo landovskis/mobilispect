@@ -1,8 +1,15 @@
 <a href="/routes/{{ card.agency_id }}/{{ card.route_id }}/speed"
    style="text-decoration: none; color: inherit; display: block;">
 <div class="card">
-  <div class="route-num">{{ card.agency_name }} {{ card.short_name }}</div>
-  <div class="route-name">{{ card.long_name }}</div>
+  <div class="route-header">
+    <div>
+      <div class="route-num">{{ card.agency_name }} {{ card.short_name }}</div>
+      <div class="route-name">{{ card.long_name }}</div>
+    </div>
+    {% if let Some(class) = card.classification %}
+    <span class="badge badge--{{ class.css_class() }}">{{ class.label() }}</span>
+    {% endif %}
+  </div>
   <div class="chart-row">
     {% for chart in &card.charts %}
     <div class="chart-col">
