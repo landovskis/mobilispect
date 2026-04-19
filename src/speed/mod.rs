@@ -229,7 +229,7 @@ pub struct DirectionSpeedTrend {
 }
 
 /// Raw row returned by the speed trend SQL query.
-#[allow(dead_code)]
+#[allow(dead_code)] // removed when route_speed_trend_by_direction (Task 5) is added
 #[derive(sqlx::FromRow)]
 struct SpeedTrendRow {
     direction_id: i64,
@@ -237,7 +237,7 @@ struct SpeedTrendRow {
     actual_speed_mps: f64,
 }
 
-#[allow(dead_code)]
+#[allow(dead_code)] // removed when route_speed_trend_by_direction (Task 5) is added
 fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> {
     use chrono::Datelike;
     use std::str::FromStr;
