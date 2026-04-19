@@ -229,6 +229,7 @@ pub struct DirectionSpeedTrend {
 }
 
 /// Raw row returned by the speed trend SQL query.
+#[allow(dead_code)]
 #[derive(sqlx::FromRow)]
 struct SpeedTrendRow {
     direction_id: i64,
