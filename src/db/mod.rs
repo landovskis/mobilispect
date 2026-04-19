@@ -38,7 +38,14 @@ pub mod test_utils {
 
     async fn container_port() -> u16 {
         let container = CONTAINER
-            .get_or_init(|| async { Postgres::default().start().await.unwrap() })
+            .get_or_init(|| async {
+                use testcontainers::ImageExt;
+                Postgres::default()
+                    .with_tag("16-alpine")
+                    .start()
+                    .await
+                    .unwrap()
+            })
             .await;
         container.get_host_port_ipv4(5432).await.unwrap()
     }

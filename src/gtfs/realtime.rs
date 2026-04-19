@@ -160,3 +160,72 @@ async fn store_trip_updates(
     }
     Ok(count)
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::db::test_utils;
+
+    #[tokio::test]
+    async fn dwell_secs_computed_from_timestamps() {
+        let test_db = test_utils::setup().await;
+        let pool = &test_db.db.pool;
+
+        sqlx::query!(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id,
+              arrival_time_unix, departure_time_unix)
+             VALUES ($1, $2, $3, $4, $5, $6)",
+            "agency-1",
+            "2026-04-19T10:00:00Z",
+            "trip-1",
+            "stop-1",
+            1000_i64,
+            1045_i64,
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        let row = sqlx::query!(
+            "SELECT dwell_secs FROM stop_time_events WHERE trip_id = $1",
+            "trip-1"
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+        assert_eq!(row.dwell_secs, Some(45));
+    }
+
+    #[tokio::test]
+    async fn dwell_secs_is_null_when_arrival_missing() {
+        let test_db = test_utils::setup().await;
+        let pool = &test_db.db.pool;
+
+        sqlx::query!(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id,
+              arrival_time_unix, departure_time_unix)
+             VALUES ($1, $2, $3, $4, $5, $6)",
+            "agency-2",
+            "2026-04-19T10:00:00Z",
+            "trip-2",
+            "stop-2",
+            None::<i64>,
+            1045_i64,
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        let row = sqlx::query!(
+            "SELECT dwell_secs FROM stop_time_events WHERE trip_id = $1",
+            "trip-2"
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+        assert_eq!(row.dwell_secs, None);
+    }
+}
