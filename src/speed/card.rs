@@ -16,6 +16,7 @@ impl DirectionSpeedChart {
             Some(m) => format!("{:.0} m", m),
         }
     }
+
 }
 
 pub struct RouteSpeedCard {

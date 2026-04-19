@@ -37,6 +37,7 @@ impl RouteSpeedDetailDirection {
             format!("{:.0} m", self.avg_spacing_m)
         }
     }
+
 }
 
 #[derive(Template)]

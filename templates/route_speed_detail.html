@@ -51,7 +51,9 @@
     footer { text-align: center; padding: 2rem; color: #aaa; font-size: 0.8rem; }
     .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;
              font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
-    .badge--slow-bus  { background: #fef9e7; color: #b7950b; border: 1px solid #f9e79f; }
+    .badge--slow-bus  { background: #fde8e8; color: #c0392b; border: 1px solid #f1948a; }
+    .seg-line.slow { background: #c0392b; }
+    .seg-label.slow { color: #c0392b; font-weight: 600; }
     .badge--local-bus { background: #e8f4fd; color: #2471a3; border: 1px solid #aed6f1; }
     .badge--rapid     { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
     .badge--express   { background: #f5eef8; color: #7d3c98; border: 1px solid #d7bde2; }
@@ -83,9 +85,9 @@
             </div>
             {% for spacing in &direction.spacings %}
             <div class="stop-seg" style="width: {{ spacing.width_px }}px;">
-              <div class="seg-line{% if spacing.is_outlier %} outlier{% endif %}"
+              <div class="seg-line{% if spacing.is_outlier %} outlier{% elif spacing.is_slow_bus() %} slow{% endif %}"
                    style="width: {{ spacing.width_px }}px;"></div>
-              <div class="seg-label{% if spacing.is_outlier %} outlier{% endif %}">
+              <div class="seg-label{% if spacing.is_outlier %} outlier{% elif spacing.is_slow_bus() %} slow{% endif %}">
                 {{ spacing.distance_display() }}{% if spacing.is_outlier %} !{% endif %}
               </div>
             </div>

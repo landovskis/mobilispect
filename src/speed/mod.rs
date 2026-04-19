@@ -153,6 +153,10 @@ impl StopSpacing {
             format!("{:.0} m", self.distance_m)
         }
     }
+
+    pub fn is_slow_bus(&self) -> bool {
+        self.distance_m < 300.0
+    }
 }
 
 /// Builds per-direction spacing data from raw SQL rows.
