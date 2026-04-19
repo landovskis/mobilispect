@@ -136,6 +136,7 @@ pub struct DirectionStopSpacings {
 }
 
 /// Raw row returned by the stop spacings SQL query.
+#[allow(dead_code)]
 #[derive(sqlx::FromRow)]
 struct StopSpacingRow {
     direction_id: i64,
@@ -155,6 +156,7 @@ impl StopSpacing {
     }
 }
 
+#[allow(dead_code)]
 fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpacings> {
     let mut result: Vec<DirectionStopSpacings> = Vec::new();
     let mut i = 0;
