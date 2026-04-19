@@ -343,7 +343,7 @@ pub async fn route_speed_trend_by_direction(
          FROM route_speed_daily
          WHERE agency_id = $1
            AND route_id = $2
-           AND service_date >= (CURRENT_DATE - ($3 || ' days')::INTERVAL)::TEXT
+           AND service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
          ORDER BY direction_id, service_date",
     )
     .bind(agency_id)
