@@ -337,13 +337,13 @@ pub async fn route_speed_trend_by_direction(
     days: i64,
 ) -> Result<Vec<DirectionSpeedTrend>> {
     let rows: Vec<SpeedTrendRow> = sqlx::query_as(
-        "SELECT COALESCE(direction_id, 0) AS direction_id,
-                service_date::text AS service_date,
+        "SELECT direction_id,
+                service_date,
                 actual_speed_mps
          FROM route_speed_daily
          WHERE agency_id = $1
            AND route_id = $2
-           AND service_date::date >= (CURRENT_DATE - $3::BIGINT * INTERVAL '1 day')
+           AND service_date >= (CURRENT_DATE - ($3 || ' days')::INTERVAL)::TEXT
          ORDER BY direction_id, service_date",
     )
     .bind(agency_id)
@@ -2506,15 +2506,32 @@ mod tests {
 
     #[tokio::test]
     async fn route_speed_trend_by_direction_groups_and_buckets() {
+        use chrono::{Datelike, Duration, Local};
+
+        // Compute dates relative to today so the test never falls outside the window.
+        // Find the most recent Monday (0 weeks back), then derive Saturday and Sunday.
+        fn last_monday(offset_weeks: i64) -> chrono::NaiveDate {
+            let today = Local::now().naive_local().date();
+            let days_from_monday = today.weekday().num_days_from_monday() as i64;
+            today - Duration::days(days_from_monday + offset_weeks * 7)
+        }
+        fn fmt(d: chrono::NaiveDate) -> String {
+            d.format("%Y-%m-%d").to_string()
+        }
+
+        let monday = last_monday(1); // one week back ensures we're not on today
+        let weekday_date = fmt(monday);
+        let saturday_date = fmt(monday + Duration::days(5));
+        let sunday_date = fmt(monday + Duration::days(6));
+
         let td = test_utils::setup().await;
         let db = &td.db;
 
-        // 2024-01-01 = Monday (weekday), 2024-01-06 = Saturday, 2024-01-07 = Sunday
         for (date, dir, speed) in [
-            ("2024-01-01", 0_i64, 5.0_f64),
-            ("2024-01-06", 0, 6.0),
-            ("2024-01-07", 0, 7.0),
-            ("2024-01-01", 1, 4.0),
+            (weekday_date.as_str(), 0_i64, 5.0_f64),
+            (saturday_date.as_str(), 0, 6.0),
+            (sunday_date.as_str(), 0, 7.0),
+            (weekday_date.as_str(), 1, 4.0),
         ] {
             sqlx::query(
                 "INSERT INTO route_speed_daily
@@ -2529,12 +2546,12 @@ mod tests {
             .unwrap();
         }
 
-        let trends = route_speed_trend_by_direction(db, "test", "R1", 1000).await.unwrap();
+        let trends = route_speed_trend_by_direction(db, "test", "R1", 28).await.unwrap();
         assert_eq!(trends.len(), 2, "two directions");
 
         let dir0 = trends.iter().find(|t| t.direction_id == 0).unwrap();
         assert_eq!(dir0.weekday.len(), 1);
-        assert_eq!(dir0.weekday[0].0, "2024-01-01");
+        assert_eq!(dir0.weekday[0].0, weekday_date);
         assert!((dir0.weekday[0].1 - 5.0).abs() < 0.001);
         assert_eq!(dir0.saturday.len(), 1);
         assert_eq!(dir0.sunday.len(), 1);
