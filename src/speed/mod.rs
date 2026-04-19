@@ -136,7 +136,6 @@ pub struct DirectionStopSpacings {
 }
 
 /// Raw row returned by the stop spacings SQL query.
-#[allow(dead_code)]
 #[derive(sqlx::FromRow)]
 struct StopSpacingRow {
     direction_id: i64,
@@ -156,7 +155,6 @@ impl StopSpacing {
     }
 }
 
-#[allow(dead_code)]
 fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpacings> {
     let mut result: Vec<DirectionStopSpacings> = Vec::new();
     let mut i = 0;
@@ -215,6 +213,62 @@ fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpaci
         i = end;
     }
     result
+}
+
+/// Fetch per-stop spacing data for a single route, grouped by direction.
+/// Returns one `DirectionStopSpacings` per direction. Empty if route has no trips.
+pub async fn route_stop_spacings(
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+) -> Result<Vec<DirectionStopSpacings>> {
+    let rows: Vec<StopSpacingRow> = sqlx::query_as(
+        "WITH rep_trip AS (
+            SELECT DISTINCT ON (COALESCE(direction_id, 0))
+                trip_id, COALESCE(direction_id, 0) AS direction_id
+            FROM trips
+            WHERE agency_id = $1 AND route_id = $2
+            ORDER BY COALESCE(direction_id, 0), trip_id
+        ),
+        ordered AS (
+            SELECT
+                rt.direction_id,
+                s.stop_name,
+                s.stop_lat, s.stop_lon,
+                ROW_NUMBER() OVER (PARTITION BY rt.direction_id ORDER BY ss.stop_sequence) AS rn,
+                COUNT(*)    OVER (PARTITION BY rt.direction_id)                            AS total_stops
+            FROM rep_trip rt
+            JOIN scheduled_stops ss ON ss.agency_id = $1 AND ss.trip_id = rt.trip_id
+            JOIN stops s ON s.agency_id = $1 AND s.stop_id = ss.stop_id
+        ),
+        with_prev AS (
+            SELECT
+                direction_id, stop_name, rn, total_stops, stop_lat, stop_lon,
+                LAG(stop_lat) OVER (PARTITION BY direction_id ORDER BY rn) AS prev_lat,
+                LAG(stop_lon) OVER (PARTITION BY direction_id ORDER BY rn) AS prev_lon
+            FROM ordered
+        )
+        SELECT
+            direction_id,
+            stop_name AS to_stop_name,
+            CASE WHEN prev_lat IS NOT NULL THEN
+                2 * 6371000 * asin(sqrt(
+                    power(sin((stop_lat - prev_lat) * pi() / 180.0 / 2.0), 2) +
+                    cos(prev_lat * pi() / 180.0) * cos(stop_lat * pi() / 180.0) *
+                    power(sin((stop_lon - prev_lon) * pi() / 180.0 / 2.0), 2)
+                ))
+            END AS distance_m,
+            (rn = 1)           AS is_first,
+            (rn = total_stops) AS is_last
+        FROM with_prev
+        ORDER BY direction_id, rn",
+    )
+    .bind(agency_id)
+    .bind(route_id)
+    .fetch_all(&db.pool)
+    .await?;
+
+    Ok(build_direction_spacings(rows))
 }
 
 /// Compute scheduled average speed (m/s) for every route+direction and store in `route_speed`.
@@ -2254,5 +2308,84 @@ mod tests {
             spacings[0].width_px < 200,
             "smaller distance should map to less than 200px"
         );
+    }
+
+    #[tokio::test]
+    async fn route_stop_spacings_returns_correct_order_and_distances() {
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        // direction 0 trip with 3 stops in sequence order
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Terminus')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        // S1 and S2 are 0.01° apart in latitude ≈ 1111 m; S2 and S3 are 0.001° ≈ 111 m
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'First Stop',  45.500, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Middle Stop', 45.510, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S3', 'Terminus',    45.511, -73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:05:00', '08:05:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S3', 3, '08:07:00', '08:07:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let directions = route_stop_spacings(db, "test", "R1").await.unwrap();
+
+        assert_eq!(directions.len(), 1, "one direction expected");
+        let dir = &directions[0];
+        assert_eq!(dir.first_stop_name, "First Stop");
+        assert_eq!(dir.direction_name, "Terminus");
+        assert_eq!(dir.spacings.len(), 2, "two segments (S1→S2, S2→S3)");
+        assert_eq!(dir.spacings[0].to_stop_name, "Middle Stop");
+        assert_eq!(dir.spacings[1].to_stop_name, "Terminus");
+        // S1→S2: ~0.01° lat ≈ 1111 m; allow ±50 m tolerance
+        assert!(
+            (dir.spacings[0].distance_m - 1111.0).abs() < 50.0,
+            "S1→S2 should be ~1111 m, got {}",
+            dir.spacings[0].distance_m
+        );
+        // S2→S3: ~0.001° lat ≈ 111 m
+        assert!(
+            (dir.spacings[1].distance_m - 111.0).abs() < 10.0,
+            "S2→S3 should be ~111 m, got {}",
+            dir.spacings[1].distance_m
+        );
+        // avg ≈ 611 m, threshold ≈ 917 m → S1→S2 (1111 m) is an outlier
+        assert!(dir.spacings[0].is_outlier, "S1→S2 should be flagged as outlier");
+        assert!(!dir.spacings[1].is_outlier, "S2→S3 should not be an outlier");
+    }
+
+    #[tokio::test]
+    async fn route_stop_spacings_returns_empty_for_unknown_route() {
+        let td = test_utils::setup().await;
+        let result = route_stop_spacings(&td.db, "test", "NONEXISTENT").await.unwrap();
+        assert!(result.is_empty());
     }
 }
