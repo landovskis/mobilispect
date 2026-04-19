@@ -27,14 +27,14 @@ pub async fn poll_loop(db: &Database, agency: &AgencyConfig, poll_interval_secs:
 async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
 
-    // Fetch VehiclePositions
-    let vp_bytes = fetch_feed(
-        &agency.gtfs_rt_vehicle_positions_url,
-        agency.gtfs_api_key.as_deref(),
-    )
-    .await?;
-    let vp_feed = proto::FeedMessage::decode(vp_bytes.as_ref())?;
-    let vp_count = store_vehicle_positions(db, &vp_feed, &now, &agency.slug).await?;
+    // Fetch VehiclePositions (optional — skip if URL not configured)
+    let vp_count = if let Some(url) = &agency.gtfs_rt_vehicle_positions_url {
+        let vp_bytes = fetch_feed(url, agency.gtfs_api_key.as_deref()).await?;
+        let vp_feed = proto::FeedMessage::decode(vp_bytes.as_ref())?;
+        store_vehicle_positions(db, &vp_feed, &now, &agency.slug).await?
+    } else {
+        0
+    };
 
     // Fetch TripUpdates
     let tu_bytes = fetch_feed(
