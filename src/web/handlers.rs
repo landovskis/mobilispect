@@ -61,7 +61,7 @@ fn trend_to_json(points: Vec<(String, f64)>) -> String {
             speed_kmh: (mps * 3.6 * 10.0).round() / 10.0,
         })
         .collect();
-    serde_json::to_string(&pts).unwrap_or_default()
+    serde_json::to_string(&pts).unwrap_or_else(|_| "[]".to_string())
 }
 
 pub async fn route_speed_detail(
@@ -77,7 +77,10 @@ pub async fn route_speed_detail(
     .bind(&route_id)
     .fetch_optional(&state.db.pool)
     .await
-    .unwrap_or(None);
+    .unwrap_or_else(|e| {
+        tracing::error!("DB error fetching route {agency_id}/{route_id}: {e}");
+        None
+    });
 
     let (short_name, long_name) = match route_info {
         Some(r) => r,
@@ -95,8 +98,14 @@ pub async fn route_speed_detail(
         route_speed_trend_by_direction(&state.db, &agency_id, &route_id, 28),
     );
 
-    let spacings = spacings_res.unwrap_or_default();
-    let trends = trends_res.unwrap_or_default();
+    let spacings = spacings_res.unwrap_or_else(|e| {
+        tracing::error!("route_stop_spacings failed for {agency_id}/{route_id}: {e}");
+        vec![]
+    });
+    let trends = trends_res.unwrap_or_else(|e| {
+        tracing::error!("route_speed_trend_by_direction failed for {agency_id}/{route_id}: {e}");
+        vec![]
+    });
 
     if spacings.is_empty() {
         return (
