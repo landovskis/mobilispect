@@ -12,8 +12,8 @@ use crate::metrics::{
     route_summary, route_trend, scorecard_routes, stop_hotspots,
 };
 use crate::speed::{
-    RouteSpeedCard, RouteSpeedSummary, StopSpacing,
-    build_speed_cards, route_speed_by_day_type, route_speed_summary,
+    RouteClass, RouteSpeedCard, RouteSpeedSummary, StopSpacing,
+    build_speed_cards, classify_by_spacing, route_speed_by_day_type, route_speed_summary,
     route_stop_spacings, route_speed_trend_by_direction,
 };
 use crate::web::AppState;
@@ -46,6 +46,7 @@ struct RouteSpeedDetailTemplate {
     long_name: String,
     agency_id: String,
     directions: Vec<RouteSpeedDetailDirection>,
+    classification: Option<RouteClass>,
 }
 
 fn trend_to_json(points: Vec<(String, f64)>) -> String {
@@ -136,11 +137,22 @@ pub async fn route_speed_detail(
         })
         .collect();
 
+    let avg_spacing_m: Option<f64> = {
+        let vals: Vec<f64> = directions.iter().map(|d| d.avg_spacing_m).collect();
+        if vals.is_empty() {
+            None
+        } else {
+            Some(vals.iter().sum::<f64>() / vals.len() as f64)
+        }
+    };
+    let classification = avg_spacing_m.map(classify_by_spacing);
+
     let tmpl = RouteSpeedDetailTemplate {
         short_name,
         long_name,
         agency_id,
         directions,
+        classification,
     };
     Html(
         tmpl.render()
@@ -726,5 +738,34 @@ mod e2e_tests {
         let html = String::from_utf8(bytes.to_vec()).unwrap();
         assert!(html.contains("Rapid"), "speed page HTML should contain 'Rapid' badge text");
         assert!(html.contains("badge--rapid"), "speed page HTML should contain 'badge--rapid' CSS class");
+    }
+
+    #[tokio::test]
+    async fn route_speed_detail_shows_classification_badge() {
+        let td = test_utils::setup().await;
+        // Two stops ~1111 m apart → avg spacing 1111 m → Rapid
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Downtown')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Main St',  45.50, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Downtown', 45.51, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
+            .execute(&td.db.pool).await.unwrap();
+
+        let state = AppState { db: td.db, config: test_config() };
+        let app = build_router(state);
+        let response = app
+            .oneshot(Request::builder().uri("/routes/test/R1/speed").body(Body::empty()).unwrap())
+            .await.unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Rapid"), "detail page HTML should contain 'Rapid' badge text");
+        assert!(html.contains("badge--rapid"), "detail page HTML should contain 'badge--rapid' CSS class");
     }
 }

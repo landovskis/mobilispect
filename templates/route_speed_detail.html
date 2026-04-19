@@ -49,12 +49,23 @@
                    font-size: 0.75rem; color: #555; }
     .legend-swatch { width: 20px; height: 3px; border-radius: 2px; }
     footer { text-align: center; padding: 2rem; color: #aaa; font-size: 0.8rem; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;
+             font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+    .badge--slow-bus  { background: #fef9e7; color: #b7950b; border: 1px solid #f9e79f; }
+    .badge--local-bus { background: #e8f4fd; color: #2471a3; border: 1px solid #aed6f1; }
+    .badge--rapid     { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+    .badge--express   { background: #f5eef8; color: #7d3c98; border: 1px solid #d7bde2; }
   </style>
 </head>
 <body>
   <header>
     <h1>Route {{ short_name }} — {{ long_name }}</h1>
-    <a href="/speed?agency={{ agency_id }}">← Back to speed overview</a>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      {% if let Some(class) = classification %}
+      <span class="badge badge--{{ class.css_class() }}">{{ class.label() }}</span>
+      {% endif %}
+      <a href="/speed?agency={{ agency_id }}">← Back to speed overview</a>
+    </div>
   </header>
 
   <div class="container">
