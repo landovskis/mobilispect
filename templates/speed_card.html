@@ -1,3 +1,5 @@
+<a href="/routes/{{ card.agency_id }}/{{ card.route_id }}/speed"
+   style="text-decoration: none; color: inherit; display: block;">
 <div class="card">
   <div class="route-num">{{ card.agency_name }} {{ card.short_name }}</div>
   <div class="route-name">{{ card.long_name }}</div>
@@ -11,6 +13,7 @@
     {% endfor %}
   </div>
 </div>
+</a>
 <script>
 {% for chart in &card.charts %}
 new Chart(document.getElementById('{{ chart.chart_id }}'), {
