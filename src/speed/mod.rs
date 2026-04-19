@@ -1043,7 +1043,7 @@ mod tests {
             name: "Test Agency".to_string(),
             gtfs_static_url: String::new(),
             gtfs_rt_vehicle_positions_url: None,
-            gtfs_rt_trip_updates_url: String::new(),
+            gtfs_rt_trip_updates_url: None,
             gtfs_api_key: None,
             agency_utc_offset: "-04:00".to_string(),
         }

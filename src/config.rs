@@ -7,7 +7,7 @@ pub struct AgencyConfig {
     pub name: String,
     pub gtfs_static_url: String,
     pub gtfs_rt_vehicle_positions_url: Option<String>,
-    pub gtfs_rt_trip_updates_url: String,
+    pub gtfs_rt_trip_updates_url: Option<String>,
     pub gtfs_api_key: Option<String>,
     /// UTC offset string for agency local time, e.g. "-04:00" or "-05:00"
     pub agency_utc_offset: String,
@@ -51,9 +51,7 @@ impl Config {
                             gtfs_rt_trip_updates_url: std::env::var(format!(
                                 "AGENCY_{i}_GTFS_RT_TRIP_UPDATES_URL"
                             ))
-                            .with_context(|| {
-                                format!("AGENCY_{i}_GTFS_RT_TRIP_UPDATES_URL must be set")
-                            })?,
+                            .ok(),
                             gtfs_api_key: std::env::var(format!("AGENCY_{i}_GTFS_API_KEY")).ok(),
                             agency_utc_offset: std::env::var(format!("AGENCY_{i}_UTC_OFFSET"))
                                 .unwrap_or_else(|_| "-05:00".to_string()),
@@ -75,8 +73,7 @@ impl Config {
                 gtfs_static_url: std::env::var("GTFS_STATIC_URL")
                     .context("GTFS_STATIC_URL must be set")?,
                 gtfs_rt_vehicle_positions_url: std::env::var("GTFS_RT_VEHICLE_POSITIONS_URL").ok(),
-                gtfs_rt_trip_updates_url: std::env::var("GTFS_RT_TRIP_UPDATES_URL")
-                    .context("GTFS_RT_TRIP_UPDATES_URL must be set")?,
+                gtfs_rt_trip_updates_url: std::env::var("GTFS_RT_TRIP_UPDATES_URL").ok(),
                 gtfs_api_key: std::env::var("GTFS_API_KEY").ok(),
                 agency_utc_offset: std::env::var("AGENCY_UTC_OFFSET")
                     .unwrap_or_else(|_| "-05:00".to_string()),

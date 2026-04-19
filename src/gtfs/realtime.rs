@@ -36,14 +36,14 @@ async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
         0
     };
 
-    // Fetch TripUpdates
-    let tu_bytes = fetch_feed(
-        &agency.gtfs_rt_trip_updates_url,
-        agency.gtfs_api_key.as_deref(),
-    )
-    .await?;
-    let tu_feed = proto::FeedMessage::decode(tu_bytes.as_ref())?;
-    let tu_count = store_trip_updates(db, &tu_feed, &now, &agency.slug).await?;
+    // Fetch TripUpdates (optional — skip if URL not configured)
+    let tu_count = if let Some(url) = &agency.gtfs_rt_trip_updates_url {
+        let tu_bytes = fetch_feed(url, agency.gtfs_api_key.as_deref()).await?;
+        let tu_feed = proto::FeedMessage::decode(tu_bytes.as_ref())?;
+        store_trip_updates(db, &tu_feed, &now, &agency.slug).await?
+    } else {
+        0
+    };
 
     compute_route_speed_hourly(db, agency).await?;
 
