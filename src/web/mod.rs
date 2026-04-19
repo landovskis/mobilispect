@@ -14,24 +14,28 @@ pub struct AppState {
     pub config: Config,
 }
 
-pub async fn serve(db: &Database, config: &Config) -> Result<()> {
-    let state = AppState {
-        db: db.clone(),
-        config: config.clone(),
-    };
-
-    let app = Router::new()
+pub fn build_router(state: AppState) -> Router {
+    Router::new()
         .route("/", get(handlers::dashboard))
         .route("/report", get(handlers::report))
         .route("/speed", get(handlers::speed_page))
         .route("/scorecard", get(handlers::scorecard))
+        // /speed route registered BEFORE bare :route_id to avoid shadowing
+        .route("/routes/:agency_id/:route_id/speed", get(handlers::route_speed_detail))
         .route("/routes/:agency_id/:route_id", get(handlers::route_detail))
         .route("/hotspots", get(handlers::hotspots))
         .route("/api/routes", get(handlers::api_routes))
         .route("/api/routes/speed", get(handlers::api_route_speed))
         .layer(TraceLayer::new_for_http())
-        .with_state(state);
+        .with_state(state)
+}
 
+pub async fn serve(db: &Database, config: &Config) -> Result<()> {
+    let state = AppState {
+        db: db.clone(),
+        config: config.clone(),
+    };
+    let app = build_router(state);
     let listener = tokio::net::TcpListener::bind(&config.bind_address).await?;
     info!("Dashboard available at http://{}", config.bind_address);
     axum::serve(listener, app).await?;

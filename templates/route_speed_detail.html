@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head><title>{{ short_name }} — {{ long_name }} Speed Detail</title></head>
+<body>
+<h1>{{ short_name }} — {{ long_name }}</h1>
+<p>Agency: {{ agency_id }}</p>
+{% for dir in directions %}
+<section id="{{ dir.chart_id }}">
+  <h2>To {{ dir.direction_name }}</h2>
+  <p>From: {{ dir.first_stop_name }}</p>
+  <p>Avg spacing: {{ dir.avg_spacing_display() }}</p>
+  {% for spacing in dir.spacings %}
+  <span>{{ spacing.to_stop_name }} ({{ spacing.distance_display() }})</span>
+  {% endfor %}
+  <script>
+  var weekdayData = {{ dir.weekday_json|safe }};
+  var saturdayData = {{ dir.saturday_json|safe }};
+  var sundayData = {{ dir.sunday_json|safe }};
+  </script>
+</section>
+{% endfor %}
+</body>
+</html>

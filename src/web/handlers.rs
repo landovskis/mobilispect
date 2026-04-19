@@ -12,10 +12,133 @@ use crate::metrics::{
     route_summary, route_trend, scorecard_routes, stop_hotspots,
 };
 use crate::speed::{
-    RouteSpeedCard, RouteSpeedSummary, build_speed_cards, route_speed_by_day_type,
-    route_speed_summary,
+    RouteSpeedCard, RouteSpeedSummary, StopSpacing,
+    build_speed_cards, route_speed_by_day_type, route_speed_summary,
+    route_stop_spacings, route_speed_trend_by_direction,
 };
 use crate::web::AppState;
+
+struct RouteSpeedDetailDirection {
+    pub chart_id: String,
+    pub direction_name: String,
+    pub first_stop_name: String,
+    pub avg_spacing_m: f64,
+    pub spacings: Vec<StopSpacing>,
+    pub weekday_json: String,
+    pub saturday_json: String,
+    pub sunday_json: String,
+}
+
+impl RouteSpeedDetailDirection {
+    pub fn avg_spacing_display(&self) -> String {
+        if self.avg_spacing_m >= 1000.0 {
+            format!("{:.1} km", self.avg_spacing_m / 1000.0)
+        } else {
+            format!("{:.0} m", self.avg_spacing_m)
+        }
+    }
+}
+
+#[derive(Template)]
+#[template(path = "route_speed_detail.html")]
+struct RouteSpeedDetailTemplate {
+    short_name: String,
+    long_name: String,
+    agency_id: String,
+    directions: Vec<RouteSpeedDetailDirection>,
+}
+
+fn trend_to_json(points: Vec<(String, f64)>) -> String {
+    #[derive(serde::Serialize)]
+    struct TrendPoint {
+        date: String,
+        speed_kmh: f64,
+    }
+    let pts: Vec<TrendPoint> = points
+        .into_iter()
+        .map(|(date, mps)| TrendPoint {
+            date,
+            speed_kmh: (mps * 3.6 * 10.0).round() / 10.0,
+        })
+        .collect();
+    serde_json::to_string(&pts).unwrap_or_default()
+}
+
+pub async fn route_speed_detail(
+    State(state): State<AppState>,
+    axum::extract::Path((agency_id, route_id)): axum::extract::Path<(String, String)>,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+
+    let route_info: Option<(String, String)> = sqlx::query_as(
+        "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
+    )
+    .bind(&agency_id)
+    .bind(&route_id)
+    .fetch_optional(&state.db.pool)
+    .await
+    .unwrap_or(None);
+
+    let (short_name, long_name) = match route_info {
+        Some(r) => r,
+        None => {
+            return (
+                axum::http::StatusCode::NOT_FOUND,
+                Html("<h1>Not Found</h1>".to_string()),
+            )
+                .into_response()
+        }
+    };
+
+    let (spacings_res, trends_res) = tokio::join!(
+        route_stop_spacings(&state.db, &agency_id, &route_id),
+        route_speed_trend_by_direction(&state.db, &agency_id, &route_id, 28),
+    );
+
+    let spacings = spacings_res.unwrap_or_default();
+    let trends = trends_res.unwrap_or_default();
+
+    if spacings.is_empty() {
+        return (
+            axum::http::StatusCode::NOT_FOUND,
+            Html("<h1>Not Found</h1>".to_string()),
+        )
+            .into_response();
+    }
+
+    let directions: Vec<RouteSpeedDetailDirection> = spacings
+        .into_iter()
+        .enumerate()
+        .map(|(i, spacing)| {
+            let trend = trends.iter().find(|t| t.direction_id == spacing.direction_id);
+            let (weekday, saturday, sunday) = trend
+                .map(|t| (t.weekday.clone(), t.saturday.clone(), t.sunday.clone()))
+                .unwrap_or_default();
+            RouteSpeedDetailDirection {
+                chart_id: format!("dir-{i}"),
+                direction_name: spacing.direction_name,
+                first_stop_name: spacing.first_stop_name,
+                avg_spacing_m: spacing.avg_spacing_m,
+                spacings: spacing.spacings,
+                weekday_json: trend_to_json(weekday),
+                saturday_json: trend_to_json(saturday),
+                sunday_json: trend_to_json(sunday),
+            }
+        })
+        .collect();
+
+    let tmpl = RouteSpeedDetailTemplate {
+        short_name,
+        long_name,
+        agency_id,
+        directions,
+    };
+    Html(
+        tmpl.render()
+            .unwrap_or_else(|e| format!("Template error: {e}")),
+    )
+    .into_response()
+}
 
 #[derive(Deserialize)]
 pub struct AgencyFilterParams {
@@ -474,5 +597,92 @@ mod tests {
         let mut cards = vec![card("Z", 5.0, None), card("A", 5.0, None)];
         sort_speed_cards(&mut cards, "scheduled");
         assert_eq!(cards[0].short_name, "A");
+    }
+}
+
+#[cfg(test)]
+mod e2e_tests {
+    use super::*;
+    use crate::config::{AgencyConfig, Config};
+    use crate::db::test_utils;
+    use crate::web::build_router;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use tower::ServiceExt;
+
+    fn test_config() -> Config {
+        Config {
+            agencies: vec![AgencyConfig {
+                slug: "test".to_string(),
+                name: "Test Agency".to_string(),
+                gtfs_static_url: String::new(),
+                gtfs_rt_vehicle_positions_url: String::new(),
+                gtfs_rt_trip_updates_url: String::new(),
+                gtfs_api_key: None,
+                agency_utc_offset: "-04:00".to_string(),
+            }],
+            database_url: String::new(),
+            poll_interval_secs: 30,
+            bind_address: "0.0.0.0:3000".to_string(),
+            on_time_early_threshold_secs: -60,
+            on_time_late_threshold_secs: 300,
+            retention_days: 30,
+        }
+    }
+
+    #[tokio::test]
+    async fn route_speed_detail_returns_200_with_direction_name() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Downtown')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Main St',  45.50, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Downtown', 45.51, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
+            .execute(&td.db.pool).await.unwrap();
+
+        let state = AppState { db: td.db, config: test_config() };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/routes/test/R1/speed")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Downtown"), "HTML should contain terminal stop name 'Downtown'");
+        assert!(html.contains("Route 1"), "HTML should contain route long name");
+    }
+
+    #[tokio::test]
+    async fn route_speed_detail_returns_404_for_unknown_route() {
+        let td = test_utils::setup().await;
+        let state = AppState { db: td.db, config: test_config() };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/routes/test/NONEXISTENT/speed")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }
