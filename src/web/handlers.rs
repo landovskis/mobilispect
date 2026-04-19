@@ -537,6 +537,7 @@ mod tests {
             charts: vec![],
             avg_scheduled_speed_mps: Some(scheduled),
             avg_actual_speed_mps: actual,
+            classification: None,
         }
     }
 
@@ -551,6 +552,7 @@ mod tests {
             charts: vec![],
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
+            classification: None,
         }
     }
 

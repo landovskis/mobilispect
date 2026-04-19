@@ -33,6 +33,7 @@ pub struct RouteSpeedCard {
     /// Sort key: unweighted mean of all non-None actual speed values across
     /// all day types and directions. `None` when no actual speed data exists.
     pub avg_actual_speed_mps: Option<f64>,
+    pub classification: Option<RouteClass>,
 }
 
 fn speed_kmh_json(mps: Option<f64>) -> serde_json::Value {
@@ -53,6 +54,46 @@ fn avg_speeds(iter: impl Iterator<Item = Option<f64>>) -> Option<f64> {
         .flatten()
         .fold((0.0_f64, 0usize), |(s, n), v| (s + v, n + 1));
     (count > 0).then(|| sum / count as f64)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RouteClass {
+    SlowBus,
+    LocalBus,
+    Rapid,
+    Express,
+}
+
+impl RouteClass {
+    pub fn label(&self) -> &'static str {
+        match self {
+            RouteClass::SlowBus => "Slow Bus",
+            RouteClass::LocalBus => "Local Bus",
+            RouteClass::Rapid => "Rapid",
+            RouteClass::Express => "Express",
+        }
+    }
+
+    pub fn css_class(&self) -> &'static str {
+        match self {
+            RouteClass::SlowBus => "slow-bus",
+            RouteClass::LocalBus => "local-bus",
+            RouteClass::Rapid => "rapid",
+            RouteClass::Express => "express",
+        }
+    }
+}
+
+pub fn classify_by_spacing(avg_m: f64) -> RouteClass {
+    if avg_m < 300.0 {
+        RouteClass::SlowBus
+    } else if avg_m < 500.0 {
+        RouteClass::LocalBus
+    } else if avg_m < 1500.0 {
+        RouteClass::Rapid
+    } else {
+        RouteClass::Express
+    }
 }
 
 fn direction_datasets(row: &RouteSpeedDayType) -> serde_json::Value {
@@ -116,6 +157,8 @@ pub fn build_speed_cards(
                 r.actual_sunday_speed_mps,
             ]
         }));
+        let avg_spacing_m = avg_speeds(charts.iter().map(|c| c.avg_stop_spacing_m));
+        let classification = avg_spacing_m.map(classify_by_spacing);
         cards.push(RouteSpeedCard {
             idx: card_idx,
             agency_name,
@@ -126,6 +169,7 @@ pub fn build_speed_cards(
             charts,
             avg_scheduled_speed_mps,
             avg_actual_speed_mps,
+            classification,
         });
     }
     cards
@@ -426,5 +470,73 @@ mod tests {
         let cards = build_speed_cards(rows, &names);
         assert_eq!(cards[0].agency_id, "stm");
         assert_eq!(cards[0].route_id, "R99");
+    }
+
+    #[test]
+    fn classify_slow_bus_below_300() {
+        assert_eq!(classify_by_spacing(0.0), RouteClass::SlowBus);
+        assert_eq!(classify_by_spacing(299.9), RouteClass::SlowBus);
+    }
+
+    #[test]
+    fn classify_local_bus_300_to_500() {
+        assert_eq!(classify_by_spacing(300.0), RouteClass::LocalBus);
+        assert_eq!(classify_by_spacing(499.9), RouteClass::LocalBus);
+    }
+
+    #[test]
+    fn classify_rapid_500_to_1500() {
+        assert_eq!(classify_by_spacing(500.0), RouteClass::Rapid);
+        assert_eq!(classify_by_spacing(1499.9), RouteClass::Rapid);
+    }
+
+    #[test]
+    fn classify_express_at_1500_and_above() {
+        assert_eq!(classify_by_spacing(1500.0), RouteClass::Express);
+        assert_eq!(classify_by_spacing(9999.0), RouteClass::Express);
+    }
+
+    #[test]
+    fn route_class_label() {
+        assert_eq!(RouteClass::SlowBus.label(), "Slow Bus");
+        assert_eq!(RouteClass::LocalBus.label(), "Local Bus");
+        assert_eq!(RouteClass::Rapid.label(), "Rapid");
+        assert_eq!(RouteClass::Express.label(), "Express");
+    }
+
+    #[test]
+    fn route_class_css_class() {
+        assert_eq!(RouteClass::SlowBus.css_class(), "slow-bus");
+        assert_eq!(RouteClass::LocalBus.css_class(), "local-bus");
+        assert_eq!(RouteClass::Rapid.css_class(), "rapid");
+        assert_eq!(RouteClass::Express.css_class(), "express");
+    }
+
+    #[test]
+    fn build_speed_cards_sets_classification_from_stop_spacing() {
+        // avg spacing of 620 m → Rapid
+        let mut row = make_row("stm", "R1", 0, Some(8.0));
+        row.avg_stop_spacing_m = Some(620.0);
+        let cards = build_speed_cards(vec![row], &HashMap::new());
+        assert_eq!(cards[0].classification, Some(RouteClass::Rapid));
+    }
+
+    #[test]
+    fn build_speed_cards_classification_is_none_when_no_spacing_data() {
+        // make_row sets avg_stop_spacing_m = None
+        let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
+        let cards = build_speed_cards(rows, &HashMap::new());
+        assert!(cards[0].classification.is_none());
+    }
+
+    #[test]
+    fn build_speed_cards_classification_averages_across_directions() {
+        // direction 0: 400 m (Local Bus), direction 1: 600 m (Rapid) → avg 500 m → Rapid
+        let mut row0 = make_row("stm", "R1", 0, Some(8.0));
+        row0.avg_stop_spacing_m = Some(400.0);
+        let mut row1 = make_row("stm", "R1", 1, Some(7.0));
+        row1.avg_stop_spacing_m = Some(600.0);
+        let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
+        assert_eq!(cards[0].classification, Some(RouteClass::Rapid));
     }
 }

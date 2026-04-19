@@ -6,7 +6,7 @@ use crate::config::AgencyConfig;
 use crate::db::Database;
 
 pub mod card;
-pub use card::{DirectionSpeedChart, RouteSpeedCard, build_speed_cards};
+pub use card::{DirectionSpeedChart, RouteClass, RouteSpeedCard, build_speed_cards, classify_by_spacing};
 
 pub(crate) fn direction_label(direction_id: i64) -> &'static str {
     match direction_id {
