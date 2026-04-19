@@ -219,6 +219,60 @@ fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpaci
     result
 }
 
+/// Speed trend data for one direction of a route.
+pub struct DirectionSpeedTrend {
+    pub direction_id: i64,
+    /// (service_date as "YYYY-MM-DD", actual_speed_mps)
+    pub weekday: Vec<(String, f64)>,
+    pub saturday: Vec<(String, f64)>,
+    pub sunday: Vec<(String, f64)>,
+}
+
+/// Raw row returned by the speed trend SQL query.
+#[derive(sqlx::FromRow)]
+struct SpeedTrendRow {
+    direction_id: i64,
+    service_date: String,
+    actual_speed_mps: f64,
+}
+
+#[allow(dead_code)]
+fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> {
+    use chrono::Datelike;
+    use std::str::FromStr;
+
+    let mut map: std::collections::HashMap<
+        i64,
+        (Vec<(String, f64)>, Vec<(String, f64)>, Vec<(String, f64)>),
+    > = std::collections::HashMap::new();
+
+    for row in rows {
+        // num_days_from_sunday(): 0 = Sunday, 1 = Monday, …, 6 = Saturday
+        let dow = chrono::NaiveDate::from_str(&row.service_date)
+            .map(|d| d.weekday().num_days_from_sunday())
+            .unwrap_or(1);
+        let entry = map.entry(row.direction_id).or_default();
+        let point = (row.service_date, row.actual_speed_mps);
+        match dow {
+            0 => entry.2.push(point), // Sunday
+            6 => entry.1.push(point), // Saturday
+            _ => entry.0.push(point), // Weekday
+        }
+    }
+
+    let mut result: Vec<DirectionSpeedTrend> = map
+        .into_iter()
+        .map(|(direction_id, (weekday, saturday, sunday))| DirectionSpeedTrend {
+            direction_id,
+            weekday,
+            saturday,
+            sunday,
+        })
+        .collect();
+    result.sort_by_key(|t| t.direction_id);
+    result
+}
+
 /// Fetch per-stop spacing data for a single route, grouped by direction.
 /// Returns one `DirectionStopSpacings` per direction. Empty if route has no trips.
 pub async fn route_stop_spacings(
@@ -2312,6 +2366,37 @@ mod tests {
             spacings[0].width_px < 200,
             "smaller distance should map to less than 200px"
         );
+    }
+
+    #[test]
+    fn build_direction_trends_buckets_weekday_saturday_sunday() {
+        // 2024-01-01 = Monday (weekday), 2024-01-06 = Saturday, 2024-01-07 = Sunday
+        let rows = vec![
+            SpeedTrendRow { direction_id: 0, service_date: "2024-01-01".into(), actual_speed_mps: 5.0 },
+            SpeedTrendRow { direction_id: 0, service_date: "2024-01-06".into(), actual_speed_mps: 6.0 },
+            SpeedTrendRow { direction_id: 0, service_date: "2024-01-07".into(), actual_speed_mps: 7.0 },
+        ];
+        let result = build_direction_trends(rows);
+        assert_eq!(result.len(), 1);
+        let t = &result[0];
+        assert_eq!(t.weekday,  vec![("2024-01-01".to_string(), 5.0)]);
+        assert_eq!(t.saturday, vec![("2024-01-06".to_string(), 6.0)]);
+        assert_eq!(t.sunday,   vec![("2024-01-07".to_string(), 7.0)]);
+    }
+
+    #[test]
+    fn build_direction_trends_groups_two_directions() {
+        let rows = vec![
+            SpeedTrendRow { direction_id: 0, service_date: "2024-01-01".into(), actual_speed_mps: 5.0 },
+            SpeedTrendRow { direction_id: 1, service_date: "2024-01-01".into(), actual_speed_mps: 4.0 },
+        ];
+        let result = build_direction_trends(rows);
+        assert_eq!(result.len(), 2);
+        // sorted by direction_id
+        assert_eq!(result[0].direction_id, 0);
+        assert_eq!(result[1].direction_id, 1);
+        assert_eq!(result[0].weekday[0].1, 5.0);
+        assert_eq!(result[1].weekday[0].1, 4.0);
     }
 
     #[tokio::test]
