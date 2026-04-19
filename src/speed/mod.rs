@@ -155,6 +155,10 @@ impl StopSpacing {
     }
 }
 
+/// Builds per-direction spacing data from raw SQL rows.
+/// Each direction's rows include one NULL-distance entry (the first stop, which has no
+/// previous stop). `first_stop_name` and `direction_name` come from `is_first`/`is_last`
+/// flags; the NULL-distance first row is filtered out before building `spacings`.
 fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpacings> {
     let mut result: Vec<DirectionStopSpacings> = Vec::new();
     let mut i = 0;
