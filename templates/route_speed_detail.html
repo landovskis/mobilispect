@@ -5,7 +5,9 @@
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
-.direction-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-bottom: 2rem; overflow: hidden; }
+.direction-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .direction-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+  @media (max-width: 900px) { .direction-cards { grid-template-columns: 1fr; } }
 .direction-header { background: var(--surface-muted); padding: 0.75rem 1.25rem; font-weight: 700; font-size: 0.95rem; color: var(--ink-700); border-bottom: 1px solid var(--line); }
 .direction-body { padding: 1.25rem; }
 .section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-500); margin-bottom: 0.75rem; font-weight: 700; }
@@ -44,6 +46,7 @@ canvas { width: 100% !important; }
     </div>
   </div>
 
+  <div class="direction-cards">
   {% for direction in &directions %}
   <div class="direction-card">
     <div class="direction-header">→ {{ direction.direction_name }}</div>
@@ -94,7 +97,7 @@ canvas { width: 100% !important; }
     </div>
   </div>
   {% endfor %}
-</div>
+  </div>
 
 {% block extra_scripts %}
 <script>
