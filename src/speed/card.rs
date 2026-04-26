@@ -59,8 +59,7 @@ fn avg_speeds(iter: impl Iterator<Item = Option<f64>>) -> Option<f64> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RouteClass {
-    SlowBus,
-    LocalBus,
+    Local,
     Rapid,
     Express,
 }
@@ -68,8 +67,7 @@ pub enum RouteClass {
 impl RouteClass {
     pub fn label(&self) -> &'static str {
         match self {
-            RouteClass::SlowBus => "Slow Bus",
-            RouteClass::LocalBus => "Local Bus",
+            RouteClass::Local => "Local",
             RouteClass::Rapid => "Rapid",
             RouteClass::Express => "Express",
         }
@@ -77,8 +75,7 @@ impl RouteClass {
 
     pub fn css_class(&self) -> &'static str {
         match self {
-            RouteClass::SlowBus => "slow-bus",
-            RouteClass::LocalBus => "local-bus",
+            RouteClass::Local => "local",
             RouteClass::Rapid => "rapid",
             RouteClass::Express => "express",
         }
@@ -86,10 +83,8 @@ impl RouteClass {
 }
 
 pub fn classify_by_spacing(avg_m: f64) -> RouteClass {
-    if avg_m < 300.0 {
-        RouteClass::SlowBus
-    } else if avg_m < 500.0 {
-        RouteClass::LocalBus
+    if avg_m < 500.0 {
+        RouteClass::Local
     } else if avg_m < 1500.0 {
         RouteClass::Rapid
     } else {
@@ -474,15 +469,9 @@ mod tests {
     }
 
     #[test]
-    fn classify_slow_bus_below_300() {
-        assert_eq!(classify_by_spacing(0.0), RouteClass::SlowBus);
-        assert_eq!(classify_by_spacing(299.9), RouteClass::SlowBus);
-    }
-
-    #[test]
-    fn classify_local_bus_300_to_500() {
-        assert_eq!(classify_by_spacing(300.0), RouteClass::LocalBus);
-        assert_eq!(classify_by_spacing(499.9), RouteClass::LocalBus);
+    fn classify_local_below_500() {
+        assert_eq!(classify_by_spacing(0.0), RouteClass::Local);
+        assert_eq!(classify_by_spacing(499.9), RouteClass::Local);
     }
 
     #[test]
@@ -499,16 +488,14 @@ mod tests {
 
     #[test]
     fn route_class_label() {
-        assert_eq!(RouteClass::SlowBus.label(), "Slow Bus");
-        assert_eq!(RouteClass::LocalBus.label(), "Local Bus");
+        assert_eq!(RouteClass::Local.label(), "Local");
         assert_eq!(RouteClass::Rapid.label(), "Rapid");
         assert_eq!(RouteClass::Express.label(), "Express");
     }
 
     #[test]
     fn route_class_css_class() {
-        assert_eq!(RouteClass::SlowBus.css_class(), "slow-bus");
-        assert_eq!(RouteClass::LocalBus.css_class(), "local-bus");
+        assert_eq!(RouteClass::Local.css_class(), "local");
         assert_eq!(RouteClass::Rapid.css_class(), "rapid");
         assert_eq!(RouteClass::Express.css_class(), "express");
     }
