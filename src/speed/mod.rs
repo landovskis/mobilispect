@@ -119,6 +119,8 @@ pub struct StopSpacing {
     pub distance_m: f64,
     /// True when `distance_m > 1.5 × avg_spacing_m` for this direction.
     pub is_outlier: bool,
+    /// Average actual speed for this segment, in metres per second.
+    pub avg_speed_mps: Option<f64>,
     /// Pixel width for the strip segment (scaled so the longest segment = 200px).
     pub width_px: u32,
 }
@@ -141,6 +143,7 @@ struct StopSpacingRow {
     direction_id: i64,
     to_stop_name: String,
     distance_m: Option<f64>,
+    avg_speed_mps: Option<f64>,
     is_first: bool,
     is_last: bool,
 }
@@ -154,8 +157,15 @@ impl StopSpacing {
         }
     }
 
+    pub fn speed_display(&self) -> String {
+        match self.avg_speed_mps {
+            Some(mps) => format!("{:.1} km/h", mps * 3.6),
+            None => "—".to_string(),
+        }
+    }
+
     pub fn is_slow_bus(&self) -> bool {
-        self.distance_m < 300.0
+        self.distance_m < 300.0 || self.avg_speed_mps.map(|s| s * 3.6 < 12.0).unwrap_or(false)
     }
 }
 
@@ -319,6 +329,13 @@ pub async fn route_stop_spacings(
                     power(sin((stop_lon - prev_lon) * pi() / 180.0 / 2.0), 2)
                 ))
             END AS distance_m,
+            (SELECT avg(actual_speed_mps) 
+             FROM route_speed_daily rs 
+             WHERE rs.agency_id = $1 
+               AND rs.route_id = $2 
+               AND rs.direction_id = direction_id
+               AND rs.service_date >= (CURRENT_DATE - 28 * INTERVAL '1 day')::TEXT
+            ) AS avg_speed_mps,
             (rn = 1)           AS is_first,
             (rn = total_stops) AS is_last
         FROM with_prev
