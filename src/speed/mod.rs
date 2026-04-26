@@ -209,8 +209,13 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
         let max_dist = distances.iter().map(|(_, d)| *d).fold(0.0_f64, f64::max);
         let threshold = avg_spacing_m * 1.5;
 
-        let range_min = 500.0;
-        let range_max = 1500.0;
+        let (range_min, range_max) = if avg_spacing_m < 500.0 {
+            (300.0, 500.0)
+        } else if avg_spacing_m < 1500.0 {
+            (500.0, 1500.0)
+        } else {
+            (1500.0, 5000.0)
+        };
 
         let spacings = distances
             .into_iter()
