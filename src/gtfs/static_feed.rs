@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chrono::Datelike;
+use chrono::Utc;
 use gtfs_structures::{DirectionType, Exception, Gtfs, RouteType};
 use tracing::{info, warn};
 
@@ -14,6 +15,16 @@ const CHUNK: usize = 500;
 pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let agency_id = agency.id.to_string();
     let stored_version = get_stored_version(db, &agency_id).await?;
+    let last_download = get_last_download(db, &agency_id).await?;
+
+    if let Some(last) = last_download {
+        let last_date = chrono::NaiveDate::parse_from_str(&last, "%Y-%m-%d").ok();
+        let today = Utc::now().date_naive();
+        if let Some(date) = last_date.filter(|d| *d >= today) {
+            info!("Static GTFS already downloaded today, skipping download");
+            return Ok(());
+        }
+    }
 
     // Download and parse the GTFS zip (blocking I/O — run on thread pool)
     info!("Downloading static GTFS from {}", agency.gtfs_static_url);
@@ -595,6 +606,14 @@ async fn get_stored_version(db: &Database, agency_id: &str) -> Result<Option<Str
     Ok(row.map(|r| r.value))
 }
 
+async fn get_last_download(db: &Database, agency_id: &str) -> Result<Option<String>> {
+    let key = format!("gtfs_static_last_download_{agency_id}");
+    let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
+        .fetch_optional(&db.pool)
+        .await?;
+    Ok(row.map(|r| r.value))
+}
+
 async fn set_stored_version(db: &Database, agency_id: &str, version: &str) -> Result<()> {
     let key = format!("gtfs_static_version_{agency_id}");
     let now = chrono::Utc::now().to_rfc3339();
@@ -603,6 +622,26 @@ async fn set_stored_version(db: &Database, agency_id: &str, version: &str) -> Re
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
         key,
         version,
+        now,
+    )
+    .execute(&db.pool)
+    .await?;
+    set_last_download(db, agency_id).await?;
+    Ok(())
+}
+
+async fn set_last_download(db: &Database, agency_id: &str) -> Result<()> {
+    let key = format!("gtfs_static_last_download_{agency_id}");
+    let today = chrono::Utc::now()
+        .date_naive()
+        .format("%Y-%m-%d")
+        .to_string();
+    let now = chrono::Utc::now().to_rfc3339();
+    sqlx::query!(
+        "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
+        key,
+        today,
         now,
     )
     .execute(&db.pool)
