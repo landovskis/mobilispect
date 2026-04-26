@@ -121,8 +121,6 @@ pub struct StopSpacing {
     pub distance_m: f64,
     /// True when `distance_m > 1.5 × avg_spacing_m` for this direction.
     pub is_outlier: bool,
-    /// Average actual speed for this segment, in metres per second.
-    pub avg_speed_mps: Option<f64>,
     /// Pixel width for the strip segment (scaled so the longest segment = 200px).
     pub width_px: u32,
 }
@@ -141,11 +139,10 @@ pub struct DirectionStopSpacings {
 
 /// Raw row returned by the stop spacings SQL query.
 #[derive(sqlx::FromRow)]
-struct StopSpacingRow {
+struct StopSpacingEntry {
     direction_id: i64,
     to_stop_name: String,
     distance_m: Option<f64>,
-    avg_speed_mps: Option<f64>,
     is_first: bool,
     is_last: bool,
 }
@@ -158,24 +155,13 @@ impl StopSpacing {
             format!("{:.0} m", self.distance_m)
         }
     }
-
-    pub fn speed_display(&self) -> String {
-        match self.avg_speed_mps {
-            Some(mps) => format!("{:.1} km/h", mps * 3.6),
-            None => "—".to_string(),
-        }
-    }
-
-    pub fn is_slow_bus(&self) -> bool {
-        self.distance_m < 300.0 || self.avg_speed_mps.map(|s| s * 3.6 < 12.0).unwrap_or(false)
-    }
 }
 
 /// Builds per-direction spacing data from raw SQL rows.
 /// Each direction's rows include one NULL-distance entry (the first stop, which has no
 /// previous stop). `first_stop_name` and `direction_name` come from `is_first`/`is_last`
 /// flags; the NULL-distance first row is filtered out before building `spacings`.
-fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpacings> {
+fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpacings> {
     let mut result: Vec<DirectionStopSpacings> = Vec::new();
     let mut i = 0;
     while i < rows.len() {
@@ -218,7 +204,6 @@ fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpaci
             .map(|(name, dist)| StopSpacing {
                 to_stop_name: name,
                 distance_m: dist,
-                avg_speed_mps: None,
                 is_outlier: dist > threshold,
                 width_px: ((dist / max_dist.max(1.0)) * 200.0) as u32,
             })
@@ -260,7 +245,11 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
 
     let mut map: std::collections::HashMap<
         i64,
-        (Vec<(String, f64, f64)>, Vec<(String, f64, f64)>, Vec<(String, f64, f64)>),
+        (
+            Vec<(String, f64, f64)>,
+            Vec<(String, f64, f64)>,
+            Vec<(String, f64, f64)>,
+        ),
     > = std::collections::HashMap::new();
 
     for row in rows {
@@ -269,7 +258,11 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
             .map(|d| d.weekday().num_days_from_sunday())
             .unwrap_or(1);
         let entry = map.entry(row.direction_id).or_default();
-        let point = (row.service_date, row.actual_speed_mps, row.scheduled_speed_mps);
+        let point = (
+            row.service_date,
+            row.actual_speed_mps,
+            row.scheduled_speed_mps,
+        );
         match dow {
             0 => entry.2.push(point), // Sunday
             6 => entry.1.push(point), // Saturday
@@ -303,7 +296,7 @@ pub async fn route_stop_spacings(
     agency_id: &str,
     route_id: &str,
 ) -> Result<Vec<DirectionStopSpacings>> {
-    let rows: Vec<StopSpacingRow> = sqlx::query_as(
+    let rows: Vec<StopSpacingEntry> = sqlx::query_as(
         "WITH rep_trip AS (
             SELECT DISTINCT ON (COALESCE(direction_id, 0))
                 trip_id, COALESCE(direction_id, 0) AS direction_id
@@ -339,13 +332,6 @@ pub async fn route_stop_spacings(
                     power(sin((stop_lon - prev_lon) * pi() / 180.0 / 2.0), 2)
                 ))
             END AS distance_m,
-            (SELECT avg(actual_speed_mps) 
-             FROM route_speed_daily rs 
-             WHERE rs.agency_id = $1 
-               AND rs.route_id = $2 
-               AND rs.direction_id = direction_id
-               AND rs.service_date >= (CURRENT_DATE - 28 * INTERVAL '1 day')::TEXT
-            ) AS avg_speed_mps,
             (rn = 1)           AS is_first,
             (rn = total_stops) AS is_last
         FROM with_prev
@@ -2274,35 +2260,31 @@ mod tests {
         // distances: [100, 100, 300] → avg = 166.7, threshold = 1.5 × 166.7 = 250
         // only the 300m segment is an outlier
         let rows = vec![
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "B".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "C".into(),
                 distance_m: Some(300.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "D".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
@@ -2318,27 +2300,24 @@ mod tests {
     #[test]
     fn build_direction_spacings_sets_first_and_direction_names() {
         let rows = vec![
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "Origin".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "Middle".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: false,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "Terminal".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: false,
                 is_last: true,
             },
@@ -2351,35 +2330,31 @@ mod tests {
     #[test]
     fn build_direction_spacings_groups_two_directions() {
         let rows = vec![
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "B".into(),
                 distance_m: Some(300.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 1,
                 to_stop_name: "X".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 1,
                 to_stop_name: "Y".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
@@ -2393,27 +2368,24 @@ mod tests {
     #[test]
     fn build_direction_spacings_width_px_max_is_200() {
         let rows = vec![
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "B".into(),
                 distance_m: Some(300.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },
-            StopSpacingRow {
+            StopSpacingEntry {
                 direction_id: 0,
                 to_stop_name: "C".into(),
                 distance_m: Some(100.0),
-                avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
             },

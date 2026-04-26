@@ -65,8 +65,9 @@ canvas { width: 100% !important; }
           </div>
           {% for spacing in &direction.spacings %}
           <div class="stop-seg" style="height: {{ spacing.width_px }}px;">
-            <div class="seg-line{% if spacing.is_outlier %} outlier{% elif spacing.is_slow_bus() %} slow{% endif %}"
+            <div class="seg-line{% if spacing.is_outlier %} outlier{% endif %}"
                  style="height: {{ spacing.width_px }}px;"></div>
+            <div class="seg-label{% if spacing.is_outlier %} outlier{% endif %}">{{ spacing.distance_display() }}</div>
           </div>
           <div class="stop-node">
             <div class="stop-dot{% if loop.last %} terminal{% endif %}"></div>
