@@ -17,7 +17,7 @@ if ! docker ps --format '{{.Names}}' | grep -q '^mobilispect-pg$'; then
     postgres:16
 fi
 
-export DATABASE_URL=postgres://mobilispect:mobilispect@localhost:5433/mobilispect
+export MOBILISPECT_DATABASE_URL=postgres://mobilispect:mobilispect@localhost:5433/mobilispect
 
 trap 'kill 0' EXIT
 

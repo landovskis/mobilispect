@@ -20,7 +20,7 @@ src/
   bin/
     server.rs      # HTTP server entry point
     worker.rs      # Background ingestion entry point
-  config.rs        # Config + AgencyConfig from env vars
+  config.rs        # Config + AgencyConfig from config.toml plus dotenvx env refs
   db/              # Database wrapper (sqlx PgPool)
   gtfs/
     static_feed.rs # GTFS zip download + upsert
@@ -42,11 +42,11 @@ templates/         # Askama HTML templates
 # Build
 cargo build
 
-# Run server (requires DATABASE_URL and agency env vars)
-cargo run --bin mobilispect-server
+# Run server (requires config.toml and dotenvx-provided secret env vars)
+dotenvx run -- cargo run --bin mobilispect-server
 
 # Run worker
-cargo run --bin mobilispect-worker
+dotenvx run -- cargo run --bin mobilispect-worker
 
 # Dev mode (auto-restart on changes, starts Postgres via Docker)
 ./dev.sh

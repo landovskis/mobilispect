@@ -73,14 +73,14 @@ pub async fn compute_route_daily(
 ) -> Result<()> {
     let date_str = service_date.to_string();
     let now = chrono::Utc::now().to_rfc3339();
-    let agency_id = &agency.slug;
+    let agency_id = agency.id.to_string();
 
     let trips = sqlx::query!(
         "SELECT DISTINCT t.trip_id, t.route_id
          FROM trips t
          JOIN stop_time_events ste ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
          WHERE t.agency_id = $1 AND ste.observed_at::TIMESTAMPTZ::DATE::TEXT = $2",
-        agency_id,
+        &agency_id,
         date_str,
     )
     .fetch_all(&db.pool)
@@ -119,7 +119,7 @@ pub async fn compute_route_daily(
         .bind(&date_str)
         .bind(offset)
         .bind(&trip.trip_id)
-        .bind(agency_id)
+        .bind(&agency_id)
         .bind(&date_str)
         .fetch_all(&db.pool)
         .await?
@@ -150,7 +150,7 @@ pub async fn compute_route_daily(
                max_delay_secs = EXCLUDED.max_delay_secs,
                completed = EXCLUDED.completed,
                computed_at = EXCLUDED.computed_at",
-            agency_id,
+            &agency_id,
             trip.trip_id,
             date_str,
             trip.route_id,
@@ -167,7 +167,7 @@ pub async fn compute_route_daily(
     let routes: Vec<(String,)> = sqlx::query_as(
         "SELECT DISTINCT route_id FROM trip_results WHERE agency_id = $1 AND service_date = $2",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .bind(&date_str)
     .fetch_all(&db.pool)
     .await?;
@@ -182,9 +182,9 @@ pub async fn compute_route_daily(
              FROM trip_results
              WHERE agency_id = $3 AND route_id = $4 AND service_date = $5",
         )
-        .bind(agency_id)
+        .bind(&agency_id)
         .bind(route_id)
-        .bind(agency_id)
+        .bind(&agency_id)
         .bind(route_id)
         .bind(&date_str)
         .fetch_one(&db.pool)
@@ -207,7 +207,7 @@ pub async fn compute_route_daily(
                trips_run = EXCLUDED.trips_run,
                trips_total = EXCLUDED.trips_total,
                computed_at = EXCLUDED.computed_at",
-            agency_id,
+            &agency_id,
             route_id,
             date_str,
             on_time_pct,
@@ -370,7 +370,7 @@ pub async fn route_trend(
     let route: Option<(String, String)> = sqlx::query_as(
         "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .bind(route_id)
     .fetch_optional(&db.pool)
     .await?;
@@ -395,7 +395,7 @@ pub async fn route_trend(
          GROUP BY rd.service_date, rd.on_time_pct, rd.avg_delay_secs
          ORDER BY rd.service_date",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .bind(route_id)
     .bind(days)
     .fetch_all(&db.pool)
@@ -697,7 +697,7 @@ mod tests {
     async fn route_trend_returns_none_for_unknown_route() {
         let td = test_utils::setup().await;
         let db = td.db;
-        let result = route_trend(&db, "test", "NONEXISTENT", 30).await.unwrap();
+        let result = route_trend(&db, "0", "NONEXISTENT", 30).await.unwrap();
         assert!(result.is_none());
     }
 
@@ -705,22 +705,22 @@ mod tests {
     async fn route_trend_returns_daily_points_with_on_time_data() {
         let td = test_utils::setup().await;
         let db = td.db;
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', '2026-01-01', 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
+             VALUES ('0', 'R1', '2026-01-01', 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
         sqlx::query(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', '2026-01-02', 68.0, 145.0, 44, 50, '2026-01-02T12:00:00Z')",
+             VALUES ('0', 'R1', '2026-01-02', 68.0, 145.0, 44, 50, '2026-01-02T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
-        let trend = route_trend(&db, "test", "R1", 3650).await.unwrap().unwrap();
+        let trend = route_trend(&db, "0", "R1", 3650).await.unwrap().unwrap();
 
         assert_eq!(trend.route_id, "R1");
         assert_eq!(trend.short_name, "45");
@@ -733,22 +733,22 @@ mod tests {
     async fn route_trend_includes_speed_when_available() {
         let td = test_utils::setup().await;
         let db = td.db;
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', '2026-01-01', 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
+             VALUES ('0', 'R1', '2026-01-01', 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
         sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('test', 'R1', '2026-01-01', 0, 5.5, 45, '2026-01-01T12:00:00Z')",
+             VALUES ('0', 'R1', '2026-01-01', 0, 5.5, 45, '2026-01-01T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
-        let trend = route_trend(&db, "test", "R1", 3650).await.unwrap().unwrap();
+        let trend = route_trend(&db, "0", "R1", 3650).await.unwrap().unwrap();
 
         assert_eq!(trend.days.len(), 1);
         assert!((trend.days[0].actual_speed_mps.unwrap() - 5.5).abs() < 0.01);
@@ -834,7 +834,7 @@ mod tests {
 
     fn make_scorecard_route(on_time: Option<f64>, speed: Option<f64>) -> ScorecardRoute {
         ScorecardRoute {
-            agency_id: "test".into(),
+            agency_id: "0".into(),
             route_id: "R1".into(),
             short_name: "45".into(),
             long_name: "PAPINEAU".into(),
@@ -999,14 +999,14 @@ mod tests {
     async fn scorecard_routes_returns_per_route_summary() {
         let td = test_utils::setup().await;
         let db = td.db;
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
+             VALUES ('0', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
         let routes = scorecard_routes(&db, 7, None).await.unwrap();
@@ -1022,18 +1022,18 @@ mod tests {
     async fn scorecard_routes_includes_speed_deficit_when_available() {
         let td = test_utils::setup().await;
         let db = td.db;
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
+             VALUES ('0', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
         // scheduled: 10.0 m/s, actual: 8.0 m/s → deficit = 20%
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -1041,7 +1041,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('test', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 0, 8.0, 5, '2026-01-01T00:00:00Z')",
+             VALUES ('0', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 0, 8.0, 5, '2026-01-01T00:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
         let routes = scorecard_routes(&db, 7, None).await.unwrap();
@@ -1055,14 +1055,14 @@ mod tests {
     async fn scorecard_routes_speed_is_none_when_no_speed_data() {
         let td = test_utils::setup().await;
         let db = td.db;
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '45', 'PAPINEAU', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '45', 'PAPINEAU', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
             "INSERT INTO route_daily
              (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('test', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
+             VALUES ('0', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
         let routes = scorecard_routes(&db, 7, None).await.unwrap();

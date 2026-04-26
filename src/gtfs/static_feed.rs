@@ -12,7 +12,8 @@ const CHUNK: usize = 500;
 /// Load static GTFS data into the database if not already present for this agency.
 /// Re-loads if the feed version has changed.
 pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    let stored_version = get_stored_version(db, &agency.slug).await?;
+    let agency_id = agency.id.to_string();
+    let stored_version = get_stored_version(db, &agency_id).await?;
 
     // Download and parse the GTFS zip (blocking I/O — run on thread pool)
     info!("Downloading static GTFS from {}", agency.gtfs_static_url);
@@ -35,7 +36,7 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
 
     info!(
         "Loading static GTFS for {} version: {} ({} routes, {} trips, {} stops)",
-        agency.slug,
+        agency_id,
         feed_version,
         gtfs.routes.len(),
         gtfs.trips.len(),
@@ -44,38 +45,37 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
 
     // Drop stale data for this agency and bulk-insert in one transaction
     let mut tx = db.pool.begin().await?;
-    let slug = &agency.slug;
     sqlx::query("DELETE FROM scheduled_stops WHERE agency_id = $1")
-        .bind(slug)
+        .bind(&agency_id)
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM trips WHERE agency_id = $1")
-        .bind(slug)
+        .bind(&agency_id)
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM stops WHERE agency_id = $1")
-        .bind(slug)
+        .bind(&agency_id)
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM routes WHERE agency_id = $1")
-        .bind(slug)
+        .bind(&agency_id)
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM calendar WHERE agency_id = $1")
-        .bind(slug)
+        .bind(&agency_id)
         .execute(&mut *tx)
         .await?;
 
-    load_routes(&mut tx, slug, &gtfs).await?;
-    load_trips(&mut tx, slug, &gtfs).await?;
-    load_stops(&mut tx, slug, &gtfs).await?;
-    load_scheduled_stops(&mut tx, slug, &gtfs).await?;
-    load_calendar(&mut tx, slug, &gtfs.calendar).await?;
-    load_calendar_from_dates(&mut tx, slug, &gtfs.calendar_dates).await?;
+    load_routes(&mut tx, &agency_id, &gtfs).await?;
+    load_trips(&mut tx, &agency_id, &gtfs).await?;
+    load_stops(&mut tx, &agency_id, &gtfs).await?;
+    load_scheduled_stops(&mut tx, &agency_id, &gtfs).await?;
+    load_calendar(&mut tx, &agency_id, &gtfs.calendar).await?;
+    load_calendar_from_dates(&mut tx, &agency_id, &gtfs.calendar_dates).await?;
     tx.commit().await?;
 
-    set_stored_version(db, &agency.slug, &feed_version).await?;
-    info!("Static GTFS load complete for {}", agency.slug);
+    set_stored_version(db, &agency_id, &feed_version).await?;
+    info!("Static GTFS load complete for {}", agency_id);
     Ok(())
 }
 
@@ -587,16 +587,16 @@ mod tests {
     }
 }
 
-async fn get_stored_version(db: &Database, agency_slug: &str) -> Result<Option<String>> {
-    let key = format!("gtfs_static_version_{agency_slug}");
+async fn get_stored_version(db: &Database, agency_id: &str) -> Result<Option<String>> {
+    let key = format!("gtfs_static_version_{agency_id}");
     let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
         .fetch_optional(&db.pool)
         .await?;
     Ok(row.map(|r| r.value))
 }
 
-async fn set_stored_version(db: &Database, agency_slug: &str, version: &str) -> Result<()> {
-    let key = format!("gtfs_static_version_{agency_slug}");
+async fn set_stored_version(db: &Database, agency_id: &str, version: &str) -> Result<()> {
+    let key = format!("gtfs_static_version_{agency_id}");
     let now = chrono::Utc::now().to_rfc3339();
     sqlx::query!(
         "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)

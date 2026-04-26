@@ -7,13 +7,11 @@ use mobilispect::web;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    dotenvy::dotenv().ok();
-
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env().add_directive("mobilispect=info".parse()?))
         .init();
 
-    let config = Config::from_env()?;
+    let config = Config::load()?;
     let db = Database::connect(&config.database_url).await?;
     db.migrate().await?;
 

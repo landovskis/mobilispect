@@ -12,9 +12,9 @@ use crate::metrics::{
     route_summary, route_trend, scorecard_routes, stop_hotspots,
 };
 use crate::speed::{
-    RouteClass, RouteSpeedCard, RouteSpeedSummary, StopSpacing,
-    build_speed_cards, classify_by_spacing, route_speed_by_day_type, route_speed_summary,
-    route_stop_spacings, route_speed_trend_by_direction,
+    RouteClass, RouteSpeedCard, RouteSpeedSummary, StopSpacing, build_speed_cards,
+    classify_by_spacing, route_speed_by_day_type, route_speed_summary,
+    route_speed_trend_by_direction, route_stop_spacings,
 };
 use crate::web::AppState;
 
@@ -37,7 +37,6 @@ impl RouteSpeedDetailDirection {
             format!("{:.0} m", self.avg_spacing_m)
         }
     }
-
 }
 
 #[derive(Template)]
@@ -91,7 +90,7 @@ pub async fn route_speed_detail(
                 axum::http::StatusCode::NOT_FOUND,
                 Html("<h1>Not Found</h1>".to_string()),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -121,7 +120,9 @@ pub async fn route_speed_detail(
         .into_iter()
         .enumerate()
         .map(|(i, spacing)| {
-            let trend = trends.iter().find(|t| t.direction_id == spacing.direction_id);
+            let trend = trends
+                .iter()
+                .find(|t| t.direction_id == spacing.direction_id);
             let (weekday, saturday, sunday) = trend
                 .map(|t| (t.weekday.clone(), t.saturday.clone(), t.sunday.clone()))
                 .unwrap_or_default();
@@ -210,7 +211,7 @@ pub async fn dashboard(
         .config
         .agencies
         .iter()
-        .map(|a| (a.slug.clone(), a.name.clone()))
+        .map(|a| (a.id.to_string(), a.name.clone()))
         .collect();
     let agency_names: std::collections::HashMap<String, String> =
         agencies.iter().cloned().collect();
@@ -237,7 +238,7 @@ pub async fn report(State(state): State<AppState>) -> Html<String> {
         .config
         .agencies
         .iter()
-        .map(|a| (a.slug.clone(), a.name.clone()))
+        .map(|a| (a.id.to_string(), a.name.clone()))
         .collect();
     let tmpl = ReportTemplate {
         routes,
@@ -383,11 +384,11 @@ pub async fn speed_page(
         .config
         .agencies
         .iter()
-        .map(|a| (a.slug.clone(), a.name.clone()))
+        .map(|a| (a.id.to_string(), a.name.clone()))
         .collect();
     let active_agency = params
         .agency
-        .filter(|s| agencies.iter().any(|(slug, _)| slug == s))
+        .filter(|s| agencies.iter().any(|(id, _)| id == s))
         .unwrap_or_default();
     let active_sort = match params.sort.as_deref() {
         Some("scheduled") => "scheduled",
@@ -490,7 +491,7 @@ pub async fn scorecard(
         .config
         .agencies
         .iter()
-        .map(|a| (a.slug.clone(), a.name.clone()))
+        .map(|a| (a.id.to_string(), a.name.clone()))
         .collect();
     let agency_names: std::collections::HashMap<String, String> =
         agencies.iter().cloned().collect();
@@ -627,7 +628,7 @@ mod tests {
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
-    use crate::config::{AgencyConfig, Config};
+    use crate::config::{AgencyConfig, Config, RegionConfig};
     use crate::db::test_utils;
     use crate::web::build_router;
     use axum::body::Body;
@@ -635,16 +636,23 @@ mod e2e_tests {
     use tower::ServiceExt;
 
     fn test_config() -> Config {
+        let agencies = vec![AgencyConfig {
+            id: 0,
+            name: "Test Agency".to_string(),
+            gtfs_static_url: String::new(),
+            gtfs_rt_vehicle_positions_url: None,
+            gtfs_rt_trip_updates_url: None,
+            gtfs_api_key: None,
+            agency_utc_offset: "-04:00".to_string(),
+        }];
+
         Config {
-            agencies: vec![AgencyConfig {
-                slug: "test".to_string(),
-                name: "Test Agency".to_string(),
-                gtfs_static_url: String::new(),
-                gtfs_rt_vehicle_positions_url: None,
-                gtfs_rt_trip_updates_url: None,
-                gtfs_api_key: None,
-                agency_utc_offset: "-04:00".to_string(),
-            }],
+            agencies: agencies.clone(),
+            region: RegionConfig {
+                name: "Test Region".to_string(),
+                timezone: "America/Toronto".to_string(),
+                agencies,
+            },
             database_url: String::new(),
             poll_interval_secs: 30,
             bind_address: "0.0.0.0:3000".to_string(),
@@ -657,26 +665,45 @@ mod e2e_tests {
     #[tokio::test]
     async fn route_speed_detail_returns_200_with_direction_name() {
         let td = test_utils::setup().await;
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Downtown')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Main St',  45.50, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Downtown', 45.51, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
-            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Downtown')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Main St',  45.50, -73.50)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Downtown', 45.51, -73.50)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
 
-        let state = AppState { db: td.db, config: test_config() };
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
         let app = build_router(state);
 
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/routes/test/R1/speed")
+                    .uri("/routes/0/R1/speed")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -685,22 +712,33 @@ mod e2e_tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
         let html = String::from_utf8(bytes.to_vec()).unwrap();
-        assert!(html.contains("Downtown"), "HTML should contain terminal stop name 'Downtown'");
-        assert!(html.contains("Route 1"), "HTML should contain route long name");
+        assert!(
+            html.contains("Downtown"),
+            "HTML should contain terminal stop name 'Downtown'"
+        );
+        assert!(
+            html.contains("Route 1"),
+            "HTML should contain route long name"
+        );
     }
 
     #[tokio::test]
     async fn route_speed_detail_returns_404_for_unknown_route() {
         let td = test_utils::setup().await;
-        let state = AppState { db: td.db, config: test_config() };
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
         let app = build_router(state);
 
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/routes/test/NONEXISTENT/speed")
+                    .uri("/routes/0/NONEXISTENT/speed")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -714,59 +752,129 @@ mod e2e_tests {
     async fn speed_page_shows_classification_badge_for_rapid_route() {
         let td = test_utils::setup().await;
         // R1: two stops ~1111 m apart (0.01° lat). Single segment → avg = 1111 m → Rapid.
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Terminus')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'First',   45.500, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Terminus', 45.510, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')")
-            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Terminus')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'First',   45.500, -73.50)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Terminus', 45.510, -73.50)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
 
-        let state = AppState { db: td.db, config: test_config() };
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
         let app = build_router(state);
         let response = app
-            .oneshot(Request::builder().uri("/speed?agency=test").body(Body::empty()).unwrap())
-            .await.unwrap();
+            .oneshot(
+                Request::builder()
+                    .uri("/speed?agency=0")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
-        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
         let html = String::from_utf8(bytes.to_vec()).unwrap();
-        assert!(html.contains("Rapid"), "speed page HTML should contain 'Rapid' badge text");
-        assert!(html.contains("badge--rapid"), "speed page HTML should contain 'badge--rapid' CSS class");
+        assert!(
+            html.contains("Rapid"),
+            "speed page HTML should contain 'Rapid' badge text"
+        );
+        assert!(
+            html.contains("badge--rapid"),
+            "speed page HTML should contain 'badge--rapid' CSS class"
+        );
     }
 
     #[tokio::test]
     async fn route_speed_detail_shows_classification_badge() {
         let td = test_utils::setup().await;
         // Two stops ~1111 m apart → avg spacing 1111 m → Rapid
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Downtown')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Main St',  45.50, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Downtown', 45.51, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
-            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Downtown')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Main St',  45.50, -73.50)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Downtown', 45.51, -73.50)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
 
-        let state = AppState { db: td.db, config: test_config() };
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
         let app = build_router(state);
         let response = app
-            .oneshot(Request::builder().uri("/routes/test/R1/speed").body(Body::empty()).unwrap())
-            .await.unwrap();
+            .oneshot(
+                Request::builder()
+                    .uri("/routes/0/R1/speed")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
-        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
         let html = String::from_utf8(bytes.to_vec()).unwrap();
-        assert!(html.contains("Rapid"), "detail page HTML should contain 'Rapid' badge text");
-        assert!(html.contains("badge--rapid"), "detail page HTML should contain 'badge--rapid' CSS class");
+        assert!(
+            html.contains("Rapid"),
+            "detail page HTML should contain 'Rapid' badge text"
+        );
+        assert!(
+            html.contains("badge--rapid"),
+            "detail page HTML should contain 'badge--rapid' CSS class"
+        );
     }
 }

@@ -1,4 +1,6 @@
 /.env
+/.env.keys
+/.superpowers
 /mobilispect.db
 /mobilispect.db-shm
 /mobilispect.db-wal

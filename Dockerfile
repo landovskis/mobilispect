@@ -42,10 +42,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /build/target/release/mobilispect-server /usr/local/bin/mobilispect-server
 COPY --from=builder /build/target/release/mobilispect-worker /usr/local/bin/mobilispect-worker
 
-# DATABASE_URL must be set at runtime to a Postgres connection string.
+# config.toml must be available in the working directory, or set MOBILISPECT_CONFIG.
+# Secret values referenced by *_env config fields must be present in the process env.
 # On Railway, reference the Postgres plugin: postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE
 
-# The application listens on port 3000 by default (BIND_ADDRESS=0.0.0.0:3000).
+# The application listens on port 3000 by default (bind_address in config.toml).
 EXPOSE 3000
 
 # Default to server; override with: docker run --entrypoint /usr/local/bin/mobilispect-worker <image>

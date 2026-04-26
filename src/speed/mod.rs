@@ -6,7 +6,9 @@ use crate::config::AgencyConfig;
 use crate::db::Database;
 
 pub mod card;
-pub use card::{DirectionSpeedChart, RouteClass, RouteSpeedCard, build_speed_cards, classify_by_spacing};
+pub use card::{
+    DirectionSpeedChart, RouteClass, RouteSpeedCard, build_speed_cards, classify_by_spacing,
+};
 
 pub(crate) fn direction_label(direction_id: i64) -> &'static str {
     match direction_id {
@@ -276,12 +278,14 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
 
     let mut result: Vec<DirectionSpeedTrend> = map
         .into_iter()
-        .map(|(direction_id, (weekday, saturday, sunday))| DirectionSpeedTrend {
-            direction_id,
-            weekday,
-            saturday,
-            sunday,
-        })
+        .map(
+            |(direction_id, (weekday, saturday, sunday))| DirectionSpeedTrend {
+                direction_id,
+                weekday,
+                saturday,
+                sunday,
+            },
+        )
         .collect();
     result.sort_by_key(|t| t.direction_id);
     result
@@ -342,7 +346,7 @@ pub async fn route_stop_spacings(
         FROM with_prev
         ORDER BY direction_id, rn",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .bind(route_id)
     .fetch_all(&db.pool)
     .await?;
@@ -368,7 +372,7 @@ pub async fn route_speed_trend_by_direction(
            AND service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
          ORDER BY direction_id, service_date",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .bind(route_id)
     .bind(days)
     .fetch_all(&db.pool)
@@ -381,7 +385,7 @@ pub async fn route_speed_trend_by_direction(
 /// Reads only static GTFS tables — safe to call on startup after GTFS load.
 pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
-    let agency_id = &agency.slug;
+    let agency_id = agency.id.to_string();
 
     // All distinct route + direction combinations that have trips with stops.
     let combos: Vec<(String, i64)> = sqlx::query_as(
@@ -392,7 +396,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
          GROUP BY t.route_id, t.direction_id
          HAVING COUNT(ss.stop_sequence) >= 2",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .fetch_all(&db.pool)
     .await?;
 
@@ -400,7 +404,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
         let trips: Vec<(String,)> = sqlx::query_as(
             "SELECT trip_id FROM trips WHERE agency_id = $1 AND route_id = $2 AND COALESCE(direction_id, 0) = $3",
         )
-        .bind(agency_id)
+        .bind(&agency_id)
         .bind(route_id)
         .bind(direction_id)
         .fetch_all(&db.pool)
@@ -416,7 +420,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
                  WHERE ss.agency_id = $1 AND ss.trip_id = $2
                  ORDER BY ss.stop_sequence",
             )
-            .bind(agency_id)
+            .bind(&agency_id)
             .bind(trip_id)
             .fetch_all(&db.pool)
             .await?;
@@ -459,7 +463,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
                scheduled_speed_mps = EXCLUDED.scheduled_speed_mps,
                trip_count = EXCLUDED.trip_count,
                computed_at = EXCLUDED.computed_at",
-            agency_id,
+            &agency_id,
             route_id,
             direction_id,
             avg_speed,
@@ -478,7 +482,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
 /// Stores results in `route_speed_day_type`.
 pub async fn compute_route_speed_by_day_type(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
-    let agency_id = &agency.slug;
+    let agency_id = agency.id.to_string();
 
     let combos: Vec<(String, i64)> = sqlx::query_as(
         "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
@@ -488,7 +492,7 @@ pub async fn compute_route_speed_by_day_type(db: &Database, agency: &AgencyConfi
          GROUP BY t.route_id, t.direction_id
          HAVING COUNT(ss.stop_sequence) >= 2",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .fetch_all(&db.pool)
     .await?;
 
@@ -497,7 +501,7 @@ pub async fn compute_route_speed_by_day_type(db: &Database, agency: &AgencyConfi
             "SELECT t.trip_id, t.service_id FROM trips t
              WHERE t.agency_id = $1 AND t.route_id = $2 AND COALESCE(t.direction_id, 0) = $3",
         )
-        .bind(agency_id)
+        .bind(&agency_id)
         .bind(route_id)
         .bind(direction_id)
         .fetch_all(&db.pool)
@@ -512,7 +516,7 @@ pub async fn compute_route_speed_by_day_type(db: &Database, agency: &AgencyConfi
                 "SELECT monday, tuesday, wednesday, thursday, friday, saturday, sunday
                  FROM calendar WHERE agency_id = $1 AND service_id = $2",
             )
-            .bind(agency_id)
+            .bind(&agency_id)
             .bind(service_id)
             .fetch_optional(&db.pool)
             .await?;
@@ -528,7 +532,7 @@ pub async fn compute_route_speed_by_day_type(db: &Database, agency: &AgencyConfi
                  WHERE ss.agency_id = $1 AND ss.trip_id = $2
                  ORDER BY ss.stop_sequence",
             )
-            .bind(agency_id)
+            .bind(&agency_id)
             .bind(trip_id)
             .fetch_all(&db.pool)
             .await?;
@@ -602,7 +606,7 @@ pub async fn compute_route_speed_daily(
 ) -> Result<()> {
     let date_str = service_date.to_string();
     let now = Utc::now().to_rfc3339();
-    let agency_id = &agency.slug;
+    let agency_id = agency.id.to_string();
 
     // All distinct route + direction combos with stop time events on this date.
     let combos: Vec<(String, i64)> = sqlx::query_as(
@@ -612,7 +616,7 @@ pub async fn compute_route_speed_daily(
          WHERE ste.agency_id = $1 AND ste.observed_at::TIMESTAMPTZ::DATE = $2::DATE
            AND ste.arrival_time_unix IS NOT NULL",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .bind(&date_str)
     .fetch_all(&db.pool)
     .await?;
@@ -627,7 +631,7 @@ pub async fn compute_route_speed_daily(
                AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
                AND ste.arrival_time_unix IS NOT NULL",
         )
-        .bind(agency_id)
+        .bind(&agency_id)
         .bind(route_id)
         .bind(direction_id)
         .bind(&date_str)
@@ -650,7 +654,7 @@ pub async fn compute_route_speed_daily(
                  GROUP BY ss.stop_sequence, s.stop_lat, s.stop_lon
                  ORDER BY ss.stop_sequence",
             )
-            .bind(agency_id)
+            .bind(&agency_id)
             .bind(trip_id)
             .bind(&date_str)
             .fetch_all(&db.pool)
@@ -689,7 +693,7 @@ pub async fn compute_route_speed_daily(
                actual_speed_mps = EXCLUDED.actual_speed_mps,
                trip_count = EXCLUDED.trip_count,
                computed_at = EXCLUDED.computed_at",
-            agency_id,
+            &agency_id,
             route_id,
             date_str,
             direction_id,
@@ -822,7 +826,7 @@ pub async fn route_speed_summary(
 /// observed in the last 4 hours. Called after every GTFS-RT poll so the data stays fresh.
 pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
-    let agency_id = &agency.slug;
+    let agency_id = agency.id.to_string();
 
     let combos: Vec<(String, i64)> = sqlx::query_as(
         "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
@@ -831,7 +835,7 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
          WHERE ste.agency_id = $1 AND ste.arrival_time_unix IS NOT NULL
            AND ste.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '4 hours'",
     )
-    .bind(agency_id)
+    .bind(&agency_id)
     .fetch_all(&db.pool)
     .await?;
 
@@ -845,7 +849,7 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
                AND ste.arrival_time_unix IS NOT NULL
                AND ste.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '4 hours'",
         )
-        .bind(agency_id)
+        .bind(&agency_id)
         .bind(route_id)
         .bind(direction_id)
         .fetch_all(&db.pool)
@@ -867,7 +871,7 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
                  GROUP BY ss.stop_sequence, s.stop_lat, s.stop_lon
                  ORDER BY ss.stop_sequence",
             )
-            .bind(agency_id)
+            .bind(&agency_id)
             .bind(trip_id)
             .fetch_all(&db.pool)
             .await?;
@@ -1061,7 +1065,7 @@ mod tests {
 
     fn test_agency() -> AgencyConfig {
         AgencyConfig {
-            slug: "test".to_string(),
+            id: 0,
             name: "Test Agency".to_string(),
             gtfs_static_url: String::new(),
             gtfs_rt_vehicle_positions_url: None,
@@ -1105,30 +1109,30 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
         )
         .execute(&db.pool)
         .await
@@ -1156,28 +1160,28 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         // Three trips: weekday, Saturday, Sunday — each on the same stop pair.
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T_WD', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T_WD', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T_SAT', 'R1', 'SAT', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T_SAT', 'R1', 'SAT', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T_SUN', 'R1', 'SUN', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T_SUN', 'R1', 'SUN', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
@@ -1188,13 +1192,13 @@ mod tests {
             ("T_SUN", "08:00:00", "08:15:00"), // 15 min → ~1.235 m/s
         ] {
             sqlx::query(&format!(
-                "INSERT INTO scheduled_stops VALUES ('test', '{trip_id}', 'S1', 1, '{dep}', '{dep}')"
+                "INSERT INTO scheduled_stops VALUES ('0', '{trip_id}', 'S1', 1, '{dep}', '{dep}')"
             ))
             .execute(&db.pool)
             .await
             .unwrap();
             sqlx::query(&format!(
-                "INSERT INTO scheduled_stops VALUES ('test', '{trip_id}', 'S2', 2, '{arr}', '{arr}')"
+                "INSERT INTO scheduled_stops VALUES ('0', '{trip_id}', 'S2', 2, '{arr}', '{arr}')"
             ))
             .execute(&db.pool)
             .await
@@ -1224,50 +1228,50 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         // Trip in direction 0 (outbound): S1 → S2
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Outbound')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Outbound')")
             .execute(&db.pool)
             .await
             .unwrap();
         // Trip in direction 1 (inbound): S2 → S1
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T2', 'R1', 'WD', 1, 'Inbound')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T2', 'R1', 'WD', 1, 'Inbound')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
         // Outbound: S1 at 08:00, S2 at 08:10
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         // Inbound: S2 at 09:00, S1 at 09:10
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T2', 'S2', 1, '09:00:00', '09:00:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T2', 'S2', 1, '09:00:00', '09:00:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T2', 'S1', 2, '09:10:00', '09:10:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T2', 'S1', 2, '09:10:00', '09:10:00')",
         )
         .execute(&db.pool)
         .await
@@ -1304,12 +1308,12 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '42', 'The Answer', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '42', 'The Answer', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -1330,16 +1334,16 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -1349,7 +1353,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO vehicle_positions
              (agency_id, observed_at, trip_id, latitude, longitude, speed)
-             VALUES ('test', NOW()::TEXT, 'T1', 45.5, -73.5, 15.0)",
+             VALUES ('0', NOW()::TEXT, 'T1', 45.5, -73.5, 15.0)",
         )
         .execute(&db.pool)
         .await
@@ -1367,12 +1371,12 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -1382,7 +1386,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO vehicle_positions
              (agency_id, observed_at, trip_id, latitude, longitude, speed)
-             VALUES ('test', (NOW() - INTERVAL '2 hours')::TEXT, 'T1', 45.5, -73.5, 15.0)",
+             VALUES ('0', (NOW() - INTERVAL '2 hours')::TEXT, 'T1', 45.5, -73.5, 15.0)",
         )
         .execute(&db.pool)
         .await
@@ -1402,30 +1406,30 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
         )
         .execute(&db.pool)
         .await
@@ -1436,7 +1440,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO stop_time_events
              (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('test', '2026-01-01T08:00:00Z', 'T1', 'S1', 1, $1)",
+             VALUES ('0', '2026-01-01T08:00:00Z', 'T1', 'S1', 1, $1)",
         )
         .bind(t_s1)
         .execute(&db.pool)
@@ -1445,7 +1449,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO stop_time_events
              (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('test', '2026-01-01T08:15:00Z', 'T1', 'S2', 2, $1)",
+             VALUES ('0', '2026-01-01T08:15:00Z', 'T1', 'S2', 2, $1)",
         )
         .bind(t_s2)
         .execute(&db.pool)
@@ -1479,12 +1483,12 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '99', 'Route 99', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -1492,7 +1496,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('test', 'R1', (CURRENT_DATE - 1)::TEXT, 0, 6.5, 10, '2026-01-01T00:00:00Z')"
+             VALUES ('0', 'R1', (CURRENT_DATE - 1)::TEXT, 0, 6.5, 10, '2026-01-01T00:00:00Z')"
         ).execute(&db.pool).await.unwrap();
 
         let summary = route_speed_summary(&db, None).await.unwrap();
@@ -1510,12 +1514,12 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '99', 'Route 99', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -1568,30 +1572,30 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
         )
         .execute(&db.pool)
         .await
@@ -1604,7 +1608,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO stop_time_events
              (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('test', NOW()::TEXT, 'T1', 'S1', 1, $1)",
+             VALUES ('0', NOW()::TEXT, 'T1', 'S1', 1, $1)",
         )
         .bind(t_s1)
         .execute(&db.pool)
@@ -1613,7 +1617,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO stop_time_events
              (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('test', NOW()::TEXT, 'T1', 'S2', 2, $1)",
+             VALUES ('0', NOW()::TEXT, 'T1', 'S2', 2, $1)",
         )
         .bind(t_s2)
         .execute(&db.pool)
@@ -1627,7 +1631,7 @@ mod tests {
         let row: (f64, i64) = sqlx::query_as(
             "SELECT actual_speed_mps, trip_count
              FROM route_speed_hourly
-             WHERE agency_id = 'test' AND route_id = 'R1' AND direction_id = 0",
+             WHERE agency_id = '0' AND route_id = 'R1' AND direction_id = 0",
         )
         .fetch_one(&db.pool)
         .await
@@ -1644,7 +1648,7 @@ mod tests {
 
     fn make_summary(scheduled: f64, actual: Option<f64>) -> RouteSpeedSummary {
         RouteSpeedSummary {
-            agency_id: "test".into(),
+            agency_id: "0".into(),
             route_id: "R1".into(),
             short_name: "1".into(),
             long_name: "Route 1".into(),
@@ -1715,49 +1719,47 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T_WD',  'R1', 'WD',  0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T_WD',  'R1', 'WD',  0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T_SAT', 'R1', 'SAT', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T_SAT', 'R1', 'SAT', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T_SUN', 'R1', 'SUN', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T_SUN', 'R1', 'SUN', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
 
         // Calendar: WD = Mon-Fri, SAT = Saturday only, SUN = Sunday only.
+        sqlx::query("INSERT INTO calendar VALUES ('0','WD', true,true,true,true,true,false,false)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(
-            "INSERT INTO calendar VALUES ('test','WD', true,true,true,true,true,false,false)",
+            "INSERT INTO calendar VALUES ('0','SAT',false,false,false,false,false,true,false)",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO calendar VALUES ('test','SAT',false,false,false,false,false,true,false)",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO calendar VALUES ('test','SUN',false,false,false,false,false,false,true)",
+            "INSERT INTO calendar VALUES ('0','SUN',false,false,false,false,false,false,true)",
         )
         .execute(&db.pool)
         .await
         .unwrap();
 
         // Two stops ~1111 m apart.
-        sqlx::query("INSERT INTO stops VALUES ('test','S1','Stop 1',45.50,-73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','Stop 1',45.50,-73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test','S2','Stop 2',45.51,-73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Stop 2',45.51,-73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
@@ -1769,10 +1771,13 @@ mod tests {
             ("T_SUN", "08:15:00"),
         ] {
             sqlx::query(&format!(
-                "INSERT INTO scheduled_stops VALUES ('test','{trip_id}','S1',1,'08:00:00','08:00:00')"
-            )).execute(&db.pool).await.unwrap();
+                "INSERT INTO scheduled_stops VALUES ('0','{trip_id}','S1',1,'08:00:00','08:00:00')"
+            ))
+            .execute(&db.pool)
+            .await
+            .unwrap();
             sqlx::query(&format!(
-                "INSERT INTO scheduled_stops VALUES ('test','{trip_id}','S2',2,'{arr}','{arr}')"
+                "INSERT INTO scheduled_stops VALUES ('0','{trip_id}','S2',2,'{arr}','{arr}')"
             ))
             .execute(&db.pool)
             .await
@@ -1786,7 +1791,7 @@ mod tests {
         let rows: Vec<(String, f64, i64)> = sqlx::query_as(
             "SELECT day_type, scheduled_speed_mps, trip_count
              FROM route_speed_day_type
-             WHERE agency_id = 'test' AND route_id = 'R1' AND direction_id = 0
+             WHERE agency_id = '0' AND route_id = 'R1' AND direction_id = 0
              ORDER BY day_type",
         )
         .fetch_all(&db.pool)
@@ -1825,18 +1830,18 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test','R1','1','Route 1',3)")
+        sqlx::query("INSERT INTO routes VALUES ('0','R1','1','Route 1',3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO route_speed VALUES ('test','R1',0,10.0,5,'2026-01-01T00:00:00Z')")
+        sqlx::query("INSERT INTO route_speed VALUES ('0','R1',0,10.0,5,'2026-01-01T00:00:00Z')")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
             "INSERT INTO route_speed_day_type
              (agency_id,route_id,direction_id,day_type,scheduled_speed_mps,trip_count,computed_at)
-             VALUES ('test','R1',0,'weekday',8.0,10,'2026-01-01T00:00:00Z')",
+             VALUES ('0','R1',0,'weekday',8.0,10,'2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -1844,13 +1849,13 @@ mod tests {
         sqlx::query(
             "INSERT INTO route_speed_day_type
              (agency_id,route_id,direction_id,day_type,scheduled_speed_mps,trip_count,computed_at)
-             VALUES ('test','R1',0,'saturday',6.0,5,'2026-01-01T00:00:00Z')",
+             VALUES ('0','R1',0,'saturday',6.0,5,'2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
 
-        let rows = route_speed_by_day_type(&db, Some("test")).await.unwrap();
+        let rows = route_speed_by_day_type(&db, Some("0")).await.unwrap();
 
         assert_eq!(rows.len(), 1);
         let r = &rows[0];
@@ -1883,7 +1888,7 @@ mod tests {
         let db = td.db;
 
         // Seed routes, trips with service_ids that only appear in calendar_dates.
-        sqlx::query("INSERT INTO routes VALUES ('test','R1','1','Route 1',3)")
+        sqlx::query("INSERT INTO routes VALUES ('0','R1','1','Route 1',3)")
             .execute(&db.pool)
             .await
             .unwrap();
@@ -1893,7 +1898,7 @@ mod tests {
             ("T_SUN", "SVC_SUN"),
         ] {
             sqlx::query(&format!(
-                "INSERT INTO trips VALUES ('test','{trip_id}','R1','{svc}',0,'Dest')"
+                "INSERT INTO trips VALUES ('0','{trip_id}','R1','{svc}',0,'Dest')"
             ))
             .execute(&db.pool)
             .await
@@ -1901,7 +1906,7 @@ mod tests {
         }
         for (sid, lat) in [("S1", 45.50_f64), ("S2", 45.51_f64)] {
             sqlx::query(&format!(
-                "INSERT INTO stops VALUES ('test','{sid}','Stop',$1,-73.50)"
+                "INSERT INTO stops VALUES ('0','{sid}','Stop',$1,-73.50)"
             ))
             .bind(lat)
             .execute(&db.pool)
@@ -1915,13 +1920,13 @@ mod tests {
             ("T_SUN", "08:15:00"),
         ] {
             sqlx::query(&format!(
-                "INSERT INTO scheduled_stops VALUES ('test','{trip_id}','S1',1,'08:00:00','08:00:00')"
+                "INSERT INTO scheduled_stops VALUES ('0','{trip_id}','S1',1,'08:00:00','08:00:00')"
             ))
             .execute(&db.pool)
             .await
             .unwrap();
             sqlx::query(&format!(
-                "INSERT INTO scheduled_stops VALUES ('test','{trip_id}','S2',2,'{arr}','{arr}')"
+                "INSERT INTO scheduled_stops VALUES ('0','{trip_id}','S2',2,'{arr}','{arr}')"
             ))
             .execute(&db.pool)
             .await
@@ -1956,7 +1961,7 @@ mod tests {
             }],
         );
         let mut tx = db.pool.begin().await.unwrap();
-        load_calendar_from_dates(&mut tx, "test", &calendar_dates)
+        load_calendar_from_dates(&mut tx, "0", &calendar_dates)
             .await
             .unwrap();
         tx.commit().await.unwrap();
@@ -1968,7 +1973,7 @@ mod tests {
         let rows: Vec<(String, f64)> = sqlx::query_as(
             "SELECT day_type, scheduled_speed_mps
              FROM route_speed_day_type
-             WHERE agency_id = 'test' AND route_id = 'R1' AND direction_id = 0
+             WHERE agency_id = '0' AND route_id = 'R1' AND direction_id = 0
              ORDER BY day_type",
         )
         .fetch_all(&db.pool)
@@ -2039,30 +2044,30 @@ mod tests {
         let db = td.db;
 
         // Set up route, trip, stops
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'Stop 1', 45.50, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Stop 2', 45.51, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
         )
         .execute(&db.pool)
         .await
@@ -2073,7 +2078,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO route_speed_day_type
              (agency_id, route_id, direction_id, day_type, scheduled_speed_mps, trip_count, computed_at)
-             VALUES ('test', 'R1', 0, 'weekday', 1.852, 1, '2026-01-01')",
+             VALUES ('0', 'R1', 0, 'weekday', 1.852, 1, '2026-01-01')",
         )
         .execute(&db.pool)
         .await
@@ -2084,7 +2089,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('test', 'R1', '2026-04-07', 0, 2.0, 1, '2026-04-07')",
+             VALUES ('0', 'R1', '2026-04-07', 0, 2.0, 1, '2026-04-07')",
         )
         .execute(&db.pool)
         .await
@@ -2092,7 +2097,7 @@ mod tests {
         sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('test', 'R1', '2024-01-01', 0, 99.0, 1, '2024-01-01')",
+             VALUES ('0', 'R1', '2024-01-01', 0, 99.0, 1, '2024-01-01')",
         )
         .execute(&db.pool)
         .await
@@ -2121,36 +2126,32 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '99', 'Route 99', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '99', 'Route 99', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test','S1','First Stop',45.50,-73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','First Stop',45.50,-73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test','S2','Last Stop',45.51,-73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Last Stop',45.51,-73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test','T1','S1',1,'08:00:00','08:00:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test','T1','S2',2,'08:10:00','08:10:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -2171,36 +2172,32 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test','S1','First Stop',45.50,-73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','First Stop',45.50,-73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test','S2','Last Stop',45.51,-73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Last Stop',45.51,-73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test','T1','S1',1,'08:00:00','08:00:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test','T1','S2',2,'08:10:00','08:10:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -2221,37 +2218,33 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Dest')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
             .execute(&db.pool)
             .await
             .unwrap();
         // S1→S2: ~1111 m apart (0.01° latitude)
-        sqlx::query("INSERT INTO stops VALUES ('test','S1','Stop 1',45.50,-73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','Stop 1',45.50,-73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test','S2','Stop 2',45.51,-73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Stop 2',45.51,-73.50)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test','T1','S1',1,'08:00:00','08:00:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test','T1','S2',2,'08:10:00','08:10:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO route_speed VALUES ('test', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await
@@ -2293,7 +2286,7 @@ mod tests {
             StopSpacingRow {
                 direction_id: 0,
                 to_stop_name: "C".into(),
-                distance_m: Some(100.0),
+                distance_m: Some(300.0),
                 avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
@@ -2362,7 +2355,7 @@ mod tests {
             StopSpacingRow {
                 direction_id: 0,
                 to_stop_name: "B".into(),
-                distance_m: Some(100.0),
+                distance_m: Some(300.0),
                 avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
@@ -2404,7 +2397,7 @@ mod tests {
             StopSpacingRow {
                 direction_id: 0,
                 to_stop_name: "B".into(),
-                distance_m: Some(100.0),
+                distance_m: Some(300.0),
                 avg_speed_mps: None,
                 is_first: true,
                 is_last: false,
@@ -2434,23 +2427,43 @@ mod tests {
     fn build_direction_trends_buckets_weekday_saturday_sunday() {
         // 2024-01-01 = Monday (weekday), 2024-01-06 = Saturday, 2024-01-07 = Sunday
         let rows = vec![
-            SpeedTrendRow { direction_id: 0, service_date: "2024-01-01".into(), actual_speed_mps: 5.0 },
-            SpeedTrendRow { direction_id: 0, service_date: "2024-01-06".into(), actual_speed_mps: 6.0 },
-            SpeedTrendRow { direction_id: 0, service_date: "2024-01-07".into(), actual_speed_mps: 7.0 },
+            SpeedTrendRow {
+                direction_id: 0,
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 5.0,
+            },
+            SpeedTrendRow {
+                direction_id: 0,
+                service_date: "2024-01-06".into(),
+                actual_speed_mps: 6.0,
+            },
+            SpeedTrendRow {
+                direction_id: 0,
+                service_date: "2024-01-07".into(),
+                actual_speed_mps: 7.0,
+            },
         ];
         let result = build_direction_trends(rows);
         assert_eq!(result.len(), 1);
         let t = &result[0];
-        assert_eq!(t.weekday,  vec![("2024-01-01".to_string(), 5.0)]);
+        assert_eq!(t.weekday, vec![("2024-01-01".to_string(), 5.0)]);
         assert_eq!(t.saturday, vec![("2024-01-06".to_string(), 6.0)]);
-        assert_eq!(t.sunday,   vec![("2024-01-07".to_string(), 7.0)]);
+        assert_eq!(t.sunday, vec![("2024-01-07".to_string(), 7.0)]);
     }
 
     #[test]
     fn build_direction_trends_groups_two_directions() {
         let rows = vec![
-            SpeedTrendRow { direction_id: 0, service_date: "2024-01-01".into(), actual_speed_mps: 5.0 },
-            SpeedTrendRow { direction_id: 1, service_date: "2024-01-01".into(), actual_speed_mps: 4.0 },
+            SpeedTrendRow {
+                direction_id: 0,
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 5.0,
+            },
+            SpeedTrendRow {
+                direction_id: 1,
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 4.0,
+            },
         ];
         let result = build_direction_trends(rows);
         assert_eq!(result.len(), 2);
@@ -2466,48 +2479,48 @@ mod tests {
         let td = test_utils::setup().await;
         let db = &td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('test', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         // direction 0 trip with 3 stops in sequence order
-        sqlx::query("INSERT INTO trips VALUES ('test', 'T1', 'R1', 'WD', 0, 'Terminus')")
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Terminus')")
             .execute(&db.pool)
             .await
             .unwrap();
         // S1 and S2 are 0.01° apart in latitude ≈ 1111 m; S2 and S3 are 0.001° ≈ 111 m
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S1', 'First Stop',  45.500, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'First Stop',  45.500, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S2', 'Middle Stop', 45.510, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Middle Stop', 45.510, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('test', 'S3', 'Terminus',    45.511, -73.50)")
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S3', 'Terminus',    45.511, -73.50)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S2', 2, '08:05:00', '08:05:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:05:00', '08:05:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('test', 'T1', 'S3', 3, '08:07:00', '08:07:00')",
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S3', 3, '08:07:00', '08:07:00')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
 
-        let directions = route_stop_spacings(db, "test", "R1").await.unwrap();
+        let directions = route_stop_spacings(db, "0", "R1").await.unwrap();
 
         assert_eq!(directions.len(), 1, "one direction expected");
         let dir = &directions[0];
@@ -2529,14 +2542,22 @@ mod tests {
             dir.spacings[1].distance_m
         );
         // avg ≈ 611 m, threshold ≈ 917 m → S1→S2 (1111 m) is an outlier
-        assert!(dir.spacings[0].is_outlier, "S1→S2 should be flagged as outlier");
-        assert!(!dir.spacings[1].is_outlier, "S2→S3 should not be an outlier");
+        assert!(
+            dir.spacings[0].is_outlier,
+            "S1→S2 should be flagged as outlier"
+        );
+        assert!(
+            !dir.spacings[1].is_outlier,
+            "S2→S3 should not be an outlier"
+        );
     }
 
     #[tokio::test]
     async fn route_stop_spacings_returns_empty_for_unknown_route() {
         let td = test_utils::setup().await;
-        let result = route_stop_spacings(&td.db, "test", "NONEXISTENT").await.unwrap();
+        let result = route_stop_spacings(&td.db, "0", "NONEXISTENT")
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 
@@ -2572,7 +2593,7 @@ mod tests {
             sqlx::query(
                 "INSERT INTO route_speed_daily
                  (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-                 VALUES ('test', 'R1', $1, $2, $3, 1, 'now')",
+                 VALUES ('0', 'R1', $1, $2, $3, 1, 'now')",
             )
             .bind(date)
             .bind(dir)
@@ -2582,7 +2603,9 @@ mod tests {
             .unwrap();
         }
 
-        let trends = route_speed_trend_by_direction(db, "test", "R1", 28).await.unwrap();
+        let trends = route_speed_trend_by_direction(db, "0", "R1", 28)
+            .await
+            .unwrap();
         assert_eq!(trends.len(), 2, "two directions");
 
         let dir0 = trends.iter().find(|t| t.direction_id == 0).unwrap();
@@ -2601,7 +2624,9 @@ mod tests {
     #[tokio::test]
     async fn route_speed_trend_by_direction_returns_empty_when_no_data() {
         let td = test_utils::setup().await;
-        let result = route_speed_trend_by_direction(&td.db, "test", "R1", 28).await.unwrap();
+        let result = route_speed_trend_by_direction(&td.db, "0", "R1", 28)
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 }

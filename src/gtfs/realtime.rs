@@ -18,7 +18,7 @@ pub async fn poll_loop(db: &Database, agency: &AgencyConfig, poll_interval_secs:
     let interval = std::time::Duration::from_secs(poll_interval_secs);
     loop {
         if let Err(e) = poll_once(db, agency).await {
-            error!("GTFS-RT poll error ({}): {}", agency.slug, e);
+            error!("GTFS-RT poll error ({}): {}", agency.id, e);
         }
         tokio::time::sleep(interval).await;
     }
@@ -26,12 +26,13 @@ pub async fn poll_loop(db: &Database, agency: &AgencyConfig, poll_interval_secs:
 
 async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
+    let agency_id = agency.id.to_string();
 
     // Fetch VehiclePositions (optional — skip if URL not configured)
     let vp_count = if let Some(url) = &agency.gtfs_rt_vehicle_positions_url {
         let vp_bytes = fetch_feed(url, agency.gtfs_api_key.as_deref()).await?;
         let vp_feed = proto::FeedMessage::decode(vp_bytes.as_ref())?;
-        store_vehicle_positions(db, &vp_feed, &now, &agency.slug).await?
+        store_vehicle_positions(db, &vp_feed, &now, &agency_id).await?
     } else {
         0
     };
@@ -40,7 +41,7 @@ async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let tu_count = if let Some(url) = &agency.gtfs_rt_trip_updates_url {
         let tu_bytes = fetch_feed(url, agency.gtfs_api_key.as_deref()).await?;
         let tu_feed = proto::FeedMessage::decode(tu_bytes.as_ref())?;
-        store_trip_updates(db, &tu_feed, &now, &agency.slug).await?
+        store_trip_updates(db, &tu_feed, &now, &agency_id).await?
     } else {
         0
     };
@@ -49,7 +50,7 @@ async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
 
     info!(
         "GTFS-RT poll complete ({}): {} vehicle positions, {} stop time events",
-        agency.slug, vp_count, tu_count
+        agency_id, vp_count, tu_count
     );
     Ok(())
 }
