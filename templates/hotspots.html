@@ -8,33 +8,34 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #f5f5f5; color: #222; display: flex; flex-direction: column; height: 100vh; }
-    header { background: #1a1a2e; color: white; padding: 1rem 2rem;
-             display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-    header h1 { font-size: 1.4rem; font-weight: 600; }
-    header nav a { color: #aaa; font-size: 0.85rem; text-decoration: none; margin-left: 1.5rem; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: var(--paper); color: var(--ink-900); display: flex; flex-direction: column; height: 100vh; }
+    header { background: var(--ink-900); color: white; padding: 0.85rem 1.5rem;
+             display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+             border-bottom: 1px solid var(--line); }
+    header h1 { font-size: 1.1rem; font-weight: 700; }
+    header nav a { color: var(--ink-400); font-size: 0.85rem; text-decoration: none; margin-left: 1.25rem; font-weight: 600; }
     header nav a:hover { color: white; }
     .layout { display: flex; flex: 1; overflow: hidden; }
     #map { flex: 1; }
-    .sidebar { width: 360px; overflow-y: auto; background: white;
-               border-left: 1px solid #e0e0e0; flex-shrink: 0; }
-    .sidebar-header { padding: 1rem; border-bottom: 1px solid #eee; background: #f8f8f8; }
-    .sidebar-header h2 { font-size: 1rem; font-weight: 600; }
-    .sidebar-header p { font-size: 0.8rem; color: #888; margin-top: 0.25rem; }
+    .sidebar { width: 360px; overflow-y: auto; background: var(--surface);
+               border-left: 1px solid var(--line); flex-shrink: 0; }
+    .sidebar-header { padding: 1rem; border-bottom: 1px solid var(--line); background: var(--surface-muted); }
+    .sidebar-header h2 { font-size: 1rem; font-weight: 700; color: var(--ink-900); }
+    .sidebar-header p { font-size: 0.8rem; color: var(--ink-500); margin-top: 0.25rem; }
     .legend { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.75rem 1rem;
-              border-bottom: 1px solid #eee; background: #fafafa; font-size: 0.75rem; }
-    .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+              border-bottom: 1px solid var(--line); background: var(--surface); font-size: 0.75rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.35rem; color: var(--ink-500); }
     .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
     table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-    thead { background: #f0f0f0; position: sticky; top: 0; }
+    thead { background: var(--surface-muted); position: sticky; top: 0; }
     th { padding: 0.6rem 0.75rem; text-align: left; font-size: 0.72rem;
-         text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
-    td { padding: 0.6rem 0.75rem; border-top: 1px solid #eee; }
-    tr:hover td { background: #f5f5f5; cursor: pointer; }
-    .rank { color: #aaa; font-size: 0.75rem; width: 24px; }
+         text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-500); font-weight: 700; }
+    td { padding: 0.6rem 0.75rem; border-top: 1px solid var(--line-soft); }
+    tr:hover td { background: #fbfdff; cursor: pointer; }
+    .rank { color: var(--ink-400); font-size: 0.75rem; width: 24px; }
     .delay { font-weight: 600; }
-    .obs { color: #aaa; font-size: 0.75rem; }
+    .obs { color: var(--ink-400); font-size: 0.75rem; }
     .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
   </style>
 </head>
@@ -43,7 +44,7 @@
     <h1>Mobilispect — Delay Hotspots</h1>
     <nav>
       <a href="/">Dashboard</a>
-      <a href="/scorecard">Scorecard ↗</a>
+      <a href="/scorecard">Scorecard</a>
       <a href="/report">Report</a>
     </nav>
   </header>
@@ -55,10 +56,10 @@
         <p>{{ hotspots.len() }} stops with ≥ 5 observations, ranked by avg delay</p>
       </div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#dc3545"></div> ≥ 5 min</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#fd7e14"></div> 1–5 min</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#ffc107"></div> &lt; 1 min late</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#28a745"></div> On time</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--civic-red)"></div> ≥ 5 min</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--civic-amber)"></div> 1–5 min</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--civic-amber)"></div> &lt; 1 min late</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--civic-green)"></div> On time</div>
       </div>
       <table>
         <thead>
@@ -96,11 +97,11 @@
     }).addTo(map);
 
     function delayColor(d) {
-      if (d === null) return '#28a745';
-      if (d >= 300) return '#dc3545';
-      if (d >= 60)  return '#fd7e14';
-      if (d > 0)    return '#ffc107';
-      return '#28a745';
+      if (d === null) return '#2d8f67';
+      if (d >= 300) return '#c9483f';
+      if (d >= 60)  return '#f0b84b';
+      if (d > 0)    return '#f0b84b';
+      return '#2d8f67';
     }
 
     function delayLabel(d) {

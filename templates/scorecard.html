@@ -1,151 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobilispect — Global Scorecard</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #f5f5f5; color: #222; }
-    header { background: #1a1a2e; color: white; padding: 1rem 2rem;
-             display: flex; justify-content: space-between; align-items: center; }
-    header h1 { font-size: 1.4rem; font-weight: 600; }
-    header a { color: #aaa; font-size: 0.85rem; text-decoration: none; }
-    header a:hover { color: white; }
-    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-    .summary-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
-    .stat { background: white; border-radius: 8px; padding: 1rem 1.5rem;
-            flex: 1; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .stat .label { font-size: 0.75rem; color: #888; text-transform: uppercase;
-                   letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-    .stat .value { font-size: 1.8rem; font-weight: 700; }
-    .note { background: white; border-radius: 8px; padding: 0.75rem 1rem;
-            margin-bottom: 1.5rem; font-size: 0.85rem; color: #555;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    table { width: 100%; border-collapse: collapse; background: white;
-            border-radius: 8px; overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    thead { background: #f0f0f0; }
-    th { padding: 0.75rem 1rem; text-align: left; font-size: 0.8rem;
-         text-transform: uppercase; letter-spacing: 0.05em; color: #555; }
-    td { padding: 0.75rem 1rem; border-top: 1px solid #eee; font-size: 0.9rem; }
-    tr:hover td { background: #fafafa; }
-    .route-id { font-family: monospace; font-weight: 600; font-size: 0.95rem; }
-    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px;
-             font-size: 0.75rem; font-weight: 600; }
-    .green  { background: #d4edda; color: #155724; }
-    .yellow { background: #fff3cd; color: #856404; }
-    .red    { background: #f8d7da; color: #721c24; }
-    .none   { background: #e9ecef; color: #6c757d; }
-    .gap-pos { color: #27ae60; font-weight: 600; }
-    .gap-neg { color: #c0392b; font-weight: 600; }
-    .slower  { color: #c0392b; }
-    .faster  { color: #27ae60; }
-    .onpace  { color: #555; }
-    .bench-header { background: #e8f0fe; }
-    .footnotes { margin-top: 2rem; font-size: 0.78rem; color: #888; }
-    .footnotes a { color: #888; }
-    footer { text-align: center; padding: 2rem; color: #aaa; font-size: 0.8rem; }
-    .filter-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
-    .filter-bar a { padding: 0.35rem 0.75rem; border-radius: 20px; background: white;
-                    border: 1px solid #ddd; font-size: 0.85rem; text-decoration: none;
-                    color: #555; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .filter-bar a:hover { border-color: #999; color: #222; }
-    .filter-bar a.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
-    @media print {
-      header nav, footer { display: none; }
-      body { background: white; }
-      @page { margin: 1.5cm; }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Global Scorecard</h1>
-    <nav style="display:flex;gap:1.5rem;align-items:center;">
-      <span style="color:white;font-size:0.85rem;font-weight:600;">Global Scorecard</span>
-      <a href="/">← Dashboard</a>
-      <a href="/speed">Route speeds ↗</a>
-      <a href="/hotspots">Delay hotspots ↗</a>
-      <a href="/report">Print report ↗</a>
-    </nav>
-  </header>
-  <div class="container">
-    <div class="summary-bar">
-      <div class="stat">
-        <div class="label">Routes monitored</div>
-        <div class="value">{{ routes.len() }}</div>
-      </div>
-      <div class="stat">
-        <div class="label">Meeting {{ floor_city }} floor</div>
-        <div class="value">{{ routes_meeting_floor }}</div>
-      </div>
-      <div class="stat">
-        <div class="label">Worst gap vs {{ floor_city }}</div>
-        <div class="value">
-          {% if let Some(g) = worst_gap %}
-            {% if *g >= 0.0 %}+{{ (*g).round() as i64 }}pp{% else %}{{ (*g).round() as i64 }}pp{% endif %}
-          {% else %}—{% endif %}
-        </div>
-        {% if let Some(g) = worst_gap %}
-        <div style="font-size:0.75rem;color:#888;margin-top:0.25rem;">
-          {% if *g >= 0.0 %}all routes above floor{% else %}below {{ floor_city }} standard{% endif %}
-        </div>
-        {% endif %}
-      </div>
-    </div>
+{% extends "base.html" %}
 
-    <div class="note">
-      Columns show percentage-point gap between each route's on-time % and each world-class system.
-      <strong>{{ floor_city }} ({{ floor_pct }}%)</strong> is the floor — the weakest world-class benchmark.
-      <strong>{{ ceiling_city }} ({{ ceiling_pct }}%)</strong> is the ceiling.
-      Period: last {{ period_days }} days · Generated {{ generated_at }}
-    </div>
+{% block title %}Mobilispect — Global Scorecard{% endblock %}
 
-    <div class="filter-bar">
-      <a href="/scorecard" class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
-      {% for (slug, name) in &agencies %}
-      <a href="/scorecard?agency={{ slug }}" class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
-      {% endfor %}
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Route</th>
-          <th>Name</th>
-          <th>On-time %</th>
-          <th>Speed vs sched</th>
-          {% for bench in benchmarks %}
-          <th class="bench-header">vs {{ bench.city }}</th>
-          {% endfor %}
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for route in routes %}
-        <tr>
-          <td><a href="/routes/{{ route.agency_id }}/{{ route.route_id }}" style="text-decoration:none;"><span class="route-id">{% if let Some(n) = agency_names.get(route.agency_id.as_str()) %}{{ n }} {% endif %}{{ route.short_name }}</span></a></td>
-          <td>{{ route.long_name }}</td>
-          <td>{{ route.on_time_display() }}</td>
-          <td><span class="{{ route.speed_class() }}">{{ route.speed_display() }}</span></td>
-          {% for bench in benchmarks %}
-          <td><span class="{{ route.on_time_gap_class(bench.on_time_pct) }}">{{ route.on_time_gap_display(bench.on_time_pct) }}</span></td>
-          {% endfor %}
-          <td><span class="badge {{ route.status_class(floor_pct, ceiling_pct) }}">{{ route.status_label(floor_pct, ceiling_pct) }}</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
-    <div class="footnotes">
-      <strong>Benchmark sources:</strong>
-      {% for bench in benchmarks %}
-        {{ bench.system_name }} · {{ bench.on_time_pct }}% on-time · {{ bench.year }} · <a href="{{ bench.source_url }}" target="_blank" rel="noopener noreferrer">source</a>{% if !loop.last %} &nbsp;·&nbsp; {% endif %}
-      {% endfor %}
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Global Scorecard</h1>
+      <p class="page-subtitle">Route performance compared with world-class transit benchmarks</p>
     </div>
   </div>
-  <footer>Mobilispect · Last {{ period_days }} days · Data: STM GTFS-RT</footer>
-</body>
-</html>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Routes monitored</div>
+      <div class="metric-value">{{ routes.len() }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Meeting {{ floor_city }} floor</div>
+      <div class="metric-value">{{ routes_meeting_floor }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Worst gap vs {{ floor_city }}</div>
+      <div class="metric-value">
+        {% if let Some(g) = worst_gap %}
+          {% if *g >= 0.0 %}+{{ (*g).round() as i64 }}pp{% else %}{{ (*g).round() as i64 }}pp{% endif %}
+        {% else %}—{% endif %}
+      </div>
+      {% if let Some(g) = worst_gap %}
+      <div style="font-size:0.75rem;color:var(--ink-500);margin-top:0.25rem;">
+        {% if *g >= 0.0 %}all routes above floor{% else %}below {{ floor_city }} standard{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:0.85rem;color:var(--ink-700);">
+    Columns show percentage-point gap between each route's on-time % and each world-class system.
+    <strong>{{ floor_city }} ({{ floor_pct }}%)</strong> is the floor — the weakest world-class benchmark.
+    <strong>{{ ceiling_city }} ({{ ceiling_pct }}%)</strong> is the ceiling.
+    Period: last {{ period_days }} days · Generated {{ generated_at }}
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">Agency</span>
+    <a href="/scorecard" class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
+    {% for (slug, name) in &agencies %}
+    <a href="/scorecard?agency={{ slug }}" class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
+    {% endfor %}
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Route</th>
+        <th>Name</th>
+        <th>On-time %</th>
+        <th>Speed vs sched</th>
+        {% for bench in benchmarks %}
+        <th>vs {{ bench.city }}</th>
+        {% endfor %}
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for route in routes %}
+      <tr>
+        <td><a href="/routes/{{ route.agency_id }}/{{ route.route_id }}" style="text-decoration:none;"><span class="route-id">{% if let Some(n) = agency_names.get(route.agency_id.as_str()) %}{{ n }} {% endif %}{{ route.short_name }}</span></a></td>
+        <td>{{ route.long_name }}</td>
+        <td>{{ route.on_time_display() }}</td>
+        <td><span class="{{ route.speed_class() }}">{{ route.speed_display() }}</span></td>
+        {% for bench in benchmarks %}
+        <td><span class="{{ route.on_time_gap_class(bench.on_time_pct) }}">{{ route.on_time_gap_display(bench.on_time_pct) }}</span></td>
+        {% endfor %}
+        <td><span class="badge {{ route.status_class(floor_pct, ceiling_pct) }}">{{ route.status_label(floor_pct, ceiling_pct) }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div style="margin-top:2rem;font-size:0.78rem;color:var(--ink-500);">
+    <strong>Benchmark sources:</strong>
+    {% for bench in benchmarks %}
+      {{ bench.system_name }} · {{ bench.on_time_pct }}% on-time · {{ bench.year }} · <a href="{{ bench.source_url }}" target="_blank" rel="noopener noreferrer">source</a>{% if !loop.last %} &nbsp;·&nbsp; {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,91 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mobilispect — Route Speeds</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           background: #f5f5f5; color: #222; }
-    header { background: #1a1a2e; color: white; padding: 1rem 2rem;
-             display: flex; justify-content: space-between; align-items: center; }
-    header h1 { font-size: 1.4rem; font-weight: 600; }
-    header a { color: #aaa; font-size: 0.85rem; text-decoration: none; }
-    header a:hover { color: white; }
-    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-    .controls { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
-    .control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
-    .control-label { font-size: 0.78rem; color: #888; font-weight: 500;
-                     min-width: 4.5rem; text-align: right; padding-right: 0.25rem; }
-    .control-row a { padding: 0.3rem 0.7rem; border-radius: 20px; background: white;
-                     border: 1px solid #ddd; font-size: 0.82rem; text-decoration: none;
-                     color: #555; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-    .control-row a:hover { border-color: #999; color: #222; }
-    .control-row a.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
-    .card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-    @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr; } }
-    .card { background: white; border-radius: 8px; padding: 1rem 1.25rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .route-num { font-family: monospace; font-weight: 700; font-size: 1rem; }
-    .route-name { font-size: 0.8rem; color: #666; margin-top: 0.15rem; margin-bottom: 0.75rem; }
-    .chart-row { display: flex; gap: 0.75rem; }
-    .chart-col { flex: 1; min-width: 0; }
-    .chart-col:only-child { max-width: 50%; margin: 0 auto; }
-    .chart-title { font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 0.25rem; color: #444; }
-    .no-data { color: #aaa; font-size: 0.9rem; text-align: center; padding: 3rem 0; }
-    .route-header { display: flex; justify-content: space-between; align-items: flex-start; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;
-             font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
-    .badge--slow-bus  { background: #fde8e8; color: #c0392b; border: 1px solid #f1948a; }
-    .badge--local-bus { background: #e8f4fd; color: #2471a3; border: 1px solid #aed6f1; }
-    .badge--rapid     { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
-    .badge--express   { background: #f5eef8; color: #7d3c98; border: 1px solid #d7bde2; }
-    footer { text-align: center; padding: 2rem; color: #aaa; font-size: 0.8rem; }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-</head>
-<body>
-  <header>
-    <h1>Route Speeds</h1>
-    <nav style="display:flex;gap:1.5rem;">
-      <a href="/">← Dashboard</a>
-      <a href="/hotspots">Delay hotspots ↗</a>
-      <a href="/scorecard">Scorecard ↗</a>
-      <a href="/report">Print report ↗</a>
-    </nav>
-  </header>
-  <div class="container">
-    <div class="controls">
-      <div class="control-row">
-        <span class="control-label">Agency:</span>
-        <a href="/speed{% if active_sort != "name" %}?sort={{ active_sort }}{% endif %}"
-           class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
-        {% for (slug, name) in &agencies %}
-        <a href="/speed?agency={{ slug }}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
-           class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
-        {% endfor %}
-      </div>
-      <div class="control-row">
-        <span class="control-label">Sort by:</span>
-        <a href="/speed{% if !active_agency.is_empty() %}?agency={{ active_agency }}{% endif %}"
-           class="{% if active_sort == "name" %}active{% endif %}">Name</a>
-        <a href="/speed?sort=scheduled{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}"
-           class="{% if active_sort == "scheduled" %}active{% endif %}">Slowest scheduled</a>
-        <a href="/speed?sort=actual{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}"
-           class="{% if active_sort == "actual" %}active{% endif %}">Slowest actual</a>
-      </div>
+{% extends "base.html" %}
+
+{% block title %}Mobilispect — Route Speeds{% endblock %}
+{% block nav_speed %}active{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+.controls { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+@media (max-width: 900px) { .card-grid { grid-template-columns: 1fr; } }
+.chart-row { display: flex; gap: 0.75rem; }
+.chart-col { flex: 1; min-width: 0; }
+.chart-col:only-child { max-width: 50%; margin: 0 auto; }
+.chart-title { font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 0.25rem; color: var(--ink-700); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Route Speeds</h1>
+      <p class="page-subtitle">Scheduled and actual speed evidence by route</p>
     </div>
-    {% if cards.is_empty() %}
-    <p class="no-data">No speed data available yet. Data appears after the daily compute runs.</p>
-    {% else %}
-    <div class="card-grid">
-      {% for card in &cards %}
-      {% include "speed_card.html" %}
-      {% endfor %}
-    </div>
-    {% endif %}
   </div>
-  <footer>Mobilispect · Data: STM GTFS-RT</footer>
-</body>
-</html>
+
+  <div class="control-row">
+    <span class="control-label">Agency:</span>
+    <a href="/speed{% if active_sort != "name" %}?sort={{ active_sort }}{% endif %}"
+       class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
+    {% for (slug, name) in &agencies %}
+    <a href="/speed?agency={{ slug }}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
+       class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="control-row" style="margin-bottom:1.5rem;">
+    <span class="control-label">Sort by:</span>
+    <a href="/speed{% if !active_agency.is_empty() %}?agency={{ active_agency }}{% endif %}"
+       class="{% if active_sort == "name" %}active{% endif %}">Name</a>
+    <a href="/speed?sort=scheduled{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}"
+       class="{% if active_sort == "scheduled" %}active{% endif %}">Slowest scheduled</a>
+    <a href="/speed?sort=actual{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}"
+       class="{% if active_sort == "actual" %}active{% endif %}">Slowest actual</a>
+  </div>
+
+  {% if cards.is_empty() %}
+  <div class="empty-state">No speed data available yet. Data appears after the daily compute runs.</div>
+  {% else %}
+  <div class="card-grid">
+    {% for card in &cards %}
+    {% include "speed_card.html" %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

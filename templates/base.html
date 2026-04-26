@@ -9,30 +9,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Urban Pulse Palette */
-            --primary: #1a1a2e;
-            --primary-light: #242445;
-            --accent: #4361ee;
-            --accent-hover: #3751d4;
-            --success: #2ec4b6;
-            --warning: #ff9f1c;
-            --danger: #e71d36;
-            
-            /* Backgrounds */
-            --bg-main: #f8fafc;
-            --bg-card: #ffffff;
-            --bg-header: #1a1a2e;
-            
-            /* Text */
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --text-light: #94a3b8;
-            --text-on-dark: #f8fafc;
-            
-            /* Borders & Shadows */
-            --border: #e2e8f0;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            /* Civic Ledger Palette */
+            --ink-900: #17202c;
+            --ink-800: #1f2937;
+            --ink-700: #334155;
+            --ink-500: #627083;
+            --ink-400: #7b8796;
+            --paper: #f7f9fb;
+            --surface: #ffffff;
+            --surface-muted: #f1f5f9;
+            --line: #d8dee8;
+            --line-soft: #edf0f5;
+            --civic-green: #2d8f67;
+            --civic-green-bg: #e8f7ef;
+            --civic-amber: #f0b84b;
+            --civic-amber-bg: #fff4d8;
+            --civic-red: #c9483f;
+            --civic-red-bg: #fbe4e1;
+            --link-blue: #2f6f9f;
+            --link-blue-bg: #e7f1f7;
+            --shadow-sm: 0 1px 2px rgb(23 32 44 / 0.05);
+            --shadow: 0 8px 24px rgb(23 32 44 / 0.08);
             --radius: 8px;
         }
 
@@ -44,16 +41,16 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background-color: var(--bg-main);
-            color: var(--text-main);
+            background-color: var(--paper);
+            color: var(--ink-900);
             line-height: 1.5;
             -webkit-font-smoothing: antialiased;
         }
 
         header {
-            background-color: var(--bg-header);
-            color: var(--text-on-dark);
-            padding: 1rem 2rem;
+            background-color: var(--ink-900);
+            color: white;
+            padding: 0.85rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -61,6 +58,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            border-bottom: 1px solid var(--line);
         }
 
         .logo {
@@ -74,59 +72,44 @@
         .logo-icon {
             width: 42px;
             height: 42px;
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-            border-radius: 12px;
+            background: transparent;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .logo-icon::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at top left, rgba(255,255,255,0.2) 0%, transparent 70%);
-        }
-
-        .logo:hover .logo-icon {
-            transform: translateY(-2px) rotate(3deg);
-            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5);
+            color: var(--ink-900);
         }
 
         .logo-text {
-            font-size: 1.45rem;
-            font-weight: 800;
-            letter-spacing: -0.04em;
+            font-size: 1.1rem;
+            font-weight: 700;
             color: white;
             display: flex;
             align-items: center;
+            letter-spacing: -0.02em;
         }
 
         .logo-text span {
-            color: var(--text-light);
+            color: var(--ink-400);
             font-weight: 400;
             margin-left: 0.1rem;
         }
 
         nav {
             display: flex;
-            gap: 1.5rem;
+            gap: 1.25rem;
         }
 
         nav a {
-            color: var(--text-light);
+            color: var(--ink-400);
             text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
+            font-size: 0.85rem;
+            font-weight: 600;
             transition: color 0.2s;
         }
 
         nav a:hover, nav a.active {
-            color: var(--text-on-dark);
+            color: white;
         }
 
         .container {
@@ -136,11 +119,11 @@
         }
 
         footer {
-            border-top: 1px solid var(--border);
+            border-top: 1px solid var(--line);
             padding: 3rem 1rem;
             margin-top: 4rem;
             text-align: center;
-            color: var(--text-muted);
+            color: var(--ink-500);
             font-size: 0.875rem;
         }
 
@@ -160,18 +143,18 @@
         }
 
         .btn-primary {
-            background-color: var(--accent);
+            background-color: var(--link-blue);
             color: white;
         }
 
         .btn-primary:hover {
-            background-color: var(--accent-hover);
+            background-color: #245a85;
             transform: translateY(-1px);
         }
 
         .card {
-            background-color: var(--bg-card);
-            border: 1px solid var(--border);
+            background-color: var(--surface);
+            border: 1px solid var(--line);
             border-radius: var(--radius);
             box-shadow: var(--shadow-sm);
             overflow: hidden;
@@ -180,17 +163,203 @@
         .badge {
             display: inline-flex;
             align-items: center;
-            padding: 0.125rem 0.625rem;
+            padding: 0.25rem 0.625rem;
             border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
         }
+
+        .badge.green, .badge.status-good {
+            background-color: var(--civic-green-bg);
+            color: var(--civic-green);
+        }
+
+        .badge.yellow, .badge.status-watch {
+            background-color: var(--civic-amber-bg);
+            color: #8a5a00;
+        }
+
+        .badge.red, .badge.status-bad {
+            background-color: var(--civic-red-bg);
+            color: var(--civic-red);
+        }
+
+        .badge.none, .badge.status-none {
+            background-color: var(--surface-muted);
+            color: var(--ink-500);
+        }
+
+        .badge--slow-bus  { background: var(--civic-red-bg); color: var(--civic-red); }
+        .badge--local-bus { background: var(--link-blue-bg); color: var(--link-blue); }
+        .badge--rapid     { background: var(--civic-green-bg); color: var(--civic-green); }
+        .badge--express   { background: #f3e8ff; color: #7c3aed; }
 
         .mono {
             font-family: 'JetBrains Mono', monospace;
             font-weight: 500;
+        }
+
+        .status-good, .green, .gap-pos, .faster, .improve {
+            color: var(--civic-green);
+        }
+
+        .status-watch, .yellow, .onpace, .warn {
+            color: #8a5a00;
+        }
+
+        .status-bad, .red, .gap-neg, .slower, .decline, .poor {
+            color: var(--civic-red);
+        }
+
+        /* Shared Component Classes */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .page-title {
+            font-size: 1.6rem;
+            line-height: 1.2;
+            color: var(--ink-900);
+        }
+        .page-subtitle {
+            margin-top: 0.35rem;
+            color: var(--ink-500);
+            font-size: 0.9rem;
+        }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+        .metric-label {
+            color: var(--ink-500);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .metric-value {
+            margin-top: 0.2rem;
+            color: var(--ink-900);
+            font-size: 2rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+        .filter-bar,
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .filter-bar {
+            margin-bottom: 1.5rem;
+        }
+        .filter-label,
+        .control-label {
+            color: var(--ink-500);
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .filter-pill,
+        .filter-bar a,
+        .control-row a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 2rem;
+            padding: 0.35rem 0.75rem;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--ink-700);
+            font-size: 0.84rem;
+            font-weight: 600;
+            text-decoration: none;
+            box-shadow: var(--shadow-sm);
+        }
+        .filter-pill:hover,
+        .filter-bar a:hover,
+        .control-row a:hover {
+            border-color: var(--link-blue);
+            color: var(--link-blue);
+        }
+        .filter-pill.active,
+        .filter-bar a.active,
+        .control-row a.active {
+            background: var(--link-blue);
+            border-color: var(--link-blue);
+            color: white;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .data-table th {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            color: var(--ink-500);
+            background: var(--surface-muted);
+            font-size: 0.74rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .data-table td {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--line-soft);
+            font-size: 0.9rem;
+        }
+        .data-table tr:hover td {
+            background: #fbfdff;
+        }
+        .route-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--ink-900);
+        }
+        .empty-state {
+            padding: 3rem 1rem;
+            color: var(--ink-500);
+            text-align: center;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+        }
+        @media (max-width: 720px) {
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+            nav {
+                flex-wrap: wrap;
+                gap: 0.8rem;
+            }
+            .container {
+                padding: 1.25rem 0.8rem;
+            }
+            .page-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
         }
 
         /* Specific blocks */
@@ -201,24 +370,11 @@
     <header>
         <a href="/" class="logo">
             <div class="logo-icon">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Hexagonal Frame -->
-                    <path d="M12 2L20.6603 7V17L12 22L3.33975 17V7L12 2Z" stroke="white" stroke-width="1" stroke-opacity="0.3"/>
-                    <!-- The Transit Line (Static Path) -->
-                    <path d="M4 16L8 12L12 16L16 12L20 16" stroke="white" stroke-width="1" stroke-opacity="0.1" stroke-linecap="round"/>
-                    <!-- The Pulse (Dynamic Data Path) -->
-                    <path d="M6 14L10 10L14 14L18 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
-                    </path>
-                    <!-- Monitoring Node -->
-                    <circle cx="10" cy="10" r="2" fill="white">
-                        <animate attributeName="r" values="1.6;2.4;1.6" dur="1.5s" repeatCount="indefinite" />
-                        <animate attributeName="fill-opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="10" cy="10" r="4" stroke="white" stroke-width="0.5" stroke-opacity="0.2">
-                        <animate attributeName="r" values="3.5;5.5;3.5" dur="1.5s" repeatCount="indefinite" />
-                        <animate attributeName="stroke-opacity" values="0.2;0;0.2" dur="1.5s" repeatCount="indefinite" />
-                    </circle>
+                <svg width="34" height="34" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="4" y="5" width="34" height="32" rx="7" fill="currentColor"/>
+                    <path d="M12 27L18 21L23 25L31 15" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 14H21" stroke="#8fd6bd" stroke-width="3" stroke-linecap="round"/>
+                    <circle cx="31" cy="15" r="3" fill="#f0b84b"/>
                 </svg>
             </div>
             <span class="logo-text">Mobili<span>spect</span></span>
