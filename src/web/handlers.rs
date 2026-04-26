@@ -39,6 +39,24 @@ impl RouteSpeedDetailDirection {
             format!("{:.0} m", self.avg_spacing_m)
         }
     }
+
+    pub fn avg_spacing_status_class(&self) -> &str {
+        let avg = self.avg_spacing_m;
+        let (range_min, range_max) = if avg < 500.0 {
+            (300.0, 500.0)
+        } else if avg < 1500.0 {
+            (500.0, 1500.0)
+        } else {
+            (1500.0, 5000.0)
+        };
+        if avg < range_min {
+            "slow"
+        } else if avg > range_max {
+            "outlier"
+        } else {
+            ""
+        }
+    }
 }
 
 #[derive(Template)]
@@ -643,6 +661,38 @@ mod tests {
         sort_speed_cards(&mut cards, "scheduled");
         assert_eq!(cards[0].short_name, "A");
     }
+
+    fn direction(avg_spacing_m: f64) -> RouteSpeedDetailDirection {
+        RouteSpeedDetailDirection {
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            avg_spacing_m,
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
+        }
+    }
+
+    #[test]
+    fn avg_spacing_status_class_returns_slow_when_below_local_range_min() {
+        assert_eq!(direction(200.0).avg_spacing_status_class(), "slow");
+    }
+
+    #[test]
+    fn avg_spacing_status_class_returns_empty_when_in_range() {
+        assert_eq!(direction(400.0).avg_spacing_status_class(), "");
+        assert_eq!(direction(1000.0).avg_spacing_status_class(), "");
+        assert_eq!(direction(2000.0).avg_spacing_status_class(), "");
+    }
+
+    #[test]
+    fn avg_spacing_status_class_returns_outlier_when_above_express_range_max() {
+        assert_eq!(direction(6000.0).avg_spacing_status_class(), "outlier");
+    }
 }
 
 #[cfg(test)]
@@ -745,8 +795,8 @@ mod e2e_tests {
             "HTML should contain route long name"
         );
         assert!(
-            html.contains("Average spacing:"),
-            "HTML should contain average spacing label.\n\nHTML:\n{}",
+            html.contains("Stop spacing"),
+            "HTML should contain stop spacing label.\n\nHTML:\n{}",
             html
         );
 
