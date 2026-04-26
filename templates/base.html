@@ -87,12 +87,21 @@
             display: flex;
             align-items: center;
             letter-spacing: -0.02em;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.2;
         }
 
         .logo-text span {
             color: var(--ink-400);
             font-weight: 400;
-            margin-left: 0.1rem;
+        }
+
+        .logo-region {
+            font-size: 0.7rem;
+            color: var(--ink-400);
+            font-weight: 500;
+            margin-top: 2px;
         }
 
         nav {
@@ -377,7 +386,10 @@
                     <circle cx="31" cy="15" r="3" fill="#f0b84b"/>
                 </svg>
             </div>
-            <span class="logo-text">Mobili<span>spect</span></span>
+            <div>
+                <span class="logo-text">Mobili<span>spect</span></span>
+                <div class="logo-region">{% block region_name %}{% endblock %}</div>
+            </div>
         </a>
         <nav>
             <a href="/" class="{% block nav_speed %}{% endblock %}">Speeds</a>

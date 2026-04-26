@@ -44,6 +44,7 @@ impl RouteSpeedDetailDirection {
 #[derive(Template)]
 #[template(path = "route_speed_detail.html")]
 struct RouteSpeedDetailTemplate {
+    region_name: String,
     short_name: String,
     long_name: String,
     agency_id: String,
@@ -156,6 +157,7 @@ pub async fn route_speed_detail(
     let classification = avg_spacing_m.map(classify_by_spacing);
 
     let tmpl = RouteSpeedDetailTemplate {
+        region_name: state.config.region.name.clone(),
         short_name,
         long_name,
         agency_id,
@@ -183,6 +185,7 @@ pub struct SpeedParams {
 #[derive(Template)]
 #[template(path = "dashboard.html")]
 struct DashboardTemplate {
+    region_name: String,
     routes: Vec<RouteSummary>,
     period_days: i64,
     agencies: Vec<(String, String)>,
@@ -193,6 +196,7 @@ struct DashboardTemplate {
 #[derive(Template)]
 #[template(path = "report.html")]
 struct ReportTemplate {
+    region_name: String,
     routes: Vec<RouteSummary>,
     period_days: i64,
     generated_at: String,
@@ -222,6 +226,7 @@ pub async fn dashboard(
     let agency_names: std::collections::HashMap<String, String> =
         agencies.iter().cloned().collect();
     let tmpl = DashboardTemplate {
+        region_name: state.config.region.name.clone(),
         routes,
         period_days,
         agencies,
@@ -247,6 +252,7 @@ pub async fn report(State(state): State<AppState>) -> Html<String> {
         .map(|a| (a.id.to_string(), a.name.clone()))
         .collect();
     let tmpl = ReportTemplate {
+        region_name: state.config.region.name.clone(),
         routes,
         period_days,
         generated_at,
@@ -261,6 +267,7 @@ pub async fn report(State(state): State<AppState>) -> Html<String> {
 #[derive(Template)]
 #[template(path = "hotspots.html")]
 struct HotspotsTemplate {
+    region_name: String,
     hotspots: Vec<StopHotspot>,
     hotspots_json: String,
     period_days: i64,
@@ -277,6 +284,7 @@ pub async fn hotspots(State(state): State<AppState>) -> Html<String> {
         .unwrap_or_default();
     let hotspots_json = serde_json::to_string(&hotspots).unwrap_or_default();
     let tmpl = HotspotsTemplate {
+        region_name: state.config.region.name.clone(),
         hotspots,
         hotspots_json,
         period_days,
@@ -313,6 +321,7 @@ pub async fn api_routes(
 #[derive(Template)]
 #[template(path = "speed.html")]
 struct SpeedTemplate {
+    region_name: String,
     cards: Vec<RouteSpeedCard>,
     agencies: Vec<(String, String)>,
     active_agency: String,
@@ -322,6 +331,7 @@ struct SpeedTemplate {
 #[derive(Template)]
 #[template(path = "route_detail.html")]
 struct RouteDetailTemplate {
+    region_name: String,
     trend: RouteTrend,
     trend_json: String,
     period_days: i64,
@@ -336,6 +346,7 @@ pub async fn route_detail(
         Ok(Some(trend)) => {
             let trend_json = serde_json::to_string(&trend.days).unwrap_or_default();
             let tmpl = RouteDetailTemplate {
+                region_name: state.config.region.name.clone(),
                 trend,
                 trend_json,
                 period_days,
@@ -418,6 +429,7 @@ pub async fn speed_page(
         card.idx = i;
     }
     let tmpl = SpeedTemplate {
+        region_name: state.config.region.name.clone(),
         cards,
         agencies,
         active_agency,
@@ -432,6 +444,7 @@ pub async fn speed_page(
 #[derive(Template)]
 #[template(path = "scorecard.html")]
 struct ScorecardTemplate {
+    region_name: String,
     routes: Vec<ScorecardRoute>,
     benchmarks: Vec<Benchmark>,
     floor_pct: f64,
@@ -503,6 +516,7 @@ pub async fn scorecard(
         agencies.iter().cloned().collect();
 
     let tmpl = ScorecardTemplate {
+        region_name: state.config.region.name.clone(),
         routes,
         benchmarks,
         floor_pct,
