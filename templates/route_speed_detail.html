@@ -6,8 +6,8 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 .direction-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
-  .direction-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
-  @media (max-width: 900px) { .direction-cards { grid-template-columns: 1fr; } }
+.direction-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+@media (max-width: 900px) { .direction-cards { grid-template-columns: 1fr; } }
 .direction-header { background: var(--surface-muted); padding: 0.75rem 1.25rem; font-weight: 700; font-size: 0.95rem; color: var(--ink-700); border-bottom: 1px solid var(--line); }
 .direction-body { padding: 1.25rem; }
 .section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-500); margin-bottom: 0.75rem; font-weight: 700; }
@@ -28,6 +28,9 @@ canvas { width: 100% !important; }
 .chart-legend { display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: var(--ink-500); }
 .legend-swatch { width: 20px; height: 3px; border-radius: 2px; }
+.speed-charts-row { display: flex; gap: 1rem; margin-top: 1rem; }
+.speed-chart-col { flex: 1; min-width: 0; }
+.speed-chart-title { font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 0.25rem; color: var(--ink-700); }
 </style>
 {% endblock %}
 
@@ -63,9 +66,6 @@ canvas { width: 100% !important; }
           <div class="stop-seg" style="height: {{ spacing.width_px }}px;">
             <div class="seg-line{% if spacing.is_outlier %} outlier{% elif spacing.is_slow_bus() %} slow{% endif %}"
                  style="height: {{ spacing.width_px }}px;"></div>
-            <div class="seg-label{% if spacing.is_outlier %} outlier{% elif spacing.is_slow_bus() %} slow{% endif %}">
-              {{ spacing.distance_display() }}{% if spacing.is_outlier %} !{% endif %}
-            </div>
           </div>
           <div class="stop-node">
             <div class="stop-dot{% if loop.last %} terminal{% endif %}"></div>
@@ -80,17 +80,19 @@ canvas { width: 100% !important; }
 
       <div class="section-divider"></div>
 
-      <div class="section-label">Speed trend — last 28 days</div>
-      <canvas id="{{ direction.chart_id }}" height="80"></canvas>
-      <div class="chart-legend">
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:var(--link-blue)"></div> Weekday
+      <div class="section-label">Speed trend — scheduled vs actual</div>
+      <div class="speed-charts-row">
+        <div class="speed-chart-col">
+          <div class="speed-chart-title">Weekday</div>
+          <canvas id="{{ direction.weekday_chart_id }}" height="100"></canvas>
         </div>
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:var(--civic-green)"></div> Saturday
+        <div class="speed-chart-col">
+          <div class="speed-chart-title">Saturday</div>
+          <canvas id="{{ direction.saturday_chart_id }}" height="100"></canvas>
         </div>
-        <div class="legend-item">
-          <div class="legend-swatch" style="background:var(--civic-amber)"></div> Sunday
+        <div class="speed-chart-col">
+          <div class="speed-chart-title">Sunday</div>
+          <canvas id="{{ direction.sunday_chart_id }}" height="100"></canvas>
         </div>
       </div>
 
@@ -101,50 +103,59 @@ canvas { width: 100% !important; }
 
 {% block extra_scripts %}
 <script>
-{% for direction in &directions %}
-(function() {
-  const weekday  = {{ direction.weekday_json|safe }};
-  const saturday = {{ direction.saturday_json|safe }};
-  const sunday   = {{ direction.sunday_json|safe }};
+const lineOpts = (color) => ({
+  borderColor: color,
+  backgroundColor: 'transparent',
+  tension: 0.3,
+  pointRadius: 2,
+  spanGaps: true,
+  borderWidth: 2,
+});
 
-  const lineOpts = (color, dash) => ({
-    borderColor: color,
-    backgroundColor: 'transparent',
-    tension: 0.3,
-    pointRadius: 2,
-    spanGaps: true,
-    borderDash: dash || [],
-  });
+const scheduledLineOpts = (color) => ({
+  borderColor: color,
+  backgroundColor: 'transparent',
+  tension: 0.3,
+  pointRadius: 0,
+  spanGaps: true,
+  borderWidth: 2,
+  borderDash: [5, 3],
+});
 
-  const allDates = [...new Set([
-    ...weekday.map(d => d.date),
-    ...saturday.map(d => d.date),
-    ...sunday.map(d => d.date),
-  ])].sort();
-
-  function toSparse(points) {
-    const map = Object.fromEntries(points.map(p => [p.date, p.speed_kmh]));
-    return allDates.map(d => map[d] ?? null);
-  }
-
-  new Chart(document.getElementById('{{ direction.chart_id }}'), {
+function renderSpeedChart(canvasId, data) {
+  if (!data || data.length === 0) return;
+  const labels = data.map(d => d.date.slice(5));
+  const actual = data.map(d => d.actual_kmh);
+  const scheduled = data.map(d => d.scheduled_kmh);
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  new Chart(ctx, {
     type: 'line',
     data: {
-      labels: allDates,
+      labels,
       datasets: [
-        { label: 'Weekday',  data: toSparse(weekday),  ...lineOpts('#2f6f9f') },
-        { label: 'Saturday', data: toSparse(saturday), ...lineOpts('#2d8f67', [5, 3]) },
-        { label: 'Sunday',   data: toSparse(sunday),   ...lineOpts('#f0b84b', [2, 3]) },
+        { label: 'Actual', data: actual, ...lineOpts('#2f6f9f') },
+        { label: 'Scheduled', data: scheduled, ...scheduledLineOpts('#627083') },
       ],
     },
     options: {
       plugins: { legend: { display: false } },
       scales: {
         y: { beginAtZero: false, title: { display: true, text: 'km/h' } },
-        x: { ticks: { maxTicksLimit: 8 } },
+        x: { ticks: { maxTicksLimit: 7 } },
       },
     },
   });
+}
+
+{% for direction in &directions %}
+(function() {
+  const weekday = {{ direction.weekday_json|safe }};
+  const saturday = {{ direction.saturday_json|safe }};
+  const sunday = {{ direction.sunday_json|safe }};
+  renderSpeedChart('{{ direction.weekday_chart_id }}', weekday);
+  renderSpeedChart('{{ direction.saturday_chart_id }}', saturday);
+  renderSpeedChart('{{ direction.sunday_chart_id }}', sunday);
 })();
 {% endfor %}
 </script>

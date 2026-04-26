@@ -19,11 +19,13 @@ use crate::speed::{
 use crate::web::AppState;
 
 struct RouteSpeedDetailDirection {
-    pub chart_id: String,
     pub direction_name: String,
     pub first_stop_name: String,
     pub avg_spacing_m: f64,
     pub spacings: Vec<StopSpacing>,
+    pub weekday_chart_id: String,
+    pub saturday_chart_id: String,
+    pub sunday_chart_id: String,
     pub weekday_json: String,
     pub saturday_json: String,
     pub sunday_json: String,
@@ -49,17 +51,19 @@ struct RouteSpeedDetailTemplate {
     classification: Option<RouteClass>,
 }
 
-fn trend_to_json(points: Vec<(String, f64)>) -> String {
+fn trend_to_json(points: Vec<(String, f64, f64)>) -> String {
     #[derive(serde::Serialize)]
     struct TrendPoint {
         date: String,
-        speed_kmh: f64,
+        actual_kmh: f64,
+        scheduled_kmh: f64,
     }
     let pts: Vec<TrendPoint> = points
         .into_iter()
-        .map(|(date, mps)| TrendPoint {
+        .map(|(date, actual_mps, scheduled_mps)| TrendPoint {
             date,
-            speed_kmh: (mps * 3.6 * 10.0).round() / 10.0,
+            actual_kmh: (actual_mps * 3.6 * 10.0).round() / 10.0,
+            scheduled_kmh: (scheduled_mps * 3.6 * 10.0).round() / 10.0,
         })
         .collect();
     serde_json::to_string(&pts).unwrap_or_else(|_| "[]".to_string())
@@ -127,11 +131,13 @@ pub async fn route_speed_detail(
                 .map(|t| (t.weekday.clone(), t.saturday.clone(), t.sunday.clone()))
                 .unwrap_or_default();
             RouteSpeedDetailDirection {
-                chart_id: format!("dir-{i}"),
                 direction_name: spacing.direction_name,
                 first_stop_name: spacing.first_stop_name,
                 avg_spacing_m: spacing.avg_spacing_m,
                 spacings: spacing.spacings,
+                weekday_chart_id: format!("weekday-{i}"),
+                saturday_chart_id: format!("saturday-{i}"),
+                sunday_chart_id: format!("sunday-{i}"),
                 weekday_json: trend_to_json(weekday),
                 saturday_json: trend_to_json(saturday),
                 sunday_json: trend_to_json(sunday),

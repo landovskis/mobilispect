@@ -239,10 +239,10 @@ fn build_direction_spacings(rows: Vec<StopSpacingRow>) -> Vec<DirectionStopSpaci
 /// Speed trend data for one direction of a route.
 pub struct DirectionSpeedTrend {
     pub direction_id: i64,
-    /// (service_date as "YYYY-MM-DD", actual_speed_mps)
-    pub weekday: Vec<(String, f64)>,
-    pub saturday: Vec<(String, f64)>,
-    pub sunday: Vec<(String, f64)>,
+    /// (service_date as "YYYY-MM-DD", actual_speed_mps, scheduled_speed_mps)
+    pub weekday: Vec<(String, f64, f64)>,
+    pub saturday: Vec<(String, f64, f64)>,
+    pub sunday: Vec<(String, f64, f64)>,
 }
 
 /// Raw row returned by the speed trend SQL query.
@@ -251,6 +251,7 @@ struct SpeedTrendRow {
     direction_id: i64,
     service_date: String,
     actual_speed_mps: f64,
+    scheduled_speed_mps: f64,
 }
 
 fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> {
@@ -259,7 +260,7 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
 
     let mut map: std::collections::HashMap<
         i64,
-        (Vec<(String, f64)>, Vec<(String, f64)>, Vec<(String, f64)>),
+        (Vec<(String, f64, f64)>, Vec<(String, f64, f64)>, Vec<(String, f64, f64)>),
     > = std::collections::HashMap::new();
 
     for row in rows {
@@ -268,7 +269,7 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
             .map(|d| d.weekday().num_days_from_sunday())
             .unwrap_or(1);
         let entry = map.entry(row.direction_id).or_default();
-        let point = (row.service_date, row.actual_speed_mps);
+        let point = (row.service_date, row.actual_speed_mps, row.scheduled_speed_mps);
         match dow {
             0 => entry.2.push(point), // Sunday
             6 => entry.1.push(point), // Saturday
@@ -289,6 +290,10 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
         .collect();
     result.sort_by_key(|t| t.direction_id);
     result
+}
+
+fn build_direction_trends_with_scheduled(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> {
+    build_direction_trends(rows)
 }
 
 /// Fetch per-stop spacing data for a single route, grouped by direction.
@@ -363,14 +368,16 @@ pub async fn route_speed_trend_by_direction(
     days: i64,
 ) -> Result<Vec<DirectionSpeedTrend>> {
     let rows: Vec<SpeedTrendRow> = sqlx::query_as(
-        "SELECT direction_id,
-                service_date,
-                actual_speed_mps
-         FROM route_speed_daily
-         WHERE agency_id = $1
-           AND route_id = $2
-           AND service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
-         ORDER BY direction_id, service_date",
+        "SELECT d.direction_id,
+                d.service_date,
+                d.actual_speed_mps,
+                r.scheduled_speed_mps
+         FROM route_speed_daily d
+         JOIN route_speed r ON r.agency_id = d.agency_id AND r.route_id = d.route_id AND r.direction_id = d.direction_id
+         WHERE d.agency_id = $1
+           AND d.route_id = $2
+           AND d.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
+         ORDER BY d.direction_id, d.service_date",
     )
     .bind(&agency_id)
     .bind(route_id)
@@ -378,7 +385,7 @@ pub async fn route_speed_trend_by_direction(
     .fetch_all(&db.pool)
     .await?;
 
-    Ok(build_direction_trends(rows))
+    Ok(build_direction_trends_with_scheduled(rows))
 }
 
 /// Compute scheduled average speed (m/s) for every route+direction and store in `route_speed`.
@@ -2431,24 +2438,27 @@ mod tests {
                 direction_id: 0,
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 5.0,
+                scheduled_speed_mps: 6.0,
             },
             SpeedTrendRow {
                 direction_id: 0,
                 service_date: "2024-01-06".into(),
                 actual_speed_mps: 6.0,
+                scheduled_speed_mps: 7.0,
             },
             SpeedTrendRow {
                 direction_id: 0,
                 service_date: "2024-01-07".into(),
                 actual_speed_mps: 7.0,
+                scheduled_speed_mps: 8.0,
             },
         ];
         let result = build_direction_trends(rows);
         assert_eq!(result.len(), 1);
         let t = &result[0];
-        assert_eq!(t.weekday, vec![("2024-01-01".to_string(), 5.0)]);
-        assert_eq!(t.saturday, vec![("2024-01-06".to_string(), 6.0)]);
-        assert_eq!(t.sunday, vec![("2024-01-07".to_string(), 7.0)]);
+        assert_eq!(t.weekday, vec![("2024-01-01".to_string(), 5.0, 6.0)]);
+        assert_eq!(t.saturday, vec![("2024-01-06".to_string(), 6.0, 7.0)]);
+        assert_eq!(t.sunday, vec![("2024-01-07".to_string(), 7.0, 8.0)]);
     }
 
     #[test]
@@ -2458,11 +2468,13 @@ mod tests {
                 direction_id: 0,
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 5.0,
+                scheduled_speed_mps: 6.0,
             },
             SpeedTrendRow {
                 direction_id: 1,
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 4.0,
+                scheduled_speed_mps: 5.0,
             },
         ];
         let result = build_direction_trends(rows);
@@ -2584,6 +2596,16 @@ mod tests {
         let td = test_utils::setup().await;
         let db = &td.db;
 
+        // Insert scheduled speed first (needed by the JOIN)
+        sqlx::query(
+            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
+             VALUES ('0', 'R1', 0, 6.0, 1, 'now'),
+                    ('0', 'R1', 1, 5.0, 1, 'now')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
         for (date, dir, speed) in [
             (weekday_date.as_str(), 0_i64, 5.0_f64),
             (saturday_date.as_str(), 0, 6.0),
@@ -2612,11 +2634,14 @@ mod tests {
         assert_eq!(dir0.weekday.len(), 1);
         assert_eq!(dir0.weekday[0].0, weekday_date);
         assert!((dir0.weekday[0].1 - 5.0).abs() < 0.001);
+        assert!((dir0.weekday[0].2 - 6.0).abs() < 0.001);
         assert_eq!(dir0.saturday.len(), 1);
         assert_eq!(dir0.sunday.len(), 1);
 
         let dir1 = trends.iter().find(|t| t.direction_id == 1).unwrap();
         assert_eq!(dir1.weekday.len(), 1);
+        assert!((dir1.weekday[0].1 - 4.0).abs() < 0.001);
+        assert!((dir1.weekday[0].2 - 5.0).abs() < 0.001);
         assert!(dir1.saturday.is_empty());
         assert!(dir1.sunday.is_empty());
     }
