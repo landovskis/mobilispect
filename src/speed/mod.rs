@@ -1049,7 +1049,7 @@ pub async fn route_speed_by_day_type(
           r.short_name, rs.direction_id";
 
     let rows = sqlx::query_as(&format!(
-        "{base_sql} WHERE ($1::text IS NULL OR rs.agency_id = $1) {order_sql}"
+        "{base_sql} WHERE ($1::text IS NULL OR rs.agency_id = $1) AND r.route_type IN (0, 3) {order_sql}"
     ))
     .bind(agency_filter)
     .fetch_all(&db.pool)
