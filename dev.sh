@@ -21,7 +21,7 @@ export MOBILISPECT_DATABASE_URL=postgres://mobilispect:mobilispect@localhost:543
 
 trap 'kill 0' EXIT
 
-cargo watch -x 'run --bin mobilispect-server' &
-cargo watch -x 'run --bin mobilispect-worker' &
+cargo watch -s 'dotenvx run -- cargo run --bin mobilispect-server' &
+cargo watch -s 'dotenvx run -- cargo run --bin mobilispect-worker' &
 
 wait
