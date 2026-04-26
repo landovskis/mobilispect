@@ -744,6 +744,16 @@ mod e2e_tests {
             html.contains("Route 1"),
             "HTML should contain route long name"
         );
+        assert!(
+            html.contains("Average spacing:"),
+            "HTML should contain average spacing label.\n\nHTML:\n{}",
+            html
+        );
+
+        if !html.contains(" km") && !html.contains(" m") {
+            eprintln!("FULL HTML:\n{}", html);
+            panic!("HTML should contain average spacing value (km or m)");
+        }
     }
 
     #[tokio::test]

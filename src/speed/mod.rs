@@ -123,6 +123,8 @@ pub struct StopSpacing {
     pub is_outlier: bool,
     /// Pixel width for the strip segment (scaled so the longest segment = 200px).
     pub width_px: u32,
+    /// Status relative to route class range: "below", "in_range", or "above"
+    pub spacing_status: String,
 }
 
 /// All stop spacings for one direction of a route.
@@ -153,6 +155,14 @@ impl StopSpacing {
             format!("{:.1} km", self.distance_m / 1000.0)
         } else {
             format!("{:.0} m", self.distance_m)
+        }
+    }
+
+    pub fn spacing_status_class(&self) -> &str {
+        match self.spacing_status.as_str() {
+            "below" => "slow",
+            "above" => "outlier",
+            _ => "",
         }
     }
 }
@@ -199,13 +209,38 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
         let max_dist = distances.iter().map(|(_, d)| *d).fold(0.0_f64, f64::max);
         let threshold = avg_spacing_m * 1.5;
 
+        let range_min = if avg_spacing_m < 500.0 {
+            500.0
+        } else if avg_spacing_m < 1500.0 {
+            500.0
+        } else {
+            1500.0
+        };
+        let range_max = if avg_spacing_m < 500.0 {
+            500.0
+        } else if avg_spacing_m < 1500.0 {
+            1500.0
+        } else {
+            f64::MAX
+        };
+
         let spacings = distances
             .into_iter()
-            .map(|(name, dist)| StopSpacing {
-                to_stop_name: name,
-                distance_m: dist,
-                is_outlier: dist > threshold,
-                width_px: ((dist / max_dist.max(1.0)) * 200.0) as u32,
+            .map(|(name, dist)| {
+                let spacing_status = if dist < range_min {
+                    "below"
+                } else if dist > range_max {
+                    "above"
+                } else {
+                    "in_range"
+                };
+                StopSpacing {
+                    to_stop_name: name,
+                    distance_m: dist,
+                    is_outlier: dist > threshold,
+                    width_px: ((dist / max_dist.max(1.0)) * 200.0) as u32,
+                    spacing_status: spacing_status.to_string(),
+                }
             })
             .collect();
 
