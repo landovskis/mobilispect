@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mobilispect — Transit Performance{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Urban Pulse Palette */
+            --primary: #1a1a2e;
+            --primary-light: #242445;
+            --accent: #4361ee;
+            --accent-hover: #3751d4;
+            --success: #2ec4b6;
+            --warning: #ff9f1c;
+            --danger: #e71d36;
+            
+            /* Backgrounds */
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-header: #1a1a2e;
+            
+            /* Text */
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --text-light: #94a3b8;
+            --text-on-dark: #f8fafc;
+            
+            /* Borders & Shadows */
+            --border: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            background-color: var(--bg-header);
+            color: var(--text-on-dark);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top left, rgba(255,255,255,0.2) 0%, transparent 70%);
+        }
+
+        .logo:hover .logo-icon {
+            transform: translateY(-2px) rotate(3deg);
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.5);
+        }
+
+        .logo-text {
+            font-size: 1.45rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            color: white;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-text span {
+            color: var(--text-light);
+            font-weight: 400;
+            margin-left: 0.1rem;
+        }
+
+        nav {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        nav a:hover, nav a.active {
+            color: var(--text-on-dark);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 1rem;
+            margin-top: 4rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        /* Common Components */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        /* Specific blocks */
+        {% block extra_head %}{% endblock %}
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Hexagonal Frame -->
+                    <path d="M12 2L20.6603 7V17L12 22L3.33975 17V7L12 2Z" stroke="white" stroke-width="1" stroke-opacity="0.3"/>
+                    <!-- The Transit Line (Static Path) -->
+                    <path d="M4 16L8 12L12 16L16 12L20 16" stroke="white" stroke-width="1" stroke-opacity="0.1" stroke-linecap="round"/>
+                    <!-- The Pulse (Dynamic Data Path) -->
+                    <path d="M6 14L10 10L14 14L18 10" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <animate attributeName="stroke-opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite" />
+                    </path>
+                    <!-- Monitoring Node -->
+                    <circle cx="10" cy="10" r="2" fill="white">
+                        <animate attributeName="r" values="1.6;2.4;1.6" dur="1.5s" repeatCount="indefinite" />
+                        <animate attributeName="fill-opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="10" cy="10" r="4" stroke="white" stroke-width="0.5" stroke-opacity="0.2">
+                        <animate attributeName="r" values="3.5;5.5;3.5" dur="1.5s" repeatCount="indefinite" />
+                        <animate attributeName="stroke-opacity" values="0.2;0;0.2" dur="1.5s" repeatCount="indefinite" />
+                    </circle>
+                </svg>
+            </div>
+            <span class="logo-text">Mobili<span>spect</span></span>
+        </a>
+        <nav>
+            <a href="/" class="{% block nav_dashboard %}{% endblock %}">Network</a>
+            <a href="/speed" class="{% block nav_speed %}{% endblock %}">Route Speeds</a>
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Mobilispect. Real-time performance monitoring for public transit.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.75rem; opacity: 0.7;">Data Source: STM & various GTFS-RT feeds</p>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
