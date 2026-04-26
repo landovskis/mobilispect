@@ -16,7 +16,6 @@ impl DirectionSpeedChart {
             Some(m) => format!("{:.0} m", m),
         }
     }
-
 }
 
 pub struct RouteSpeedCard {
@@ -70,6 +69,14 @@ impl RouteClass {
             RouteClass::Local => "Local",
             RouteClass::Rapid => "Rapid",
             RouteClass::Express => "Express",
+        }
+    }
+
+    pub fn speed_range(&self) -> &'static str {
+        match self {
+            RouteClass::Local => "12-18 km/h",
+            RouteClass::Rapid => "18-25 km/h",
+            RouteClass::Express => ">25 km/h",
         }
     }
 

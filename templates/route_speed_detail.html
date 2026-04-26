@@ -46,7 +46,7 @@ canvas { width: 100% !important; }
     </div>
     <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
       {% if let Some(class) = classification %}
-      <span class="badge badge--{{ class.css_class() }}">{{ class.label() }}</span>
+      <span class="badge badge--{{ class.css_class() }}">{{ class.label() }} · {{ class.speed_range() }}</span>
       {% endif %}
       <a class="filter-pill" href="/speed?agency={{ agency_id }}">← Back to speed overview</a>
     </div>
