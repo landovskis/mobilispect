@@ -413,15 +413,18 @@ fn sort_speed_cards(cards: &mut Vec<RouteSpeedCard>, sort: &str) {
     }
 }
 
-fn filter_speed_cards(cards: &mut Vec<RouteSpeedCard>, class: &str) {
-    if class.is_empty() {
-        return;
+fn parse_class(class: &str) -> Option<RouteClass> {
+    match class {
+        "local" => Some(RouteClass::Local),
+        "rapid" => Some(RouteClass::Rapid),
+        "express" => Some(RouteClass::Express),
+        _ => None,
     }
-    cards.retain(|c| {
-        c.classification
-            .map(|cls| cls.css_class() == class)
-            .unwrap_or(false)
-    });
+}
+
+fn filter_speed_cards(cards: &mut Vec<RouteSpeedCard>, class: &str) {
+    let Some(target) = parse_class(class) else { return };
+    cards.retain(|c| c.classification == Some(target));
 }
 
 pub async fn speed_page(
@@ -730,6 +733,18 @@ mod tests {
         ];
         filter_speed_cards(&mut cards, "");
         assert_eq!(cards.len(), 2);
+    }
+
+    #[test]
+    fn filter_by_class_keeps_only_express_cards() {
+        let mut cards = vec![
+            card_with_class("E1", Some(RouteClass::Express)),
+            card_with_class("L1", Some(RouteClass::Local)),
+            card_with_class("U1", None),
+        ];
+        filter_speed_cards(&mut cards, "express");
+        assert_eq!(cards.len(), 1);
+        assert_eq!(cards[0].short_name, "E1");
     }
 
     fn direction(avg_spacing_m: f64) -> RouteSpeedDetailDirection {
