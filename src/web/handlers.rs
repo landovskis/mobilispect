@@ -411,6 +411,17 @@ fn sort_speed_cards(cards: &mut Vec<RouteSpeedCard>, sort: &str) {
     }
 }
 
+fn filter_speed_cards(cards: &mut Vec<RouteSpeedCard>, class: &str) {
+    if class.is_empty() {
+        return;
+    }
+    cards.retain(|c| {
+        c.classification
+            .map(|cls| cls.css_class() == class)
+            .unwrap_or(false)
+    });
+}
+
 pub async fn speed_page(
     State(state): State<AppState>,
     Query(params): Query<SpeedParams>,
@@ -660,6 +671,54 @@ mod tests {
         let mut cards = vec![card("Z", 5.0, None), card("A", 5.0, None)];
         sort_speed_cards(&mut cards, "scheduled");
         assert_eq!(cards[0].short_name, "A");
+    }
+
+    fn card_with_class(short_name: &str, class: Option<RouteClass>) -> RouteSpeedCard {
+        RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: short_name.into(),
+            long_name: short_name.into(),
+            charts: vec![],
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+            classification: class,
+        }
+    }
+
+    #[test]
+    fn filter_by_class_keeps_matching_cards() {
+        let mut cards = vec![
+            card_with_class("L1", Some(RouteClass::Local)),
+            card_with_class("R1", Some(RouteClass::Rapid)),
+            card_with_class("U1", None),
+        ];
+        filter_speed_cards(&mut cards, "rapid");
+        assert_eq!(cards.len(), 1);
+        assert_eq!(cards[0].short_name, "R1");
+    }
+
+    #[test]
+    fn filter_by_class_hides_unclassified() {
+        let mut cards = vec![
+            card_with_class("U1", None),
+            card_with_class("L1", Some(RouteClass::Local)),
+        ];
+        filter_speed_cards(&mut cards, "local");
+        assert_eq!(cards.len(), 1);
+        assert_eq!(cards[0].short_name, "L1");
+    }
+
+    #[test]
+    fn filter_by_empty_class_keeps_all() {
+        let mut cards = vec![
+            card_with_class("L1", Some(RouteClass::Local)),
+            card_with_class("U1", None),
+        ];
+        filter_speed_cards(&mut cards, "");
+        assert_eq!(cards.len(), 2);
     }
 
     fn direction(avg_spacing_m: f64) -> RouteSpeedDetailDirection {
