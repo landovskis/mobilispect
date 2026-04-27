@@ -198,6 +198,7 @@ pub struct AgencyFilterParams {
 pub struct SpeedParams {
     agency: Option<String>,
     sort: Option<String>,
+    class: Option<String>,
 }
 
 #[derive(Template)]
@@ -344,6 +345,7 @@ struct SpeedTemplate {
     agencies: Vec<(String, String)>,
     active_agency: String,
     active_sort: String,
+    active_class: String,
 }
 
 #[derive(Template)]
@@ -442,6 +444,13 @@ pub async fn speed_page(
         _ => "name",
     }
     .to_string();
+    let active_class = match params.class.as_deref() {
+        Some("local") => "local",
+        Some("rapid") => "rapid",
+        Some("express") => "express",
+        _ => "",
+    }
+    .to_string();
     let filter = if active_agency.is_empty() {
         None
     } else {
@@ -453,6 +462,7 @@ pub async fn speed_page(
         .await
         .unwrap_or_default();
     let mut cards = build_speed_cards(rows, &agency_names);
+    filter_speed_cards(&mut cards, &active_class);
     sort_speed_cards(&mut cards, &active_sort);
     for (i, card) in cards.iter_mut().enumerate() {
         card.idx = i;
@@ -463,6 +473,7 @@ pub async fn speed_page(
         agencies,
         active_agency,
         active_sort,
+        active_class,
     };
     Html(
         tmpl.render()
@@ -952,6 +963,69 @@ mod e2e_tests {
         assert!(
             html.contains("badge--rapid"),
             "speed page HTML should contain 'badge--rapid' CSS class"
+        );
+    }
+
+    #[tokio::test]
+    async fn speed_page_filters_by_class_local() {
+        let td = test_utils::setup().await;
+
+        // Local route: two stops ~333 m apart (0.003° lat × 111 km/°) → avg < 500 m → Local
+        sqlx::query("INSERT INTO routes VALUES ('0', 'RL', 'LocalX', 'Local Route', 3)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'TL', 'RL', 'WD', 0, 'End Local')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SL1', 'Local A', 45.500, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SL2', 'Local B', 45.503, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'TL', 'SL1', 1, '08:00:00', '08:00:00')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'TL', 'SL2', 2, '08:05:00', '08:05:00')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_speed VALUES ('0', 'RL', 0, 5.0, 1, '2026-01-01T00:00:00Z')")
+            .execute(&td.db.pool).await.unwrap();
+
+        // Rapid route: two stops ~1111 m apart (0.010° lat) → avg 500–1500 m → Rapid
+        sqlx::query("INSERT INTO routes VALUES ('0', 'RR', 'RapidX', 'Rapid Route', 3)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'TR', 'RR', 'WD', 0, 'End Rapid')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SR1', 'Rapid A', 45.500, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SR2', 'Rapid B', 45.510, -73.50)")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'TR', 'SR1', 1, '08:00:00', '08:00:00')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'TR', 'SR2', 2, '08:10:00', '08:10:00')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_speed VALUES ('0', 'RR', 0, 8.0, 1, '2026-01-01T00:00:00Z')")
+            .execute(&td.db.pool).await.unwrap();
+
+        let state = AppState { db: td.db, config: test_config() };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/speed?class=local")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+
+        assert!(
+            html.contains("LocalX"),
+            "Local route should appear when filtering by class=local"
+        );
+        assert!(
+            !html.contains("RapidX"),
+            "Rapid route should be hidden when filtering by class=local"
         );
     }
 
