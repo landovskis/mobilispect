@@ -155,7 +155,13 @@ function renderSpeedChart(canvasId, data) {
       ],
     },
     options: {
-      plugins: { legend: { display: false } },
+      plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { boxWidth: 24, boxHeight: 2, padding: 12, font: { size: 11 } },
+          },
+        },
       scales: {
         y: { beginAtZero: false, title: { display: true, text: 'km/h' } },
         x: { ticks: { maxTicksLimit: 7 } },
