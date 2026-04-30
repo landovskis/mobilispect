@@ -43,6 +43,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - **FR-005**: System MUST persist each generated summary alongside its source metadata (council body name, meeting date, source URL, document language) for subsequent retrieval.
 - **FR-006**: System MUST expose an API endpoint to retrieve the latest available summary for a given council body.
 - **FR-007**: System MUST expose an API endpoint to list available summaries, filterable by council body and date range.
+- **FR-015**: Summary API endpoints MUST be publicly accessible without authentication, as meeting minutes are public government documents.
 - **FR-008**: System MUST NOT re-process a document that has already been summarized.
 - **FR-009**: System MUST record the outcome (success or failure reason) of each fetch and summarization attempt for operational observability.
 - **FR-010**: System MUST include the original source URL and meeting date in every summary response so consumers can verify against the primary source.
@@ -67,6 +68,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - Q: How should the system discover and process new meeting documents? → A: Daily scheduled job — system automatically checks for new documents on a fixed schedule (e.g., nightly).
 - Q: Which council bodies should be supported in the initial version? → A: City council (Conseil municipal) + all 19 arrondissement borough councils.
 - Q: In what language should meeting documents be fetched and summaries be produced? → A: Both — produce a French summary and a separate English summary for each meeting.
+- Q: Should the summary API endpoints require authentication? → A: No authentication — publicly accessible read-only endpoints.
 
 ---
 
