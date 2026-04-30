@@ -36,7 +36,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 
 ### Functional Requirements
 
-- **FR-001**: System MUST periodically check the official Ville de Montréal website and [NEEDS CLARIFICATION: specific borough websites — all 19 arrondissements or a defined subset?] for newly published council meeting minutes.
+- **FR-001**: System MUST check the official Ville de Montréal website and all 19 arrondissement borough websites for newly published council meeting minutes.
 - **FR-002**: System MUST support both city council (Conseil municipal) and borough council (Conseil d'arrondissement) meetings.
 - **FR-003**: System MUST fetch the full text of the most recently published meeting document when a new publication is detected.
 - **FR-004**: System MUST generate a structured summary for each fetched meeting document, containing at minimum: key decisions, motions with their voting outcomes, and a narrative overview of main topics.
@@ -65,6 +65,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 ### Session 2026-04-30
 
 - Q: How should the system discover and process new meeting documents? → A: Daily scheduled job — system automatically checks for new documents on a fixed schedule (e.g., nightly).
+- Q: Which council bodies should be supported in the initial version? → A: City council (Conseil municipal) + all 19 arrondissement borough councils.
 
 ---
 
@@ -79,7 +80,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 
 ### Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — **3 open clarifications (FR-001, FR-012, FR-013)**
+- [ ] No [NEEDS CLARIFICATION] markers remain — **2 open clarifications (FR-012, FR-013)**
 - [x] Requirements are testable and unambiguous (pending clarification resolution)
 - [x] Success criteria are measurable
 - [x] Scope is clearly bounded (backend-only; no frontend)
@@ -95,6 +96,6 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - [x] User scenarios defined
 - [x] Requirements generated
 - [x] Entities identified
-- [ ] Review checklist passed — pending resolution of 3 clarification items
+- [ ] Review checklist passed — pending resolution of 2 clarification items
 
 ---
