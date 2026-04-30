@@ -47,7 +47,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - **FR-009**: System MUST record the outcome (success or failure reason) of each fetch and summarization attempt for operational observability.
 - **FR-010**: System MUST include the original source URL and meeting date in every summary response so consumers can verify against the primary source.
 - **FR-011**: System MUST handle transient failures when fetching documents by retrying before recording a permanent failure.
-- **FR-012**: System MUST support [NEEDS CLARIFICATION: document languages — French only, English only, or both FR/EN? Do summaries need to be produced in both languages?].
+- **FR-012**: System MUST produce two summaries per meeting — one in French and one in English — regardless of the source document language (French).
 - **FR-013**: System MUST retain summaries for [NEEDS CLARIFICATION: retention period not specified — indefinitely, 1 year, or another policy?].
 - **FR-014**: System MUST check for new documents via a daily scheduled job that runs automatically on a fixed schedule (e.g., nightly).
 
@@ -55,7 +55,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 
 - **CouncilBody**: Represents a governing body whose meetings are tracked (e.g., Conseil municipal de Montréal, Conseil d'arrondissement du Plateau-Mont-Royal). Has a name, jurisdiction level (city or borough), and canonical source URL.
 - **CouncilMeeting**: A single council meeting session. Has a date, reference to its CouncilBody, the source document URL, document format (PDF/HTML), and ingestion status (pending, fetched, summarized, failed).
-- **MeetingSummary**: The AI-generated summary of a CouncilMeeting. Contains the structured summary text (decisions, motions, topics), the language of the summary, and a timestamp of when it was generated. Linked one-to-one with a CouncilMeeting.
+- **MeetingSummary**: The AI-generated summary of a CouncilMeeting. Contains the structured summary text (decisions, motions, topics), the language of the summary (FR or EN), and a timestamp of when it was generated. Each CouncilMeeting has two MeetingSummary records — one per language.
 - **SummarizationAttempt**: A log record for each attempt to fetch and summarize a meeting document, capturing timestamp, outcome, and failure reason if applicable. Supports operational observability.
 
 ---
@@ -66,6 +66,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 
 - Q: How should the system discover and process new meeting documents? → A: Daily scheduled job — system automatically checks for new documents on a fixed schedule (e.g., nightly).
 - Q: Which council bodies should be supported in the initial version? → A: City council (Conseil municipal) + all 19 arrondissement borough councils.
+- Q: In what language should meeting documents be fetched and summaries be produced? → A: Both — produce a French summary and a separate English summary for each meeting.
 
 ---
 
@@ -80,7 +81,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 
 ### Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — **2 open clarifications (FR-012, FR-013)**
+- [ ] No [NEEDS CLARIFICATION] markers remain — **1 open clarification (FR-013)**
 - [x] Requirements are testable and unambiguous (pending clarification resolution)
 - [x] Success criteria are measurable
 - [x] Scope is clearly bounded (backend-only; no frontend)
@@ -96,6 +97,6 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - [x] User scenarios defined
 - [x] Requirements generated
 - [x] Entities identified
-- [ ] Review checklist passed — pending resolution of 2 clarification items
+- [ ] Review checklist passed — pending resolution of 1 clarification item
 
 ---
