@@ -129,3 +129,10 @@ This project includes Spec-Kit commands for structured development:
 consistency with project standards and architectural decisions. Always
 reference the full constitution at `.specify/memory/constitution.md` for
 complete guidance.
+
+## Active Technologies
+- Kotlin 2.0+, JVM 21, Spring Boot 4.0 (004-automatically-summarize-the)
+- PostgreSQL 18 — 5 new tables: `council_body`, `council_meeting`, `meeting_summary`, `summarization_attempt` (004-automatically-summarize-the)
+
+## Recent Changes
+- 004-automatically-summarize-the: Added Kotlin 2.0+, JVM 21, Spring Boot 4.0

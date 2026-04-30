@@ -1,0 +1,223 @@
+openapi: 3.1.0
+info:
+  title: Council Meeting Summary API
+  description: >
+    Provides access to AI-generated summaries of Montreal city and borough
+    council meeting minutes. Summaries are produced in both French and English
+    from publicly available PDF documents.
+  version: 1.0.0
+
+servers:
+  - url: /api
+
+tags:
+  - name: council-summaries
+    description: Access to council meeting summaries
+
+paths:
+  /council-bodies:
+    get:
+      summary: List all tracked council bodies
+      operationId: listCouncilBodies
+      tags: [council-summaries]
+      responses:
+        "200":
+          description: List of council bodies
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CouncilBodyDTO"
+
+  /council-bodies/{code}/summaries/latest:
+    get:
+      summary: Get the latest meeting summary for a council body
+      operationId: getLatestSummary
+      tags: [council-summaries]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Council body code (e.g., CM, CA_Pmr)
+          schema:
+            type: string
+            example: CM
+        - name: language
+          in: query
+          required: false
+          description: Language of the summary (FR or EN). Defaults to FR.
+          schema:
+            type: string
+            enum: [FR, EN]
+            default: FR
+      responses:
+        "200":
+          description: Latest available summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeetingSummaryDTO"
+        "404":
+          description: No summary available for this council body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDTO"
+
+  /council-bodies/{code}/summaries:
+    get:
+      summary: List summaries for a council body, filtered by date range
+      operationId: listSummaries
+      tags: [council-summaries]
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Council body code
+          schema:
+            type: string
+            example: CA_Pmr
+        - name: language
+          in: query
+          required: false
+          description: Language of the summaries to return. Defaults to FR.
+          schema:
+            type: string
+            enum: [FR, EN]
+            default: FR
+        - name: from
+          in: query
+          required: false
+          description: Start of date range (inclusive), ISO 8601 date
+          schema:
+            type: string
+            format: date
+            example: "2026-01-01"
+        - name: to
+          in: query
+          required: false
+          description: End of date range (inclusive), ISO 8601 date
+          schema:
+            type: string
+            format: date
+            example: "2026-04-30"
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: Paginated list of summaries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryPage"
+        "404":
+          description: Council body not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorDTO"
+
+components:
+  schemas:
+    CouncilBodyDTO:
+      type: object
+      required: [code, name, jurisdictionLevel]
+      properties:
+        code:
+          type: string
+          description: Unique code identifying this council body
+          example: CM
+        name:
+          type: string
+          description: Display name of the council body
+          example: Conseil municipal de Montréal
+        jurisdictionLevel:
+          type: string
+          enum: [CITY, BOROUGH]
+          description: Whether this is city-level or borough-level
+
+    MeetingSummaryDTO:
+      type: object
+      required:
+        - councilBodyCode
+        - councilBodyName
+        - meetingDate
+        - language
+        - keyDecisions
+        - motionsAndVotes
+        - mainTopics
+        - sourceUrl
+        - generatedAt
+      properties:
+        councilBodyCode:
+          type: string
+          example: CM
+        councilBodyName:
+          type: string
+          example: Conseil municipal de Montréal
+        meetingDate:
+          type: string
+          format: date
+          example: "2026-04-28"
+        language:
+          type: string
+          enum: [FR, EN]
+          example: FR
+        keyDecisions:
+          type: string
+          description: Bullet-point list of key decisions made at this meeting
+        motionsAndVotes:
+          type: string
+          description: Bullet-point list of motions with their voting outcomes
+        mainTopics:
+          type: string
+          description: Narrative overview of the main topics discussed
+        sourceUrl:
+          type: string
+          format: uri
+          description: URL of the original source PDF document
+          example: "https://ville.montreal.qc.ca/documents/Adi_Public/CM/CM_PV_ORDI_2026-04-28_13h00_FR.pdf"
+        generatedAt:
+          type: string
+          format: date-time
+          description: When this summary was generated
+
+    SummaryPage:
+      type: object
+      required: [content, totalElements, totalPages, page, size]
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingSummaryDTO"
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    ErrorDTO:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: "No summary found for council body: CM"
