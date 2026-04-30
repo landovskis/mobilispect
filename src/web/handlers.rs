@@ -70,19 +70,19 @@ struct RouteSpeedDetailTemplate {
     classification: Option<RouteClass>,
 }
 
-fn trend_to_json(points: Vec<(String, f64, f64)>) -> String {
+fn trend_to_json(points: Vec<(String, f64, Option<f64>)>) -> String {
     #[derive(serde::Serialize)]
     struct TrendPoint {
         date: String,
         actual_kmh: f64,
-        scheduled_kmh: f64,
+        scheduled_kmh: Option<f64>,
     }
     let pts: Vec<TrendPoint> = points
         .into_iter()
         .map(|(date, actual_mps, scheduled_mps)| TrendPoint {
             date,
             actual_kmh: (actual_mps * 3.6 * 10.0).round() / 10.0,
-            scheduled_kmh: (scheduled_mps * 3.6 * 10.0).round() / 10.0,
+            scheduled_kmh: scheduled_mps.map(|s| (s * 3.6 * 10.0).round() / 10.0),
         })
         .collect();
     serde_json::to_string(&pts).unwrap_or_else(|_| "[]".to_string())

@@ -253,9 +253,10 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
 pub struct DirectionSpeedTrend {
     pub direction_id: i64,
     /// (service_date as "YYYY-MM-DD", actual_speed_mps, scheduled_speed_mps)
-    pub weekday: Vec<(String, f64, f64)>,
-    pub saturday: Vec<(String, f64, f64)>,
-    pub sunday: Vec<(String, f64, f64)>,
+    /// `scheduled_speed_mps` is `None` when no scheduled speed has been computed for the route.
+    pub weekday: Vec<(String, f64, Option<f64>)>,
+    pub saturday: Vec<(String, f64, Option<f64>)>,
+    pub sunday: Vec<(String, f64, Option<f64>)>,
 }
 
 /// Raw row returned by the speed trend SQL query.
@@ -264,7 +265,7 @@ struct SpeedTrendRow {
     direction_id: i64,
     service_date: String,
     actual_speed_mps: f64,
-    scheduled_speed_mps: f64,
+    scheduled_speed_mps: Option<f64>,
 }
 
 fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> {
@@ -274,9 +275,9 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
     let mut map: std::collections::HashMap<
         i64,
         (
-            Vec<(String, f64, f64)>,
-            Vec<(String, f64, f64)>,
-            Vec<(String, f64, f64)>,
+            Vec<(String, f64, Option<f64>)>,
+            Vec<(String, f64, Option<f64>)>,
+            Vec<(String, f64, Option<f64>)>,
         ),
     > = std::collections::HashMap::new();
 
@@ -387,7 +388,7 @@ pub async fn route_speed_trend_by_direction(
                 d.actual_speed_mps,
                 r.scheduled_speed_mps
          FROM route_speed_daily d
-         JOIN route_speed r ON r.agency_id = d.agency_id AND r.route_id = d.route_id AND r.direction_id = d.direction_id
+         LEFT JOIN route_speed r ON r.agency_id = d.agency_id AND r.route_id = d.route_id AND r.direction_id = d.direction_id
          WHERE d.agency_id = $1
            AND d.route_id = $2
            AND d.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
@@ -2438,27 +2439,27 @@ mod tests {
                 direction_id: 0,
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 5.0,
-                scheduled_speed_mps: 6.0,
+                scheduled_speed_mps: Some(6.0),
             },
             SpeedTrendRow {
                 direction_id: 0,
                 service_date: "2024-01-06".into(),
                 actual_speed_mps: 6.0,
-                scheduled_speed_mps: 7.0,
+                scheduled_speed_mps: Some(7.0),
             },
             SpeedTrendRow {
                 direction_id: 0,
                 service_date: "2024-01-07".into(),
                 actual_speed_mps: 7.0,
-                scheduled_speed_mps: 8.0,
+                scheduled_speed_mps: Some(8.0),
             },
         ];
         let result = build_direction_trends(rows);
         assert_eq!(result.len(), 1);
         let t = &result[0];
-        assert_eq!(t.weekday, vec![("2024-01-01".to_string(), 5.0, 6.0)]);
-        assert_eq!(t.saturday, vec![("2024-01-06".to_string(), 6.0, 7.0)]);
-        assert_eq!(t.sunday, vec![("2024-01-07".to_string(), 7.0, 8.0)]);
+        assert_eq!(t.weekday, vec![("2024-01-01".to_string(), 5.0, Some(6.0))]);
+        assert_eq!(t.saturday, vec![("2024-01-06".to_string(), 6.0, Some(7.0))]);
+        assert_eq!(t.sunday, vec![("2024-01-07".to_string(), 7.0, Some(8.0))]);
     }
 
     #[test]
@@ -2468,13 +2469,13 @@ mod tests {
                 direction_id: 0,
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 5.0,
-                scheduled_speed_mps: 6.0,
+                scheduled_speed_mps: Some(6.0),
             },
             SpeedTrendRow {
                 direction_id: 1,
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 4.0,
-                scheduled_speed_mps: 5.0,
+                scheduled_speed_mps: Some(5.0),
             },
         ];
         let result = build_direction_trends(rows);
@@ -2634,14 +2635,14 @@ mod tests {
         assert_eq!(dir0.weekday.len(), 1);
         assert_eq!(dir0.weekday[0].0, weekday_date);
         assert!((dir0.weekday[0].1 - 5.0).abs() < 0.001);
-        assert!((dir0.weekday[0].2 - 6.0).abs() < 0.001);
+        assert!((dir0.weekday[0].2.unwrap() - 6.0).abs() < 0.001);
         assert_eq!(dir0.saturday.len(), 1);
         assert_eq!(dir0.sunday.len(), 1);
 
         let dir1 = trends.iter().find(|t| t.direction_id == 1).unwrap();
         assert_eq!(dir1.weekday.len(), 1);
         assert!((dir1.weekday[0].1 - 4.0).abs() < 0.001);
-        assert!((dir1.weekday[0].2 - 5.0).abs() < 0.001);
+        assert!((dir1.weekday[0].2.unwrap() - 5.0).abs() < 0.001);
         assert!(dir1.saturday.is_empty());
         assert!(dir1.sunday.is_empty());
     }
@@ -2653,5 +2654,44 @@ mod tests {
             .await
             .unwrap();
         assert!(result.is_empty());
+    }
+
+    #[tokio::test]
+    async fn route_speed_trend_returns_actual_data_when_no_scheduled_speed() {
+        use chrono::{Datelike, Duration, Local};
+
+        let today = Local::now().naive_local().date();
+        let days_from_monday = today.weekday().num_days_from_monday() as i64;
+        let monday = today - Duration::days(days_from_monday + 7);
+        let weekday_date = monday.format("%Y-%m-%d").to_string();
+
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        // Insert actual data only — no row in route_speed (no scheduled speed).
+        sqlx::query(
+            "INSERT INTO route_speed_daily
+             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
+             VALUES ('0', 'R1', $1, 0, 8.0, 1, 'now')",
+        )
+        .bind(&weekday_date)
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let trends = route_speed_trend_by_direction(db, "0", "R1", 28)
+            .await
+            .unwrap();
+
+        // Actual data must appear even without a scheduled speed row.
+        assert_eq!(trends.len(), 1, "one direction");
+        let dir = &trends[0];
+        assert_eq!(dir.weekday.len(), 1);
+        assert!((dir.weekday[0].1 - 8.0).abs() < 0.001, "actual speed present");
+        // Scheduled speed is absent — represented as None.
+        assert!(
+            dir.weekday[0].2.is_none(),
+            "scheduled speed should be None when route_speed row is missing"
+        );
     }
 }
