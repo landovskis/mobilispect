@@ -49,7 +49,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - **FR-011**: System MUST handle transient failures when fetching documents by retrying before recording a permanent failure.
 - **FR-012**: System MUST support [NEEDS CLARIFICATION: document languages — French only, English only, or both FR/EN? Do summaries need to be produced in both languages?].
 - **FR-013**: System MUST retain summaries for [NEEDS CLARIFICATION: retention period not specified — indefinitely, 1 year, or another policy?].
-- **FR-014**: System MUST check for new documents on a [NEEDS CLARIFICATION: refresh cadence not specified — e.g., daily scheduled job, on-demand trigger, or real-time webhook?] basis.
+- **FR-014**: System MUST check for new documents via a daily scheduled job that runs automatically on a fixed schedule (e.g., nightly).
 
 ### Key Entities
 
@@ -57,6 +57,14 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - **CouncilMeeting**: A single council meeting session. Has a date, reference to its CouncilBody, the source document URL, document format (PDF/HTML), and ingestion status (pending, fetched, summarized, failed).
 - **MeetingSummary**: The AI-generated summary of a CouncilMeeting. Contains the structured summary text (decisions, motions, topics), the language of the summary, and a timestamp of when it was generated. Linked one-to-one with a CouncilMeeting.
 - **SummarizationAttempt**: A log record for each attempt to fetch and summarize a meeting document, capturing timestamp, outcome, and failure reason if applicable. Supports operational observability.
+
+---
+
+## Clarifications
+
+### Session 2026-04-30
+
+- Q: How should the system discover and process new meeting documents? → A: Daily scheduled job — system automatically checks for new documents on a fixed schedule (e.g., nightly).
 
 ---
 
@@ -71,7 +79,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 
 ### Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — **4 open clarifications (FR-001, FR-012, FR-013, FR-014)**
+- [ ] No [NEEDS CLARIFICATION] markers remain — **3 open clarifications (FR-001, FR-012, FR-013)**
 - [x] Requirements are testable and unambiguous (pending clarification resolution)
 - [x] Success criteria are measurable
 - [x] Scope is clearly bounded (backend-only; no frontend)
@@ -87,6 +95,6 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - [x] User scenarios defined
 - [x] Requirements generated
 - [x] Entities identified
-- [ ] Review checklist passed — pending resolution of 4 clarification items
+- [ ] Review checklist passed — pending resolution of 3 clarification items
 
 ---
