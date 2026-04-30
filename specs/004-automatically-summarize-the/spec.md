@@ -2,7 +2,7 @@
 
 **Feature Branch**: `004-automatically-summarize-the`
 **Created**: 2026-04-30
-**Status**: Draft
+**Status**: Ready for Planning
 **Input**: User description: "Automatically summarize the latest Montreal city or borough council meeting notes. The system should be able to find and fetch the most recent published council meeting minutes or agenda from the Ville de Montréal website (or borough sites), then use an LLM (Claude API) to produce a concise, structured summary of the key decisions, motions, and topics discussed. The summary should be accessible via a backend API endpoint and stored for later retrieval. This is a backend-only feature for now."
 
 ---
@@ -49,7 +49,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - **FR-010**: System MUST include the original source URL and meeting date in every summary response so consumers can verify against the primary source.
 - **FR-011**: System MUST handle transient failures when fetching documents by retrying before recording a permanent failure.
 - **FR-012**: System MUST produce two summaries per meeting — one in French and one in English — regardless of the source document language (French).
-- **FR-013**: System MUST retain summaries for [NEEDS CLARIFICATION: retention period not specified — indefinitely, 1 year, or another policy?].
+- **FR-013**: System MUST retain summaries indefinitely; no automated deletion policy applies.
 - **FR-014**: System MUST check for new documents via a daily scheduled job that runs automatically on a fixed schedule (e.g., nightly).
 
 ### Key Entities
@@ -69,6 +69,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - Q: Which council bodies should be supported in the initial version? → A: City council (Conseil municipal) + all 19 arrondissement borough councils.
 - Q: In what language should meeting documents be fetched and summaries be produced? → A: Both — produce a French summary and a separate English summary for each meeting.
 - Q: Should the summary API endpoints require authentication? → A: No authentication — publicly accessible read-only endpoints.
+- Q: How long should meeting summaries be retained? → A: Indefinitely — no automated deletion policy.
 
 ---
 
@@ -83,7 +84,7 @@ An API consumer wants to quickly understand what was decided at the most recent 
 
 ### Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — **1 open clarification (FR-013)**
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous (pending clarification resolution)
 - [x] Success criteria are measurable
 - [x] Scope is clearly bounded (backend-only; no frontend)
@@ -99,6 +100,6 @@ An API consumer wants to quickly understand what was decided at the most recent 
 - [x] User scenarios defined
 - [x] Requirements generated
 - [x] Entities identified
-- [ ] Review checklist passed — pending resolution of 1 clarification item
+- [x] Review checklist passed
 
 ---
