@@ -1,6 +1,6 @@
 <!-- HTMX target: id="speed-content" must match hx-target on every control link.
      hx-swap="outerHTML" replaces this element itself, so this wrapper is required. -->
-<div id="speed-content">
+<div id="speed-content" hx-indicator="#speed-loading">
   <div class="control-row">
     <span class="control-label">Agency:</span>
     <a href="/speed{% if active_sort != "name" %}?sort={{ active_sort }}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}{% elif !active_class.is_empty() %}?class={{ active_class }}{% endif %}"
@@ -67,6 +67,11 @@
        hx-swap="outerHTML"
        hx-push-url="true"
        class="{% if active_class == "express" %}active{% endif %}">Express</a>
+    <span id="speed-loading"
+          class="speed-loading htmx-indicator"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true">Loading route speeds</span>
   </div>
 
   {% if cards.is_empty() %}

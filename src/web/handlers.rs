@@ -1154,6 +1154,46 @@ mod e2e_tests {
     }
 
     #[tokio::test]
+    async fn speed_page_fragment_includes_htmx_loading_indicator() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/speed")
+                    .header("hx-request", "true")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+
+        assert!(
+            html.contains(r##"hx-indicator="#speed-loading""##),
+            "speed content should route HTMX request state to the loading indicator"
+        );
+        assert!(
+            html.contains(r#"id="speed-loading""#),
+            "fragment should include a stable loading indicator target"
+        );
+        assert!(
+            html.contains("Loading route speeds"),
+            "loading indicator should explain the in-flight request"
+        );
+    }
+
+    #[tokio::test]
     async fn speed_page_without_hx_request_returns_full_page() {
         let td = test_utils::setup().await;
         let state = AppState {
