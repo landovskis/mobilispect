@@ -1033,7 +1033,7 @@ mod tests {
         ).execute(&db.pool).await.unwrap();
         // scheduled: 10.0 m/s, actual: 8.0 m/s → deficit = 20%
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('0', 'R1', 0, 10.0, 5, '2026-01-01T00:00:00Z')",
         )
         .execute(&db.pool)
         .await

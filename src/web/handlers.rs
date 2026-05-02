@@ -434,7 +434,9 @@ fn parse_class(class: &str) -> Option<RouteClass> {
 }
 
 fn filter_speed_cards(cards: &mut Vec<RouteSpeedCard>, class: &str) {
-    let Some(target) = parse_class(class) else { return };
+    let Some(target) = parse_class(class) else {
+        return;
+    };
     cards.retain(|c| c.classification == Some(target));
 }
 
@@ -491,7 +493,10 @@ pub async fn speed_page(
             active_sort,
             active_class,
         };
-        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+        Html(
+            tmpl.render()
+                .unwrap_or_else(|e| format!("Template error: {e}")),
+        )
     } else {
         let tmpl = SpeedTemplate {
             region_name: state.config.region.name.clone(),
@@ -501,7 +506,10 @@ pub async fn speed_page(
             active_sort,
             active_class,
         };
-        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+        Html(
+            tmpl.render()
+                .unwrap_or_else(|e| format!("Template error: {e}")),
+        )
     }
 }
 
@@ -967,7 +975,7 @@ mod e2e_tests {
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed VALUES ('0', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('0', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
         )
         .execute(&td.db.pool)
         .await
@@ -1008,37 +1016,80 @@ mod e2e_tests {
 
         // Local route: two stops ~333 m apart (0.003° lat × 111 km/°) → avg < 500 m → Local
         sqlx::query("INSERT INTO routes VALUES ('0', 'RL', 'LocalX', 'Local Route', 3)")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO trips VALUES ('0', 'TL', 'RL', 'WD', 0, 'End Local')")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO stops VALUES ('0', 'SL1', 'Local A', 45.500, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO stops VALUES ('0', 'SL2', 'Local B', 45.503, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'TL', 'SL1', 1, '08:00:00', '08:00:00')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'TL', 'SL2', 2, '08:05:00', '08:05:00')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO route_speed VALUES ('0', 'RL', 0, 5.0, 1, '2026-01-01T00:00:00Z')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'TL', 'SL1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'TL', 'SL2', 2, '08:05:00', '08:05:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed
+             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
+             VALUES ('0', 'RL', 0, 5.0, 333.0, 1, '2026-01-01T00:00:00Z')",
+        )
             .execute(&td.db.pool).await.unwrap();
 
         // Rapid route: two stops ~1111 m apart (0.010° lat) → avg 500–1500 m → Rapid
         sqlx::query("INSERT INTO routes VALUES ('0', 'RR', 'RapidX', 'Rapid Route', 3)")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO trips VALUES ('0', 'TR', 'RR', 'WD', 0, 'End Rapid')")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO stops VALUES ('0', 'SR1', 'Rapid A', 45.500, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO stops VALUES ('0', 'SR2', 'Rapid B', 45.510, -73.50)")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'TR', 'SR1', 1, '08:00:00', '08:00:00')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'TR', 'SR2', 2, '08:10:00', '08:10:00')")
-            .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO route_speed VALUES ('0', 'RR', 0, 8.0, 1, '2026-01-01T00:00:00Z')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'TR', 'SR1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'TR', 'SR2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed
+             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
+             VALUES ('0', 'RR', 0, 8.0, 1111.0, 1, '2026-01-01T00:00:00Z')",
+        )
             .execute(&td.db.pool).await.unwrap();
 
-        let state = AppState { db: td.db, config: test_config() };
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
         let app = build_router(state);
 
         let response = app
@@ -1052,7 +1103,9 @@ mod e2e_tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
-        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024).await.unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
         let html = String::from_utf8(bytes.to_vec()).unwrap();
 
         assert!(
@@ -1068,7 +1121,10 @@ mod e2e_tests {
     #[tokio::test]
     async fn speed_page_with_hx_request_returns_fragment_not_full_page() {
         let td = test_utils::setup().await;
-        let state = AppState { db: td.db, config: test_config() };
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
         let app = build_router(state);
 
         let response = app
@@ -1100,7 +1156,10 @@ mod e2e_tests {
     #[tokio::test]
     async fn speed_page_without_hx_request_returns_full_page() {
         let td = test_utils::setup().await;
-        let state = AppState { db: td.db, config: test_config() };
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
         let app = build_router(state);
 
         let response = app
