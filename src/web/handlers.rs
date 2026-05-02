@@ -1,6 +1,7 @@
 use askama::Template;
 use axum::{
     extract::{Query, State},
+    http::HeaderMap,
     response::Html,
 };
 use chrono::Utc;
@@ -349,6 +350,16 @@ struct SpeedTemplate {
 }
 
 #[derive(Template)]
+#[template(path = "speed_content.html")]
+struct SpeedContentTemplate {
+    cards: Vec<RouteSpeedCard>,
+    agencies: Vec<(String, String)>,
+    active_agency: String,
+    active_sort: String,
+    active_class: String,
+}
+
+#[derive(Template)]
 #[template(path = "route_detail.html")]
 struct RouteDetailTemplate {
     region_name: String,
@@ -429,6 +440,7 @@ fn filter_speed_cards(cards: &mut Vec<RouteSpeedCard>, class: &str) {
 
 pub async fn speed_page(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Query(params): Query<SpeedParams>,
 ) -> Html<String> {
     let agencies: Vec<(String, String)> = state
@@ -470,18 +482,27 @@ pub async fn speed_page(
     for (i, card) in cards.iter_mut().enumerate() {
         card.idx = i;
     }
-    let tmpl = SpeedTemplate {
-        region_name: state.config.region.name.clone(),
-        cards,
-        agencies,
-        active_agency,
-        active_sort,
-        active_class,
-    };
-    Html(
-        tmpl.render()
-            .unwrap_or_else(|e| format!("Template error: {e}")),
-    )
+
+    if headers.contains_key("hx-request") {
+        let tmpl = SpeedContentTemplate {
+            cards,
+            agencies,
+            active_agency,
+            active_sort,
+            active_class,
+        };
+        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+    } else {
+        let tmpl = SpeedTemplate {
+            region_name: state.config.region.name.clone(),
+            cards,
+            agencies,
+            active_agency,
+            active_sort,
+            active_class,
+        };
+        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+    }
 }
 
 #[derive(Template)]
@@ -1041,6 +1062,65 @@ mod e2e_tests {
         assert!(
             !html.contains("RapidX"),
             "Rapid route should be hidden when filtering by class=local"
+        );
+    }
+
+    #[tokio::test]
+    async fn speed_page_with_hx_request_returns_fragment_not_full_page() {
+        let td = test_utils::setup().await;
+        let state = AppState { db: td.db, config: test_config() };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/speed")
+                    .header("hx-request", "true")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(
+            html.contains(r#"id="speed-content""#),
+            "fragment must contain the swap target div"
+        );
+        assert!(
+            !html.contains("<html"),
+            "fragment must not contain a full HTML document"
+        );
+    }
+
+    #[tokio::test]
+    async fn speed_page_without_hx_request_returns_full_page() {
+        let td = test_utils::setup().await;
+        let state = AppState { db: td.db, config: test_config() };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/speed")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(
+            html.contains("<html"),
+            "full page response must contain an <html> element"
         );
     }
 
