@@ -131,7 +131,7 @@ pub async fn compute_speed_deficit_breakdown(
     let dwell_excess = (actual_dwell - scheduled_dwell).max(0.0);
     let running_excess = (actual_running - scheduled_running).max(0.0);
 
-    // Attribute up to all dwell_excess to bunching, capped at what bunching could explain
+    // 15 s is the estimated extra dwell per bunching event (spec default; no traffic API yet)
     let bunching_dwell = (bunching_fraction * 15.0).min(dwell_excess);
     let pure_dwell_excess = dwell_excess - bunching_dwell;
 
@@ -233,16 +233,23 @@ async fn fetch_scheduled_timings(
         .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
         .sum();
 
-    let first_arrival = parse_time_secs(&stops.first().unwrap().2).unwrap_or(0);
-    let last_arrival = parse_time_secs(&stops.last().unwrap().2).unwrap_or(0);
-    let scheduled_duration_secs = (last_arrival - first_arrival) as f64;
+    if route_distance_m < 1.0 {
+        return Ok(None);
+    }
+
+    let first_arrival = parse_time_secs(&stops.first().unwrap().2);
+    let last_arrival = parse_time_secs(&stops.last().unwrap().2);
+    let scheduled_duration_secs = match (first_arrival, last_arrival) {
+        (Some(f), Some(l)) if l > f => (l - f) as f64,
+        _ => return Ok(None),
+    };
 
     let scheduled_dwell_secs: f64 = stops
         .iter()
-        .map(|(_, _, arr, dep)| {
-            let a = parse_time_secs(arr).unwrap_or(0);
-            let d = parse_time_secs(dep).unwrap_or(a);
-            (d - a) as f64
+        .filter_map(|(_, _, arr, dep)| {
+            let a = parse_time_secs(arr)?;
+            let d = parse_time_secs(dep)?;
+            if d >= a { Some((d - a) as f64) } else { None }
         })
         .sum();
 
@@ -442,7 +449,6 @@ mod tests {
         assert!(v["datasets"].is_array());
     }
 
-    #[cfg(test)]
     mod integration {
         use super::*;
         use crate::db::test_utils;
