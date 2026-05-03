@@ -206,7 +206,6 @@ pub async fn compute_speed_deficit_breakdown(
 mod tests {
     use super::*;
 
-    #[cfg(test)]
     mod integration {
         use crate::db::test_utils;
         use super::*;
