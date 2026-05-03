@@ -136,6 +136,8 @@ canvas { width: 100% !important; }
   {% endfor %}
   </div>
 
+{% endblock %}
+
 {% block extra_scripts %}
 <script>
 const lineOpts = (color) => ({
@@ -237,6 +239,4 @@ function renderSpeedChart(canvasId, data) {
 {% endif %}
 {% endfor %}
 </script>
-{% endblock %}
-
 {% endblock %}
