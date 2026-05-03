@@ -219,7 +219,59 @@ async fn fetch_actual_timings(
     }
 }
 
-#[cfg(test)]
+#[derive(sqlx::FromRow)]
+struct BunchingRow {
+    bunched_count: f64,
+    total_count: Option<f64>,
+}
+
+async fn fetch_bunching_fraction(
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+    direction_id: i64,
+    days: i64,
+) -> Result<f64> {
+    let row: BunchingRow = sqlx::query_as(
+        "WITH route_trips AS (
+             SELECT vp.trip_id,
+                    vp.stop_sequence,
+                    EXTRACT(EPOCH FROM vp.observed_at::TIMESTAMPTZ)::BIGINT AS epoch_secs
+             FROM vehicle_positions vp
+             JOIN trips t ON t.agency_id = vp.agency_id AND t.trip_id = vp.trip_id
+             WHERE vp.agency_id = $1
+               AND t.route_id = $2
+               AND COALESCE(t.direction_id, 0) = $3
+               AND vp.stop_sequence IS NOT NULL
+               AND vp.observed_at::TIMESTAMPTZ >= NOW() - $4::INT * INTERVAL '1 day'
+         ),
+         bunched_trips AS (
+             SELECT DISTINCT a.trip_id
+             FROM route_trips a
+             JOIN route_trips b
+                 ON a.stop_sequence = b.stop_sequence
+                AND a.trip_id != b.trip_id
+                AND ABS(a.epoch_secs - b.epoch_secs) < 60
+         )
+         SELECT
+             COUNT(DISTINCT b.trip_id)::DOUBLE PRECISION    AS bunched_count,
+             NULLIF(COUNT(DISTINCT r.trip_id), 0)::DOUBLE PRECISION AS total_count
+         FROM route_trips r
+         LEFT JOIN bunched_trips b ON b.trip_id = r.trip_id",
+    )
+    .bind(agency_id)
+    .bind(route_id)
+    .bind(direction_id)
+    .bind(days)
+    .fetch_one(&db.pool)
+    .await?;
+
+    Ok(match row.total_count {
+        Some(total) if total > 0.0 => row.bunched_count / total,
+        _ => 0.0,
+    })
+}
+
 mod tests {
     use super::*;
 
@@ -387,6 +439,78 @@ mod tests {
             let td = test_utils::setup().await;
             let result = fetch_actual_timings(&td.db, "x", "NONE", 0, 28).await.unwrap();
             assert!(result.is_none());
+        }
+
+        #[tokio::test]
+        async fn fetch_bunching_fraction_detects_co_located_trips() {
+            let td = test_utils::setup().await;
+            let db = &td.db;
+
+            sqlx::query("INSERT INTO routes VALUES ('a0', 'R1', '1', 'Route 1', 3)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO trips VALUES ('a0', 'T1', 'R1', 'WD', 0, NULL)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO trips VALUES ('a0', 'T2', 'R1', 'WD', 0, NULL)")
+                .execute(&db.pool).await.unwrap();
+
+            // Two vehicles at stop_sequence 1 within 30 seconds of each other
+            let t1 = chrono::Utc::now().to_rfc3339();
+            let t2 = (chrono::Utc::now() + chrono::TimeDelta::seconds(30)).to_rfc3339();
+
+            sqlx::query(
+                "INSERT INTO vehicle_positions (agency_id, observed_at, trip_id, vehicle_id, latitude, longitude, stop_sequence) VALUES ($1,$2,$3,$4,0,0,1)"
+            )
+            .bind("a0").bind(&t1).bind("T1").bind("V1")
+            .execute(&db.pool).await.unwrap();
+
+            sqlx::query(
+                "INSERT INTO vehicle_positions (agency_id, observed_at, trip_id, vehicle_id, latitude, longitude, stop_sequence) VALUES ($1,$2,$3,$4,0,0,1)"
+            )
+            .bind("a0").bind(&t2).bind("T2").bind("V2")
+            .execute(&db.pool).await.unwrap();
+
+            let fraction = fetch_bunching_fraction(db, "a0", "R1", 0, 1).await.unwrap();
+            assert!(fraction > 0.0, "expected bunching > 0, got {fraction}");
+            assert!(fraction <= 1.0);
+        }
+
+        #[tokio::test]
+        async fn fetch_bunching_fraction_returns_zero_when_no_vehicle_data() {
+            let td = test_utils::setup().await;
+            let fraction = fetch_bunching_fraction(&td.db, "x", "NONE", 0, 28).await.unwrap();
+            assert_eq!(fraction, 0.0);
+        }
+
+        #[tokio::test]
+        async fn fetch_bunching_fraction_returns_zero_when_vehicles_far_apart_in_time() {
+            let td = test_utils::setup().await;
+            let db = &td.db;
+
+            sqlx::query("INSERT INTO routes VALUES ('a0', 'R1', '1', 'Route 1', 3)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO trips VALUES ('a0', 'T1', 'R1', 'WD', 0, NULL)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO trips VALUES ('a0', 'T2', 'R1', 'WD', 0, NULL)")
+                .execute(&db.pool).await.unwrap();
+
+            // Two vehicles at same stop but 5 minutes apart — not bunched
+            let t1 = chrono::Utc::now().to_rfc3339();
+            let t2 = (chrono::Utc::now() + chrono::TimeDelta::seconds(300)).to_rfc3339();
+
+            sqlx::query(
+                "INSERT INTO vehicle_positions (agency_id, observed_at, trip_id, vehicle_id, latitude, longitude, stop_sequence) VALUES ($1,$2,$3,$4,0,0,1)"
+            )
+            .bind("a0").bind(&t1).bind("T1").bind("V1")
+            .execute(&db.pool).await.unwrap();
+
+            sqlx::query(
+                "INSERT INTO vehicle_positions (agency_id, observed_at, trip_id, vehicle_id, latitude, longitude, stop_sequence) VALUES ($1,$2,$3,$4,0,0,1)"
+            )
+            .bind("a0").bind(&t2).bind("T2").bind("V2")
+            .execute(&db.pool).await.unwrap();
+
+            let fraction = fetch_bunching_fraction(db, "a0", "R1", 0, 1).await.unwrap();
+            assert_eq!(fraction, 0.0);
         }
     }
 }
