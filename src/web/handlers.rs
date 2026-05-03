@@ -13,10 +13,10 @@ use crate::metrics::{
     route_summary, route_trend, scorecard_routes, stop_hotspots,
 };
 use crate::speed::{
-    RouteClass, RouteSpeedCard, RouteSpeedSummary, SpeedDeficitBreakdown, StopSpacing,
-    build_speed_cards, classify_by_spacing, compute_speed_deficit_breakdown,
-    route_speed_by_day_type, route_speed_summary, route_speed_trend_by_direction,
-    route_stop_spacings,
+    DeficitFactor, FactorKind, RouteClass, RouteSpeedCard, RouteSpeedSummary,
+    SpeedDeficitBreakdown, StopSpacing, build_speed_cards, classify_by_spacing,
+    compute_speed_deficit_breakdown, route_speed_by_day_type, route_speed_summary,
+    route_speed_trend_by_direction, route_stop_spacings,
 };
 use crate::web::AppState;
 
