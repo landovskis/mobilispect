@@ -157,10 +157,10 @@ pub async fn fetch_scheduled_timings(
     }))
 }
 
-pub struct ActualTimings {
-    pub avg_dwell_secs: f64,
-    pub avg_duration_secs: f64,
-    pub trip_count: i64,
+struct ActualTimings {
+    avg_dwell_secs: f64,
+    avg_duration_secs: f64,
+    trip_count: i64,
 }
 
 #[derive(sqlx::FromRow)]
@@ -170,7 +170,7 @@ struct ActualTimingsRow {
     trip_count: i64,
 }
 
-pub async fn fetch_actual_timings(
+async fn fetch_actual_timings(
     db: &Database,
     agency_id: &str,
     route_id: &str,
@@ -185,7 +185,7 @@ pub async fn fetch_actual_timings(
          FROM (
              SELECT
                  ste.trip_id,
-                 SUM(CASE WHEN ste.departure_time_unix >= ste.arrival_time_unix THEN (ste.departure_time_unix - ste.arrival_time_unix) ELSE 0 END) AS total_dwell,
+                 SUM(CASE WHEN ste.dwell_secs >= 0 THEN ste.dwell_secs ELSE 0 END) AS total_dwell,
                  (MAX(ste.arrival_time_unix) - MIN(ste.arrival_time_unix))          AS total_duration
              FROM stop_time_events ste
              JOIN trips t ON t.agency_id = ste.agency_id AND t.trip_id = ste.trip_id
