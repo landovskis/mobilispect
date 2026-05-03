@@ -3,33 +3,8 @@
 use anyhow::Result;
 use crate::db::Database;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FactorKind {
-    DwellExcess,
-    Bunching,
-    RunningTimeLoss,
-}
-
-impl FactorKind {
-    pub fn label(self) -> &'static str {
-        match self {
-            FactorKind::DwellExcess => "Dwell time at stops",
-            FactorKind::Bunching => "Bunching",
-            FactorKind::RunningTimeLoss => "Running time loss",
-        }
-    }
-
-    pub fn color(self) -> &'static str {
-        match self {
-            FactorKind::DwellExcess => "#e74c3c",
-            FactorKind::Bunching => "#27ae60",
-            FactorKind::RunningTimeLoss => "#e67e22",
-        }
-    }
-}
-
 pub struct DeficitFactor {
-    pub kind: FactorKind,
+    pub label: &'static str,
     pub delta_mps: f64,
     pub from_mps: f64,
     pub to_mps: f64,
@@ -37,17 +12,9 @@ pub struct DeficitFactor {
 }
 
 impl DeficitFactor {
-    pub fn delta_kmh(&self) -> f64 {
-        self.delta_mps * 3.6
-    }
-
-    pub fn from_kmh(&self) -> f64 {
-        self.from_mps * 3.6
-    }
-
-    pub fn to_kmh(&self) -> f64 {
-        self.to_mps * 3.6
-    }
+    pub fn delta_kmh(&self) -> f64 { self.delta_mps * 3.6 }
+    pub fn from_kmh(&self) -> f64 { self.from_mps * 3.6 }
+    pub fn to_kmh(&self) -> f64 { self.to_mps * 3.6 }
 }
 
 pub struct SpeedDeficitBreakdown {
@@ -58,13 +25,8 @@ pub struct SpeedDeficitBreakdown {
 }
 
 impl SpeedDeficitBreakdown {
-    pub fn scheduled_speed_kmh(&self) -> f64 {
-        self.scheduled_speed_mps * 3.6
-    }
-
-    pub fn actual_speed_kmh(&self) -> f64 {
-        self.actual_speed_mps * 3.6
-    }
+    pub fn scheduled_speed_kmh(&self) -> f64 { self.scheduled_speed_mps * 3.6 }
+    pub fn actual_speed_kmh(&self) -> f64 { self.actual_speed_mps * 3.6 }
 
     pub fn has_deficit(&self) -> bool {
         self.scheduled_speed_mps > self.actual_speed_mps + 0.1
@@ -77,9 +39,14 @@ impl SpeedDeficitBreakdown {
         let mut colors: Vec<serde_json::Value> = vec![serde_json::json!("#2980b9")];
 
         for factor in &self.factors {
-            labels.push(serde_json::json!(format!("− {}", factor.kind.label())));
+            labels.push(serde_json::json!(format!("− {}", factor.label)));
             data.push(serde_json::json!([factor.to_kmh(), factor.from_kmh()]));
-            colors.push(serde_json::json!(factor.kind.color()));
+            let color = match factor.label {
+                "Dwell time at stops" => "#e74c3c",
+                "Bunching" => "#27ae60",
+                _ => "#e67e22",
+            };
+            colors.push(serde_json::json!(color));
         }
 
         if self.unexplained_mps.abs() > 0.05 {
@@ -109,151 +76,6 @@ impl SpeedDeficitBreakdown {
     }
 }
 
-struct ScheduledTimings {
-    route_distance_m: f64,
-    scheduled_duration_secs: f64,
-    scheduled_dwell_secs: f64,
-    num_stops: usize,
-}
-
-#[derive(sqlx::FromRow)]
-struct ScheduledStopRow {
-    stop_lat: f64,
-    stop_lon: f64,
-    arrival_time: String,
-    departure_time: String,
-}
-
-async fn fetch_scheduled_timings(
-    db: &Database,
-    agency_id: &str,
-    route_id: &str,
-    direction_id: i64,
-) -> Result<Option<ScheduledTimings>> {
-    let rows: Vec<ScheduledStopRow> = sqlx::query_as(
-        "WITH rep_trip AS (
-            SELECT DISTINCT ON (1) trip_id
-            FROM trips
-            WHERE agency_id = $1 AND route_id = $2 AND COALESCE(direction_id, 0) = $3
-            ORDER BY 1, trip_id
-        )
-        SELECT s.stop_lat, s.stop_lon, ss.arrival_time, ss.departure_time
-        FROM rep_trip rt
-        JOIN scheduled_stops ss ON ss.agency_id = $1 AND ss.trip_id = rt.trip_id
-        JOIN stops s ON s.agency_id = $1 AND s.stop_id = ss.stop_id
-        ORDER BY ss.stop_sequence",
-    )
-    .bind(agency_id)
-    .bind(route_id)
-    .bind(direction_id)
-    .fetch_all(&db.pool)
-    .await?;
-
-    if rows.len() < 2 {
-        return Ok(None);
-    }
-
-    let route_distance_m: f64 = rows
-        .windows(2)
-        .map(|w| {
-            super::haversine_meters(w[0].stop_lat, w[0].stop_lon, w[1].stop_lat, w[1].stop_lon)
-        })
-        .sum();
-
-    if route_distance_m < 1.0 {
-        return Ok(None);
-    }
-
-    let scheduled_dwell_secs: f64 = rows
-        .iter()
-        .filter_map(|r| {
-            let arr = super::parse_time_secs(&r.arrival_time)?;
-            let dep = super::parse_time_secs(&r.departure_time)?;
-            if dep >= arr {
-                Some((dep - arr) as f64)
-            } else {
-                None
-            }
-        })
-        .sum();
-
-    let first_secs = super::parse_time_secs(&rows.first().unwrap().arrival_time);
-    let last_secs = super::parse_time_secs(&rows.last().unwrap().arrival_time);
-    let scheduled_duration_secs = match (first_secs, last_secs) {
-        (Some(f), Some(l)) if l > f => (l - f) as f64,
-        _ => return Ok(None),
-    };
-
-    Ok(Some(ScheduledTimings {
-        route_distance_m,
-        scheduled_duration_secs,
-        scheduled_dwell_secs,
-        num_stops: rows.len(),
-    }))
-}
-
-struct ActualTimings {
-    avg_dwell_secs: f64,
-    avg_duration_secs: f64,
-    trip_count: i64,
-}
-
-#[derive(sqlx::FromRow)]
-struct ActualTimingsRow {
-    avg_dwell_secs: Option<f64>,
-    avg_duration_secs: Option<f64>,
-    trip_count: i64,
-}
-
-async fn fetch_actual_timings(
-    db: &Database,
-    agency_id: &str,
-    route_id: &str,
-    direction_id: i64,
-    days: i64,
-) -> Result<Option<ActualTimings>> {
-    let row: ActualTimingsRow = sqlx::query_as(
-        "SELECT
-             AVG(total_dwell)::DOUBLE PRECISION        AS avg_dwell_secs,
-             AVG(total_duration)::DOUBLE PRECISION     AS avg_duration_secs,
-             COUNT(*)::BIGINT                          AS trip_count
-         FROM (
-             SELECT
-                 ste.trip_id,
-                 SUM(CASE WHEN ste.dwell_secs >= 0 THEN ste.dwell_secs ELSE 0 END) AS total_dwell,
-                 (MAX(ste.arrival_time_unix) - MIN(ste.arrival_time_unix))          AS total_duration
-             FROM stop_time_events ste
-             JOIN trips t ON t.agency_id = ste.agency_id AND t.trip_id = ste.trip_id
-             WHERE ste.agency_id = $1
-               AND t.route_id = $2
-               AND COALESCE(t.direction_id, 0) = $3
-               AND ste.arrival_time_unix IS NOT NULL
-               AND ste.arrival_time_unix >
-                       EXTRACT(EPOCH FROM NOW() - $4::INT * INTERVAL '1 day')::BIGINT
-             GROUP BY ste.trip_id
-             HAVING COUNT(*) >= 2
-                AND MAX(ste.arrival_time_unix) > MIN(ste.arrival_time_unix)
-         ) AS trip_agg",
-    )
-    .bind(agency_id)
-    .bind(route_id)
-    .bind(direction_id)
-    .bind(days)
-    .fetch_one(&db.pool)
-    .await?;
-
-    match (row.avg_dwell_secs, row.avg_duration_secs) {
-        (Some(dwell), Some(duration)) if row.trip_count > 0 && duration > 0.0 => {
-            Ok(Some(ActualTimings {
-                avg_dwell_secs: dwell,
-                avg_duration_secs: duration,
-                trip_count: row.trip_count,
-            }))
-        }
-        _ => Ok(None),
-    }
-}
-
 pub async fn compute_speed_deficit_breakdown(
     _db: &Database,
     _agency_id: &str,
@@ -268,108 +90,10 @@ pub async fn compute_speed_deficit_breakdown(
 mod tests {
     use super::*;
 
-    mod integration {
-        use crate::db::test_utils;
-        use super::*;
-
-        #[tokio::test]
-        async fn fetch_scheduled_timings_returns_distance_and_dwell() {
-            let td = test_utils::setup().await;
-            let db = &td.db;
-
-            sqlx::query("INSERT INTO routes VALUES ('a0', 'R1', '1', 'Route 1', 3)")
-                .execute(&db.pool).await.unwrap();
-            sqlx::query("INSERT INTO trips VALUES ('a0', 'T1', 'R1', 'WD', 0, NULL)")
-                .execute(&db.pool).await.unwrap();
-            // Two stops ~1112 m apart (0.01° longitude at equator ≈ 1112 m)
-            sqlx::query("INSERT INTO stops VALUES ('a0', 'S1', 'A', 0.0, 0.0)")
-                .execute(&db.pool).await.unwrap();
-            sqlx::query("INSERT INTO stops VALUES ('a0', 'S2', 'B', 0.0, 0.01)")
-                .execute(&db.pool).await.unwrap();
-            // 30 s dwell at S1, 10 min total trip
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('a0', 'T1', 'S1', 1, '08:00:00', '08:00:30')")
-                .execute(&db.pool).await.unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('a0', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
-                .execute(&db.pool).await.unwrap();
-
-            let result = fetch_scheduled_timings(db, "a0", "R1", 0).await.unwrap();
-            assert!(result.is_some());
-            let t = result.unwrap();
-            assert!((t.route_distance_m - 1112.0).abs() < 50.0);
-            assert!((t.scheduled_dwell_secs - 30.0).abs() < 1.0);
-            assert!((t.scheduled_duration_secs - 600.0).abs() < 1.0);
-            assert_eq!(t.num_stops, 2);
-        }
-
-        #[tokio::test]
-        async fn fetch_scheduled_timings_returns_none_for_unknown_route() {
-            let td = test_utils::setup().await;
-            let result = fetch_scheduled_timings(&td.db, "x", "NONE", 0).await.unwrap();
-            assert!(result.is_none());
-        }
-
-        #[tokio::test]
-        async fn fetch_actual_timings_averages_dwell_and_duration_across_trips() {
-            let td = test_utils::setup().await;
-            let db = &td.db;
-
-            sqlx::query("INSERT INTO routes VALUES ('a0', 'R1', '1', 'Route 1', 3)")
-                .execute(&db.pool).await.unwrap();
-            sqlx::query("INSERT INTO trips VALUES ('a0', 'T1', 'R1', 'WD', 0, NULL)")
-                .execute(&db.pool).await.unwrap();
-            sqlx::query("INSERT INTO trips VALUES ('a0', 'T2', 'R1', 'WD', 0, NULL)")
-                .execute(&db.pool).await.unwrap();
-
-            // T1: two stop events, arrival_time_unix span = 300s, dwell = 60s
-            // T2: two stop events, arrival_time_unix span = 240s, dwell = 40s
-            // avg duration = 270s, avg dwell = 50s
-            let now_epoch: i64 = chrono::Utc::now().timestamp();
-            let obs = chrono::Utc::now().to_rfc3339();
-
-            sqlx::query(
-                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S1',1,$4,$5)"
-            )
-            .bind("a0").bind(&obs).bind("T1").bind(now_epoch).bind(now_epoch + 60)
-            .execute(&db.pool).await.unwrap();
-
-            sqlx::query(
-                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S2',2,$4,$5)"
-            )
-            .bind("a0").bind(&obs).bind("T1").bind(now_epoch + 300).bind(now_epoch + 300)
-            .execute(&db.pool).await.unwrap();
-
-            sqlx::query(
-                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S1',1,$4,$5)"
-            )
-            .bind("a0").bind(&obs).bind("T2").bind(now_epoch).bind(now_epoch + 40)
-            .execute(&db.pool).await.unwrap();
-
-            sqlx::query(
-                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S2',2,$4,$5)"
-            )
-            .bind("a0").bind(&obs).bind("T2").bind(now_epoch + 240).bind(now_epoch + 240)
-            .execute(&db.pool).await.unwrap();
-
-            let result = fetch_actual_timings(db, "a0", "R1", 0, 1).await.unwrap();
-            assert!(result.is_some());
-            let t = result.unwrap();
-            assert!((t.avg_dwell_secs - 50.0).abs() < 5.0);
-            assert!((t.avg_duration_secs - 270.0).abs() < 5.0);
-            assert_eq!(t.trip_count, 2);
-        }
-
-        #[tokio::test]
-        async fn fetch_actual_timings_returns_none_when_no_data() {
-            let td = test_utils::setup().await;
-            let result = fetch_actual_timings(&td.db, "x", "NONE", 0, 28).await.unwrap();
-            assert!(result.is_none());
-        }
-    }
-
     #[test]
     fn deficit_factor_delta_kmh_converts_mps() {
         let f = DeficitFactor {
-            kind: FactorKind::DwellExcess,
+            label: "Test",
             delta_mps: -1.0,
             from_mps: 5.0,
             to_mps: 4.0,
@@ -420,7 +144,7 @@ mod tests {
             scheduled_speed_mps: 5.0,
             actual_speed_mps: 4.0,
             factors: vec![DeficitFactor {
-                kind: FactorKind::DwellExcess,
+                label: "Dwell time at stops",
                 delta_mps: -0.5,
                 from_mps: 5.0,
                 to_mps: 4.5,
