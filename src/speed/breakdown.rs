@@ -192,6 +192,68 @@ async fn fetch_scheduled_timings(
     }))
 }
 
+struct ActualTimings {
+    avg_dwell_secs: f64,
+    avg_duration_secs: f64,
+    trip_count: i64,
+}
+
+#[derive(sqlx::FromRow)]
+struct ActualTimingsRow {
+    avg_dwell_secs: Option<f64>,
+    avg_duration_secs: Option<f64>,
+    trip_count: i64,
+}
+
+async fn fetch_actual_timings(
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+    direction_id: i64,
+    days: i64,
+) -> Result<Option<ActualTimings>> {
+    let row: ActualTimingsRow = sqlx::query_as(
+        "SELECT
+             AVG(total_dwell)::DOUBLE PRECISION        AS avg_dwell_secs,
+             AVG(total_duration)::DOUBLE PRECISION     AS avg_duration_secs,
+             COUNT(*)::BIGINT                          AS trip_count
+         FROM (
+             SELECT
+                 ste.trip_id,
+                 SUM(CASE WHEN ste.dwell_secs >= 0 THEN ste.dwell_secs ELSE 0 END) AS total_dwell,
+                 (MAX(ste.arrival_time_unix) - MIN(ste.arrival_time_unix))          AS total_duration
+             FROM stop_time_events ste
+             JOIN trips t ON t.agency_id = ste.agency_id AND t.trip_id = ste.trip_id
+             WHERE ste.agency_id = $1
+               AND t.route_id = $2
+               AND COALESCE(t.direction_id, 0) = $3
+               AND ste.arrival_time_unix IS NOT NULL
+               AND ste.arrival_time_unix >
+                       EXTRACT(EPOCH FROM NOW() - $4::INT * INTERVAL '1 day')::BIGINT
+             GROUP BY ste.trip_id
+             HAVING COUNT(*) >= 2
+                AND MAX(ste.arrival_time_unix) > MIN(ste.arrival_time_unix)
+         ) AS trip_agg",
+    )
+    .bind(agency_id)
+    .bind(route_id)
+    .bind(direction_id)
+    .bind(days)
+    .fetch_one(&db.pool)
+    .await?;
+
+    match (row.avg_dwell_secs, row.avg_duration_secs) {
+        (Some(dwell), Some(duration)) if row.trip_count > 0 && duration > 0.0 => {
+            Ok(Some(ActualTimings {
+                avg_dwell_secs: dwell,
+                avg_duration_secs: duration,
+                trip_count: row.trip_count,
+            }))
+        }
+        _ => Ok(None),
+    }
+}
+
 pub async fn compute_speed_deficit_breakdown(
     _db: &Database,
     _agency_id: &str,
@@ -243,6 +305,63 @@ mod tests {
         async fn fetch_scheduled_timings_returns_none_for_unknown_route() {
             let td = test_utils::setup().await;
             let result = fetch_scheduled_timings(&td.db, "x", "NONE", 0).await.unwrap();
+            assert!(result.is_none());
+        }
+
+        #[tokio::test]
+        async fn fetch_actual_timings_averages_dwell_and_duration_across_trips() {
+            let td = test_utils::setup().await;
+            let db = &td.db;
+
+            sqlx::query("INSERT INTO routes VALUES ('a0', 'R1', '1', 'Route 1', 3)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO trips VALUES ('a0', 'T1', 'R1', 'WD', 0, NULL)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO trips VALUES ('a0', 'T2', 'R1', 'WD', 0, NULL)")
+                .execute(&db.pool).await.unwrap();
+
+            // T1: two stop events, arrival_time_unix span = 300s, dwell = 60s
+            // T2: two stop events, arrival_time_unix span = 240s, dwell = 40s
+            // avg duration = 270s, avg dwell = 50s
+            let now_epoch: i64 = chrono::Utc::now().timestamp();
+            let obs = chrono::Utc::now().to_rfc3339();
+
+            sqlx::query(
+                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S1',1,$4,$5)"
+            )
+            .bind("a0").bind(&obs).bind("T1").bind(now_epoch).bind(now_epoch + 60)
+            .execute(&db.pool).await.unwrap();
+
+            sqlx::query(
+                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S2',2,$4,$5)"
+            )
+            .bind("a0").bind(&obs).bind("T1").bind(now_epoch + 300).bind(now_epoch + 300)
+            .execute(&db.pool).await.unwrap();
+
+            sqlx::query(
+                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S1',1,$4,$5)"
+            )
+            .bind("a0").bind(&obs).bind("T2").bind(now_epoch).bind(now_epoch + 40)
+            .execute(&db.pool).await.unwrap();
+
+            sqlx::query(
+                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S2',2,$4,$5)"
+            )
+            .bind("a0").bind(&obs).bind("T2").bind(now_epoch + 240).bind(now_epoch + 240)
+            .execute(&db.pool).await.unwrap();
+
+            let result = fetch_actual_timings(db, "a0", "R1", 0, 1).await.unwrap();
+            assert!(result.is_some());
+            let t = result.unwrap();
+            assert!((t.avg_dwell_secs - 50.0).abs() < 5.0);
+            assert!((t.avg_duration_secs - 270.0).abs() < 5.0);
+            assert_eq!(t.trip_count, 2);
+        }
+
+        #[tokio::test]
+        async fn fetch_actual_timings_returns_none_when_no_data() {
+            let td = test_utils::setup().await;
+            let result = fetch_actual_timings(&td.db, "x", "NONE", 0, 28).await.unwrap();
             assert!(result.is_none());
         }
     }
