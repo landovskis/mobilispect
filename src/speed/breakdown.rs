@@ -76,7 +76,8 @@ impl SpeedDeficitBreakdown {
                 .last()
                 .map(|f| f.to_kmh())
                 .unwrap_or_else(|| self.scheduled_speed_kmh());
-            labels.push(serde_json::json!("− Other"));
+            let other_label = if self.unexplained_mps > 0.0 { "+ Other" } else { "− Other" };
+            labels.push(serde_json::json!(other_label));
             data.push(serde_json::json!([self.actual_speed_kmh(), from_kmh]));
             colors.push(serde_json::json!("#aaaaaa"));
         }
@@ -200,7 +201,7 @@ async fn fetch_scheduled_timings(
     let trip: Option<(String,)> = sqlx::query_as(
         "SELECT trip_id FROM trips
          WHERE agency_id = $1 AND route_id = $2 AND COALESCE(direction_id, 0) = $3
-         LIMIT 1",
+         ORDER BY trip_id LIMIT 1",
     )
     .bind(agency_id)
     .bind(route_id)
