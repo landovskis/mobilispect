@@ -4,8 +4,33 @@ use anyhow::Result;
 use crate::db::Database;
 use super::{parse_time_secs, haversine_meters};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FactorKind {
+    DwellExcess,
+    Bunching,
+    RunningTimeLoss,
+}
+
+impl FactorKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            FactorKind::DwellExcess => "Dwell time at stops",
+            FactorKind::Bunching => "Bunching",
+            FactorKind::RunningTimeLoss => "Running time loss",
+        }
+    }
+
+    pub fn color(self) -> &'static str {
+        match self {
+            FactorKind::DwellExcess => "#e74c3c",
+            FactorKind::Bunching => "#27ae60",
+            FactorKind::RunningTimeLoss => "#e67e22",
+        }
+    }
+}
+
 pub struct DeficitFactor {
-    pub label: &'static str,
+    pub kind: FactorKind,
     pub delta_mps: f64,
     pub from_mps: f64,
     pub to_mps: f64,
@@ -40,14 +65,9 @@ impl SpeedDeficitBreakdown {
         let mut colors: Vec<serde_json::Value> = vec![serde_json::json!("#2980b9")];
 
         for factor in &self.factors {
-            labels.push(serde_json::json!(format!("− {}", factor.label)));
+            labels.push(serde_json::json!(format!("− {}", factor.kind.label())));
             data.push(serde_json::json!([factor.to_kmh(), factor.from_kmh()]));
-            let color = match factor.label {
-                "Dwell time at stops" => "#e74c3c",
-                "Bunching" => "#27ae60",
-                _ => "#e67e22",
-            };
-            colors.push(serde_json::json!(color));
+            colors.push(serde_json::json!(factor.kind.color()));
         }
 
         if self.unexplained_mps.abs() > 0.05 {
@@ -78,23 +98,100 @@ impl SpeedDeficitBreakdown {
 }
 
 pub async fn compute_speed_deficit_breakdown(
-    _db: &Database,
-    _agency_id: &str,
-    _route_id: &str,
-    _direction_id: i64,
-    _days: i64,
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+    direction_id: i64,
+    days: i64,
 ) -> Result<Option<SpeedDeficitBreakdown>> {
-    Ok(None)
+    let (scheduled_res, actual_res, bunching_res) = tokio::join!(
+        fetch_scheduled_timings(db, agency_id, route_id, direction_id),
+        fetch_actual_timings(db, agency_id, route_id, direction_id, days),
+        fetch_bunching_fraction(db, agency_id, route_id, direction_id, days),
+    );
+
+    let scheduled = match scheduled_res? {
+        Some(s) => s,
+        None => return Ok(None),
+    };
+    let actual = match actual_res? {
+        Some(a) => a,
+        None => return Ok(None),
+    };
+    let bunching_fraction = bunching_res.unwrap_or(0.0);
+
+    let d = scheduled.route_distance_m;
+    let t_sched = scheduled.scheduled_duration_secs;
+    let scheduled_dwell = scheduled.scheduled_dwell_secs;
+    let scheduled_running = (t_sched - scheduled_dwell).max(0.0);
+
+    let actual_dwell = actual.avg_dwell_secs;
+    let actual_running = (actual.avg_duration_secs - actual_dwell).max(0.0);
+
+    let dwell_excess = (actual_dwell - scheduled_dwell).max(0.0);
+    let running_excess = (actual_running - scheduled_running).max(0.0);
+
+    // Attribute up to all dwell_excess to bunching, capped at what bunching could explain
+    let bunching_dwell = (bunching_fraction * 15.0).min(dwell_excess);
+    let pure_dwell_excess = dwell_excess - bunching_dwell;
+
+    let scheduled_speed = d / t_sched;
+    let speed_after_dwell = d / (t_sched + pure_dwell_excess).max(1.0);
+    let speed_after_bunching = d / (t_sched + dwell_excess).max(1.0);
+    let speed_after_running = d / (t_sched + dwell_excess + running_excess).max(1.0);
+    let actual_speed = d / actual.avg_duration_secs.max(1.0);
+
+    let scheduled_running_nonzero = scheduled_running.max(1.0);
+
+    let factors = vec![
+        DeficitFactor {
+            kind: FactorKind::DwellExcess,
+            delta_mps: speed_after_dwell - scheduled_speed,
+            from_mps: scheduled_speed,
+            to_mps: speed_after_dwell,
+            detail: format!(
+                "avg {:.0} s/stop across {} stops",
+                actual_dwell / scheduled.num_stops as f64,
+                scheduled.num_stops
+            ),
+        },
+        DeficitFactor {
+            kind: FactorKind::Bunching,
+            delta_mps: speed_after_bunching - speed_after_dwell,
+            from_mps: speed_after_dwell,
+            to_mps: speed_after_bunching,
+            detail: format!("{:.0}% of trips bunched", bunching_fraction * 100.0),
+        },
+        DeficitFactor {
+            kind: FactorKind::RunningTimeLoss,
+            delta_mps: speed_after_running - speed_after_bunching,
+            from_mps: speed_after_bunching,
+            to_mps: speed_after_running,
+            detail: format!(
+                "running time {:.0}% above schedule",
+                running_excess / scheduled_running_nonzero * 100.0
+            ),
+        },
+    ];
+
+    let unexplained_mps = actual_speed - speed_after_running;
+
+    Ok(Some(SpeedDeficitBreakdown {
+        scheduled_speed_mps: scheduled_speed,
+        actual_speed_mps: actual_speed,
+        factors,
+        unexplained_mps,
+    }))
 }
 
-pub struct ScheduledTimings {
-    pub route_distance_m: f64,
-    pub scheduled_duration_secs: f64,
-    pub scheduled_dwell_secs: f64,
-    pub num_stops: i64,
+struct ScheduledTimings {
+    route_distance_m: f64,
+    scheduled_duration_secs: f64,
+    scheduled_dwell_secs: f64,
+    num_stops: i64,
 }
 
-pub async fn fetch_scheduled_timings(
+async fn fetch_scheduled_timings(
     db: &Database,
     agency_id: &str,
     route_id: &str,
@@ -160,6 +257,7 @@ pub async fn fetch_scheduled_timings(
 struct ActualTimings {
     avg_dwell_secs: f64,
     avg_duration_secs: f64,
+    #[allow(dead_code)]
     trip_count: i64,
 }
 
@@ -194,7 +292,7 @@ async fn fetch_actual_timings(
                AND COALESCE(t.direction_id, 0) = $3
                AND ste.arrival_time_unix IS NOT NULL
                AND ste.arrival_time_unix >
-                       EXTRACT(EPOCH FROM NOW() - $4::INT * INTERVAL '1 day')::BIGINT
+                       EXTRACT(EPOCH FROM NOW() - $4::BIGINT * INTERVAL '1 day')::BIGINT
              GROUP BY ste.trip_id
              HAVING COUNT(*) >= 2
                 AND MAX(ste.arrival_time_unix) > MIN(ste.arrival_time_unix)
@@ -243,7 +341,7 @@ async fn fetch_bunching_fraction(
                AND t.route_id = $2
                AND COALESCE(t.direction_id, 0) = $3
                AND vp.stop_sequence IS NOT NULL
-               AND vp.observed_at::TIMESTAMPTZ >= NOW() - $4::INT * INTERVAL '1 day'
+               AND vp.observed_at::TIMESTAMPTZ >= NOW() - $4::BIGINT * INTERVAL '1 day'
          ),
          bunched_trips AS (
              SELECT DISTINCT a.trip_id
@@ -272,13 +370,14 @@ async fn fetch_bunching_fraction(
     })
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn deficit_factor_delta_kmh_converts_mps() {
         let f = DeficitFactor {
-            label: "Test",
+            kind: FactorKind::DwellExcess,
             delta_mps: -1.0,
             from_mps: 5.0,
             to_mps: 4.0,
@@ -329,7 +428,7 @@ mod tests {
             scheduled_speed_mps: 5.0,
             actual_speed_mps: 4.0,
             factors: vec![DeficitFactor {
-                label: "Dwell time at stops",
+                kind: FactorKind::DwellExcess,
                 delta_mps: -0.5,
                 from_mps: 5.0,
                 to_mps: 4.5,
@@ -345,8 +444,8 @@ mod tests {
 
     #[cfg(test)]
     mod integration {
-        use crate::db::test_utils;
         use super::*;
+        use crate::db::test_utils;
 
         #[tokio::test]
         async fn fetch_scheduled_timings_returns_distance_and_dwell() {
@@ -511,6 +610,61 @@ mod tests {
 
             let fraction = fetch_bunching_fraction(db, "a0", "R1", 0, 1).await.unwrap();
             assert_eq!(fraction, 0.0);
+        }
+
+        #[tokio::test]
+        async fn compute_breakdown_returns_none_when_no_actual_data() {
+            let td = test_utils::setup().await;
+            let result = compute_speed_deficit_breakdown(&td.db, "a0", "R1", 0, 1).await.unwrap();
+            assert!(result.is_none());
+        }
+
+        #[tokio::test]
+        async fn compute_breakdown_produces_negative_dwell_delta_when_actual_dwell_exceeds_scheduled() {
+            let td = test_utils::setup().await;
+            let db = &td.db;
+
+            // Setup scheduled: 1000m, 200s duration (5mps), 20s dwell
+            sqlx::query("INSERT INTO routes VALUES ('a0', 'R1', '1', 'Route 1', 3)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO trips VALUES ('a0', 'T1', 'R1', 'WD', 0, NULL)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO stops VALUES ('a0', 'S1', 'A', 0.0, 0.0)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO stops VALUES ('a0', 'S2', 'B', 0.0, 0.009)") // ~1000m
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('a0', 'T1', 'S1', 1, '08:00:00', '08:00:20')")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('a0', 'T1', 'S2', 2, '08:03:20', '08:03:20')")
+                .execute(&db.pool).await.unwrap();
+
+            // Setup actual: 250s duration (4mps), 50s dwell (30s excess)
+            let now_epoch = chrono::Utc::now().timestamp();
+            let obs = chrono::Utc::now().to_rfc3339();
+            sqlx::query(
+                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S1',1,$4,$5)"
+            )
+            .bind("a0").bind(&obs).bind("T1").bind(now_epoch).bind(now_epoch + 50)
+            .execute(&db.pool).await.unwrap();
+
+            sqlx::query(
+                "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S2',2,$4,$5)"
+            )
+            .bind("a0").bind(&obs).bind("T1").bind(now_epoch + 250).bind(now_epoch + 250)
+            .execute(&db.pool).await.unwrap();
+
+            let result = compute_speed_deficit_breakdown(db, "a0", "R1", 0, 1).await.unwrap();
+            assert!(result.is_some());
+            let breakdown = result.unwrap();
+
+            // scheduled: 1000m / 200s = 5.0 mps
+            // actual: 1000m / 250s = 4.0 mps
+            assert!((breakdown.scheduled_speed_mps - 5.0).abs() < 0.1);
+            assert!((breakdown.actual_speed_mps - 4.0).abs() < 0.1);
+
+            let dwell_factor = breakdown.factors.iter().find(|f| f.kind == FactorKind::DwellExcess);
+            assert!(dwell_factor.is_some());
+            assert!(dwell_factor.unwrap().delta_mps < 0.0);
         }
     }
 }
