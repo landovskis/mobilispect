@@ -11,7 +11,7 @@ pub use card::{
 };
 
 pub mod breakdown;
-pub use breakdown::{DeficitFactor, SpeedDeficitBreakdown, compute_speed_deficit_breakdown};
+pub use breakdown::{DeficitFactor, FactorKind, SpeedDeficitBreakdown, compute_speed_deficit_breakdown};
 
 pub(crate) fn direction_label(direction_id: i64) -> &'static str {
     match direction_id {

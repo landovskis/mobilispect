@@ -3,8 +3,33 @@
 use anyhow::Result;
 use crate::db::Database;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FactorKind {
+    DwellExcess,
+    Bunching,
+    RunningTimeLoss,
+}
+
+impl FactorKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            FactorKind::DwellExcess => "Dwell time at stops",
+            FactorKind::Bunching => "Bunching",
+            FactorKind::RunningTimeLoss => "Running time loss",
+        }
+    }
+
+    pub fn color(self) -> &'static str {
+        match self {
+            FactorKind::DwellExcess => "#e74c3c",
+            FactorKind::Bunching => "#27ae60",
+            FactorKind::RunningTimeLoss => "#e67e22",
+        }
+    }
+}
+
 pub struct DeficitFactor {
-    pub label: &'static str,
+    pub kind: FactorKind,
     pub delta_mps: f64,
     pub from_mps: f64,
     pub to_mps: f64,
@@ -52,14 +77,9 @@ impl SpeedDeficitBreakdown {
         let mut colors: Vec<serde_json::Value> = vec![serde_json::json!("#2980b9")];
 
         for factor in &self.factors {
-            labels.push(serde_json::json!(format!("− {}", factor.label)));
+            labels.push(serde_json::json!(format!("− {}", factor.kind.label())));
             data.push(serde_json::json!([factor.to_kmh(), factor.from_kmh()]));
-            let color = match factor.label {
-                "Dwell time at stops" => "#e74c3c",
-                "Bunching" => "#27ae60",
-                _ => "#e67e22",
-            };
-            colors.push(serde_json::json!(color));
+            colors.push(serde_json::json!(factor.kind.color()));
         }
 
         if self.unexplained_mps.abs() > 0.05 {
@@ -106,7 +126,7 @@ mod tests {
     #[test]
     fn deficit_factor_delta_kmh_converts_mps() {
         let f = DeficitFactor {
-            label: "Test",
+            kind: FactorKind::DwellExcess,
             delta_mps: -1.0,
             from_mps: 5.0,
             to_mps: 4.0,
@@ -157,7 +177,7 @@ mod tests {
             scheduled_speed_mps: 5.0,
             actual_speed_mps: 4.0,
             factors: vec![DeficitFactor {
-                label: "Dwell time at stops",
+                kind: FactorKind::DwellExcess,
                 delta_mps: -0.5,
                 from_mps: 5.0,
                 to_mps: 4.5,
