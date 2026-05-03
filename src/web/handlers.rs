@@ -1346,7 +1346,7 @@ mod e2e_tests {
         let response = app
             .oneshot(
                 Request::builder()
-                    .uri("/speed/0/R1")
+                    .uri("/routes/0/R1/speed")
                     .body(Body::empty())
                     .unwrap(),
             )
