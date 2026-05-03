@@ -2,6 +2,7 @@
 
 use anyhow::Result;
 use crate::db::Database;
+use super::{parse_time_secs, haversine_meters};
 
 pub struct DeficitFactor {
     pub label: &'static str,
@@ -86,6 +87,76 @@ pub async fn compute_speed_deficit_breakdown(
     Ok(None)
 }
 
+pub struct ScheduledTimings {
+    pub route_distance_m: f64,
+    pub scheduled_duration_secs: f64,
+    pub scheduled_dwell_secs: f64,
+    pub num_stops: i64,
+}
+
+pub async fn fetch_scheduled_timings(
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+    direction_id: i64,
+) -> Result<Option<ScheduledTimings>> {
+    let trip: Option<(String,)> = sqlx::query_as(
+        "SELECT trip_id FROM trips
+         WHERE agency_id = $1 AND route_id = $2 AND COALESCE(direction_id, 0) = $3
+         LIMIT 1",
+    )
+    .bind(agency_id)
+    .bind(route_id)
+    .bind(direction_id)
+    .fetch_optional(&db.pool)
+    .await?;
+
+    let Some((trip_id,)) = trip else {
+        return Ok(None);
+    };
+
+    let stops: Vec<(f64, f64, String, String)> = sqlx::query_as(
+        "SELECT s.stop_lat, s.stop_lon, ss.arrival_time, ss.departure_time
+         FROM scheduled_stops ss
+         JOIN stops s ON s.stop_id = ss.stop_id AND s.agency_id = ss.agency_id
+         WHERE ss.agency_id = $1 AND ss.trip_id = $2
+         ORDER BY ss.stop_sequence",
+    )
+    .bind(agency_id)
+    .bind(&trip_id)
+    .fetch_all(&db.pool)
+    .await?;
+
+    if stops.len() < 2 {
+        return Ok(None);
+    }
+
+    let route_distance_m: f64 = stops
+        .windows(2)
+        .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
+        .sum();
+
+    let first_arrival = parse_time_secs(&stops.first().unwrap().2).unwrap_or(0);
+    let last_arrival = parse_time_secs(&stops.last().unwrap().2).unwrap_or(0);
+    let scheduled_duration_secs = (last_arrival - first_arrival) as f64;
+
+    let scheduled_dwell_secs: f64 = stops
+        .iter()
+        .map(|(_, _, arr, dep)| {
+            let a = parse_time_secs(arr).unwrap_or(0);
+            let d = parse_time_secs(dep).unwrap_or(a);
+            (d - a) as f64
+        })
+        .sum();
+
+    Ok(Some(ScheduledTimings {
+        route_distance_m,
+        scheduled_duration_secs,
+        scheduled_dwell_secs,
+        num_stops: stops.len() as i64,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,5 +227,47 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert!(v["labels"].is_array());
         assert!(v["datasets"].is_array());
+    }
+
+    #[cfg(test)]
+    mod integration {
+        use crate::db::test_utils;
+        use super::*;
+
+        #[tokio::test]
+        async fn fetch_scheduled_timings_returns_distance_and_dwell() {
+            let td = test_utils::setup().await;
+            let db = &td.db;
+
+            sqlx::query("INSERT INTO routes VALUES ('a0', 'R1', '1', 'Route 1', 3)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO trips VALUES ('a0', 'T1', 'R1', 'WD', 0, NULL)")
+                .execute(&db.pool).await.unwrap();
+            // Two stops ~1112 m apart (0.01° longitude at equator ≈ 1112 m)
+            sqlx::query("INSERT INTO stops VALUES ('a0', 'S1', 'A', 0.0, 0.0)")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO stops VALUES ('a0', 'S2', 'B', 0.0, 0.01)")
+                .execute(&db.pool).await.unwrap();
+            // 30 s dwell at S1, 10 min total trip
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('a0', 'T1', 'S1', 1, '08:00:00', '08:00:30')")
+                .execute(&db.pool).await.unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('a0', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
+                .execute(&db.pool).await.unwrap();
+
+            let result = fetch_scheduled_timings(db, "a0", "R1", 0).await.unwrap();
+            assert!(result.is_some());
+            let t = result.unwrap();
+            assert!((t.route_distance_m - 1112.0).abs() < 50.0);
+            assert!((t.scheduled_dwell_secs - 30.0).abs() < 1.0);
+            assert!((t.scheduled_duration_secs - 600.0).abs() < 1.0);
+            assert_eq!(t.num_stops, 2);
+        }
+
+        #[tokio::test]
+        async fn fetch_scheduled_timings_returns_none_for_unknown_route() {
+            let td = test_utils::setup().await;
+            let result = fetch_scheduled_timings(&td.db, "x", "NONE", 0).await.unwrap();
+            assert!(result.is_none());
+        }
     }
 }
