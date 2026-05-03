@@ -97,7 +97,7 @@ impl RouteSpeedSummary {
 }
 
 /// Haversine distance between two lat/lon points, in meters.
-fn haversine_meters(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+pub(super) fn haversine_meters(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     const R: f64 = 6_371_000.0;
     let dlat = (lat2 - lat1).to_radians();
     let dlon = (lon2 - lon1).to_radians();
@@ -109,7 +109,7 @@ fn haversine_meters(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
 }
 
 /// Parse "HH:MM:SS" (HH may be ≥ 24 for post-midnight service) into total seconds.
-fn parse_time_secs(s: &str) -> Option<u32> {
+pub(super) fn parse_time_secs(s: &str) -> Option<u32> {
     let mut parts = s.splitn(3, ':');
     let h: u32 = parts.next()?.parse().ok()?;
     let m: u32 = parts.next()?.parse().ok()?;
