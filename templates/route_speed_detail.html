@@ -38,9 +38,6 @@ canvas { width: 100% !important; }
 .speed-charts-row { display: flex; gap: 1rem; margin-top: 1rem; }
 .speed-chart-col { flex: 1; min-width: 0; }
 .speed-chart-title { font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 0.25rem; color: var(--ink-700); }
-.breakdown-detail { font-size: 0.72rem; color: var(--ink-500); margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.breakdown-detail-item { display: flex; align-items: center; gap: 0.3rem; }
-.breakdown-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
 </style>
 {% endblock %}
 
@@ -115,22 +112,6 @@ canvas { width: 100% !important; }
         </div>
       </div>
 
-      {% if let Some(bd) = &direction.breakdown %}
-      {% if bd.has_deficit() %}
-      <div class="section-divider"></div>
-      <div class="section-label">Speed factors</div>
-      <canvas id="{{ direction.breakdown_chart_id }}" height="160"></canvas>
-      <div class="breakdown-detail">
-        {% for factor in &bd.factors %}
-        <span class="breakdown-detail-item">
-          <span class="breakdown-swatch" style="background:{{ factor.kind.color() }};"></span>
-          {{ factor.kind.label() }}: {{ factor.detail }}
-        </span>
-        {% endfor %}
-      </div>
-      {% endif %}
-      {% endif %}
-
     </div>
   </div>
   {% endfor %}
@@ -202,41 +183,5 @@ function renderSpeedChart(canvasId, data) {
 })();
 {% endfor %}
 
-{% for direction in &directions %}
-{% if let Some(bd) = &direction.breakdown %}
-{% if bd.has_deficit() %}
-(function() {
-  const bdData = {{ bd.chart_json()|safe }};
-  const ctx = document.getElementById('{{ direction.breakdown_chart_id }}');
-  if (!ctx) return;
-  new Chart(ctx, {
-    type: 'bar',
-    data: bdData,
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: function(ctx) {
-              const v = ctx.raw;
-              if (!Array.isArray(v)) return '';
-              return (Math.abs(v[1] - v[0])).toFixed(1) + ' km/h';
-            }
-          }
-        }
-      },
-      scales: {
-        x: { min: 0, title: { display: true, text: 'km/h' }, ticks: { font: { size: 10 } } },
-        y: { ticks: { font: { size: 11 } } },
-      },
-    },
-  });
-})();
-{% endif %}
-{% endif %}
-{% endfor %}
 </script>
 {% endblock %}

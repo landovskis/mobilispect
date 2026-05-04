@@ -10,9 +10,6 @@ pub use card::{
     DirectionSpeedChart, RouteClass, RouteSpeedCard, build_speed_cards, classify_by_spacing,
 };
 
-pub mod breakdown;
-pub use breakdown::{DeficitFactor, FactorKind, SpeedDeficitBreakdown, compute_speed_deficit_breakdown};
-
 pub(crate) fn direction_label(direction_id: i64) -> &'static str {
     match direction_id {
         0 => "Outbound",
@@ -97,7 +94,7 @@ impl RouteSpeedSummary {
 }
 
 /// Haversine distance between two lat/lon points, in meters.
-pub(super) fn haversine_meters(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
+fn haversine_meters(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f64 {
     const R: f64 = 6_371_000.0;
     let dlat = (lat2 - lat1).to_radians();
     let dlon = (lon2 - lon1).to_radians();
@@ -109,7 +106,7 @@ pub(super) fn haversine_meters(lat1: f64, lon1: f64, lat2: f64, lon2: f64) -> f6
 }
 
 /// Parse "HH:MM:SS" (HH may be ≥ 24 for post-midnight service) into total seconds.
-pub(super) fn parse_time_secs(s: &str) -> Option<u32> {
+fn parse_time_secs(s: &str) -> Option<u32> {
     let mut parts = s.splitn(3, ':');
     let h: u32 = parts.next()?.parse().ok()?;
     let m: u32 = parts.next()?.parse().ok()?;

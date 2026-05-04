@@ -13,8 +13,8 @@ use crate::metrics::{
     route_summary, route_trend, scorecard_routes, stop_hotspots,
 };
 use crate::speed::{
-    RouteClass, RouteSpeedCard, RouteSpeedSummary, SpeedDeficitBreakdown, StopSpacing,
-    build_speed_cards, classify_by_spacing, compute_speed_deficit_breakdown,
+    RouteClass, RouteSpeedCard, RouteSpeedSummary, StopSpacing,
+    build_speed_cards, classify_by_spacing,
     route_speed_by_day_type, route_speed_summary, route_speed_trend_by_direction,
     route_stop_spacings,
 };
@@ -31,8 +31,6 @@ struct RouteSpeedDetailDirection {
     pub weekday_json: String,
     pub saturday_json: String,
     pub sunday_json: String,
-    pub breakdown_chart_id: String,
-    pub breakdown: Option<SpeedDeficitBreakdown>,
 }
 
 impl RouteSpeedDetailDirection {
@@ -143,28 +141,10 @@ pub async fn route_speed_detail(
             .into_response();
     }
 
-    let mut breakdowns: Vec<Option<SpeedDeficitBreakdown>> = Vec::new();
-    for spacing in &spacings {
-        let bd = compute_speed_deficit_breakdown(
-            &state.db,
-            &agency_id,
-            &route_id,
-            spacing.direction_id,
-            28,
-        )
-        .await
-        .unwrap_or_else(|e| {
-            tracing::error!("breakdown failed for {agency_id}/{route_id}: {e}");
-            None
-        });
-        breakdowns.push(bd);
-    }
-
     let directions: Vec<RouteSpeedDetailDirection> = spacings
         .into_iter()
-        .zip(breakdowns)
         .enumerate()
-        .map(|(i, (spacing, breakdown))| {
+        .map(|(i, spacing)| {
             let trend = trends
                 .iter()
                 .find(|t| t.direction_id == spacing.direction_id);
@@ -182,8 +162,6 @@ pub async fn route_speed_detail(
                 weekday_json: trend_to_json(weekday),
                 saturday_json: trend_to_json(saturday),
                 sunday_json: trend_to_json(sunday),
-                breakdown_chart_id: format!("breakdown-{i}"),
-                breakdown,
             }
         })
         .collect();
@@ -811,8 +789,6 @@ mod tests {
             weekday_json: String::new(),
             saturday_json: String::new(),
             sunday_json: String::new(),
-            breakdown_chart_id: String::new(),
-            breakdown: None,
         }
     }
 
@@ -1310,57 +1286,4 @@ mod e2e_tests {
         );
     }
 
-    #[tokio::test]
-    async fn route_speed_detail_includes_speed_factors_section_when_actual_data_present() {
-        let td = test_utils::setup().await;
-        let db = &td.db;
-
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
-            .execute(&db.pool).await.unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Downtown')")
-            .execute(&db.pool).await.unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Main St',  45.50, -73.50)")
-            .execute(&db.pool).await.unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Downtown', 45.51, -73.50)")
-            .execute(&db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')")
-            .execute(&db.pool).await.unwrap();
-        sqlx::query("INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')")
-            .execute(&db.pool).await.unwrap();
-
-        let now_epoch: i64 = chrono::Utc::now().timestamp();
-        let obs = chrono::Utc::now().to_rfc3339();
-        sqlx::query(
-            "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S1',1,$4,$5)"
-        )
-        .bind("0").bind(&obs).bind("T1").bind(now_epoch).bind(now_epoch + 30)
-        .execute(&db.pool).await.unwrap();
-        sqlx::query(
-            "INSERT INTO stop_time_events (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix) VALUES ($1,$2,$3,'S2',2,$4,$5)"
-        )
-        .bind("0").bind(&obs).bind("T1").bind(now_epoch + 700).bind(now_epoch + 700)
-        .execute(&db.pool).await.unwrap();
-
-        let state = AppState { db: td.db, config: test_config() };
-        let app = build_router(state);
-        let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/routes/0/R1/speed")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-        let body = String::from_utf8(
-            axum::body::to_bytes(response.into_body(), usize::MAX)
-                .await
-                .unwrap()
-                .to_vec(),
-        )
-        .unwrap();
-        assert!(body.contains("Speed factors"), "expected 'Speed factors' section in HTML");
-    }
 }

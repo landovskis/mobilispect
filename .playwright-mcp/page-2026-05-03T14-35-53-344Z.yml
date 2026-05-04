@@ -1,0 +1,3210 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Mobili spect Montreal" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e9]:
+        - text: Mobili
+        - generic [ref=e10]: spect
+        - generic [ref=e11]: Montreal
+    - navigation [ref=e12]:
+      - link "Speeds" [ref=e13] [cursor=pointer]:
+        - /url: /
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e17]:
+        - heading "Route Speeds" [level=1] [ref=e18]
+        - paragraph [ref=e19]: Scheduled and actual speed evidence by route
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: "Agency:"
+          - link "All" [ref=e23] [cursor=pointer]:
+            - /url: /speed
+          - link "STM" [ref=e24] [cursor=pointer]:
+            - /url: /speed?agency=0
+        - generic [ref=e25]:
+          - generic [ref=e26]: "Sort by:"
+          - link "Name" [ref=e27] [cursor=pointer]:
+            - /url: /speed
+          - link "Slowest scheduled" [ref=e28] [cursor=pointer]:
+            - /url: /speed?sort=scheduled
+          - link "Slowest actual" [ref=e29] [cursor=pointer]:
+            - /url: /speed?sort=actual
+        - generic [ref=e30]:
+          - generic [ref=e31]: "Class:"
+          - link "All" [ref=e32] [cursor=pointer]:
+            - /url: /speed
+          - link "Local" [ref=e33] [cursor=pointer]:
+            - /url: /speed?class=local
+          - link "Rapid" [ref=e34] [cursor=pointer]:
+            - /url: /speed?class=rapid
+          - link "Express" [ref=e35] [cursor=pointer]:
+            - /url: /speed?class=express
+        - generic [ref=e36]:
+          - 'link "STM 10 De Lorimier Local De Lorimier / Crémazie Avg stop spacing: 254 m Station Papineau (Dorion / Sainte-Catherine) Avg stop spacing: 258 m" [ref=e37] [cursor=pointer]':
+            - /url: /routes/0/10/speed
+            - generic [ref=e38]:
+              - generic [ref=e39]:
+                - generic [ref=e40]:
+                  - generic [ref=e41]: STM 10
+                  - generic [ref=e42]: De Lorimier
+                - generic [ref=e43]: Local
+              - generic [ref=e44]:
+                - generic [ref=e45]:
+                  - generic [ref=e46]: De Lorimier / Crémazie
+                  - generic [ref=e48]: "Avg stop spacing: 254 m"
+                - generic [ref=e49]:
+                  - generic [ref=e50]: Station Papineau (Dorion / Sainte-Catherine)
+                  - generic [ref=e52]: "Avg stop spacing: 258 m"
+          - 'link "STM 11 Parc-du-Mont-Royal / Ridgewood Local Christophe-Colomb / Bureau Avg stop spacing: 263 m Ridgewood / No 3635 Avg stop spacing: 245 m" [ref=e53] [cursor=pointer]':
+            - /url: /routes/0/11/speed
+            - generic [ref=e54]:
+              - generic [ref=e55]:
+                - generic [ref=e56]:
+                  - generic [ref=e57]: STM 11
+                  - generic [ref=e58]: Parc-du-Mont-Royal / Ridgewood
+                - generic [ref=e59]: Local
+              - generic [ref=e60]:
+                - generic [ref=e61]:
+                  - generic [ref=e62]: Christophe-Colomb / Bureau
+                  - generic [ref=e64]: "Avg stop spacing: 263 m"
+                - generic [ref=e65]:
+                  - generic [ref=e66]: Ridgewood / No 3635
+                  - generic [ref=e68]: "Avg stop spacing: 245 m"
+          - 'link "STM 12 Île-des-Soeurs Local Station De l''Église Avg stop spacing: 290 m André-Prévost / Serge-Garant Avg stop spacing: 269 m" [ref=e69] [cursor=pointer]':
+            - /url: /routes/0/12/speed
+            - generic [ref=e70]:
+              - generic [ref=e71]:
+                - generic [ref=e72]:
+                  - generic [ref=e73]: STM 12
+                  - generic [ref=e74]: Île-des-Soeurs
+                - generic [ref=e75]: Local
+              - generic [ref=e76]:
+                - generic [ref=e77]:
+                  - generic [ref=e78]: Station De l'Église
+                  - generic [ref=e80]: "Avg stop spacing: 290 m"
+                - generic [ref=e81]:
+                  - generic [ref=e82]: André-Prévost / Serge-Garant
+                  - generic [ref=e84]: "Avg stop spacing: 269 m"
+          - 'link "STM 13 Christophe-Colomb Local Rousselot / Jarry Avg stop spacing: 305 m Station Rosemont Avg stop spacing: 295 m" [ref=e85] [cursor=pointer]':
+            - /url: /routes/0/13/speed
+            - generic [ref=e86]:
+              - generic [ref=e87]:
+                - generic [ref=e88]:
+                  - generic [ref=e89]: STM 13
+                  - generic [ref=e90]: Christophe-Colomb
+                - generic [ref=e91]: Local
+              - generic [ref=e92]:
+                - generic [ref=e93]:
+                  - generic [ref=e94]: Rousselot / Jarry
+                  - generic [ref=e96]: "Avg stop spacing: 305 m"
+                - generic [ref=e97]:
+                  - generic [ref=e98]: Station Rosemont
+                  - generic [ref=e100]: "Avg stop spacing: 295 m"
+          - 'link "STM 14 Atateken Local Station Laurier Sud (Rivard / Gilford) Avg stop spacing: 202 m Station Champ-de-Mars (St-Antoine / Gosford) Avg stop spacing: 208 m" [ref=e101] [cursor=pointer]':
+            - /url: /routes/0/14/speed
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - generic [ref=e104]:
+                  - generic [ref=e105]: STM 14
+                  - generic [ref=e106]: Atateken
+                - generic [ref=e107]: Local
+              - generic [ref=e108]:
+                - generic [ref=e109]:
+                  - generic [ref=e110]: Station Laurier Sud (Rivard / Gilford)
+                  - generic [ref=e112]: "Avg stop spacing: 202 m"
+                - generic [ref=e113]:
+                  - generic [ref=e114]: Station Champ-de-Mars (St-Antoine / Gosford)
+                  - generic [ref=e116]: "Avg stop spacing: 208 m"
+          - 'link "STM 16 Graham Local Station Parc (Ogilvy / Hutchison) Avg stop spacing: 232 m Decelles / Abbott Avg stop spacing: 219 m" [ref=e117] [cursor=pointer]':
+            - /url: /routes/0/16/speed
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - generic [ref=e120]:
+                  - generic [ref=e121]: STM 16
+                  - generic [ref=e122]: Graham
+                - generic [ref=e123]: Local
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - generic [ref=e126]: Station Parc (Ogilvy / Hutchison)
+                  - generic [ref=e128]: "Avg stop spacing: 232 m"
+                - generic [ref=e129]:
+                  - generic [ref=e130]: Decelles / Abbott
+                  - generic [ref=e132]: "Avg stop spacing: 219 m"
+          - 'link "STM 17 Décarie Local Station Côte-Vertu (Décarie / Edouard-Laurin) Avg stop spacing: 261 m Station Place-Saint-Henri / Saint-Ferdinand Avg stop spacing: 281 m" [ref=e133] [cursor=pointer]':
+            - /url: /routes/0/17/speed
+            - generic [ref=e134]:
+              - generic [ref=e135]:
+                - generic [ref=e136]:
+                  - generic [ref=e137]: STM 17
+                  - generic [ref=e138]: Décarie
+                - generic [ref=e139]: Local
+              - generic [ref=e140]:
+                - generic [ref=e141]:
+                  - generic [ref=e142]: Station Côte-Vertu (Décarie / Edouard-Laurin)
+                  - generic [ref=e144]: "Avg stop spacing: 261 m"
+                - generic [ref=e145]:
+                  - generic [ref=e146]: Station Place-Saint-Henri / Saint-Ferdinand
+                  - generic [ref=e148]: "Avg stop spacing: 281 m"
+          - 'link "STM 18 Beaubien Local Station Honoré-Beaugrand Avg stop spacing: 204 m Saint-Laurent / Saint-Zotique Avg stop spacing: 216 m" [ref=e149] [cursor=pointer]':
+            - /url: /routes/0/18/speed
+            - generic [ref=e150]:
+              - generic [ref=e151]:
+                - generic [ref=e152]:
+                  - generic [ref=e153]: STM 18
+                  - generic [ref=e154]: Beaubien
+                - generic [ref=e155]: Local
+              - generic [ref=e156]:
+                - generic [ref=e157]:
+                  - generic [ref=e158]: Station Honoré-Beaugrand
+                  - generic [ref=e160]: "Avg stop spacing: 204 m"
+                - generic [ref=e161]:
+                  - generic [ref=e162]: Saint-Laurent / Saint-Zotique
+                  - generic [ref=e164]: "Avg stop spacing: 216 m"
+          - 'link "STM 19 Chabanel / Marché Central Local Station Crémazie Sud (Crémazie / Berri) Avg stop spacing: 261 m de Louvain / de l''Acadie Avg stop spacing: 272 m" [ref=e165] [cursor=pointer]':
+            - /url: /routes/0/19/speed
+            - generic [ref=e166]:
+              - generic [ref=e167]:
+                - generic [ref=e168]:
+                  - generic [ref=e169]: STM 19
+                  - generic [ref=e170]: Chabanel / Marché Central
+                - generic [ref=e171]: Local
+              - generic [ref=e172]:
+                - generic [ref=e173]:
+                  - generic [ref=e174]: Station Crémazie Sud (Crémazie / Berri)
+                  - generic [ref=e176]: "Avg stop spacing: 261 m"
+                - generic [ref=e177]:
+                  - generic [ref=e178]: de Louvain / de l'Acadie
+                  - generic [ref=e180]: "Avg stop spacing: 272 m"
+          - 'link "STM 22 Notre-Dame Local Georges-V / Notre-Dame Avg stop spacing: 261 m Station Assomption (de l''Assomption / Chauveau) Avg stop spacing: 276 m" [ref=e181] [cursor=pointer]':
+            - /url: /routes/0/22/speed
+            - generic [ref=e182]:
+              - generic [ref=e183]:
+                - generic [ref=e184]:
+                  - generic [ref=e185]: STM 22
+                  - generic [ref=e186]: Notre-Dame
+                - generic [ref=e187]: Local
+              - generic [ref=e188]:
+                - generic [ref=e189]:
+                  - generic [ref=e190]: Georges-V / Notre-Dame
+                  - generic [ref=e192]: "Avg stop spacing: 261 m"
+                - generic [ref=e193]:
+                  - generic [ref=e194]: Station Assomption (de l'Assomption / Chauveau)
+                  - generic [ref=e196]: "Avg stop spacing: 276 m"
+          - 'link "STM 24 Sherbrooke Local Montgomery / Sherbrooke Avg stop spacing: 207 m Station Villa-Maria (Décarie / de Monkland) Avg stop spacing: 205 m" [ref=e197] [cursor=pointer]':
+            - /url: /routes/0/24/speed
+            - generic [ref=e198]:
+              - generic [ref=e199]:
+                - generic [ref=e200]:
+                  - generic [ref=e201]: STM 24
+                  - generic [ref=e202]: Sherbrooke
+                - generic [ref=e203]: Local
+              - generic [ref=e204]:
+                - generic [ref=e205]:
+                  - generic [ref=e206]: Montgomery / Sherbrooke
+                  - generic [ref=e208]: "Avg stop spacing: 207 m"
+                - generic [ref=e209]:
+                  - generic [ref=e210]: Station Villa-Maria (Décarie / de Monkland)
+                  - generic [ref=e212]: "Avg stop spacing: 205 m"
+          - 'link "STM 25 Angus Local Station Rosemont Avg stop spacing: 223 m Station Préfontaine (Édicule Sud) Avg stop spacing: 222 m" [ref=e213] [cursor=pointer]':
+            - /url: /routes/0/25/speed
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - generic [ref=e216]:
+                  - generic [ref=e217]: STM 25
+                  - generic [ref=e218]: Angus
+                - generic [ref=e219]: Local
+              - generic [ref=e220]:
+                - generic [ref=e221]:
+                  - generic [ref=e222]: Station Rosemont
+                  - generic [ref=e224]: "Avg stop spacing: 223 m"
+                - generic [ref=e225]:
+                  - generic [ref=e226]: Station Préfontaine (Édicule Sud)
+                  - generic [ref=e228]: "Avg stop spacing: 222 m"
+          - 'link "STM 26 Mercier-Est Local Claude-Masson / Anne-Courtemanche Avg stop spacing: 229 m Station Radisson (Des Groseilliers / Sherbrooke) Avg stop spacing: 225 m" [ref=e229] [cursor=pointer]':
+            - /url: /routes/0/26/speed
+            - generic [ref=e230]:
+              - generic [ref=e231]:
+                - generic [ref=e232]:
+                  - generic [ref=e233]: STM 26
+                  - generic [ref=e234]: Mercier-Est
+                - generic [ref=e235]: Local
+              - generic [ref=e236]:
+                - generic [ref=e237]:
+                  - generic [ref=e238]: Claude-Masson / Anne-Courtemanche
+                  - generic [ref=e240]: "Avg stop spacing: 229 m"
+                - generic [ref=e241]:
+                  - generic [ref=e242]: Station Radisson (Des Groseilliers / Sherbrooke)
+                  - generic [ref=e244]: "Avg stop spacing: 225 m"
+          - 'link "STM 27 Boulevard Saint-Joseph Local Laurier / Pie-IX Avg stop spacing: 187 m Station Laurier (Berri / Saint-Joseph) Avg stop spacing: 192 m" [ref=e245] [cursor=pointer]':
+            - /url: /routes/0/27/speed
+            - generic [ref=e246]:
+              - generic [ref=e247]:
+                - generic [ref=e248]:
+                  - generic [ref=e249]: STM 27
+                  - generic [ref=e250]: Boulevard Saint-Joseph
+                - generic [ref=e251]: Local
+              - generic [ref=e252]:
+                - generic [ref=e253]:
+                  - generic [ref=e254]: Laurier / Pie-IX
+                  - generic [ref=e256]: "Avg stop spacing: 187 m"
+                - generic [ref=e257]:
+                  - generic [ref=e258]: Station Laurier (Berri / Saint-Joseph)
+                  - generic [ref=e260]: "Avg stop spacing: 192 m"
+          - 'link "STM 28 Honoré-Beaugrand Local Centre de transport Anjou Avg stop spacing: 239 m La Fontaine / Georges-Bizet Avg stop spacing: 252 m" [ref=e261] [cursor=pointer]':
+            - /url: /routes/0/28/speed
+            - generic [ref=e262]:
+              - generic [ref=e263]:
+                - generic [ref=e264]:
+                  - generic [ref=e265]: STM 28
+                  - generic [ref=e266]: Honoré-Beaugrand
+                - generic [ref=e267]: Local
+              - generic [ref=e268]:
+                - generic [ref=e269]:
+                  - generic [ref=e270]: Centre de transport Anjou
+                  - generic [ref=e272]: "Avg stop spacing: 239 m"
+                - generic [ref=e273]:
+                  - generic [ref=e274]: La Fontaine / Georges-Bizet
+                  - generic [ref=e276]: "Avg stop spacing: 252 m"
+          - 'link "STM 29 Rachel Local Station Joliette (Joliette / Hochelaga) Avg stop spacing: 193 m Saint-Urbain / Roy Avg stop spacing: 199 m" [ref=e277] [cursor=pointer]':
+            - /url: /routes/0/29/speed
+            - generic [ref=e278]:
+              - generic [ref=e279]:
+                - generic [ref=e280]:
+                  - generic [ref=e281]: STM 29
+                  - generic [ref=e282]: Rachel
+                - generic [ref=e283]: Local
+              - generic [ref=e284]:
+                - generic [ref=e285]:
+                  - generic [ref=e286]: Station Joliette (Joliette / Hochelaga)
+                  - generic [ref=e288]: "Avg stop spacing: 193 m"
+                - generic [ref=e289]:
+                  - generic [ref=e290]: Saint-Urbain / Roy
+                  - generic [ref=e292]: "Avg stop spacing: 199 m"
+          - 'link "STM 30 Saint-Denis / Saint-Hubert Local Station Henri-Bourassa Avg stop spacing: 256 m Station Sherbrooke (Berri / de Malines) Avg stop spacing: 248 m" [ref=e293] [cursor=pointer]':
+            - /url: /routes/0/30/speed
+            - generic [ref=e294]:
+              - generic [ref=e295]:
+                - generic [ref=e296]:
+                  - generic [ref=e297]: STM 30
+                  - generic [ref=e298]: Saint-Denis / Saint-Hubert
+                - generic [ref=e299]: Local
+              - generic [ref=e300]:
+                - generic [ref=e301]:
+                  - generic [ref=e302]: Station Henri-Bourassa
+                  - generic [ref=e304]: "Avg stop spacing: 256 m"
+                - generic [ref=e305]:
+                  - generic [ref=e306]: Station Sherbrooke (Berri / de Malines)
+                  - generic [ref=e308]: "Avg stop spacing: 248 m"
+          - 'link "STM 31 Saint-Denis Local Millen / Henri-Bourassa Avg stop spacing: 266 m Station Rosemont Avg stop spacing: 249 m" [ref=e309] [cursor=pointer]':
+            - /url: /routes/0/31/speed
+            - generic [ref=e310]:
+              - generic [ref=e311]:
+                - generic [ref=e312]:
+                  - generic [ref=e313]: STM 31
+                  - generic [ref=e314]: Saint-Denis
+                - generic [ref=e315]: Local
+              - generic [ref=e316]:
+                - generic [ref=e317]:
+                  - generic [ref=e318]: Millen / Henri-Bourassa
+                  - generic [ref=e320]: "Avg stop spacing: 266 m"
+                - generic [ref=e321]:
+                  - generic [ref=e322]: Station Rosemont
+                  - generic [ref=e324]: "Avg stop spacing: 249 m"
+          - 'link "STM 32 Lacordaire Local Lacordaire / Léger Avg stop spacing: 266 m Rougemont / Notre-Dame Avg stop spacing: 258 m" [ref=e325] [cursor=pointer]':
+            - /url: /routes/0/32/speed
+            - generic [ref=e326]:
+              - generic [ref=e327]:
+                - generic [ref=e328]:
+                  - generic [ref=e329]: STM 32
+                  - generic [ref=e330]: Lacordaire
+                - generic [ref=e331]: Local
+              - generic [ref=e332]:
+                - generic [ref=e333]:
+                  - generic [ref=e334]: Lacordaire / Léger
+                  - generic [ref=e336]: "Avg stop spacing: 266 m"
+                - generic [ref=e337]:
+                  - generic [ref=e338]: Rougemont / Notre-Dame
+                  - generic [ref=e340]: "Avg stop spacing: 258 m"
+          - 'link "STM 33 Langelier Local Ozias-Leduc / Perras (Hôpital Rivière-des-Prairies Avg stop spacing: 231 m Hector-Barsalou / De Boucherville Avg stop spacing: 236 m" [ref=e341] [cursor=pointer]':
+            - /url: /routes/0/33/speed
+            - generic [ref=e342]:
+              - generic [ref=e343]:
+                - generic [ref=e344]:
+                  - generic [ref=e345]: STM 33
+                  - generic [ref=e346]: Langelier
+                - generic [ref=e347]: Local
+              - generic [ref=e348]:
+                - generic [ref=e349]:
+                  - generic [ref=e350]: Ozias-Leduc / Perras (Hôpital Rivière-des-Prairies
+                  - generic [ref=e352]: "Avg stop spacing: 231 m"
+                - generic [ref=e353]:
+                  - generic [ref=e354]: Hector-Barsalou / De Boucherville
+                  - generic [ref=e356]: "Avg stop spacing: 236 m"
+          - 'link "STM 34 Sainte-Catherine Local Station Viau Avg stop spacing: 208 m Station Papineau (Dorion / Sainte-Catherine) Avg stop spacing: 220 m" [ref=e357] [cursor=pointer]':
+            - /url: /routes/0/34/speed
+            - generic [ref=e358]:
+              - generic [ref=e359]:
+                - generic [ref=e360]:
+                  - generic [ref=e361]: STM 34
+                  - generic [ref=e362]: Sainte-Catherine
+                - generic [ref=e363]: Local
+              - generic [ref=e364]:
+                - generic [ref=e365]:
+                  - generic [ref=e366]: Station Viau
+                  - generic [ref=e368]: "Avg stop spacing: 208 m"
+                - generic [ref=e369]:
+                  - generic [ref=e370]: Station Papineau (Dorion / Sainte-Catherine)
+                  - generic [ref=e372]: "Avg stop spacing: 220 m"
+          - 'link "STM 35 Griffintown Local Station McGill (R.-Bourassa / Président-Kennedy) Avg stop spacing: 232 m Station Angrignon Avg stop spacing: 229 m" [ref=e373] [cursor=pointer]':
+            - /url: /routes/0/35/speed
+            - generic [ref=e374]:
+              - generic [ref=e375]:
+                - generic [ref=e376]:
+                  - generic [ref=e377]: STM 35
+                  - generic [ref=e378]: Griffintown
+                - generic [ref=e379]: Local
+              - generic [ref=e380]:
+                - generic [ref=e381]:
+                  - generic [ref=e382]: Station McGill (R.-Bourassa / Président-Kennedy)
+                  - generic [ref=e384]: "Avg stop spacing: 232 m"
+                - generic [ref=e385]:
+                  - generic [ref=e386]: Station Angrignon
+                  - generic [ref=e388]: "Avg stop spacing: 229 m"
+          - 'link "STM 36 Monk Local Station Square-Victoria-OACI Avg stop spacing: 254 m Station Angrignon Avg stop spacing: 252 m" [ref=e389] [cursor=pointer]':
+            - /url: /routes/0/36/speed
+            - generic [ref=e390]:
+              - generic [ref=e391]:
+                - generic [ref=e392]:
+                  - generic [ref=e393]: STM 36
+                  - generic [ref=e394]: Monk
+                - generic [ref=e395]: Local
+              - generic [ref=e396]:
+                - generic [ref=e397]:
+                  - generic [ref=e398]: Station Square-Victoria-OACI
+                  - generic [ref=e400]: "Avg stop spacing: 254 m"
+                - generic [ref=e401]:
+                  - generic [ref=e402]: Station Angrignon
+                  - generic [ref=e404]: "Avg stop spacing: 252 m"
+          - 'link "STM 37 Jolicoeur Local Station LaSalle (Caisse / de Rushbrooke) Avg stop spacing: 243 m Station Angrignon Avg stop spacing: 260 m" [ref=e405] [cursor=pointer]':
+            - /url: /routes/0/37/speed
+            - generic [ref=e406]:
+              - generic [ref=e407]:
+                - generic [ref=e408]:
+                  - generic [ref=e409]: STM 37
+                  - generic [ref=e410]: Jolicoeur
+                - generic [ref=e411]: Local
+              - generic [ref=e412]:
+                - generic [ref=e413]:
+                  - generic [ref=e414]: Station LaSalle (Caisse / de Rushbrooke)
+                  - generic [ref=e416]: "Avg stop spacing: 243 m"
+                - generic [ref=e417]:
+                  - generic [ref=e418]: Station Angrignon
+                  - generic [ref=e420]: "Avg stop spacing: 260 m"
+          - 'link "STM 38 De l''Église Local Station Vendôme Avg stop spacing: 254 m Station LaSalle (Caisse / de Rushbrooke) Avg stop spacing: 277 m" [ref=e421] [cursor=pointer]':
+            - /url: /routes/0/38/speed
+            - generic [ref=e422]:
+              - generic [ref=e423]:
+                - generic [ref=e424]:
+                  - generic [ref=e425]: STM 38
+                  - generic [ref=e426]: De l'Église
+                - generic [ref=e427]: Local
+              - generic [ref=e428]:
+                - generic [ref=e429]:
+                  - generic [ref=e430]: Station Vendôme
+                  - generic [ref=e432]: "Avg stop spacing: 254 m"
+                - generic [ref=e433]:
+                  - generic [ref=e434]: Station LaSalle (Caisse / de Rushbrooke)
+                  - generic [ref=e436]: "Avg stop spacing: 277 m"
+          - 'link "STM 39 Des Grandes-Prairies Local des Sciences / des Bâtisseurs Avg stop spacing: 271 m d''Amiens / Hôtel-de-Ville Avg stop spacing: 279 m" [ref=e437] [cursor=pointer]':
+            - /url: /routes/0/39/speed
+            - generic [ref=e438]:
+              - generic [ref=e439]:
+                - generic [ref=e440]:
+                  - generic [ref=e441]: STM 39
+                  - generic [ref=e442]: Des Grandes-Prairies
+                - generic [ref=e443]: Local
+              - generic [ref=e444]:
+                - generic [ref=e445]:
+                  - generic [ref=e446]: des Sciences / des Bâtisseurs
+                  - generic [ref=e448]: "Avg stop spacing: 271 m"
+                - generic [ref=e449]:
+                  - generic [ref=e450]: d'Amiens / Hôtel-de-Ville
+                  - generic [ref=e452]: "Avg stop spacing: 279 m"
+          - 'link "STM 40 Henri-Bourassa-Est Local Gare Pointe-aux-Trembles Avg stop spacing: 378 m d''Amos / Arthur-Buies Avg stop spacing: 392 m" [ref=e453] [cursor=pointer]':
+            - /url: /routes/0/40/speed
+            - generic [ref=e454]:
+              - generic [ref=e455]:
+                - generic [ref=e456]:
+                  - generic [ref=e457]: STM 40
+                  - generic [ref=e458]: Henri-Bourassa-Est
+                - generic [ref=e459]: Local
+              - generic [ref=e460]:
+                - generic [ref=e461]:
+                  - generic [ref=e462]: Gare Pointe-aux-Trembles
+                  - generic [ref=e464]: "Avg stop spacing: 378 m"
+                - generic [ref=e465]:
+                  - generic [ref=e466]: d'Amos / Arthur-Buies
+                  - generic [ref=e468]: "Avg stop spacing: 392 m"
+          - 'link "STM 41 Saint-Michel / Ahuntsic Local Forest / Pie-IX Avg stop spacing: 238 m Station Sauvé (Édicule Nord) Avg stop spacing: 233 m" [ref=e469] [cursor=pointer]':
+            - /url: /routes/0/41/speed
+            - generic [ref=e470]:
+              - generic [ref=e471]:
+                - generic [ref=e472]:
+                  - generic [ref=e473]: STM 41
+                  - generic [ref=e474]: Saint-Michel / Ahuntsic
+                - generic [ref=e475]: Local
+              - generic [ref=e476]:
+                - generic [ref=e477]:
+                  - generic [ref=e478]: Forest / Pie-IX
+                  - generic [ref=e480]: "Avg stop spacing: 238 m"
+                - generic [ref=e481]:
+                  - generic [ref=e482]: Station Sauvé (Édicule Nord)
+                  - generic [ref=e484]: "Avg stop spacing: 233 m"
+          - 'link "STM 43 Monselet Local Rivière-des-Prairies / Gouin Avg stop spacing: 233 m Saint-Vital / Henri-Bourassa Avg stop spacing: 224 m" [ref=e485] [cursor=pointer]':
+            - /url: /routes/0/43/speed
+            - generic [ref=e486]:
+              - generic [ref=e487]:
+                - generic [ref=e488]:
+                  - generic [ref=e489]: STM 43
+                  - generic [ref=e490]: Monselet
+                - generic [ref=e491]: Local
+              - generic [ref=e492]:
+                - generic [ref=e493]:
+                  - generic [ref=e494]: Rivière-des-Prairies / Gouin
+                  - generic [ref=e496]: "Avg stop spacing: 233 m"
+                - generic [ref=e497]:
+                  - generic [ref=e498]: Saint-Vital / Henri-Bourassa
+                  - generic [ref=e500]: "Avg stop spacing: 224 m"
+          - 'link "STM 44 Armand-Bombardier Local 26e Avenue / Gouin Avg stop spacing: 290 m Station Radisson Avg stop spacing: 267 m" [ref=e501] [cursor=pointer]':
+            - /url: /routes/0/44/speed
+            - generic [ref=e502]:
+              - generic [ref=e503]:
+                - generic [ref=e504]:
+                  - generic [ref=e505]: STM 44
+                  - generic [ref=e506]: Armand-Bombardier
+                - generic [ref=e507]: Local
+              - generic [ref=e508]:
+                - generic [ref=e509]:
+                  - generic [ref=e510]: 26e Avenue / Gouin
+                  - generic [ref=e512]: "Avg stop spacing: 290 m"
+                - generic [ref=e513]:
+                  - generic [ref=e514]: Station Radisson
+                  - generic [ref=e516]: "Avg stop spacing: 267 m"
+          - 'link "STM 45 Papineau Local De Saint-Firmin / Gouin Avg stop spacing: 253 m Station Papineau (Cartier / Sainte-Catherine) Avg stop spacing: 250 m" [ref=e517] [cursor=pointer]':
+            - /url: /routes/0/45/speed
+            - generic [ref=e518]:
+              - generic [ref=e519]:
+                - generic [ref=e520]:
+                  - generic [ref=e521]: STM 45
+                  - generic [ref=e522]: Papineau
+                - generic [ref=e523]: Local
+              - generic [ref=e524]:
+                - generic [ref=e525]:
+                  - generic [ref=e526]: De Saint-Firmin / Gouin
+                  - generic [ref=e528]: "Avg stop spacing: 253 m"
+                - generic [ref=e529]:
+                  - generic [ref=e530]: Station Papineau (Cartier / Sainte-Catherine)
+                  - generic [ref=e532]: "Avg stop spacing: 250 m"
+          - 'link "STM 46 Casgrain Local Station Laurier Sud (Rivard / Saint-Joseph) Avg stop spacing: 247 m Bernard / de l''Esplanade Avg stop spacing: 245 m" [ref=e533] [cursor=pointer]':
+            - /url: /routes/0/46/speed
+            - generic [ref=e534]:
+              - generic [ref=e535]:
+                - generic [ref=e536]:
+                  - generic [ref=e537]: STM 46
+                  - generic [ref=e538]: Casgrain
+                - generic [ref=e539]: Local
+              - generic [ref=e540]:
+                - generic [ref=e541]:
+                  - generic [ref=e542]: Station Laurier Sud (Rivard / Saint-Joseph)
+                  - generic [ref=e544]: "Avg stop spacing: 247 m"
+                - generic [ref=e545]:
+                  - generic [ref=e546]: Bernard / de l'Esplanade
+                  - generic [ref=e548]: "Avg stop spacing: 245 m"
+          - 'link "STM 47 Masson Local Saint-Joseph / Pie-IX Avg stop spacing: 218 m Station Laurier (Berri / Saint-Joseph) Avg stop spacing: 202 m" [ref=e549] [cursor=pointer]':
+            - /url: /routes/0/47/speed
+            - generic [ref=e550]:
+              - generic [ref=e551]:
+                - generic [ref=e552]:
+                  - generic [ref=e553]: STM 47
+                  - generic [ref=e554]: Masson
+                - generic [ref=e555]: Local
+              - generic [ref=e556]:
+                - generic [ref=e557]:
+                  - generic [ref=e558]: Saint-Joseph / Pie-IX
+                  - generic [ref=e560]: "Avg stop spacing: 218 m"
+                - generic [ref=e561]:
+                  - generic [ref=e562]: Station Laurier (Berri / Saint-Joseph)
+                  - generic [ref=e564]: "Avg stop spacing: 202 m"
+          - 'link "STM 48 Perras Local Gare Rivière-des-Prairies Avg stop spacing: 374 m Station Henri-Bourassa Avg stop spacing: 360 m" [ref=e565] [cursor=pointer]':
+            - /url: /routes/0/48/speed
+            - generic [ref=e566]:
+              - generic [ref=e567]:
+                - generic [ref=e568]:
+                  - generic [ref=e569]: STM 48
+                  - generic [ref=e570]: Perras
+                - generic [ref=e571]: Local
+              - generic [ref=e572]:
+                - generic [ref=e573]:
+                  - generic [ref=e574]: Gare Rivière-des-Prairies
+                  - generic [ref=e576]: "Avg stop spacing: 374 m"
+                - generic [ref=e577]:
+                  - generic [ref=e578]: Station Henri-Bourassa
+                  - generic [ref=e580]: "Avg stop spacing: 360 m"
+          - 'link "STM 49 Maurice-Duplessis Local Perras / 81e Avenue Avg stop spacing: 334 m Station Henri-Bourassa Avg stop spacing: 333 m" [ref=e581] [cursor=pointer]':
+            - /url: /routes/0/49/speed
+            - generic [ref=e582]:
+              - generic [ref=e583]:
+                - generic [ref=e584]:
+                  - generic [ref=e585]: STM 49
+                  - generic [ref=e586]: Maurice-Duplessis
+                - generic [ref=e587]: Local
+              - generic [ref=e588]:
+                - generic [ref=e589]:
+                  - generic [ref=e590]: Perras / 81e Avenue
+                  - generic [ref=e592]: "Avg stop spacing: 334 m"
+                - generic [ref=e593]:
+                  - generic [ref=e594]: Station Henri-Bourassa
+                  - generic [ref=e596]: "Avg stop spacing: 333 m"
+          - 'link "STM 50 Vieux-Montréal / Vieux-Port Local Saint-Hubert / De La Gauchetière Avg stop spacing: 233 m des Pins / du Docteur-Penfield Avg stop spacing: 294 m" [ref=e597] [cursor=pointer]':
+            - /url: /routes/0/50/speed
+            - generic [ref=e598]:
+              - generic [ref=e599]:
+                - generic [ref=e600]:
+                  - generic [ref=e601]: STM 50
+                  - generic [ref=e602]: Vieux-Montréal / Vieux-Port
+                - generic [ref=e603]: Local
+              - generic [ref=e604]:
+                - generic [ref=e605]:
+                  - generic [ref=e606]: Saint-Hubert / De La Gauchetière
+                  - generic [ref=e608]: "Avg stop spacing: 233 m"
+                - generic [ref=e609]:
+                  - generic [ref=e610]: des Pins / du Docteur-Penfield
+                  - generic [ref=e612]: "Avg stop spacing: 294 m"
+          - 'link "STM 51 Édouard-Montpetit Local Station Laurier (Saint-Joseph / Berri) Avg stop spacing: 217 m Gare Montréal-Ouest (Elmhurst / Sherbrooke) Avg stop spacing: 209 m" [ref=e613] [cursor=pointer]':
+            - /url: /routes/0/51/speed
+            - generic [ref=e614]:
+              - generic [ref=e615]:
+                - generic [ref=e616]:
+                  - generic [ref=e617]: STM 51
+                  - generic [ref=e618]: Édouard-Montpetit
+                - generic [ref=e619]: Local
+              - generic [ref=e620]:
+                - generic [ref=e621]:
+                  - generic [ref=e622]: Station Laurier (Saint-Joseph / Berri)
+                  - generic [ref=e624]: "Avg stop spacing: 217 m"
+                - generic [ref=e625]:
+                  - generic [ref=e626]: Gare Montréal-Ouest (Elmhurst / Sherbrooke)
+                  - generic [ref=e628]: "Avg stop spacing: 209 m"
+          - 'link "STM 52 de Liège Local Station Crémazie Sud (Berri / Crémazie) Avg stop spacing: 228 m de Liège / Jeanne-Mance Avg stop spacing: 253 m" [ref=e629] [cursor=pointer]':
+            - /url: /routes/0/52/speed
+            - generic [ref=e630]:
+              - generic [ref=e631]:
+                - generic [ref=e632]:
+                  - generic [ref=e633]: STM 52
+                  - generic [ref=e634]: de Liège
+                - generic [ref=e635]: Local
+              - generic [ref=e636]:
+                - generic [ref=e637]:
+                  - generic [ref=e638]: Station Crémazie Sud (Berri / Crémazie)
+                  - generic [ref=e640]: "Avg stop spacing: 228 m"
+                - generic [ref=e641]:
+                  - generic [ref=e642]: de Liège / Jeanne-Mance
+                  - generic [ref=e644]: "Avg stop spacing: 253 m"
+          - 'link "STM 54 Charland / Chabanel Local Sauvé / J.-J.-Gagnier Avg stop spacing: 255 m de la Côte-Vertu / Lebeau Avg stop spacing: 247 m" [ref=e645] [cursor=pointer]':
+            - /url: /routes/0/54/speed
+            - generic [ref=e646]:
+              - generic [ref=e647]:
+                - generic [ref=e648]:
+                  - generic [ref=e649]: STM 54
+                  - generic [ref=e650]: Charland / Chabanel
+                - generic [ref=e651]: Local
+              - generic [ref=e652]:
+                - generic [ref=e653]:
+                  - generic [ref=e654]: Sauvé / J.-J.-Gagnier
+                  - generic [ref=e656]: "Avg stop spacing: 255 m"
+                - generic [ref=e657]:
+                  - generic [ref=e658]: de la Côte-Vertu / Lebeau
+                  - generic [ref=e660]: "Avg stop spacing: 247 m"
+          - 'link "STM 55 Boulevard Saint-Laurent Local Millen / Henri-Bourassa Avg stop spacing: 236 m Saint-Laurent / Saint-Jacques Avg stop spacing: 243 m" [ref=e661] [cursor=pointer]':
+            - /url: /routes/0/55/speed
+            - generic [ref=e662]:
+              - generic [ref=e663]:
+                - generic [ref=e664]:
+                  - generic [ref=e665]: STM 55
+                  - generic [ref=e666]: Boulevard Saint-Laurent
+                - generic [ref=e667]: Local
+              - generic [ref=e668]:
+                - generic [ref=e669]:
+                  - generic [ref=e670]: Millen / Henri-Bourassa
+                  - generic [ref=e672]: "Avg stop spacing: 236 m"
+                - generic [ref=e673]:
+                  - generic [ref=e674]: Saint-Laurent / Saint-Jacques
+                  - generic [ref=e676]: "Avg stop spacing: 243 m"
+          - 'link "STM 56 Saint-Hubert Local Station Henri-Bourassa Avg stop spacing: 282 m Collège Ahuntsic (St-Hubert / Legendre) Avg stop spacing: 251 m" [ref=e677] [cursor=pointer]':
+            - /url: /routes/0/56/speed
+            - generic [ref=e678]:
+              - generic [ref=e679]:
+                - generic [ref=e680]:
+                  - generic [ref=e681]: STM 56
+                  - generic [ref=e682]: Saint-Hubert
+                - generic [ref=e683]: Local
+              - generic [ref=e684]:
+                - generic [ref=e685]:
+                  - generic [ref=e686]: Station Henri-Bourassa
+                  - generic [ref=e688]: "Avg stop spacing: 282 m"
+                - generic [ref=e689]:
+                  - generic [ref=e690]: Collège Ahuntsic (St-Hubert / Legendre)
+                  - generic [ref=e692]: "Avg stop spacing: 251 m"
+          - 'link "STM 57 Charlevoix Local Station Atwater (Sainte-Catherine / Atwater) Avg stop spacing: 247 m De Condé / du Centre Avg stop spacing: 254 m" [ref=e693] [cursor=pointer]':
+            - /url: /routes/0/57/speed
+            - generic [ref=e694]:
+              - generic [ref=e695]:
+                - generic [ref=e696]:
+                  - generic [ref=e697]: STM 57
+                  - generic [ref=e698]: Charlevoix
+                - generic [ref=e699]: Local
+              - generic [ref=e700]:
+                - generic [ref=e701]:
+                  - generic [ref=e702]: Station Atwater (Sainte-Catherine / Atwater)
+                  - generic [ref=e704]: "Avg stop spacing: 247 m"
+                - generic [ref=e705]:
+                  - generic [ref=e706]: De Condé / du Centre
+                  - generic [ref=e708]: "Avg stop spacing: 254 m"
+          - 'link "STM 61 Wellington Local Peel / Sainte-Catherine Avg stop spacing: 231 m Gagné / George Avg stop spacing: 251 m" [ref=e709] [cursor=pointer]':
+            - /url: /routes/0/61/speed
+            - generic [ref=e710]:
+              - generic [ref=e711]:
+                - generic [ref=e712]:
+                  - generic [ref=e713]: STM 61
+                  - generic [ref=e714]: Wellington
+                - generic [ref=e715]: Local
+              - generic [ref=e716]:
+                - generic [ref=e717]:
+                  - generic [ref=e718]: Peel / Sainte-Catherine
+                  - generic [ref=e720]: "Avg stop spacing: 231 m"
+                - generic [ref=e721]:
+                  - generic [ref=e722]: Gagné / George
+                  - generic [ref=e724]: "Avg stop spacing: 251 m"
+          - 'link "STM 63 Girouard Local Clanranald / Isabella Avg stop spacing: 228 m Sainte-Catherine / Atwater Avg stop spacing: 229 m" [ref=e725] [cursor=pointer]':
+            - /url: /routes/0/63/speed
+            - generic [ref=e726]:
+              - generic [ref=e727]:
+                - generic [ref=e728]:
+                  - generic [ref=e729]: STM 63
+                  - generic [ref=e730]: Girouard
+                - generic [ref=e731]: Local
+              - generic [ref=e732]:
+                - generic [ref=e733]:
+                  - generic [ref=e734]: Clanranald / Isabella
+                  - generic [ref=e736]: "Avg stop spacing: 228 m"
+                - generic [ref=e737]:
+                  - generic [ref=e738]: Sainte-Catherine / Atwater
+                  - generic [ref=e740]: "Avg stop spacing: 229 m"
+          - 'link "STM 64 Grenet Local Grenet / De Serres Avg stop spacing: 207 m Station Côte-Vertu Avg stop spacing: 207 m" [ref=e741] [cursor=pointer]':
+            - /url: /routes/0/64/speed
+            - generic [ref=e742]:
+              - generic [ref=e743]:
+                - generic [ref=e744]:
+                  - generic [ref=e745]: STM 64
+                  - generic [ref=e746]: Grenet
+                - generic [ref=e747]: Local
+              - generic [ref=e748]:
+                - generic [ref=e749]:
+                  - generic [ref=e750]: Grenet / De Serres
+                  - generic [ref=e752]: "Avg stop spacing: 207 m"
+                - generic [ref=e753]:
+                  - generic [ref=e754]: Station Côte-Vertu
+                  - generic [ref=e756]: "Avg stop spacing: 207 m"
+          - 'link "STM 66 The Boulevard Local Walkley / Côte-Saint-Luc Avg stop spacing: 211 m Guy / Lincoln Avg stop spacing: 206 m" [ref=e757] [cursor=pointer]':
+            - /url: /routes/0/66/speed
+            - generic [ref=e758]:
+              - generic [ref=e759]:
+                - generic [ref=e760]:
+                  - generic [ref=e761]: STM 66
+                  - generic [ref=e762]: The Boulevard
+                - generic [ref=e763]: Local
+              - generic [ref=e764]:
+                - generic [ref=e765]:
+                  - generic [ref=e766]: Walkley / Côte-Saint-Luc
+                  - generic [ref=e768]: "Avg stop spacing: 211 m"
+                - generic [ref=e769]:
+                  - generic [ref=e770]: Guy / Lincoln
+                  - generic [ref=e772]: "Avg stop spacing: 206 m"
+          - 'link "STM 67 Saint-Michel Local Saint-Michel / Henri-Bourassa Avg stop spacing: 246 m Station Joliette (Hochelaga / Joliette) Avg stop spacing: 235 m" [ref=e773] [cursor=pointer]':
+            - /url: /routes/0/67/speed
+            - generic [ref=e774]:
+              - generic [ref=e775]:
+                - generic [ref=e776]:
+                  - generic [ref=e777]: STM 67
+                  - generic [ref=e778]: Saint-Michel
+                - generic [ref=e779]: Local
+              - generic [ref=e780]:
+                - generic [ref=e781]:
+                  - generic [ref=e782]: Saint-Michel / Henri-Bourassa
+                  - generic [ref=e784]: "Avg stop spacing: 246 m"
+                - generic [ref=e785]:
+                  - generic [ref=e786]: Station Joliette (Hochelaga / Joliette)
+                  - generic [ref=e788]: "Avg stop spacing: 235 m"
+          - 'link "STM 68 Pierrefonds Local Grenet / Gouin Avg stop spacing: 273 m Parc-nature du Cap-Saint-Jacques Avg stop spacing: 282 m" [ref=e789] [cursor=pointer]':
+            - /url: /routes/0/68/speed
+            - generic [ref=e790]:
+              - generic [ref=e791]:
+                - generic [ref=e792]:
+                  - generic [ref=e793]: STM 68
+                  - generic [ref=e794]: Pierrefonds
+                - generic [ref=e795]: Local
+              - generic [ref=e796]:
+                - generic [ref=e797]:
+                  - generic [ref=e798]: Grenet / Gouin
+                  - generic [ref=e800]: "Avg stop spacing: 273 m"
+                - generic [ref=e801]:
+                  - generic [ref=e802]: Parc-nature du Cap-Saint-Jacques
+                  - generic [ref=e804]: "Avg stop spacing: 282 m"
+          - 'link "STM 69 Gouin Local Marie-Victorin / No 7000 Avg stop spacing: 227 m De Serres / Grenet Avg stop spacing: 242 m" [ref=e805] [cursor=pointer]':
+            - /url: /routes/0/69/speed
+            - generic [ref=e806]:
+              - generic [ref=e807]:
+                - generic [ref=e808]:
+                  - generic [ref=e809]: STM 69
+                  - generic [ref=e810]: Gouin
+                - generic [ref=e811]: Local
+              - generic [ref=e812]:
+                - generic [ref=e813]:
+                  - generic [ref=e814]: Marie-Victorin / No 7000
+                  - generic [ref=e816]: "Avg stop spacing: 227 m"
+                - generic [ref=e817]:
+                  - generic [ref=e818]: De Serres / Grenet
+                  - generic [ref=e820]: "Avg stop spacing: 242 m"
+          - 'link "STM 70 Bois-Franc Local Station Côte-Vertu Avg stop spacing: 299 m Raymond-Lasnier / Beaulac Avg stop spacing: 306 m" [ref=e821] [cursor=pointer]':
+            - /url: /routes/0/70/speed
+            - generic [ref=e822]:
+              - generic [ref=e823]:
+                - generic [ref=e824]:
+                  - generic [ref=e825]: STM 70
+                  - generic [ref=e826]: Bois-Franc
+                - generic [ref=e827]: Local
+              - generic [ref=e828]:
+                - generic [ref=e829]:
+                  - generic [ref=e830]: Station Côte-Vertu
+                  - generic [ref=e832]: "Avg stop spacing: 299 m"
+                - generic [ref=e833]:
+                  - generic [ref=e834]: Raymond-Lasnier / Beaulac
+                  - generic [ref=e836]: "Avg stop spacing: 306 m"
+          - 'link "STM 71 Pointe-Saint-Charles Local Station Guy-Concordia (De Maisonneuve/St-Mathieu) Avg stop spacing: 219 m Station De l''Église Avg stop spacing: 235 m" [ref=e837] [cursor=pointer]':
+            - /url: /routes/0/71/speed
+            - generic [ref=e838]:
+              - generic [ref=e839]:
+                - generic [ref=e840]:
+                  - generic [ref=e841]: STM 71
+                  - generic [ref=e842]: Pointe-Saint-Charles
+                - generic [ref=e843]: Local
+              - generic [ref=e844]:
+                - generic [ref=e845]:
+                  - generic [ref=e846]: Station Guy-Concordia (De Maisonneuve/St-Mathieu)
+                  - generic [ref=e848]: "Avg stop spacing: 219 m"
+                - generic [ref=e849]:
+                  - generic [ref=e850]: Station De l'Église
+                  - generic [ref=e852]: "Avg stop spacing: 235 m"
+          - 'link "STM 72 Alfred-Nobel Local Station Côte-Vertu (Gohier / Côte-Vertu) Avg stop spacing: 485 m Terminus Fairview Avg stop spacing: 511 m" [ref=e853] [cursor=pointer]':
+            - /url: /routes/0/72/speed
+            - generic [ref=e854]:
+              - generic [ref=e855]:
+                - generic [ref=e856]:
+                  - generic [ref=e857]: STM 72
+                  - generic [ref=e858]: Alfred-Nobel
+                - generic [ref=e859]: Local
+              - generic [ref=e860]:
+                - generic [ref=e861]:
+                  - generic [ref=e862]: Station Côte-Vertu (Gohier / Côte-Vertu)
+                  - generic [ref=e864]: "Avg stop spacing: 485 m"
+                - generic [ref=e865]:
+                  - generic [ref=e866]: Terminus Fairview
+                  - generic [ref=e868]: "Avg stop spacing: 511 m"
+          - 'link "STM 73 Dalton Local Station Du Collège (du Collège / Décarie) Avg stop spacing: 469 m Andover / Darnley Avg stop spacing: 501 m" [ref=e869] [cursor=pointer]':
+            - /url: /routes/0/73/speed
+            - generic [ref=e870]:
+              - generic [ref=e871]:
+                - generic [ref=e872]:
+                  - generic [ref=e873]: STM 73
+                  - generic [ref=e874]: Dalton
+                - generic [ref=e875]: Local
+              - generic [ref=e876]:
+                - generic [ref=e877]:
+                  - generic [ref=e878]: Station Du Collège (du Collège / Décarie)
+                  - generic [ref=e880]: "Avg stop spacing: 469 m"
+                - generic [ref=e881]:
+                  - generic [ref=e882]: Andover / Darnley
+                  - generic [ref=e884]: "Avg stop spacing: 501 m"
+          - 'link "STM 74 Bridge Local Station Bonaventure (De La Gauchetière / Mansfield Avg stop spacing: 339 m Marc-Cantin / Studios MELS Avg stop spacing: 319 m" [ref=e885] [cursor=pointer]':
+            - /url: /routes/0/74/speed
+            - generic [ref=e886]:
+              - generic [ref=e887]:
+                - generic [ref=e888]:
+                  - generic [ref=e889]: STM 74
+                  - generic [ref=e890]: Bridge
+                - generic [ref=e891]: Local
+              - generic [ref=e892]:
+                - generic [ref=e893]:
+                  - generic [ref=e894]: Station Bonaventure (De La Gauchetière / Mansfield
+                  - generic [ref=e896]: "Avg stop spacing: 339 m"
+                - generic [ref=e897]:
+                  - generic [ref=e898]: Marc-Cantin / Studios MELS
+                  - generic [ref=e900]: "Avg stop spacing: 319 m"
+          - 'link "STM 80 Avenue du Parc Local Querbes / Durocher Avg stop spacing: 263 m Station Place-des-Arts (Président-Kennedy / Jeanne Avg stop spacing: 261 m" [ref=e901] [cursor=pointer]':
+            - /url: /routes/0/80/speed
+            - generic [ref=e902]:
+              - generic [ref=e903]:
+                - generic [ref=e904]:
+                  - generic [ref=e905]: STM 80
+                  - generic [ref=e906]: Avenue du Parc
+                - generic [ref=e907]: Local
+              - generic [ref=e908]:
+                - generic [ref=e909]:
+                  - generic [ref=e910]: Querbes / Durocher
+                  - generic [ref=e912]: "Avg stop spacing: 263 m"
+                - generic [ref=e913]:
+                  - generic [ref=e914]: Station Place-des-Arts (Président-Kennedy / Jeanne
+                  - generic [ref=e916]: "Avg stop spacing: 261 m"
+          - 'link "STM 81 Saint-Jean-Baptiste Local Rodolphe-Forget / Fernand-Forest Avg stop spacing: 345 m Prince-Albert / 9e Avenue Avg stop spacing: 341 m" [ref=e917] [cursor=pointer]':
+            - /url: /routes/0/81/speed
+            - generic [ref=e918]:
+              - generic [ref=e919]:
+                - generic [ref=e920]:
+                  - generic [ref=e921]: STM 81
+                  - generic [ref=e922]: Saint-Jean-Baptiste
+                - generic [ref=e923]: Local
+              - generic [ref=e924]:
+                - generic [ref=e925]:
+                  - generic [ref=e926]: Rodolphe-Forget / Fernand-Forest
+                  - generic [ref=e928]: "Avg stop spacing: 345 m"
+                - generic [ref=e929]:
+                  - generic [ref=e930]: Prince-Albert / 9e Avenue
+                  - generic [ref=e932]: "Avg stop spacing: 341 m"
+          - 'link "STM 85 Hochelaga Local du Golf / Métropolitain Avg stop spacing: 267 m du Havre / La Fontaine Avg stop spacing: 243 m" [ref=e933] [cursor=pointer]':
+            - /url: /routes/0/85/speed
+            - generic [ref=e934]:
+              - generic [ref=e935]:
+                - generic [ref=e936]:
+                  - generic [ref=e937]: STM 85
+                  - generic [ref=e938]: Hochelaga
+                - generic [ref=e939]: Local
+              - generic [ref=e940]:
+                - generic [ref=e941]:
+                  - generic [ref=e942]: du Golf / Métropolitain
+                  - generic [ref=e944]: "Avg stop spacing: 267 m"
+                - generic [ref=e945]:
+                  - generic [ref=e946]: du Havre / La Fontaine
+                  - generic [ref=e948]: "Avg stop spacing: 243 m"
+          - 'link "STM 86 Pointe-aux-Trembles Local 100e Avenue / Bureau Avg stop spacing: 240 m 58e Avenue / Gouin Avg stop spacing: 239 m" [ref=e949] [cursor=pointer]':
+            - /url: /routes/0/86/speed
+            - generic [ref=e950]:
+              - generic [ref=e951]:
+                - generic [ref=e952]:
+                  - generic [ref=e953]: STM 86
+                  - generic [ref=e954]: Pointe-aux-Trembles
+                - generic [ref=e955]: Local
+              - generic [ref=e956]:
+                - generic [ref=e957]:
+                  - generic [ref=e958]: 100e Avenue / Bureau
+                  - generic [ref=e960]: "Avg stop spacing: 240 m"
+                - generic [ref=e961]:
+                  - generic [ref=e962]: 58e Avenue / Gouin
+                  - generic [ref=e964]: "Avg stop spacing: 239 m"
+          - 'link "STM 90 Saint-Jacques Local Sainte-Catherine / Atwater Avg stop spacing: 214 m Esther-Blondin / No 745 (École Dalbé-Viau) Avg stop spacing: 229 m" [ref=e965] [cursor=pointer]':
+            - /url: /routes/0/90/speed
+            - generic [ref=e966]:
+              - generic [ref=e967]:
+                - generic [ref=e968]:
+                  - generic [ref=e969]: STM 90
+                  - generic [ref=e970]: Saint-Jacques
+                - generic [ref=e971]: Local
+              - generic [ref=e972]:
+                - generic [ref=e973]:
+                  - generic [ref=e974]: Sainte-Catherine / Atwater
+                  - generic [ref=e976]: "Avg stop spacing: 214 m"
+                - generic [ref=e977]:
+                  - generic [ref=e978]: Esther-Blondin / No 745 (École Dalbé-Viau)
+                  - generic [ref=e980]: "Avg stop spacing: 229 m"
+          - 'link "STM 92 Jean-Talon Ouest Local Station Jean-Talon Nord / Saint-Denis Avg stop spacing: 238 m des Jockeys / Clanranald Avg stop spacing: 217 m" [ref=e981] [cursor=pointer]':
+            - /url: /routes/0/92/speed
+            - generic [ref=e982]:
+              - generic [ref=e983]:
+                - generic [ref=e984]:
+                  - generic [ref=e985]: STM 92
+                  - generic [ref=e986]: Jean-Talon Ouest
+                - generic [ref=e987]: Local
+              - generic [ref=e988]:
+                - generic [ref=e989]:
+                  - generic [ref=e990]: Station Jean-Talon Nord / Saint-Denis
+                  - generic [ref=e992]: "Avg stop spacing: 238 m"
+                - generic [ref=e993]:
+                  - generic [ref=e994]: des Jockeys / Clanranald
+                  - generic [ref=e996]: "Avg stop spacing: 217 m"
+          - 'link "STM 93 Jean-Talon Local 20e Avenue / Everett Avg stop spacing: 188 m Station Parc (Hutchison / Ogilvy) Avg stop spacing: 200 m" [ref=e997] [cursor=pointer]':
+            - /url: /routes/0/93/speed
+            - generic [ref=e998]:
+              - generic [ref=e999]:
+                - generic [ref=e1000]:
+                  - generic [ref=e1001]: STM 93
+                  - generic [ref=e1002]: Jean-Talon
+                - generic [ref=e1003]: Local
+              - generic [ref=e1004]:
+                - generic [ref=e1005]:
+                  - generic [ref=e1006]: 20e Avenue / Everett
+                  - generic [ref=e1008]: "Avg stop spacing: 188 m"
+                - generic [ref=e1009]:
+                  - generic [ref=e1010]: Station Parc (Hutchison / Ogilvy)
+                  - generic [ref=e1012]: "Avg stop spacing: 200 m"
+          - 'link "STM 94 D''Iberville Local Cirque du Soleil Avg stop spacing: 220 m du Havre / Sainte-Catherine Avg stop spacing: 235 m" [ref=e1013] [cursor=pointer]':
+            - /url: /routes/0/94/speed
+            - generic [ref=e1014]:
+              - generic [ref=e1015]:
+                - generic [ref=e1016]:
+                  - generic [ref=e1017]: STM 94
+                  - generic [ref=e1018]: D'Iberville
+                - generic [ref=e1019]: Local
+              - generic [ref=e1020]:
+                - generic [ref=e1021]:
+                  - generic [ref=e1022]: Cirque du Soleil
+                  - generic [ref=e1024]: "Avg stop spacing: 220 m"
+                - generic [ref=e1025]:
+                  - generic [ref=e1026]: du Havre / Sainte-Catherine
+                  - generic [ref=e1028]: "Avg stop spacing: 235 m"
+          - 'link "STM 95 Bélanger Local des Galeries d''Anjou / Halles d''Anjou Avg stop spacing: 197 m Jean-Talon / De Saint-Vallier Avg stop spacing: 196 m" [ref=e1029] [cursor=pointer]':
+            - /url: /routes/0/95/speed
+            - generic [ref=e1030]:
+              - generic [ref=e1031]:
+                - generic [ref=e1032]:
+                  - generic [ref=e1033]: STM 95
+                  - generic [ref=e1034]: Bélanger
+                - generic [ref=e1035]: Local
+              - generic [ref=e1036]:
+                - generic [ref=e1037]:
+                  - generic [ref=e1038]: des Galeries d'Anjou / Halles d'Anjou
+                  - generic [ref=e1040]: "Avg stop spacing: 197 m"
+                - generic [ref=e1041]:
+                  - generic [ref=e1042]: Jean-Talon / De Saint-Vallier
+                  - generic [ref=e1044]: "Avg stop spacing: 196 m"
+          - 'link "STM 97 Avenue-du-Mont-Royal Local Station Pie-IX (Pie-IX / Pierre-De Coubertin) Avg stop spacing: 198 m Parc du Mont-Royal Avg stop spacing: 186 m" [ref=e1045] [cursor=pointer]':
+            - /url: /routes/0/97/speed
+            - generic [ref=e1046]:
+              - generic [ref=e1047]:
+                - generic [ref=e1048]:
+                  - generic [ref=e1049]: STM 97
+                  - generic [ref=e1050]: Avenue-du-Mont-Royal
+                - generic [ref=e1051]: Local
+              - generic [ref=e1052]:
+                - generic [ref=e1053]:
+                  - generic [ref=e1054]: Station Pie-IX (Pie-IX / Pierre-De Coubertin)
+                  - generic [ref=e1056]: "Avg stop spacing: 198 m"
+                - generic [ref=e1057]:
+                  - generic [ref=e1058]: Parc du Mont-Royal
+                  - generic [ref=e1060]: "Avg stop spacing: 186 m"
+          - 'link "STM 99 Villeray Local Everett / 24e Avenue Avg stop spacing: 183 m Station Jean-Talon Nord / Lajeunesse Avg stop spacing: 195 m" [ref=e1061] [cursor=pointer]':
+            - /url: /routes/0/99/speed
+            - generic [ref=e1062]:
+              - generic [ref=e1063]:
+                - generic [ref=e1064]:
+                  - generic [ref=e1065]: STM 99
+                  - generic [ref=e1066]: Villeray
+                - generic [ref=e1067]: Local
+              - generic [ref=e1068]:
+                - generic [ref=e1069]:
+                  - generic [ref=e1070]: Everett / 24e Avenue
+                  - generic [ref=e1072]: "Avg stop spacing: 183 m"
+                - generic [ref=e1073]:
+                  - generic [ref=e1074]: Station Jean-Talon Nord / Lajeunesse
+                  - generic [ref=e1076]: "Avg stop spacing: 195 m"
+          - 'link "STM 100 Crémazie Local Station Crémazie Sud (Crémazie / Berri) Avg stop spacing: 299 m Terminus CAE Avg stop spacing: 350 m" [ref=e1077] [cursor=pointer]':
+            - /url: /routes/0/100/speed
+            - generic [ref=e1078]:
+              - generic [ref=e1079]:
+                - generic [ref=e1080]:
+                  - generic [ref=e1081]: STM 100
+                  - generic [ref=e1082]: Crémazie
+                - generic [ref=e1083]: Local
+              - generic [ref=e1084]:
+                - generic [ref=e1085]:
+                  - generic [ref=e1086]: Station Crémazie Sud (Crémazie / Berri)
+                  - generic [ref=e1088]: "Avg stop spacing: 299 m"
+                - generic [ref=e1089]:
+                  - generic [ref=e1090]: Terminus CAE
+                  - generic [ref=e1092]: "Avg stop spacing: 350 m"
+          - 'link "STM 101 Saint-Patrick Local Station Lionel-Groulx Avg stop spacing: 313 m Riverview / Airlie Avg stop spacing: 333 m" [ref=e1093] [cursor=pointer]':
+            - /url: /routes/0/101/speed
+            - generic [ref=e1094]:
+              - generic [ref=e1095]:
+                - generic [ref=e1096]:
+                  - generic [ref=e1097]: STM 101
+                  - generic [ref=e1098]: Saint-Patrick
+                - generic [ref=e1099]: Local
+              - generic [ref=e1100]:
+                - generic [ref=e1101]:
+                  - generic [ref=e1102]: Station Lionel-Groulx
+                  - generic [ref=e1104]: "Avg stop spacing: 313 m"
+                - generic [ref=e1105]:
+                  - generic [ref=e1106]: Riverview / Airlie
+                  - generic [ref=e1108]: "Avg stop spacing: 333 m"
+          - 'link "STM 102 Somerled Local Station Vendôme Avg stop spacing: 232 m Connaught / Westmore Avg stop spacing: 227 m" [ref=e1109] [cursor=pointer]':
+            - /url: /routes/0/102/speed
+            - generic [ref=e1110]:
+              - generic [ref=e1111]:
+                - generic [ref=e1112]:
+                  - generic [ref=e1113]: STM 102
+                  - generic [ref=e1114]: Somerled
+                - generic [ref=e1115]: Local
+              - generic [ref=e1116]:
+                - generic [ref=e1117]:
+                  - generic [ref=e1118]: Station Vendôme
+                  - generic [ref=e1120]: "Avg stop spacing: 232 m"
+                - generic [ref=e1121]:
+                  - generic [ref=e1122]: Connaught / Westmore
+                  - generic [ref=e1124]: "Avg stop spacing: 227 m"
+          - 'link "STM 103 Monkland Local Station Villa-Maria (Décarie / de Monkland) Avg stop spacing: 248 m Côte-Saint-Luc / Hudson Avg stop spacing: 211 m" [ref=e1125] [cursor=pointer]':
+            - /url: /routes/0/103/speed
+            - generic [ref=e1126]:
+              - generic [ref=e1127]:
+                - generic [ref=e1128]:
+                  - generic [ref=e1129]: STM 103
+                  - generic [ref=e1130]: Monkland
+                - generic [ref=e1131]: Local
+              - generic [ref=e1132]:
+                - generic [ref=e1133]:
+                  - generic [ref=e1134]: Station Villa-Maria (Décarie / de Monkland)
+                  - generic [ref=e1136]: "Avg stop spacing: 248 m"
+                - generic [ref=e1137]:
+                  - generic [ref=e1138]: Côte-Saint-Luc / Hudson
+                  - generic [ref=e1140]: "Avg stop spacing: 211 m"
+          - 'link "STM 104 Cavendish Local Station Atwater Avg stop spacing: 255 m Caldwell / des Maimonides Avg stop spacing: 242 m" [ref=e1141] [cursor=pointer]':
+            - /url: /routes/0/104/speed
+            - generic [ref=e1142]:
+              - generic [ref=e1143]:
+                - generic [ref=e1144]:
+                  - generic [ref=e1145]: STM 104
+                  - generic [ref=e1146]: Cavendish
+                - generic [ref=e1147]: Local
+              - generic [ref=e1148]:
+                - generic [ref=e1149]:
+                  - generic [ref=e1150]: Station Atwater
+                  - generic [ref=e1152]: "Avg stop spacing: 255 m"
+                - generic [ref=e1153]:
+                  - generic [ref=e1154]: Caldwell / des Maimonides
+                  - generic [ref=e1156]: "Avg stop spacing: 242 m"
+          - 'link "STM 105 Sherbrooke Local Station Vendôme Avg stop spacing: 208 m Gare Montréal-Ouest (Elmhurst / Sherbrooke) Avg stop spacing: 208 m" [ref=e1157] [cursor=pointer]':
+            - /url: /routes/0/105/speed
+            - generic [ref=e1158]:
+              - generic [ref=e1159]:
+                - generic [ref=e1160]:
+                  - generic [ref=e1161]: STM 105
+                  - generic [ref=e1162]: Sherbrooke
+                - generic [ref=e1163]: Local
+              - generic [ref=e1164]:
+                - generic [ref=e1165]:
+                  - generic [ref=e1166]: Station Vendôme
+                  - generic [ref=e1168]: "Avg stop spacing: 208 m"
+                - generic [ref=e1169]:
+                  - generic [ref=e1170]: Gare Montréal-Ouest (Elmhurst / Sherbrooke)
+                  - generic [ref=e1172]: "Avg stop spacing: 208 m"
+          - 'link "STM 106 Newman Local Station Angrignon Avg stop spacing: 229 m Terminus Lafleur / Newman Avg stop spacing: 245 m" [ref=e1173] [cursor=pointer]':
+            - /url: /routes/0/106/speed
+            - generic [ref=e1174]:
+              - generic [ref=e1175]:
+                - generic [ref=e1176]:
+                  - generic [ref=e1177]: STM 106
+                  - generic [ref=e1178]: Newman
+                - generic [ref=e1179]: Local
+              - generic [ref=e1180]:
+                - generic [ref=e1181]:
+                  - generic [ref=e1182]: Station Angrignon
+                  - generic [ref=e1184]: "Avg stop spacing: 229 m"
+                - generic [ref=e1185]:
+                  - generic [ref=e1186]: Terminus Lafleur / Newman
+                  - generic [ref=e1188]: "Avg stop spacing: 245 m"
+          - 'link "STM 107 Verdun Local du Square-Victoria / Saint-Antoine Avg stop spacing: 233 m Gagné / Centre Lecavalier Avg stop spacing: 231 m" [ref=e1189] [cursor=pointer]':
+            - /url: /routes/0/107/speed
+            - generic [ref=e1190]:
+              - generic [ref=e1191]:
+                - generic [ref=e1192]:
+                  - generic [ref=e1193]: STM 107
+                  - generic [ref=e1194]: Verdun
+                - generic [ref=e1195]: Local
+              - generic [ref=e1196]:
+                - generic [ref=e1197]:
+                  - generic [ref=e1198]: du Square-Victoria / Saint-Antoine
+                  - generic [ref=e1200]: "Avg stop spacing: 233 m"
+                - generic [ref=e1201]:
+                  - generic [ref=e1202]: Gagné / Centre Lecavalier
+                  - generic [ref=e1204]: "Avg stop spacing: 231 m"
+          - 'link "STM 108 Bannantyne Local Station Atwater (Atwater / Sainte-Catherine) Avg stop spacing: 235 m Parc Hadley (Bannantyne / Stephens) Avg stop spacing: 242 m" [ref=e1205] [cursor=pointer]':
+            - /url: /routes/0/108/speed
+            - generic [ref=e1206]:
+              - generic [ref=e1207]:
+                - generic [ref=e1208]:
+                  - generic [ref=e1209]: STM 108
+                  - generic [ref=e1210]: Bannantyne
+                - generic [ref=e1211]: Local
+              - generic [ref=e1212]:
+                - generic [ref=e1213]:
+                  - generic [ref=e1214]: Station Atwater (Atwater / Sainte-Catherine)
+                  - generic [ref=e1216]: "Avg stop spacing: 235 m"
+                - generic [ref=e1217]:
+                  - generic [ref=e1218]: Parc Hadley (Bannantyne / Stephens)
+                  - generic [ref=e1220]: "Avg stop spacing: 242 m"
+          - 'link "STM 110 Centrale Local Station Angrignon Avg stop spacing: 227 m 28e Avenue / Remembrance Avg stop spacing: 244 m" [ref=e1221] [cursor=pointer]':
+            - /url: /routes/0/110/speed
+            - generic [ref=e1222]:
+              - generic [ref=e1223]:
+                - generic [ref=e1224]:
+                  - generic [ref=e1225]: STM 110
+                  - generic [ref=e1226]: Centrale
+                - generic [ref=e1227]: Local
+              - generic [ref=e1228]:
+                - generic [ref=e1229]:
+                  - generic [ref=e1230]: Station Angrignon
+                  - generic [ref=e1232]: "Avg stop spacing: 227 m"
+                - generic [ref=e1233]:
+                  - generic [ref=e1234]: 28e Avenue / Remembrance
+                  - generic [ref=e1236]: "Avg stop spacing: 244 m"
+          - 'link "STM 112 Airlie Local Station Jolicoeur (Drake / Jolicoeur) Avg stop spacing: 244 m Terminus Lafleur / Newman Avg stop spacing: 234 m" [ref=e1237] [cursor=pointer]':
+            - /url: /routes/0/112/speed
+            - generic [ref=e1238]:
+              - generic [ref=e1239]:
+                - generic [ref=e1240]:
+                  - generic [ref=e1241]: STM 112
+                  - generic [ref=e1242]: Airlie
+                - generic [ref=e1243]: Local
+              - generic [ref=e1244]:
+                - generic [ref=e1245]:
+                  - generic [ref=e1246]: Station Jolicoeur (Drake / Jolicoeur)
+                  - generic [ref=e1248]: "Avg stop spacing: 244 m"
+                - generic [ref=e1249]:
+                  - generic [ref=e1250]: Terminus Lafleur / Newman
+                  - generic [ref=e1252]: "Avg stop spacing: 234 m"
+          - 'link "STM 113 Lapierre Local Station Angrignon Avg stop spacing: 260 m Terminus Lafleur / Newman Avg stop spacing: 284 m" [ref=e1253] [cursor=pointer]':
+            - /url: /routes/0/113/speed
+            - generic [ref=e1254]:
+              - generic [ref=e1255]:
+                - generic [ref=e1256]:
+                  - generic [ref=e1257]: STM 113
+                  - generic [ref=e1258]: Lapierre
+                - generic [ref=e1259]: Local
+              - generic [ref=e1260]:
+                - generic [ref=e1261]:
+                  - generic [ref=e1262]: Station Angrignon
+                  - generic [ref=e1264]: "Avg stop spacing: 260 m"
+                - generic [ref=e1265]:
+                  - generic [ref=e1266]: Terminus Lafleur / Newman
+                  - generic [ref=e1268]: "Avg stop spacing: 284 m"
+          - 'link "STM 114 Angrignon Local Richardson / Saint-Jacques Avg stop spacing: 262 m George / Albert-Couture Avg stop spacing: 266 m" [ref=e1269] [cursor=pointer]':
+            - /url: /routes/0/114/speed
+            - generic [ref=e1270]:
+              - generic [ref=e1271]:
+                - generic [ref=e1272]:
+                  - generic [ref=e1273]: STM 114
+                  - generic [ref=e1274]: Angrignon
+                - generic [ref=e1275]: Local
+              - generic [ref=e1276]:
+                - generic [ref=e1277]:
+                  - generic [ref=e1278]: Richardson / Saint-Jacques
+                  - generic [ref=e1280]: "Avg stop spacing: 262 m"
+                - generic [ref=e1281]:
+                  - generic [ref=e1282]: George / Albert-Couture
+                  - generic [ref=e1284]: "Avg stop spacing: 266 m"
+          - 'link "STM 115 Paré Local Station Namur (Jean-Talon / Décarie) Avg stop spacing: 232 m Kraft-Heinz / Entrée nord Avg stop spacing: 215 m" [ref=e1285] [cursor=pointer]':
+            - /url: /routes/0/115/speed
+            - generic [ref=e1286]:
+              - generic [ref=e1287]:
+                - generic [ref=e1288]:
+                  - generic [ref=e1289]: STM 115
+                  - generic [ref=e1290]: Paré
+                - generic [ref=e1291]: Local
+              - generic [ref=e1292]:
+                - generic [ref=e1293]:
+                  - generic [ref=e1294]: Station Namur (Jean-Talon / Décarie)
+                  - generic [ref=e1296]: "Avg stop spacing: 232 m"
+                - generic [ref=e1297]:
+                  - generic [ref=e1298]: Kraft-Heinz / Entrée nord
+                  - generic [ref=e1300]: "Avg stop spacing: 215 m"
+          - 'link "STM 117 O''Brien Local Gouin / O''Brien Avg stop spacing: 237 m Station Du Collège (Saint-Louis / Ouimet) Avg stop spacing: 248 m" [ref=e1301] [cursor=pointer]':
+            - /url: /routes/0/117/speed
+            - generic [ref=e1302]:
+              - generic [ref=e1303]:
+                - generic [ref=e1304]:
+                  - generic [ref=e1305]: STM 117
+                  - generic [ref=e1306]: O'Brien
+                - generic [ref=e1307]: Local
+              - generic [ref=e1308]:
+                - generic [ref=e1309]:
+                  - generic [ref=e1310]: Gouin / O'Brien
+                  - generic [ref=e1312]: "Avg stop spacing: 237 m"
+                - generic [ref=e1313]:
+                  - generic [ref=e1314]: Station Du Collège (Saint-Louis / Ouimet)
+                  - generic [ref=e1316]: "Avg stop spacing: 248 m"
+          - 'link "STM 119 Rockland Local Laird / Canora Avg stop spacing: 229 m Station Côte-des-Neiges Avg stop spacing: 231 m" [ref=e1317] [cursor=pointer]':
+            - /url: /routes/0/119/speed
+            - generic [ref=e1318]:
+              - generic [ref=e1319]:
+                - generic [ref=e1320]:
+                  - generic [ref=e1321]: STM 119
+                  - generic [ref=e1322]: Rockland
+                - generic [ref=e1323]: Local
+              - generic [ref=e1324]:
+                - generic [ref=e1325]:
+                  - generic [ref=e1326]: Laird / Canora
+                  - generic [ref=e1328]: "Avg stop spacing: 229 m"
+                - generic [ref=e1329]:
+                  - generic [ref=e1330]: Station Côte-des-Neiges
+                  - generic [ref=e1332]: "Avg stop spacing: 231 m"
+          - 'link "STM 121 Sauvé / Côte-Vertu Local Saint-Michel / Sauvé Avg stop spacing: 235 m Beaulac / Thimens Avg stop spacing: 221 m" [ref=e1333] [cursor=pointer]':
+            - /url: /routes/0/121/speed
+            - generic [ref=e1334]:
+              - generic [ref=e1335]:
+                - generic [ref=e1336]:
+                  - generic [ref=e1337]: STM 121
+                  - generic [ref=e1338]: Sauvé / Côte-Vertu
+                - generic [ref=e1339]: Local
+              - generic [ref=e1340]:
+                - generic [ref=e1341]:
+                  - generic [ref=e1342]: Saint-Michel / Sauvé
+                  - generic [ref=e1344]: "Avg stop spacing: 235 m"
+                - generic [ref=e1345]:
+                  - generic [ref=e1346]: Beaulac / Thimens
+                  - generic [ref=e1348]: "Avg stop spacing: 221 m"
+          - 'link "STM 123 Dollard / Shevchenko Local Elmhurst / Coffee Avg stop spacing: 242 m Gagné / Centre Lecavalier Avg stop spacing: 249 m" [ref=e1349] [cursor=pointer]':
+            - /url: /routes/0/123/speed
+            - generic [ref=e1350]:
+              - generic [ref=e1351]:
+                - generic [ref=e1352]:
+                  - generic [ref=e1353]: STM 123
+                  - generic [ref=e1354]: Dollard / Shevchenko
+                - generic [ref=e1355]: Local
+              - generic [ref=e1356]:
+                - generic [ref=e1357]:
+                  - generic [ref=e1358]: Elmhurst / Coffee
+                  - generic [ref=e1360]: "Avg stop spacing: 242 m"
+                - generic [ref=e1361]:
+                  - generic [ref=e1362]: Gagné / Centre Lecavalier
+                  - generic [ref=e1364]: "Avg stop spacing: 249 m"
+          - 'link "STM 124 Victoria Local Stinson / Montpellier Avg stop spacing: 199 m Station Vendôme Avg stop spacing: 219 m" [ref=e1365] [cursor=pointer]':
+            - /url: /routes/0/124/speed
+            - generic [ref=e1366]:
+              - generic [ref=e1367]:
+                - generic [ref=e1368]:
+                  - generic [ref=e1369]: STM 124
+                  - generic [ref=e1370]: Victoria
+                - generic [ref=e1371]: Local
+              - generic [ref=e1372]:
+                - generic [ref=e1373]:
+                  - generic [ref=e1374]: Stinson / Montpellier
+                  - generic [ref=e1376]: "Avg stop spacing: 199 m"
+                - generic [ref=e1377]:
+                  - generic [ref=e1378]: Station Vendôme
+                  - generic [ref=e1380]: "Avg stop spacing: 219 m"
+          - 'link "STM 125 Ontario Local Station Viau Avg stop spacing: 199 m Station McGill (De Maisonneuve / Robert-Bourassa) Avg stop spacing: 194 m" [ref=e1381] [cursor=pointer]':
+            - /url: /routes/0/125/speed
+            - generic [ref=e1382]:
+              - generic [ref=e1383]:
+                - generic [ref=e1384]:
+                  - generic [ref=e1385]: STM 125
+                  - generic [ref=e1386]: Ontario
+                - generic [ref=e1387]: Local
+              - generic [ref=e1388]:
+                - generic [ref=e1389]:
+                  - generic [ref=e1390]: Station Viau
+                  - generic [ref=e1392]: "Avg stop spacing: 199 m"
+                - generic [ref=e1393]:
+                  - generic [ref=e1394]: Station McGill (De Maisonneuve / Robert-Bourassa)
+                  - generic [ref=e1396]: "Avg stop spacing: 194 m"
+          - 'link "STM 126 Thimens / Grenet Local Grenet / Henri-Bourassa Avg stop spacing: 306 m École secondaire Saint-Laurent Avg stop spacing: 303 m" [ref=e1397] [cursor=pointer]':
+            - /url: /routes/0/126/speed
+            - generic [ref=e1398]:
+              - generic [ref=e1399]:
+                - generic [ref=e1400]:
+                  - generic [ref=e1401]: STM 126
+                  - generic [ref=e1402]: Thimens / Grenet
+                - generic [ref=e1403]: Local
+              - generic [ref=e1404]:
+                - generic [ref=e1405]:
+                  - generic [ref=e1406]: Grenet / Henri-Bourassa
+                  - generic [ref=e1408]: "Avg stop spacing: 306 m"
+                - generic [ref=e1409]:
+                  - generic [ref=e1410]: École secondaire Saint-Laurent
+                  - generic [ref=e1412]: "Avg stop spacing: 303 m"
+          - 'link "STM 128 Saint-Laurent Local Muir / Montpellier Avg stop spacing: 208 m Stinson / Montpellier Avg stop spacing: 207 m" [ref=e1413] [cursor=pointer]':
+            - /url: /routes/0/128/speed
+            - generic [ref=e1414]:
+              - generic [ref=e1415]:
+                - generic [ref=e1416]:
+                  - generic [ref=e1417]: STM 128
+                  - generic [ref=e1418]: Saint-Laurent
+                - generic [ref=e1419]: Local
+              - generic [ref=e1420]:
+                - generic [ref=e1421]:
+                  - generic [ref=e1422]: Muir / Montpellier
+                  - generic [ref=e1424]: "Avg stop spacing: 208 m"
+                - generic [ref=e1425]:
+                  - generic [ref=e1426]: Stinson / Montpellier
+                  - generic [ref=e1428]: "Avg stop spacing: 207 m"
+          - 'link "STM 129 Côte-Sainte-Catherine Local Clanranald / Isabella Avg stop spacing: 232 m Saint-Antoine / Gosford Avg stop spacing: 234 m" [ref=e1429] [cursor=pointer]':
+            - /url: /routes/0/129/speed
+            - generic [ref=e1430]:
+              - generic [ref=e1431]:
+                - generic [ref=e1432]:
+                  - generic [ref=e1433]: STM 129
+                  - generic [ref=e1434]: Côte-Sainte-Catherine
+                - generic [ref=e1435]: Local
+              - generic [ref=e1436]:
+                - generic [ref=e1437]:
+                  - generic [ref=e1438]: Clanranald / Isabella
+                  - generic [ref=e1440]: "Avg stop spacing: 232 m"
+                - generic [ref=e1441]:
+                  - generic [ref=e1442]: Saint-Antoine / Gosford
+                  - generic [ref=e1444]: "Avg stop spacing: 234 m"
+          - 'link "STM 131 De l''Assomption Local Antonio-Dagenais / Lespinay Avg stop spacing: 243 m Station Assomption (de l''Assomption / Chauveau) Avg stop spacing: 223 m" [ref=e1445] [cursor=pointer]':
+            - /url: /routes/0/131/speed
+            - generic [ref=e1446]:
+              - generic [ref=e1447]:
+                - generic [ref=e1448]:
+                  - generic [ref=e1449]: STM 131
+                  - generic [ref=e1450]: De l'Assomption
+                - generic [ref=e1451]: Local
+              - generic [ref=e1452]:
+                - generic [ref=e1453]:
+                  - generic [ref=e1454]: Antonio-Dagenais / Lespinay
+                  - generic [ref=e1456]: "Avg stop spacing: 243 m"
+                - generic [ref=e1457]:
+                  - generic [ref=e1458]: Station Assomption (de l'Assomption / Chauveau)
+                  - generic [ref=e1460]: "Avg stop spacing: 223 m"
+          - 'link "STM 135 De l''Esplanade Rapid Station Du Ruisseau (Henri-Bourassa / Dutrisac) Avg stop spacing: 615 m Station Crémazie Sud (Crémazie / Berri) Avg stop spacing: 604 m" [ref=e1461] [cursor=pointer]':
+            - /url: /routes/0/135/speed
+            - generic [ref=e1462]:
+              - generic [ref=e1463]:
+                - generic [ref=e1464]:
+                  - generic [ref=e1465]: STM 135
+                  - generic [ref=e1466]: De l'Esplanade
+                - generic [ref=e1467]: Rapid
+              - generic [ref=e1468]:
+                - generic [ref=e1469]:
+                  - generic [ref=e1470]: Station Du Ruisseau (Henri-Bourassa / Dutrisac)
+                  - generic [ref=e1472]: "Avg stop spacing: 615 m"
+                - generic [ref=e1473]:
+                  - generic [ref=e1474]: Station Crémazie Sud (Crémazie / Berri)
+                  - generic [ref=e1476]: "Avg stop spacing: 604 m"
+          - 'link "STM 136 Viau Local des Grandes-Prairies / No 5940 Avg stop spacing: 268 m Station Viau Avg stop spacing: 274 m" [ref=e1477] [cursor=pointer]':
+            - /url: /routes/0/136/speed
+            - generic [ref=e1478]:
+              - generic [ref=e1479]:
+                - generic [ref=e1480]:
+                  - generic [ref=e1481]: STM 136
+                  - generic [ref=e1482]: Viau
+                - generic [ref=e1483]: Local
+              - generic [ref=e1484]:
+                - generic [ref=e1485]:
+                  - generic [ref=e1486]: des Grandes-Prairies / No 5940
+                  - generic [ref=e1488]: "Avg stop spacing: 268 m"
+                - generic [ref=e1489]:
+                  - generic [ref=e1490]: Station Viau
+                  - generic [ref=e1492]: "Avg stop spacing: 274 m"
+          - 'link "STM 138 Notre-Dame-de-Grâce Local Station Atwater Avg stop spacing: 243 m Caldwell / des Maimonides Avg stop spacing: 224 m" [ref=e1493] [cursor=pointer]':
+            - /url: /routes/0/138/speed
+            - generic [ref=e1494]:
+              - generic [ref=e1495]:
+                - generic [ref=e1496]:
+                  - generic [ref=e1497]: STM 138
+                  - generic [ref=e1498]: Notre-Dame-de-Grâce
+                - generic [ref=e1499]: Local
+              - generic [ref=e1500]:
+                - generic [ref=e1501]:
+                  - generic [ref=e1502]: Station Atwater
+                  - generic [ref=e1504]: "Avg stop spacing: 243 m"
+                - generic [ref=e1505]:
+                  - generic [ref=e1506]: Caldwell / des Maimonides
+                  - generic [ref=e1508]: "Avg stop spacing: 224 m"
+          - 'link "STM 139 Pie-IX Local Carrefour Henri-Bourassa / Pie-IX Avg stop spacing: 240 m Pie-IX / Sainte-Catherine Avg stop spacing: 247 m" [ref=e1509] [cursor=pointer]':
+            - /url: /routes/0/139/speed
+            - generic [ref=e1510]:
+              - generic [ref=e1511]:
+                - generic [ref=e1512]:
+                  - generic [ref=e1513]: STM 139
+                  - generic [ref=e1514]: Pie-IX
+                - generic [ref=e1515]: Local
+              - generic [ref=e1516]:
+                - generic [ref=e1517]:
+                  - generic [ref=e1518]: Carrefour Henri-Bourassa / Pie-IX
+                  - generic [ref=e1520]: "Avg stop spacing: 240 m"
+                - generic [ref=e1521]:
+                  - generic [ref=e1522]: Pie-IX / Sainte-Catherine
+                  - generic [ref=e1524]: "Avg stop spacing: 247 m"
+          - 'link "STM 140 Fleury Local Gouin / Pigeon Avg stop spacing: 199 m Station Sauvé (Édicule Nord) Avg stop spacing: 193 m" [ref=e1525] [cursor=pointer]':
+            - /url: /routes/0/140/speed
+            - generic [ref=e1526]:
+              - generic [ref=e1527]:
+                - generic [ref=e1528]:
+                  - generic [ref=e1529]: STM 140
+                  - generic [ref=e1530]: Fleury
+                - generic [ref=e1531]: Local
+              - generic [ref=e1532]:
+                - generic [ref=e1533]:
+                  - generic [ref=e1534]: Gouin / Pigeon
+                  - generic [ref=e1536]: "Avg stop spacing: 199 m"
+                - generic [ref=e1537]:
+                  - generic [ref=e1538]: Station Sauvé (Édicule Nord)
+                  - generic [ref=e1540]: "Avg stop spacing: 193 m"
+          - 'link "STM 141 Jean-Talon Est Local Station Honoré-Beaugrand / Terminus Sud Avg stop spacing: 224 m Station Saint-Michel (Saint-Michel / Shaughnessy) Avg stop spacing: 230 m" [ref=e1541] [cursor=pointer]':
+            - /url: /routes/0/141/speed
+            - generic [ref=e1542]:
+              - generic [ref=e1543]:
+                - generic [ref=e1544]:
+                  - generic [ref=e1545]: STM 141
+                  - generic [ref=e1546]: Jean-Talon Est
+                - generic [ref=e1547]: Local
+              - generic [ref=e1548]:
+                - generic [ref=e1549]:
+                  - generic [ref=e1550]: Station Honoré-Beaugrand / Terminus Sud
+                  - generic [ref=e1552]: "Avg stop spacing: 224 m"
+                - generic [ref=e1553]:
+                  - generic [ref=e1554]: Station Saint-Michel (Saint-Michel / Shaughnessy)
+                  - generic [ref=e1556]: "Avg stop spacing: 230 m"
+          - 'link "STM 144 Avenue des Pins Local Station Sherbrooke (Édicule Ouest) Avg stop spacing: 211 m Station Atwater Avg stop spacing: 203 m" [ref=e1557] [cursor=pointer]':
+            - /url: /routes/0/144/speed
+            - generic [ref=e1558]:
+              - generic [ref=e1559]:
+                - generic [ref=e1560]:
+                  - generic [ref=e1561]: STM 144
+                  - generic [ref=e1562]: Avenue des Pins
+                - generic [ref=e1563]: Local
+              - generic [ref=e1564]:
+                - generic [ref=e1565]:
+                  - generic [ref=e1566]: Station Sherbrooke (Édicule Ouest)
+                  - generic [ref=e1568]: "Avg stop spacing: 211 m"
+                - generic [ref=e1569]:
+                  - generic [ref=e1570]: Station Atwater
+                  - generic [ref=e1572]: "Avg stop spacing: 203 m"
+          - 'link "STM 146 Christophe-Colomb / Meilleur Local Station Henri-Bourassa Avg stop spacing: 239 m du Mont-Cassin / Meilleur Avg stop spacing: 227 m" [ref=e1573] [cursor=pointer]':
+            - /url: /routes/0/146/speed
+            - generic [ref=e1574]:
+              - generic [ref=e1575]:
+                - generic [ref=e1576]:
+                  - generic [ref=e1577]: STM 146
+                  - generic [ref=e1578]: Christophe-Colomb / Meilleur
+                - generic [ref=e1579]: Local
+              - generic [ref=e1580]:
+                - generic [ref=e1581]:
+                  - generic [ref=e1582]: Station Henri-Bourassa
+                  - generic [ref=e1584]: "Avg stop spacing: 239 m"
+                - generic [ref=e1585]:
+                  - generic [ref=e1586]: du Mont-Cassin / Meilleur
+                  - generic [ref=e1588]: "Avg stop spacing: 227 m"
+          - 'link "STM 150 René-Lévesque Local Station Papineau (Dorion / Sainte-Catherine) Avg stop spacing: 245 m Station Atwater (Ste-Catherine / Lambert-Closse) Avg stop spacing: 200 m" [ref=e1589] [cursor=pointer]':
+            - /url: /routes/0/150/speed
+            - generic [ref=e1590]:
+              - generic [ref=e1591]:
+                - generic [ref=e1592]:
+                  - generic [ref=e1593]: STM 150
+                  - generic [ref=e1594]: René-Lévesque
+                - generic [ref=e1595]: Local
+              - generic [ref=e1596]:
+                - generic [ref=e1597]:
+                  - generic [ref=e1598]: Station Papineau (Dorion / Sainte-Catherine)
+                  - generic [ref=e1600]: "Avg stop spacing: 245 m"
+                - generic [ref=e1601]:
+                  - generic [ref=e1602]: Station Atwater (Ste-Catherine / Lambert-Closse)
+                  - generic [ref=e1604]: "Avg stop spacing: 200 m"
+          - 'link "STM 160 Barclay Local Station Beaubien Avg stop spacing: 207 m Vézina / Coolbrook Avg stop spacing: 231 m" [ref=e1605] [cursor=pointer]':
+            - /url: /routes/0/160/speed
+            - generic [ref=e1606]:
+              - generic [ref=e1607]:
+                - generic [ref=e1608]:
+                  - generic [ref=e1609]: STM 160
+                  - generic [ref=e1610]: Barclay
+                - generic [ref=e1611]: Local
+              - generic [ref=e1612]:
+                - generic [ref=e1613]:
+                  - generic [ref=e1614]: Station Beaubien
+                  - generic [ref=e1616]: "Avg stop spacing: 207 m"
+                - generic [ref=e1617]:
+                  - generic [ref=e1618]: Vézina / Coolbrook
+                  - generic [ref=e1620]: "Avg stop spacing: 231 m"
+          - 'link "STM 161 Van Horne Local Station Rosemont (Rosemont / De Saint-Vallier) Avg stop spacing: 233 m Kildare / Westminster Avg stop spacing: 242 m" [ref=e1621] [cursor=pointer]':
+            - /url: /routes/0/161/speed
+            - generic [ref=e1622]:
+              - generic [ref=e1623]:
+                - generic [ref=e1624]:
+                  - generic [ref=e1625]: STM 161
+                  - generic [ref=e1626]: Van Horne
+                - generic [ref=e1627]: Local
+              - generic [ref=e1628]:
+                - generic [ref=e1629]:
+                  - generic [ref=e1630]: Station Rosemont (Rosemont / De Saint-Vallier)
+                  - generic [ref=e1632]: "Avg stop spacing: 233 m"
+                - generic [ref=e1633]:
+                  - generic [ref=e1634]: Kildare / Westminster
+                  - generic [ref=e1636]: "Avg stop spacing: 242 m"
+          - 'link "STM 162 Westminster Local Station Villa-Maria (Décarie / de Monkland) Avg stop spacing: 219 m Kildare / Cavendish Avg stop spacing: 213 m" [ref=e1637] [cursor=pointer]':
+            - /url: /routes/0/162/speed
+            - generic [ref=e1638]:
+              - generic [ref=e1639]:
+                - generic [ref=e1640]:
+                  - generic [ref=e1641]: STM 162
+                  - generic [ref=e1642]: Westminster
+                - generic [ref=e1643]: Local
+              - generic [ref=e1644]:
+                - generic [ref=e1645]:
+                  - generic [ref=e1646]: Station Villa-Maria (Décarie / de Monkland)
+                  - generic [ref=e1648]: "Avg stop spacing: 219 m"
+                - generic [ref=e1649]:
+                  - generic [ref=e1650]: Kildare / Cavendish
+                  - generic [ref=e1652]: "Avg stop spacing: 213 m"
+          - 'link "STM 164 Dudemaine Local Station Henri-Bourassa Avg stop spacing: 260 m Centre de transport St-Laurent (Guénette / Cousens Avg stop spacing: 265 m" [ref=e1653] [cursor=pointer]':
+            - /url: /routes/0/164/speed
+            - generic [ref=e1654]:
+              - generic [ref=e1655]:
+                - generic [ref=e1656]:
+                  - generic [ref=e1657]: STM 164
+                  - generic [ref=e1658]: Dudemaine
+                - generic [ref=e1659]: Local
+              - generic [ref=e1660]:
+                - generic [ref=e1661]:
+                  - generic [ref=e1662]: Station Henri-Bourassa
+                  - generic [ref=e1664]: "Avg stop spacing: 260 m"
+                - generic [ref=e1665]:
+                  - generic [ref=e1666]: Centre de transport St-Laurent (Guénette / Cousens
+                  - generic [ref=e1668]: "Avg stop spacing: 265 m"
+          - 'link "STM 165 Côte-des-Neiges Local Station Ville-de-Mont-Royal (Dunkirk / Cornwall) Avg stop spacing: 210 m Station Guy-Concordia (Guy / De Maisonneuve) Avg stop spacing: 217 m" [ref=e1669] [cursor=pointer]':
+            - /url: /routes/0/165/speed
+            - generic [ref=e1670]:
+              - generic [ref=e1671]:
+                - generic [ref=e1672]:
+                  - generic [ref=e1673]: STM 165
+                  - generic [ref=e1674]: Côte-des-Neiges
+                - generic [ref=e1675]: Local
+              - generic [ref=e1676]:
+                - generic [ref=e1677]:
+                  - generic [ref=e1678]: Station Ville-de-Mont-Royal (Dunkirk / Cornwall)
+                  - generic [ref=e1680]: "Avg stop spacing: 210 m"
+                - generic [ref=e1681]:
+                  - generic [ref=e1682]: Station Guy-Concordia (Guy / De Maisonneuve)
+                  - generic [ref=e1684]: "Avg stop spacing: 217 m"
+          - 'link "STM 166 Queen-Mary Local Vézina / Macdonald Avg stop spacing: 205 m Station Guy-Concordia (Guy / De Maisonneuve) Avg stop spacing: 205 m" [ref=e1685] [cursor=pointer]':
+            - /url: /routes/0/166/speed
+            - generic [ref=e1686]:
+              - generic [ref=e1687]:
+                - generic [ref=e1688]:
+                  - generic [ref=e1689]: STM 166
+                  - generic [ref=e1690]: Queen-Mary
+                - generic [ref=e1691]: Local
+              - generic [ref=e1692]:
+                - generic [ref=e1693]:
+                  - generic [ref=e1694]: Vézina / Macdonald
+                  - generic [ref=e1696]: "Avg stop spacing: 205 m"
+                - generic [ref=e1697]:
+                  - generic [ref=e1698]: Station Guy-Concordia (Guy / De Maisonneuve)
+                  - generic [ref=e1700]: "Avg stop spacing: 205 m"
+          - 'link "STM 168 Cité-du-Havre Local Station McGill (R.-Bourassa / Président-Kennedy) Avg stop spacing: 380 m André-Prévost / Serge-Garant Avg stop spacing: 308 m" [ref=e1701] [cursor=pointer]':
+            - /url: /routes/0/168/speed
+            - generic [ref=e1702]:
+              - generic [ref=e1703]:
+                - generic [ref=e1704]:
+                  - generic [ref=e1705]: STM 168
+                  - generic [ref=e1706]: Cité-du-Havre
+                - generic [ref=e1707]: Local
+              - generic [ref=e1708]:
+                - generic [ref=e1709]:
+                  - generic [ref=e1710]: Station McGill (R.-Bourassa / Président-Kennedy)
+                  - generic [ref=e1712]: "Avg stop spacing: 380 m"
+                - generic [ref=e1713]:
+                  - generic [ref=e1714]: André-Prévost / Serge-Garant
+                  - generic [ref=e1716]: "Avg stop spacing: 308 m"
+          - 'link "STM 170 Keller Local Jean-Bourdon / Louis-Jadon Avg stop spacing: 240 m Station Côte-Vertu Avg stop spacing: 229 m" [ref=e1717] [cursor=pointer]':
+            - /url: /routes/0/170/speed
+            - generic [ref=e1718]:
+              - generic [ref=e1719]:
+                - generic [ref=e1720]:
+                  - generic [ref=e1721]: STM 170
+                  - generic [ref=e1722]: Keller
+                - generic [ref=e1723]: Local
+              - generic [ref=e1724]:
+                - generic [ref=e1725]:
+                  - generic [ref=e1726]: Jean-Bourdon / Louis-Jadon
+                  - generic [ref=e1728]: "Avg stop spacing: 240 m"
+                - generic [ref=e1729]:
+                  - generic [ref=e1730]: Station Côte-Vertu
+                  - generic [ref=e1732]: "Avg stop spacing: 229 m"
+          - 'link "STM 171 Henri-Bourassa Local Station Henri-Bourassa Avg stop spacing: 253 m Boucle Thimens Avg stop spacing: 263 m" [ref=e1733] [cursor=pointer]':
+            - /url: /routes/0/171/speed
+            - generic [ref=e1734]:
+              - generic [ref=e1735]:
+                - generic [ref=e1736]:
+                  - generic [ref=e1737]: STM 171
+                  - generic [ref=e1738]: Henri-Bourassa
+                - generic [ref=e1739]: Local
+              - generic [ref=e1740]:
+                - generic [ref=e1741]:
+                  - generic [ref=e1742]: Station Henri-Bourassa
+                  - generic [ref=e1744]: "Avg stop spacing: 253 m"
+                - generic [ref=e1745]:
+                  - generic [ref=e1746]: Boucle Thimens
+                  - generic [ref=e1748]: "Avg stop spacing: 263 m"
+          - 'link "STM 172 Du Golf Local Station Île-des-Soeurs Avg stop spacing: 243 m Station Île-des-Soeurs Avg stop spacing: 233 m" [ref=e1749] [cursor=pointer]':
+            - /url: /routes/0/172/speed
+            - generic [ref=e1750]:
+              - generic [ref=e1751]:
+                - generic [ref=e1752]:
+                  - generic [ref=e1753]: STM 172
+                  - generic [ref=e1754]: Du Golf
+                - generic [ref=e1755]: Local
+              - generic [ref=e1756]:
+                - generic [ref=e1757]:
+                  - generic [ref=e1758]: Station Île-des-Soeurs
+                  - generic [ref=e1760]: "Avg stop spacing: 243 m"
+                - generic [ref=e1761]:
+                  - generic [ref=e1762]: Station Île-des-Soeurs
+                  - generic [ref=e1764]: "Avg stop spacing: 233 m"
+          - 'link "STM 174 Côte-Vertu Local Station Côte-Vertu Avg stop spacing: 416 m Air Canada Avg stop spacing: 528 m" [ref=e1765] [cursor=pointer]':
+            - /url: /routes/0/174/speed
+            - generic [ref=e1766]:
+              - generic [ref=e1767]:
+                - generic [ref=e1768]:
+                  - generic [ref=e1769]: STM 174
+                  - generic [ref=e1770]: Côte-Vertu
+                - generic [ref=e1771]: Local
+              - generic [ref=e1772]:
+                - generic [ref=e1773]:
+                  - generic [ref=e1774]: Station Côte-Vertu
+                  - generic [ref=e1776]: "Avg stop spacing: 416 m"
+                - generic [ref=e1777]:
+                  - generic [ref=e1778]: Air Canada
+                  - generic [ref=e1780]: "Avg stop spacing: 528 m"
+          - 'link "STM 175 Griffith / Saint-François Local Station Du Collège (Ouimet / Saint-Louis) Avg stop spacing: 299 m Douglas-B.-Floreani / Grass Valley Avg stop spacing: 279 m" [ref=e1781] [cursor=pointer]':
+            - /url: /routes/0/175/speed
+            - generic [ref=e1782]:
+              - generic [ref=e1783]:
+                - generic [ref=e1784]:
+                  - generic [ref=e1785]: STM 175
+                  - generic [ref=e1786]: Griffith / Saint-François
+                - generic [ref=e1787]: Local
+              - generic [ref=e1788]:
+                - generic [ref=e1789]:
+                  - generic [ref=e1790]: Station Du Collège (Ouimet / Saint-Louis)
+                  - generic [ref=e1792]: "Avg stop spacing: 299 m"
+                - generic [ref=e1793]:
+                  - generic [ref=e1794]: Douglas-B.-Floreani / Grass Valley
+                  - generic [ref=e1796]: "Avg stop spacing: 279 m"
+          - 'link "STM 176 Berlioz Local Station Île-des-Soeurs Avg stop spacing: 282 m de la Pointe-Sud / No 250 Avg stop spacing: 234 m" [ref=e1797] [cursor=pointer]':
+            - /url: /routes/0/176/speed
+            - generic [ref=e1798]:
+              - generic [ref=e1799]:
+                - generic [ref=e1800]:
+                  - generic [ref=e1801]: STM 176
+                  - generic [ref=e1802]: Berlioz
+                - generic [ref=e1803]: Local
+              - generic [ref=e1804]:
+                - generic [ref=e1805]:
+                  - generic [ref=e1806]: Station Île-des-Soeurs
+                  - generic [ref=e1808]: "Avg stop spacing: 282 m"
+                - generic [ref=e1809]:
+                  - generic [ref=e1810]: de la Pointe-Sud / No 250
+                  - generic [ref=e1812]: "Avg stop spacing: 234 m"
+          - 'link "STM 177 Thimens Local Station Côte-Vertu Avg stop spacing: 313 m Guénette / Bois-Franc Avg stop spacing: 307 m" [ref=e1813] [cursor=pointer]':
+            - /url: /routes/0/177/speed
+            - generic [ref=e1814]:
+              - generic [ref=e1815]:
+                - generic [ref=e1816]:
+                  - generic [ref=e1817]: STM 177
+                  - generic [ref=e1818]: Thimens
+                - generic [ref=e1819]: Local
+              - generic [ref=e1820]:
+                - generic [ref=e1821]:
+                  - generic [ref=e1822]: Station Côte-Vertu
+                  - generic [ref=e1824]: "Avg stop spacing: 313 m"
+                - generic [ref=e1825]:
+                  - generic [ref=e1826]: Guénette / Bois-Franc
+                  - generic [ref=e1828]: "Avg stop spacing: 307 m"
+          - 'link "STM 179 De l''Acadie Local de l''Acadie / De Salaberry Avg stop spacing: 231 m Station Acadie (Beaumont / de l''Acadie) Avg stop spacing: 235 m" [ref=e1829] [cursor=pointer]':
+            - /url: /routes/0/179/speed
+            - generic [ref=e1830]:
+              - generic [ref=e1831]:
+                - generic [ref=e1832]:
+                  - generic [ref=e1833]: STM 179
+                  - generic [ref=e1834]: De l'Acadie
+                - generic [ref=e1835]: Local
+              - generic [ref=e1836]:
+                - generic [ref=e1837]:
+                  - generic [ref=e1838]: de l'Acadie / De Salaberry
+                  - generic [ref=e1840]: "Avg stop spacing: 231 m"
+                - generic [ref=e1841]:
+                  - generic [ref=e1842]: Station Acadie (Beaumont / de l'Acadie)
+                  - generic [ref=e1844]: "Avg stop spacing: 235 m"
+          - 'link "STM 180 De Salaberry Local Station Sauvé (Édicule Nord) Avg stop spacing: 254 m Vanier / Lachapelle Avg stop spacing: 263 m" [ref=e1845] [cursor=pointer]':
+            - /url: /routes/0/180/speed
+            - generic [ref=e1846]:
+              - generic [ref=e1847]:
+                - generic [ref=e1848]:
+                  - generic [ref=e1849]: STM 180
+                  - generic [ref=e1850]: De Salaberry
+                - generic [ref=e1851]: Local
+              - generic [ref=e1852]:
+                - generic [ref=e1853]:
+                  - generic [ref=e1854]: Station Sauvé (Édicule Nord)
+                  - generic [ref=e1856]: "Avg stop spacing: 254 m"
+                - generic [ref=e1857]:
+                  - generic [ref=e1858]: Vanier / Lachapelle
+                  - generic [ref=e1860]: "Avg stop spacing: 263 m"
+          - 'link "STM 183 Gouin Est Local Terminus Sherbrooke / Gouin Avg stop spacing: 411 m Robert-Chevalier / Sherbrooke Avg stop spacing: 461 m" [ref=e1861] [cursor=pointer]':
+            - /url: /routes/0/183/speed
+            - generic [ref=e1862]:
+              - generic [ref=e1863]:
+                - generic [ref=e1864]:
+                  - generic [ref=e1865]: STM 183
+                  - generic [ref=e1866]: Gouin Est
+                - generic [ref=e1867]: Local
+              - generic [ref=e1868]:
+                - generic [ref=e1869]:
+                  - generic [ref=e1870]: Terminus Sherbrooke / Gouin
+                  - generic [ref=e1872]: "Avg stop spacing: 411 m"
+                - generic [ref=e1873]:
+                  - generic [ref=e1874]: Robert-Chevalier / Sherbrooke
+                  - generic [ref=e1876]: "Avg stop spacing: 461 m"
+          - 'link "STM 185 Sherbrooke Local Bellerive / Mercier Avg stop spacing: 224 m du Havre / La Fontaine Avg stop spacing: 227 m" [ref=e1877] [cursor=pointer]':
+            - /url: /routes/0/185/speed
+            - generic [ref=e1878]:
+              - generic [ref=e1879]:
+                - generic [ref=e1880]:
+                  - generic [ref=e1881]: STM 185
+                  - generic [ref=e1882]: Sherbrooke
+                - generic [ref=e1883]: Local
+              - generic [ref=e1884]:
+                - generic [ref=e1885]:
+                  - generic [ref=e1886]: Bellerive / Mercier
+                  - generic [ref=e1888]: "Avg stop spacing: 224 m"
+                - generic [ref=e1889]:
+                  - generic [ref=e1890]: du Havre / La Fontaine
+                  - generic [ref=e1892]: "Avg stop spacing: 227 m"
+          - 'link "STM 186 Sherbrooke-Est Local Terminus Sherbrooke / Gouin Avg stop spacing: 275 m Station Honoré-Beaugrand Avg stop spacing: 273 m" [ref=e1893] [cursor=pointer]':
+            - /url: /routes/0/186/speed
+            - generic [ref=e1894]:
+              - generic [ref=e1895]:
+                - generic [ref=e1896]:
+                  - generic [ref=e1897]: STM 186
+                  - generic [ref=e1898]: Sherbrooke-Est
+                - generic [ref=e1899]: Local
+              - generic [ref=e1900]:
+                - generic [ref=e1901]:
+                  - generic [ref=e1902]: Terminus Sherbrooke / Gouin
+                  - generic [ref=e1904]: "Avg stop spacing: 275 m"
+                - generic [ref=e1905]:
+                  - generic [ref=e1906]: Station Honoré-Beaugrand
+                  - generic [ref=e1908]: "Avg stop spacing: 273 m"
+          - 'link "STM 187 René-Lévesque Local 42e Avenue / Henri-Bourassa Avg stop spacing: 271 m Station Honoré-Beaugrand Avg stop spacing: 271 m" [ref=e1909] [cursor=pointer]':
+            - /url: /routes/0/187/speed
+            - generic [ref=e1910]:
+              - generic [ref=e1911]:
+                - generic [ref=e1912]:
+                  - generic [ref=e1913]: STM 187
+                  - generic [ref=e1914]: René-Lévesque
+                - generic [ref=e1915]: Local
+              - generic [ref=e1916]:
+                - generic [ref=e1917]:
+                  - generic [ref=e1918]: 42e Avenue / Henri-Bourassa
+                  - generic [ref=e1920]: "Avg stop spacing: 271 m"
+                - generic [ref=e1921]:
+                  - generic [ref=e1922]: Station Honoré-Beaugrand
+                  - generic [ref=e1924]: "Avg stop spacing: 271 m"
+          - 'link "STM 188 Couture Local Couture / Picasso Avg stop spacing: 244 m Station Saint-Michel (Saint-Michel / Shaughnessy) Avg stop spacing: 258 m" [ref=e1925] [cursor=pointer]':
+            - /url: /routes/0/188/speed
+            - generic [ref=e1926]:
+              - generic [ref=e1927]:
+                - generic [ref=e1928]:
+                  - generic [ref=e1929]: STM 188
+                  - generic [ref=e1930]: Couture
+                - generic [ref=e1931]: Local
+              - generic [ref=e1932]:
+                - generic [ref=e1933]:
+                  - generic [ref=e1934]: Couture / Picasso
+                  - generic [ref=e1936]: "Avg stop spacing: 244 m"
+                - generic [ref=e1937]:
+                  - generic [ref=e1938]: Station Saint-Michel (Saint-Michel / Shaughnessy)
+                  - generic [ref=e1940]: "Avg stop spacing: 258 m"
+          - 'link "STM 189 Notre-Dame Local Sherbrooke / Gouin Avg stop spacing: 224 m Station Honoré-Beaugrand Avg stop spacing: 220 m" [ref=e1941] [cursor=pointer]':
+            - /url: /routes/0/189/speed
+            - generic [ref=e1942]:
+              - generic [ref=e1943]:
+                - generic [ref=e1944]:
+                  - generic [ref=e1945]: STM 189
+                  - generic [ref=e1946]: Notre-Dame
+                - generic [ref=e1947]: Local
+              - generic [ref=e1948]:
+                - generic [ref=e1949]:
+                  - generic [ref=e1950]: Sherbrooke / Gouin
+                  - generic [ref=e1952]: "Avg stop spacing: 224 m"
+                - generic [ref=e1953]:
+                  - generic [ref=e1954]: Station Honoré-Beaugrand
+                  - generic [ref=e1956]: "Avg stop spacing: 220 m"
+          - 'link "STM 190 Norman Local Station Lionel-Groulx Avg stop spacing: 336 m Croissant Claire / No 1150 Avg stop spacing: 326 m" [ref=e1957] [cursor=pointer]':
+            - /url: /routes/0/190/speed
+            - generic [ref=e1958]:
+              - generic [ref=e1959]:
+                - generic [ref=e1960]:
+                  - generic [ref=e1961]: STM 190
+                  - generic [ref=e1962]: Norman
+                - generic [ref=e1963]: Local
+              - generic [ref=e1964]:
+                - generic [ref=e1965]:
+                  - generic [ref=e1966]: Station Lionel-Groulx
+                  - generic [ref=e1968]: "Avg stop spacing: 336 m"
+                - generic [ref=e1969]:
+                  - generic [ref=e1970]: Croissant Claire / No 1150
+                  - generic [ref=e1972]: "Avg stop spacing: 326 m"
+          - 'link "STM 192 Robert Local Centre de transport Anjou Avg stop spacing: 243 m Station Crémazie Nord (Crémazie / Lajeunesse) Avg stop spacing: 239 m" [ref=e1973] [cursor=pointer]':
+            - /url: /routes/0/192/speed
+            - generic [ref=e1974]:
+              - generic [ref=e1975]:
+                - generic [ref=e1976]:
+                  - generic [ref=e1977]: STM 192
+                  - generic [ref=e1978]: Robert
+                - generic [ref=e1979]: Local
+              - generic [ref=e1980]:
+                - generic [ref=e1981]:
+                  - generic [ref=e1982]: Centre de transport Anjou
+                  - generic [ref=e1984]: "Avg stop spacing: 243 m"
+                - generic [ref=e1985]:
+                  - generic [ref=e1986]: Station Crémazie Nord (Crémazie / Lajeunesse)
+                  - generic [ref=e1988]: "Avg stop spacing: 239 m"
+          - 'link "STM 193 Jarry Local Jarry / Louis-Hippolyte-La Fontaine Avg stop spacing: 224 m Aréna Howie-Morenz (Querbes / No 8650) Avg stop spacing: 218 m" [ref=e1989] [cursor=pointer]':
+            - /url: /routes/0/193/speed
+            - generic [ref=e1990]:
+              - generic [ref=e1991]:
+                - generic [ref=e1992]:
+                  - generic [ref=e1993]: STM 193
+                  - generic [ref=e1994]: Jarry
+                - generic [ref=e1995]: Local
+              - generic [ref=e1996]:
+                - generic [ref=e1997]:
+                  - generic [ref=e1998]: Jarry / Louis-Hippolyte-La Fontaine
+                  - generic [ref=e2000]: "Avg stop spacing: 224 m"
+                - generic [ref=e2001]:
+                  - generic [ref=e2002]: Aréna Howie-Morenz (Querbes / No 8650)
+                  - generic [ref=e2004]: "Avg stop spacing: 218 m"
+          - 'link "STM 195 Dorval / Angrignon Local Station Angrignon Avg stop spacing: 246 m Terminus Dorval Avg stop spacing: 246 m" [ref=e2005] [cursor=pointer]':
+            - /url: /routes/0/195/speed
+            - generic [ref=e2006]:
+              - generic [ref=e2007]:
+                - generic [ref=e2008]:
+                  - generic [ref=e2009]: STM 195
+                  - generic [ref=e2010]: Dorval / Angrignon
+                - generic [ref=e2011]: Local
+              - generic [ref=e2012]:
+                - generic [ref=e2013]:
+                  - generic [ref=e2014]: Station Angrignon
+                  - generic [ref=e2016]: "Avg stop spacing: 246 m"
+                - generic [ref=e2017]:
+                  - generic [ref=e2018]: Terminus Dorval
+                  - generic [ref=e2020]: "Avg stop spacing: 246 m"
+          - 'link "STM 196 Parc-Industriel-Lachine Local Station Côte-Vertu (Gohier / Côte-Vertu) Avg stop spacing: 313 m Saint-Antoine / 32e Avenue Avg stop spacing: 308 m" [ref=e2021] [cursor=pointer]':
+            - /url: /routes/0/196/speed
+            - generic [ref=e2022]:
+              - generic [ref=e2023]:
+                - generic [ref=e2024]:
+                  - generic [ref=e2025]: STM 196
+                  - generic [ref=e2026]: Parc-Industriel-Lachine
+                - generic [ref=e2027]: Local
+              - generic [ref=e2028]:
+                - generic [ref=e2029]:
+                  - generic [ref=e2030]: Station Côte-Vertu (Gohier / Côte-Vertu)
+                  - generic [ref=e2032]: "Avg stop spacing: 313 m"
+                - generic [ref=e2033]:
+                  - generic [ref=e2034]: Saint-Antoine / 32e Avenue
+                  - generic [ref=e2036]: "Avg stop spacing: 308 m"
+          - 'link "STM 197 Rosemont Local Station Langelier (Langelier / Sherbrooke) Avg stop spacing: 226 m Station Rosemont Avg stop spacing: 217 m" [ref=e2037] [cursor=pointer]':
+            - /url: /routes/0/197/speed
+            - generic [ref=e2038]:
+              - generic [ref=e2039]:
+                - generic [ref=e2040]:
+                  - generic [ref=e2041]: STM 197
+                  - generic [ref=e2042]: Rosemont
+                - generic [ref=e2043]: Local
+              - generic [ref=e2044]:
+                - generic [ref=e2045]:
+                  - generic [ref=e2046]: Station Langelier (Langelier / Sherbrooke)
+                  - generic [ref=e2048]: "Avg stop spacing: 226 m"
+                - generic [ref=e2049]:
+                  - generic [ref=e2050]: Station Rosemont
+                  - generic [ref=e2052]: "Avg stop spacing: 217 m"
+          - 'link "STM 198 Broadway Local Station Angrignon Avg stop spacing: 292 m Terminus Dorval Avg stop spacing: 290 m" [ref=e2053] [cursor=pointer]':
+            - /url: /routes/0/198/speed
+            - generic [ref=e2054]:
+              - generic [ref=e2055]:
+                - generic [ref=e2056]:
+                  - generic [ref=e2057]: STM 198
+                  - generic [ref=e2058]: Broadway
+                - generic [ref=e2059]: Local
+              - generic [ref=e2060]:
+                - generic [ref=e2061]:
+                  - generic [ref=e2062]: Station Angrignon
+                  - generic [ref=e2064]: "Avg stop spacing: 292 m"
+                - generic [ref=e2065]:
+                  - generic [ref=e2066]: Terminus Dorval
+                  - generic [ref=e2068]: "Avg stop spacing: 290 m"
+          - 'link "STM 200 Sainte-Anne-de-Bellevue Local Terminus Fairview Avg stop spacing: 328 m Lakeshore / Macdonald Avg stop spacing: 325 m" [ref=e2069] [cursor=pointer]':
+            - /url: /routes/0/200/speed
+            - generic [ref=e2070]:
+              - generic [ref=e2071]:
+                - generic [ref=e2072]:
+                  - generic [ref=e2073]: STM 200
+                  - generic [ref=e2074]: Sainte-Anne-de-Bellevue
+                - generic [ref=e2075]: Local
+              - generic [ref=e2076]:
+                - generic [ref=e2077]:
+                  - generic [ref=e2078]: Terminus Fairview
+                  - generic [ref=e2080]: "Avg stop spacing: 328 m"
+                - generic [ref=e2081]:
+                  - generic [ref=e2082]: Lakeshore / Macdonald
+                  - generic [ref=e2084]: "Avg stop spacing: 325 m"
+          - 'link "STM 201 Saint-Charles / Saint-Jean Local Brunswick / CF Fairview Pointe-Claire Avg stop spacing: 337 m Auto Plaza / Brunswick Avg stop spacing: 320 m" [ref=e2085] [cursor=pointer]':
+            - /url: /routes/0/201/speed
+            - generic [ref=e2086]:
+              - generic [ref=e2087]:
+                - generic [ref=e2088]:
+                  - generic [ref=e2089]: STM 201
+                  - generic [ref=e2090]: Saint-Charles / Saint-Jean
+                - generic [ref=e2091]: Local
+              - generic [ref=e2092]:
+                - generic [ref=e2093]:
+                  - generic [ref=e2094]: Brunswick / CF Fairview Pointe-Claire
+                  - generic [ref=e2096]: "Avg stop spacing: 337 m"
+                - generic [ref=e2097]:
+                  - generic [ref=e2098]: Auto Plaza / Brunswick
+                  - generic [ref=e2100]: "Avg stop spacing: 320 m"
+          - 'link "STM 202 Dawson Local Station Du Collège (Cartier / Ouimet) Avg stop spacing: 314 m Terminus Fairview Avg stop spacing: 309 m" [ref=e2101] [cursor=pointer]':
+            - /url: /routes/0/202/speed
+            - generic [ref=e2102]:
+              - generic [ref=e2103]:
+                - generic [ref=e2104]:
+                  - generic [ref=e2105]: STM 202
+                  - generic [ref=e2106]: Dawson
+                - generic [ref=e2107]: Local
+              - generic [ref=e2108]:
+                - generic [ref=e2109]:
+                  - generic [ref=e2110]: Station Du Collège (Cartier / Ouimet)
+                  - generic [ref=e2112]: "Avg stop spacing: 314 m"
+                - generic [ref=e2113]:
+                  - generic [ref=e2114]: Terminus Fairview
+                  - generic [ref=e2116]: "Avg stop spacing: 309 m"
+          - 'link "STM 203 Carson Local Terminus Dorval Avg stop spacing: 286 m Terminus Fairview Avg stop spacing: 291 m" [ref=e2117] [cursor=pointer]':
+            - /url: /routes/0/203/speed
+            - generic [ref=e2118]:
+              - generic [ref=e2119]:
+                - generic [ref=e2120]:
+                  - generic [ref=e2121]: STM 203
+                  - generic [ref=e2122]: Carson
+                - generic [ref=e2123]: Local
+              - generic [ref=e2124]:
+                - generic [ref=e2125]:
+                  - generic [ref=e2126]: Terminus Dorval
+                  - generic [ref=e2128]: "Avg stop spacing: 286 m"
+                - generic [ref=e2129]:
+                  - generic [ref=e2130]: Terminus Fairview
+                  - generic [ref=e2132]: "Avg stop spacing: 291 m"
+          - 'link "STM 204 Cardinal Local Gare Dorval Avg stop spacing: 354 m Terminus Fairview Avg stop spacing: 337 m" [ref=e2133] [cursor=pointer]':
+            - /url: /routes/0/204/speed
+            - generic [ref=e2134]:
+              - generic [ref=e2135]:
+                - generic [ref=e2136]:
+                  - generic [ref=e2137]: STM 204
+                  - generic [ref=e2138]: Cardinal
+                - generic [ref=e2139]: Local
+              - generic [ref=e2140]:
+                - generic [ref=e2141]:
+                  - generic [ref=e2142]: Gare Dorval
+                  - generic [ref=e2144]: "Avg stop spacing: 354 m"
+                - generic [ref=e2145]:
+                  - generic [ref=e2146]: Terminus Fairview
+                  - generic [ref=e2148]: "Avg stop spacing: 337 m"
+          - 'link "STM 205 Gouin Local Station Pierrefonds-Roxboro Avg stop spacing: 265 m Terminus Fairview Avg stop spacing: 247 m" [ref=e2149] [cursor=pointer]':
+            - /url: /routes/0/205/speed
+            - generic [ref=e2150]:
+              - generic [ref=e2151]:
+                - generic [ref=e2152]:
+                  - generic [ref=e2153]: STM 205
+                  - generic [ref=e2154]: Gouin
+                - generic [ref=e2155]: Local
+              - generic [ref=e2156]:
+                - generic [ref=e2157]:
+                  - generic [ref=e2158]: Station Pierrefonds-Roxboro
+                  - generic [ref=e2160]: "Avg stop spacing: 265 m"
+                - generic [ref=e2161]:
+                  - generic [ref=e2162]: Terminus Fairview
+                  - generic [ref=e2164]: "Avg stop spacing: 247 m"
+          - 'link "STM 206 Roger-Pilon Local Station Pierrefonds-Roxboro Avg stop spacing: 299 m Terminus Fairview Avg stop spacing: 262 m" [ref=e2165] [cursor=pointer]':
+            - /url: /routes/0/206/speed
+            - generic [ref=e2166]:
+              - generic [ref=e2167]:
+                - generic [ref=e2168]:
+                  - generic [ref=e2169]: STM 206
+                  - generic [ref=e2170]: Roger-Pilon
+                - generic [ref=e2171]: Local
+              - generic [ref=e2172]:
+                - generic [ref=e2173]:
+                  - generic [ref=e2174]: Station Pierrefonds-Roxboro
+                  - generic [ref=e2176]: "Avg stop spacing: 299 m"
+                - generic [ref=e2177]:
+                  - generic [ref=e2178]: Terminus Fairview
+                  - generic [ref=e2180]: "Avg stop spacing: 262 m"
+          - 'link "STM 207 Jacques-Bizard Local Chevremont / Jacques-Bizard Avg stop spacing: 267 m Terminus Fairview Avg stop spacing: 262 m" [ref=e2181] [cursor=pointer]':
+            - /url: /routes/0/207/speed
+            - generic [ref=e2182]:
+              - generic [ref=e2183]:
+                - generic [ref=e2184]:
+                  - generic [ref=e2185]: STM 207
+                  - generic [ref=e2186]: Jacques-Bizard
+                - generic [ref=e2187]: Local
+              - generic [ref=e2188]:
+                - generic [ref=e2189]:
+                  - generic [ref=e2190]: Chevremont / Jacques-Bizard
+                  - generic [ref=e2192]: "Avg stop spacing: 267 m"
+                - generic [ref=e2193]:
+                  - generic [ref=e2194]: Terminus Fairview
+                  - generic [ref=e2196]: "Avg stop spacing: 262 m"
+          - 'link "STM 208 Brunswick Local Station Pierrefonds-Roxboro Avg stop spacing: 266 m Terminus Fairview Avg stop spacing: 261 m" [ref=e2197] [cursor=pointer]':
+            - /url: /routes/0/208/speed
+            - generic [ref=e2198]:
+              - generic [ref=e2199]:
+                - generic [ref=e2200]:
+                  - generic [ref=e2201]: STM 208
+                  - generic [ref=e2202]: Brunswick
+                - generic [ref=e2203]: Local
+              - generic [ref=e2204]:
+                - generic [ref=e2205]:
+                  - generic [ref=e2206]: Station Pierrefonds-Roxboro
+                  - generic [ref=e2208]: "Avg stop spacing: 266 m"
+                - generic [ref=e2209]:
+                  - generic [ref=e2210]: Terminus Fairview
+                  - generic [ref=e2212]: "Avg stop spacing: 261 m"
+          - 'link "STM 209 Des Sources / YUL Aéroport Local Station Pierrefonds-Roxboro Avg stop spacing: 369 m YUL Aéroport Montréal-Trudeau Avg stop spacing: 353 m" [ref=e2213] [cursor=pointer]':
+            - /url: /routes/0/209/speed
+            - generic [ref=e2214]:
+              - generic [ref=e2215]:
+                - generic [ref=e2216]:
+                  - generic [ref=e2217]: STM 209
+                  - generic [ref=e2218]: Des Sources / YUL Aéroport
+                - generic [ref=e2219]: Local
+              - generic [ref=e2220]:
+                - generic [ref=e2221]:
+                  - generic [ref=e2222]: Station Pierrefonds-Roxboro
+                  - generic [ref=e2224]: "Avg stop spacing: 369 m"
+                - generic [ref=e2225]:
+                  - generic [ref=e2226]: YUL Aéroport Montréal-Trudeau
+                  - generic [ref=e2228]: "Avg stop spacing: 353 m"
+          - 'link "STM 211 Bord-du-Lac Rapid Station Lionel-Groulx Avg stop spacing: 695 m Lakeshore / Macdonald Avg stop spacing: 693 m" [ref=e2229] [cursor=pointer]':
+            - /url: /routes/0/211/speed
+            - generic [ref=e2230]:
+              - generic [ref=e2231]:
+                - generic [ref=e2232]:
+                  - generic [ref=e2233]: STM 211
+                  - generic [ref=e2234]: Bord-du-Lac
+                - generic [ref=e2235]: Rapid
+              - generic [ref=e2236]:
+                - generic [ref=e2237]:
+                  - generic [ref=e2238]: Station Lionel-Groulx
+                  - generic [ref=e2240]: "Avg stop spacing: 695 m"
+                - generic [ref=e2241]:
+                  - generic [ref=e2242]: Lakeshore / Macdonald
+                  - generic [ref=e2244]: "Avg stop spacing: 693 m"
+          - 'link "STM 212 Sainte-Anne Local Station Anse-à-l''Orme Avg stop spacing: 408 m" [ref=e2245] [cursor=pointer]':
+            - /url: /routes/0/212/speed
+            - generic [ref=e2246]:
+              - generic [ref=e2247]:
+                - generic [ref=e2248]:
+                  - generic [ref=e2249]: STM 212
+                  - generic [ref=e2250]: Sainte-Anne
+                - generic [ref=e2251]: Local
+              - generic [ref=e2253]:
+                - generic [ref=e2254]: Station Anse-à-l'Orme
+                - generic [ref=e2256]: "Avg stop spacing: 408 m"
+          - 'link "STM 213 Parc-Industriel-Saint-Laurent Local Station Côte-Vertu Avg stop spacing: 360 m Place Riviera Avg stop spacing: 352 m" [ref=e2257] [cursor=pointer]':
+            - /url: /routes/0/213/speed
+            - generic [ref=e2258]:
+              - generic [ref=e2259]:
+                - generic [ref=e2260]:
+                  - generic [ref=e2261]: STM 213
+                  - generic [ref=e2262]: Parc-Industriel-Saint-Laurent
+                - generic [ref=e2263]: Local
+              - generic [ref=e2264]:
+                - generic [ref=e2265]:
+                  - generic [ref=e2266]: Station Côte-Vertu
+                  - generic [ref=e2268]: "Avg stop spacing: 360 m"
+                - generic [ref=e2269]:
+                  - generic [ref=e2270]: Place Riviera
+                  - generic [ref=e2272]: "Avg stop spacing: 352 m"
+          - 'link "STM 215 Henri-Bourassa Local Station Côte-Vertu Avg stop spacing: 316 m Terminus Fairview Avg stop spacing: 312 m" [ref=e2273] [cursor=pointer]':
+            - /url: /routes/0/215/speed
+            - generic [ref=e2274]:
+              - generic [ref=e2275]:
+                - generic [ref=e2276]:
+                  - generic [ref=e2277]: STM 215
+                  - generic [ref=e2278]: Henri-Bourassa
+                - generic [ref=e2279]: Local
+              - generic [ref=e2280]:
+                - generic [ref=e2281]:
+                  - generic [ref=e2282]: Station Côte-Vertu
+                  - generic [ref=e2284]: "Avg stop spacing: 316 m"
+                - generic [ref=e2285]:
+                  - generic [ref=e2286]: Terminus Fairview
+                  - generic [ref=e2288]: "Avg stop spacing: 312 m"
+          - 'link "STM 216 Transcanadienne Rapid Station Côte-Vertu Avg stop spacing: 590 m Terminus Fairview Avg stop spacing: 530 m" [ref=e2289] [cursor=pointer]':
+            - /url: /routes/0/216/speed
+            - generic [ref=e2290]:
+              - generic [ref=e2291]:
+                - generic [ref=e2292]:
+                  - generic [ref=e2293]: STM 216
+                  - generic [ref=e2294]: Transcanadienne
+                - generic [ref=e2295]: Rapid
+              - generic [ref=e2296]:
+                - generic [ref=e2297]:
+                  - generic [ref=e2298]: Station Côte-Vertu
+                  - generic [ref=e2300]: "Avg stop spacing: 590 m"
+                - generic [ref=e2301]:
+                  - generic [ref=e2302]: Terminus Fairview
+                  - generic [ref=e2304]: "Avg stop spacing: 530 m"
+          - 'link "STM 217 Anse-à-l''Orme Local Brunswick / Auto Plaza Avg stop spacing: 299 m de l''Anse-à-l''Orme / Timberlea-Trail Avg stop spacing: 325 m" [ref=e2305] [cursor=pointer]':
+            - /url: /routes/0/217/speed
+            - generic [ref=e2306]:
+              - generic [ref=e2307]:
+                - generic [ref=e2308]:
+                  - generic [ref=e2309]: STM 217
+                  - generic [ref=e2310]: Anse-à-l'Orme
+                - generic [ref=e2311]: Local
+              - generic [ref=e2312]:
+                - generic [ref=e2313]:
+                  - generic [ref=e2314]: Brunswick / Auto Plaza
+                  - generic [ref=e2316]: "Avg stop spacing: 299 m"
+                - generic [ref=e2317]:
+                  - generic [ref=e2318]: de l'Anse-à-l'Orme / Timberlea-Trail
+                  - generic [ref=e2320]: "Avg stop spacing: 325 m"
+          - 'link "STM 218 Antoine-Faucon Local Brunswick / Terminus Fairview Avg stop spacing: 304 m du Château-Pierrefonds / Oka Avg stop spacing: 324 m" [ref=e2321] [cursor=pointer]':
+            - /url: /routes/0/218/speed
+            - generic [ref=e2322]:
+              - generic [ref=e2323]:
+                - generic [ref=e2324]:
+                  - generic [ref=e2325]: STM 218
+                  - generic [ref=e2326]: Antoine-Faucon
+                - generic [ref=e2327]: Local
+              - generic [ref=e2328]:
+                - generic [ref=e2329]:
+                  - generic [ref=e2330]: Brunswick / Terminus Fairview
+                  - generic [ref=e2332]: "Avg stop spacing: 304 m"
+                - generic [ref=e2333]:
+                  - generic [ref=e2334]: du Château-Pierrefonds / Oka
+                  - generic [ref=e2336]: "Avg stop spacing: 324 m"
+          - 'link "STM 219 Chemin Sainte-Marie Local Brunswick / Auto Plaza Avg stop spacing: 379 m Rond-point Clark-Graham Avg stop spacing: 345 m" [ref=e2337] [cursor=pointer]':
+            - /url: /routes/0/219/speed
+            - generic [ref=e2338]:
+              - generic [ref=e2339]:
+                - generic [ref=e2340]:
+                  - generic [ref=e2341]: STM 219
+                  - generic [ref=e2342]: Chemin Sainte-Marie
+                - generic [ref=e2343]: Local
+              - generic [ref=e2344]:
+                - generic [ref=e2345]:
+                  - generic [ref=e2346]: Brunswick / Auto Plaza
+                  - generic [ref=e2348]: "Avg stop spacing: 379 m"
+                - generic [ref=e2349]:
+                  - generic [ref=e2350]: Rond-point Clark-Graham
+                  - generic [ref=e2352]: "Avg stop spacing: 345 m"
+          - 'link "STM 220 Kieran Rapid Station Du Collège (Ouimet / Saint-Louis) Avg stop spacing: 1.6 km Kieran / No 5600 Avg stop spacing: 1.3 km" [ref=e2353] [cursor=pointer]':
+            - /url: /routes/0/220/speed
+            - generic [ref=e2354]:
+              - generic [ref=e2355]:
+                - generic [ref=e2356]:
+                  - generic [ref=e2357]: STM 220
+                  - generic [ref=e2358]: Kieran
+                - generic [ref=e2359]: Rapid
+              - generic [ref=e2360]:
+                - generic [ref=e2361]:
+                  - generic [ref=e2362]: Station Du Collège (Ouimet / Saint-Louis)
+                  - generic [ref=e2364]: "Avg stop spacing: 1.6 km"
+                - generic [ref=e2365]:
+                  - generic [ref=e2366]: Kieran / No 5600
+                  - generic [ref=e2368]: "Avg stop spacing: 1.3 km"
+          - 'link "STM 225 Hymus Local Station Côte-Vertu Avg stop spacing: 325 m Terminus Fairview Avg stop spacing: 319 m" [ref=e2369] [cursor=pointer]':
+            - /url: /routes/0/225/speed
+            - generic [ref=e2370]:
+              - generic [ref=e2371]:
+                - generic [ref=e2372]:
+                  - generic [ref=e2373]: STM 225
+                  - generic [ref=e2374]: Hymus
+                - generic [ref=e2375]: Local
+              - generic [ref=e2376]:
+                - generic [ref=e2377]:
+                  - generic [ref=e2378]: Station Côte-Vertu
+                  - generic [ref=e2380]: "Avg stop spacing: 325 m"
+                - generic [ref=e2381]:
+                  - generic [ref=e2382]: Terminus Fairview
+                  - generic [ref=e2384]: "Avg stop spacing: 319 m"
+          - 'link "STM 350 Verdun / LaSalle Local Station Frontenac (du Havre / Ontario) Avg stop spacing: 272 m Terminus Lafleur / Newman Avg stop spacing: 263 m" [ref=e2385] [cursor=pointer]':
+            - /url: /routes/0/350/speed
+            - generic [ref=e2386]:
+              - generic [ref=e2387]:
+                - generic [ref=e2388]:
+                  - generic [ref=e2389]: STM 350
+                  - generic [ref=e2390]: Verdun / LaSalle
+                - generic [ref=e2391]: Local
+              - generic [ref=e2392]:
+                - generic [ref=e2393]:
+                  - generic [ref=e2394]: Station Frontenac (du Havre / Ontario)
+                  - generic [ref=e2396]: "Avg stop spacing: 272 m"
+                - generic [ref=e2397]:
+                  - generic [ref=e2398]: Terminus Lafleur / Newman
+                  - generic [ref=e2400]: "Avg stop spacing: 263 m"
+          - 'link "STM 353 Lacordaire / Maurice-Duplessis Local Maurice-Duplessis / Rivière-des-Prairies Avg stop spacing: 263 m Station Frontenac (du Havre / Ontario) Avg stop spacing: 260 m" [ref=e2401] [cursor=pointer]':
+            - /url: /routes/0/353/speed
+            - generic [ref=e2402]:
+              - generic [ref=e2403]:
+                - generic [ref=e2404]:
+                  - generic [ref=e2405]: STM 353
+                  - generic [ref=e2406]: Lacordaire / Maurice-Duplessis
+                - generic [ref=e2407]: Local
+              - generic [ref=e2408]:
+                - generic [ref=e2409]:
+                  - generic [ref=e2410]: Maurice-Duplessis / Rivière-des-Prairies
+                  - generic [ref=e2412]: "Avg stop spacing: 263 m"
+                - generic [ref=e2413]:
+                  - generic [ref=e2414]: Station Frontenac (du Havre / Ontario)
+                  - generic [ref=e2416]: "Avg stop spacing: 260 m"
+          - 'link "STM 354 Sainte-Anne-de-Bellevue / Centre-ville Express Station Atwater (Tupper / Atwater) Avg stop spacing: 1.5 km Gare Sainte-Anne-de-Bellevue Avg stop spacing: 2.3 km" [ref=e2417] [cursor=pointer]':
+            - /url: /routes/0/354/speed
+            - generic [ref=e2418]:
+              - generic [ref=e2419]:
+                - generic [ref=e2420]:
+                  - generic [ref=e2421]: STM 354
+                  - generic [ref=e2422]: Sainte-Anne-de-Bellevue / Centre-ville
+                - generic [ref=e2423]: Express
+              - generic [ref=e2424]:
+                - generic [ref=e2425]:
+                  - generic [ref=e2426]: Station Atwater (Tupper / Atwater)
+                  - generic [ref=e2428]: "Avg stop spacing: 1.5 km"
+                - generic [ref=e2429]:
+                  - generic [ref=e2430]: Gare Sainte-Anne-de-Bellevue
+                  - generic [ref=e2432]: "Avg stop spacing: 2.3 km"
+          - 'link "STM 355 Pie-IX Local Carrefour Henri-Bourassa / Pie-IX Avg stop spacing: 255 m Station Atwater Avg stop spacing: 236 m" [ref=e2433] [cursor=pointer]':
+            - /url: /routes/0/355/speed
+            - generic [ref=e2434]:
+              - generic [ref=e2435]:
+                - generic [ref=e2436]:
+                  - generic [ref=e2437]: STM 355
+                  - generic [ref=e2438]: Pie-IX
+                - generic [ref=e2439]: Local
+              - generic [ref=e2440]:
+                - generic [ref=e2441]:
+                  - generic [ref=e2442]: Carrefour Henri-Bourassa / Pie-IX
+                  - generic [ref=e2444]: "Avg stop spacing: 255 m"
+                - generic [ref=e2445]:
+                  - generic [ref=e2446]: Station Atwater
+                  - generic [ref=e2448]: "Avg stop spacing: 236 m"
+          - 'link "STM 356 Lachine / YUL Aéroport / Des Sources Local Station Frontenac (Frontenac / Ontario) Avg stop spacing: 290 m Station Sunnybrooke (Gouin / Sunnybrooke) Avg stop spacing: 295 m" [ref=e2449] [cursor=pointer]':
+            - /url: /routes/0/356/speed
+            - generic [ref=e2450]:
+              - generic [ref=e2451]:
+                - generic [ref=e2452]:
+                  - generic [ref=e2453]: STM 356
+                  - generic [ref=e2454]: Lachine / YUL Aéroport / Des Sources
+                - generic [ref=e2455]: Local
+              - generic [ref=e2456]:
+                - generic [ref=e2457]:
+                  - generic [ref=e2458]: Station Frontenac (Frontenac / Ontario)
+                  - generic [ref=e2460]: "Avg stop spacing: 290 m"
+                - generic [ref=e2461]:
+                  - generic [ref=e2462]: Station Sunnybrooke (Gouin / Sunnybrooke)
+                  - generic [ref=e2464]: "Avg stop spacing: 295 m"
+          - 'link "STM 357 Saint-Michel Local Saint-Michel / Henri-Bourassa Avg stop spacing: 245 m Station Frontenac (Frontenac / Ontario) Avg stop spacing: 228 m" [ref=e2465] [cursor=pointer]':
+            - /url: /routes/0/357/speed
+            - generic [ref=e2466]:
+              - generic [ref=e2467]:
+                - generic [ref=e2468]:
+                  - generic [ref=e2469]: STM 357
+                  - generic [ref=e2470]: Saint-Michel
+                - generic [ref=e2471]: Local
+              - generic [ref=e2472]:
+                - generic [ref=e2473]:
+                  - generic [ref=e2474]: Saint-Michel / Henri-Bourassa
+                  - generic [ref=e2476]: "Avg stop spacing: 245 m"
+                - generic [ref=e2477]:
+                  - generic [ref=e2478]: Station Frontenac (Frontenac / Ontario)
+                  - generic [ref=e2480]: "Avg stop spacing: 228 m"
+          - 'link "STM 358 René-Lévesque Local Station Frontenac (Frontenac / Ontario) Avg stop spacing: 227 m Station Atwater (Sainte-Catherine / Atwater) Avg stop spacing: 195 m" [ref=e2481] [cursor=pointer]':
+            - /url: /routes/0/358/speed
+            - generic [ref=e2482]:
+              - generic [ref=e2483]:
+                - generic [ref=e2484]:
+                  - generic [ref=e2485]: STM 358
+                  - generic [ref=e2486]: René-Lévesque
+                - generic [ref=e2487]: Local
+              - generic [ref=e2488]:
+                - generic [ref=e2489]:
+                  - generic [ref=e2490]: Station Frontenac (Frontenac / Ontario)
+                  - generic [ref=e2492]: "Avg stop spacing: 227 m"
+                - generic [ref=e2493]:
+                  - generic [ref=e2494]: Station Atwater (Sainte-Catherine / Atwater)
+                  - generic [ref=e2496]: "Avg stop spacing: 195 m"
+          - 'link "STM 359 Papineau Local Henri-Bourassa / Séguin Avg stop spacing: 257 m Station Papineau (Cartier / Sainte-Catherine) Avg stop spacing: 249 m" [ref=e2497] [cursor=pointer]':
+            - /url: /routes/0/359/speed
+            - generic [ref=e2498]:
+              - generic [ref=e2499]:
+                - generic [ref=e2500]:
+                  - generic [ref=e2501]: STM 359
+                  - generic [ref=e2502]: Papineau
+                - generic [ref=e2503]: Local
+              - generic [ref=e2504]:
+                - generic [ref=e2505]:
+                  - generic [ref=e2506]: Henri-Bourassa / Séguin
+                  - generic [ref=e2508]: "Avg stop spacing: 257 m"
+                - generic [ref=e2509]:
+                  - generic [ref=e2510]: Station Papineau (Cartier / Sainte-Catherine)
+                  - generic [ref=e2512]: "Avg stop spacing: 249 m"
+          - 'link "STM 360 Avenue des Pins Local Station Frontenac (Frontenac / Ontario) Avg stop spacing: 205 m Station Atwater (Atwater / Tupper) Avg stop spacing: 200 m" [ref=e2513] [cursor=pointer]':
+            - /url: /routes/0/360/speed
+            - generic [ref=e2514]:
+              - generic [ref=e2515]:
+                - generic [ref=e2516]:
+                  - generic [ref=e2517]: STM 360
+                  - generic [ref=e2518]: Avenue des Pins
+                - generic [ref=e2519]: Local
+              - generic [ref=e2520]:
+                - generic [ref=e2521]:
+                  - generic [ref=e2522]: Station Frontenac (Frontenac / Ontario)
+                  - generic [ref=e2524]: "Avg stop spacing: 205 m"
+                - generic [ref=e2525]:
+                  - generic [ref=e2526]: Station Atwater (Atwater / Tupper)
+                  - generic [ref=e2528]: "Avg stop spacing: 200 m"
+          - 'link "STM 361 Saint-Denis Local Station Henri-Bourassa Avg stop spacing: 248 m Saint-Antoine / de la Place-d''Armes Avg stop spacing: 258 m" [ref=e2529] [cursor=pointer]':
+            - /url: /routes/0/361/speed
+            - generic [ref=e2530]:
+              - generic [ref=e2531]:
+                - generic [ref=e2532]:
+                  - generic [ref=e2533]: STM 361
+                  - generic [ref=e2534]: Saint-Denis
+                - generic [ref=e2535]: Local
+              - generic [ref=e2536]:
+                - generic [ref=e2537]:
+                  - generic [ref=e2538]: Station Henri-Bourassa
+                  - generic [ref=e2540]: "Avg stop spacing: 248 m"
+                - generic [ref=e2541]:
+                  - generic [ref=e2542]: Saint-Antoine / de la Place-d'Armes
+                  - generic [ref=e2544]: "Avg stop spacing: 258 m"
+          - 'link "STM 362 Hochelaga / Notre-Dame Local 100e Avenue / Bureau Avg stop spacing: 224 m Station Frontenac (Frontenac / Ontario) Avg stop spacing: 224 m" [ref=e2545] [cursor=pointer]':
+            - /url: /routes/0/362/speed
+            - generic [ref=e2546]:
+              - generic [ref=e2547]:
+                - generic [ref=e2548]:
+                  - generic [ref=e2549]: STM 362
+                  - generic [ref=e2550]: Hochelaga / Notre-Dame
+                - generic [ref=e2551]: Local
+              - generic [ref=e2552]:
+                - generic [ref=e2553]:
+                  - generic [ref=e2554]: 100e Avenue / Bureau
+                  - generic [ref=e2556]: "Avg stop spacing: 224 m"
+                - generic [ref=e2557]:
+                  - generic [ref=e2558]: Station Frontenac (Frontenac / Ontario)
+                  - generic [ref=e2560]: "Avg stop spacing: 224 m"
+          - 'link "STM 363 Boulevard Saint-Laurent Local Station Henri-Bourassa Avg stop spacing: 229 m Saint-Antoine / de la Place-d''Armes Avg stop spacing: 247 m" [ref=e2561] [cursor=pointer]':
+            - /url: /routes/0/363/speed
+            - generic [ref=e2562]:
+              - generic [ref=e2563]:
+                - generic [ref=e2564]:
+                  - generic [ref=e2565]: STM 363
+                  - generic [ref=e2566]: Boulevard Saint-Laurent
+                - generic [ref=e2567]: Local
+              - generic [ref=e2568]:
+                - generic [ref=e2569]:
+                  - generic [ref=e2570]: Station Henri-Bourassa
+                  - generic [ref=e2572]: "Avg stop spacing: 229 m"
+                - generic [ref=e2573]:
+                  - generic [ref=e2574]: Saint-Antoine / de la Place-d'Armes
+                  - generic [ref=e2576]: "Avg stop spacing: 247 m"
+          - 'link "STM 364 Sherbrooke / Joseph-Renaud Local Centre de transport Anjou Avg stop spacing: 248 m Station Atwater (Ste-Catherine / Lambert-Closse) Avg stop spacing: 241 m" [ref=e2577] [cursor=pointer]':
+            - /url: /routes/0/364/speed
+            - generic [ref=e2578]:
+              - generic [ref=e2579]:
+                - generic [ref=e2580]:
+                  - generic [ref=e2581]: STM 364
+                  - generic [ref=e2582]: Sherbrooke / Joseph-Renaud
+                - generic [ref=e2583]: Local
+              - generic [ref=e2584]:
+                - generic [ref=e2585]:
+                  - generic [ref=e2586]: Centre de transport Anjou
+                  - generic [ref=e2588]: "Avg stop spacing: 248 m"
+                - generic [ref=e2589]:
+                  - generic [ref=e2590]: Station Atwater (Ste-Catherine / Lambert-Closse)
+                  - generic [ref=e2592]: "Avg stop spacing: 241 m"
+          - 'link "STM 365 Avenue du Parc Local Vanier / Lachapelle Avg stop spacing: 281 m Saint-Antoine / Saint-Urbain Avg stop spacing: 259 m" [ref=e2593] [cursor=pointer]':
+            - /url: /routes/0/365/speed
+            - generic [ref=e2594]:
+              - generic [ref=e2595]:
+                - generic [ref=e2596]:
+                  - generic [ref=e2597]: STM 365
+                  - generic [ref=e2598]: Avenue du Parc
+                - generic [ref=e2599]: Local
+              - generic [ref=e2600]:
+                - generic [ref=e2601]:
+                  - generic [ref=e2602]: Vanier / Lachapelle
+                  - generic [ref=e2604]: "Avg stop spacing: 281 m"
+                - generic [ref=e2605]:
+                  - generic [ref=e2606]: Saint-Antoine / Saint-Urbain
+                  - generic [ref=e2608]: "Avg stop spacing: 259 m"
+          - 'link "STM 368 Avenue-du-Mont-Royal Local Station Frontenac (Frontenac / Ontario) Avg stop spacing: 229 m Station Côte-Vertu Avg stop spacing: 214 m" [ref=e2609] [cursor=pointer]':
+            - /url: /routes/0/368/speed
+            - generic [ref=e2610]:
+              - generic [ref=e2611]:
+                - generic [ref=e2612]:
+                  - generic [ref=e2613]: STM 368
+                  - generic [ref=e2614]: Avenue-du-Mont-Royal
+                - generic [ref=e2615]: Local
+              - generic [ref=e2616]:
+                - generic [ref=e2617]:
+                  - generic [ref=e2618]: Station Frontenac (Frontenac / Ontario)
+                  - generic [ref=e2620]: "Avg stop spacing: 229 m"
+                - generic [ref=e2621]:
+                  - generic [ref=e2622]: Station Côte-Vertu
+                  - generic [ref=e2624]: "Avg stop spacing: 214 m"
+          - 'link "STM 369 Côte-des-Neiges Local Station Namur (Jean-Talon / Décarie) Avg stop spacing: 226 m Station Atwater Avg stop spacing: 220 m" [ref=e2625] [cursor=pointer]':
+            - /url: /routes/0/369/speed
+            - generic [ref=e2626]:
+              - generic [ref=e2627]:
+                - generic [ref=e2628]:
+                  - generic [ref=e2629]: STM 369
+                  - generic [ref=e2630]: Côte-des-Neiges
+                - generic [ref=e2631]: Local
+              - generic [ref=e2632]:
+                - generic [ref=e2633]:
+                  - generic [ref=e2634]: Station Namur (Jean-Talon / Décarie)
+                  - generic [ref=e2636]: "Avg stop spacing: 226 m"
+                - generic [ref=e2637]:
+                  - generic [ref=e2638]: Station Atwater
+                  - generic [ref=e2640]: "Avg stop spacing: 220 m"
+          - 'link "STM 370 Rosemont Local Station Honoré-Beaugrand / Terminus Sud Avg stop spacing: 228 m Kildare / Westminster Avg stop spacing: 233 m" [ref=e2641] [cursor=pointer]':
+            - /url: /routes/0/370/speed
+            - generic [ref=e2642]:
+              - generic [ref=e2643]:
+                - generic [ref=e2644]:
+                  - generic [ref=e2645]: STM 370
+                  - generic [ref=e2646]: Rosemont
+                - generic [ref=e2647]: Local
+              - generic [ref=e2648]:
+                - generic [ref=e2649]:
+                  - generic [ref=e2650]: Station Honoré-Beaugrand / Terminus Sud
+                  - generic [ref=e2652]: "Avg stop spacing: 228 m"
+                - generic [ref=e2653]:
+                  - generic [ref=e2654]: Kildare / Westminster
+                  - generic [ref=e2656]: "Avg stop spacing: 233 m"
+          - 'link "STM 371 Décarie Local Centre de transport St-Laurent (Guénette / Cousens Avg stop spacing: 261 m Station Atwater (Ste-Catherine / Lambert-Closse) Avg stop spacing: 275 m" [ref=e2657] [cursor=pointer]':
+            - /url: /routes/0/371/speed
+            - generic [ref=e2658]:
+              - generic [ref=e2659]:
+                - generic [ref=e2660]:
+                  - generic [ref=e2661]: STM 371
+                  - generic [ref=e2662]: Décarie
+                - generic [ref=e2663]: Local
+              - generic [ref=e2664]:
+                - generic [ref=e2665]:
+                  - generic [ref=e2666]: Centre de transport St-Laurent (Guénette / Cousens
+                  - generic [ref=e2668]: "Avg stop spacing: 261 m"
+                - generic [ref=e2669]:
+                  - generic [ref=e2670]: Station Atwater (Ste-Catherine / Lambert-Closse)
+                  - generic [ref=e2672]: "Avg stop spacing: 275 m"
+          - 'link "STM 372 Jean-Talon Local Maurice-Duplessis / Rivière-des-Prairies Avg stop spacing: 237 m Station Namur (Jean-Talon / Décarie) Avg stop spacing: 243 m" [ref=e2673] [cursor=pointer]':
+            - /url: /routes/0/372/speed
+            - generic [ref=e2674]:
+              - generic [ref=e2675]:
+                - generic [ref=e2676]:
+                  - generic [ref=e2677]: STM 372
+                  - generic [ref=e2678]: Jean-Talon
+                - generic [ref=e2679]: Local
+              - generic [ref=e2680]:
+                - generic [ref=e2681]:
+                  - generic [ref=e2682]: Maurice-Duplessis / Rivière-des-Prairies
+                  - generic [ref=e2684]: "Avg stop spacing: 237 m"
+                - generic [ref=e2685]:
+                  - generic [ref=e2686]: Station Namur (Jean-Talon / Décarie)
+                  - generic [ref=e2688]: "Avg stop spacing: 243 m"
+          - 'link "STM 376 Pierrefonds / Centre-ville Rapid Station Atwater (Tupper / Atwater) Avg stop spacing: 631 m de Pierrefonds / Saint-Charles Avg stop spacing: 606 m" [ref=e2689] [cursor=pointer]':
+            - /url: /routes/0/376/speed
+            - generic [ref=e2690]:
+              - generic [ref=e2691]:
+                - generic [ref=e2692]:
+                  - generic [ref=e2693]: STM 376
+                  - generic [ref=e2694]: Pierrefonds / Centre-ville
+                - generic [ref=e2695]: Rapid
+              - generic [ref=e2696]:
+                - generic [ref=e2697]:
+                  - generic [ref=e2698]: Station Atwater (Tupper / Atwater)
+                  - generic [ref=e2700]: "Avg stop spacing: 631 m"
+                - generic [ref=e2701]:
+                  - generic [ref=e2702]: de Pierrefonds / Saint-Charles
+                  - generic [ref=e2704]: "Avg stop spacing: 606 m"
+          - 'link "STM 378 Sauvé / YUL Aéroport Local Saint-Michel / Sauvé Avg stop spacing: 299 m YUL Aéroport Montréal-Trudeau Avg stop spacing: 281 m" [ref=e2705] [cursor=pointer]':
+            - /url: /routes/0/378/speed
+            - generic [ref=e2706]:
+              - generic [ref=e2707]:
+                - generic [ref=e2708]:
+                  - generic [ref=e2709]: STM 378
+                  - generic [ref=e2710]: Sauvé / YUL Aéroport
+                - generic [ref=e2711]: Local
+              - generic [ref=e2712]:
+                - generic [ref=e2713]:
+                  - generic [ref=e2714]: Saint-Michel / Sauvé
+                  - generic [ref=e2716]: "Avg stop spacing: 299 m"
+                - generic [ref=e2717]:
+                  - generic [ref=e2718]: YUL Aéroport Montréal-Trudeau
+                  - generic [ref=e2720]: "Avg stop spacing: 281 m"
+          - 'link "STM 380 Henri-Bourassa Local L.-J.- Forget / Larrey Avg stop spacing: 266 m Stinson / Montpellier Avg stop spacing: 282 m" [ref=e2721] [cursor=pointer]':
+            - /url: /routes/0/380/speed
+            - generic [ref=e2722]:
+              - generic [ref=e2723]:
+                - generic [ref=e2724]:
+                  - generic [ref=e2725]: STM 380
+                  - generic [ref=e2726]: Henri-Bourassa
+                - generic [ref=e2727]: Local
+              - generic [ref=e2728]:
+                - generic [ref=e2729]:
+                  - generic [ref=e2730]: L.-J.- Forget / Larrey
+                  - generic [ref=e2732]: "Avg stop spacing: 266 m"
+                - generic [ref=e2733]:
+                  - generic [ref=e2734]: Stinson / Montpellier
+                  - generic [ref=e2736]: "Avg stop spacing: 282 m"
+          - 'link "STM 382 Pierrefonds / Saint-Charles Local Station Namur (Jean-Talon / Décarie) Avg stop spacing: 287 m Gare Beaconsfield Avg stop spacing: 284 m" [ref=e2737] [cursor=pointer]':
+            - /url: /routes/0/382/speed
+            - generic [ref=e2738]:
+              - generic [ref=e2739]:
+                - generic [ref=e2740]:
+                  - generic [ref=e2741]: STM 382
+                  - generic [ref=e2742]: Pierrefonds / Saint-Charles
+                - generic [ref=e2743]: Local
+              - generic [ref=e2744]:
+                - generic [ref=e2745]:
+                  - generic [ref=e2746]: Station Namur (Jean-Talon / Décarie)
+                  - generic [ref=e2748]: "Avg stop spacing: 287 m"
+                - generic [ref=e2749]:
+                  - generic [ref=e2750]: Gare Beaconsfield
+                  - generic [ref=e2752]: "Avg stop spacing: 284 m"
+          - 'link "STM 401 Express Saint-Charles Local Cégep Gérald-Godin Avg stop spacing: 350 m Gare Beaconsfield Avg stop spacing: 335 m" [ref=e2753] [cursor=pointer]':
+            - /url: /routes/0/401/speed
+            - generic [ref=e2754]:
+              - generic [ref=e2755]:
+                - generic [ref=e2756]:
+                  - generic [ref=e2757]: STM 401
+                  - generic [ref=e2758]: Express Saint-Charles
+                - generic [ref=e2759]: Local
+              - generic [ref=e2760]:
+                - generic [ref=e2761]:
+                  - generic [ref=e2762]: Cégep Gérald-Godin
+                  - generic [ref=e2764]: "Avg stop spacing: 350 m"
+                - generic [ref=e2765]:
+                  - generic [ref=e2766]: Gare Beaconsfield
+                  - generic [ref=e2768]: "Avg stop spacing: 335 m"
+          - 'link "STM 405 Express Bord-du-Lac Rapid Station Lionel-Groulx Avg stop spacing: 992 m Lakeshore / Macdonald Avg stop spacing: 993 m" [ref=e2769] [cursor=pointer]':
+            - /url: /routes/0/405/speed
+            - generic [ref=e2770]:
+              - generic [ref=e2771]:
+                - generic [ref=e2772]:
+                  - generic [ref=e2773]: STM 405
+                  - generic [ref=e2774]: Express Bord-du-Lac
+                - generic [ref=e2775]: Rapid
+              - generic [ref=e2776]:
+                - generic [ref=e2777]:
+                  - generic [ref=e2778]: Station Lionel-Groulx
+                  - generic [ref=e2780]: "Avg stop spacing: 992 m"
+                - generic [ref=e2781]:
+                  - generic [ref=e2782]: Lakeshore / Macdonald
+                  - generic [ref=e2784]: "Avg stop spacing: 993 m"
+          - 'link "STM 407 Express Île-Bizard Local Station Pierrefonds-Roxboro Avg stop spacing: 437 m Chevremont / Jacques-Bizard Avg stop spacing: 342 m" [ref=e2785] [cursor=pointer]':
+            - /url: /routes/0/407/speed
+            - generic [ref=e2786]:
+              - generic [ref=e2787]:
+                - generic [ref=e2788]:
+                  - generic [ref=e2789]: STM 407
+                  - generic [ref=e2790]: Express Île-Bizard
+                - generic [ref=e2791]: Local
+              - generic [ref=e2792]:
+                - generic [ref=e2793]:
+                  - generic [ref=e2794]: Station Pierrefonds-Roxboro
+                  - generic [ref=e2796]: "Avg stop spacing: 437 m"
+                - generic [ref=e2797]:
+                  - generic [ref=e2798]: Chevremont / Jacques-Bizard
+                  - generic [ref=e2800]: "Avg stop spacing: 342 m"
+          - 'link "STM 409 Express Des Sources Local Anselme-Lavigne / No 14103 Avg stop spacing: 454 m Station Du Collège (Ouimet / Cartier) Avg stop spacing: 405 m" [ref=e2801] [cursor=pointer]':
+            - /url: /routes/0/409/speed
+            - generic [ref=e2802]:
+              - generic [ref=e2803]:
+                - generic [ref=e2804]:
+                  - generic [ref=e2805]: STM 409
+                  - generic [ref=e2806]: Express Des Sources
+                - generic [ref=e2807]: Local
+              - generic [ref=e2808]:
+                - generic [ref=e2809]:
+                  - generic [ref=e2810]: Anselme-Lavigne / No 14103
+                  - generic [ref=e2812]: "Avg stop spacing: 454 m"
+                - generic [ref=e2813]:
+                  - generic [ref=e2814]: Station Du Collège (Ouimet / Cartier)
+                  - generic [ref=e2816]: "Avg stop spacing: 405 m"
+          - 'link "STM 410 Express Notre-Dame Rapid 100e Avenue / Bureau Avg stop spacing: 685 m Lucien-L''Allier / René-Lévesque Avg stop spacing: 653 m" [ref=e2817] [cursor=pointer]':
+            - /url: /routes/0/410/speed
+            - generic [ref=e2818]:
+              - generic [ref=e2819]:
+                - generic [ref=e2820]:
+                  - generic [ref=e2821]: STM 410
+                  - generic [ref=e2822]: Express Notre-Dame
+                - generic [ref=e2823]: Rapid
+              - generic [ref=e2824]:
+                - generic [ref=e2825]:
+                  - generic [ref=e2826]: 100e Avenue / Bureau
+                  - generic [ref=e2828]: "Avg stop spacing: 685 m"
+                - generic [ref=e2829]:
+                  - generic [ref=e2830]: Lucien-L'Allier / René-Lévesque
+                  - generic [ref=e2832]: "Avg stop spacing: 653 m"
+          - 'link "STM 411 Express Lionel-Groulx Express Station Lionel-Groulx / Saint-Jacques Avg stop spacing: 2.4 km Lakeshore / Macdonald Avg stop spacing: 1.5 km" [ref=e2833] [cursor=pointer]':
+            - /url: /routes/0/411/speed
+            - generic [ref=e2834]:
+              - generic [ref=e2835]:
+                - generic [ref=e2836]:
+                  - generic [ref=e2837]: STM 411
+                  - generic [ref=e2838]: Express Lionel-Groulx
+                - generic [ref=e2839]: Express
+              - generic [ref=e2840]:
+                - generic [ref=e2841]:
+                  - generic [ref=e2842]: Station Lionel-Groulx / Saint-Jacques
+                  - generic [ref=e2844]: "Avg stop spacing: 2.4 km"
+                - generic [ref=e2845]:
+                  - generic [ref=e2846]: Lakeshore / Macdonald
+                  - generic [ref=e2848]: "Avg stop spacing: 1.5 km"
+          - 'link "STM 419 Express John Abbott Rapid Brunswick / Terminus Fairview Avg stop spacing: 608 m Collège John Abbott Avg stop spacing: 649 m" [ref=e2849] [cursor=pointer]':
+            - /url: /routes/0/419/speed
+            - generic [ref=e2850]:
+              - generic [ref=e2851]:
+                - generic [ref=e2852]:
+                  - generic [ref=e2853]: STM 419
+                  - generic [ref=e2854]: Express John Abbott
+                - generic [ref=e2855]: Rapid
+              - generic [ref=e2856]:
+                - generic [ref=e2857]:
+                  - generic [ref=e2858]: Brunswick / Terminus Fairview
+                  - generic [ref=e2860]: "Avg stop spacing: 608 m"
+                - generic [ref=e2861]:
+                  - generic [ref=e2862]: Collège John Abbott
+                  - generic [ref=e2864]: "Avg stop spacing: 649 m"
+          - 'link "STM 420 Express Notre-Dame-de-Grâce Rapid Torrance / de la Montagne Avg stop spacing: 645 m Côte-Saint-Luc / Westminster Avg stop spacing: 586 m" [ref=e2865] [cursor=pointer]':
+            - /url: /routes/0/420/speed
+            - generic [ref=e2866]:
+              - generic [ref=e2867]:
+                - generic [ref=e2868]:
+                  - generic [ref=e2869]: STM 420
+                  - generic [ref=e2870]: Express Notre-Dame-de-Grâce
+                - generic [ref=e2871]: Rapid
+              - generic [ref=e2872]:
+                - generic [ref=e2873]:
+                  - generic [ref=e2874]: Torrance / de la Montagne
+                  - generic [ref=e2876]: "Avg stop spacing: 645 m"
+                - generic [ref=e2877]:
+                  - generic [ref=e2878]: Côte-Saint-Luc / Westminster
+                  - generic [ref=e2880]: "Avg stop spacing: 586 m"
+          - 'link "STM 425 Express Anse-à-l''Orme Rapid Station Lionel-Groulx Avg stop spacing: 907 m de l''Anse-à-l''Orme / Timberlea-Trail Avg stop spacing: 859 m" [ref=e2881] [cursor=pointer]':
+            - /url: /routes/0/425/speed
+            - generic [ref=e2882]:
+              - generic [ref=e2883]:
+                - generic [ref=e2884]:
+                  - generic [ref=e2885]: STM 425
+                  - generic [ref=e2886]: Express Anse-à-l'Orme
+                - generic [ref=e2887]: Rapid
+              - generic [ref=e2888]:
+                - generic [ref=e2889]:
+                  - generic [ref=e2890]: Station Lionel-Groulx
+                  - generic [ref=e2892]: "Avg stop spacing: 907 m"
+                - generic [ref=e2893]:
+                  - generic [ref=e2894]: de l'Anse-à-l'Orme / Timberlea-Trail
+                  - generic [ref=e2896]: "Avg stop spacing: 859 m"
+          - 'link "STM 428 Express Parcs industriels de l''Est Local Gare Rivière-des-Prairies Avg stop spacing: 470 m Station Radisson (Des Groseilliers / Sherbrooke) Avg stop spacing: 414 m" [ref=e2897] [cursor=pointer]':
+            - /url: /routes/0/428/speed
+            - generic [ref=e2898]:
+              - generic [ref=e2899]:
+                - generic [ref=e2900]:
+                  - generic [ref=e2901]: STM 428
+                  - generic [ref=e2902]: Express Parcs industriels de l'Est
+                - generic [ref=e2903]: Local
+              - generic [ref=e2904]:
+                - generic [ref=e2905]:
+                  - generic [ref=e2906]: Gare Rivière-des-Prairies
+                  - generic [ref=e2908]: "Avg stop spacing: 470 m"
+                - generic [ref=e2909]:
+                  - generic [ref=e2910]: Station Radisson (Des Groseilliers / Sherbrooke)
+                  - generic [ref=e2912]: "Avg stop spacing: 414 m"
+          - 'link "STM 430 Express Pointe-aux-Trembles Rapid 81e Avenue / Notre-Dame Avg stop spacing: 744 m Lucien-L''Allier / René-Lévesque Avg stop spacing: 727 m" [ref=e2913] [cursor=pointer]':
+            - /url: /routes/0/430/speed
+            - generic [ref=e2914]:
+              - generic [ref=e2915]:
+                - generic [ref=e2916]:
+                  - generic [ref=e2917]: STM 430
+                  - generic [ref=e2918]: Express Pointe-aux-Trembles
+                - generic [ref=e2919]: Rapid
+              - generic [ref=e2920]:
+                - generic [ref=e2921]:
+                  - generic [ref=e2922]: 81e Avenue / Notre-Dame
+                  - generic [ref=e2924]: "Avg stop spacing: 744 m"
+                - generic [ref=e2925]:
+                  - generic [ref=e2926]: Lucien-L'Allier / René-Lévesque
+                  - generic [ref=e2928]: "Avg stop spacing: 727 m"
+          - 'link "STM 432 Express Lacordaire Local Perras / Armand-Bombardier Avg stop spacing: 399 m Station Cadillac (Sherbrooke / Duquesne) Avg stop spacing: 414 m" [ref=e2929] [cursor=pointer]':
+            - /url: /routes/0/432/speed
+            - generic [ref=e2930]:
+              - generic [ref=e2931]:
+                - generic [ref=e2932]:
+                  - generic [ref=e2933]: STM 432
+                  - generic [ref=e2934]: Express Lacordaire
+                - generic [ref=e2935]: Local
+              - generic [ref=e2936]:
+                - generic [ref=e2937]:
+                  - generic [ref=e2938]: Perras / Armand-Bombardier
+                  - generic [ref=e2940]: "Avg stop spacing: 399 m"
+                - generic [ref=e2941]:
+                  - generic [ref=e2942]: Station Cadillac (Sherbrooke / Duquesne)
+                  - generic [ref=e2944]: "Avg stop spacing: 414 m"
+          - 'link "STM 439 Express Pie-IX Local Marie-Victorin / No 7000 Avg stop spacing: 464 m Pie-IX / Sainte-Catherine Avg stop spacing: 443 m" [ref=e2945] [cursor=pointer]':
+            - /url: /routes/0/439/speed
+            - generic [ref=e2946]:
+              - generic [ref=e2947]:
+                - generic [ref=e2948]:
+                  - generic [ref=e2949]: STM 439
+                  - generic [ref=e2950]: Express Pie-IX
+                - generic [ref=e2951]: Local
+              - generic [ref=e2952]:
+                - generic [ref=e2953]:
+                  - generic [ref=e2954]: Marie-Victorin / No 7000
+                  - generic [ref=e2956]: "Avg stop spacing: 464 m"
+                - generic [ref=e2957]:
+                  - generic [ref=e2958]: Pie-IX / Sainte-Catherine
+                  - generic [ref=e2960]: "Avg stop spacing: 443 m"
+          - 'link "STM 440 Express Charleroi Local Amos / Lacordaire Avg stop spacing: 409 m Station Sauvé (Édicule Nord) Avg stop spacing: 457 m" [ref=e2961] [cursor=pointer]':
+            - /url: /routes/0/440/speed
+            - generic [ref=e2962]:
+              - generic [ref=e2963]:
+                - generic [ref=e2964]:
+                  - generic [ref=e2965]: STM 440
+                  - generic [ref=e2966]: Express Charleroi
+                - generic [ref=e2967]: Local
+              - generic [ref=e2968]:
+                - generic [ref=e2969]:
+                  - generic [ref=e2970]: Amos / Lacordaire
+                  - generic [ref=e2972]: "Avg stop spacing: 409 m"
+                - generic [ref=e2973]:
+                  - generic [ref=e2974]: Station Sauvé (Édicule Nord)
+                  - generic [ref=e2976]: "Avg stop spacing: 457 m"
+          - 'link "STM 444 Express Cégep Marie-Victorin Express Marie-Victorin / No 7000 Avg stop spacing: 6.2 km Station Radisson (Sherbrooke / Des Groseilliers) Avg stop spacing: 6.2 km" [ref=e2977] [cursor=pointer]':
+            - /url: /routes/0/444/speed
+            - generic [ref=e2978]:
+              - generic [ref=e2979]:
+                - generic [ref=e2980]:
+                  - generic [ref=e2981]: STM 444
+                  - generic [ref=e2982]: Express Cégep Marie-Victorin
+                - generic [ref=e2983]: Express
+              - generic [ref=e2984]:
+                - generic [ref=e2985]:
+                  - generic [ref=e2986]: Marie-Victorin / No 7000
+                  - generic [ref=e2988]: "Avg stop spacing: 6.2 km"
+                - generic [ref=e2989]:
+                  - generic [ref=e2990]: Station Radisson (Sherbrooke / Des Groseilliers)
+                  - generic [ref=e2992]: "Avg stop spacing: 6.2 km"
+          - 'link "STM 445 Express Papineau Local 20e Avenue / de Bellechasse Avg stop spacing: 270 m de la Cathédrale / René-Lévesque Avg stop spacing: 243 m" [ref=e2993] [cursor=pointer]':
+            - /url: /routes/0/445/speed
+            - generic [ref=e2994]:
+              - generic [ref=e2995]:
+                - generic [ref=e2996]:
+                  - generic [ref=e2997]: STM 445
+                  - generic [ref=e2998]: Express Papineau
+                - generic [ref=e2999]: Local
+              - generic [ref=e3000]:
+                - generic [ref=e3001]:
+                  - generic [ref=e3002]: 20e Avenue / de Bellechasse
+                  - generic [ref=e3004]: "Avg stop spacing: 270 m"
+                - generic [ref=e3005]:
+                  - generic [ref=e3006]: de la Cathédrale / René-Lévesque
+                  - generic [ref=e3008]: "Avg stop spacing: 243 m"
+          - 'link "STM 448 Express Maurice-Duplessis Rapid Maurice-Duplessis / 71e Avenue Avg stop spacing: 529 m Station Radisson Avg stop spacing: 512 m" [ref=e3009] [cursor=pointer]':
+            - /url: /routes/0/448/speed
+            - generic [ref=e3010]:
+              - generic [ref=e3011]:
+                - generic [ref=e3012]:
+                  - generic [ref=e3013]: STM 448
+                  - generic [ref=e3014]: Express Maurice-Duplessis
+                - generic [ref=e3015]: Rapid
+              - generic [ref=e3016]:
+                - generic [ref=e3017]:
+                  - generic [ref=e3018]: Maurice-Duplessis / 71e Avenue
+                  - generic [ref=e3020]: "Avg stop spacing: 529 m"
+                - generic [ref=e3021]:
+                  - generic [ref=e3022]: Station Radisson
+                  - generic [ref=e3024]: "Avg stop spacing: 512 m"
+          - 'link "STM 449 Express Rivière-des-Prairies Local Gare Rivière-des-Prairies Avg stop spacing: 367 m Station Radisson Avg stop spacing: 353 m" [ref=e3025] [cursor=pointer]':
+            - /url: /routes/0/449/speed
+            - generic [ref=e3026]:
+              - generic [ref=e3027]:
+                - generic [ref=e3028]:
+                  - generic [ref=e3029]: STM 449
+                  - generic [ref=e3030]: Express Rivière-des-Prairies
+                - generic [ref=e3031]: Local
+              - generic [ref=e3032]:
+                - generic [ref=e3033]:
+                  - generic [ref=e3034]: Gare Rivière-des-Prairies
+                  - generic [ref=e3036]: "Avg stop spacing: 367 m"
+                - generic [ref=e3037]:
+                  - generic [ref=e3038]: Station Radisson
+                  - generic [ref=e3040]: "Avg stop spacing: 353 m"
+          - 'link "STM 460 Express Métropolitaine Rapid des Galeries-d''Anjou / No 7450 Avg stop spacing: 665 m YUL Aéroport Montréal-Trudeau Avg stop spacing: 644 m" [ref=e3041] [cursor=pointer]':
+            - /url: /routes/0/460/speed
+            - generic [ref=e3042]:
+              - generic [ref=e3043]:
+                - generic [ref=e3044]:
+                  - generic [ref=e3045]: STM 460
+                  - generic [ref=e3046]: Express Métropolitaine
+                - generic [ref=e3047]: Rapid
+              - generic [ref=e3048]:
+                - generic [ref=e3049]:
+                  - generic [ref=e3050]: des Galeries-d'Anjou / No 7450
+                  - generic [ref=e3052]: "Avg stop spacing: 665 m"
+                - generic [ref=e3053]:
+                  - generic [ref=e3054]: YUL Aéroport Montréal-Trudeau
+                  - generic [ref=e3056]: "Avg stop spacing: 644 m"
+          - 'link "STM 465 Express Côte-des-Neiges Local Station Ville-de-Mont-Royal (Dunkirk / Cornwall) Avg stop spacing: 212 m Saint-Laurent / De Maisonneuve Avg stop spacing: 225 m" [ref=e3057] [cursor=pointer]':
+            - /url: /routes/0/465/speed
+            - generic [ref=e3058]:
+              - generic [ref=e3059]:
+                - generic [ref=e3060]:
+                  - generic [ref=e3061]: STM 465
+                  - generic [ref=e3062]: Express Côte-des-Neiges
+                - generic [ref=e3063]: Local
+              - generic [ref=e3064]:
+                - generic [ref=e3065]:
+                  - generic [ref=e3066]: Station Ville-de-Mont-Royal (Dunkirk / Cornwall)
+                  - generic [ref=e3068]: "Avg stop spacing: 212 m"
+                - generic [ref=e3069]:
+                  - generic [ref=e3070]: Saint-Laurent / De Maisonneuve
+                  - generic [ref=e3072]: "Avg stop spacing: 225 m"
+          - 'link "STM 467 Express Saint-Michel Rapid Saint-Michel / Henri-Bourassa Avg stop spacing: 585 m Station Joliette (Hochelaga / Joliette) Avg stop spacing: 547 m" [ref=e3073] [cursor=pointer]':
+            - /url: /routes/0/467/speed
+            - generic [ref=e3074]:
+              - generic [ref=e3075]:
+                - generic [ref=e3076]:
+                  - generic [ref=e3077]: STM 467
+                  - generic [ref=e3078]: Express Saint-Michel
+                - generic [ref=e3079]: Rapid
+              - generic [ref=e3080]:
+                - generic [ref=e3081]:
+                  - generic [ref=e3082]: Saint-Michel / Henri-Bourassa
+                  - generic [ref=e3084]: "Avg stop spacing: 585 m"
+                - generic [ref=e3085]:
+                  - generic [ref=e3086]: Station Joliette (Hochelaga / Joliette)
+                  - generic [ref=e3088]: "Avg stop spacing: 547 m"
+          - 'link "STM 468 Express Pierrefonds / Gouin Local Station Côte-Vertu Avg stop spacing: 437 m Usine de filtration de Pierrefonds Avg stop spacing: 435 m" [ref=e3089] [cursor=pointer]':
+            - /url: /routes/0/468/speed
+            - generic [ref=e3090]:
+              - generic [ref=e3091]:
+                - generic [ref=e3092]:
+                  - generic [ref=e3093]: STM 468
+                  - generic [ref=e3094]: Express Pierrefonds / Gouin
+                - generic [ref=e3095]: Local
+              - generic [ref=e3096]:
+                - generic [ref=e3097]:
+                  - generic [ref=e3098]: Station Côte-Vertu
+                  - generic [ref=e3100]: "Avg stop spacing: 437 m"
+                - generic [ref=e3101]:
+                  - generic [ref=e3102]: Usine de filtration de Pierrefonds
+                  - generic [ref=e3104]: "Avg stop spacing: 435 m"
+          - 'link "STM 469 Express Henri-Bourassa Rapid Léger / Langelier Avg stop spacing: 598 m Station Henri-Bourassa Avg stop spacing: 553 m" [ref=e3105] [cursor=pointer]':
+            - /url: /routes/0/469/speed
+            - generic [ref=e3106]:
+              - generic [ref=e3107]:
+                - generic [ref=e3108]:
+                  - generic [ref=e3109]: STM 469
+                  - generic [ref=e3110]: Express Henri-Bourassa
+                - generic [ref=e3111]: Rapid
+              - generic [ref=e3112]:
+                - generic [ref=e3113]:
+                  - generic [ref=e3114]: Léger / Langelier
+                  - generic [ref=e3116]: "Avg stop spacing: 598 m"
+                - generic [ref=e3117]:
+                  - generic [ref=e3118]: Station Henri-Bourassa
+                  - generic [ref=e3120]: "Avg stop spacing: 553 m"
+          - 'link "STM 470 Express Pierrefonds Rapid Station Côte-Vertu Avg stop spacing: 967 m Usine de filtration de Pierrefonds Avg stop spacing: 1.1 km" [ref=e3121] [cursor=pointer]':
+            - /url: /routes/0/470/speed
+            - generic [ref=e3122]:
+              - generic [ref=e3123]:
+                - generic [ref=e3124]:
+                  - generic [ref=e3125]: STM 470
+                  - generic [ref=e3126]: Express Pierrefonds
+                - generic [ref=e3127]: Rapid
+              - generic [ref=e3128]:
+                - generic [ref=e3129]:
+                  - generic [ref=e3130]: Station Côte-Vertu
+                  - generic [ref=e3132]: "Avg stop spacing: 967 m"
+                - generic [ref=e3133]:
+                  - generic [ref=e3134]: Usine de filtration de Pierrefonds
+                  - generic [ref=e3136]: "Avg stop spacing: 1.1 km"
+          - 'link "STM 475 Express Dollard-des-Ormeaux Express Station Côte-Vertu (Gohier / Côte-Vertu) Avg stop spacing: 2.1 km Lake / face au Centre civique Avg stop spacing: 2.1 km" [ref=e3137] [cursor=pointer]':
+            - /url: /routes/0/475/speed
+            - generic [ref=e3138]:
+              - generic [ref=e3139]:
+                - generic [ref=e3140]:
+                  - generic [ref=e3141]: STM 475
+                  - generic [ref=e3142]: Express Dollard-des-Ormeaux
+                - generic [ref=e3143]: Express
+              - generic [ref=e3144]:
+                - generic [ref=e3145]:
+                  - generic [ref=e3146]: Station Côte-Vertu (Gohier / Côte-Vertu)
+                  - generic [ref=e3148]: "Avg stop spacing: 2.1 km"
+                - generic [ref=e3149]:
+                  - generic [ref=e3150]: Lake / face au Centre civique
+                  - generic [ref=e3152]: "Avg stop spacing: 2.1 km"
+          - 'link "STM 480 Express du Parc Local Querbes / Durocher Avg stop spacing: 259 m René-Lévesque / Guy Avg stop spacing: 244 m" [ref=e3153] [cursor=pointer]':
+            - /url: /routes/0/480/speed
+            - generic [ref=e3154]:
+              - generic [ref=e3155]:
+                - generic [ref=e3156]:
+                  - generic [ref=e3157]: STM 480
+                  - generic [ref=e3158]: Express du Parc
+                - generic [ref=e3159]: Local
+              - generic [ref=e3160]:
+                - generic [ref=e3161]:
+                  - generic [ref=e3162]: Querbes / Durocher
+                  - generic [ref=e3164]: "Avg stop spacing: 259 m"
+                - generic [ref=e3165]:
+                  - generic [ref=e3166]: René-Lévesque / Guy
+                  - generic [ref=e3168]: "Avg stop spacing: 244 m"
+          - 'link "STM 485 Express Antoine-Faucon Rapid Station Lionel-Groulx Avg stop spacing: 1.2 km de Pierrefonds / du Château-Pierrefonds Avg stop spacing: 1.1 km" [ref=e3169] [cursor=pointer]':
+            - /url: /routes/0/485/speed
+            - generic [ref=e3170]:
+              - generic [ref=e3171]:
+                - generic [ref=e3172]:
+                  - generic [ref=e3173]: STM 485
+                  - generic [ref=e3174]: Express Antoine-Faucon
+                - generic [ref=e3175]: Rapid
+              - generic [ref=e3176]:
+                - generic [ref=e3177]:
+                  - generic [ref=e3178]: Station Lionel-Groulx
+                  - generic [ref=e3180]: "Avg stop spacing: 1.2 km"
+                - generic [ref=e3181]:
+                  - generic [ref=e3182]: de Pierrefonds / du Château-Pierrefonds
+                  - generic [ref=e3184]: "Avg stop spacing: 1.1 km"
+          - 'link "STM 486 Express Sherbrooke Rapid Sherbrooke / Gouin Avg stop spacing: 535 m Station Honoré-Beaugrand Avg stop spacing: 532 m" [ref=e3185] [cursor=pointer]':
+            - /url: /routes/0/486/speed
+            - generic [ref=e3186]:
+              - generic [ref=e3187]:
+                - generic [ref=e3188]:
+                  - generic [ref=e3189]: STM 486
+                  - generic [ref=e3190]: Express Sherbrooke
+                - generic [ref=e3191]: Rapid
+              - generic [ref=e3192]:
+                - generic [ref=e3193]:
+                  - generic [ref=e3194]: Sherbrooke / Gouin
+                  - generic [ref=e3196]: "Avg stop spacing: 535 m"
+                - generic [ref=e3197]:
+                  - generic [ref=e3198]: Station Honoré-Beaugrand
+                  - generic [ref=e3200]: "Avg stop spacing: 532 m"
+          - 'link "STM 487 Express Bout-de-l''Île Local 100e Avenue / Bureau Avg stop spacing: 465 m Station Honoré-Beaugrand Avg stop spacing: 477 m" [ref=e3201] [cursor=pointer]':
+            - /url: /routes/0/487/speed
+            - generic [ref=e3202]:
+              - generic [ref=e3203]:
+                - generic [ref=e3204]:
+                  - generic [ref=e3205]: STM 487
+                  - generic [ref=e3206]: Express Bout-de-l'Île
+                - generic [ref=e3207]: Local
+              - generic [ref=e3208]:
+                - generic [ref=e3209]:
+                  - generic [ref=e3210]: 100e Avenue / Bureau
+                  - generic [ref=e3212]: "Avg stop spacing: 465 m"
+                - generic [ref=e3213]:
+                  - generic [ref=e3214]: Station Honoré-Beaugrand
+                  - generic [ref=e3216]: "Avg stop spacing: 477 m"
+          - 'link "STM 491 Express Provost Rapid Station Lionel-Groulx Avg stop spacing: 1.5 km Remembrance / 32e Avenue Avg stop spacing: 1.2 km" [ref=e3217] [cursor=pointer]':
+            - /url: /routes/0/491/speed
+            - generic [ref=e3218]:
+              - generic [ref=e3219]:
+                - generic [ref=e3220]:
+                  - generic [ref=e3221]: STM 491
+                  - generic [ref=e3222]: Express Provost
+                - generic [ref=e3223]: Rapid
+              - generic [ref=e3224]:
+                - generic [ref=e3225]:
+                  - generic [ref=e3226]: Station Lionel-Groulx
+                  - generic [ref=e3228]: "Avg stop spacing: 1.5 km"
+                - generic [ref=e3229]:
+                  - generic [ref=e3230]: Remembrance / 32e Avenue
+                  - generic [ref=e3232]: "Avg stop spacing: 1.2 km"
+          - 'link "STM 496 Express Victoria Rapid Station Lionel-Groulx / Saint-Jacques Avg stop spacing: 695 m Terminus Dorval Avg stop spacing: 705 m" [ref=e3233] [cursor=pointer]':
+            - /url: /routes/0/496/speed
+            - generic [ref=e3234]:
+              - generic [ref=e3235]:
+                - generic [ref=e3236]:
+                  - generic [ref=e3237]: STM 496
+                  - generic [ref=e3238]: Express Victoria
+                - generic [ref=e3239]: Rapid
+              - generic [ref=e3240]:
+                - generic [ref=e3241]:
+                  - generic [ref=e3242]: Station Lionel-Groulx / Saint-Jacques
+                  - generic [ref=e3244]: "Avg stop spacing: 695 m"
+                - generic [ref=e3245]:
+                  - generic [ref=e3246]: Terminus Dorval
+                  - generic [ref=e3248]: "Avg stop spacing: 705 m"
+          - 'link "STM 711 Parc-du-Mont-Royal / Oratoire Local Station Mont-Royal (Berri / du Mont-Royal) Avg stop spacing: 309 m Station Snowdon (Queen-Mary / de Westbury) Avg stop spacing: 328 m" [ref=e3249] [cursor=pointer]':
+            - /url: /routes/0/711/speed
+            - generic [ref=e3250]:
+              - generic [ref=e3251]:
+                - generic [ref=e3252]:
+                  - generic [ref=e3253]: STM 711
+                  - generic [ref=e3254]: Parc-du-Mont-Royal / Oratoire
+                - generic [ref=e3255]: Local
+              - generic [ref=e3256]:
+                - generic [ref=e3257]:
+                  - generic [ref=e3258]: Station Mont-Royal (Berri / du Mont-Royal)
+                  - generic [ref=e3260]: "Avg stop spacing: 309 m"
+                - generic [ref=e3261]:
+                  - generic [ref=e3262]: Station Snowdon (Queen-Mary / de Westbury)
+                  - generic [ref=e3264]: "Avg stop spacing: 328 m"
+          - 'link "STM 747 YUL Aéroport / Centre-Ville Express Saint-Hubert / De La Gauchetière Avg stop spacing: 2.2 km YUL Aéroport Montréal-Trudeau Avg stop spacing: 2.3 km" [ref=e3265] [cursor=pointer]':
+            - /url: /routes/0/747/speed
+            - generic [ref=e3266]:
+              - generic [ref=e3267]:
+                - generic [ref=e3268]:
+                  - generic [ref=e3269]: STM 747
+                  - generic [ref=e3270]: YUL Aéroport / Centre-Ville
+                - generic [ref=e3271]: Express
+              - generic [ref=e3272]:
+                - generic [ref=e3273]:
+                  - generic [ref=e3274]: Saint-Hubert / De La Gauchetière
+                  - generic [ref=e3276]: "Avg stop spacing: 2.2 km"
+                - generic [ref=e3277]:
+                  - generic [ref=e3278]: YUL Aéroport Montréal-Trudeau
+                  - generic [ref=e3280]: "Avg stop spacing: 2.3 km"
+          - 'link "STM 767 La Ronde / Station Jean-Drapeau Rapid La Ronde Avg stop spacing: 1.1 km Station Jean-Drapeau Avg stop spacing: 1.1 km" [ref=e3281] [cursor=pointer]':
+            - /url: /routes/0/767/speed
+            - generic [ref=e3282]:
+              - generic [ref=e3283]:
+                - generic [ref=e3284]:
+                  - generic [ref=e3285]: STM 767
+                  - generic [ref=e3286]: La Ronde / Station Jean-Drapeau
+                - generic [ref=e3287]: Rapid
+              - generic [ref=e3288]:
+                - generic [ref=e3289]:
+                  - generic [ref=e3290]: La Ronde
+                  - generic [ref=e3292]: "Avg stop spacing: 1.1 km"
+                - generic [ref=e3293]:
+                  - generic [ref=e3294]: Station Jean-Drapeau
+                  - generic [ref=e3296]: "Avg stop spacing: 1.1 km"
+          - 'link "STM 769 La Ronde / Station Papineau Rapid Station Papineau (De Maisonneuve / Cartier) Avg stop spacing: 1.4 km La Ronde Avg stop spacing: 891 m" [ref=e3297] [cursor=pointer]':
+            - /url: /routes/0/769/speed
+            - generic [ref=e3298]:
+              - generic [ref=e3299]:
+                - generic [ref=e3300]:
+                  - generic [ref=e3301]: STM 769
+                  - generic [ref=e3302]: La Ronde / Station Papineau
+                - generic [ref=e3303]: Rapid
+              - generic [ref=e3304]:
+                - generic [ref=e3305]:
+                  - generic [ref=e3306]: Station Papineau (De Maisonneuve / Cartier)
+                  - generic [ref=e3308]: "Avg stop spacing: 1.4 km"
+                - generic [ref=e3309]:
+                  - generic [ref=e3310]: La Ronde
+                  - generic [ref=e3312]: "Avg stop spacing: 891 m"
+          - 'link "STM 777 Jean-Drapeau / Casino / Bonaventure Rapid Station Jean-Drapeau Avg stop spacing: 625 m Station Bonaventure (Gauchetière / Mansfield) Avg stop spacing: 662 m" [ref=e3313] [cursor=pointer]':
+            - /url: /routes/0/777/speed
+            - generic [ref=e3314]:
+              - generic [ref=e3315]:
+                - generic [ref=e3316]:
+                  - generic [ref=e3317]: STM 777
+                  - generic [ref=e3318]: Jean-Drapeau / Casino / Bonaventure
+                - generic [ref=e3319]: Rapid
+              - generic [ref=e3320]:
+                - generic [ref=e3321]:
+                  - generic [ref=e3322]: Station Jean-Drapeau
+                  - generic [ref=e3324]: "Avg stop spacing: 625 m"
+                - generic [ref=e3325]:
+                  - generic [ref=e3326]: Station Bonaventure (Gauchetière / Mansfield)
+                  - generic [ref=e3328]: "Avg stop spacing: 662 m"
+          - 'link "STM 811 Navette Services santé Rapid du Trianon / Joseph-Daoust (Terminus Radisson Sud Avg stop spacing: 532 m" [ref=e3329] [cursor=pointer]':
+            - /url: /routes/0/811/speed
+            - generic [ref=e3330]:
+              - generic [ref=e3331]:
+                - generic [ref=e3332]:
+                  - generic [ref=e3333]: STM 811
+                  - generic [ref=e3334]: Navette Services santé
+                - generic [ref=e3335]: Rapid
+              - generic [ref=e3337]:
+                - generic [ref=e3338]: du Trianon / Joseph-Daoust (Terminus Radisson Sud
+                - generic [ref=e3340]: "Avg stop spacing: 532 m"
+          - 'link "STM 812 REM Côte-de-Liesse / Côte-Vertu Express Station Côte-de-Liesse (Stinson / Hodge) Avg stop spacing: 1.8 km Station Côte-Vertu Avg stop spacing: 1.9 km" [ref=e3341] [cursor=pointer]':
+            - /url: /routes/0/812/speed
+            - generic [ref=e3342]:
+              - generic [ref=e3343]:
+                - generic [ref=e3344]:
+                  - generic [ref=e3345]: STM 812
+                  - generic [ref=e3346]: REM Côte-de-Liesse / Côte-Vertu
+                - generic [ref=e3347]: Express
+              - generic [ref=e3348]:
+                - generic [ref=e3349]:
+                  - generic [ref=e3350]: Station Côte-de-Liesse (Stinson / Hodge)
+                  - generic [ref=e3352]: "Avg stop spacing: 1.8 km"
+                - generic [ref=e3353]:
+                  - generic [ref=e3354]: Station Côte-Vertu
+                  - generic [ref=e3356]: "Avg stop spacing: 1.9 km"
+          - 'link "STM 814 Jean-Talon Est / Bélanger Local Jean-Talon / Michelet Avg stop spacing: 300 m" [ref=e3357] [cursor=pointer]':
+            - /url: /routes/0/814/speed
+            - generic [ref=e3358]:
+              - generic [ref=e3359]:
+                - generic [ref=e3360]:
+                  - generic [ref=e3361]: STM 814
+                  - generic [ref=e3362]: Jean-Talon Est / Bélanger
+                - generic [ref=e3363]: Local
+              - generic [ref=e3365]:
+                - generic [ref=e3366]: Jean-Talon / Michelet
+                - generic [ref=e3368]: "Avg stop spacing: 300 m"
+          - 'link "STM 822 Navette Longue-Pointe Rapid du Trianon / Joseph-Daoust (Terminus Radisson Sud Avg stop spacing: 658 m" [ref=e3369] [cursor=pointer]':
+            - /url: /routes/0/822/speed
+            - generic [ref=e3370]:
+              - generic [ref=e3371]:
+                - generic [ref=e3372]:
+                  - generic [ref=e3373]: STM 822
+                  - generic [ref=e3374]: Navette Longue-Pointe
+                - generic [ref=e3375]: Rapid
+              - generic [ref=e3377]:
+                - generic [ref=e3378]: du Trianon / Joseph-Daoust (Terminus Radisson Sud
+                - generic [ref=e3380]: "Avg stop spacing: 658 m"
+          - 'link "STM 872 Île-des-Soeurs Local Station McGill (R.-Bourassa / Président-Kennedy) Avg stop spacing: 338 m Marguerite-Bourgeoys / des Passereaux Avg stop spacing: 299 m" [ref=e3381] [cursor=pointer]':
+            - /url: /routes/0/872/speed
+            - generic [ref=e3382]:
+              - generic [ref=e3383]:
+                - generic [ref=e3384]:
+                  - generic [ref=e3385]: STM 872
+                  - generic [ref=e3386]: Île-des-Soeurs
+                - generic [ref=e3387]: Local
+              - generic [ref=e3388]:
+                - generic [ref=e3389]:
+                  - generic [ref=e3390]: Station McGill (R.-Bourassa / Président-Kennedy)
+                  - generic [ref=e3392]: "Avg stop spacing: 338 m"
+                - generic [ref=e3393]:
+                  - generic [ref=e3394]: Marguerite-Bourgeoys / des Passereaux
+                  - generic [ref=e3396]: "Avg stop spacing: 299 m"
+          - 'link "STM 968 Trainbus Roxboro / Côte-Vertu Express Station Côte-Vertu Avg stop spacing: 5.1 km Station Pierrefonds-Roxboro Avg stop spacing: 5.0 km" [ref=e3397] [cursor=pointer]':
+            - /url: /routes/0/968/speed
+            - generic [ref=e3398]:
+              - generic [ref=e3399]:
+                - generic [ref=e3400]:
+                  - generic [ref=e3401]: STM 968
+                  - generic [ref=e3402]: Trainbus Roxboro / Côte-Vertu
+                - generic [ref=e3403]: Express
+              - generic [ref=e3404]:
+                - generic [ref=e3405]:
+                  - generic [ref=e3406]: Station Côte-Vertu
+                  - generic [ref=e3408]: "Avg stop spacing: 5.1 km"
+                - generic [ref=e3409]:
+                  - generic [ref=e3410]: Station Pierrefonds-Roxboro
+                  - generic [ref=e3412]: "Avg stop spacing: 5.0 km"
+  - contentinfo [ref=e3413]:
+    - paragraph [ref=e3414]: © 2026 Mobilispect. Real-time performance monitoring for public transit.
+    - paragraph [ref=e3415]: "Data Source: STM & various GTFS-RT feeds"

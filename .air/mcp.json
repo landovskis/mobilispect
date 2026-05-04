@@ -1,0 +1,21 @@
+{
+    "mcpServers": {
+        "context7": {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["-y", "@upstash/context7-mcp@latest"]
+        },
+        "github": {
+            "type": "remote",
+            "url": "https://api.githubcopilot.com/mcp",
+            "headers": {
+                "Authorization": "Bearer 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"
+            }
+        },
+        "postgres": {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["-y", "@anthropic/postgres-mcp", "postgresql://mobilispect:mobilispect@postgres:5432/mobilispect"]
+        }
+    }
+}

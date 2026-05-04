@@ -1,0 +1,6 @@
+[     238ms] ReferenceError: Chart is not defined
+    at renderSpeedChart (http://localhost:3000/routes/0/10/speed:1167:3)
+    at http://localhost:3000/routes/0/10/speed:1191:3
+    at http://localhost:3000/routes/0/10/speed:1194:3
+[     256ms] Identifier 'lineOpts' has already been declared
+[     278ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/favicon.ico:0
