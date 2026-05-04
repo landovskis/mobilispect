@@ -301,7 +301,7 @@ async fn fetch_actual_timings(
                AND ste.arrival_time_unix IS NOT NULL
                AND ste.arrival_time_unix >
                        EXTRACT(EPOCH FROM NOW() - $4::BIGINT * INTERVAL '1 day')::BIGINT
-             GROUP BY ste.trip_id
+             GROUP BY ste.trip_id, (ste.arrival_time_unix / 86400)
              HAVING COUNT(*) >= 2
                 AND MAX(ste.arrival_time_unix) > MIN(ste.arrival_time_unix)
          ) AS trip_agg",
