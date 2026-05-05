@@ -35,9 +35,8 @@ canvas { width: 100% !important; }
 .chart-legend { display: flex; gap: 1rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; color: var(--ink-500); }
 .legend-swatch { width: 20px; height: 3px; border-radius: 2px; }
-.speed-charts-row { display: flex; gap: 1rem; margin-top: 1rem; }
-.speed-chart-col { flex: 1; min-width: 0; }
-.speed-chart-title { font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 0.25rem; color: var(--ink-700); }
+.speed-charts-stack { display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem; }
+.speed-chart-title { font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--ink-700); }
 </style>
 {% endblock %}
 
@@ -97,18 +96,18 @@ canvas { width: 100% !important; }
       <div class="section-divider"></div>
 
       <div class="section-label">Speed trend — scheduled vs actual</div>
-      <div class="speed-charts-row">
-        <div class="speed-chart-col">
+      <div class="speed-charts-stack">
+        <div>
           <div class="speed-chart-title">Weekday</div>
-          <canvas id="{{ direction.weekday_chart_id }}" height="200"></canvas>
+          <canvas id="{{ direction.weekday_chart_id }}" height="280"></canvas>
         </div>
-        <div class="speed-chart-col">
+        <div>
           <div class="speed-chart-title">Saturday</div>
-          <canvas id="{{ direction.saturday_chart_id }}" height="200"></canvas>
+          <canvas id="{{ direction.saturday_chart_id }}" height="280"></canvas>
         </div>
-        <div class="speed-chart-col">
+        <div>
           <div class="speed-chart-title">Sunday</div>
-          <canvas id="{{ direction.sunday_chart_id }}" height="200"></canvas>
+          <canvas id="{{ direction.sunday_chart_id }}" height="280"></canvas>
         </div>
       </div>
 
