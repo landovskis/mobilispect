@@ -1,131 +1,67 @@
-# Claude Code Configuration
+# Mobilispect: Transit Performance Monitoring
 
-## Project Constitution
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This project follows the Mobilispect Constitution which defines core principles,
-standards, and governance for development (v2.2.0).
+## Stack
 
-**Constitution Location**: `.specify/memory/constitution.md`
+- **Language:** Rust (2024 edition)
+- **Async runtime:** Tokio
+- **Web framework:** Axum 0.7
+- **Database:** PostgreSQL via sqlx 0.8 (compile-time checked queries, migrations)
+- **Templates:** Askama (type-safe HTML, compiled at build time)
+- **GTFS parsing:** gtfs-structures (static), prost (RT protobuf)
+- **HTTP client:** reqwest
+- **Logging/tracing:** tracing + tracing-subscriber
 
-### Key Constitutional Requirements
+## Structure
 
-Before working on any feature or making architectural decisions, review the full
-constitution. Core principles:
-
-1. **Modular Monolith Ownership** — Spring Modulith boundaries; no cross-module
-   DB access; ports/events only; extraction requires ADR + migration plan.
-2. **Test-Driven Quality (NON-NEGOTIABLE)** — Tests first, fail first;
-   unit/contract/integration (Testcontainers) and E2E; ≥80% coverage per
-   component via `scripts/validate-coverage.sh`; defects add regression tests.
-3. **Observability & Operational Insight** — Structured logs, metrics, traces;
-   dashboards/alerts for ingestion and API journeys; trace errors to user paths.
-4. **Performance & Reliability Targets** — API p95 ≤200ms, ingestion SLAs,
-   60fps UX; load/stress tests; graceful degradation (backpressure, retries with
-   jitter, circuit breakers).
-5. **Security & Compliance by Default** — Secrets outside VCS; OWASP dependency
-   checks; authn/authz and audit logging on sensitive paths; encrypted
-   transit/at-rest.
-6. **Accessibility & UX Parity** — WCAG 2.1 AA with automated + manual checks;
-   light/dark parity across Android/iOS/web with Playwright coverage
-   (Chromium/Firefox/WebKit).
-7. **Documentation & Traceability** — ADRs for significant decisions; spec →
-   plan → tasks chain records assumptions/risks/NFRs; release notes include
-   coverage, security, performance, accessibility, observability results.
-
-### Quality Gates
-
-All changes must pass:
-
-- **Pre-Commit**: Formatting applied, linting clean, secret detection
-- **Pre-Push**: Tests pass, static analysis, module boundaries, coverage ≥80%, security scan
-- **Pre-Merge**: Code review approved, CI/CD passes, performance tests,
-  contract tests
-- **Pre-Deploy**: E2E tests pass, load testing, security scan,
-  DB migration validated
-
-### Git Hook Enforcement
-
-Constitutional quality gates are enforced via **Husky** git hooks.
-Checks are divided between pre-commit (fast) and pre-push (thorough).
-
-#### Git Hooks Setup
-
-```bash
-# Install Node.js dependencies and initialize Husky hooks
-npm install
+```
+src/
+  bin/
+    server.rs      # HTTP server entry point
+    worker.rs      # Background ingestion entry point
+  config.rs        # Config + AgencyConfig from config.toml plus dotenvx env refs
+  db/              # Database wrapper (sqlx PgPool)
+  gtfs/
+    static_feed.rs # GTFS zip download + upsert
+    realtime.rs    # GTFS-RT protobuf polling
+  metrics/         # Query functions (on-time %, delays, hotspots, scorecard)
+  speed/
+    mod.rs         # Scheduled/actual speed computation
+    card.rs        # RouteSpeedCard builder
+  web/
+    mod.rs         # Axum router + AppState
+    handlers.rs    # HTTP handlers → Askama templates
+migrations/        # SQL schema (001_schema.sql)
+templates/         # Askama HTML templates
 ```
 
-#### Hook Responsibilities
+## Commands
 
-| Stage | Checks | Speed |
-|-------|--------|-------|
-| **pre-commit** | File hygiene, secret detection, formatting, linting, markdown lint | ~30s |
-| **pre-push** | Unit tests, static analysis, module boundaries, coverage (≥80%), security scan | Minutes |
+```bash
+# Build
+cargo build
 
-#### pre-commit checks (fast feedback)
+# Run server (requires config.toml and dotenvx-provided secret env vars)
+dotenvx run -- cargo run --bin mobilispect-server
 
-- Merge conflict markers, private key detection, large files (>1MB)
-- `detect-secrets` baseline scan
-- Backend Kotlin: `ktfmtFormat` + `ktlintCheck`
-- Web: `prettier --check` + `ng lint`
-- Markdown: `markdownlint`
+# Run worker
+dotenvx run -- cargo run --bin mobilispect-worker
 
-#### pre-push checks (thorough validation)
+# Dev mode (auto-restart on changes, starts Postgres via Docker)
+./dev.sh
 
-- Backend: unit tests (`test -x integrationTest`)
-- Backend: `detekt` static analysis
-- Backend: `verifyModulith` module boundary verification
-- Web: `vitest` unit tests
-- Coverage validation ≥80% (`scripts/validate-coverage.sh`)
-- Security scan / OWASP dependency check (`scripts/security-scan.sh`)
+# Lint
+cargo clippy
 
-#### Enforcement Mechanism
+# Format
+cargo fm
 
-- Hooks **BLOCK** commits/pushes that fail constitutional requirements
-- No bypass allowed without explicit ADR documenting exception
-- Failed hooks display specific remediation commands
+# Tests
+cargo test
+cargo test <test_name>   # run a single test
+```
 
-See platform-specific files for detailed command reference.
+## Conventions
 
-### ADR Requirements
-
-All architectural decisions must be documented in `docs/adr/` with format:
-
-- `NNNN-decision-title.md` (e.g., `0001-use-kotlin-for-backend.md`)
-- Required sections: Title, Status, Context, Decision, Consequences, Alternatives
-- Team review required before acceptance
-
-### Commands Available
-
-This project includes Spec-Kit commands for structured development:
-
-- `/speckit.constitution` - Update project constitution
-- `/speckit.specify` - Create feature specifications
-- `/speckit.plan` - Generate implementation plans
-- `/speckit.tasks` - Break down features into tasks
-- `/speckit.checklist` - Generate quality checklists
-- `/speckit.analyze` - Cross-artifact consistency analysis
-- `/speckit.clarify` - Identify spec ambiguities
-- `/speckit.implement` - Execute implementation tasks
-
-### Enforcement
-
-- Constitution violations require explicit justification and team approval
-- All PRs must verify constitutional compliance
-- Emergency exceptions require immediate follow-up remediation
-- ADRs are living documents and must be updated when decisions change
-
----
-
-## Platform-Specific Configuration
-
-@.claude/backend.md
-@.claude/frontend-web.md
-@.claude/frontend-mobile.md
-
----
-
-**Note**: This configuration ensures all Claude Code sessions maintain
-consistency with project standards and architectural decisions. Always
-reference the full constitution at `.specify/memory/constitution.md` for
-complete guidance.
+- Use Vertical Slice Architecture

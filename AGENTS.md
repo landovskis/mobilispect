@@ -1,94 +1,40 @@
-# Repository Guidelines
+# AGENTS.md - Mobilispect
 
-## Project Structure & Module Organization
+Quick-reference facts that agents often gets wrong:
 
-- `backend`: Spring Boot service in Kotlin; code in `src/main/kotlin`, tests in
-  `src/test/kotlin`, configs in `config/`, and seed data in `data/`.
-- `frontend/mobile`: Kotlin Multiplatform app; shared logic in
-  `shared/src/<platform>`, Android UI in `androidApp`, iOS scaffold in `iosApp`,
-  Room schemas in `shared/schemas`.
-- `frontend/web`: Angular workspace; feature modules in `src/app`, shared
-  utilities in `src/app/core`.
-- Supporting assets: `docs` for architecture and ADRs, `scripts` for automation
-  gates, and `specs` for constitutional product definitions.
+## Running the app
 
-## Constitution (v2.2.0) — Core Principles
+```bash
+# ALL commands require dotenvx to load secrets (not optional)
+dotenvx run -- cargo run --bin mobilispect-server
+dotenvx run -- cargo run --bin mobilispect-worker
 
-- Modular monolith ownership: Spring Modulith boundaries, no cross-module DB
-  access; ports/events only.
-- Test-driven quality: tests first, fail first, ≥80% coverage per component;
-  contract/integration with Testcontainers.
-- Observability: structured logs, metrics, traces, dashboards, and alerts for
-  new flows.
-- Performance & reliability: API p95 ≤200ms, ingestion SLAs, 60fps UX with
-  graceful degradation.
-- Security by default: secrets outside VCS; OWASP dependency checks; authn/authz
-  and audit logging on sensitive paths.
-- Accessibility & UX parity: WCAG 2.1 AA plus light/dark parity across
-  Android/iOS/web (Chromium/Firefox/WebKit).
-- Documentation & traceability: ADRs required for significant decisions; spec →
-  plan → tasks chain with recorded assumptions.
+# Dev mode (auto-restart + Postgres in Docker)
+./dev.sh
+```
 
-## Build, Test, and Development Commands
+## Dev workflow
 
-- `cd backend && ./gradlew build` – compile the backend and verify dependency
-  wiring.
-- `cd backend && ./gradlew test jacocoTestReport ktlintCheck detekt` – run JUnit
-  tests, produce coverage, and enforce lint plus static analysis.
-- `cd frontend/mobile && ./gradlew shared:assembleDebug`
-  `shared:testDebugUnitTest` – build KMM artifacts and run JVM tests; add
-  `shared:koverXmlReport` when coverage is required.
-- `cd frontend/web && npm install && npm run start` – launch the Angular dev
-  server; swap `start` with `test` or `build` for Karma runs or production
-  bundles.
-- `./scripts/pre-merge-gates.sh` – run the full constitutional gate suite
-  (coverage, security, backend/mobile quality) before opening a PR.
+- **Postgres runs on port 5433** (not default 5432) - configured in dev.sh
+- Database URL must be set: `MOBILISPECT_DATABASE_URL=postgres://mobilispect:mobilispect@localhost:5433/mobilispect`
+- dev.sh manages Docker container `mobilispect-pg` - run `docker start mobilispect-pg` to resume
 
-## Coding Style & Naming Conventions
+## Build/code generation
 
-- Kotlin uses ktlint defaults (4-space indent, trailing commas) and Detekt rules
-  from `backend/config/detekt/detekt.yml`; packages stay under
-  `com.mobilispect.<feature>`.
-- KMM modules follow `commonMain`, `androidMain`, `iosMain`; name suspend
-  services `<Feature>Service` and DTOs `<Feature>Dto`.
-- Angular uses 2-space indent, `kebab-case` filenames such as
-  `feed-management.component.ts`, and `PascalCase` class symbols.
+- **Protobuf compiled at build time**: build.rs runs prost-build on `proto/gtfs-realtime.proto`
+- Rebuild required after proto changes: `cargo build` reruns build.rs
+- **SQLX_OFFLINE enabled**: queries checked at compile time via `.cargo/config.toml` - do NOT disable
 
-## Testing Guidelines
+## Commands
 
-- Backend tests live in `src/test/kotlin`; use JUnit 5 with Testcontainers for
-  data-intensive flows.
-- Mobile tests belong in `shared/src/commonTest` plus `androidTest` or
-  `iosTest`; rely on Ktor HTTP mocks and Truth assertions.
-- Web unit tests remain as `*.spec.ts`; mock HTTP via Angular
-  `HttpTestingController`.
-- `scripts/validate-coverage.sh` enforces ≥80% coverage per component; review
-  JaCoCo and Kover artifacts before merge.
+```bash
+cargo fm          # format (not cargo fmt)
+cargo clippy     # lint
+cargo test <name> # single test
+```
 
-## Commit & Pull Request Guidelines
+## Architecture
 
-- Follow conventional commits (`feat:`, `fix:`, `chore:`, `docs:`) as shown in
-  history, keeping each change focused.
-- PRs link issues, note architectural impacts, attach UI screenshots, and call
-  out any manual steps.
-- Share key outputs from `./scripts/pre-merge-gates.sh` in the PR description to
-  streamline review.
-
-## Quality & Security
-
-- Run `./scripts/security-scan.sh` before tagging releases or promoting builds.
-- Keep secrets out of VCS; store them in Spring profiles (`application-*.yml`)
-  and Android Gradle local properties.
-
-## Active Technologies
-
-- Kotlin (Spring Boot) backend, TypeScript (Angular) frontend + Spring Boot,
-  JPA/Hibernate, PostgreSQL, Angular, Angular Material, Tailwind CSS
-  (001-stop-spacing-classification)
-- PostgreSQL (001-stop-spacing-classification)
-
-## Recent Changes
-
-- 001-stop-spacing-classification: Added Kotlin (Spring Boot) backend,
-  TypeScript (Angular) frontend + Spring Boot, JPA/Hibernate, PostgreSQL,
-  Angular, Angular Material, Tailwind CSS
+- Two binaries: `mobilispect-server` (HTTP), `mobilispect-worker` (GTFS ingestion)
+- Server reads config from `config.toml` (agencies, thresholds, retention)
+- Env vars for secrets: API keys loaded via dotenvx (not hardcoded)

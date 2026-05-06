@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Mobilispect — Route {{ trend.short_name }}{% endblock %}
+{% block region_name %}{{ region_name }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+.callout { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem;
+           margin-bottom: 1rem; display: flex; gap: 1.5rem; align-items: center; box-shadow: var(--shadow-sm); }
+.callout .label { font-size: 0.75rem; color: var(--ink-500); text-transform: uppercase;
+                  letter-spacing: 0.04em; font-weight: 700; margin-bottom: 0.2rem; }
+.callout .value { font-size: 1.5rem; font-weight: 700; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1rem;
+        margin-bottom: 1rem; box-shadow: var(--shadow-sm); }
+.card h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
+           color: var(--ink-500); margin-bottom: 1rem; font-weight: 700; }
+canvas { width: 100% !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Route {{ trend.short_name }} — {{ trend.long_name }}</h1>
+      <p class="page-subtitle">Speed and on-time trend evidence</p>
+    </div>
+    <a class="filter-pill" href="/">← Back to dashboard</a>
+  </div>
+
+  <div class="callout">
+    <div>
+      <div class="label">Period</div>
+      <div class="value">Last {{ period_days }} days</div>
+    </div>
+    <div>
+      <div class="label">Speed trend</div>
+      <div class="value {{ trend.speed_change_class() }}">
+        {{ trend.speed_change_display() }}
+      </div>
+    </div>
+    <div>
+      <div class="label">Days with data</div>
+      <div class="value">{{ trend.days.len() }}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Actual speed (km/h)</h2>
+    <canvas id="speedChart" height="80"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>On-time % </h2>
+    <canvas id="ontimeChart" height="80"></canvas>
+  </div>
+</div>
+
+{% block extra_scripts %}
+<script>
+  const raw = {{ trend_json|safe }};
+  const labels = raw.map(d => d.service_date);
+  const speeds = raw.map(d => d.actual_speed_mps != null ? +(d.actual_speed_mps * 3.6).toFixed(1) : null);
+  const ontimes = raw.map(d => d.on_time_pct);
+
+  const lineOpts = (color) => ({
+    borderColor: color,
+    backgroundColor: color + '22',
+    fill: true,
+    tension: 0.3,
+    pointRadius: 2,
+    spanGaps: true,
+  });
+
+  new Chart(document.getElementById('speedChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Speed km/h', data: speeds, ...lineOpts('#2f6f9f') }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } },
+  });
+
+  new Chart(document.getElementById('ontimeChart'), {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'On-time %', data: ontimes, ...lineOpts('#2d8f67') }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } },
+  });
+</script>
+{% endblock %}
+
+{% endblock %}

@@ -1,0 +1,88 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "Mobili spect Montreal" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e5]
+      - generic [ref=e9]:
+        - text: Mobili
+        - generic [ref=e10]: spect
+        - generic [ref=e11]: Montreal
+    - navigation [ref=e12]:
+      - link "Speeds" [ref=e13] [cursor=pointer]:
+        - /url: /
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - heading "Route 212 — Sainte-Anne" [level=1] [ref=e18]
+          - paragraph [ref=e19]: Stop spacing and speed trend evidence
+        - generic [ref=e20]:
+          - generic [ref=e21]: Local · 12-18 km/h
+          - link "← Back to speed overview" [ref=e22] [cursor=pointer]:
+            - /url: /speed?agency=0
+      - generic [ref=e24]:
+        - generic [ref=e25]: → Station Anse-à-l'Orme
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - text: Stop spacing
+            - generic [ref=e28]: 408 m
+          - generic [ref=e30]:
+            - generic [ref=e33]: Station Anse-à-l'Orme
+            - generic [ref=e36]: 498 m
+            - generic [ref=e39]: Sainte-Marie / Morgan
+            - generic [ref=e42]: 361 m
+            - generic [ref=e45]: Sainte-Marie / Daoust
+            - generic [ref=e48]: 287 m
+            - generic [ref=e51]: Sainte-Marie / Meloche
+            - generic [ref=e54]: 282 m
+            - generic [ref=e57]: Sainte-Marie / Émile A.-Lods
+            - generic [ref=e60]: 453 m
+            - generic [ref=e63]: Zoo Écomuseum
+            - generic [ref=e66]: 310 m
+            - generic [ref=e69]: Sainte-Marie / des Pins
+            - generic [ref=e72]: 1.2 km
+            - generic [ref=e75]: des Anciens-Combattants / Caserne 51
+            - generic [ref=e78]: 383 m
+            - generic [ref=e81]: École secondaire Saint-Georges
+            - generic [ref=e84]: 279 m
+            - generic [ref=e87]: des Anciens-Combattants / Pacific
+            - generic [ref=e90]: 173 m
+            - generic [ref=e93]: Sainte-Anne / Garden City
+            - generic [ref=e96]: 155 m
+            - generic [ref=e99]: Michaud / Garden City
+            - generic [ref=e102]: 151 m
+            - generic [ref=e105]: Gare Sainte-Anne-de-Bellevue
+            - generic [ref=e108]: 299 m
+            - generic [ref=e111]: Sainte-Anne / Saint-Charles
+            - generic [ref=e114]: 259 m
+            - generic [ref=e117]: Sainte-Anne / de l'Église
+            - generic [ref=e120]: 173 m
+            - generic [ref=e123]: Sainte-Anne / du Collège
+            - generic [ref=e126]: 304 m
+            - generic [ref=e129]: du Collège / Saint-Jean-Baptiste
+            - generic [ref=e132]: 538 m
+            - generic [ref=e135]: des Anciens-Combattants / Pacific
+            - generic [ref=e138]: 286 m
+            - generic [ref=e141]: École secondaire Saint-Georges
+            - generic [ref=e144]: 390 m
+            - generic [ref=e147]: des Anciens-Combattants / No 555
+            - generic [ref=e150]: 1.2 km
+            - generic [ref=e153]: Sainte-Marie / des Pins
+            - generic [ref=e156]: 288 m
+            - generic [ref=e159]: Zoo Écomuseum
+            - generic [ref=e162]: 422 m
+            - generic [ref=e165]: Sainte-Marie / No 21025
+            - generic [ref=e168]: 235 m
+            - generic [ref=e171]: Sainte-Marie / Meloche
+            - generic [ref=e174]: 363 m
+            - generic [ref=e177]: Sainte-Marie / Daoust
+            - generic [ref=e180]: 846 m
+            - generic [ref=e183]: Station Anse-à-l'Orme
+          - generic [ref=e185]: Speed trend — scheduled vs actual
+          - generic [ref=e186]:
+            - generic [ref=e188]: Weekday
+            - generic [ref=e191]: Saturday
+            - generic [ref=e194]: Sunday
+  - contentinfo [ref=e196]:
+    - paragraph [ref=e197]: © 2026 Mobilispect. Real-time performance monitoring for public transit.
+    - paragraph [ref=e198]: "Data Source: STM & various GTFS-RT feeds"

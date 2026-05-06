@@ -1,56 +1,9 @@
-# Kotlin / Gradle
-.gradle/
-build/
-out/
-*.class
-*.jar
-*.war
-*.ear
-
-# IntelliJ / IDE files
-.idea/
-*.iml
-.project
-.settings/
-
-# Node / Angular
-node_modules/
-dist/
-tmp/
-tmp/**
-coverage/
-.angular/cache/
-
-# Logs & runtime artifacts
-*.log
-*.log.*
-log/
-logs/
-sessions/
-
-# Environment & secrets
-.env
-.env.*
-*.env
-
-# Editors / tooling
-.vscode/
-*.swp
-*.tmp
-*.cache
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Xcode user data
-**/xcuserdata/
-
-# Local tool artifacts
-java-25/
-
-/.envrc
-
-# Git worktrees (Crystal)
-/worktrees/
-/worktree-*/
+/.env
+/.env.keys
+/.superpowers
+/mobilispect.db
+/mobilispect.db-shm
+/mobilispect.db-wal
+/target
+/.claude/settings.json
+/.claude/worktrees

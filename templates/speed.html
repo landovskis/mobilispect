@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Mobilispect — Route Speeds{% endblock %}
+{% block region_name %}{{ region_name }}{% endblock %}
+{% block nav_speed %}active{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js" defer></script>
+<style>
+.controls { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+@media (max-width: 900px) { .card-grid { grid-template-columns: 1fr; } }
+.chart-row { display: flex; gap: 0.75rem; }
+.chart-col { flex: 1; min-width: 0; }
+.chart-col:only-child { max-width: 50%; margin: 0 auto; }
+.chart-title { font-size: 0.8rem; font-weight: 600; text-align: center; margin-bottom: 0.25rem; color: var(--ink-700); }
+.speed-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+  color: var(--ink-500);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.speed-loading::before {
+  content: "";
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--line);
+  border-top-color: var(--link-blue);
+  border-radius: 999px;
+  animation: speed-loading-spin 0.8s linear infinite;
+}
+.htmx-indicator {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease;
+}
+.htmx-request.htmx-indicator,
+.htmx-request .htmx-indicator {
+  opacity: 1;
+  visibility: visible;
+}
+@keyframes speed-loading-spin {
+  to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Route Speeds</h1>
+      <p class="page-subtitle">Scheduled and actual speed evidence by route</p>
+    </div>
+  </div>
+  {% include "speed_content.html" %}
+</div>
+{% endblock %}

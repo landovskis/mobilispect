@@ -1,38 +1,6 @@
-# VCS
-.git
-.gitignore
-
-# Build and dependencies
-build/
-.gradle/
-out/
-node_modules/
-dist/
-tmp/
-coverage/
-.angular/
-
-# Logs and runtime artifacts
-*.log
-*.log.*
-*.tmp
-log/
-logs/
-
-# Environment and secrets
+target/
+.git/
+.claude/
+*.db
 .env
-.env.*
-*.env
-
-# Docker metadata
-Dockerfile
-Dockerfile.*
-.dockerignore
-
-# IDE/editor
-.idea/
-.vscode/
-
-# OS files
-.DS_Store
-Thumbs.db
+docs/

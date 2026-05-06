@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO route_speed\n             (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)\n             VALUES ($1, $2, $3, $4, $5, $6)\n             ON CONFLICT (agency_id, route_id, direction_id) DO UPDATE SET\n               scheduled_speed_mps = EXCLUDED.scheduled_speed_mps,\n               trip_count = EXCLUDED.trip_count,\n               computed_at = EXCLUDED.computed_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Float8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cdea5a9c0769341f7efc290247bc33c2de24b68492cb90b1e422bc7107efa7e5"
+}

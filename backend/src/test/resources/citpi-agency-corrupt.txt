@@ -1,2 +1,0 @@
-agency_name,agency_url,agency_timezone,agency_lang,agency_fare_url
-exo-La Presqu'île,https://exo.quebec/fr/planifier-trajet/autobus/CITPI,America/Montreal,fr,https://exo.quebec/fr/titres-tarifs/titres-metropolitains

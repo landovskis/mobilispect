@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO stop_time_events\n                 (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_delay, departure_delay,\n                  arrival_time_unix, departure_time_unix)\n                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38e0384c7184ffc14a2622ada70af9f4f894fe0e3f3299e0836b80266d4b794f"
+}

@@ -1,3 +1,0 @@
-stop_name,stop_lat,stop_lon,zone_id,stop_code,wheelchair_boarding
-1e Boulevard / 11e Avenue,  45.394541, -73.984991,4,71998,0
-1e Boulevard / 11e Avenue,  45.393884, -73.985183,4,71999,0

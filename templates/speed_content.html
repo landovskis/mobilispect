@@ -1,0 +1,86 @@
+<!-- HTMX target: id="speed-content" must match hx-target on every control link.
+     hx-swap="outerHTML" replaces this element itself, so this wrapper is required. -->
+<div id="speed-content" hx-indicator="#speed-loading">
+  <div class="control-row">
+    <span class="control-label">Agency:</span>
+    <a href="/speed{% if active_sort != "name" %}?sort={{ active_sort }}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}{% elif !active_class.is_empty() %}?class={{ active_class }}{% endif %}"
+       hx-get="/speed{% if active_sort != "name" %}?sort={{ active_sort }}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}{% elif !active_class.is_empty() %}?class={{ active_class }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
+    {% for (slug, name) in &agencies %}
+    <a href="/speed?agency={{ slug }}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}"
+       hx-get="/speed?agency={{ slug }}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
+    {% endfor %}
+  </div>
+
+  <div class="control-row">
+    <span class="control-label">Sort by:</span>
+    <a href="/speed{% if !active_agency.is_empty() %}?agency={{ active_agency }}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}{% elif !active_class.is_empty() %}?class={{ active_class }}{% endif %}"
+       hx-get="/speed{% if !active_agency.is_empty() %}?agency={{ active_agency }}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}{% elif !active_class.is_empty() %}?class={{ active_class }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_sort == "name" %}active{% endif %}">Name</a>
+    <a href="/speed?sort=scheduled{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}"
+       hx-get="/speed?sort=scheduled{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_sort == "scheduled" %}active{% endif %}">Slowest scheduled</a>
+    <a href="/speed?sort=actual{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}"
+       hx-get="/speed?sort=actual{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_sort == "actual" %}active{% endif %}">Slowest actual</a>
+  </div>
+
+  <div class="control-row" style="margin-bottom:1.5rem;">
+    <span class="control-label">Class:</span>
+    <a href="/speed{% if !active_agency.is_empty() %}?agency={{ active_agency }}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}{% elif active_sort != "name" %}?sort={{ active_sort }}{% endif %}"
+       hx-get="/speed{% if !active_agency.is_empty() %}?agency={{ active_agency }}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}{% elif active_sort != "name" %}?sort={{ active_sort }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_class.is_empty() %}active{% endif %}">All</a>
+    <a href="/speed?class=local{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
+       hx-get="/speed?class=local{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_class == "local" %}active{% endif %}">Local</a>
+    <a href="/speed?class=rapid{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
+       hx-get="/speed?class=rapid{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_class == "rapid" %}active{% endif %}">Rapid</a>
+    <a href="/speed?class=express{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
+       hx-get="/speed?class=express{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if active_sort != "name" %}&amp;sort={{ active_sort }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_class == "express" %}active{% endif %}">Express</a>
+    <span id="speed-loading"
+          class="speed-loading htmx-indicator"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true">Loading route speeds</span>
+  </div>
+
+  {% if cards.is_empty() %}
+  <div class="empty-state">No speed data available yet. Data appears after the daily compute runs.</div>
+  {% else %}
+  <div class="card-grid">
+    {% for card in &cards %}
+    {% include "speed_card.html" %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>

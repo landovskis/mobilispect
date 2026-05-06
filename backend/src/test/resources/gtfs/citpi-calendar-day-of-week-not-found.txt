@@ -1,6 +1,0 @@
-service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date
-PI-A22-PI_GTFS-Semaine-01,1,1,1,1,1,0,0,20221123,20221123
-PI-A22-PI_GTFS-Samedi-01,0,0,0,0,0,1,0,20221123,20221124
-PI-A22-PI_GTFS-Dimanche-01,0,0,0,0,0,0,1,20221123,20230108
-PI-A22-PI_GTFS-Fête-1-01,0,0,0,0,0,0,0,20221123,20230108
-PI-A22-PI_GTFS-Fête-2-01,0,0,0,0,0,0,0,20221123,20230108

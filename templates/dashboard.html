@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Mobilispect — Transit Performance{% endblock %}
+{% block region_name %}{{ region_name }}{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Network Performance</h1>
+      <p class="page-subtitle">Route accountability over the last {{ period_days }} days</p>
+    </div>
+  </div>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-label">Routes monitored</div>
+      <div class="metric-value">{{ routes.len() }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Period</div>
+      <div class="metric-value">{{ period_days }}d</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">Agency</span>
+    <a href="/" class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
+    {% for (slug, name) in &agencies %}
+    <a href="/?agency={{ slug }}" class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
+    {% endfor %}
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Route</th>
+        <th>Name</th>
+        <th>On-time %</th>
+        <th>Avg delay</th>
+        <th>Trips run</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for route in routes %}
+      <tr>
+        <td><span class="route-id">{% if let Some(n) = agency_names.get(route.agency_id.as_str()) %}{{ n }} {% endif %}{{ route.short_name }}</span></td>
+        <td>{{ route.long_name }}</td>
+        <td>{{ route.on_time_display() }}</td>
+        <td>{{ route.delay_display() }}</td>
+        <td>{% if let Some(r) = route.trips_run %}{{ r }}{% else %}0{% endif %} / {% if let Some(t) = route.trips_total %}{{ t }}{% else %}0{% endif %}</td>
+        <td><span class="badge {{ route.status_class() }}">{{ route.status_label() }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
