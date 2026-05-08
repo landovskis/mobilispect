@@ -326,23 +326,21 @@ pub async fn route_stop_spacings(
     route_id: &str,
 ) -> Result<Vec<DirectionStopSpacings>> {
     let rows: Vec<StopSpacingEntry> = sqlx::query_as(
-        "WITH rep_trip AS (
-            SELECT DISTINCT ON (COALESCE(direction_id, 0))
-                trip_id, COALESCE(direction_id, 0) AS direction_id
-            FROM trips
-            WHERE agency_id = $1 AND route_id = $2
-            ORDER BY COALESCE(direction_id, 0), trip_id
+        "WITH primary_variant AS (
+            SELECT variant_id, direction_id
+            FROM route_variants
+            WHERE agency_id = $1 AND route_id = $2 AND is_primary = TRUE
         ),
         ordered AS (
             SELECT
-                rt.direction_id,
+                pv.direction_id,
                 s.stop_name,
                 s.stop_lat, s.stop_lon,
-                ROW_NUMBER() OVER (PARTITION BY rt.direction_id ORDER BY ss.stop_sequence) AS rn,
-                COUNT(*)    OVER (PARTITION BY rt.direction_id)                            AS total_stops
-            FROM rep_trip rt
-            JOIN scheduled_stops ss ON ss.agency_id = $1 AND ss.trip_id = rt.trip_id
-            JOIN stops s ON s.agency_id = $1 AND s.stop_id = ss.stop_id
+                ROW_NUMBER() OVER (PARTITION BY pv.direction_id ORDER BY rvs.stop_sequence) AS rn,
+                COUNT(*)    OVER (PARTITION BY pv.direction_id)                              AS total_stops
+            FROM primary_variant pv
+            JOIN route_variant_stops rvs ON rvs.agency_id = $1 AND rvs.variant_id = pv.variant_id
+            JOIN stops s ON s.agency_id = $1 AND s.stop_id = rvs.stop_id
         ),
         with_prev AS (
             SELECT
@@ -433,7 +431,6 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
         .await?;
 
         let mut trip_speeds: Vec<f64> = Vec::new();
-        let mut stop_spacings_m: Vec<f64> = Vec::new();
 
         for (trip_id,) in &trips {
             let stops: Vec<(f64, f64, String)> = sqlx::query_as(
@@ -452,13 +449,10 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
                 continue;
             }
 
-            // Total distance: sum of consecutive stop-to-stop haversine distances.
-            let segment_distances_m: Vec<f64> = stops
+            let total_distance_m: f64 = stops
                 .windows(2)
                 .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
-                .collect();
-            let total_distance_m: f64 = segment_distances_m.iter().sum();
-            stop_spacings_m.extend(segment_distances_m.into_iter().filter(|d| *d > 0.0));
+                .sum();
 
             // Scheduled duration: last arrival minus first arrival.
             let first_secs = parse_time_secs(&stops.first().unwrap().2);
@@ -477,12 +471,38 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
             continue;
         }
 
-        let avg_speed = trip_speeds.iter().sum::<f64>() / trip_speeds.len() as f64;
-        let avg_stop_spacing_m = if stop_spacings_m.is_empty() {
-            None
+        // Derive avg_stop_spacing_m from the primary variant's canonical stop list,
+        // not from averaging across all trips (which conflates short-turns and full routes).
+        let primary_stops: Vec<(f64, f64)> = sqlx::query_as(
+            "SELECT s.stop_lat, s.stop_lon
+             FROM route_variant_stops rvs
+             JOIN route_variants rv ON rv.agency_id = rvs.agency_id AND rv.variant_id = rvs.variant_id
+             JOIN stops s ON s.agency_id = rvs.agency_id AND s.stop_id = rvs.stop_id
+             WHERE rvs.agency_id = $1 AND rv.route_id = $2 AND rv.direction_id = $3 AND rv.is_primary = TRUE
+             ORDER BY rvs.stop_sequence",
+        )
+        .bind(&agency_id)
+        .bind(route_id)
+        .bind(direction_id)
+        .fetch_all(&db.pool)
+        .await?;
+
+        let avg_stop_spacing_m = if primary_stops.len() >= 2 {
+            let spacings: Vec<f64> = primary_stops
+                .windows(2)
+                .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
+                .filter(|d| *d > 0.0)
+                .collect();
+            if spacings.is_empty() {
+                None
+            } else {
+                Some(spacings.iter().sum::<f64>() / spacings.len() as f64)
+            }
         } else {
-            Some(stop_spacings_m.iter().sum::<f64>() / stop_spacings_m.len() as f64)
+            None
         };
+
+        let avg_speed = trip_speeds.iter().sum::<f64>() / trip_speeds.len() as f64;
         let trip_count = trip_speeds.len() as i64;
 
         sqlx::query(

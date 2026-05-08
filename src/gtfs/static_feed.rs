@@ -2,6 +2,9 @@ use anyhow::Result;
 use chrono::Datelike;
 use chrono::Utc;
 use gtfs_structures::{DirectionType, Exception, Gtfs, RouteType};
+use hex;
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use tracing::{info, warn};
 
 use crate::config::AgencyConfig;
@@ -56,6 +59,14 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
 
     // Drop stale data for this agency and bulk-insert in one transaction
     let mut tx = db.pool.begin().await?;
+    sqlx::query("DELETE FROM route_variant_stops WHERE agency_id = $1")
+        .bind(&agency_id)
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("DELETE FROM route_variants WHERE agency_id = $1")
+        .bind(&agency_id)
+        .execute(&mut *tx)
+        .await?;
     sqlx::query("DELETE FROM scheduled_stops WHERE agency_id = $1")
         .bind(&agency_id)
         .execute(&mut *tx)
@@ -83,6 +94,7 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
     load_scheduled_stops(&mut tx, &agency_id, &gtfs).await?;
     load_calendar(&mut tx, &agency_id, &gtfs.calendar).await?;
     load_calendar_from_dates(&mut tx, &agency_id, &gtfs.calendar_dates).await?;
+    load_variants(&mut tx, &agency_id, &gtfs).await?;
     tx.commit().await?;
 
     set_stored_version(db, &agency_id, &feed_version).await?;
@@ -410,6 +422,210 @@ mod tests {
     use gtfs_structures::Calendar;
     use std::collections::HashMap;
 
+    // ── helpers for building minimal Gtfs structs ──────────────────────────
+
+    fn make_stop(id: &str) -> std::sync::Arc<gtfs_structures::Stop> {
+        std::sync::Arc::new(gtfs_structures::Stop {
+            id: id.to_string(),
+            name: id.to_string(),
+            latitude: Some(45.0),
+            longitude: Some(-73.0),
+            ..Default::default()
+        })
+    }
+
+    fn make_stop_time(stop: std::sync::Arc<gtfs_structures::Stop>, seq: u32) -> gtfs_structures::StopTime {
+        gtfs_structures::StopTime {
+            stop,
+            stop_sequence: seq as u16,
+            arrival_time: Some(seq * 60),
+            departure_time: Some(seq * 60),
+            ..Default::default()
+        }
+    }
+
+    fn make_route(id: &str) -> gtfs_structures::Route {
+        gtfs_structures::Route {
+            id: id.to_string(),
+            short_name: id.to_string(),
+            long_name: id.to_string(),
+            route_type: gtfs_structures::RouteType::Bus,
+            ..Default::default()
+        }
+    }
+
+    fn make_trip(
+        id: &str,
+        route_id: &str,
+        direction: Option<gtfs_structures::DirectionType>,
+        stops: Vec<std::sync::Arc<gtfs_structures::Stop>>,
+    ) -> gtfs_structures::Trip {
+        let stop_times = stops
+            .into_iter()
+            .enumerate()
+            .map(|(i, s)| make_stop_time(s, i as u32))
+            .collect();
+        gtfs_structures::Trip {
+            id: id.to_string(),
+            route_id: route_id.to_string(),
+            service_id: "WD".to_string(),
+            direction_id: direction,
+            stop_times,
+            ..Default::default()
+        }
+    }
+
+    // ── load_variants tests ────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn load_variants_creates_variant_and_links_trips() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        // Insert a route so the FK is satisfied.
+        sqlx::query(
+            "INSERT INTO routes (agency_id, route_id, short_name, long_name, route_type)
+             VALUES ('stm', '45', '45', 'Papineau', 3)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let sa = make_stop("A");
+        let sb = make_stop("B");
+        let sc = make_stop("C");
+
+        // Two trips with the same stop sequence → same variant.
+        let trip1 = make_trip("T1", "45", Some(gtfs_structures::DirectionType::Outbound), vec![sa.clone(), sb.clone(), sc.clone()]);
+        let trip2 = make_trip("T2", "45", Some(gtfs_structures::DirectionType::Outbound), vec![sa.clone(), sb.clone(), sc.clone()]);
+
+        // Insert the trips first (load_variants expects them already in trips table).
+        for t in [&trip1, &trip2] {
+            sqlx::query(
+                "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id)
+                 VALUES ('stm', $1, $2, 'WD', 0)",
+            )
+            .bind(&t.id)
+            .bind(&t.route_id)
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+
+        let mut gtfs = Gtfs::default();
+        gtfs.trips.insert("T1".to_string(), trip1);
+        gtfs.trips.insert("T2".to_string(), trip2);
+        gtfs.routes.insert("45".to_string(), make_route("45"));
+
+        let mut tx = db.pool.begin().await.unwrap();
+        load_variants(&mut tx, "stm", &gtfs).await.unwrap();
+        tx.commit().await.unwrap();
+
+        // One variant should exist.
+        let variant_count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM route_variants WHERE agency_id = 'stm'")
+                .fetch_one(&db.pool)
+                .await
+                .unwrap();
+        assert_eq!(variant_count.0, 1, "expected exactly one variant");
+
+        // That variant should be primary with trip_count = 2.
+        let (trip_count, is_primary): (i64, bool) = sqlx::query_as(
+            "SELECT trip_count, is_primary FROM route_variants WHERE agency_id = 'stm'",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(trip_count, 2);
+        assert!(is_primary);
+
+        // Stops should be recorded in order.
+        let stop_ids: Vec<(i64, String)> = sqlx::query_as(
+            "SELECT stop_sequence, stop_id FROM route_variant_stops WHERE agency_id = 'stm' ORDER BY stop_sequence",
+        )
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(stop_ids.len(), 3);
+        assert_eq!(stop_ids[0].1, "A");
+        assert_eq!(stop_ids[1].1, "B");
+        assert_eq!(stop_ids[2].1, "C");
+
+        // Both trips should be linked to the variant.
+        let linked: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM trips WHERE agency_id = 'stm' AND variant_id IS NOT NULL",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(linked.0, 2);
+    }
+
+    #[tokio::test]
+    async fn load_variants_marks_most_common_as_primary() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query(
+            "INSERT INTO routes (agency_id, route_id, short_name, long_name, route_type)
+             VALUES ('stm', '45', '45', 'Papineau', 3)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let sa = make_stop("A");
+        let sb = make_stop("B");
+        let sc = make_stop("C");
+        let sd = make_stop("D");
+
+        // Full route: A→B→C→D — 3 trips
+        let full_stops = vec![sa.clone(), sb.clone(), sc.clone(), sd.clone()];
+        // Short turn: A→B→C — 1 trip
+        let short_stops = vec![sa.clone(), sb.clone(), sc.clone()];
+
+        let mut gtfs = Gtfs::default();
+        gtfs.routes.insert("45".to_string(), make_route("45"));
+
+        for (i, stops) in [&full_stops, &full_stops, &full_stops, &short_stops]
+            .iter()
+            .enumerate()
+        {
+            let id = format!("T{i}");
+            let trip = make_trip(&id, "45", Some(gtfs_structures::DirectionType::Outbound), (*stops).clone());
+            sqlx::query(
+                "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id)
+                 VALUES ('stm', $1, '45', 'WD', 0)",
+            )
+            .bind(&id)
+            .execute(&db.pool)
+            .await
+            .unwrap();
+            gtfs.trips.insert(id, trip);
+        }
+
+        let mut tx = db.pool.begin().await.unwrap();
+        load_variants(&mut tx, "stm", &gtfs).await.unwrap();
+        tx.commit().await.unwrap();
+
+        // Two variants should exist.
+        let count: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM route_variants WHERE agency_id = 'stm'")
+                .fetch_one(&db.pool)
+                .await
+                .unwrap();
+        assert_eq!(count.0, 2);
+
+        // The full-route variant (3 trips) should be primary.
+        let primary_stop_count: (i64,) = sqlx::query_as(
+            "SELECT stop_count FROM route_variants WHERE agency_id = 'stm' AND is_primary = TRUE",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(primary_stop_count.0, 4, "primary variant should be the 4-stop full route");
+    }
+
     #[tokio::test]
     async fn load_calendar_inserts_service_day_flags() {
         let td = test_utils::setup().await;
@@ -596,6 +812,125 @@ mod tests {
         );
         assert!(row.1, "monday should still be true");
     }
+}
+
+/// Compute a deterministic variant_id for a given stop sequence.
+/// Input: "{route_id}:{direction_id}:{stop1_id},{stop2_id},..."
+fn variant_id_for(route_id: &str, direction_id: i64, stop_ids: &[String]) -> String {
+    let input = format!("{}:{}:{}", route_id, direction_id, stop_ids.join(","));
+    let digest = Sha256::digest(input.as_bytes());
+    hex::encode(&digest[..16])
+}
+
+/// Build and store route variants from already-loaded trips + scheduled_stops.
+/// Groups trips by their ordered stop sequence, assigns a deterministic variant_id,
+/// marks the variant with the most trips as primary, and links trips to their variant.
+pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()> {
+    // Collect stop sequences per trip in memory (already loaded into DB, but gtfs struct is handy).
+    // key: (route_id, direction_id, stop_ids_csv) → (variant_id, trip_ids, headsign)
+    let mut pattern_map: HashMap<(String, i64, String), (String, Vec<String>, Option<String>)> =
+        HashMap::new();
+
+    for (trip_id, trip) in &gtfs.trips {
+        let direction_id = trip
+            .direction_id
+            .as_ref()
+            .map(direction_to_int)
+            .unwrap_or(0);
+
+        let stop_ids: Vec<String> = trip
+            .stop_times
+            .iter()
+            .map(|st| st.stop.id.clone())
+            .collect();
+        // stop_times from gtfs-structures are already ordered by stop_sequence
+        let stop_ids_csv = stop_ids.join(",");
+
+        let key = (trip.route_id.clone(), direction_id, stop_ids_csv.clone());
+        let vid = variant_id_for(&trip.route_id, direction_id, &stop_ids);
+
+        let entry = pattern_map.entry(key).or_insert_with(|| {
+            let headsign = trip.trip_headsign.clone();
+            (vid.clone(), Vec::new(), headsign)
+        });
+        entry.1.push(trip_id.clone());
+    }
+
+    // Determine is_primary per (route_id, direction_id): variant with highest trip_count.
+    // Build: (route_id, direction_id) → max trip_count seen so far
+    let mut primary_map: HashMap<(String, i64), (usize, String)> = HashMap::new();
+    for ((route_id, direction_id, _), (vid, trip_ids, _)) in &pattern_map {
+        let count = trip_ids.len();
+        let entry = primary_map
+            .entry((route_id.clone(), *direction_id))
+            .or_insert((0, vid.clone()));
+        if count > entry.0 || (count == entry.0 && vid < &entry.1) {
+            *entry = (count, vid.clone());
+        }
+    }
+
+    for ((route_id, direction_id, stop_ids_csv), (vid, trip_ids, headsign)) in &pattern_map {
+        let stop_ids: Vec<&str> = stop_ids_csv.split(',').collect();
+        let stop_count = stop_ids.len() as i64;
+        let trip_count = trip_ids.len() as i64;
+        let is_primary = primary_map
+            .get(&(route_id.clone(), *direction_id))
+            .map(|(_, primary_vid)| primary_vid == vid)
+            .unwrap_or(false);
+
+        sqlx::query(
+            "INSERT INTO route_variants
+             (agency_id, variant_id, route_id, direction_id, headsign, stop_count, trip_count, is_primary)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (agency_id, variant_id) DO UPDATE SET
+               trip_count = EXCLUDED.trip_count,
+               is_primary = EXCLUDED.is_primary,
+               headsign   = EXCLUDED.headsign",
+        )
+        .bind(agency_id)
+        .bind(vid)
+        .bind(route_id)
+        .bind(direction_id)
+        .bind(headsign.as_deref())
+        .bind(stop_count)
+        .bind(trip_count)
+        .bind(is_primary)
+        .execute(&mut **tx)
+        .await?;
+
+        for (seq, sid) in stop_ids.iter().enumerate() {
+            sqlx::query(
+                "INSERT INTO route_variant_stops (agency_id, variant_id, stop_sequence, stop_id)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (agency_id, variant_id, stop_sequence) DO NOTHING",
+            )
+            .bind(agency_id)
+            .bind(vid)
+            .bind(seq as i64)
+            .bind(sid)
+            .execute(&mut **tx)
+            .await?;
+        }
+
+        for trip_id in trip_ids {
+            sqlx::query(
+                "UPDATE trips SET variant_id = $1
+                 WHERE agency_id = $2 AND trip_id = $3",
+            )
+            .bind(vid)
+            .bind(agency_id)
+            .bind(trip_id)
+            .execute(&mut **tx)
+            .await?;
+        }
+    }
+
+    info!(
+        "Loaded {} route variants for agency {}",
+        pattern_map.len(),
+        agency_id
+    );
+    Ok(())
 }
 
 async fn get_stored_version(db: &Database, agency_id: &str) -> Result<Option<String>> {
