@@ -330,6 +330,7 @@ pub async fn route_stop_spacings(
             SELECT variant_id, direction_id
             FROM route_variants
             WHERE agency_id = $1 AND route_id = $2 AND is_primary = TRUE
+            -- one row per direction (each direction has exactly one primary variant)
         ),
         ordered AS (
             SELECT

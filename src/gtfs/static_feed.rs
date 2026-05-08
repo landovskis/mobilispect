@@ -815,9 +815,11 @@ mod tests {
 }
 
 /// Compute a deterministic variant_id for a given stop sequence.
-/// Input: "{route_id}:{direction_id}:{stop1_id},{stop2_id},..."
-fn variant_id_for(route_id: &str, direction_id: i64, stop_ids: &[String]) -> String {
-    let input = format!("{}:{}:{}", route_id, direction_id, stop_ids.join(","));
+/// Input: "{stop1_id},{stop2_id},..." — route and direction are intentionally
+/// excluded so the same physical pattern gets the same ID regardless of
+/// how the agency numbers or labels the route.
+fn variant_id_for(stop_ids: &[String]) -> String {
+    let input = stop_ids.join(",");
     let digest = Sha256::digest(input.as_bytes());
     hex::encode(&digest[..16])
 }
@@ -847,7 +849,7 @@ pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs)
         let stop_ids_csv = stop_ids.join(",");
 
         let key = (trip.route_id.clone(), direction_id, stop_ids_csv.clone());
-        let vid = variant_id_for(&trip.route_id, direction_id, &stop_ids);
+        let vid = variant_id_for(&stop_ids);
 
         let entry = pattern_map.entry(key).or_insert_with(|| {
             let headsign = trip.trip_headsign.clone();
@@ -882,7 +884,7 @@ pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs)
             "INSERT INTO route_variants
              (agency_id, variant_id, route_id, direction_id, headsign, stop_count, trip_count, is_primary)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             ON CONFLICT (agency_id, variant_id) DO UPDATE SET
+             ON CONFLICT (agency_id, route_id, direction_id, variant_id) DO UPDATE SET
                trip_count = EXCLUDED.trip_count,
                is_primary = EXCLUDED.is_primary,
                headsign   = EXCLUDED.headsign",
