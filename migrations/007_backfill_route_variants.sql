@@ -2,8 +2,7 @@
 -- Produces variant_ids that match what load_variants() in static_feed.rs produces:
 --   first 32 hex chars of SHA-256("{stop1_id},{stop2_id},...")
 -- This is a no-op for new deployments where load_variants() already ran.
-
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Requires pgcrypto (enabled by migration 006).
 
 WITH trip_patterns AS (
     -- Build the ordered stop sequence string for every trip.
