@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobilispect — Brand</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400;1,600&family=Fira+Code:wght@400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink:    #1A1814;
+      --bg:     #0D0B09;
+      --surf:   #181410;
+      --surf2:  #201C18;
+      --cinn:   #C8463A;
+      --ox:     #1D4E89;
+      --cream:  #EDE8E0;
+      --muted:  #888480;
+      --dim:    #4E4844;
+      --stone:  #38302A;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--cream);
+      font-family: 'Jost', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ── Top signal bar ─── */
+    .signal-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--cinn) 0%, var(--ox) 55%, var(--cinn) 100%);
+    }
+
+    /* ── Hero ─────────────────────────────────── */
+    .hero {
+      min-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3.5rem;
+      padding: 5rem 2rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Grid overlay */
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(255,255,255,0.025) 47px, rgba(255,255,255,0.025) 48px),
+        repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(255,255,255,0.025) 47px, rgba(255,255,255,0.025) 48px);
+      pointer-events: none;
+    }
+
+    /* Radial glow behind logo */
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -55%);
+      width: 520px; height: 320px;
+      background: radial-gradient(ellipse, rgba(200,70,58,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .brand-label {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.22em;
+      color: var(--cinn);
+      text-transform: uppercase;
+      opacity: 0;
+      animation: fadeUp 0.6s ease 0.2s forwards;
+      position: relative; z-index: 1;
+    }
+
+    /* ── Primary lockup ──────────────────────── */
+    .lockup {
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+      opacity: 0;
+      animation: fadeUp 0.9s ease 0.5s forwards;
+      position: relative; z-index: 1;
+      cursor: default;
+    }
+
+    /* ── Mark SVG ─── */
+    .mark-wrap { flex-shrink: 0; }
+
+    /* Animated paths */
+    .r-left {
+      stroke-dasharray: 32; stroke-dashoffset: 32;
+      animation: draw 0.55s ease 0.9s forwards;
+    }
+    .r-right {
+      stroke-dasharray: 36; stroke-dashoffset: 36;
+      animation: draw 0.55s ease 1.35s forwards;
+    }
+    .pulse {
+      stroke-dasharray: 100; stroke-dashoffset: 100;
+      animation: draw 0.9s cubic-bezier(0.16,1,0.3,1) 0.95s forwards;
+    }
+    .scope {
+      stroke-dasharray: 96; stroke-dashoffset: 96;
+      transform-box: fill-box; transform-origin: center;
+      animation: draw 1.1s ease 1.6s forwards, spin 28s linear 2.8s infinite;
+    }
+    .peak-glow {
+      transform-box: fill-box; transform-origin: center;
+      transform: scale(0);
+      animation: popIn 0.55s cubic-bezier(0.34,1.56,0.64,1) 1.45s forwards, pulse 3s ease-in-out 2.5s infinite;
+    }
+    .peak-dot {
+      transform-box: fill-box; transform-origin: center;
+      transform: scale(0);
+      animation: popIn 0.45s cubic-bezier(0.34,1.7,0.64,1) 1.42s forwards;
+    }
+
+    /* Mark hover: subtle scale */
+    .lockup:hover .mark-bg { rx: 16; transition: 0.3s; }
+
+    /* ── Wordmark ─── */
+    .wm {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .wm-name {
+      display: flex;
+      align-items: baseline;
+      line-height: 1;
+    }
+    .wm-m {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: 3.4rem;
+      color: var(--cream);
+      letter-spacing: -0.015em;
+    }
+    .wm-s {
+      font-family: 'Fira Code', monospace;
+      font-weight: 500;
+      font-size: 2.05rem;
+      color: var(--cinn);
+      letter-spacing: -0.03em;
+      margin-bottom: 2px;
+    }
+    .wm-tag {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      text-transform: uppercase;
+      padding-left: 2px;
+    }
+
+    /* ── Section layout ────────────────────── */
+    .section {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem 5rem;
+    }
+
+    .section-label {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 1.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--stone);
+    }
+
+    /* ── Variants grid ─────────────────────── */
+    .variants {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--stone);
+      opacity: 0;
+      animation: fadeUp 0.8s ease 1.6s forwards;
+    }
+    @media (max-width: 640px) {
+      .variants { grid-template-columns: 1fr; }
+    }
+
+    .var-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.75rem;
+      padding: 2.75rem 1.5rem;
+      border-right: 1px solid var(--stone);
+    }
+    .var-card:last-child { border-right: none; }
+
+    .var-dark  { background: #100E0C; }
+    .var-light { background: #FAFAF7; }
+    .var-mono  { background: var(--surf2); }
+
+    .var-name {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .var-dark .var-name  { color: var(--dim); }
+    .var-light .var-name { color: #A8A49B; }
+    .var-mono .var-name  { color: var(--muted); }
+
+    /* Small wordmark in variants */
+    .wm-sm { display: flex; align-items: center; gap: 0.6rem; }
+    .wm-sm-name { display: flex; align-items: baseline; }
+    .wm-sm .wm-m { font-size: 1.5rem; }
+    .wm-sm .wm-s { font-size: 0.95rem; margin-bottom: 1px; }
+    .wm-sm-light .wm-m { color: var(--ink); }
+
+    /* ── Scale section ─────────────────────── */
+    .sizes {
+      display: flex;
+      align-items: flex-end;
+      gap: 2.75rem;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 1.85s forwards;
+    }
+    .size-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .size-px {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      color: var(--dim);
+    }
+
+    /* ── Palette ────────────────────────────── */
+    .palette {
+      display: flex;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--stone);
+      opacity: 0;
+      animation: fadeUp 0.8s ease 2.05s forwards;
+    }
+    .chip {
+      flex: 1;
+      height: 72px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 8px 10px;
+      min-width: 0;
+    }
+    .chip-name {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.52rem;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .chip-hex {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.5rem;
+      letter-spacing: 0.03em;
+      opacity: 0.65;
+      margin-top: 1px;
+    }
+
+    /* ── Type specimen ─────────────────────── */
+    .type-row {
+      display: flex;
+      gap: 1px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--stone);
+      opacity: 0;
+      animation: fadeUp 0.8s ease 2.2s forwards;
+    }
+    .type-cell {
+      flex: 1;
+      background: var(--surf);
+      padding: 2rem 1.75rem;
+    }
+    .type-cell + .type-cell { border-left: 1px solid var(--stone); }
+    .type-meta {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.14em;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+    .type-display {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-weight: 300;
+      font-size: 2.8rem;
+      color: var(--cream);
+      line-height: 1.1;
+    }
+    .type-mono {
+      font-family: 'Fira Code', monospace;
+      font-weight: 500;
+      font-size: 1.8rem;
+      color: var(--cinn);
+      line-height: 1.1;
+    }
+    .type-body {
+      font-family: 'Jost', sans-serif;
+      font-weight: 300;
+      font-size: 0.9rem;
+      color: var(--cream);
+      line-height: 1.7;
+      margin-top: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* ── Construction view ─────────────────── */
+    .construction {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3.5rem;
+      background: var(--surf);
+      border: 1px solid var(--stone);
+      border-radius: 12px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 2.35s forwards;
+    }
+
+    /* ── Footer ─────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--stone);
+      padding: 2rem;
+      text-align: center;
+    }
+    footer p {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    /* ── Keyframes ───────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes draw {
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes popIn {
+      to { transform: scale(1); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50%       { opacity: 0.15; transform: scale(1.5); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="signal-bar"></div>
+
+<!-- ═══ HERO ═══════════════════════════════════════════ -->
+<section class="hero">
+
+  <div class="brand-label">Brand Identity · 2026</div>
+
+  <div class="lockup">
+
+    <!-- ── Mark (animated) ── -->
+    <div class="mark-wrap">
+      <svg width="88" height="88" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Mobilispect mark">
+        <defs>
+          <radialGradient id="glow-h" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#C8463A" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="#C8463A" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Container -->
+        <rect class="mark-bg" x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814" stroke="#2A2420" stroke-width="0.5"/>
+
+        <!-- Faint measurement grid -->
+        <line x1="6" y1="20" x2="50" y2="20" stroke="#FFFFFF" stroke-opacity="0.04" stroke-width="0.5"/>
+        <line x1="6" y1="36" x2="50" y2="36" stroke="#FFFFFF" stroke-opacity="0.04" stroke-width="0.5"/>
+
+        <!-- Baseline left -->
+        <line x1="5" y1="28" x2="15" y2="28"
+          stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"
+          class="r-left"/>
+
+        <!-- Baseline right -->
+        <line x1="33" y1="28" x2="51" y2="28"
+          stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"
+          class="r-right"/>
+
+        <!-- Pulse deviation path: dip then spike -->
+        <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28"
+          stroke="#C8463A" stroke-width="2.25" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"
+          class="pulse"/>
+
+        <!-- Scope ring (slowly spinning) -->
+        <circle cx="28" cy="28" r="15"
+          stroke="#C8463A" stroke-width="0.75" stroke-opacity="0.38"
+          stroke-dasharray="3.8 2.8"
+          class="scope"/>
+
+        <!-- Peak glow halo -->
+        <circle cx="28" cy="14" r="9" fill="url(#glow-h)" class="peak-glow"/>
+
+        <!-- Peak inspection dot -->
+        <circle cx="28" cy="14" r="3" fill="#C8463A" class="peak-dot"/>
+        <circle cx="28" cy="14" r="1.25" fill="#F28070" class="peak-dot"/>
+      </svg>
+    </div>
+
+    <!-- ── Wordmark ── -->
+    <div class="wm">
+      <div class="wm-name">
+        <span class="wm-m">mobili</span><span class="wm-s">spect</span>
+      </div>
+      <div class="wm-tag">Transit performance · accountability</div>
+    </div>
+
+  </div><!-- /lockup -->
+
+</section><!-- /hero -->
+
+
+<!-- ═══ VARIANTS ══════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Variants</div>
+  <div class="variants">
+
+    <!-- Dark -->
+    <div class="var-card var-dark">
+      <div class="wm-sm">
+        <svg width="44" height="44" viewBox="0 0 56 56" fill="none">
+          <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814" stroke="#2A2420" stroke-width="0.5"/>
+          <line x1="5" y1="28" x2="15" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+          <line x1="33" y1="28" x2="51" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+          <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28"
+            stroke="#C8463A" stroke-width="2.25" fill="none" stroke-linecap="round"/>
+          <circle cx="28" cy="28" r="15" stroke="#C8463A" stroke-width="0.75" stroke-opacity="0.38" stroke-dasharray="3.8 2.8"/>
+          <circle cx="28" cy="14" r="3" fill="#C8463A"/>
+          <circle cx="28" cy="14" r="1.25" fill="#F28070"/>
+        </svg>
+        <div class="wm-sm-name">
+          <span class="wm-m">mobili</span><span class="wm-s">spect</span>
+        </div>
+      </div>
+      <div class="var-name">Dark · Primary</div>
+    </div>
+
+    <!-- Light -->
+    <div class="var-card var-light">
+      <div class="wm-sm wm-sm-light">
+        <svg width="44" height="44" viewBox="0 0 56 56" fill="none">
+          <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#F0EDE6" stroke="#DDD9D2" stroke-width="0.5"/>
+          <line x1="5" y1="28" x2="15" y2="28" stroke="#C8C4BC" stroke-width="1.75" stroke-linecap="round"/>
+          <line x1="33" y1="28" x2="51" y2="28" stroke="#C8C4BC" stroke-width="1.75" stroke-linecap="round"/>
+          <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28"
+            stroke="#C8463A" stroke-width="2.25" fill="none" stroke-linecap="round"/>
+          <circle cx="28" cy="28" r="15" stroke="#C8463A" stroke-width="0.75" stroke-opacity="0.35" stroke-dasharray="3.8 2.8"/>
+          <circle cx="28" cy="14" r="3" fill="#C8463A"/>
+          <circle cx="28" cy="14" r="1.25" fill="#E87060"/>
+        </svg>
+        <div class="wm-sm-name">
+          <span class="wm-m" style="color:#1A1814">mobili</span><span class="wm-s">spect</span>
+        </div>
+      </div>
+      <div class="var-name" style="color:#A8A49B">Light · Reversed</div>
+    </div>
+
+    <!-- Mark only -->
+    <div class="var-card var-mono">
+      <svg width="72" height="72" viewBox="0 0 56 56" fill="none">
+        <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814" stroke="#2A2420" stroke-width="0.5"/>
+        <line x1="5" y1="28" x2="15" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+        <line x1="33" y1="28" x2="51" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+        <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28"
+          stroke="#C8463A" stroke-width="2.25" fill="none" stroke-linecap="round"/>
+        <circle cx="28" cy="28" r="15" stroke="#C8463A" stroke-width="0.75" stroke-opacity="0.38" stroke-dasharray="3.8 2.8"/>
+        <circle cx="28" cy="14" r="3" fill="#C8463A"/>
+        <circle cx="28" cy="14" r="1.25" fill="#F28070"/>
+      </svg>
+      <div class="var-name">Mark · Standalone</div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══ SCALE ════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Scale</div>
+  <div class="sizes">
+
+    <div class="size-item">
+      <svg width="80" height="80" viewBox="0 0 56 56" fill="none">
+        <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814" stroke="#2A2420" stroke-width="0.5"/>
+        <line x1="5" y1="28" x2="15" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+        <line x1="33" y1="28" x2="51" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+        <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28" stroke="#C8463A" stroke-width="2.25" fill="none" stroke-linecap="round"/>
+        <circle cx="28" cy="28" r="15" stroke="#C8463A" stroke-width="0.75" stroke-opacity="0.38" stroke-dasharray="3.8 2.8"/>
+        <circle cx="28" cy="14" r="3" fill="#C8463A"/>
+        <circle cx="28" cy="14" r="1.25" fill="#F28070"/>
+      </svg>
+      <div class="size-px">80 px</div>
+    </div>
+
+    <div class="size-item">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+        <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814" stroke="#2A2420" stroke-width="0.5"/>
+        <line x1="5" y1="28" x2="15" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+        <line x1="33" y1="28" x2="51" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+        <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28" stroke="#C8463A" stroke-width="2.25" fill="none" stroke-linecap="round"/>
+        <circle cx="28" cy="28" r="15" stroke="#C8463A" stroke-width="0.75" stroke-opacity="0.38" stroke-dasharray="3.8 2.8"/>
+        <circle cx="28" cy="14" r="3" fill="#C8463A"/>
+        <circle cx="28" cy="14" r="1.25" fill="#F28070"/>
+      </svg>
+      <div class="size-px">56 px</div>
+    </div>
+
+    <div class="size-item">
+      <svg width="40" height="40" viewBox="0 0 56 56" fill="none">
+        <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814" stroke="#2A2420" stroke-width="0.5"/>
+        <line x1="5" y1="28" x2="15" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+        <line x1="33" y1="28" x2="51" y2="28" stroke="#3D3733" stroke-width="1.75" stroke-linecap="round"/>
+        <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28" stroke="#C8463A" stroke-width="2.25" fill="none" stroke-linecap="round"/>
+        <circle cx="28" cy="28" r="15" stroke="#C8463A" stroke-width="0.75" stroke-opacity="0.4" stroke-dasharray="3.8 2.8"/>
+        <circle cx="28" cy="14" r="3" fill="#C8463A"/>
+        <circle cx="28" cy="14" r="1.5" fill="#F28070"/>
+      </svg>
+      <div class="size-px">40 px</div>
+    </div>
+
+    <div class="size-item">
+      <svg width="28" height="28" viewBox="0 0 56 56" fill="none">
+        <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814"/>
+        <line x1="5" y1="28" x2="15" y2="28" stroke="#4A403A" stroke-width="2" stroke-linecap="round"/>
+        <line x1="33" y1="28" x2="51" y2="28" stroke="#4A403A" stroke-width="2" stroke-linecap="round"/>
+        <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28" stroke="#C8463A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <circle cx="28" cy="14" r="4" fill="#C8463A"/>
+      </svg>
+      <div class="size-px">28 px</div>
+    </div>
+
+    <div class="size-item">
+      <svg width="20" height="20" viewBox="0 0 56 56" fill="none">
+        <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814"/>
+        <line x1="5" y1="28" x2="15" y2="28" stroke="#4A403A" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="33" y1="28" x2="51" y2="28" stroke="#4A403A" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28" stroke="#C8463A" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <circle cx="28" cy="14" r="5" fill="#C8463A"/>
+      </svg>
+      <div class="size-px">20 px</div>
+    </div>
+
+    <div class="size-item">
+      <svg width="14" height="14" viewBox="0 0 56 56" fill="none">
+        <rect x="1" y="1" width="54" height="54" rx="12" fill="#1A1814"/>
+        <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28" stroke="#C8463A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <circle cx="28" cy="14" r="6" fill="#C8463A"/>
+      </svg>
+      <div class="size-px">14 px</div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══ PALETTE ══════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Palette</div>
+  <div class="palette">
+    <div class="chip" style="background:#1A1814;">
+      <div class="chip-name" style="color:#888480;">Ink</div>
+      <div class="chip-hex" style="color:#888480;">#1A1814</div>
+    </div>
+    <div class="chip" style="background:#C8463A;">
+      <div class="chip-name" style="color:rgba(255,255,255,0.9);">Cinnabar</div>
+      <div class="chip-hex" style="color:rgba(255,255,255,0.65);">#C8463A</div>
+    </div>
+    <div class="chip" style="background:#1D4E89;">
+      <div class="chip-name" style="color:rgba(255,255,255,0.9);">Oxford</div>
+      <div class="chip-hex" style="color:rgba(255,255,255,0.65);">#1D4E89</div>
+    </div>
+    <div class="chip" style="background:#E8A020;">
+      <div class="chip-name" style="color:rgba(26,24,20,0.85);">Saffron</div>
+      <div class="chip-hex" style="color:rgba(26,24,20,0.6);">#E8A020</div>
+    </div>
+    <div class="chip" style="background:#3D9A6B;">
+      <div class="chip-name" style="color:rgba(255,255,255,0.9);">Sage</div>
+      <div class="chip-hex" style="color:rgba(255,255,255,0.65);">#3D9A6B</div>
+    </div>
+    <div class="chip" style="background:#FAFAF7; border-left:1px solid #E0DDD6;">
+      <div class="chip-name" style="color:#888480;">Cream</div>
+      <div class="chip-hex" style="color:#888480;">#FAFAF7</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ TYPOGRAPHY ════════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Typography</div>
+  <div class="type-row">
+
+    <div class="type-cell">
+      <div class="type-meta">Cormorant Garamond · Italic 300 · Display</div>
+      <div class="type-display">mobili</div>
+      <div class="type-body">Used for the "mobili" wordmark portion and page-level display headings. The italic cut conveys motion and flow — transit in action.</div>
+    </div>
+
+    <div class="type-cell">
+      <div class="type-meta">Fira Code · Medium 500 · Technical</div>
+      <div class="type-mono">spect</div>
+      <div class="type-body">Used for the "spect" wordmark, data labels, monospaced values, and system identifiers. Precision. Accountability. Measurement.</div>
+    </div>
+
+    <div class="type-cell">
+      <div class="type-meta">Jost · Light 300 · Body</div>
+      <div class="type-display" style="font-family:'Jost',sans-serif;font-style:normal;font-size:1.75rem;font-weight:300;letter-spacing:-0.01em;">Route&nbsp;data</div>
+      <div class="type-body">Primary body typeface. Geometric, neutral, highly legible. Carries the informational density of transit dashboards without fatigue.</div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══ CONSTRUCTION ══════════════════════════════════ -->
+<div class="section">
+  <div class="section-label">Mark Construction</div>
+  <div class="construction">
+    <svg width="280" height="280" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Construction annotations -->
+
+      <!-- Center crosshair -->
+      <line x1="28" y1="4" x2="28" y2="52" stroke="#C8463A" stroke-width="0.3" stroke-opacity="0.2" stroke-dasharray="2 2"/>
+      <line x1="4" y1="28" x2="52" y2="28" stroke="#C8463A" stroke-width="0.3" stroke-opacity="0.2" stroke-dasharray="2 2"/>
+
+      <!-- Outer container -->
+      <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="none" stroke="#4E4844" stroke-width="0.5" stroke-dasharray="2 2"/>
+
+      <!-- Scope ring construction -->
+      <circle cx="28" cy="28" r="15" fill="none" stroke="#C8463A" stroke-width="0.4" stroke-opacity="0.25" stroke-dasharray="1.5 1.5"/>
+
+      <!-- Grid lines -->
+      <line x1="6" y1="14" x2="50" y2="14" stroke="#4E4844" stroke-width="0.3" stroke-opacity="0.5"/>
+      <line x1="6" y1="20" x2="50" y2="20" stroke="#4E4844" stroke-width="0.3" stroke-opacity="0.5"/>
+      <line x1="6" y1="28" x2="50" y2="28" stroke="#4E4844" stroke-width="0.3" stroke-opacity="0.5"/>
+      <line x1="6" y1="36" x2="50" y2="36" stroke="#4E4844" stroke-width="0.3" stroke-opacity="0.5"/>
+      <line x1="6" y1="42" x2="50" y2="42" stroke="#4E4844" stroke-width="0.3" stroke-opacity="0.5"/>
+
+      <!-- Key anchor point markers -->
+      <circle cx="15" cy="28" r="1" fill="none" stroke="#888480" stroke-width="0.5"/>
+      <circle cx="33" cy="28" r="1" fill="none" stroke="#888480" stroke-width="0.5"/>
+      <circle cx="22" cy="38" r="1" fill="none" stroke="#888480" stroke-width="0.5"/>
+      <circle cx="28" cy="14" r="1" fill="none" stroke="#C8463A" stroke-width="0.5"/>
+
+      <!-- Actual mark elements -->
+      <line x1="5" y1="28" x2="15" y2="28" stroke="#888480" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="33" y1="28" x2="51" y2="28" stroke="#888480" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28"
+        stroke="#C8463A" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="28" cy="28" r="15" stroke="#C8463A" stroke-width="0.6" stroke-opacity="0.4" stroke-dasharray="3.5 2.5"/>
+      <circle cx="28" cy="14" r="2.5" fill="#C8463A"/>
+
+      <!-- Dimension labels -->
+      <text x="28" y="60" font-family="Fira Code,monospace" font-size="2.8" fill="#4E4844" text-anchor="middle">56 × 56 · rx 13</text>
+    </svg>
+  </div>
+</div>
+
+
+<footer>
+  <p>Mobilispect · Brand System · 2026 · Transit performance accountability</p>
+</footer>
+
+</body>
+</html>
