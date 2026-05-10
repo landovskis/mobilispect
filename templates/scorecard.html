@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 
 {% block title %}Mobilispect — Global Scorecard{% endblock %}
 {% block region_name %}{{ region_name }}{% endblock %}
@@ -13,10 +14,7 @@
   </div>
 
   <div class="metric-grid">
-    <div class="metric-card">
-      <div class="metric-label">Routes monitored</div>
-      <div class="metric-value">{{ routes.len() }}</div>
-    </div>
+    {{ ui::metric_card(label="Routes monitored", value=routes.len(), unit="") }}
     <div class="metric-card">
       <div class="metric-label">Meeting {{ floor_city }} floor</div>
       <div class="metric-value">{{ routes_meeting_floor }}</div>
@@ -74,7 +72,7 @@
         {% for bench in benchmarks %}
         <td><span class="{{ route.on_time_gap_class(bench.on_time_pct) }}">{{ route.on_time_gap_display(bench.on_time_pct) }}</span></td>
         {% endfor %}
-        <td><span class="badge {{ route.status_class(floor_pct, ceiling_pct) }}">{{ route.status_label(floor_pct, ceiling_pct) }}</span></td>
+        <td>{{ ui::badge(variant=route.badge_variant(floor_pct, ceiling_pct), label=route.status_label(floor_pct, ceiling_pct)) }}</td>
       </tr>
       {% endfor %}
     </tbody>
