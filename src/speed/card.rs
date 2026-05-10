@@ -45,6 +45,14 @@ impl RouteSpeedCard {
             Some(_) => "m",
         }
     }
+
+    pub fn avg_stop_spacing_variant(&self) -> &'static str {
+        match self.avg_stop_spacing_m {
+            None => "neutral",
+            Some(m) if m < 300.0 => "bad",
+            Some(_) => "good",
+        }
+    }
 }
 
 fn fmt_speed_kmh(mps: Option<f64>) -> String {
@@ -479,6 +487,23 @@ mod tests {
     #[test]
     fn spacing_unit_kilometres() {
         assert_eq!(card_with_spacing(Some(1200.0)).avg_stop_spacing_unit(), "km");
+    }
+
+    #[test]
+    fn stop_spacing_variant_neutral_when_no_data() {
+        assert_eq!(card_with_spacing(None).avg_stop_spacing_variant(), "neutral");
+    }
+
+    #[test]
+    fn stop_spacing_variant_bad_below_300m() {
+        assert_eq!(card_with_spacing(Some(0.0)).avg_stop_spacing_variant(), "bad");
+        assert_eq!(card_with_spacing(Some(299.9)).avg_stop_spacing_variant(), "bad");
+    }
+
+    #[test]
+    fn stop_spacing_variant_good_at_or_above_300m() {
+        assert_eq!(card_with_spacing(Some(300.0)).avg_stop_spacing_variant(), "good");
+        assert_eq!(card_with_spacing(Some(1500.0)).avg_stop_spacing_variant(), "good");
     }
 
     #[test]
