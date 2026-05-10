@@ -262,6 +262,15 @@ impl RouteSummary {
         }
     }
 
+    pub fn badge_variant(&self) -> &'static str {
+        match self.avg_on_time_pct {
+            Some(pct) if pct >= 80.0 => "good",
+            Some(pct) if pct >= 60.0 => "mixed",
+            Some(_) => "bad",
+            None => "neutral",
+        }
+    }
+
     pub fn on_time_display(&self) -> String {
         match self.avg_on_time_pct {
             Some(pct) => format!("{pct}%"),
@@ -550,6 +559,15 @@ impl ScorecardRoute {
             Some(p) if p >= *floor_pct => "yellow",
             Some(_) => "red",
             None => "none",
+        }
+    }
+
+    pub fn badge_variant(&self, floor_pct: &f64, ceiling_pct: &f64) -> &'static str {
+        match self.avg_on_time_pct {
+            Some(p) if p >= *ceiling_pct => "good",
+            Some(p) if p >= *floor_pct => "mixed",
+            Some(_) => "bad",
+            None => "neutral",
         }
     }
 
@@ -975,6 +993,71 @@ mod tests {
     fn status_class_is_none_without_data() {
         let r = make_scorecard_route(None, None);
         assert_eq!(r.status_class(&89.0, &96.0), "none");
+    }
+
+    // ── RouteSummary::badge_variant tests ──────────────────────────────────────
+
+    fn make_route_summary(on_time: Option<f64>) -> RouteSummary {
+        RouteSummary {
+            agency_id: "stm".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_on_time_pct: on_time,
+            avg_delay_secs: None,
+            trips_run: None,
+            trips_total: None,
+            days_measured: None,
+        }
+    }
+
+    #[test]
+    fn route_summary_badge_variant_good_at_or_above_80() {
+        assert_eq!(make_route_summary(Some(80.0)).badge_variant(), "good");
+        assert_eq!(make_route_summary(Some(95.0)).badge_variant(), "good");
+    }
+
+    #[test]
+    fn route_summary_badge_variant_mixed_between_60_and_80() {
+        assert_eq!(make_route_summary(Some(60.0)).badge_variant(), "mixed");
+        assert_eq!(make_route_summary(Some(79.9)).badge_variant(), "mixed");
+    }
+
+    #[test]
+    fn route_summary_badge_variant_bad_below_60() {
+        assert_eq!(make_route_summary(Some(59.9)).badge_variant(), "bad");
+        assert_eq!(make_route_summary(Some(0.0)).badge_variant(), "bad");
+    }
+
+    #[test]
+    fn route_summary_badge_variant_neutral_when_no_data() {
+        assert_eq!(make_route_summary(None).badge_variant(), "neutral");
+    }
+
+    // ── ScorecardRoute::badge_variant tests ──────────────────────────────────────
+
+    #[test]
+    fn scorecard_badge_variant_good_at_or_above_ceiling() {
+        let r = make_scorecard_route(Some(96.0), None);
+        assert_eq!(r.badge_variant(&89.0, &96.0), "good");
+    }
+
+    #[test]
+    fn scorecard_badge_variant_mixed_between_floor_and_ceiling() {
+        let r = make_scorecard_route(Some(91.0), None);
+        assert_eq!(r.badge_variant(&89.0, &96.0), "mixed");
+    }
+
+    #[test]
+    fn scorecard_badge_variant_bad_under_floor() {
+        let r = make_scorecard_route(Some(71.0), None);
+        assert_eq!(r.badge_variant(&89.0, &96.0), "bad");
+    }
+
+    #[test]
+    fn scorecard_badge_variant_neutral_when_no_data() {
+        let r = make_scorecard_route(None, None);
+        assert_eq!(r.badge_variant(&89.0, &96.0), "neutral");
     }
 
     #[test]
