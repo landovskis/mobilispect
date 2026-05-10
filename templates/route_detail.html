@@ -75,13 +75,13 @@ canvas { width: 100% !important; }
 
   new Chart(document.getElementById('speedChart'), {
     type: 'line',
-    data: { labels, datasets: [{ label: 'Speed km/h', data: speeds, ...lineOpts('#2f6f9f') }] },
+    data: { labels, datasets: [{ label: 'Speed km/h', data: speeds, ...lineOpts('#1D4E89') }] },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } },
   });
 
   new Chart(document.getElementById('ontimeChart'), {
     type: 'line',
-    data: { labels, datasets: [{ label: 'On-time %', data: ontimes, ...lineOpts('#2d8f67') }] },
+    data: { labels, datasets: [{ label: 'On-time %', data: ontimes, ...lineOpts('#3D9A6B') }] },
     options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } },
   });
 </script>
