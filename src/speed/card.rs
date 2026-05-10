@@ -1,22 +1,13 @@
 use crate::speed::RouteSpeedDayType;
 use std::collections::HashMap;
 
-pub struct DirectionSpeedChart {
+pub struct RouteSpeedChart {
     pub chart_id: String,
-    pub title: String,
     pub chart_json: String,
     pub avg_stop_spacing_m: Option<f64>,
 }
 
-impl DirectionSpeedChart {
-    pub fn avg_stop_spacing_display(&self) -> String {
-        match self.avg_stop_spacing_m {
-            None => "—".to_string(),
-            Some(m) if m >= 1000.0 => format!("{:.1} km", m / 1000.0),
-            Some(m) => format!("{:.0} m", m),
-        }
-    }
-
+impl RouteSpeedChart {
     pub fn avg_stop_spacing_class(&self) -> &'static str {
         match self.avg_stop_spacing_m {
             None => "none",
@@ -48,10 +39,9 @@ pub struct RouteSpeedCard {
     pub route_id: String,
     pub short_name: String,
     pub long_name: String,
-    pub charts: Vec<DirectionSpeedChart>,
+    pub chart: RouteSpeedChart,
     /// Sort key: unweighted mean of all non-None scheduled speed values across
-    /// all day types (weekday/Saturday/Sunday) and directions. Routes with fewer
-    /// non-None slots contribute proportionally less weight.
+    /// all day types (weekday/Saturday/Sunday) and directions.
     pub avg_scheduled_speed_mps: Option<f64>,
     /// Sort key: unweighted mean of all non-None actual speed values across
     /// all day types and directions. `None` when no actual speed data exists.
@@ -122,24 +112,30 @@ pub fn classify_by_spacing(avg_m: f64) -> RouteClass {
     }
 }
 
-fn direction_datasets(row: &RouteSpeedDayType) -> serde_json::Value {
+fn combined_datasets(rows: &[RouteSpeedDayType]) -> serde_json::Value {
+    let weekday_sched = avg_speeds(rows.iter().map(|r| r.weekday_speed_mps));
+    let saturday_sched = avg_speeds(rows.iter().map(|r| r.saturday_speed_mps));
+    let sunday_sched = avg_speeds(rows.iter().map(|r| r.sunday_speed_mps));
+    let weekday_actual = avg_speeds(rows.iter().map(|r| r.actual_weekday_speed_mps));
+    let saturday_actual = avg_speeds(rows.iter().map(|r| r.actual_saturday_speed_mps));
+    let sunday_actual = avg_speeds(rows.iter().map(|r| r.actual_sunday_speed_mps));
     serde_json::json!([
         {
             "label": "Scheduled",
-            "backgroundColor": "#2980b9",
+            "backgroundColor": "#1D4E89",
             "data": [
-                speed_kmh_json(row.weekday_speed_mps),
-                speed_kmh_json(row.saturday_speed_mps),
-                speed_kmh_json(row.sunday_speed_mps),
+                speed_kmh_json(weekday_sched),
+                speed_kmh_json(saturday_sched),
+                speed_kmh_json(sunday_sched),
             ]
         },
         {
             "label": "Actual",
-            "backgroundColor": "#e67e22",
+            "backgroundColor": "#C8463A",
             "data": [
-                speed_kmh_json(row.actual_weekday_speed_mps),
-                speed_kmh_json(row.actual_saturday_speed_mps),
-                speed_kmh_json(row.actual_sunday_speed_mps),
+                speed_kmh_json(weekday_actual),
+                speed_kmh_json(saturday_actual),
+                speed_kmh_json(sunday_actual),
             ]
         },
     ])
@@ -157,18 +153,6 @@ pub fn build_speed_cards(
             .cloned()
             .unwrap_or_else(|| first.agency_id.clone());
         let card_idx = cards.len();
-        let charts: Vec<DirectionSpeedChart> = route_rows
-            .iter()
-            .map(|row| DirectionSpeedChart {
-                chart_id: format!("chart-{card_idx}-{}", row.direction_id),
-                title: row
-                    .last_stop_name
-                    .clone()
-                    .unwrap_or_else(|| super::direction_label(row.direction_id).to_string()),
-                chart_json: serde_json::to_string(&direction_datasets(row)).unwrap_or_default(),
-                avg_stop_spacing_m: row.avg_stop_spacing_m,
-            })
-            .collect();
         let avg_scheduled_speed_mps = avg_speeds(route_rows.iter().flat_map(|r| {
             [
                 r.weekday_speed_mps,
@@ -183,8 +167,14 @@ pub fn build_speed_cards(
                 r.actual_sunday_speed_mps,
             ]
         }));
-        let avg_spacing_m = avg_speeds(charts.iter().map(|c| c.avg_stop_spacing_m));
+        let avg_spacing_m = avg_speeds(route_rows.iter().map(|r| r.avg_stop_spacing_m));
         let classification = avg_spacing_m.map(classify_by_spacing);
+        let chart = RouteSpeedChart {
+            chart_id: format!("chart-{card_idx}"),
+            chart_json: serde_json::to_string(&combined_datasets(route_rows))
+                .unwrap_or_default(),
+            avg_stop_spacing_m: avg_spacing_m,
+        };
         cards.push(RouteSpeedCard {
             idx: card_idx,
             agency_name,
@@ -192,7 +182,7 @@ pub fn build_speed_cards(
             route_id: first.route_id.clone(),
             short_name: first.short_name.clone(),
             long_name: first.long_name.clone(),
-            charts,
+            chart,
             avg_scheduled_speed_mps,
             avg_actual_speed_mps,
             classification,
@@ -282,8 +272,31 @@ mod tests {
     }
 
     #[test]
-    fn direction_datasets_includes_scheduled_and_actual() {
-        let row = RouteSpeedDayType {
+    fn build_speed_cards_produces_one_chart_per_route() {
+        let rows = vec![
+            make_row("stm", "R1", 0, Some(8.0)),
+            make_row("stm", "R1", 1, Some(7.5)),
+        ];
+        let names = HashMap::new();
+        let cards = build_speed_cards(rows, &names);
+        assert_eq!(cards.len(), 1);
+        assert_eq!(cards[0].chart.chart_id, "chart-0");
+    }
+
+    #[test]
+    fn build_speed_cards_chart_ids_are_unique_across_routes() {
+        let rows = vec![
+            make_row("stm", "R1", 0, Some(8.0)),
+            make_row("stm", "R2", 0, None),
+        ];
+        let names = HashMap::new();
+        let cards = build_speed_cards(rows, &names);
+        assert_ne!(cards[0].chart.chart_id, cards[1].chart.chart_id);
+    }
+
+    #[test]
+    fn combined_datasets_includes_scheduled_and_actual() {
+        let rows = vec![RouteSpeedDayType {
             agency_id: "stm".to_string(),
             route_id: "R1".to_string(),
             short_name: "R1".to_string(),
@@ -297,59 +310,29 @@ mod tests {
             actual_sunday_speed_mps: None,
             last_stop_name: None,
             avg_stop_spacing_m: None,
-        };
-        let datasets = direction_datasets(&row);
+        }];
+        let datasets = combined_datasets(&rows);
         let arr = datasets.as_array().unwrap();
         assert_eq!(arr.len(), 2);
         assert_eq!(arr[0]["label"], "Scheduled");
-        assert_eq!(arr[0]["backgroundColor"], "#2980b9");
         assert_eq!(arr[1]["label"], "Actual");
-        assert_eq!(arr[1]["backgroundColor"], "#e67e22");
     }
 
     #[test]
-    fn build_speed_cards_single_direction_produces_one_chart() {
-        let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
-        let names = HashMap::new();
-        let cards = build_speed_cards(rows, &names);
-        assert_eq!(cards[0].charts.len(), 1);
-        assert_eq!(cards[0].charts[0].title, "Outbound");
-    }
-
-    #[test]
-    fn build_speed_cards_both_directions_produce_two_charts() {
+    fn combined_datasets_averages_directions_per_day_type() {
+        // Two directions: weekday 8.0 and 6.0 → avg 7.0 m/s = 25.2 km/h
         let rows = vec![
             make_row("stm", "R1", 0, Some(8.0)),
-            make_row("stm", "R1", 1, Some(7.5)),
+            make_row("stm", "R1", 1, Some(6.0)),
         ];
-        let names = HashMap::new();
-        let cards = build_speed_cards(rows, &names);
-        assert_eq!(cards[0].charts.len(), 2);
-        assert_eq!(cards[0].charts[0].title, "Outbound");
-        assert_eq!(cards[0].charts[1].title, "Inbound");
-    }
-
-    #[test]
-    fn build_speed_cards_chart_ids_are_unique() {
-        let rows = vec![
-            make_row("stm", "R1", 0, Some(8.0)),
-            make_row("stm", "R1", 1, Some(7.5)),
-            make_row("stm", "R2", 0, None),
-        ];
-        let names = HashMap::new();
-        let cards = build_speed_cards(rows, &names);
-        let ids: Vec<&str> = cards
-            .iter()
-            .flat_map(|c| c.charts.iter().map(|ch| ch.chart_id.as_str()))
-            .collect();
-        let unique: std::collections::HashSet<_> = ids.iter().collect();
-        assert_eq!(ids.len(), unique.len(), "chart IDs must be globally unique");
+        let datasets = combined_datasets(&rows);
+        let arr = datasets.as_array().unwrap();
+        let weekday = arr[0]["data"][0].as_f64().unwrap();
+        assert!((weekday - 25.2).abs() < 0.05, "expected ~25.2 km/h, got {weekday}");
     }
 
     #[test]
     fn build_speed_cards_handles_route_ids_not_in_lexicographic_order() {
-        // SQL sorts by short_name, not route_id. Route "uuid-z" (short_name "1") comes
-        // before "uuid-a" (short_name "2") even though "uuid-z" > "uuid-a" lexicographically.
         let rows = vec![
             make_row("stm", "uuid-z", 0, Some(8.0)),
             make_row("stm", "uuid-a", 0, Some(7.0)),
@@ -454,7 +437,6 @@ mod tests {
 
     #[test]
     fn build_speed_cards_avg_scheduled_is_none_when_all_scheduled_speeds_none() {
-        // make_row sets weekday to None and saturday/sunday are always None
         let rows = vec![make_row("stm", "R1", 0, None)];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].avg_scheduled_speed_mps.is_none());
@@ -465,28 +447,19 @@ mod tests {
         let mut row = make_row("stm", "R1", 0, Some(8.0));
         row.avg_stop_spacing_m = Some(450.0);
         let cards = build_speed_cards(vec![row], &HashMap::new());
-        assert_eq!(cards[0].charts[0].avg_stop_spacing_m, Some(450.0));
+        assert_eq!(cards[0].chart.avg_stop_spacing_m, Some(450.0));
     }
 
     #[test]
-    fn build_speed_cards_uses_last_stop_name_as_chart_title() {
-        let rows = vec![RouteSpeedDayType {
-            agency_id: "stm".into(),
-            route_id: "R1".into(),
-            short_name: "R1".into(),
-            long_name: "Route R1".into(),
-            direction_id: 0,
-            weekday_speed_mps: Some(8.0),
-            saturday_speed_mps: None,
-            sunday_speed_mps: None,
-            actual_weekday_speed_mps: None,
-            actual_saturday_speed_mps: None,
-            actual_sunday_speed_mps: None,
-            last_stop_name: Some("Downtown".to_string()),
-            avg_stop_spacing_m: None,
-        }];
-        let cards = build_speed_cards(rows, &HashMap::new());
-        assert_eq!(cards[0].charts[0].title, "Downtown");
+    fn build_speed_cards_chart_averages_stop_spacing_across_directions() {
+        // direction 0: 400 m, direction 1: 600 m → avg 500 m
+        let mut row0 = make_row("stm", "R1", 0, Some(8.0));
+        row0.avg_stop_spacing_m = Some(400.0);
+        let mut row1 = make_row("stm", "R1", 1, Some(7.0));
+        row1.avg_stop_spacing_m = Some(600.0);
+        let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
+        let spacing = cards[0].chart.avg_stop_spacing_m.unwrap();
+        assert!((spacing - 500.0).abs() < 0.001, "expected 500.0, got {spacing}");
     }
 
     #[test]
@@ -541,7 +514,6 @@ mod tests {
 
     #[test]
     fn build_speed_cards_classification_is_none_when_no_spacing_data() {
-        // make_row sets avg_stop_spacing_m = None
         let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].classification.is_none());
@@ -549,7 +521,7 @@ mod tests {
 
     #[test]
     fn build_speed_cards_classification_averages_across_directions() {
-        // direction 0: 400 m (Local Bus), direction 1: 600 m (Rapid) → avg 500 m → Rapid
+        // direction 0: 400 m (Local), direction 1: 600 m (Rapid) → avg 500 m → Rapid
         let mut row0 = make_row("stm", "R1", 0, Some(8.0));
         row0.avg_stop_spacing_m = Some(400.0);
         let mut row1 = make_row("stm", "R1", 1, Some(7.0));
@@ -558,10 +530,9 @@ mod tests {
         assert_eq!(cards[0].classification, Some(RouteClass::Rapid));
     }
 
-    fn chart_with_spacing(m: Option<f64>) -> DirectionSpeedChart {
-        DirectionSpeedChart {
+    fn chart_with_spacing(m: Option<f64>) -> RouteSpeedChart {
+        RouteSpeedChart {
             chart_id: "x".into(),
-            title: "T".into(),
             chart_json: "[]".into(),
             avg_stop_spacing_m: m,
         }

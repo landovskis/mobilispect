@@ -10,27 +10,21 @@
     <span class="badge badge--{{ class.css_class() }}">{{ class.label() }}</span>
     {% endif %}
   </div>
-  <div style="display:flex;gap:0.75rem;margin-top:0.75rem;">
-    {% for chart in &card.charts %}
-    <div style="flex:1;min-width:0;">
-      <div class="chart-title">{{ chart.title }}</div>
-      <canvas id="{{ chart.chart_id }}" height="160"></canvas>
-      <div class="spacing-stat">
-        <div class="spacing-stat-label">Avg stop spacing</div>
-        <div class="spacing-stat-num spacing-{{ chart.avg_stop_spacing_class() }}">{{ chart.avg_stop_spacing_number() }}<span class="spacing-stat-unit">{{ chart.avg_stop_spacing_unit() }}</span></div>
-      </div>
+  <div style="margin-top:0.75rem;">
+    <canvas id="{{ card.chart.chart_id }}" height="160"></canvas>
+    <div class="spacing-stat">
+      <div class="spacing-stat-label">Avg stop spacing</div>
+      <div class="spacing-stat-num spacing-{{ card.chart.avg_stop_spacing_class() }}">{{ card.chart.avg_stop_spacing_number() }}<span class="spacing-stat-unit">{{ card.chart.avg_stop_spacing_unit() }}</span></div>
     </div>
-    {% endfor %}
   </div>
 </div>
 </a>
 <script>
-{% for chart in &card.charts %}
-new Chart(document.getElementById('{{ chart.chart_id }}'), {
+new Chart(document.getElementById('{{ card.chart.chart_id }}'), {
   type: 'bar',
   data: {
     labels: ['Weekday', 'Saturday', 'Sunday'],
-    datasets: {{ chart.chart_json|safe }}
+    datasets: {{ card.chart.chart_json|safe }}
   },
   options: {
     responsive: true,
@@ -44,5 +38,4 @@ new Chart(document.getElementById('{{ chart.chart_id }}'), {
     }
   }
 });
-{% endfor %}
 </script>

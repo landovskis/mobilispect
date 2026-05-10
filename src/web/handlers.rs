@@ -631,7 +631,15 @@ pub async fn api_route_speed(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::speed::RouteSpeedCard;
+    use crate::speed::{RouteSpeedCard, RouteSpeedChart};
+
+    fn empty_chart() -> RouteSpeedChart {
+        RouteSpeedChart {
+            chart_id: String::new(),
+            chart_json: "[]".into(),
+            avg_stop_spacing_m: None,
+        }
+    }
 
     fn card(short_name: &str, scheduled: f64, actual: Option<f64>) -> RouteSpeedCard {
         RouteSpeedCard {
@@ -641,7 +649,7 @@ mod tests {
             route_id: "R1".into(),
             short_name: short_name.into(),
             long_name: short_name.into(),
-            charts: vec![],
+            chart: empty_chart(),
             avg_scheduled_speed_mps: Some(scheduled),
             avg_actual_speed_mps: actual,
             classification: None,
@@ -656,7 +664,7 @@ mod tests {
             route_id: "R1".into(),
             short_name: short_name.into(),
             long_name: short_name.into(),
-            charts: vec![],
+            chart: empty_chart(),
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
             classification: None,
@@ -725,7 +733,7 @@ mod tests {
             route_id: "R1".into(),
             short_name: short_name.into(),
             long_name: short_name.into(),
-            charts: vec![],
+            chart: empty_chart(),
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
             classification: class,
