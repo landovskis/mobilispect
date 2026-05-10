@@ -4,25 +4,28 @@
   <meta charset="UTF-8">
   <title>Mobilispect — Transit Performance Report</title>
   <meta name="region" content="{{ region_name }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Georgia, serif; color: #111; padding: 1rem; max-width: 800px; margin: 0 auto; }
+    body { font-family: 'Jost', Georgia, sans-serif; color: #111; padding: 1rem; max-width: 800px; margin: 0 auto; }
     .report-brand { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; font-family: sans-serif; }
     .report-mark { width: 34px; height: 34px; }
-    .report-name { font-size: 1rem; font-weight: 800; color: #17202c; }
-    .report-kicker { margin-top: 0.1rem; color: #627083; font-size: 0.75rem; }
-    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
-    .subtitle { color: #555; font-size: 0.9rem; margin-bottom: 2rem; }
+    .report-name { font-size: 1rem; font-weight: 800; color: #1A1814; font-family: 'Jost', sans-serif; }
+    .report-kicker { margin-top: 0.1rem; color: #888480; font-size: 0.75rem; }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 300; }
+    .subtitle { color: #888480; font-size: 0.9rem; margin-bottom: 2rem; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
     thead { border-bottom: 2px solid #111; }
     th { padding: 0.5rem 0.75rem; text-align: left; font-size: 0.8rem;
          text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #ddd; font-size: 0.9rem; }
-    .route-id { font-family: 'JetBrains Mono', monospace; font-weight: bold; }
-    .poor { color: #c9483f; font-weight: bold; }
-    .ok   { color: #2d8f67; }
-    .warn { color: #8a5a00; }
-    .footer { margin-top: 3rem; font-size: 0.75rem; color: #888; border-top: 1px solid #ddd; padding-top: 1rem; }
+    td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #E0DDD6; font-size: 0.9rem; }
+    .route-id { font-family: 'Fira Code', monospace; font-weight: bold; }
+    .poor { color: #C8463A; font-weight: bold; }
+    .ok   { color: #3D9A6B; }
+    .warn { color: #E8A020; }
+    .footer { margin-top: 3rem; font-size: 0.75rem; color: #A8A49B; border-top: 1px solid #E0DDD6; padding-top: 1rem; }
 
     @media print {
       body { padding: 0; }
@@ -39,10 +42,10 @@
 
   <div class="report-brand">
     <svg class="report-mark" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect x="4" y="5" width="34" height="32" rx="7" fill="#17202c"/>
+      <rect x="4" y="5" width="34" height="32" rx="7" fill="#1A1814"/>
       <path d="M12 27L18 21L23 25L31 15" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M12 14H21" stroke="#17202c" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="31" cy="15" r="3" fill="#17202c"/>
+      <path d="M12 14H21" stroke="#3D9A6B" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="31" cy="15" r="3" fill="#C8463A"/>
     </svg>
     <div>
       <div class="report-name">Mobilispect</div>

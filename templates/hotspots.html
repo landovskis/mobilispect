@@ -5,11 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mobilispect — Delay Hotspots</title>
   <meta name="region" content="{{ region_name }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
+    :root {
+      --ink-900: #1A1814;
+      --ink-500: #888480;
+      --ink-400: #A8A49B;
+      --paper: #FAFAF7;
+      --surface: #FFFFFF;
+      --surface-muted: #F4F4EF;
+      --line: #E0DDD6;
+      --line-soft: #ECEAE4;
+      --civic-green: #3D9A6B;
+      --civic-amber: #E8A020;
+      --civic-red: #C8463A;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    body { font-family: 'Jost', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
            background: var(--paper); color: var(--ink-900); display: flex; flex-direction: column; height: 100vh; }
     header { background: var(--ink-900); color: white; padding: 0.85rem 1.5rem;
              display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
@@ -98,11 +114,11 @@
     }).addTo(map);
 
     function delayColor(d) {
-      if (d === null) return '#2d8f67';
-      if (d >= 300) return '#c9483f';
-      if (d >= 60)  return '#f0b84b';
-      if (d > 0)    return '#f0b84b';
-      return '#2d8f67';
+      if (d === null) return '#3D9A6B';
+      if (d >= 300) return '#C8463A';
+      if (d >= 60)  return '#E8A020';
+      if (d > 0)    return '#E8A020';
+      return '#3D9A6B';
     }
 
     function delayLabel(d) {
