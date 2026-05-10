@@ -15,7 +15,10 @@
     <div style="flex:1;min-width:0;">
       <div class="chart-title">{{ chart.title }}</div>
       <canvas id="{{ chart.chart_id }}" height="160"></canvas>
-      <div style="text-align:center;font-size:0.75rem;color:var(--ink-500);margin-top:0.25rem;">Avg stop spacing: {{ chart.avg_stop_spacing_display() }}</div>
+      <div class="spacing-stat">
+        <div class="spacing-stat-label">Avg stop spacing</div>
+        <div class="spacing-stat-num spacing-{{ chart.avg_stop_spacing_class() }}">{{ chart.avg_stop_spacing_number() }}<span class="spacing-stat-unit">{{ chart.avg_stop_spacing_unit() }}</span></div>
+      </div>
     </div>
     {% endfor %}
   </div>

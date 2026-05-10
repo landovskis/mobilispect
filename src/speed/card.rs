@@ -16,6 +16,29 @@ impl DirectionSpeedChart {
             Some(m) => format!("{:.0} m", m),
         }
     }
+
+    pub fn avg_stop_spacing_class(&self) -> &'static str {
+        match self.avg_stop_spacing_m {
+            None => "none",
+            Some(m) => classify_by_spacing(m).css_class(),
+        }
+    }
+
+    pub fn avg_stop_spacing_number(&self) -> String {
+        match self.avg_stop_spacing_m {
+            None => "—".to_string(),
+            Some(m) if m >= 1000.0 => format!("{:.1}", m / 1000.0),
+            Some(m) => format!("{:.0}", m),
+        }
+    }
+
+    pub fn avg_stop_spacing_unit(&self) -> &'static str {
+        match self.avg_stop_spacing_m {
+            None => "",
+            Some(m) if m >= 1000.0 => "km",
+            Some(_) => "m",
+        }
+    }
 }
 
 pub struct RouteSpeedCard {
@@ -533,5 +556,64 @@ mod tests {
         row1.avg_stop_spacing_m = Some(600.0);
         let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
         assert_eq!(cards[0].classification, Some(RouteClass::Rapid));
+    }
+
+    fn chart_with_spacing(m: Option<f64>) -> DirectionSpeedChart {
+        DirectionSpeedChart {
+            chart_id: "x".into(),
+            title: "T".into(),
+            chart_json: "[]".into(),
+            avg_stop_spacing_m: m,
+        }
+    }
+
+    #[test]
+    fn spacing_class_none_when_no_data() {
+        assert_eq!(chart_with_spacing(None).avg_stop_spacing_class(), "none");
+    }
+
+    #[test]
+    fn spacing_class_local_below_500m() {
+        assert_eq!(chart_with_spacing(Some(300.0)).avg_stop_spacing_class(), "local");
+    }
+
+    #[test]
+    fn spacing_class_rapid_500_to_1500m() {
+        assert_eq!(chart_with_spacing(Some(800.0)).avg_stop_spacing_class(), "rapid");
+    }
+
+    #[test]
+    fn spacing_class_express_1500m_and_above() {
+        assert_eq!(chart_with_spacing(Some(2000.0)).avg_stop_spacing_class(), "express");
+    }
+
+    #[test]
+    fn spacing_number_none() {
+        assert_eq!(chart_with_spacing(None).avg_stop_spacing_number(), "—");
+    }
+
+    #[test]
+    fn spacing_number_metres() {
+        assert_eq!(chart_with_spacing(Some(342.0)).avg_stop_spacing_number(), "342");
+    }
+
+    #[test]
+    fn spacing_number_kilometres() {
+        assert_eq!(chart_with_spacing(Some(1200.0)).avg_stop_spacing_number(), "1.2");
+    }
+
+    #[test]
+    fn spacing_unit_none() {
+        assert_eq!(chart_with_spacing(None).avg_stop_spacing_unit(), "");
+    }
+
+    #[test]
+    fn spacing_unit_metres() {
+        assert_eq!(chart_with_spacing(Some(342.0)).avg_stop_spacing_unit(), "m");
+    }
+
+    #[test]
+    fn spacing_unit_kilometres() {
+        assert_eq!(chart_with_spacing(Some(1200.0)).avg_stop_spacing_unit(), "km");
     }
 }
