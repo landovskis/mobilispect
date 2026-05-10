@@ -243,16 +243,6 @@ pub struct RouteSummary {
 }
 
 impl RouteSummary {
-    /// "green", "yellow", "red", or "none"
-    pub fn status_class(&self) -> &'static str {
-        match self.avg_on_time_pct {
-            Some(pct) if pct >= 80.0 => "green",
-            Some(pct) if pct >= 60.0 => "yellow",
-            Some(_) => "red",
-            None => "none",
-        }
-    }
-
     pub fn status_label(&self) -> &'static str {
         match self.avg_on_time_pct {
             Some(pct) if pct >= 80.0 => "On track",
@@ -549,16 +539,6 @@ impl ScorecardRoute {
             Some(p) if p >= *floor_pct => "Competitive",
             Some(_) => "Below all",
             None => "No data",
-        }
-    }
-
-    /// CSS badge class: "green" / "yellow" / "red" / "none".
-    pub fn status_class(&self, floor_pct: &f64, ceiling_pct: &f64) -> &'static str {
-        match self.avg_on_time_pct {
-            Some(p) if p >= *ceiling_pct => "green",
-            Some(p) if p >= *floor_pct => "yellow",
-            Some(_) => "red",
-            None => "none",
         }
     }
 
@@ -969,30 +949,6 @@ mod tests {
     fn on_time_gap_class_is_empty_without_data() {
         let r = make_scorecard_route(None, None);
         assert_eq!(r.on_time_gap_class(&89.0), "");
-    }
-
-    #[test]
-    fn status_class_is_green_at_or_above_ceiling() {
-        let r = make_scorecard_route(Some(96.0), None);
-        assert_eq!(r.status_class(&89.0, &96.0), "green");
-    }
-
-    #[test]
-    fn status_class_is_yellow_between_floor_and_ceiling() {
-        let r = make_scorecard_route(Some(91.0), None);
-        assert_eq!(r.status_class(&89.0, &96.0), "yellow");
-    }
-
-    #[test]
-    fn status_class_is_red_under_floor() {
-        let r = make_scorecard_route(Some(71.0), None);
-        assert_eq!(r.status_class(&89.0, &96.0), "red");
-    }
-
-    #[test]
-    fn status_class_is_none_without_data() {
-        let r = make_scorecard_route(None, None);
-        assert_eq!(r.status_class(&89.0, &96.0), "none");
     }
 
     // ── RouteSummary::badge_variant tests ──────────────────────────────────────

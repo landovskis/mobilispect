@@ -23,13 +23,6 @@ impl RouteSpeedCard {
         fmt_speed_kmh(self.avg_actual_speed_mps)
     }
 
-    pub fn avg_stop_spacing_class(&self) -> &'static str {
-        match self.avg_stop_spacing_m {
-            None => "none",
-            Some(m) => classify_by_spacing(m).css_class(),
-        }
-    }
-
     pub fn avg_stop_spacing_number(&self) -> String {
         match self.avg_stop_spacing_m {
             None => "—".to_string(),
@@ -452,26 +445,6 @@ mod tests {
             avg_stop_spacing_m: m,
             classification: None,
         }
-    }
-
-    #[test]
-    fn spacing_class_none_when_no_data() {
-        assert_eq!(card_with_spacing(None).avg_stop_spacing_class(), "none");
-    }
-
-    #[test]
-    fn spacing_class_local_below_500m() {
-        assert_eq!(card_with_spacing(Some(300.0)).avg_stop_spacing_class(), "local");
-    }
-
-    #[test]
-    fn spacing_class_rapid_500_to_1500m() {
-        assert_eq!(card_with_spacing(Some(800.0)).avg_stop_spacing_class(), "rapid");
-    }
-
-    #[test]
-    fn spacing_class_express_1500m_and_above() {
-        assert_eq!(card_with_spacing(Some(2000.0)).avg_stop_spacing_class(), "express");
     }
 
     #[test]
