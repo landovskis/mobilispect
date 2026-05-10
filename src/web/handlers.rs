@@ -1006,8 +1006,8 @@ mod e2e_tests {
             "speed page HTML should contain 'Rapid' badge text"
         );
         assert!(
-            html.contains("badge--rapid"),
-            "speed page HTML should contain 'badge--rapid' CSS class"
+            html.contains("badge--neutral"),
+            "speed page HTML should contain 'badge--neutral' CSS class for route classification"
         );
     }
 
@@ -1281,8 +1281,8 @@ mod e2e_tests {
             "detail page HTML should contain 'Rapid' badge text"
         );
         assert!(
-            html.contains("badge--rapid"),
-            "detail page HTML should contain 'badge--rapid' CSS class"
+            html.contains("badge--neutral"),
+            "detail page HTML should contain 'badge--neutral' CSS class for route classification"
         );
     }
 
