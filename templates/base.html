@@ -36,6 +36,11 @@
           --radius: 8px;
           /* ── transition helper ─────────────────── */
           --transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+          /* ── alert variants ────────────────────── */
+          --al-info-bg: var(--link-blue-bg); --al-info-fg: var(--link-blue); --al-info-border: var(--link-blue);
+          --al-ok-bg: var(--civic-green-bg); --al-ok-fg: var(--civic-green); --al-ok-border: var(--civic-green);
+          --al-warn-bg: var(--civic-amber-bg); --al-warn-fg: var(--civic-amber); --al-warn-border: var(--civic-amber);
+          --al-err-bg: var(--civic-red-bg);  --al-err-fg: var(--civic-red);  --al-err-border: var(--civic-red);
         }
 
         html.dark {
@@ -247,6 +252,10 @@
         .badge--local  { background: var(--link-blue-bg); color: var(--link-blue); }
         .badge--rapid     { background: var(--civic-green-bg); color: var(--civic-green); }
         .badge--express   { background: var(--express-bg); color: var(--express-fg); }
+        .badge--good    { background: var(--civic-green-bg); color: var(--civic-green); }
+        .badge--bad     { background: var(--civic-red-bg);   color: var(--civic-red); }
+        .badge--mixed   { background: var(--civic-amber-bg); color: var(--civic-amber); }
+        .badge--neutral { background: var(--link-blue-bg);   color: var(--link-blue); }
 
         .mono {
             font-family: 'Fira Code', monospace;
@@ -424,6 +433,28 @@
         }
 
         /* Specific blocks */
+
+        /* Stat display — shared across speed cards and route detail */
+        .spacing-stat-label { font-family:'Fira Code',monospace; font-size:0.58rem; letter-spacing:0.08em; color:var(--ink-400); text-transform:uppercase; margin-bottom:3px; }
+        .spacing-stat-num   { font-family:'Cormorant Garamond',Georgia,serif; font-weight:300; font-size:1.8rem; line-height:1; }
+        .spacing-stat-unit  { font-size:1rem; color:var(--ink-400); }
+        .spacing-good       { color: var(--civic-green); }
+        .spacing-bad        { color: var(--civic-red); }
+        .spacing-mixed      { color: var(--civic-amber); }
+        .spacing-neutral    { color: var(--link-blue); }
+
+        /* Section label — Fira Code uppercase cinnabar */
+        .section-label { font-family:'Fira Code',monospace; font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--civic-red); margin-bottom:0.75rem; }
+        .section-label-badge { display:inline-block; background:var(--link-blue); color:white; font-size:0.68rem; padding:0.15rem 0.4rem; border-radius:3px; margin-left:0.5rem; vertical-align:middle; font-weight:600; text-transform:none; letter-spacing:0; }
+        .section-label-badge.outlier { background:var(--civic-amber); }
+        .section-label-badge.slow    { background:var(--civic-red); }
+
+        /* Alert variants */
+        .alert { padding:0.75rem 1rem; border-radius:var(--radius); border-left:3px solid; margin-bottom:1rem; font-size:0.875rem; }
+        .alert--info { background:var(--al-info-bg); color:var(--al-info-fg); border-left-color:var(--al-info-border); }
+        .alert--ok   { background:var(--al-ok-bg);   color:var(--al-ok-fg);   border-left-color:var(--al-ok-border); }
+        .alert--warn { background:var(--al-warn-bg); color:var(--al-warn-fg); border-left-color:var(--al-warn-border); }
+        .alert--err  { background:var(--al-err-bg);  color:var(--al-err-fg);  border-left-color:var(--al-err-border); }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
