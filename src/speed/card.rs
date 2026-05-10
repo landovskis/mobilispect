@@ -32,6 +32,23 @@ impl RouteSpeedChart {
     }
 }
 
+impl RouteSpeedCard {
+    pub fn avg_scheduled_speed_kmh_display(&self) -> String {
+        fmt_speed_kmh(self.avg_scheduled_speed_mps)
+    }
+
+    pub fn avg_actual_speed_kmh_display(&self) -> String {
+        fmt_speed_kmh(self.avg_actual_speed_mps)
+    }
+}
+
+fn fmt_speed_kmh(mps: Option<f64>) -> String {
+    match mps {
+        None => "—".to_string(),
+        Some(s) => format!("{:.1}", s * 3.6),
+    }
+}
+
 pub struct RouteSpeedCard {
     pub idx: usize,
     pub agency_name: String,
@@ -586,5 +603,75 @@ mod tests {
     #[test]
     fn spacing_unit_kilometres() {
         assert_eq!(chart_with_spacing(Some(1200.0)).avg_stop_spacing_unit(), "km");
+    }
+
+    #[test]
+    fn scheduled_speed_display_formats_kmh_one_decimal() {
+        // 10.0 m/s = 36.0 km/h
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            chart: RouteSpeedChart { chart_id: String::new(), chart_json: "[]".into(), avg_stop_spacing_m: None },
+            avg_scheduled_speed_mps: Some(10.0),
+            avg_actual_speed_mps: None,
+            classification: None,
+        };
+        assert_eq!(card.avg_scheduled_speed_kmh_display(), "36.0");
+    }
+
+    #[test]
+    fn scheduled_speed_display_dash_when_none() {
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            chart: RouteSpeedChart { chart_id: String::new(), chart_json: "[]".into(), avg_stop_spacing_m: None },
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+            classification: None,
+        };
+        assert_eq!(card.avg_scheduled_speed_kmh_display(), "—");
+    }
+
+    #[test]
+    fn actual_speed_display_formats_kmh_one_decimal() {
+        // 5.0 m/s = 18.0 km/h
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            chart: RouteSpeedChart { chart_id: String::new(), chart_json: "[]".into(), avg_stop_spacing_m: None },
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: Some(5.0),
+            classification: None,
+        };
+        assert_eq!(card.avg_actual_speed_kmh_display(), "18.0");
+    }
+
+    #[test]
+    fn actual_speed_display_dash_when_none() {
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            chart: RouteSpeedChart { chart_id: String::new(), chart_json: "[]".into(), avg_stop_spacing_m: None },
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+            classification: None,
+        };
+        assert_eq!(card.avg_actual_speed_kmh_display(), "—");
     }
 }
