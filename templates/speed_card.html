@@ -10,8 +10,16 @@
     <span class="badge badge--{{ class.css_class() }}">{{ class.label() }}</span>
     {% endif %}
   </div>
-  <div style="margin-top:0.75rem;">
-    <div class="spacing-stat">
+  <div style="margin-top:0.75rem;display:flex;gap:1.5rem;border-top:1px solid var(--line-soft);padding-top:0.75rem;">
+    <div>
+      <div class="spacing-stat-label">Scheduled</div>
+      <div class="spacing-stat-num">{{ card.avg_scheduled_speed_kmh_display() }}<span class="spacing-stat-unit"> km/h</span></div>
+    </div>
+    <div>
+      <div class="spacing-stat-label">Actual</div>
+      <div class="spacing-stat-num">{{ card.avg_actual_speed_kmh_display() }}<span class="spacing-stat-unit"> km/h</span></div>
+    </div>
+    <div style="margin-left:auto;">
       <div class="spacing-stat-label">Avg stop spacing</div>
       <div class="spacing-stat-num spacing-{{ card.avg_stop_spacing_class() }}">{{ card.avg_stop_spacing_number() }}<span class="spacing-stat-unit">{{ card.avg_stop_spacing_unit() }}</span></div>
     </div>
