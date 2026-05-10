@@ -101,6 +101,14 @@ impl RouteClass {
             RouteClass::Express => "express",
         }
     }
+
+    pub fn display_label(&self) -> &'static str {
+        match self {
+            RouteClass::Local => "Local · 12-18 km/h",
+            RouteClass::Rapid => "Rapid · 18-25 km/h",
+            RouteClass::Express => "Express · >25 km/h",
+        }
+    }
 }
 
 pub fn classify_by_spacing(avg_m: f64) -> RouteClass {
@@ -395,6 +403,13 @@ mod tests {
         assert_eq!(RouteClass::Local.css_class(), "local");
         assert_eq!(RouteClass::Rapid.css_class(), "rapid");
         assert_eq!(RouteClass::Express.css_class(), "express");
+    }
+
+    #[test]
+    fn route_class_display_label() {
+        assert_eq!(RouteClass::Local.display_label(), "Local · 12-18 km/h");
+        assert_eq!(RouteClass::Rapid.display_label(), "Rapid · 18-25 km/h");
+        assert_eq!(RouteClass::Express.display_label(), "Express · >25 km/h");
     }
 
     #[test]
