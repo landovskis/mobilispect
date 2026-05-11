@@ -982,7 +982,7 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
 
 /// Per-route, per-direction scheduled speed broken down by day type
 /// (weekday / Saturday / Sunday), sourced from `route_speed_day_type`.
-#[derive(Debug, sqlx::FromRow, Serialize)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct RouteSpeedDayType {
     pub agency_id: String,
     pub route_id: String,
