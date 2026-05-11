@@ -982,7 +982,7 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
 
 /// Per-route, per-direction scheduled speed broken down by day type
 /// (weekday / Saturday / Sunday), sourced from `route_speed_day_type`.
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteSpeedDayType {
     pub agency_id: String,
     pub route_id: String,
@@ -999,6 +999,8 @@ pub struct RouteSpeedDayType {
     pub last_stop_name: Option<String>,
     /// Average distance between consecutive stops for this route+direction (metres).
     pub avg_stop_spacing_m: Option<f64>,
+    /// Average dwell time at stops over the last 28 days (seconds). None if no data.
+    pub avg_dwell_secs: Option<f64>,
 }
 
 pub async fn route_speed_by_day_type(
@@ -1015,7 +1017,8 @@ pub async fn route_speed_by_day_type(
                 AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) = 6
                          THEN actual_speed_mps END) AS actual_saturday_speed_mps,
                 AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) = 0
-                         THEN actual_speed_mps END) AS actual_sunday_speed_mps
+                         THEN actual_speed_mps END) AS actual_sunday_speed_mps,
+                AVG(avg_dwell_secs) AS avg_dwell_secs
             FROM route_speed_daily
             WHERE service_date::date >= CURRENT_DATE - INTERVAL '28 days'
               AND actual_speed_mps IS NOT NULL
@@ -1050,6 +1053,7 @@ pub async fn route_speed_by_day_type(
           act.actual_weekday_speed_mps,
           act.actual_saturday_speed_mps,
           act.actual_sunday_speed_mps,
+          act.avg_dwell_secs,
           lsn.stop_name AS last_stop_name,
           rs.avg_stop_spacing_m
         FROM route_speed rs
@@ -2344,6 +2348,67 @@ mod tests {
 
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].avg_stop_spacing_m, persisted.0);
+    }
+
+    #[tokio::test]
+    async fn route_speed_by_day_type_aggregates_avg_dwell_secs() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed
+             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
+             VALUES ('0', 'R1', 0, 8.0, 500.0, 1, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool).await.unwrap();
+        // Two weekday rows within the 28-day window with avg_dwell_secs
+        sqlx::query(
+            "INSERT INTO route_speed_daily
+             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
+             VALUES
+               ('0', 'R1', (CURRENT_DATE - INTERVAL '2 days')::TEXT, 0, 5.0, 10, 25.0, '2026-01-01T00:00:00Z'),
+               ('0', 'R1', (CURRENT_DATE - INTERVAL '3 days')::TEXT, 0, 5.0, 10, 35.0, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        let rows = route_speed_by_day_type(&db, None).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        let dwell = rows[0].avg_dwell_secs.expect("expected avg_dwell_secs to be Some");
+        assert!(
+            (dwell - 30.0).abs() < 0.01,
+            "expected avg dwell ~30.0, got {dwell}"
+        );
+    }
+
+    #[tokio::test]
+    async fn route_speed_by_day_type_avg_dwell_secs_null_when_no_dwell_data() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed
+             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
+             VALUES ('0', 'R1', 0, 8.0, 500.0, 1, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed_daily
+             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
+             VALUES ('0', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 0, 5.0, 10, NULL, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        let rows = route_speed_by_day_type(&db, None).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        assert!(rows[0].avg_dwell_secs.is_none());
     }
 
     #[test]

@@ -221,6 +221,7 @@ mod tests {
             actual_sunday_speed_mps: None,
             last_stop_name: None,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
         }
     }
 
@@ -294,6 +295,7 @@ mod tests {
                 actual_sunday_speed_mps: None,
                 last_stop_name: None,
                 avg_stop_spacing_m: None,
+                avg_dwell_secs: None,
             },
             RouteSpeedDayType {
                 agency_id: "stm".into(),
@@ -309,6 +311,7 @@ mod tests {
                 actual_sunday_speed_mps: None,
                 last_stop_name: None,
                 avg_stop_spacing_m: None,
+                avg_dwell_secs: None,
             },
         ];
         let cards = build_speed_cards(rows, &HashMap::new());
@@ -333,6 +336,7 @@ mod tests {
             actual_sunday_speed_mps: None,
             last_stop_name: None,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
         }];
         let cards = build_speed_cards(rows, &HashMap::new());
         let avg = cards[0].avg_scheduled_speed_mps.unwrap();
@@ -363,6 +367,7 @@ mod tests {
             actual_sunday_speed_mps: None,
             last_stop_name: None,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
         }];
         let cards = build_speed_cards(rows, &HashMap::new());
         let avg = cards[0].avg_actual_speed_mps.unwrap();
