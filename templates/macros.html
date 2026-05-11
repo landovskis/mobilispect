@@ -11,9 +11,9 @@
 <div class="section-label">{{ text }}</div>
 {% endmacro section_label %}
 
-{% macro filter_pill(href, label, active) %}
-<a class="filter-pill{% if active %} active{% endif %}" href="{{ href }}">{{ label }}</a>
-{% endmacro filter_pill %}
+{% macro chip(href, label, active) %}
+<a class="chip{% if active %} active{% endif %}" href="{{ href }}">{{ label }}</a>
+{% endmacro chip %}
 
 {% macro metric_card(label, value, unit) %}
 <div class="metric-card">
