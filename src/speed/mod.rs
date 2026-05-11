@@ -7,7 +7,7 @@ use crate::db::Database;
 
 pub mod card;
 pub use card::{
-    DirectionSpeedChart, RouteClass, RouteSpeedCard, build_speed_cards, classify_by_spacing,
+    RouteClass, RouteSpeedCard, build_speed_cards, classify_by_spacing,
 };
 
 pub(crate) fn direction_label(direction_id: i64) -> &'static str {

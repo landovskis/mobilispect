@@ -6,31 +6,67 @@
     <title>{% block title %}Mobilispect — Transit Performance{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Civic Ledger Palette */
-            --ink-900: #17202c;
-            --ink-800: #1f2937;
-            --ink-700: #334155;
-            --ink-500: #627083;
-            --ink-400: #7b8796;
-            --paper: #f7f9fb;
-            --surface: #ffffff;
-            --surface-muted: #f1f5f9;
-            --line: #d8dee8;
-            --line-soft: #edf0f5;
-            --civic-green: #2d8f67;
-            --civic-green-bg: #e8f7ef;
-            --civic-amber: #f0b84b;
-            --civic-amber-bg: #fff4d8;
-            --civic-red: #c9483f;
-            --civic-red-bg: #fbe4e1;
-            --link-blue: #2f6f9f;
-            --link-blue-bg: #e7f1f7;
-            --shadow-sm: 0 1px 2px rgb(23 32 44 / 0.05);
-            --shadow: 0 8px 24px rgb(23 32 44 / 0.08);
-            --radius: 8px;
+          /* ── LUMINA tokens ─────────────────────── */
+          --ink-900: #1A1814;     /* was #17202c */
+          --ink-800: #3D3935;
+          --ink-700: #645F5A;
+          --ink-500: #888480;
+          --ink-400: #A8A49B;
+          --paper: #FAFAF7;
+          --surface: #FFFFFF;
+          --surface-muted: #F4F4EF;
+          --line: #E0DDD6;
+          --line-soft: #ECEAE4;
+          --civic-green: #3D9A6B;
+          --civic-green-bg: #D0F0E0;
+          --civic-amber: #E8A020;
+          --civic-amber-bg: #FDF0D0;
+          --civic-red: #C8463A;
+          --civic-red-bg: #F9DDD9;
+          --link-blue: #1D4E89;
+          --link-blue-hover: #163A67;
+          --link-blue-bg: #D0E0F3;
+          --express-bg: #F0E8FF;
+          --express-fg: #6B21D9;
+          --shadow-sm: 0 1px 2px rgb(26 24 20 / 0.06);
+          --shadow: 0 8px 24px rgb(26 24 20 / 0.10);
+          --radius: 8px;
+          /* ── transition helper ─────────────────── */
+          --transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+          /* ── alert variants ────────────────────── */
+          --al-info-bg: var(--link-blue-bg); --al-info-fg: var(--link-blue); --al-info-border: var(--link-blue);
+          --al-ok-bg: var(--civic-green-bg); --al-ok-fg: var(--civic-green); --al-ok-border: var(--civic-green);
+          --al-warn-bg: var(--civic-amber-bg); --al-warn-fg: var(--civic-amber); --al-warn-border: var(--civic-amber);
+          --al-err-bg: var(--civic-red-bg);  --al-err-fg: var(--civic-red);  --al-err-border: var(--civic-red);
+        }
+
+        html.dark {
+          --ink-900: #EDE8E0;
+          --ink-800: #CCC7C0;
+          --ink-700: #B5AFA6;
+          --ink-500: #9E9890;
+          --ink-400: #8C8680;
+          --paper: #0D0B09;
+          --surface: #1E1A16;
+          --surface-muted: #161310;
+          --line: #352C22;
+          --line-soft: #272018;
+          --civic-green: #4DAA7B;
+          --civic-green-bg: rgba(77,170,123,0.15);
+          --civic-amber: #E8A82A;
+          --civic-amber-bg: rgba(232,168,42,0.15);
+          --civic-red: #D95045;
+          --civic-red-bg: rgba(217,80,69,0.15);
+          --link-blue: #5A94CC;
+          --link-blue-hover: #4A80B8;
+          --link-blue-bg: rgba(90,148,204,0.15);
+          --express-bg: rgba(107,33,217,0.18);
+          --express-fg: #B08AFF;
+          --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+          --shadow: 0 8px 24px rgb(0 0 0 / 0.4);
         }
 
         * {
@@ -39,8 +75,13 @@
             padding: 0;
         }
 
+        *, *::before, *::after {
+            transition: background-color 0.15s ease, border-color 0.15s ease,
+                        color 0.05s ease, box-shadow 0.15s ease;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-family: 'Jost', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             background-color: var(--paper);
             color: var(--ink-900);
             line-height: 1.5;
@@ -48,7 +89,7 @@
         }
 
         header {
-            background-color: var(--ink-900);
+            background-color: var(--link-blue);
             color: white;
             padding: 0.85rem 1.5rem;
             display: flex;
@@ -72,7 +113,6 @@
         .logo-icon {
             width: 42px;
             height: 42px;
-            background: transparent;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -81,25 +121,38 @@
         }
 
         .logo-text {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: white;
             display: flex;
-            align-items: center;
-            letter-spacing: -0.02em;
-            gap: 0.25rem;
+            align-items: baseline;
+            gap: 0;
             line-height: 1.2;
         }
 
-        .logo-text > span {
-            color: var(--ink-400);
-            font-weight: 400;
+        .logo-mobili {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-style: italic;
+            font-weight: 300;
+            font-size: 1.25rem;
+            color: white;
+            letter-spacing: -0.01em;
+        }
+
+        .logo-spect {
+            font-family: 'Fira Code', monospace;
+            font-weight: 500;
+            font-size: 0.8rem;
+            color: var(--civic-red);
+            letter-spacing: -0.02em;
+            margin-bottom: 1px;
         }
 
         .logo-region {
-            font-size: 0.7rem;
-            color: var(--ink-400);
-            font-weight: 500;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.5);
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            margin-left: 0.5rem;
+            margin-bottom: 1px;
         }
 
         nav {
@@ -108,7 +161,7 @@
         }
 
         nav a {
-            color: var(--ink-400);
+            color: rgba(255,255,255,0.6);
             text-decoration: none;
             font-size: 0.85rem;
             font-weight: 600;
@@ -144,7 +197,7 @@
             font-weight: 600;
             font-size: 0.875rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
             text-decoration: none;
             border: none;
         }
@@ -155,7 +208,7 @@
         }
 
         .btn-primary:hover {
-            background-color: #245a85;
+            background-color: var(--link-blue-hover);
             transform: translateY(-1px);
         }
 
@@ -176,32 +229,13 @@
             font-weight: 600;
         }
 
-        .badge.green, .badge.status-good {
-            background-color: var(--civic-green-bg);
-            color: var(--civic-green);
-        }
-
-        .badge.yellow, .badge.status-watch {
-            background-color: var(--civic-amber-bg);
-            color: #8a5a00;
-        }
-
-        .badge.red, .badge.status-bad {
-            background-color: var(--civic-red-bg);
-            color: var(--civic-red);
-        }
-
-        .badge.none, .badge.status-none {
-            background-color: var(--surface-muted);
-            color: var(--ink-500);
-        }
-
-        .badge--local  { background: var(--link-blue-bg); color: var(--link-blue); }
-        .badge--rapid     { background: var(--civic-green-bg); color: var(--civic-green); }
-        .badge--express   { background: #f3e8ff; color: #7c3aed; }
+        .badge--good    { background: var(--civic-green-bg); color: var(--civic-green); }
+        .badge--bad     { background: var(--civic-red-bg);   color: var(--civic-red); }
+        .badge--mixed   { background: var(--civic-amber-bg); color: var(--civic-amber); }
+        .badge--neutral { background: var(--link-blue-bg);   color: var(--link-blue); }
 
         .mono {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Fira Code', monospace;
             font-weight: 500;
         }
 
@@ -210,7 +244,7 @@
         }
 
         .status-watch, .yellow, .onpace, .warn {
-            color: #8a5a00;
+            color: var(--civic-amber);
         }
 
         .status-bad, .red, .gap-neg, .slower, .decline, .poor {
@@ -229,6 +263,9 @@
             font-size: 1.6rem;
             line-height: 1.2;
             color: var(--ink-900);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 300;
+            letter-spacing: -0.01em;
         }
         .page-subtitle {
             margin-top: 0.35rem;
@@ -261,6 +298,9 @@
             font-size: 2rem;
             font-weight: 700;
             font-variant-numeric: tabular-nums;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 300;
+            letter-spacing: -0.02em;
         }
         .filter-bar,
         .control-row {
@@ -335,10 +375,10 @@
             font-size: 0.9rem;
         }
         .data-table tr:hover td {
-            background: #fbfdff;
+            background: var(--surface-muted);
         }
         .route-id {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'Fira Code', monospace;
             font-weight: 700;
             color: var(--ink-900);
         }
@@ -370,6 +410,28 @@
         }
 
         /* Specific blocks */
+
+        /* Stat display — shared across speed cards and route detail */
+        .spacing-stat-label { font-family:'Fira Code',monospace; font-size:0.58rem; letter-spacing:0.08em; color:var(--ink-400); text-transform:uppercase; margin-bottom:3px; }
+        .spacing-stat-num   { font-family:'Cormorant Garamond',Georgia,serif; font-weight:300; font-size:1.8rem; line-height:1; }
+        .spacing-stat-unit  { font-size:1rem; color:var(--ink-400); }
+        .spacing-good       { color: var(--civic-green); }
+        .spacing-bad        { color: var(--civic-red); }
+        .spacing-mixed      { color: var(--civic-amber); }
+        .spacing-neutral    { color: var(--link-blue); }
+
+        /* Section label — Fira Code uppercase cinnabar */
+        .section-label { font-family:'Fira Code',monospace; font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--civic-red); margin-bottom:0.75rem; }
+        .section-label-badge { display:inline-block; background:var(--link-blue); color:white; font-size:0.68rem; padding:0.15rem 0.4rem; border-radius:3px; margin-left:0.5rem; vertical-align:middle; font-weight:600; text-transform:none; letter-spacing:0; }
+        .section-label-badge.outlier { background:var(--civic-amber); }
+        .section-label-badge.slow    { background:var(--civic-red); }
+
+        /* Alert variants */
+        .alert { padding:0.75rem 1rem; border-radius:var(--radius); border-left:3px solid; margin-bottom:1rem; font-size:0.875rem; }
+        .alert--info { background:var(--al-info-bg); color:var(--al-info-fg); border-left-color:var(--al-info-border); }
+        .alert--ok   { background:var(--al-ok-bg);   color:var(--al-ok-fg);   border-left-color:var(--al-ok-border); }
+        .alert--warn { background:var(--al-warn-bg); color:var(--al-warn-fg); border-left-color:var(--al-warn-border); }
+        .alert--err  { background:var(--al-err-bg);  color:var(--al-err-fg);  border-left-color:var(--al-err-border); }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -377,17 +439,24 @@
     <header>
         <a href="/" class="logo">
             <div class="logo-icon">
-                <svg width="34" height="34" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <rect x="4" y="5" width="34" height="32" rx="7" fill="currentColor"/>
-                    <path d="M12 27L18 21L23 25L31 15" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M12 14H21" stroke="#8fd6bd" stroke-width="3" stroke-linecap="round"/>
-                    <circle cx="31" cy="15" r="3" fill="#f0b84b"/>
+                <svg width="34" height="34" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="0.75" y="0.75" width="54.5" height="54.5" rx="13" fill="#1A1814" stroke="#2A2420" stroke-width="0.5"/>
+                    <line x1="5" y1="28" x2="15" y2="28" stroke="#3D3733" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="33" y1="28" x2="51" y2="28" stroke="#3D3733" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M15,28 C17,28 18,38 22,38 C26,38 24,14 28,14 C32,14 32,28 33,28" stroke="#C8463A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+                    <circle cx="28" cy="28" r="15" stroke="#C8463A" stroke-width="0.8" stroke-opacity="0.4" stroke-dasharray="3.8 2.8"/>
+                    <circle cx="28" cy="14" r="3.5" fill="#C8463A"/>
+                    <circle cx="28" cy="14" r="1.5" fill="#F28070"/>
                 </svg>
             </div>
-            <span class="logo-text">Mobili<span>spect</span><span class="logo-region">{% block region_name %}{% endblock %}</span></span>
+            <span class="logo-text"><span class="logo-mobili">mobili</span><span class="logo-spect">spect</span><span class="logo-region">{% block region_name %}{% endblock %}</span></span>
         </a>
         <nav>
             <a href="/" class="{% block nav_speed %}{% endblock %}">Speeds</a>
+            <button id="theme-toggle" type="button" aria-label="Toggle colour scheme" onclick="toggleTheme()"
+              style="background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.05em;display:flex;align-items:center;gap:6px;">
+              <span id="theme-icon">☀️</span><span id="theme-label">LIGHT</span>
+            </button>
         </nav>
     </header>
 
@@ -401,5 +470,24 @@
     </footer>
 
     {% block extra_scripts %}{% endblock %}
+    <script>
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  document.getElementById('theme-label').textContent = isDark ? 'DARK' : 'LIGHT';
+  document.getElementById('theme-icon').textContent  = isDark ? '🌙' : '☀️';
+  localStorage.setItem('lumina-theme', isDark ? 'dark' : 'light');
+}
+(function initTheme() {
+  const saved = localStorage.getItem('lumina-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === 'dark' || (!saved && prefersDark)) {
+    document.documentElement.classList.add('dark');
+    const lbl = document.getElementById('theme-label');
+    const ico = document.getElementById('theme-icon');
+    if (lbl) lbl.textContent = 'DARK';
+    if (ico) ico.textContent = '🌙';
+  }
+})();
+    </script>
 </body>
 </html>

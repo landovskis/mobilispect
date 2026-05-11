@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "macros.html" as ui %}
 
 {% block title %}Mobilispect — Route {{ trend.short_name }}{% endblock %}
 {% block region_name %}{{ region_name }}{% endblock %}
@@ -26,7 +27,7 @@ canvas { width: 100% !important; }
       <h1 class="page-title">Route {{ trend.short_name }} — {{ trend.long_name }}</h1>
       <p class="page-subtitle">Speed and on-time trend evidence</p>
     </div>
-    <a class="filter-pill" href="/">← Back to dashboard</a>
+    {{ ui::filter_pill(href="/", label="← Back to dashboard", active=false) }}
   </div>
 
   <div class="callout">
@@ -75,13 +76,13 @@ canvas { width: 100% !important; }
 
   new Chart(document.getElementById('speedChart'), {
     type: 'line',
-    data: { labels, datasets: [{ label: 'Speed km/h', data: speeds, ...lineOpts('#2f6f9f') }] },
+    data: { labels, datasets: [{ label: 'Speed km/h', data: speeds, ...lineOpts('#1D4E89') }] },
     options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } },
   });
 
   new Chart(document.getElementById('ontimeChart'), {
     type: 'line',
-    data: { labels, datasets: [{ label: 'On-time %', data: ontimes, ...lineOpts('#2d8f67') }] },
+    data: { labels, datasets: [{ label: 'On-time %', data: ontimes, ...lineOpts('#3D9A6B') }] },
     options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } },
   });
 </script>

@@ -1,23 +1,6 @@
 use crate::speed::RouteSpeedDayType;
 use std::collections::HashMap;
 
-pub struct DirectionSpeedChart {
-    pub chart_id: String,
-    pub title: String,
-    pub chart_json: String,
-    pub avg_stop_spacing_m: Option<f64>,
-}
-
-impl DirectionSpeedChart {
-    pub fn avg_stop_spacing_display(&self) -> String {
-        match self.avg_stop_spacing_m {
-            None => "—".to_string(),
-            Some(m) if m >= 1000.0 => format!("{:.1} km", m / 1000.0),
-            Some(m) => format!("{:.0} m", m),
-        }
-    }
-}
-
 pub struct RouteSpeedCard {
     pub idx: usize,
     pub agency_name: String,
@@ -25,26 +8,50 @@ pub struct RouteSpeedCard {
     pub route_id: String,
     pub short_name: String,
     pub long_name: String,
-    pub charts: Vec<DirectionSpeedChart>,
-    /// Sort key: unweighted mean of all non-None scheduled speed values across
-    /// all day types (weekday/Saturday/Sunday) and directions. Routes with fewer
-    /// non-None slots contribute proportionally less weight.
     pub avg_scheduled_speed_mps: Option<f64>,
-    /// Sort key: unweighted mean of all non-None actual speed values across
-    /// all day types and directions. `None` when no actual speed data exists.
     pub avg_actual_speed_mps: Option<f64>,
+    pub avg_stop_spacing_m: Option<f64>,
     pub classification: Option<RouteClass>,
 }
 
-fn speed_kmh_json(mps: Option<f64>) -> serde_json::Value {
-    match mps {
-        Some(s) => {
-            let kmh = (s * 3.6 * 10.0).round() / 10.0;
-            serde_json::Number::from_f64(kmh)
-                .map(serde_json::Value::Number)
-                .unwrap_or(serde_json::Value::Null)
+impl RouteSpeedCard {
+    pub fn avg_scheduled_speed_kmh_display(&self) -> String {
+        fmt_speed_kmh(self.avg_scheduled_speed_mps)
+    }
+
+    pub fn avg_actual_speed_kmh_display(&self) -> String {
+        fmt_speed_kmh(self.avg_actual_speed_mps)
+    }
+
+    pub fn avg_stop_spacing_number(&self) -> String {
+        match self.avg_stop_spacing_m {
+            None => "—".to_string(),
+            Some(m) if m >= 1000.0 => format!("{:.1}", m / 1000.0),
+            Some(m) => format!("{:.0}", m),
         }
-        None => serde_json::Value::Null,
+    }
+
+    pub fn avg_stop_spacing_unit(&self) -> &'static str {
+        match self.avg_stop_spacing_m {
+            None => "",
+            Some(m) if m >= 1000.0 => "km",
+            Some(_) => "m",
+        }
+    }
+
+    pub fn avg_stop_spacing_variant(&self) -> &'static str {
+        match self.avg_stop_spacing_m {
+            None => "neutral",
+            Some(m) if m < 300.0 => "bad",
+            Some(_) => "good",
+        }
+    }
+}
+
+fn fmt_speed_kmh(mps: Option<f64>) -> String {
+    match mps {
+        None => "—".to_string(),
+        Some(s) => format!("{:.1}", s * 3.6),
     }
 }
 
@@ -87,6 +94,14 @@ impl RouteClass {
             RouteClass::Express => "express",
         }
     }
+
+    pub fn display_label(&self) -> &'static str {
+        match self {
+            RouteClass::Local => "Local · 12-18 km/h",
+            RouteClass::Rapid => "Rapid · 18-25 km/h",
+            RouteClass::Express => "Express · >25 km/h",
+        }
+    }
 }
 
 pub fn classify_by_spacing(avg_m: f64) -> RouteClass {
@@ -97,29 +112,6 @@ pub fn classify_by_spacing(avg_m: f64) -> RouteClass {
     } else {
         RouteClass::Express
     }
-}
-
-fn direction_datasets(row: &RouteSpeedDayType) -> serde_json::Value {
-    serde_json::json!([
-        {
-            "label": "Scheduled",
-            "backgroundColor": "#2980b9",
-            "data": [
-                speed_kmh_json(row.weekday_speed_mps),
-                speed_kmh_json(row.saturday_speed_mps),
-                speed_kmh_json(row.sunday_speed_mps),
-            ]
-        },
-        {
-            "label": "Actual",
-            "backgroundColor": "#e67e22",
-            "data": [
-                speed_kmh_json(row.actual_weekday_speed_mps),
-                speed_kmh_json(row.actual_saturday_speed_mps),
-                speed_kmh_json(row.actual_sunday_speed_mps),
-            ]
-        },
-    ])
 }
 
 pub fn build_speed_cards(
@@ -134,18 +126,6 @@ pub fn build_speed_cards(
             .cloned()
             .unwrap_or_else(|| first.agency_id.clone());
         let card_idx = cards.len();
-        let charts: Vec<DirectionSpeedChart> = route_rows
-            .iter()
-            .map(|row| DirectionSpeedChart {
-                chart_id: format!("chart-{card_idx}-{}", row.direction_id),
-                title: row
-                    .last_stop_name
-                    .clone()
-                    .unwrap_or_else(|| super::direction_label(row.direction_id).to_string()),
-                chart_json: serde_json::to_string(&direction_datasets(row)).unwrap_or_default(),
-                avg_stop_spacing_m: row.avg_stop_spacing_m,
-            })
-            .collect();
         let avg_scheduled_speed_mps = avg_speeds(route_rows.iter().flat_map(|r| {
             [
                 r.weekday_speed_mps,
@@ -160,8 +140,8 @@ pub fn build_speed_cards(
                 r.actual_sunday_speed_mps,
             ]
         }));
-        let avg_spacing_m = avg_speeds(charts.iter().map(|c| c.avg_stop_spacing_m));
-        let classification = avg_spacing_m.map(classify_by_spacing);
+        let avg_stop_spacing_m = avg_speeds(route_rows.iter().map(|r| r.avg_stop_spacing_m));
+        let classification = avg_stop_spacing_m.map(classify_by_spacing);
         cards.push(RouteSpeedCard {
             idx: card_idx,
             agency_name,
@@ -169,9 +149,9 @@ pub fn build_speed_cards(
             route_id: first.route_id.clone(),
             short_name: first.short_name.clone(),
             long_name: first.long_name.clone(),
-            charts,
             avg_scheduled_speed_mps,
             avg_actual_speed_mps,
+            avg_stop_spacing_m,
             classification,
         });
     }
@@ -203,18 +183,6 @@ mod tests {
             last_stop_name: None,
             avg_stop_spacing_m: None,
         }
-    }
-
-    #[test]
-    fn speed_kmh_json_converts_mps_to_kmh() {
-        // 10 m/s = 36 km/h
-        let v = speed_kmh_json(Some(10.0));
-        assert_eq!(v, serde_json::json!(36.0));
-    }
-
-    #[test]
-    fn speed_kmh_json_none_returns_null() {
-        assert_eq!(speed_kmh_json(None), serde_json::Value::Null);
     }
 
     #[test]
@@ -259,74 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn direction_datasets_includes_scheduled_and_actual() {
-        let row = RouteSpeedDayType {
-            agency_id: "stm".to_string(),
-            route_id: "R1".to_string(),
-            short_name: "R1".to_string(),
-            long_name: "Route R1".to_string(),
-            direction_id: 0,
-            weekday_speed_mps: Some(10.0),
-            saturday_speed_mps: None,
-            sunday_speed_mps: None,
-            actual_weekday_speed_mps: Some(9.0),
-            actual_saturday_speed_mps: None,
-            actual_sunday_speed_mps: None,
-            last_stop_name: None,
-            avg_stop_spacing_m: None,
-        };
-        let datasets = direction_datasets(&row);
-        let arr = datasets.as_array().unwrap();
-        assert_eq!(arr.len(), 2);
-        assert_eq!(arr[0]["label"], "Scheduled");
-        assert_eq!(arr[0]["backgroundColor"], "#2980b9");
-        assert_eq!(arr[1]["label"], "Actual");
-        assert_eq!(arr[1]["backgroundColor"], "#e67e22");
-    }
-
-    #[test]
-    fn build_speed_cards_single_direction_produces_one_chart() {
-        let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
-        let names = HashMap::new();
-        let cards = build_speed_cards(rows, &names);
-        assert_eq!(cards[0].charts.len(), 1);
-        assert_eq!(cards[0].charts[0].title, "Outbound");
-    }
-
-    #[test]
-    fn build_speed_cards_both_directions_produce_two_charts() {
-        let rows = vec![
-            make_row("stm", "R1", 0, Some(8.0)),
-            make_row("stm", "R1", 1, Some(7.5)),
-        ];
-        let names = HashMap::new();
-        let cards = build_speed_cards(rows, &names);
-        assert_eq!(cards[0].charts.len(), 2);
-        assert_eq!(cards[0].charts[0].title, "Outbound");
-        assert_eq!(cards[0].charts[1].title, "Inbound");
-    }
-
-    #[test]
-    fn build_speed_cards_chart_ids_are_unique() {
-        let rows = vec![
-            make_row("stm", "R1", 0, Some(8.0)),
-            make_row("stm", "R1", 1, Some(7.5)),
-            make_row("stm", "R2", 0, None),
-        ];
-        let names = HashMap::new();
-        let cards = build_speed_cards(rows, &names);
-        let ids: Vec<&str> = cards
-            .iter()
-            .flat_map(|c| c.charts.iter().map(|ch| ch.chart_id.as_str()))
-            .collect();
-        let unique: std::collections::HashSet<_> = ids.iter().collect();
-        assert_eq!(ids.len(), unique.len(), "chart IDs must be globally unique");
-    }
-
-    #[test]
     fn build_speed_cards_handles_route_ids_not_in_lexicographic_order() {
-        // SQL sorts by short_name, not route_id. Route "uuid-z" (short_name "1") comes
-        // before "uuid-a" (short_name "2") even though "uuid-z" > "uuid-a" lexicographically.
         let rows = vec![
             make_row("stm", "uuid-z", 0, Some(8.0)),
             make_row("stm", "uuid-a", 0, Some(7.0)),
@@ -431,39 +332,29 @@ mod tests {
 
     #[test]
     fn build_speed_cards_avg_scheduled_is_none_when_all_scheduled_speeds_none() {
-        // make_row sets weekday to None and saturday/sunday are always None
         let rows = vec![make_row("stm", "R1", 0, None)];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].avg_scheduled_speed_mps.is_none());
     }
 
     #[test]
-    fn build_speed_cards_chart_carries_avg_stop_spacing() {
+    fn build_speed_cards_carries_avg_stop_spacing() {
         let mut row = make_row("stm", "R1", 0, Some(8.0));
         row.avg_stop_spacing_m = Some(450.0);
         let cards = build_speed_cards(vec![row], &HashMap::new());
-        assert_eq!(cards[0].charts[0].avg_stop_spacing_m, Some(450.0));
+        assert_eq!(cards[0].avg_stop_spacing_m, Some(450.0));
     }
 
     #[test]
-    fn build_speed_cards_uses_last_stop_name_as_chart_title() {
-        let rows = vec![RouteSpeedDayType {
-            agency_id: "stm".into(),
-            route_id: "R1".into(),
-            short_name: "R1".into(),
-            long_name: "Route R1".into(),
-            direction_id: 0,
-            weekday_speed_mps: Some(8.0),
-            saturday_speed_mps: None,
-            sunday_speed_mps: None,
-            actual_weekday_speed_mps: None,
-            actual_saturday_speed_mps: None,
-            actual_sunday_speed_mps: None,
-            last_stop_name: Some("Downtown".to_string()),
-            avg_stop_spacing_m: None,
-        }];
-        let cards = build_speed_cards(rows, &HashMap::new());
-        assert_eq!(cards[0].charts[0].title, "Downtown");
+    fn build_speed_cards_averages_stop_spacing_across_directions() {
+        // direction 0: 400 m, direction 1: 600 m → avg 500 m
+        let mut row0 = make_row("stm", "R1", 0, Some(8.0));
+        row0.avg_stop_spacing_m = Some(400.0);
+        let mut row1 = make_row("stm", "R1", 1, Some(7.0));
+        row1.avg_stop_spacing_m = Some(600.0);
+        let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
+        let spacing = cards[0].avg_stop_spacing_m.unwrap();
+        assert!((spacing - 500.0).abs() < 0.001, "expected 500.0, got {spacing}");
     }
 
     #[test]
@@ -508,6 +399,13 @@ mod tests {
     }
 
     #[test]
+    fn route_class_display_label() {
+        assert_eq!(RouteClass::Local.display_label(), "Local · 12-18 km/h");
+        assert_eq!(RouteClass::Rapid.display_label(), "Rapid · 18-25 km/h");
+        assert_eq!(RouteClass::Express.display_label(), "Express · >25 km/h");
+    }
+
+    #[test]
     fn build_speed_cards_sets_classification_from_stop_spacing() {
         // avg spacing of 620 m → Rapid
         let mut row = make_row("stm", "R1", 0, Some(8.0));
@@ -518,7 +416,6 @@ mod tests {
 
     #[test]
     fn build_speed_cards_classification_is_none_when_no_spacing_data() {
-        // make_row sets avg_stop_spacing_m = None
         let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].classification.is_none());
@@ -526,12 +423,144 @@ mod tests {
 
     #[test]
     fn build_speed_cards_classification_averages_across_directions() {
-        // direction 0: 400 m (Local Bus), direction 1: 600 m (Rapid) → avg 500 m → Rapid
+        // direction 0: 400 m (Local), direction 1: 600 m (Rapid) → avg 500 m → Rapid
         let mut row0 = make_row("stm", "R1", 0, Some(8.0));
         row0.avg_stop_spacing_m = Some(400.0);
         let mut row1 = make_row("stm", "R1", 1, Some(7.0));
         row1.avg_stop_spacing_m = Some(600.0);
         let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
         assert_eq!(cards[0].classification, Some(RouteClass::Rapid));
+    }
+
+    fn card_with_spacing(m: Option<f64>) -> RouteSpeedCard {
+        RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+            avg_stop_spacing_m: m,
+            classification: None,
+        }
+    }
+
+    #[test]
+    fn spacing_number_none() {
+        assert_eq!(card_with_spacing(None).avg_stop_spacing_number(), "—");
+    }
+
+    #[test]
+    fn spacing_number_metres() {
+        assert_eq!(card_with_spacing(Some(342.0)).avg_stop_spacing_number(), "342");
+    }
+
+    #[test]
+    fn spacing_number_kilometres() {
+        assert_eq!(card_with_spacing(Some(1200.0)).avg_stop_spacing_number(), "1.2");
+    }
+
+    #[test]
+    fn spacing_unit_none() {
+        assert_eq!(card_with_spacing(None).avg_stop_spacing_unit(), "");
+    }
+
+    #[test]
+    fn spacing_unit_metres() {
+        assert_eq!(card_with_spacing(Some(342.0)).avg_stop_spacing_unit(), "m");
+    }
+
+    #[test]
+    fn spacing_unit_kilometres() {
+        assert_eq!(card_with_spacing(Some(1200.0)).avg_stop_spacing_unit(), "km");
+    }
+
+    #[test]
+    fn stop_spacing_variant_neutral_when_no_data() {
+        assert_eq!(card_with_spacing(None).avg_stop_spacing_variant(), "neutral");
+    }
+
+    #[test]
+    fn stop_spacing_variant_bad_below_300m() {
+        assert_eq!(card_with_spacing(Some(0.0)).avg_stop_spacing_variant(), "bad");
+        assert_eq!(card_with_spacing(Some(299.9)).avg_stop_spacing_variant(), "bad");
+    }
+
+    #[test]
+    fn stop_spacing_variant_good_at_or_above_300m() {
+        assert_eq!(card_with_spacing(Some(300.0)).avg_stop_spacing_variant(), "good");
+        assert_eq!(card_with_spacing(Some(1500.0)).avg_stop_spacing_variant(), "good");
+    }
+
+    #[test]
+    fn scheduled_speed_display_formats_kmh_one_decimal() {
+        // 10.0 m/s = 36.0 km/h
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: Some(10.0),
+            avg_actual_speed_mps: None,
+            avg_stop_spacing_m: None,
+            classification: None,
+        };
+        assert_eq!(card.avg_scheduled_speed_kmh_display(), "36.0");
+    }
+
+    #[test]
+    fn scheduled_speed_display_dash_when_none() {
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+            avg_stop_spacing_m: None,
+            classification: None,
+        };
+        assert_eq!(card.avg_scheduled_speed_kmh_display(), "—");
+    }
+
+    #[test]
+    fn actual_speed_display_formats_kmh_one_decimal() {
+        // 5.0 m/s = 18.0 km/h
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: Some(5.0),
+            avg_stop_spacing_m: None,
+            classification: None,
+        };
+        assert_eq!(card.avg_actual_speed_kmh_display(), "18.0");
+    }
+
+    #[test]
+    fn actual_speed_display_dash_when_none() {
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+            avg_stop_spacing_m: None,
+            classification: None,
+        };
+        assert_eq!(card.avg_actual_speed_kmh_display(), "—");
     }
 }

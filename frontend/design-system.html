@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lumina — Design System</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Jost:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Cormorant', 'serif'],
+            sans: ['Jost', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            cream: {
+              50:  '#FAFAF7',
+              100: '#F4F4EF',
+              200: '#ECEAE4',
+              300: '#E0DDD6',
+              400: '#C8C4BC',
+              500: '#A8A49B',
+              600: '#888480',
+              700: '#645F5A',
+              800: '#3D3935',
+              900: '#1A1814',
+            },
+            cinnabar: {
+              50:  '#FDF2F1',
+              100: '#F9DDD9',
+              200: '#F2B5AF',
+              300: '#E88880',
+              400: '#DC5E54',
+              500: '#C8463A',
+              600: '#A83530',
+              700: '#872828',
+              800: '#641E1E',
+              900: '#411414',
+            },
+            oxford: {
+              50:  '#EEF3FA',
+              100: '#D0E0F3',
+              200: '#9DBDE6',
+              300: '#6498D3',
+              400: '#3574BC',
+              500: '#1D4E89',
+              600: '#163A67',
+              700: '#102D52',
+              800: '#0A1D37',
+              900: '#060E1C',
+            },
+            saffron: {
+              50:  '#FEF8EC',
+              100: '#FDF0D0',
+              200: '#F9DC98',
+              300: '#F4C460',
+              400: '#EDB030',
+              500: '#E8A020',
+              600: '#C88018',
+              700: '#9E6012',
+              800: '#74420C',
+              900: '#4A2506',
+            },
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* ══ CSS custom properties ══════════════════════════════════ */
+    :root {
+      --bg:           #FAFAF7;
+      --bg-subtle:    #F4F4EF;
+      --surface:      #FFFFFF;
+      --border-light: #ECEAE4;
+      --border:       #E0DDD6;
+      --ink:          #1A1814;
+      --secondary:    #645F5A;
+      --muted:        #888480;
+      --dim:          #A8A49B;
+      --stone:        #C8C4BC;
+      --mid:          #3D3935;
+      --cinn:         #C8463A;
+      --cinn-hover:   #A83530;
+      --ox:           #1D4E89;
+      --saff:         #E8A020;
+      --sage:         #3D9A6B;
+      /* Semantic tints */
+      --b-cinn-bg: #F9DDD9; --b-cinn-fg: #A83530;
+      --b-ox-bg:   #D0E0F3; --b-ox-fg:   #163A67;
+      --b-saff-bg: #FDF0D0; --b-saff-fg: #9E6012;
+      --b-sage-bg: #D0F0E0; --b-sage-fg: #1A6640;
+      --b-neu-bg:  #ECEAE4; --b-neu-fg:  #3D3935;
+      --b-drk-bg:  #1A1814; --b-drk-fg:  #FAFAF7;
+      --al-info-bg: #EEF3FA; --al-info-bd: #9DBDE6; --al-info-title: #163A67; --al-info-body: #1D4E89;
+      --al-ok-bg:   #E8F5EE; --al-ok-bd:   #8FCBA8; --al-ok-title:   #1A6640; --al-ok-body:   #3D9A6B;
+      --al-warn-bg: #FEF7E0; --al-warn-bd: #F4C460; --al-warn-title: #9E6012; --al-warn-body: #C88018;
+      --al-err-bg:  #FDF2F1; --al-err-bd:  #E88880; --al-err-title:  #871E1E; --al-err-body:  #C8463A;
+      --chart-grid: #ECEAE4;
+    }
+
+    html.dark {
+      --bg:           #0D0B09;
+      --bg-subtle:    #161310;
+      --surface:      #1E1A16;
+      --border-light: #272018;
+      --border:       #352C22;
+      --ink:          #EDE8E0;
+      --secondary:    #B5AFA6;
+      --muted:        #7A7470;
+      --dim:          #4E4844;
+      --stone:        #38302A;
+      --mid:          #CCC7C0;
+      --cinn:         #D95045;
+      --cinn-hover:   #E87060;
+      --ox:           #5A94CC;
+      --saff:         #E8A82A;
+      --sage:         #4DAA7B;
+      /* Semantic tints – dark mode */
+      --b-cinn-bg: rgba(217,80,69,0.16); --b-cinn-fg: #F07060;
+      --b-ox-bg:   rgba(90,148,204,0.16); --b-ox-fg:  #80B4E8;
+      --b-saff-bg: rgba(232,168,42,0.16); --b-saff-fg: #F0C050;
+      --b-sage-bg: rgba(77,170,123,0.16); --b-sage-fg: #5DBA8B;
+      --b-neu-bg:  rgba(60,48,34,0.6);    --b-neu-fg:  #C0BAB2;
+      --b-drk-bg:  #EDE8E0;               --b-drk-fg:  #1A1814;
+      --al-info-bg: rgba(90,148,204,0.08); --al-info-bd: rgba(90,148,204,0.3); --al-info-title: #80B4E8; --al-info-body: #5A94CC;
+      --al-ok-bg:   rgba(77,170,123,0.08); --al-ok-bd:   rgba(77,170,123,0.3); --al-ok-title:   #5DBA8B; --al-ok-body:   #4DAA7B;
+      --al-warn-bg: rgba(232,168,42,0.08); --al-warn-bd: rgba(232,168,42,0.3); --al-warn-title: #F0C050; --al-warn-body: #E8A82A;
+      --al-err-bg:  rgba(217,80,69,0.08);  --al-err-bd:  rgba(217,80,69,0.3);  --al-err-title:  #F07060; --al-err-body:  #D95045;
+      --chart-grid: #272018;
+    }
+
+    /* ══ Theme transition ═══════════════════════════════════════ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Jost', sans-serif;
+      background-color: var(--bg);
+      color: var(--ink);
+    }
+
+    /* Grain overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.022;
+      pointer-events: none;
+      z-index: 9999;
+      transition: none;
+    }
+    html.dark body::after { opacity: 0.04; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg-subtle); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+
+    /* Selection */
+    ::selection { background: var(--cinn); color: var(--bg); }
+
+    /* ---- Sidebar ---- */
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--bg-subtle);
+      border-right: 1px solid var(--border-light);
+    }
+    .sidebar::-webkit-scrollbar { width: 0; }
+
+    .nav-link {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0.2rem 0 0.2rem 0.875rem;
+      font-size: 0.825rem;
+      color: var(--muted);
+      text-decoration: none;
+      border-left: 1.5px solid transparent;
+    }
+    .nav-link:hover { color: var(--cinn); }
+    .nav-link.active {
+      color: var(--cinn);
+      border-left-color: var(--cinn);
+      font-weight: 500;
+    }
+
+    /* ---- Section label ---- */
+    .section-label {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--cinn);
+    }
+
+    .section-rule {
+      width: 40px;
+      height: 2px;
+      background: var(--cinn);
+      margin: 0.9rem 0 1.5rem;
+    }
+
+    /* ---- Buttons ---- */
+    .btn {
+      font-family: 'Jost', sans-serif;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ---- Inputs ---- */
+    .field {
+      width: 100%;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.875rem;
+      color: var(--mid);
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.875rem;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.25s;
+      outline: none;
+    }
+    .field::placeholder { color: var(--stone); }
+    .field:focus {
+      border-color: var(--cinn);
+      box-shadow: 0 0 0 3px rgba(200, 70, 58, 0.12);
+    }
+    .field.success {
+      border-color: var(--sage);
+      box-shadow: 0 0 0 3px rgba(61, 154, 107, 0.12);
+    }
+    .field.error {
+      border-color: var(--cinn);
+      box-shadow: 0 0 0 3px rgba(200, 70, 58, 0.12);
+    }
+
+    /* ---- Toggle ---- */
+    .toggle { width: 42px; height: 22px; background: var(--border); border-radius: 11px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+    .toggle.on { background: var(--cinn); }
+    .toggle-thumb { width: 16px; height: 16px; background: var(--surface); border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+    .toggle.on .toggle-thumb { transform: translateX(20px); }
+
+    /* ---- Card ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.25s, border-color 0.25s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+    }
+    html.dark .card { box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+    html.dark .card:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+
+    /* ---- Badge ---- */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      border-radius: 4px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+
+    /* ---- Progress bar ---- */
+    .progress { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+
+    /* ---- Hero underline animation ---- */
+    @keyframes line-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .underline-anim { position: relative; display: inline-block; }
+    .underline-anim::after {
+      content: '';
+      position: absolute;
+      bottom: 6px;
+      left: 0; right: 0;
+      height: 3px;
+      background: var(--cinn);
+      transform-origin: left;
+      animation: line-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.6s both;
+      transition: none;
+    }
+
+    /* ---- Color swatch ---- */
+    .swatch { transition: transform 0.18s; }
+    .swatch:hover { transform: translateY(-3px); }
+
+    /* ---- Code block ---- */
+    pre {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      line-height: 1.7;
+      background: #13110F;
+      color: #E0DDD6;
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      transition: none;
+    }
+    .tok-c  { color: #888480; }
+    .tok-k  { color: #E8A020; }
+    .tok-s  { color: #88C692; }
+    .tok-n  { color: #6BAEE6; }
+    .tok-p  { color: #E88880; }
+
+    /* ---- Table ---- */
+    table { border-collapse: collapse; width: 100%; }
+    th {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--dim);
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.875rem 1rem;
+      font-size: 0.875rem;
+      border-bottom: 1px solid var(--border-light);
+      transition: background 0.25s;
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg-subtle); }
+
+    /* ---- Stat number ---- */
+    .stat-num {
+      font-family: 'Cormorant', serif;
+      font-size: 3rem;
+      font-weight: 300;
+      line-height: 1;
+    }
+
+    /* ---- Alert ---- */
+    .alert {
+      display: flex;
+      gap: 0.75rem;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid;
+    }
+  </style>
+</head>
+<body>
+<div class="flex min-h-screen">
+
+  <!-- ═══════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════ -->
+  <aside class="sidebar w-56 flex-shrink-0 px-5 py-8 flex flex-col">
+
+    <!-- Logotype -->
+    <div class="mb-9">
+      <div class="flex items-center gap-2.5 mb-0.5">
+        <div class="w-6 h-6 bg-cinnabar-500 rounded flex items-center justify-center flex-shrink-0">
+          <span style="font-family:'Cormorant',serif;color:#FAFAF7;font-size:15px;font-weight:700;line-height:1;">L</span>
+        </div>
+        <span style="font-family:'Cormorant',serif;font-size:1.15rem;font-weight:600;letter-spacing:0.08em;color:var(--ink);">LUMINA</span>
+      </div>
+      <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);letter-spacing:0.12em;padding-left:34px;">v1.0 · Tailwind CSS</p>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex-1 space-y-5">
+      <div>
+        <p class="section-label pl-3.5 mb-2">Foundation</p>
+        <a href="#colors"     class="nav-link">Colors</a>
+        <a href="#typography" class="nav-link">Typography</a>
+      </div>
+      <div>
+        <p class="section-label pl-3.5 mb-2">Components</p>
+        <a href="#buttons"    class="nav-link">Buttons</a>
+        <a href="#forms"      class="nav-link">Form Controls</a>
+        <a href="#cards"      class="nav-link">Cards</a>
+        <a href="#badges"     class="nav-link">Badges</a>
+        <a href="#alerts"     class="nav-link">Alerts</a>
+        <a href="#tables"     class="nav-link">Tables</a>
+      </div>
+      <div>
+        <p class="section-label pl-3.5 mb-2">Patterns</p>
+        <a href="#stats"      class="nav-link">Stats & Data</a>
+        <a href="#graphs"     class="nav-link">Charts & Graphs</a>
+        <a href="#code"       class="nav-link">Code</a>
+      </div>
+    </nav>
+
+    <!-- Footer: progress + dark mode toggle -->
+    <div class="mt-auto" style="display:flex;flex-direction:column;gap:12px;">
+      <div style="border-radius:8px;padding:12px;border:1px solid var(--border-light);background:var(--border-light);">
+        <div class="progress mb-1.5">
+          <div class="progress-fill bg-cinnabar-500" style="width:85%;"></div>
+        </div>
+        <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);">85% documented</p>
+      </div>
+      <!-- Theme toggle -->
+      <button id="theme-toggle" onclick="toggleTheme()" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border-light);background:var(--border-light);cursor:pointer;transition:background 0.2s,border-color 0.2s;">
+        <span id="theme-label" style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);letter-spacing:0.08em;">LIGHT MODE</span>
+        <span id="theme-icon" style="font-size:14px;">☀️</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════════════════════════
+       MAIN
+  ═══════════════════════════════════════ -->
+  <main class="flex-1 overflow-auto">
+
+    <!-- ── HERO ── -->
+    <section class="px-14 pt-16 pb-14" style="background:linear-gradient(140deg,var(--bg) 50%,var(--bg-subtle) 100%);border-bottom:1px solid var(--border-light);">
+      <p class="section-label mb-5">Design System</p>
+      <h1 style="font-family:'Cormorant',serif;font-size:5.5rem;font-weight:300;line-height:0.93;color:var(--ink);margin-bottom:1.5rem;">
+        Built with<br>
+        <em class="underline-anim" style="color:#C8463A;font-weight:400;">intention</em>
+      </h1>
+      <p style="font-size:1rem;font-weight:300;color:var(--muted);max-width:460px;line-height:1.75;margin-bottom:2rem;">
+        A warm, editorial system for applications that value clarity, craft, and considered aesthetics. Every token, every component — deliberate.
+      </p>
+      <div class="flex gap-3">
+        <button class="btn bg-cinnabar-500 text-cream-50 text-sm px-5 py-2.5 rounded-md hover:bg-cinnabar-600" style="box-shadow:0 2px 8px rgba(200,70,58,0.3);">
+          Get Started
+        </button>
+        <button class="btn border border-cream-300 text-cream-700 text-sm px-5 py-2.5 rounded-md hover:bg-cream-100 hover:border-cream-400">
+          View on GitHub
+        </button>
+      </div>
+    </section>
+
+    <div class="px-14 py-12" style="max-width:900px;">
+
+
+      <!-- ══════════════════════════════════
+           01 · COLORS
+      ══════════════════════════════════ -->
+      <section id="colors" class="mb-20 scroll-mt-6">
+        <p class="section-label">01 — Foundation</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Colors</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">A warm, grounded palette drawn from natural materials and editorial print design.</p>
+
+        <!-- Neutrals -->
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">Neutral Scale</p>
+        <div style="display:grid;grid-template-columns:repeat(9,1fr);gap:8px;margin-bottom:2.5rem;">
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:#FAFAF7;border:1px solid #ECEAE4;"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">50</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#FAFAF7</p>
+            </div>
+          </div>
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:var(--bg-subtle);"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">100</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#F4F4EF</p>
+            </div>
+          </div>
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:var(--border-light);"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">200</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#ECEAE4</p>
+            </div>
+          </div>
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:#E0DDD6;"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">300</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#E0DDD6</p>
+            </div>
+          </div>
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:#A8A49B;"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">500</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#A8A49B</p>
+            </div>
+          </div>
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:#888480;"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">600</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#888480</p>
+            </div>
+          </div>
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:#645F5A;"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">700</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#645F5A</p>
+            </div>
+          </div>
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:#3D3935;"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">800</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#3D3935</p>
+            </div>
+          </div>
+          <div class="swatch">
+            <div style="height:48px;border-radius:6px 6px 0 0;background:#1A1814;"></div>
+            <div style="background:var(--bg-subtle);border-radius:0 0 6px 6px;padding:6px 8px;border:1px solid #ECEAE4;border-top:none;">
+              <p style="font-family:'Fira Code',monospace;font-size:0.6rem;color:var(--muted);">900</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);">#1A1814</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accent palettes -->
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">Accent Palettes</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:2.5rem;">
+
+          <!-- Cinnabar -->
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #ECEAE4;">
+            <div style="height:72px;background:linear-gradient(135deg,#E88880,#C8463A,#641E1E);"></div>
+            <div style="background:var(--bg-subtle);padding:14px;">
+              <p style="font-size:0.875rem;font-weight:500;color:var(--ink);margin-bottom:8px;">Cinnabar</p>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;margin-bottom:4px;">
+                <span style="color:var(--dim);">200</span><span style="color:var(--muted);">#F2B5AF</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;font-weight:500;margin-bottom:4px;">
+                <span style="color:var(--dim);">500</span><span style="color:#C8463A;">#C8463A</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;">
+                <span style="color:var(--dim);">700</span><span style="color:var(--muted);">#872828</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Oxford -->
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #ECEAE4;">
+            <div style="height:72px;background:linear-gradient(135deg,#6498D3,#1D4E89,#060E1C);"></div>
+            <div style="background:var(--bg-subtle);padding:14px;">
+              <p style="font-size:0.875rem;font-weight:500;color:var(--ink);margin-bottom:8px;">Oxford</p>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;margin-bottom:4px;">
+                <span style="color:var(--dim);">200</span><span style="color:var(--muted);">#9DBDE6</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;font-weight:500;margin-bottom:4px;">
+                <span style="color:var(--dim);">500</span><span style="color:#1D4E89;">#1D4E89</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;">
+                <span style="color:var(--dim);">700</span><span style="color:var(--muted);">#102D52</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Saffron -->
+          <div style="border-radius:10px;overflow:hidden;border:1px solid #ECEAE4;">
+            <div style="height:72px;background:linear-gradient(135deg,#F4C460,#E8A020,#4A2506);"></div>
+            <div style="background:var(--bg-subtle);padding:14px;">
+              <p style="font-size:0.875rem;font-weight:500;color:var(--ink);margin-bottom:8px;">Saffron</p>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;margin-bottom:4px;">
+                <span style="color:var(--dim);">200</span><span style="color:var(--muted);">#F9DC98</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;font-weight:500;margin-bottom:4px;">
+                <span style="color:var(--dim);">500</span><span style="color:#C88018;">#E8A020</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-family:'Fira Code',monospace;font-size:0.68rem;">
+                <span style="color:var(--dim);">700</span><span style="color:var(--muted);">#9E6012</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Semantic -->
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">Semantic Tokens</p>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #ECEAE4;background:var(--surface);">
+            <div style="width:28px;height:28px;border-radius:6px;background:#3D9A6B;flex-shrink:0;"></div>
+            <div>
+              <p style="font-size:0.75rem;font-weight:500;color:var(--ink);">Success</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.62rem;color:var(--dim);">#3D9A6B</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #ECEAE4;background:var(--surface);">
+            <div style="width:28px;height:28px;border-radius:6px;background:#E8A020;flex-shrink:0;"></div>
+            <div>
+              <p style="font-size:0.75rem;font-weight:500;color:var(--ink);">Warning</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.62rem;color:var(--dim);">#E8A020</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #ECEAE4;background:var(--surface);">
+            <div style="width:28px;height:28px;border-radius:6px;background:#C8463A;flex-shrink:0;"></div>
+            <div>
+              <p style="font-size:0.75rem;font-weight:500;color:var(--ink);">Error</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.62rem;color:var(--dim);">#C8463A</p>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid #ECEAE4;background:var(--surface);">
+            <div style="width:28px;height:28px;border-radius:6px;background:#1D4E89;flex-shrink:0;"></div>
+            <div>
+              <p style="font-size:0.75rem;font-weight:500;color:var(--ink);">Info</p>
+              <p style="font-family:'Fira Code',monospace;font-size:0.62rem;color:var(--dim);">#1D4E89</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           02 · TYPOGRAPHY
+      ══════════════════════════════════ -->
+      <section id="typography" class="mb-20 scroll-mt-6">
+        <p class="section-label">02 — Foundation</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Typography</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Three typefaces, each with a distinct role: Cormorant for display, Jost for UI, Fira Code for data.</p>
+
+        <!-- Typeface specimens -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:3rem;">
+          <div style="padding:24px;background:var(--bg-subtle);border-radius:10px;border:1px solid #ECEAE4;">
+            <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:10px;letter-spacing:0.12em;">DISPLAY</p>
+            <p style="font-family:'Cormorant',serif;font-size:2.2rem;font-weight:400;line-height:1;color:var(--ink);margin-bottom:4px;">Cormorant</p>
+            <p style="font-family:'Cormorant',serif;font-size:1rem;font-style:italic;color:var(--muted);margin-bottom:16px;">for headings & display</p>
+            <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);line-height:1.8;">ABCDEFGHIJKLM<br>NOPQRSTUVWXYZ<br>abcdefghijklm<br>nopqrstuvwxyz<br>0123456789</p>
+          </div>
+          <div style="padding:24px;background:var(--bg-subtle);border-radius:10px;border:1px solid #ECEAE4;">
+            <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:10px;letter-spacing:0.12em;">UI SANS</p>
+            <p style="font-family:'Jost',sans-serif;font-size:2.2rem;font-weight:400;line-height:1;color:var(--ink);margin-bottom:4px;">Jost</p>
+            <p style="font-family:'Jost',sans-serif;font-size:1rem;font-weight:300;color:var(--muted);margin-bottom:16px;">for interfaces & body</p>
+            <p style="font-family:'Jost',sans-serif;font-size:0.7rem;color:var(--stone);line-height:1.8;">ABCDEFGHIJKLM<br>NOPQRSTUVWXYZ<br>abcdefghijklm<br>nopqrstuvwxyz<br>0123456789</p>
+          </div>
+          <div style="padding:24px;background:var(--bg-subtle);border-radius:10px;border:1px solid #ECEAE4;">
+            <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:10px;letter-spacing:0.12em;">MONOSPACE</p>
+            <p style="font-family:'Fira Code',monospace;font-size:1.8rem;font-weight:400;line-height:1;color:var(--ink);margin-bottom:4px;">Fira Code</p>
+            <p style="font-family:'Fira Code',monospace;font-size:0.8rem;color:var(--muted);margin-bottom:16px;">for code & labels</p>
+            <p style="font-family:'Fira Code',monospace;font-size:0.58rem;color:var(--stone);line-height:1.8;">ABCDEFGHIJKLM<br>NOPQRSTUVWXYZ<br>abcdefghijklm<br>nopqrstuvwxyz<br>0123456789</p>
+          </div>
+        </div>
+
+        <!-- Display scale -->
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1.25rem;">Display Scale</p>
+        <div style="border-left:2px solid #ECEAE4;padding-left:1.5rem;margin-bottom:2.5rem;">
+          <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:1.25rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">D1 / 5xl</span>
+            <p style="font-family:'Cormorant',serif;font-size:4.5rem;font-weight:300;line-height:1;color:var(--ink);">The quick fox</p>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:1.25rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">D2 / 4xl</span>
+            <p style="font-family:'Cormorant',serif;font-size:3rem;font-weight:400;line-height:1.1;color:var(--ink);">The quick brown fox</p>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:1.25rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">H1 / 3xl</span>
+            <p style="font-family:'Cormorant',serif;font-size:2.25rem;font-weight:500;line-height:1.2;color:var(--ink);">The quick brown fox jumps</p>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:1.5rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">H2 / 2xl</span>
+            <p style="font-family:'Cormorant',serif;font-size:1.75rem;font-weight:600;line-height:1.25;color:var(--ink);">The quick brown fox jumps over the lazy dog</p>
+          </div>
+        </div>
+
+        <!-- UI scale -->
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1.25rem;">UI Scale</p>
+        <div style="border-left:2px solid #ECEAE4;padding-left:1.5rem;">
+          <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:1rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">lg / 18px</span>
+            <p style="font-size:1.125rem;font-weight:400;color:var(--ink);">The quick brown fox jumps over the lazy dog.</p>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:1rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">base / 16px</span>
+            <p style="font-size:1rem;color:var(--ink);">The quick brown fox jumps over the lazy dog.</p>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:1rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">sm / 14px</span>
+            <p style="font-size:0.875rem;color:var(--secondary);">The quick brown fox jumps over the lazy dog.</p>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:1.5rem;margin-bottom:1rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">xs / 12px</span>
+            <p style="font-size:0.75rem;color:var(--muted);">The quick brown fox jumps over the lazy dog.</p>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:1.5rem;">
+            <span style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);width:56px;flex-shrink:0;">label</span>
+            <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.2em;text-transform:uppercase;color:#C8463A;">Category Label</p>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           03 · BUTTONS
+      ══════════════════════════════════ -->
+      <section id="buttons" class="mb-20 scroll-mt-6">
+        <p class="section-label">03 — Components</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Buttons</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Clear hierarchy across variants and sizes. The primary action always wins attention.</p>
+
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">Variants</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:2.5rem;align-items:center;">
+          <button class="btn text-sm px-5 py-2.5 rounded-md text-cream-50 bg-cinnabar-500 hover:bg-cinnabar-600" style="box-shadow:0 2px 6px rgba(200,70,58,0.25);">Primary</button>
+          <button class="btn text-sm px-5 py-2.5 rounded-md text-cinnabar-500 hover:bg-cinnabar-50" style="border:1.5px solid #C8463A;">Secondary</button>
+          <button class="btn text-sm px-5 py-2.5 rounded-md text-cream-700 hover:bg-cream-100">Ghost</button>
+          <button class="btn text-sm px-5 py-2.5 rounded-md text-cream-50 bg-oxford-500 hover:bg-oxford-600" style="box-shadow:0 2px 6px rgba(29,78,137,0.25);">Oxford</button>
+          <button class="btn text-sm px-5 py-2.5 rounded-md text-cream-400" style="border:1.5px solid #E0DDD6;" disabled>Disabled</button>
+          <button class="btn text-sm px-5 py-2.5 rounded-md text-cream-50 bg-cinnabar-500" style="box-shadow:0 2px 6px rgba(200,70,58,0.25);gap:8px;">
+            <svg style="width:14px;height:14px;animation:spin 1s linear infinite;" fill="none" viewBox="0 0 24 24"><circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+            Loading
+          </button>
+        </div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">Sizes</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:2.5rem;align-items:center;">
+          <button class="btn rounded text-cream-50 bg-cinnabar-500 hover:bg-cinnabar-600" style="font-size:0.7rem;padding:5px 12px;">XSmall</button>
+          <button class="btn rounded-md text-cream-50 bg-cinnabar-500 hover:bg-cinnabar-600 text-xs px-4 py-2">Small</button>
+          <button class="btn rounded-md text-cream-50 bg-cinnabar-500 hover:bg-cinnabar-600 text-sm px-5 py-2.5">Medium</button>
+          <button class="btn rounded-lg text-cream-50 bg-cinnabar-500 hover:bg-cinnabar-600 text-base px-6 py-3">Large</button>
+          <button class="btn rounded-lg text-cream-50 bg-cinnabar-500 hover:bg-cinnabar-600 px-8 py-4" style="font-family:'Cormorant',serif;font-size:1.3rem;font-style:italic;">X-Large</button>
+        </div>
+
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">With Icons</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+          <button class="btn text-sm px-5 py-2.5 rounded-md text-cream-50 bg-cinnabar-500 hover:bg-cinnabar-600" style="gap:8px;box-shadow:0 2px 6px rgba(200,70,58,0.25);">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add Route
+          </button>
+          <button class="btn text-sm px-5 py-2.5 rounded-md text-cream-700 hover:bg-cream-100" style="gap:8px;border:1px solid #E0DDD6;">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Export CSV
+          </button>
+          <button class="btn text-cream-600 hover:bg-cream-100 rounded-md" style="padding:10px;">
+            <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+          </button>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           04 · FORM CONTROLS
+      ══════════════════════════════════ -->
+      <section id="forms" class="mb-20 scroll-mt-6">
+        <p class="section-label">04 — Components</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Form Controls</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Inputs that respect the user's attention with clear states and minimal chrome.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+          <!-- Left -->
+          <div style="display:flex;flex-direction:column;gap:20px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:0.05em;">Full Name</label>
+              <input type="text" placeholder="Eleanor Whitmore" class="field">
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:0.05em;">Email — Valid</label>
+              <div style="position:relative;">
+                <input type="email" value="e.whitmore@lumina.co" class="field success" style="padding-right:2.5rem;">
+                <svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:#3D9A6B;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <p style="font-size:0.72rem;color:#3D9A6B;margin-top:4px;">Verified and valid.</p>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:0.05em;">Username — Error</label>
+              <input type="text" value="eleanor w" class="field error">
+              <p style="font-size:0.72rem;color:#C8463A;margin-top:4px;">Spaces are not allowed in usernames.</p>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:0.05em;">Biography</label>
+              <textarea rows="4" placeholder="Tell us about yourself…" class="field" style="resize:none;"></textarea>
+              <p style="font-size:0.68rem;color:var(--stone);text-align:right;margin-top:3px;">0 / 280</p>
+            </div>
+          </div>
+
+          <!-- Right -->
+          <div style="display:flex;flex-direction:column;gap:20px;">
+            <div>
+              <label style="display:block;font-size:0.72rem;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:0.05em;">Role</label>
+              <div style="position:relative;">
+                <select class="field" style="appearance:none;padding-right:2.5rem;cursor:pointer;">
+                  <option>Designer</option>
+                  <option>Developer</option>
+                  <option>Product Manager</option>
+                </select>
+                <svg style="position:absolute;right:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--dim);pointer-events:none;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;font-weight:500;color:var(--muted);margin-bottom:10px;letter-spacing:0.05em;">Notifications</label>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <input type="checkbox" checked style="width:16px;height:16px;accent-color:#C8463A;">
+                  <span style="font-size:0.875rem;color:var(--mid);">Email notifications</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <input type="checkbox" style="width:16px;height:16px;accent-color:#C8463A;">
+                  <span style="font-size:0.875rem;color:var(--mid);">Push notifications</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <input type="checkbox" checked style="width:16px;height:16px;accent-color:#C8463A;">
+                  <span style="font-size:0.875rem;color:var(--mid);">Weekly digest</span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;font-weight:500;color:var(--muted);margin-bottom:10px;letter-spacing:0.05em;">Plan</label>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <input type="radio" name="plan" checked style="width:16px;height:16px;accent-color:#C8463A;">
+                  <span style="font-size:0.875rem;color:var(--mid);">Free</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <input type="radio" name="plan" style="width:16px;height:16px;accent-color:#C8463A;">
+                  <span style="font-size:0.875rem;color:var(--mid);">Pro — $12/mo</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                  <input type="radio" name="plan" style="width:16px;height:16px;accent-color:#C8463A;">
+                  <span style="font-size:0.875rem;color:var(--mid);">Team — $49/mo</span>
+                </label>
+              </div>
+            </div>
+            <div>
+              <label style="display:block;font-size:0.72rem;font-weight:500;color:var(--muted);margin-bottom:10px;letter-spacing:0.05em;">Quick Settings</label>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span style="font-size:0.875rem;color:var(--mid);">Dark mode</span>
+                  <div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span style="font-size:0.875rem;color:var(--mid);">Analytics</span>
+                  <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span style="font-size:0.875rem;color:var(--stone);">Beta features</span>
+                  <div class="toggle" style="opacity:0.45;cursor:not-allowed;"><div class="toggle-thumb"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           05 · CARDS
+      ══════════════════════════════════ -->
+      <section id="cards" class="mb-20 scroll-mt-6">
+        <p class="section-label">05 — Components</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Cards</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Containers that group related content with consistent rhythm and typographic hierarchy.</p>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+          <!-- Feature card -->
+          <div class="card" style="padding:20px;">
+            <div style="width:34px;height:34px;border-radius:8px;background:#F2B5AF;display:flex;align-items:center;justify-content:center;margin-bottom:14px;">
+              <svg style="width:16px;height:16px;color:#C8463A;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);margin-bottom:6px;">Real-time Tracking</h4>
+            <p style="font-size:0.8rem;color:var(--muted);line-height:1.65;">Monitor vehicle positions and schedule adherence across all routes simultaneously.</p>
+          </div>
+
+          <!-- Media card -->
+          <div class="card" style="overflow:hidden;">
+            <div style="height:120px;background:linear-gradient(135deg,#C8463A 0%,#1D4E89 100%);"></div>
+            <div style="padding:16px;">
+              <span class="badge" style="background:#F9DDD9;color:#871E1E;margin-bottom:10px;">Transit</span>
+              <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);margin-bottom:6px;">Route Optimization</h4>
+              <p style="font-size:0.8rem;color:var(--muted);">Data-driven insights for scheduling improvements.</p>
+            </div>
+          </div>
+
+          <!-- Profile card -->
+          <div class="card" style="padding:20px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#C8463A,#1D4E89);display:flex;align-items:center;justify-content:center;color:#FAFAF7;font-size:0.8rem;font-weight:500;flex-shrink:0;">EW</div>
+              <div>
+                <p style="font-size:0.875rem;font-weight:500;color:var(--ink);">Eleanor Whitmore</p>
+                <p style="font-size:0.72rem;color:var(--dim);">Senior Analyst</p>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+                <span style="color:var(--dim);">Routes audited</span>
+                <span style="font-family:'Fira Code',monospace;color:var(--mid);">142</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+                <span style="color:var(--dim);">Reports filed</span>
+                <span style="font-family:'Fira Code',monospace;color:var(--mid);">38</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
+                <span style="color:var(--dim);">Joined</span>
+                <span style="font-family:'Fira Code',monospace;color:var(--mid);">Mar 2023</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action card (spans 2) -->
+          <div class="card" style="padding:20px;grid-column:span 2;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+              <div>
+                <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);margin-bottom:4px;">Upgrade to Pro</h4>
+                <p style="font-size:0.8rem;color:var(--muted);">Unlock advanced analytics and team collaboration features.</p>
+              </div>
+              <span class="badge" style="background:var(--b-saff-bg);color:var(--b-saff-fg);">Pro</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+              <div style="text-align:center;padding:12px;background:var(--bg-subtle);border-radius:8px;">
+                <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:3px;">Seats</p>
+                <p style="font-size:0.875rem;font-weight:500;color:var(--ink);">Unlimited</p>
+              </div>
+              <div style="text-align:center;padding:12px;background:var(--bg-subtle);border-radius:8px;">
+                <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:3px;">Storage</p>
+                <p style="font-size:0.875rem;font-weight:500;color:var(--ink);">100 GB</p>
+              </div>
+              <div style="text-align:center;padding:12px;background:var(--bg-subtle);border-radius:8px;">
+                <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:3px;">Support</p>
+                <p style="font-size:0.875rem;font-weight:500;color:var(--ink);">Priority</p>
+              </div>
+            </div>
+            <button class="btn w-full text-cream-50 bg-cinnabar-500 hover:bg-cinnabar-600 text-sm py-2.5 rounded-md" style="box-shadow:0 2px 8px rgba(200,70,58,0.25);">
+              Upgrade to Pro — $49/mo
+            </button>
+          </div>
+
+          <!-- Stat card -->
+          <div class="card" style="padding:20px;">
+            <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:6px;">On-Time Rate</p>
+            <div class="stat-num" style="color:#3D9A6B;margin-bottom:6px;">87<span style="font-size:1.5rem;color:var(--dim);">%</span></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+              <span class="badge" style="background:var(--b-sage-bg);color:var(--b-sage-fg);">↑ 2.1%</span>
+              <span style="font-size:0.72rem;color:var(--dim);">vs last week</span>
+            </div>
+            <div class="progress">
+              <div class="progress-fill" style="width:87%;background:#3D9A6B;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           06 · BADGES
+      ══════════════════════════════════ -->
+      <section id="badges" class="mb-20 scroll-mt-6">
+        <p class="section-label">06 — Components</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Badges</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Compact labels for status, categories, and metadata. Restrained by default.</p>
+
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">Color Variants</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:2rem;">
+          <span class="badge" style="background:var(--b-cinn-bg);color:var(--b-cinn-fg);">Cinnabar</span>
+          <span class="badge" style="background:var(--b-ox-bg);color:var(--b-ox-fg);">Oxford</span>
+          <span class="badge" style="background:var(--b-saff-bg);color:var(--b-saff-fg);">Saffron</span>
+          <span class="badge" style="background:var(--b-sage-bg);color:var(--b-sage-fg);">Success</span>
+          <span class="badge" style="background:var(--border-light);color:var(--mid);">Neutral</span>
+          <span class="badge" style="background:var(--b-drk-bg);color:var(--b-drk-fg);">Dark</span>
+        </div>
+
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">Status with Indicator</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:2rem;">
+          <span class="badge" style="background:var(--b-sage-bg);color:var(--b-sage-fg);">
+            <span style="width:6px;height:6px;border-radius:50%;background:#3D9A6B;display:inline-block;"></span>
+            Active
+          </span>
+          <span class="badge" style="background:var(--b-saff-bg);color:var(--b-saff-fg);">
+            <span style="width:6px;height:6px;border-radius:50%;background:#E8A020;display:inline-block;"></span>
+            Pending
+          </span>
+          <span class="badge" style="background:var(--b-cinn-bg);color:var(--b-cinn-fg);">
+            <span style="width:6px;height:6px;border-radius:50%;background:#C8463A;display:inline-block;"></span>
+            Delayed
+          </span>
+          <span class="badge" style="background:var(--border-light);color:var(--secondary);">
+            <span style="width:6px;height:6px;border-radius:50%;background:#A8A49B;display:inline-block;"></span>
+            Archived
+          </span>
+        </div>
+
+        <p style="font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-bottom:1rem;">Sizes</p>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-family:'Fira Code',monospace;font-size:0.58rem;padding:1px 6px;border-radius:3px;background:var(--b-cinn-bg);color:var(--b-cinn-fg);">xs</span>
+          <span class="badge" style="font-size:0.68rem;background:var(--b-cinn-bg);color:var(--b-cinn-fg);">Small</span>
+          <span class="badge" style="font-size:0.75rem;padding:3px 10px;background:var(--b-cinn-bg);color:var(--b-cinn-fg);">Medium</span>
+          <span style="font-family:'Jost',sans-serif;font-size:0.875rem;font-weight:500;padding:5px 14px;border-radius:6px;background:var(--b-cinn-bg);color:var(--b-cinn-fg);">Large</span>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           07 · ALERTS
+      ══════════════════════════════════ -->
+      <section id="alerts" class="mb-20 scroll-mt-6">
+        <p class="section-label">07 — Components</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Alerts</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">System feedback that demands proportionate attention. Each severity is visually unambiguous.</p>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <!-- Info -->
+          <div class="alert" style="background:var(--al-info-bg);border-color:var(--al-info-bd);">
+            <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:#1D4E89;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+              <p style="font-size:0.875rem;font-weight:500;color:var(--al-info-title);margin-bottom:2px;">Scheduled Maintenance</p>
+              <p style="font-size:0.82rem;color:var(--al-info-body);">The system will be unavailable Sunday from 2–4 AM UTC for database upgrades.</p>
+            </div>
+          </div>
+
+          <!-- Success -->
+          <div class="alert" style="background:var(--al-ok-bg);border-color:var(--al-ok-bd);">
+            <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:#3D9A6B;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div>
+              <p style="font-size:0.875rem;font-weight:500;color:var(--al-ok-title);margin-bottom:2px;">GTFS Feed Updated</p>
+              <p style="font-size:0.82rem;color:var(--al-ok-body);">Route schedules have been synchronized with the latest feed from the transit authority.</p>
+            </div>
+          </div>
+
+          <!-- Warning -->
+          <div class="alert" style="background:var(--al-warn-bg);border-color:var(--al-warn-bd);">
+            <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:#C88018;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div>
+              <p style="font-size:0.875rem;font-weight:500;color:var(--al-warn-title);margin-bottom:2px;">High Delay Alert — Line 9</p>
+              <p style="font-size:0.82rem;color:var(--al-warn-body);">Average delay on the Northshore line has exceeded 8 minutes for the past hour.</p>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div class="alert" style="background:var(--al-err-bg);border-color:var(--al-err-bd);">
+            <svg style="width:18px;height:18px;flex-shrink:0;margin-top:1px;color:#C8463A;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div style="flex:1;">
+              <p style="font-size:0.875rem;font-weight:500;color:var(--al-err-title);margin-bottom:2px;">Feed Ingestion Failed</p>
+              <p style="font-size:0.82rem;color:var(--al-err-body);">Could not connect to the GTFS-RT endpoint. Last successful update was 47 minutes ago.</p>
+            </div>
+            <button style="font-size:0.8rem;font-weight:500;color:#C8463A;flex-shrink:0;cursor:pointer;white-space:nowrap;">Retry →</button>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           08 · TABLES
+      ══════════════════════════════════ -->
+      <section id="tables" class="mb-20 scroll-mt-6">
+        <p class="section-label">08 — Components</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Tables</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Dense data presented with precision. Minimal chrome, maximum legibility.</p>
+
+        <div style="background:var(--surface);border-radius:12px;border:1px solid #ECEAE4;box-shadow:0 1px 4px rgba(26,24,20,0.05);overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #F4F4EF;">
+            <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);">Route Performance</h4>
+            <div style="display:flex;gap:8px;">
+              <button class="btn text-xs px-3 py-1.5 rounded text-cream-600 hover:bg-cream-50" style="border:1px solid #ECEAE4;">Filter</button>
+              <button class="btn text-xs px-3 py-1.5 rounded text-cream-600 hover:bg-cream-50" style="border:1px solid #ECEAE4;">Export</button>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Route</th>
+                <th>Direction</th>
+                <th>On-Time %</th>
+                <th>Avg. Delay</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#D0F0E0;display:flex;align-items:center;justify-content:center;font-family:'Fira Code',monospace;font-size:0.68rem;font-weight:500;color:#1A6640;flex-shrink:0;">7W</div>
+                    <div>
+                      <p style="font-size:0.85rem;font-weight:500;color:var(--ink);">Line 7</p>
+                      <p style="font-size:0.7rem;color:var(--dim);">Westbound</p>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:0.8rem;color:var(--secondary);">Downtown → Harbour</td>
+                <td style="font-family:'Fira Code',monospace;font-size:0.82rem;font-weight:500;color:#3D9A6B;">94%</td>
+                <td style="font-family:'Fira Code',monospace;font-size:0.82rem;color:var(--muted);">1.2m</td>
+                <td><span class="badge" style="background:var(--b-sage-bg);color:var(--b-sage-fg);">On Track</span></td>
+                <td><button style="font-size:0.75rem;color:var(--dim);cursor:pointer;">View →</button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#D0E0F3;display:flex;align-items:center;justify-content:center;font-family:'Fira Code',monospace;font-size:0.68rem;font-weight:500;color:#163A67;flex-shrink:0;">2C</div>
+                    <div>
+                      <p style="font-size:0.85rem;font-weight:500;color:var(--ink);">Line 2</p>
+                      <p style="font-size:0.7rem;color:var(--dim);">Central</p>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:0.8rem;color:var(--secondary);">University → Market</td>
+                <td style="font-family:'Fira Code',monospace;font-size:0.82rem;font-weight:500;color:#3D9A6B;">87%</td>
+                <td style="font-family:'Fira Code',monospace;font-size:0.82rem;color:var(--muted);">2.8m</td>
+                <td><span class="badge" style="background:var(--b-sage-bg);color:var(--b-sage-fg);">On Track</span></td>
+                <td><button style="font-size:0.75rem;color:var(--dim);cursor:pointer;">View →</button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#FDF0D0;display:flex;align-items:center;justify-content:center;font-family:'Fira Code',monospace;font-size:0.68rem;font-weight:500;color:#9E6012;flex-shrink:0;">14</div>
+                    <div>
+                      <p style="font-size:0.85rem;font-weight:500;color:var(--ink);">Line 14</p>
+                      <p style="font-size:0.7rem;color:var(--dim);">Airport Express</p>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:0.8rem;color:var(--secondary);">Terminal 1 → Downtown</td>
+                <td style="font-family:'Fira Code',monospace;font-size:0.82rem;font-weight:500;color:#C88018;">71%</td>
+                <td style="font-family:'Fira Code',monospace;font-size:0.82rem;color:var(--muted);">5.4m</td>
+                <td><span class="badge" style="background:var(--b-saff-bg);color:var(--b-saff-fg);">Minor Delay</span></td>
+                <td><button style="font-size:0.75rem;color:var(--dim);cursor:pointer;">View →</button></td>
+              </tr>
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#F9DDD9;display:flex;align-items:center;justify-content:center;font-family:'Fira Code',monospace;font-size:0.68rem;font-weight:500;color:#871E1E;flex-shrink:0;">9N</div>
+                    <div>
+                      <p style="font-size:0.85rem;font-weight:500;color:var(--ink);">Line 9</p>
+                      <p style="font-size:0.7rem;color:var(--dim);">Northshore</p>
+                    </div>
+                  </div>
+                </td>
+                <td style="font-size:0.8rem;color:var(--secondary);">Northshore → City Hall</td>
+                <td style="font-family:'Fira Code',monospace;font-size:0.82rem;font-weight:500;color:#C8463A;">58%</td>
+                <td style="font-family:'Fira Code',monospace;font-size:0.82rem;color:var(--muted);">9.1m</td>
+                <td><span class="badge" style="background:var(--b-cinn-bg);color:var(--b-cinn-fg);">Significant Delay</span></td>
+                <td><button style="font-size:0.75rem;color:#C8463A;cursor:pointer;">Inspect →</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           09 · STATS & DATA
+      ══════════════════════════════════ -->
+      <section id="stats" class="mb-20 scroll-mt-6">
+        <p class="section-label">09 — Patterns</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Stats & Data</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Numbers elevated through typographic scale. The Cormorant display face makes data sing.</p>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;">
+          <div class="card" style="padding:20px;">
+            <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:6px;">Avg. Delay</p>
+            <div class="stat-num" style="color:#C8463A;">3.2<span style="font-size:1.5rem;color:var(--dim);">m</span></div>
+            <p style="font-size:0.72rem;color:#C8463A;margin-top:4px;">↑ 0.4m this week</p>
+          </div>
+          <div class="card" style="padding:20px;">
+            <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:6px;">On-Time Rate</p>
+            <div class="stat-num" style="color:#3D9A6B;">87<span style="font-size:1.5rem;color:var(--dim);">%</span></div>
+            <p style="font-size:0.72rem;color:#3D9A6B;margin-top:4px;">↑ 2.1% vs last week</p>
+          </div>
+          <div class="card" style="padding:20px;">
+            <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:6px;">Active Routes</p>
+            <div class="stat-num" style="color:#1D4E89;">142</div>
+            <p style="font-size:0.72rem;color:#3D9A6B;margin-top:4px;">+8 this month</p>
+          </div>
+          <div class="card" style="padding:20px;">
+            <p style="font-family:'Fira Code',monospace;font-size:0.65rem;color:var(--dim);margin-bottom:6px;">Incidents</p>
+            <div class="stat-num" style="color:#E8A020;">7</div>
+            <p style="font-size:0.72rem;color:#C8463A;margin-top:4px;">↑ 3 vs last week</p>
+          </div>
+        </div>
+
+        <!-- Performance breakdown -->
+        <div class="card" style="padding:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <div>
+              <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);">Line Performance Breakdown</h4>
+              <p style="font-size:0.75rem;color:var(--dim);margin-top:2px;">On-time percentage by route, past 7 days</p>
+            </div>
+            <span class="badge" style="background:var(--bg-subtle);color:var(--secondary);">Jan 2024</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-family:'Fira Code',monospace;font-size:0.72rem;color:var(--secondary);">Line 7 — Westbound</span>
+                <span style="font-family:'Fira Code',monospace;font-size:0.72rem;font-weight:500;color:var(--ink);">94%</span>
+              </div>
+              <div class="progress"><div class="progress-fill" style="width:94%;background:#3D9A6B;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-family:'Fira Code',monospace;font-size:0.72rem;color:var(--secondary);">Line 2 — Central</span>
+                <span style="font-family:'Fira Code',monospace;font-size:0.72rem;font-weight:500;color:var(--ink);">87%</span>
+              </div>
+              <div class="progress"><div class="progress-fill" style="width:87%;background:#3D9A6B;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-family:'Fira Code',monospace;font-size:0.72rem;color:var(--secondary);">Line 14 — Airport</span>
+                <span style="font-family:'Fira Code',monospace;font-size:0.72rem;font-weight:500;color:var(--ink);">71%</span>
+              </div>
+              <div class="progress"><div class="progress-fill" style="width:71%;background:#E8A020;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                <span style="font-family:'Fira Code',monospace;font-size:0.72rem;color:var(--secondary);">Line 9 — Northshore</span>
+                <span style="font-family:'Fira Code',monospace;font-size:0.72rem;font-weight:500;color:var(--ink);">58%</span>
+              </div>
+              <div class="progress"><div class="progress-fill" style="width:58%;background:#C8463A;"></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           10 · CHARTS & GRAPHS
+      ══════════════════════════════════ -->
+      <section id="graphs" class="mb-20 scroll-mt-6">
+        <p class="section-label">10 — Patterns</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Charts & Graphs</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Data visualization built on raw SVG — no library, no overhead. Axes, curves, and colour all matched to the system.</p>
+
+        <!-- Multi-line chart -->
+        <div class="card" style="padding:24px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+            <div>
+              <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);margin-bottom:3px;">On-Time Performance</h4>
+              <p style="font-size:0.75rem;color:var(--dim);">Weekly percentage, past 8 weeks</p>
+            </div>
+            <div style="display:flex;gap:18px;">
+              <div style="display:flex;align-items:center;gap:7px;">
+                <div style="width:22px;height:2.5px;background:#C8463A;border-radius:2px;"></div>
+                <span style="font-family:'Fira Code',monospace;font-size:0.68rem;color:var(--muted);">Line 7</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:7px;">
+                <div style="width:22px;height:2.5px;background:#1D4E89;border-radius:2px;"></div>
+                <span style="font-family:'Fira Code',monospace;font-size:0.68rem;color:var(--muted);">Line 9</span>
+              </div>
+            </div>
+          </div>
+          <svg id="chart-line" viewBox="0 0 580 230" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;overflow:visible;"></svg>
+        </div>
+
+        <!-- Bar + Donut row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+          <div class="card" style="padding:24px;">
+            <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);margin-bottom:3px;">Avg. Delay by Route</h4>
+            <p style="font-size:0.75rem;color:var(--dim);margin-bottom:18px;">Minutes behind schedule, Jan 2024</p>
+            <svg id="chart-bar" viewBox="0 0 280 190" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;overflow:visible;"></svg>
+          </div>
+          <div class="card" style="padding:24px;">
+            <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);margin-bottom:3px;">Service Distribution</h4>
+            <p style="font-size:0.75rem;color:var(--dim);margin-bottom:18px;">By punctuality category, this week</p>
+            <svg id="chart-donut" viewBox="0 0 280 190" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;overflow:visible;"></svg>
+          </div>
+        </div>
+
+        <!-- Area chart -->
+        <div class="card" style="padding:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;">
+            <div>
+              <h4 style="font-size:0.9rem;font-weight:500;color:var(--ink);margin-bottom:3px;">Daily Trips Completed</h4>
+              <p style="font-size:0.75rem;color:var(--dim);">All routes combined, past 7 days</p>
+            </div>
+            <span class="badge" style="background:#F9DDD9;color:#C8463A;">↑ 4.2% WoW</span>
+          </div>
+          <svg id="chart-area" viewBox="0 0 580 170" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;overflow:visible;"></svg>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════
+           11 · CODE
+      ══════════════════════════════════ -->
+      <section id="code" class="mb-20 scroll-mt-6">
+        <p class="section-label">11 — Usage</p>
+        <div class="section-rule"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:2.6rem;font-weight:400;margin-bottom:0.4rem;">Code Examples</h2>
+        <p style="color:var(--muted);font-size:0.875rem;margin-bottom:2.5rem;">Copy-paste ready snippets. Add the Tailwind config block to unlock all tokens.</p>
+
+        <pre><span class="tok-c">&lt;!-- tailwind.config (CDN) --&gt;</span>
+<span class="tok-k">&lt;script&gt;</span>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: [<span class="tok-s">'Cormorant'</span>, <span class="tok-s">'serif'</span>],
+          sans:    [<span class="tok-s">'Jost'</span>, <span class="tok-s">'sans-serif'</span>],
+        },
+        colors: {
+          cinnabar: { <span class="tok-n">500</span>: <span class="tok-s">'#C8463A'</span>, <span class="tok-n">600</span>: <span class="tok-s">'#A83530'</span> },
+          cream:    { <span class="tok-n">50</span>:  <span class="tok-s">'#FAFAF7'</span>, <span class="tok-n">100</span>: <span class="tok-s">'#F4F4EF'</span> },
+        },
+      }
+    }
+  }
+<span class="tok-k">&lt;/script&gt;</span>
+
+<span class="tok-c">&lt;!-- Primary button --&gt;</span>
+<span class="tok-k">&lt;button</span> <span class="tok-p">class</span>=<span class="tok-s">"bg-cinnabar-500 text-white text-sm font-medium
+         px-5 py-2.5 rounded-md hover:bg-cinnabar-600 transition-colors"</span><span class="tok-k">&gt;</span>
+  Get Started
+<span class="tok-k">&lt;/button&gt;</span>
+
+<span class="tok-c">&lt;!-- Display heading --&gt;</span>
+<span class="tok-k">&lt;h1</span> <span class="tok-p">class</span>=<span class="tok-s">"font-display text-6xl font-light text-cream-900 italic"</span><span class="tok-k">&gt;</span>
+  Built with <span class="tok-k">&lt;em</span> <span class="tok-p">class</span>=<span class="tok-s">"text-cinnabar-500"</span><span class="tok-k">&gt;</span>intention<span class="tok-k">&lt;/em&gt;</span>
+<span class="tok-k">&lt;/h1&gt;</span>
+
+<span class="tok-c">&lt;!-- Stat card --&gt;</span>
+<span class="tok-k">&lt;div</span> <span class="tok-p">class</span>=<span class="tok-s">"bg-white rounded-xl border border-cream-200 p-5 shadow-sm"</span><span class="tok-k">&gt;</span>
+  <span class="tok-k">&lt;p</span> <span class="tok-p">class</span>=<span class="tok-s">"font-mono text-xs text-cream-400 mb-1"</span><span class="tok-k">&gt;</span>On-Time Rate<span class="tok-k">&lt;/p&gt;</span>
+  <span class="tok-k">&lt;p</span> <span class="tok-p">class</span>=<span class="tok-s">"font-display text-5xl font-light"</span>
+     <span class="tok-p">style</span>=<span class="tok-s">"color: #3D9A6B"</span><span class="tok-k">&gt;</span><span class="tok-n">87</span>%<span class="tok-k">&lt;/p&gt;</span>
+<span class="tok-k">&lt;/div&gt;</span></pre>
+      </section>
+
+    </div><!-- /content -->
+  </main>
+
+</div>
+
+<script>
+  // Highlight active sidebar link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const links    = document.querySelectorAll('.nav-link');
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => {
+          l.classList.remove('active');
+          if (l.getAttribute('href') === '#' + e.target.id) l.classList.add('active');
+        });
+      }
+    });
+  }, { threshold: 0.25, rootMargin: '-15% 0px -65% 0px' });
+
+  sections.forEach(s => io.observe(s));
+
+  // ── Theme toggle ─────────────────────────────────────────────
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function toggleTheme() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    document.getElementById('theme-label').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+    document.getElementById('theme-icon').textContent  = isDark ? '🌙' : '☀️';
+    localStorage.setItem('lumina-theme', isDark ? 'dark' : 'light');
+    redrawCharts();
+  }
+
+  (function initTheme() {
+    const saved = localStorage.getItem('lumina-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (saved === 'dark' || (!saved && prefersDark)) {
+      document.documentElement.classList.add('dark');
+      document.getElementById('theme-label').textContent = 'DARK MODE';
+      document.getElementById('theme-icon').textContent  = '🌙';
+    }
+  })();
+
+  // ── SVG chart helpers ────────────────────────────────────────
+  function $svg(tag, attrs) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    if (attrs) for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  }
+  function $t(content, attrs) {
+    const el = $svg('text', attrs);
+    el.textContent = content;
+    return el;
+  }
+  function f(n) { return +n.toFixed(2); }
+
+  // Catmull-Rom → cubic bezier
+  function spline(pts) {
+    if (pts.length < 2) return '';
+    let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i-1)], p1 = pts[i];
+      const p2 = pts[i+1], p3 = pts[Math.min(pts.length-1, i+2)];
+      const c1x = p1[0]+(p2[0]-p0[0])/6, c1y = p1[1]+(p2[1]-p0[1])/6;
+      const c2x = p2[0]-(p3[0]-p1[0])/6, c2y = p2[1]-(p3[1]-p1[1])/6;
+      d += ` C${f(c1x)},${f(c1y)} ${f(c2x)},${f(c2y)} ${f(p2[0])},${f(p2[1])}`;
+    }
+    return d;
+  }
+
+  // Animate rect growing upward from baseline
+  function growRect(el, toY, toH, delay) {
+    const dur = 650;
+    setTimeout(() => {
+      const t0 = performance.now();
+      (function tick(now) {
+        const t = Math.min(1, (now - t0) / dur);
+        const e = 1 - Math.pow(1 - t, 3);
+        el.setAttribute('y', f(toY + toH * (1 - e)));
+        el.setAttribute('height', f(toH * e));
+        if (t < 1) requestAnimationFrame(tick);
+      })(t0);
+    }, delay);
+  }
+
+  // ── Line chart ───────────────────────────────────────────────
+  function drawLineChart() {
+    const root = document.getElementById('chart-line');
+    if (!root) return;
+    const W=580, H=230, PL=50, PR=24, PT=18, PB=40;
+    const PW=W-PL-PR, PH=H-PT-PB, yMin=40, yMax=100;
+    const weeks=['W1','W2','W3','W4','W5','W6','W7','W8'];
+    const l7=[94,91,96,92,88,94,97,94], l9=[72,65,58,62,55,50,58,58];
+    const sx=i=>f(PL+(i/(weeks.length-1))*PW);
+    const sy=v=>f(PT+PH-((v-yMin)/(yMax-yMin))*PH);
+
+    // Grid + Y labels
+    [40,55,70,85,100].forEach(t => {
+      const y=sy(t);
+      root.appendChild($svg('line',{x1:PL,y1:y,x2:W-PR,y2:y,stroke:cssVar('--chart-grid'),'stroke-width':1}));
+      root.appendChild($t(t+'%',{x:PL-8,y:f(y+3.5),'font-family':'Fira Code,monospace','font-size':9,fill:cssVar('--dim'),'text-anchor':'end'}));
+    });
+    // X labels
+    weeks.forEach((w,i) => root.appendChild($t(w,{x:sx(i),y:H-8,'font-family':'Fira Code,monospace','font-size':9,fill:cssVar('--dim'),'text-anchor':'middle'})));
+    // Baseline
+    root.appendChild($svg('line',{x1:PL,y1:PT+PH,x2:W-PR,y2:PT+PH,stroke:cssVar('--border'),'stroke-width':1}));
+
+    function series(data, stroke, gid) {
+      const pts=data.map((v,i)=>[sx(i),sy(v)]);
+      const lp=spline(pts), bY=PT+PH;
+      const defs=$svg('defs'), g=$svg('linearGradient',{id:gid,x1:0,y1:0,x2:0,y2:1});
+      g.appendChild($svg('stop',{offset:'0%','stop-color':stroke,'stop-opacity':0.15}));
+      g.appendChild($svg('stop',{offset:'100%','stop-color':stroke,'stop-opacity':0.01}));
+      defs.appendChild(g); root.appendChild(defs);
+      root.appendChild($svg('path',{d:`${lp} L${sx(data.length-1)},${bY} L${sx(0)},${bY} Z`,fill:`url(#${gid})`}));
+      const line=$svg('path',{d:lp,fill:'none',stroke,'stroke-width':2,'stroke-linecap':'round','stroke-dasharray':800,'stroke-dashoffset':800});
+      root.appendChild(line);
+      line.style.transition='stroke-dashoffset 1.3s cubic-bezier(0.16,1,0.3,1) 0.1s';
+      requestAnimationFrame(()=>line.setAttribute('stroke-dashoffset',0));
+      pts.forEach(([x,y],i)=>{
+        const d=$svg('circle',{cx:x,cy:y,r:3.5,fill:cssVar('--surface'),stroke,'stroke-width':2,opacity:0});
+        root.appendChild(d);
+        d.style.transition=`opacity 0.2s ease ${0.5+i*0.07}s`;
+        requestAnimationFrame(()=>d.setAttribute('opacity',1));
+      });
+    }
+    series(l9,cssVar('--ox'),'gg-l9');
+    series(l7,cssVar('--cinn'),'gg-l7');
+  }
+
+  // ── Bar chart ────────────────────────────────────────────────
+  function drawBarChart() {
+    const root = document.getElementById('chart-bar');
+    if (!root) return;
+    const W=280, H=190, PL=42, PR=16, PT=16, PB=34;
+    const PW=W-PL-PR, PH=H-PT-PB, yMax=10;
+    const bars=[
+      {label:'Ln 7', value:1.2, colorVar:'--sage'},
+      {label:'Ln 2', value:2.8, colorVar:'--sage'},
+      {label:'Ln 14',value:5.4, colorVar:'--saff'},
+      {label:'Ln 9', value:9.1, colorVar:'--cinn'},
+    ];
+    const bw=PW/bars.length, bp=bw*0.25;
+    const sy=v=>f(PT+PH-(v/yMax)*PH);
+
+    [0,2.5,5,7.5,10].forEach(t=>{
+      const y=sy(t);
+      root.appendChild($svg('line',{x1:PL,y1:y,x2:W-PR,y2:y,stroke:cssVar('--chart-grid'),'stroke-width':1}));
+      root.appendChild($t(t+'m',{x:PL-6,y:f(y+3.5),'font-family':'Fira Code,monospace','font-size':8,fill:cssVar('--dim'),'text-anchor':'end'}));
+    });
+
+    bars.forEach((d,i)=>{
+      const color=cssVar(d.colorVar);
+      const x=f(PL+i*bw+bp), w=f(bw-bp*2);
+      const finalY=sy(d.value), finalH=f(PT+PH-finalY);
+      const rect=$svg('rect',{x,y:f(PT+PH),width:w,height:0,rx:3,fill:color});
+      root.appendChild(rect);
+      growRect(rect, finalY, finalH, i*80);
+      const vl=$t(d.value+'m',{x:f(x+w/2),y:f(finalY-5),'font-family':'Fira Code,monospace','font-size':9,fill:color,'text-anchor':'middle','font-weight':500,opacity:0});
+      root.appendChild(vl);
+      setTimeout(()=>{vl.style.transition='opacity 0.3s';vl.setAttribute('opacity',1);},420+i*80);
+      root.appendChild($t(d.label,{x:f(x+w/2),y:H-6,'font-family':'Fira Code,monospace','font-size':9,fill:cssVar('--muted'),'text-anchor':'middle'}));
+    });
+  }
+
+  // ── Donut chart ──────────────────────────────────────────────
+  function drawDonutChart() {
+    const root = document.getElementById('chart-donut');
+    if (!root) return;
+    const segs=[
+      {label:'On-time',  value:58, colorVar:'--sage'},
+      {label:'< 5 min',  value:26, colorVar:'--saff'},
+      {label:'> 5 min',  value:11, colorVar:'--cinn'},
+      {label:'Cancelled',value: 5, colorVar:'--stone'},
+    ];
+    const cx=90, cy=95, R=70, r=44, total=segs.reduce((s,d)=>s+d.value,0);
+    const xy=(a,rad)=>[f(cx+rad*Math.cos(a)),f(cy+rad*Math.sin(a))];
+    const arc=(a1,a2)=>{
+      const [ox1,oy1]=xy(a1,R),[ox2,oy2]=xy(a2,R);
+      const [ix1,iy1]=xy(a2,r),[ix2,iy2]=xy(a1,r);
+      const lg=a2-a1>Math.PI?1:0;
+      return `M${ox1},${oy1} A${R},${R} 0 ${lg},1 ${ox2},${oy2} L${ix1},${iy1} A${r},${r} 0 ${lg},0 ${ix2},${iy2} Z`;
+    };
+    let angle=-Math.PI/2;
+    segs.forEach((d,i)=>{
+      const color=cssVar(d.colorVar);
+      const sweep=(d.value/total)*2*Math.PI, end=angle+sweep;
+      const path=$svg('path',{d:arc(angle,end),fill:color,stroke:cssVar('--surface'),'stroke-width':2});
+      path.style.transformOrigin=`${cx}px ${cy}px`;
+      path.style.transform='scale(0)';
+      path.style.transition=`transform 0.45s cubic-bezier(0.34,1.4,0.64,1) ${i*0.08}s`;
+      root.appendChild(path);
+      requestAnimationFrame(()=>path.style.transform='scale(1)');
+      angle=end;
+    });
+    root.appendChild($t('58%',{x:cx,y:f(cy+2),'font-family':'Cormorant,serif','font-size':22,'font-weight':300,fill:cssVar('--ink'),'text-anchor':'middle','dominant-baseline':'middle'}));
+    root.appendChild($t('on-time',{x:cx,y:f(cy+18),'font-family':'Fira Code,monospace','font-size':8,fill:cssVar('--dim'),'text-anchor':'middle'}));
+    segs.forEach((d,i)=>{
+      const color=cssVar(d.colorVar);
+      const ly=24+i*40;
+      root.appendChild($svg('rect',{x:188,y:ly-7,width:10,height:10,rx:2,fill:color}));
+      root.appendChild($t(d.label,{x:204,y:f(ly+1.5),'font-family':'Jost,sans-serif','font-size':10.5,fill:cssVar('--secondary')}));
+      root.appendChild($t(d.value+'%',{x:276,y:f(ly+1.5),'font-family':'Fira Code,monospace','font-size':10.5,fill:cssVar('--ink'),'font-weight':500,'text-anchor':'end'}));
+    });
+  }
+
+  // ── Area chart ───────────────────────────────────────────────
+  function drawAreaChart() {
+    const root = document.getElementById('chart-area');
+    if (!root) return;
+    const W=580, H=170, PL=54, PR=24, PT=16, PB=36;
+    const PW=W-PL-PR, PH=H-PT-PB;
+    const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const trips=[1842,1967,1934,2012,2156,1623,1241];
+    const yMin=1000, yMax=2300;
+    const sx=i=>f(PL+(i/(days.length-1))*PW);
+    const sy=v=>f(PT+PH-((v-yMin)/(yMax-yMin))*PH);
+
+    const acinn=cssVar('--cinn');
+    [1000,1500,2000].forEach(t=>{
+      const y=sy(t);
+      root.appendChild($svg('line',{x1:PL,y1:y,x2:W-PR,y2:y,stroke:cssVar('--chart-grid'),'stroke-width':1,'stroke-dasharray':'4 3'}));
+      root.appendChild($t((t/1000).toFixed(1)+'k',{x:PL-8,y:f(y+3.5),'font-family':'Fira Code,monospace','font-size':9,fill:cssVar('--dim'),'text-anchor':'end'}));
+    });
+    days.forEach((d,i)=>root.appendChild($t(d,{x:sx(i),y:H-6,'font-family':'Fira Code,monospace','font-size':9,fill:cssVar('--dim'),'text-anchor':'middle'})));
+
+    const pts=trips.map((v,i)=>[sx(i),sy(v)]), lp=spline(pts), bY=PT+PH;
+    const defs=$svg('defs'), g=$svg('linearGradient',{id:'af',x1:0,y1:0,x2:0,y2:1});
+    g.appendChild($svg('stop',{offset:'0%','stop-color':acinn,'stop-opacity':0.2}));
+    g.appendChild($svg('stop',{offset:'85%','stop-color':acinn,'stop-opacity':0}));
+    defs.appendChild(g); root.appendChild(defs);
+    root.appendChild($svg('path',{d:`${lp} L${sx(days.length-1)},${bY} L${sx(0)},${bY} Z`,fill:'url(#af)'}));
+    const line=$svg('path',{d:lp,fill:'none',stroke:acinn,'stroke-width':2.5,'stroke-linecap':'round','stroke-dasharray':800,'stroke-dashoffset':800});
+    root.appendChild(line);
+    line.style.transition='stroke-dashoffset 1.3s cubic-bezier(0.16,1,0.3,1) 0.15s';
+    requestAnimationFrame(()=>line.setAttribute('stroke-dashoffset',0));
+    pts.forEach(([x,y],i)=>{
+      const dot=$svg('circle',{cx:x,cy:y,r:4,fill:cssVar('--surface'),stroke:acinn,'stroke-width':2,opacity:0});
+      root.appendChild(dot);
+      dot.style.transition=`opacity 0.25s ease ${0.6+i*0.08}s`;
+      requestAnimationFrame(()=>dot.setAttribute('opacity',1));
+      const align=i===0?'start':i===days.length-1?'end':'middle';
+      const lbl=$t(trips[i].toLocaleString(),{x,y:f(y-10),'font-family':'Fira Code,monospace','font-size':8.5,fill:acinn,'text-anchor':align,'font-weight':500,opacity:0});
+      root.appendChild(lbl);
+      lbl.style.transition=`opacity 0.25s ease ${0.7+i*0.08}s`;
+      requestAnimationFrame(()=>lbl.setAttribute('opacity',1));
+    });
+  }
+
+  function clearSvg(id) {
+    const el = document.getElementById(id);
+    if (el) while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function redrawCharts() {
+    clearSvg('chart-line');  drawLineChart();
+    clearSvg('chart-bar');   drawBarChart();
+    clearSvg('chart-donut'); drawDonutChart();
+    clearSvg('chart-area');  drawAreaChart();
+  }
+
+  // Trigger charts when section scrolls into view
+  (function() {
+    const sec = document.getElementById('graphs');
+    if (!sec) return;
+    let done = false;
+    const obs = new IntersectionObserver(entries => {
+      if (!done && entries[0].isIntersecting) {
+        done = true;
+        drawLineChart(); drawBarChart(); drawDonutChart(); drawAreaChart();
+        obs.disconnect();
+      }
+    }, { threshold: 0.1 });
+    obs.observe(sec);
+  })();
+</script>
+</body>
+</html>

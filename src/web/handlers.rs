@@ -641,9 +641,9 @@ mod tests {
             route_id: "R1".into(),
             short_name: short_name.into(),
             long_name: short_name.into(),
-            charts: vec![],
             avg_scheduled_speed_mps: Some(scheduled),
             avg_actual_speed_mps: actual,
+            avg_stop_spacing_m: None,
             classification: None,
         }
     }
@@ -656,9 +656,9 @@ mod tests {
             route_id: "R1".into(),
             short_name: short_name.into(),
             long_name: short_name.into(),
-            charts: vec![],
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
+            avg_stop_spacing_m: None,
             classification: None,
         }
     }
@@ -725,9 +725,9 @@ mod tests {
             route_id: "R1".into(),
             short_name: short_name.into(),
             long_name: short_name.into(),
-            charts: vec![],
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
+            avg_stop_spacing_m: None,
             classification: class,
         }
     }
@@ -1006,8 +1006,8 @@ mod e2e_tests {
             "speed page HTML should contain 'Rapid' badge text"
         );
         assert!(
-            html.contains("badge--rapid"),
-            "speed page HTML should contain 'badge--rapid' CSS class"
+            html.contains("badge--neutral"),
+            "speed page HTML should contain 'badge--neutral' CSS class for route classification"
         );
     }
 
@@ -1281,8 +1281,8 @@ mod e2e_tests {
             "detail page HTML should contain 'Rapid' badge text"
         );
         assert!(
-            html.contains("badge--rapid"),
-            "detail page HTML should contain 'badge--rapid' CSS class"
+            html.contains("badge--neutral"),
+            "detail page HTML should contain 'badge--neutral' CSS class for route classification"
         );
     }
 

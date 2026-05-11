@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% import "macros.html" as ui %}
+
 {% block title %}Mobilispect — Transit Performance{% endblock %}
 {% block region_name %}{{ region_name }}{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
@@ -14,14 +16,8 @@
   </div>
 
   <div class="metric-grid">
-    <div class="metric-card">
-      <div class="metric-label">Routes monitored</div>
-      <div class="metric-value">{{ routes.len() }}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Period</div>
-      <div class="metric-value">{{ period_days }}d</div>
-    </div>
+    {{ ui::metric_card(label="Routes monitored", value=routes.len(), unit="") }}
+    {{ ui::metric_card(label="Period", value=period_days, unit="d") }}
   </div>
 
   <div class="filter-bar">
@@ -51,7 +47,7 @@
         <td>{{ route.on_time_display() }}</td>
         <td>{{ route.delay_display() }}</td>
         <td>{% if let Some(r) = route.trips_run %}{{ r }}{% else %}0{% endif %} / {% if let Some(t) = route.trips_total %}{{ t }}{% else %}0{% endif %}</td>
-        <td><span class="badge {{ route.status_class() }}">{{ route.status_label() }}</span></td>
+        <td>{{ ui::badge(variant=route.badge_variant(), label=route.status_label()) }}</td>
       </tr>
       {% endfor %}
     </tbody>

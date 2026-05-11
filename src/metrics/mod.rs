@@ -243,22 +243,21 @@ pub struct RouteSummary {
 }
 
 impl RouteSummary {
-    /// "green", "yellow", "red", or "none"
-    pub fn status_class(&self) -> &'static str {
-        match self.avg_on_time_pct {
-            Some(pct) if pct >= 80.0 => "green",
-            Some(pct) if pct >= 60.0 => "yellow",
-            Some(_) => "red",
-            None => "none",
-        }
-    }
-
     pub fn status_label(&self) -> &'static str {
         match self.avg_on_time_pct {
             Some(pct) if pct >= 80.0 => "On track",
             Some(pct) if pct >= 60.0 => "Degraded",
             Some(_) => "Poor",
             None => "No data",
+        }
+    }
+
+    pub fn badge_variant(&self) -> &'static str {
+        match self.avg_on_time_pct {
+            Some(pct) if pct >= 80.0 => "good",
+            Some(pct) if pct >= 60.0 => "mixed",
+            Some(_) => "bad",
+            None => "neutral",
         }
     }
 
@@ -543,13 +542,12 @@ impl ScorecardRoute {
         }
     }
 
-    /// CSS badge class: "green" / "yellow" / "red" / "none".
-    pub fn status_class(&self, floor_pct: &f64, ceiling_pct: &f64) -> &'static str {
+    pub fn badge_variant(&self, floor_pct: &f64, ceiling_pct: &f64) -> &'static str {
         match self.avg_on_time_pct {
-            Some(p) if p >= *ceiling_pct => "green",
-            Some(p) if p >= *floor_pct => "yellow",
-            Some(_) => "red",
-            None => "none",
+            Some(p) if p >= *ceiling_pct => "good",
+            Some(p) if p >= *floor_pct => "mixed",
+            Some(_) => "bad",
+            None => "neutral",
         }
     }
 
@@ -953,28 +951,69 @@ mod tests {
         assert_eq!(r.on_time_gap_class(&89.0), "");
     }
 
+    // ── RouteSummary::badge_variant tests ──────────────────────────────────────
+
+    fn make_route_summary(on_time: Option<f64>) -> RouteSummary {
+        RouteSummary {
+            agency_id: "stm".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_on_time_pct: on_time,
+            avg_delay_secs: None,
+            trips_run: None,
+            trips_total: None,
+            days_measured: None,
+        }
+    }
+
     #[test]
-    fn status_class_is_green_at_or_above_ceiling() {
+    fn route_summary_badge_variant_good_at_or_above_80() {
+        assert_eq!(make_route_summary(Some(80.0)).badge_variant(), "good");
+        assert_eq!(make_route_summary(Some(95.0)).badge_variant(), "good");
+    }
+
+    #[test]
+    fn route_summary_badge_variant_mixed_between_60_and_80() {
+        assert_eq!(make_route_summary(Some(60.0)).badge_variant(), "mixed");
+        assert_eq!(make_route_summary(Some(79.9)).badge_variant(), "mixed");
+    }
+
+    #[test]
+    fn route_summary_badge_variant_bad_below_60() {
+        assert_eq!(make_route_summary(Some(59.9)).badge_variant(), "bad");
+        assert_eq!(make_route_summary(Some(0.0)).badge_variant(), "bad");
+    }
+
+    #[test]
+    fn route_summary_badge_variant_neutral_when_no_data() {
+        assert_eq!(make_route_summary(None).badge_variant(), "neutral");
+    }
+
+    // ── ScorecardRoute::badge_variant tests ──────────────────────────────────────
+
+    #[test]
+    fn scorecard_badge_variant_good_at_or_above_ceiling() {
         let r = make_scorecard_route(Some(96.0), None);
-        assert_eq!(r.status_class(&89.0, &96.0), "green");
+        assert_eq!(r.badge_variant(&89.0, &96.0), "good");
     }
 
     #[test]
-    fn status_class_is_yellow_between_floor_and_ceiling() {
+    fn scorecard_badge_variant_mixed_between_floor_and_ceiling() {
         let r = make_scorecard_route(Some(91.0), None);
-        assert_eq!(r.status_class(&89.0, &96.0), "yellow");
+        assert_eq!(r.badge_variant(&89.0, &96.0), "mixed");
     }
 
     #[test]
-    fn status_class_is_red_under_floor() {
+    fn scorecard_badge_variant_bad_under_floor() {
         let r = make_scorecard_route(Some(71.0), None);
-        assert_eq!(r.status_class(&89.0, &96.0), "red");
+        assert_eq!(r.badge_variant(&89.0, &96.0), "bad");
     }
 
     #[test]
-    fn status_class_is_none_without_data() {
+    fn scorecard_badge_variant_neutral_when_no_data() {
         let r = make_scorecard_route(None, None);
-        assert_eq!(r.status_class(&89.0, &96.0), "none");
+        assert_eq!(r.badge_variant(&89.0, &96.0), "neutral");
     }
 
     #[test]
