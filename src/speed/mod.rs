@@ -738,13 +738,31 @@ pub async fn compute_route_speed_daily(
         let avg_speed = trip_speeds.iter().sum::<f64>() / trip_speeds.len() as f64;
         let trip_count = trip_speeds.len() as i64;
 
+        let avg_dwell_secs: Option<f64> = sqlx::query_scalar(
+            "SELECT AVG(ste.dwell_secs)::DOUBLE PRECISION
+             FROM stop_time_events ste
+             JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
+             WHERE ste.agency_id = $1
+               AND t.route_id = $2
+               AND COALESCE(t.direction_id, 0) = $3
+               AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
+               AND ste.dwell_secs > 0",
+        )
+        .bind(&agency_id)
+        .bind(route_id)
+        .bind(direction_id)
+        .bind(&date_str)
+        .fetch_one(&db.pool)
+        .await?;
+
         sqlx::query!(
             "INSERT INTO route_speed_daily
-             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              ON CONFLICT (agency_id, route_id, service_date, direction_id) DO UPDATE SET
                actual_speed_mps = EXCLUDED.actual_speed_mps,
                trip_count = EXCLUDED.trip_count,
+               avg_dwell_secs = EXCLUDED.avg_dwell_secs,
                computed_at = EXCLUDED.computed_at",
             &agency_id,
             route_id,
@@ -752,6 +770,7 @@ pub async fn compute_route_speed_daily(
             direction_id,
             avg_speed,
             trip_count,
+            avg_dwell_secs as Option<f64>,
             now,
         )
         .execute(&db.pool)
@@ -1507,6 +1526,20 @@ mod tests {
             "expected ~1.235 m/s, got {speed}"
         );
         assert_eq!(count, 1);
+    }
+
+    #[tokio::test]
+    async fn route_speed_daily_has_variant_id_column() {
+        let td = test_utils::setup().await;
+        // After migration 008, inserting a row with a non-empty variant_id must succeed.
+        let result = sqlx::query(
+            "INSERT INTO route_speed_daily
+             (agency_id, route_id, service_date, direction_id, variant_id, actual_speed_mps, trip_count, computed_at)
+             VALUES ('0', 'R1', '2026-01-01', 0, 'VAR1', 5.0, 1, 'now')",
+        )
+        .execute(&td.db.pool)
+        .await;
+        assert!(result.is_ok(), "expected insert with variant_id to succeed: {:?}", result.err());
     }
 
     #[tokio::test]
@@ -2409,6 +2442,59 @@ mod tests {
         let rows = route_speed_by_day_type(&db, None).await.unwrap();
         assert_eq!(rows.len(), 1);
         assert!(rows[0].avg_dwell_secs.is_none());
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_daily_stores_avg_dwell_secs() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let agency = test_agency();
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','Stop 1',45.50,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Stop 2',45.51,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
+            .execute(&db.pool).await.unwrap();
+        // S1: arrive 1000, depart 1030 → dwell_secs = 30
+        // S2: arrive 1700, depart 1720 → dwell_secs = 20
+        // avg = 25.0
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:00:00Z','T1','S1',1,1000,1030)",
+        )
+        .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:10:00Z','T1','S2',2,1700,1720)",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        let service_date = chrono::NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        compute_route_speed_daily(&db, &agency, service_date)
+            .await
+            .unwrap();
+
+        let dwell: Option<f64> = sqlx::query_scalar(
+            "SELECT avg_dwell_secs FROM route_speed_daily WHERE agency_id = '0' AND route_id = 'R1'",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+
+        let dwell = dwell.expect("expected avg_dwell_secs to be Some");
+        assert!(
+            (dwell - 25.0).abs() < 0.01,
+            "expected avg dwell ~25.0 (30+20)/2, got {dwell}"
+        );
     }
 
     #[test]
