@@ -179,6 +179,7 @@ pub fn build_speed_cards(
             ]
         }));
         let avg_stop_spacing_m = avg_speeds(route_rows.iter().map(|r| r.avg_stop_spacing_m));
+        let avg_dwell_secs = avg_speeds(route_rows.iter().map(|r| r.avg_dwell_secs));
         let classification = avg_stop_spacing_m.map(classify_by_spacing);
         cards.push(RouteSpeedCard {
             idx: card_idx,
@@ -190,7 +191,7 @@ pub fn build_speed_cards(
             avg_scheduled_speed_mps,
             avg_actual_speed_mps,
             avg_stop_spacing_m,
-            avg_dwell_secs: None,
+            avg_dwell_secs,
             classification,
         });
     }
@@ -786,5 +787,32 @@ mod tests {
     #[test]
     fn avg_dwell_unit_some() {
         assert_eq!(card_with_dwell(Some(30.0)).avg_dwell_unit(), "s");
+    }
+
+    #[test]
+    fn build_speed_cards_carries_avg_dwell_secs() {
+        let mut row = make_row("stm", "R1", 0, Some(8.0));
+        row.avg_dwell_secs = Some(30.0);
+        let cards = build_speed_cards(vec![row], &HashMap::new());
+        assert_eq!(cards[0].avg_dwell_secs, Some(30.0));
+    }
+
+    #[test]
+    fn build_speed_cards_averages_avg_dwell_across_directions() {
+        // direction 0: 20s, direction 1: 40s → avg 30s
+        let mut row0 = make_row("stm", "R1", 0, Some(8.0));
+        row0.avg_dwell_secs = Some(20.0);
+        let mut row1 = make_row("stm", "R1", 1, Some(7.0));
+        row1.avg_dwell_secs = Some(40.0);
+        let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
+        let dwell = cards[0].avg_dwell_secs.unwrap();
+        assert!((dwell - 30.0).abs() < 0.001, "expected 30.0, got {dwell}");
+    }
+
+    #[test]
+    fn build_speed_cards_avg_dwell_none_when_all_none() {
+        let row = make_row("stm", "R1", 0, None);
+        let cards = build_speed_cards(vec![row], &HashMap::new());
+        assert!(cards[0].avg_dwell_secs.is_none());
     }
 }
