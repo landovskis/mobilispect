@@ -46,6 +46,29 @@ impl RouteSpeedCard {
             Some(_) => "good",
         }
     }
+
+    pub fn scheduled_speed_variant(&self) -> &'static str {
+        Self::local_speed_variant(self.classification, self.avg_scheduled_speed_mps)
+    }
+
+    pub fn actual_speed_variant(&self) -> &'static str {
+        Self::local_speed_variant(self.classification, self.avg_actual_speed_mps)
+    }
+
+    fn local_speed_variant(classification: Option<RouteClass>, mps: Option<f64>) -> &'static str {
+        match (classification, mps) {
+            (Some(RouteClass::Local), Some(mps)) => {
+                if mps < 12.0 / 3.6 {
+                    "bad"
+                } else if mps <= 15.0 / 3.6 {
+                    "mixed"
+                } else {
+                    "good"
+                }
+            }
+            _ => "",
+        }
+    }
 }
 
 fn fmt_speed_kmh(mps: Option<f64>) -> String {
@@ -562,5 +585,134 @@ mod tests {
             classification: None,
         };
         assert_eq!(card.avg_actual_speed_kmh_display(), "—");
+    }
+
+    fn local_card_with_scheduled(mps: Option<f64>) -> RouteSpeedCard {
+        RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: mps,
+            avg_actual_speed_mps: None,
+            avg_stop_spacing_m: None,
+            classification: Some(RouteClass::Local),
+        }
+    }
+
+    #[test]
+    fn scheduled_speed_variant_bad_below_12kmh_for_local_route() {
+        assert_eq!(local_card_with_scheduled(Some(11.0 / 3.6)).scheduled_speed_variant(), "bad");
+        assert_eq!(local_card_with_scheduled(Some(0.0)).scheduled_speed_variant(), "bad");
+    }
+
+    #[test]
+    fn scheduled_speed_variant_mixed_at_12_to_15_kmh_for_local_route() {
+        assert_eq!(local_card_with_scheduled(Some(12.0 / 3.6)).scheduled_speed_variant(), "mixed");
+        assert_eq!(local_card_with_scheduled(Some(13.5 / 3.6)).scheduled_speed_variant(), "mixed");
+        assert_eq!(local_card_with_scheduled(Some(15.0 / 3.6)).scheduled_speed_variant(), "mixed");
+    }
+
+    #[test]
+    fn scheduled_speed_variant_good_above_15kmh_for_local_route() {
+        assert_eq!(local_card_with_scheduled(Some(16.0 / 3.6)).scheduled_speed_variant(), "good");
+        assert_eq!(local_card_with_scheduled(Some(30.0 / 3.6)).scheduled_speed_variant(), "good");
+    }
+
+    #[test]
+    fn scheduled_speed_variant_empty_when_no_data() {
+        assert_eq!(local_card_with_scheduled(None).scheduled_speed_variant(), "");
+    }
+
+    #[test]
+    fn scheduled_speed_variant_empty_for_non_local_routes() {
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: Some(5.0),
+            avg_actual_speed_mps: None,
+            avg_stop_spacing_m: None,
+            classification: Some(RouteClass::Rapid),
+        };
+        assert_eq!(card.scheduled_speed_variant(), "");
+    }
+
+    fn local_card_with_actual(mps: Option<f64>) -> RouteSpeedCard {
+        RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: mps,
+            avg_stop_spacing_m: None,
+            classification: Some(RouteClass::Local),
+        }
+    }
+
+    #[test]
+    fn actual_speed_variant_bad_below_12kmh_for_local_route() {
+        assert_eq!(local_card_with_actual(Some(11.0 / 3.6)).actual_speed_variant(), "bad");
+        assert_eq!(local_card_with_actual(Some(0.0)).actual_speed_variant(), "bad");
+    }
+
+    #[test]
+    fn actual_speed_variant_mixed_at_12_to_15_kmh_for_local_route() {
+        assert_eq!(local_card_with_actual(Some(12.0 / 3.6)).actual_speed_variant(), "mixed");
+        assert_eq!(local_card_with_actual(Some(13.5 / 3.6)).actual_speed_variant(), "mixed");
+        assert_eq!(local_card_with_actual(Some(15.0 / 3.6)).actual_speed_variant(), "mixed");
+    }
+
+    #[test]
+    fn actual_speed_variant_good_above_15kmh_for_local_route() {
+        assert_eq!(local_card_with_actual(Some(16.0 / 3.6)).actual_speed_variant(), "good");
+        assert_eq!(local_card_with_actual(Some(30.0 / 3.6)).actual_speed_variant(), "good");
+    }
+
+    #[test]
+    fn actual_speed_variant_empty_when_no_actual_data() {
+        assert_eq!(local_card_with_actual(None).actual_speed_variant(), "");
+    }
+
+    #[test]
+    fn actual_speed_variant_empty_for_non_local_routes() {
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: Some(5.0),
+            avg_stop_spacing_m: None,
+            classification: Some(RouteClass::Rapid),
+        };
+        assert_eq!(card.actual_speed_variant(), "");
+    }
+
+    #[test]
+    fn actual_speed_variant_empty_when_no_classification() {
+        let card = RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: Some(5.0),
+            avg_stop_spacing_m: None,
+            classification: None,
+        };
+        assert_eq!(card.actual_speed_variant(), "");
     }
 }

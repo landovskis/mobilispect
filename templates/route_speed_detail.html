@@ -48,7 +48,7 @@ canvas { width: 100% !important; }
       {% if let Some(class) = classification %}
       {{ ui::badge(variant="neutral", label=class.display_label()) }}
       {% endif %}
-      <a class="filter-pill" href="/speed?agency={{ agency_id }}">← Back to speed overview</a>
+      <a class="chip" href="/speed?agency={{ agency_id }}">← Back to speed overview</a>
     </div>
   </div>
 

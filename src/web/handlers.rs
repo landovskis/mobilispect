@@ -421,6 +421,17 @@ fn sort_speed_cards(cards: &mut Vec<RouteSpeedCard>, sort: &str) {
                 (None, None) => a.short_name.cmp(&b.short_name),
             },
         ),
+        "spacing" => cards.sort_by(
+            |a, b| match (a.avg_stop_spacing_m, b.avg_stop_spacing_m) {
+                (Some(x), Some(y)) => x
+                    .partial_cmp(&y)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .then(a.short_name.cmp(&b.short_name)),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => a.short_name.cmp(&b.short_name),
+            },
+        ),
         _ => {} // "name" or unknown — preserve SQL order
     }
 }
@@ -459,6 +470,7 @@ pub async fn speed_page(
     let active_sort = match params.sort.as_deref() {
         Some("scheduled") => "scheduled",
         Some("actual") => "actual",
+        Some("spacing") => "spacing",
         _ => "name",
     }
     .to_string();
@@ -714,6 +726,53 @@ mod tests {
     fn sort_scheduled_breaks_ties_by_name() {
         let mut cards = vec![card("Z", 5.0, None), card("A", 5.0, None)];
         sort_speed_cards(&mut cards, "scheduled");
+        assert_eq!(cards[0].short_name, "A");
+    }
+
+    fn card_with_spacing(short_name: &str, spacing: Option<f64>) -> RouteSpeedCard {
+        RouteSpeedCard {
+            idx: 0,
+            agency_name: "A".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: short_name.into(),
+            long_name: short_name.into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+            avg_stop_spacing_m: spacing,
+            classification: None,
+        }
+    }
+
+    #[test]
+    fn sort_spacing_orders_ascending_by_stop_spacing() {
+        let mut cards = vec![
+            card_with_spacing("B", Some(800.0)),
+            card_with_spacing("A", Some(300.0)),
+        ];
+        sort_speed_cards(&mut cards, "spacing");
+        assert_eq!(cards[0].short_name, "A");
+        assert_eq!(cards[1].short_name, "B");
+    }
+
+    #[test]
+    fn sort_spacing_puts_none_last() {
+        let mut cards = vec![
+            card_with_spacing("A", None),
+            card_with_spacing("B", Some(500.0)),
+        ];
+        sort_speed_cards(&mut cards, "spacing");
+        assert_eq!(cards[0].short_name, "B");
+        assert_eq!(cards[1].short_name, "A");
+    }
+
+    #[test]
+    fn sort_spacing_breaks_ties_by_name() {
+        let mut cards = vec![
+            card_with_spacing("Z", Some(500.0)),
+            card_with_spacing("A", Some(500.0)),
+        ];
+        sort_speed_cards(&mut cards, "spacing");
         assert_eq!(cards[0].short_name, "A");
     }
 
