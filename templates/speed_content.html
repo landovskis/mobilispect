@@ -39,6 +39,12 @@
        hx-swap="outerHTML"
        hx-push-url="true"
        class="{% if active_sort == "actual" %}active{% endif %}">Slowest actual</a>
+    <a href="/speed?sort=spacing{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}"
+       hx-get="/speed?sort=spacing{% if !active_agency.is_empty() %}&amp;agency={{ active_agency }}{% endif %}{% if !active_class.is_empty() %}&amp;class={{ active_class }}{% endif %}"
+       hx-target="#speed-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_sort == "spacing" %}active{% endif %}">Closest stop spacing</a>
   </div>
 
   <div class="control-row" style="margin-bottom:1.5rem;">
