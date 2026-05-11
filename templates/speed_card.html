@@ -12,7 +12,7 @@
     {% endif %}
   </div>
   <div style="margin-top:0.75rem;display:flex;gap:1.5rem;border-top:1px solid var(--line-soft);padding-top:0.75rem;">
-    <div>{{ ui::stat(label="Scheduled", value=card.avg_scheduled_speed_kmh_display(), unit=" km/h", variant="") }}</div>
+    <div>{{ ui::stat(label="Scheduled", value=card.avg_scheduled_speed_kmh_display(), unit=" km/h", variant=card.scheduled_speed_variant()) }}</div>
     <div>{{ ui::stat(label="Actual", value=card.avg_actual_speed_kmh_display(), unit=" km/h", variant=card.actual_speed_variant()) }}</div>
     <div style="margin-left:auto;">{{ ui::stat(label="Avg stop spacing", value=card.avg_stop_spacing_number(), unit=card.avg_stop_spacing_unit(), variant=card.avg_stop_spacing_variant()) }}</div>
   </div>
