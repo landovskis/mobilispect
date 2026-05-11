@@ -656,6 +656,7 @@ mod tests {
             avg_scheduled_speed_mps: Some(scheduled),
             avg_actual_speed_mps: actual,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
             classification: None,
         }
     }
@@ -671,6 +672,7 @@ mod tests {
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
             classification: None,
         }
     }
@@ -740,6 +742,7 @@ mod tests {
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
             avg_stop_spacing_m: spacing,
+            avg_dwell_secs: None,
             classification: None,
         }
     }
@@ -787,6 +790,7 @@ mod tests {
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
             classification: class,
         }
     }
