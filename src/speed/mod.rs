@@ -338,32 +338,38 @@ pub async fn route_stop_spacings(
     route_id: &str,
 ) -> Result<Vec<DirectionStopSpacings>> {
     let rows: Vec<StopSpacingEntry> = sqlx::query_as(
-        "WITH primary_variant AS (
-            SELECT variant_id, direction_id
+        "WITH all_variants AS (
+            SELECT variant_id, direction_id, is_primary, trip_count
             FROM route_variants
-            WHERE agency_id = $1 AND route_id = $2 AND is_primary = TRUE
-            -- one row per direction (each direction has exactly one primary variant)
+            WHERE agency_id = $1 AND route_id = $2
         ),
         ordered AS (
             SELECT
-                pv.direction_id,
+                av.variant_id,
+                av.direction_id,
+                av.is_primary,
+                av.trip_count,
                 s.stop_name,
                 s.stop_lat, s.stop_lon,
-                ROW_NUMBER() OVER (PARTITION BY pv.direction_id ORDER BY rvs.stop_sequence) AS rn,
-                COUNT(*)    OVER (PARTITION BY pv.direction_id)                              AS total_stops
-            FROM primary_variant pv
-            JOIN route_variant_stops rvs ON rvs.agency_id = $1 AND rvs.variant_id = pv.variant_id
+                ROW_NUMBER() OVER (PARTITION BY av.variant_id ORDER BY rvs.stop_sequence) AS rn,
+                COUNT(*)    OVER (PARTITION BY av.variant_id)                              AS total_stops
+            FROM all_variants av
+            JOIN route_variant_stops rvs ON rvs.agency_id = $1 AND rvs.variant_id = av.variant_id
             JOIN stops s ON s.agency_id = $1 AND s.stop_id = rvs.stop_id
         ),
         with_prev AS (
             SELECT
-                direction_id, stop_name, rn, total_stops, stop_lat, stop_lon,
-                LAG(stop_lat) OVER (PARTITION BY direction_id ORDER BY rn) AS prev_lat,
-                LAG(stop_lon) OVER (PARTITION BY direction_id ORDER BY rn) AS prev_lon
+                variant_id, direction_id, is_primary, trip_count,
+                stop_name, rn, total_stops, stop_lat, stop_lon,
+                LAG(stop_lat) OVER (PARTITION BY variant_id ORDER BY rn) AS prev_lat,
+                LAG(stop_lon) OVER (PARTITION BY variant_id ORDER BY rn) AS prev_lon
             FROM ordered
         )
         SELECT
+            variant_id,
             direction_id,
+            is_primary,
+            trip_count,
             stop_name AS to_stop_name,
             CASE WHEN prev_lat IS NOT NULL THEN
                 2 * 6371000 * asin(sqrt(
@@ -375,7 +381,7 @@ pub async fn route_stop_spacings(
             (rn = 1)           AS is_first,
             (rn = total_stops) AS is_last
         FROM with_prev
-        ORDER BY direction_id, rn",
+        ORDER BY trip_count DESC, variant_id, rn",
     )
     .bind(&agency_id)
     .bind(route_id)
@@ -2820,76 +2826,106 @@ mod tests {
         let db = &td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        // direction 0 trip with 3 stops in sequence order
-        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Terminus')")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+            .execute(&db.pool).await.unwrap();
+
         // S1 and S2 are 0.01° apart in latitude ≈ 1111 m; S2 and S3 are 0.001° ≈ 111 m
         sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'First Stop',  45.500, -73.50)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+            .execute(&db.pool).await.unwrap();
         sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Middle Stop', 45.510, -73.50)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+            .execute(&db.pool).await.unwrap();
         sqlx::query("INSERT INTO stops VALUES ('0', 'S3', 'Terminus',    45.511, -73.50)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+            .execute(&db.pool).await.unwrap();
+
+        // One variant, direction 0, is_primary=true, trip_count=5
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:05:00', '08:05:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S3', 3, '08:07:00', '08:07:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 3, 5, true)",
+        ).execute(&db.pool).await.unwrap();
+
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 3, 'S3')")
+            .execute(&db.pool).await.unwrap();
 
         let directions = route_stop_spacings(db, "0", "R1").await.unwrap();
 
-        assert_eq!(directions.len(), 1, "one direction expected");
+        assert_eq!(directions.len(), 1, "one variant expected");
         let dir = &directions[0];
+        assert_eq!(dir.variant_id, "VAR1");
+        assert!(dir.is_primary);
+        assert_eq!(dir.trip_count, 5);
         assert_eq!(dir.first_stop_name, "First Stop");
-        assert_eq!(dir.direction_name, "Terminus");
+        assert_eq!(dir.direction_name, "First Stop → Terminus");
         assert_eq!(dir.spacings.len(), 2, "two segments (S1→S2, S2→S3)");
         assert_eq!(dir.spacings[0].to_stop_name, "Middle Stop");
         assert_eq!(dir.spacings[1].to_stop_name, "Terminus");
-        // S1→S2: ~0.01° lat ≈ 1111 m; allow ±50 m tolerance
         assert!(
             (dir.spacings[0].distance_m - 1111.0).abs() < 50.0,
             "S1→S2 should be ~1111 m, got {}",
             dir.spacings[0].distance_m
         );
-        // S2→S3: ~0.001° lat ≈ 111 m
         assert!(
             (dir.spacings[1].distance_m - 111.0).abs() < 10.0,
             "S2→S3 should be ~111 m, got {}",
             dir.spacings[1].distance_m
         );
-        // avg ≈ 611 m, threshold ≈ 917 m → S1→S2 (1111 m) is an outlier
-        assert!(
-            dir.spacings[0].is_outlier,
-            "S1→S2 should be flagged as outlier"
-        );
-        assert!(
-            !dir.spacings[1].is_outlier,
-            "S2→S3 should not be an outlier"
-        );
+        assert!(dir.spacings[0].is_outlier, "S1→S2 should be flagged as outlier");
+        assert!(!dir.spacings[1].is_outlier, "S2→S3 should not be an outlier");
+    }
+
+    #[tokio::test]
+    async fn route_stop_spacings_returns_all_variants_ordered_by_trip_count_desc() {
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SA', 'Alpha',  45.500, -73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SB', 'Beta',   45.505, -73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SC', 'Gamma',  45.510, -73.50)")
+            .execute(&db.pool).await.unwrap();
+
+        // VAR2 has fewer trips than VAR1 — should come second even though lexicographically first
+        sqlx::query(
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 3, 10, true),
+                    ('0', 'VAR2', 'R1', 0, 2,  3, false)",
+        ).execute(&db.pool).await.unwrap();
+
+        // VAR1: SA → SB → SC
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'SA')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'SB')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 3, 'SC')")
+            .execute(&db.pool).await.unwrap();
+
+        // VAR2: SA → SC (short turn, skips SB)
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR2', 1, 'SA')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR2', 2, 'SC')")
+            .execute(&db.pool).await.unwrap();
+
+        let directions = route_stop_spacings(db, "0", "R1").await.unwrap();
+
+        assert_eq!(directions.len(), 2, "two variants expected");
+        // VAR1 first (trip_count=10 > 3)
+        assert_eq!(directions[0].variant_id, "VAR1");
+        assert!(directions[0].is_primary);
+        assert_eq!(directions[0].trip_count, 10);
+        assert_eq!(directions[0].direction_name, "Alpha → Gamma");
+        assert_eq!(directions[0].spacings.len(), 2);
+        // VAR2 second
+        assert_eq!(directions[1].variant_id, "VAR2");
+        assert!(!directions[1].is_primary);
+        assert_eq!(directions[1].trip_count, 3);
+        assert_eq!(directions[1].direction_name, "Alpha → Gamma");
+        assert_eq!(directions[1].spacings.len(), 1);
     }
 
     #[tokio::test]
