@@ -762,9 +762,12 @@ pub async fn compute_route_speed_daily(
     let now = Utc::now().to_rfc3339();
     let agency_id = agency.id.to_string();
 
-    // All distinct route + direction combos with stop time events on this date.
-    let combos: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
+    // All distinct route + direction + variant combos with stop time events on this date.
+    let combos: Vec<(String, i64, String)> = sqlx::query_as(
+        "SELECT DISTINCT
+             t.route_id,
+             COALESCE(t.direction_id, 0) AS direction_id,
+             COALESCE(t.variant_id, '')  AS variant_id
          FROM stop_time_events ste
          JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
          WHERE ste.agency_id = $1 AND ste.observed_at::TIMESTAMPTZ::DATE = $2::DATE
@@ -775,19 +778,19 @@ pub async fn compute_route_speed_daily(
     .fetch_all(&db.pool)
     .await?;
 
-    for (route_id, direction_id) in &combos {
+    for (route_id, direction_id, variant_id) in &combos {
         let trips: Vec<(String,)> = sqlx::query_as(
             "SELECT DISTINCT ste.trip_id
              FROM stop_time_events ste
              JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
              WHERE t.agency_id = $1 AND t.route_id = $2
-               AND COALESCE(t.direction_id, 0) = $3
+               AND COALESCE(t.variant_id, '') = $3
                AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
                AND ste.arrival_time_unix IS NOT NULL",
         )
         .bind(&agency_id)
         .bind(route_id)
-        .bind(direction_id)
+        .bind(variant_id)
         .bind(&date_str)
         .fetch_all(&db.pool)
         .await?;
@@ -856,7 +859,7 @@ pub async fn compute_route_speed_daily(
         .fetch_one(&db.pool)
         .await?;
 
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, variant_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -865,16 +868,16 @@ pub async fn compute_route_speed_daily(
                trip_count = EXCLUDED.trip_count,
                avg_dwell_secs = EXCLUDED.avg_dwell_secs,
                computed_at = EXCLUDED.computed_at",
+            &agency_id,
+            route_id,
+            date_str,
+            direction_id,
+            variant_id,
+            avg_speed,
+            trip_count,
+            avg_dwell_secs as Option<f64>,
+            now,
         )
-        .bind(&agency_id)
-        .bind(route_id)
-        .bind(&date_str)
-        .bind(direction_id)
-        .bind("")  // variant_id defaults to '' for existing compute_route_speed_daily
-        .bind(avg_speed)
-        .bind(trip_count)
-        .bind(avg_dwell_secs)
-        .bind(&now)
         .execute(&db.pool)
         .await?;
     }
@@ -1628,6 +1631,54 @@ mod tests {
             "expected ~1.235 m/s, got {speed}"
         );
         assert_eq!(count, 1);
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_daily_stores_variant_id() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        // Trip T1 with variant_id set
+        sqlx::query(
+            "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id, variant_id)
+             VALUES ('0', 'T1', 'R1', 'WD', 0, 'VAR1')",
+        ).execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        ).execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        ).execute(&db.pool).await.unwrap();
+
+        let t_s1: i64 = 1767225600;
+        let t_s2: i64 = t_s1 + 900;
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
+             VALUES ('0', '2026-01-01T08:00:00Z', 'T1', 'S1', 1, $1)",
+        ).bind(t_s1).execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
+             VALUES ('0', '2026-01-01T08:15:00Z', 'T1', 'S2', 2, $1)",
+        ).bind(t_s2).execute(&db.pool).await.unwrap();
+
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        compute_route_speed_daily(&db, &test_agency(), date).await.unwrap();
+
+        let variant_id: (String,) = sqlx::query_as(
+            "SELECT variant_id FROM route_speed_daily WHERE route_id = 'R1' AND service_date = '2026-01-01'",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(variant_id.0, "VAR1");
     }
 
     #[tokio::test]
@@ -2582,6 +2633,60 @@ mod tests {
         assert!(
             (dwell - 25.0).abs() < 0.01,
             "expected avg dwell ~25.0 (30+20)/2, got {dwell}"
+        );
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_daily_deduplicates_dwell_per_stop_visit() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let agency = test_agency();
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','Stop 1',45.50,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Stop 2',45.51,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
+            .execute(&db.pool).await.unwrap();
+
+        // S1: dwell = 30s, but appears 5 times due to repeated RT polls
+        for i in 0..5i64 {
+            sqlx::query(
+                "INSERT INTO stop_time_events
+                 (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+                 VALUES ('0','2026-04-01T08:00:00Z','T1','S1',1,1000,1030)",
+            )
+            .execute(&db.pool).await.unwrap();
+            let _ = i;
+        }
+        // S2: dwell = 20s, appears once
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:10:00Z','T1','S2',2,1700,1720)",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        // Without dedup: (30×5 + 20×1)/6 = 170/6 ≈ 28.3s — wrong
+        // With dedup:    (30 + 20)/2       = 25.0s — correct
+        let service_date = chrono::NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        compute_route_speed_daily(&db, &agency, service_date).await.unwrap();
+
+        let dwell: Option<f64> = sqlx::query_scalar(
+            "SELECT avg_dwell_secs FROM route_speed_daily WHERE agency_id = '0' AND route_id = 'R1'",
+        )
+        .fetch_one(&db.pool).await.unwrap();
+
+        let dwell = dwell.expect("expected avg_dwell_secs to be Some");
+        assert!(
+            (dwell - 25.0).abs() < 0.01,
+            "expected 25.0 (deduped), got {dwell} — duplicate rows are inflating the average"
         );
     }
 
