@@ -130,7 +130,10 @@ pub struct StopSpacing {
 /// All stop spacings for one direction of a route.
 pub struct DirectionStopSpacings {
     pub direction_id: i64,
-    /// Name of the terminal (last) stop — used as the direction label.
+    pub variant_id: String,
+    pub is_primary: bool,
+    pub trip_count: i64,
+    /// "First Stop → Last Stop"
     pub direction_name: String,
     /// Name of the first stop — rendered as the leftmost dot in the strip.
     pub first_stop_name: String,
@@ -142,7 +145,10 @@ pub struct DirectionStopSpacings {
 /// Raw row returned by the stop spacings SQL query.
 #[derive(sqlx::FromRow)]
 struct StopSpacingEntry {
+    variant_id: String,
     direction_id: i64,
+    is_primary: bool,
+    trip_count: i64,
     to_stop_name: String,
     distance_m: Option<f64>,
     is_first: bool,
@@ -175,10 +181,10 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
     let mut result: Vec<DirectionStopSpacings> = Vec::new();
     let mut i = 0;
     while i < rows.len() {
-        let dir_id = rows[i].direction_id;
+        let variant_id = rows[i].variant_id.clone();
         let end = rows[i..]
             .iter()
-            .position(|r| r.direction_id != dir_id)
+            .position(|r| r.variant_id != variant_id)
             .map(|p| i + p)
             .unwrap_or(rows.len());
         let dir_rows = &rows[i..end];
@@ -189,11 +195,13 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
             .map(|r| r.to_stop_name.clone())
             .unwrap_or_default();
 
-        let direction_name = dir_rows
+        let last_stop_name = dir_rows
             .iter()
             .find(|r| r.is_last)
             .map(|r| r.to_stop_name.clone())
             .unwrap_or_default();
+
+        let direction_name = format!("{first_stop_name} → {last_stop_name}");
 
         let distances: Vec<(String, f64)> = dir_rows
             .iter()
@@ -237,8 +245,12 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
             })
             .collect();
 
+        let first_row = &dir_rows[0];
         result.push(DirectionStopSpacings {
-            direction_id: dir_id,
+            direction_id: first_row.direction_id,
+            variant_id: variant_id.clone(),
+            is_primary: first_row.is_primary,
+            trip_count: first_row.trip_count,
             direction_name,
             first_stop_name,
             avg_spacing_m,
@@ -2503,28 +2515,40 @@ mod tests {
         // only the 300m segment is an outlier
         let rows = vec![
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "B".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "C".into(),
                 distance_m: Some(300.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "D".into(),
                 distance_m: Some(100.0),
                 is_first: true,
@@ -2543,21 +2567,30 @@ mod tests {
     fn build_direction_spacings_sets_first_and_direction_names() {
         let rows = vec![
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "Origin".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "Middle".into(),
                 distance_m: Some(100.0),
                 is_first: false,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "Terminal".into(),
                 distance_m: Some(100.0),
                 is_first: false,
@@ -2566,35 +2599,47 @@ mod tests {
         ];
         let result = build_direction_spacings(rows);
         assert_eq!(result[0].first_stop_name, "Origin");
-        assert_eq!(result[0].direction_name, "Terminal");
+        assert_eq!(result[0].direction_name, "Origin → Terminal");
     }
 
     #[test]
     fn build_direction_spacings_groups_two_directions() {
         let rows = vec![
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "B".into(),
                 distance_m: Some(300.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR1".into(),
                 direction_id: 1,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "X".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR1".into(),
                 direction_id: 1,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "Y".into(),
                 distance_m: Some(100.0),
                 is_first: true,
@@ -2611,21 +2656,30 @@ mod tests {
     fn build_direction_spacings_width_px_max_is_200() {
         let rows = vec![
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "B".into(),
                 distance_m: Some(300.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "C".into(),
                 distance_m: Some(100.0),
                 is_first: true,
@@ -2642,6 +2696,66 @@ mod tests {
             spacings[0].width_px < 200,
             "smaller distance should map to less than 200px"
         );
+    }
+
+    #[test]
+    fn build_direction_spacings_formats_direction_name_as_first_to_last() {
+        let rows = vec![
+            StopSpacingEntry {
+                variant_id: "VAR1".into(),
+                direction_id: 0,
+                is_primary: true,
+                trip_count: 5,
+                to_stop_name: "First Stop".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingEntry {
+                variant_id: "VAR1".into(),
+                direction_id: 0,
+                is_primary: true,
+                trip_count: 5,
+                to_stop_name: "Last Stop".into(),
+                distance_m: Some(500.0),
+                is_first: false,
+                is_last: true,
+            },
+        ];
+        let result = build_direction_spacings(rows);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].direction_name, "First Stop → Last Stop");
+    }
+
+    #[test]
+    fn build_direction_spacings_carries_variant_fields() {
+        let rows = vec![
+            StopSpacingEntry {
+                variant_id: "VARABC".into(),
+                direction_id: 1,
+                is_primary: false,
+                trip_count: 3,
+                to_stop_name: "A".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingEntry {
+                variant_id: "VARABC".into(),
+                direction_id: 1,
+                is_primary: false,
+                trip_count: 3,
+                to_stop_name: "B".into(),
+                distance_m: Some(300.0),
+                is_first: false,
+                is_last: true,
+            },
+        ];
+        let result = build_direction_spacings(rows);
+        assert_eq!(result[0].variant_id, "VARABC");
+        assert_eq!(result[0].direction_id, 1);
+        assert!(!result[0].is_primary);
+        assert_eq!(result[0].trip_count, 3);
     }
 
     #[test]
