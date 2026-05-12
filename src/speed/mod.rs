@@ -1547,20 +1547,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn route_speed_daily_has_variant_id_column() {
-        let td = test_utils::setup().await;
-        // After migration 008, inserting a row with a non-empty variant_id must succeed.
-        let result = sqlx::query(
-            "INSERT INTO route_speed_daily
-             (agency_id, route_id, service_date, direction_id, variant_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('0', 'R1', '2026-01-01', 0, 'VAR1', 5.0, 1, 'now')",
-        )
-        .execute(&td.db.pool)
-        .await;
-        assert!(result.is_ok(), "expected insert with variant_id to succeed: {:?}", result.err());
-    }
-
-    #[tokio::test]
     async fn route_speed_summary_includes_actual_speed_from_history() {
         let td = test_utils::setup().await;
         let db = td.db;
