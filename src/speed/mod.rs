@@ -330,6 +330,89 @@ fn build_direction_trends_with_scheduled(rows: Vec<SpeedTrendRow>) -> Vec<Direct
     build_direction_trends(rows)
 }
 
+pub struct VariantSpeedTrend {
+    pub variant_id: String,
+    pub weekday: Vec<(String, f64, Option<f64>)>,
+    pub saturday: Vec<(String, f64, Option<f64>)>,
+    pub sunday: Vec<(String, f64, Option<f64>)>,
+}
+
+#[derive(sqlx::FromRow)]
+struct SpeedTrendVariantRow {
+    variant_id: String,
+    service_date: String,
+    actual_speed_mps: f64,
+    scheduled_speed_mps: Option<f64>,
+}
+
+fn build_variant_trends(rows: Vec<SpeedTrendVariantRow>) -> Vec<VariantSpeedTrend> {
+    use chrono::Datelike;
+    use std::str::FromStr;
+
+    let mut map: std::collections::HashMap<
+        String,
+        (
+            Vec<(String, f64, Option<f64>)>,
+            Vec<(String, f64, Option<f64>)>,
+            Vec<(String, f64, Option<f64>)>,
+        ),
+    > = std::collections::HashMap::new();
+
+    for row in rows {
+        let dow = chrono::NaiveDate::from_str(&row.service_date)
+            .map(|d| d.weekday().num_days_from_sunday())
+            .unwrap_or(1);
+        let entry = map.entry(row.variant_id).or_default();
+        let point = (row.service_date, row.actual_speed_mps, row.scheduled_speed_mps);
+        match dow {
+            0 => entry.2.push(point), // Sunday
+            6 => entry.1.push(point), // Saturday
+            _ => entry.0.push(point), // Weekday
+        }
+    }
+
+    let mut result: Vec<VariantSpeedTrend> = map
+        .into_iter()
+        .map(|(variant_id, (weekday, saturday, sunday))| VariantSpeedTrend {
+            variant_id,
+            weekday,
+            saturday,
+            sunday,
+        })
+        .collect();
+    result.sort_by(|a, b| a.variant_id.cmp(&b.variant_id));
+    result
+}
+
+pub async fn route_speed_trend_by_variant(
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+    days: i64,
+) -> Result<Vec<VariantSpeedTrend>> {
+    let rows: Vec<SpeedTrendVariantRow> = sqlx::query_as(
+        "SELECT d.variant_id,
+                d.service_date,
+                d.actual_speed_mps,
+                r.scheduled_speed_mps
+         FROM route_speed_daily d
+         LEFT JOIN route_speed r ON r.agency_id = d.agency_id
+           AND r.route_id = d.route_id AND r.direction_id = d.direction_id
+         WHERE d.agency_id = $1
+           AND d.route_id = $2
+           AND d.variant_id != ''
+           AND d.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
+         ORDER BY d.variant_id, d.service_date",
+    )
+    .bind(agency_id)
+    .bind(route_id)
+    .bind(days)
+    .fetch_all(&db.pool)
+    .await?;
+
+    Ok(build_variant_trends(rows))
+}
+
 /// Fetch per-stop spacing data for a single route, grouped by direction.
 /// Returns one `DirectionStopSpacings` per direction. Empty if route has no trips.
 pub async fn route_stop_spacings(
@@ -773,24 +856,25 @@ pub async fn compute_route_speed_daily(
         .fetch_one(&db.pool)
         .await?;
 
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO route_speed_daily
-             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             ON CONFLICT (agency_id, route_id, service_date, direction_id) DO UPDATE SET
+             (agency_id, route_id, service_date, direction_id, variant_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             ON CONFLICT (agency_id, route_id, service_date, direction_id, variant_id) DO UPDATE SET
                actual_speed_mps = EXCLUDED.actual_speed_mps,
                trip_count = EXCLUDED.trip_count,
                avg_dwell_secs = EXCLUDED.avg_dwell_secs,
                computed_at = EXCLUDED.computed_at",
-            &agency_id,
-            route_id,
-            date_str,
-            direction_id,
-            avg_speed,
-            trip_count,
-            avg_dwell_secs as Option<f64>,
-            now,
         )
+        .bind(&agency_id)
+        .bind(route_id)
+        .bind(&date_str)
+        .bind(direction_id)
+        .bind("")  // variant_id defaults to '' for existing compute_route_speed_daily
+        .bind(avg_speed)
+        .bind(trip_count)
+        .bind(avg_dwell_secs)
+        .bind(&now)
         .execute(&db.pool)
         .await?;
     }
@@ -3045,5 +3129,117 @@ mod tests {
             dir.weekday[0].2.is_none(),
             "scheduled speed should be None when route_speed row is missing"
         );
+    }
+
+    #[test]
+    fn build_variant_trends_buckets_weekday_saturday_sunday() {
+        // 2024-01-01 = Monday, 2024-01-06 = Saturday, 2024-01-07 = Sunday
+        let rows = vec![
+            SpeedTrendVariantRow {
+                variant_id: "VAR1".into(),
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 5.0,
+                scheduled_speed_mps: Some(6.0),
+            },
+            SpeedTrendVariantRow {
+                variant_id: "VAR1".into(),
+                service_date: "2024-01-06".into(),
+                actual_speed_mps: 6.0,
+                scheduled_speed_mps: Some(7.0),
+            },
+            SpeedTrendVariantRow {
+                variant_id: "VAR1".into(),
+                service_date: "2024-01-07".into(),
+                actual_speed_mps: 7.0,
+                scheduled_speed_mps: Some(8.0),
+            },
+        ];
+        let result = build_variant_trends(rows);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].variant_id, "VAR1");
+        assert_eq!(result[0].weekday, vec![("2024-01-01".to_string(), 5.0, Some(6.0))]);
+        assert_eq!(result[0].saturday, vec![("2024-01-06".to_string(), 6.0, Some(7.0))]);
+        assert_eq!(result[0].sunday, vec![("2024-01-07".to_string(), 7.0, Some(8.0))]);
+    }
+
+    #[test]
+    fn build_variant_trends_groups_two_variants() {
+        let rows = vec![
+            SpeedTrendVariantRow {
+                variant_id: "VAR1".into(),
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 5.0,
+                scheduled_speed_mps: Some(6.0),
+            },
+            SpeedTrendVariantRow {
+                variant_id: "VAR2".into(),
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 4.0,
+                scheduled_speed_mps: Some(5.0),
+            },
+        ];
+        let result = build_variant_trends(rows);
+        assert_eq!(result.len(), 2);
+        // sorted by variant_id
+        assert_eq!(result[0].variant_id, "VAR1");
+        assert_eq!(result[1].variant_id, "VAR2");
+        assert_eq!(result[0].weekday[0].1, 5.0);
+        assert_eq!(result[1].weekday[0].1, 4.0);
+    }
+
+    #[tokio::test]
+    async fn route_speed_trend_by_variant_groups_and_buckets() {
+        use chrono::{Datelike, Duration, Local};
+
+        fn last_monday(offset_weeks: i64) -> chrono::NaiveDate {
+            let today = Local::now().naive_local().date();
+            let days_from_monday = today.weekday().num_days_from_monday() as i64;
+            today - Duration::days(days_from_monday + offset_weeks * 7)
+        }
+        fn fmt(d: chrono::NaiveDate) -> String {
+            d.format("%Y-%m-%d").to_string()
+        }
+
+        let monday = last_monday(1);
+        let weekday_date = fmt(monday);
+        let saturday_date = fmt(monday + Duration::days(5));
+
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        sqlx::query(
+            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
+             VALUES ('0', 'R1', 0, 6.0, 1, 'now')",
+        ).execute(&db.pool).await.unwrap();
+
+        for (date, variant_id, speed) in [
+            (weekday_date.as_str(), "VAR1", 5.0_f64),
+            (saturday_date.as_str(), "VAR1", 6.0),
+            (weekday_date.as_str(), "VAR2", 4.0),
+        ] {
+            sqlx::query(
+                "INSERT INTO route_speed_daily
+                 (agency_id, route_id, service_date, direction_id, variant_id, actual_speed_mps, trip_count, computed_at)
+                 VALUES ('0', 'R1', $1, 0, $2, $3, 1, 'now')",
+            )
+            .bind(date)
+            .bind(variant_id)
+            .bind(speed)
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+
+        let trends = route_speed_trend_by_variant(db, "0", "R1", 28).await.unwrap();
+
+        assert_eq!(trends.len(), 2, "two variants expected");
+        assert_eq!(trends[0].variant_id, "VAR1");
+        assert_eq!(trends[0].weekday.len(), 1);
+        assert!((trends[0].weekday[0].1 - 5.0).abs() < 0.01);
+        assert_eq!(trends[0].saturday.len(), 1);
+        assert!((trends[0].saturday[0].1 - 6.0).abs() < 0.01);
+        assert_eq!(trends[1].variant_id, "VAR2");
+        assert_eq!(trends[1].weekday.len(), 1);
+        assert!((trends[1].weekday[0].1 - 4.0).abs() < 0.01);
     }
 }
