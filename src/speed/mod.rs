@@ -843,18 +843,25 @@ pub async fn compute_route_speed_daily(
         let trip_count = trip_speeds.len() as i64;
 
         let avg_dwell_secs: Option<f64> = sqlx::query_scalar!(
-            "SELECT AVG(ste.dwell_secs)::DOUBLE PRECISION
-             FROM stop_time_events ste
-             JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-             WHERE ste.agency_id = $1
-               AND t.route_id = $2
-               AND COALESCE(t.direction_id, 0) = $3
-               AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
-               AND ste.dwell_secs > 0",
+            "SELECT AVG(dwell_secs)::DOUBLE PRECISION
+             FROM (
+                 SELECT DISTINCT ON (ste.trip_id, ste.stop_id)
+                     ste.dwell_secs
+                 FROM stop_time_events ste
+                 JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
+                 WHERE ste.agency_id = $1
+                   AND t.route_id = $2
+                   AND COALESCE(t.direction_id, 0) = $3
+                   AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
+                   AND COALESCE(t.variant_id, '') = $5
+                   AND ste.dwell_secs > 0
+                 ORDER BY ste.trip_id, ste.stop_id, ste.arrival_time_unix DESC
+             ) deduped",
             &agency_id as &str,
             route_id as &str,
             *direction_id,
             &date_str as &str,
+            variant_id as &str,
         )
         .fetch_one(&db.pool)
         .await?;
