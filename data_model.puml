@@ -1,0 +1,234 @@
+@startuml mobilispect_data_model
+!theme plain
+skinparam linetype ortho
+skinparam roundcorner 8
+skinparam shadowing false
+skinparam defaultFontName "Helvetica Neue"
+skinparam defaultFontSize 12
+
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #AAAAAA
+  FontStyle bold
+}
+
+skinparam entity {
+  BackgroundColor #FFFFFF
+  BorderColor #555555
+}
+
+' ──────────────────────────────────────────
+' GTFS Static (Scheduled Plan)
+' ──────────────────────────────────────────
+package "GTFS Static (Plan)" {
+
+  entity routes {
+    * agency_id : TEXT
+    * route_id  : TEXT
+    --
+    short_name  : TEXT
+    long_name   : TEXT
+    route_type  : BIGINT
+  }
+
+  entity calendar {
+    * agency_id  : TEXT
+    * service_id : TEXT
+    --
+    monday    : BOOLEAN
+    tuesday   : BOOLEAN
+    wednesday : BOOLEAN
+    thursday  : BOOLEAN
+    friday    : BOOLEAN
+    saturday  : BOOLEAN
+    sunday    : BOOLEAN
+  }
+
+  entity trips {
+    * agency_id  : TEXT
+    * trip_id    : TEXT
+    --
+    route_id      : TEXT  <<FK routes>>
+    service_id    : TEXT  <<FK calendar>>
+    direction_id  : BIGINT
+    trip_headsign : TEXT
+  }
+
+  entity stops {
+    * agency_id : TEXT
+    * stop_id   : TEXT
+    --
+    stop_name : TEXT
+    stop_lat  : DOUBLE
+    stop_lon  : DOUBLE
+  }
+
+  entity scheduled_stops {
+    * agency_id     : TEXT
+    * trip_id       : TEXT  <<FK trips>>
+    * stop_sequence : BIGINT
+    --
+    stop_id        : TEXT  <<FK stops>>
+    arrival_time   : TEXT
+    departure_time : TEXT
+  }
+
+}
+
+' ──────────────────────────────────────────
+' GTFS Realtime (Observed Reality)
+' ──────────────────────────────────────────
+package "GTFS Realtime (Reality)" {
+
+  entity vehicle_positions {
+    * id            : BIGSERIAL
+    --
+    agency_id      : TEXT
+    observed_at    : TEXT
+    trip_id        : TEXT  <<FK trips>>
+    vehicle_id     : TEXT
+    latitude       : DOUBLE
+    longitude      : DOUBLE
+    bearing        : DOUBLE
+    speed          : DOUBLE
+    current_status : TEXT
+    stop_sequence  : BIGINT
+  }
+
+  entity stop_time_events {
+    * id            : BIGSERIAL
+    --
+    agency_id          : TEXT
+    observed_at        : TEXT
+    trip_id            : TEXT  <<FK trips>>
+    stop_id            : TEXT  <<FK stops>>
+    stop_sequence      : BIGINT
+    arrival_delay      : BIGINT
+    departure_delay    : BIGINT
+    arrival_time_unix  : BIGINT
+    departure_time_unix: BIGINT
+    dwell_secs         : BIGINT <<generated>>
+  }
+
+}
+
+' ──────────────────────────────────────────
+' Computed / Analytics
+' ──────────────────────────────────────────
+package "Computed Metrics" {
+
+  entity trip_results {
+    * agency_id    : TEXT
+    * trip_id      : TEXT  <<FK routes via trips>>
+    * service_date : TEXT
+    --
+    route_id       : TEXT
+    on_time        : BIGINT
+    avg_delay_secs : DOUBLE
+    max_delay_secs : DOUBLE
+    completed      : BIGINT
+    computed_at    : TEXT
+  }
+
+  entity route_daily {
+    * agency_id    : TEXT
+    * route_id     : TEXT  <<FK routes>>
+    * service_date : TEXT
+    --
+    on_time_pct    : DOUBLE
+    avg_delay_secs : DOUBLE
+    trips_run      : BIGINT
+    trips_total    : BIGINT
+    computed_at    : TEXT
+  }
+
+  entity route_speed {
+    * agency_id    : TEXT
+    * route_id     : TEXT  <<FK routes>>
+    * direction_id : BIGINT
+    --
+    scheduled_speed_mps : DOUBLE
+    trip_count          : BIGINT
+    computed_at         : TEXT
+  }
+
+  entity route_speed_daily {
+    * agency_id    : TEXT
+    * route_id     : TEXT  <<FK routes>>
+    * service_date : TEXT
+    * direction_id : BIGINT
+    --
+    actual_speed_mps : DOUBLE
+    trip_count       : BIGINT
+    computed_at      : TEXT
+  }
+
+  entity route_speed_hourly {
+    * agency_id    : TEXT
+    * route_id     : TEXT  <<FK routes>>
+    * direction_id : BIGINT
+    * hour_utc     : TEXT
+    --
+    actual_speed_mps : DOUBLE
+    trip_count       : BIGINT
+    computed_at      : TEXT
+  }
+
+  entity route_speed_day_type {
+    * agency_id    : TEXT
+    * route_id     : TEXT  <<FK routes>>
+    * direction_id : BIGINT
+    * day_type     : TEXT
+    --
+    scheduled_speed_mps : DOUBLE
+    trip_count          : BIGINT
+    computed_at         : TEXT
+  }
+
+}
+
+' ──────────────────────────────────────────
+' System / Reference
+' ──────────────────────────────────────────
+package "System" {
+
+  entity feed_info {
+    * key       : TEXT
+    --
+    value      : TEXT
+    updated_at : TEXT
+  }
+
+  entity benchmarks {
+    * id                    : BIGINT
+    --
+    system_name             : TEXT
+    city                    : TEXT
+    on_time_pct             : DOUBLE
+    speed_vs_scheduled_pct  : DOUBLE
+    source_url              : TEXT
+    year                    : INTEGER
+  }
+
+}
+
+' ──────────────────────────────────────────
+' Relationships
+' ──────────────────────────────────────────
+routes       ||--o{ trips                : "has"
+calendar     ||--o{ trips                : "schedule"
+trips        ||--o{ scheduled_stops      : "stops at"
+stops        ||--o{ scheduled_stops      : "visited by"
+trips        ||--o{ vehicle_positions    : "tracked by"
+trips        ||--o{ stop_time_events     : "observed as"
+stops        ||--o{ stop_time_events     : "observed at"
+
+stop_time_events ||--o{ trip_results     : "summarised into"
+trip_results     }o--|| routes           : "for"
+routes           ||--o{ route_daily      : "aggregated in"
+routes           ||--o{ route_speed      : "baseline"
+routes           ||--o{ route_speed_daily    : "actual daily"
+routes           ||--o{ route_speed_hourly   : "actual hourly"
+routes           ||--o{ route_speed_day_type : "by day type"
+
+@enduml

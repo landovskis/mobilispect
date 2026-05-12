@@ -738,7 +738,7 @@ pub async fn compute_route_speed_daily(
         let avg_speed = trip_speeds.iter().sum::<f64>() / trip_speeds.len() as f64;
         let trip_count = trip_speeds.len() as i64;
 
-        let avg_dwell_secs: Option<f64> = sqlx::query_scalar(
+        let avg_dwell_secs: Option<f64> = sqlx::query_scalar!(
             "SELECT AVG(ste.dwell_secs)::DOUBLE PRECISION
              FROM stop_time_events ste
              JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
@@ -747,11 +747,11 @@ pub async fn compute_route_speed_daily(
                AND COALESCE(t.direction_id, 0) = $3
                AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
                AND ste.dwell_secs > 0",
+            &agency_id as &str,
+            route_id as &str,
+            *direction_id,
+            &date_str as &str,
         )
-        .bind(&agency_id)
-        .bind(route_id)
-        .bind(direction_id)
-        .bind(&date_str)
         .fetch_one(&db.pool)
         .await?;
 
