@@ -2294,13 +2294,21 @@ mod tests {
         .await
         .unwrap();
 
-        // Seed route_speed_daily with a recent weekday row (2026-04-07 = Monday)
-        // and an old row that should be excluded (2024-01-01)
+        // Seed route_speed_daily with a recent weekday row (within 28 days)
+        // and an old row that should be excluded (2 years ago)
+        let recent_monday = {
+            use chrono::{Datelike, Duration, Local};
+            let today = Local::now().date_naive();
+            let days_from_monday = today.weekday().num_days_from_monday() as i64;
+            today - Duration::days(days_from_monday + 7)
+        };
+        let recent_monday_str = recent_monday.format("%Y-%m-%d").to_string();
         sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('0', 'R1', '2026-04-07', 0, 2.0, 1, '2026-04-07')",
+             VALUES ('0', 'R1', $1, 0, 2.0, 1, $1)",
         )
+        .bind(&recent_monday_str)
         .execute(&db.pool)
         .await
         .unwrap();
@@ -2505,6 +2513,14 @@ mod tests {
             .execute(&db.pool)
             .await
             .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 2, 1, true)",
+        ).execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
+            .execute(&db.pool).await.unwrap();
 
         compute_route_speed(&db, &test_agency()).await.unwrap();
 

@@ -962,6 +962,15 @@ mod e2e_tests {
         .execute(&td.db.pool)
         .await
         .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 2, 1, true)",
+        )
+        .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
+            .execute(&td.db.pool).await.unwrap();
 
         let state = AppState {
             db: td.db,
@@ -1340,6 +1349,15 @@ mod e2e_tests {
         .execute(&td.db.pool)
         .await
         .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 2, 1, true)",
+        )
+        .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
+            .execute(&td.db.pool).await.unwrap();
 
         let state = AppState {
             db: td.db,
