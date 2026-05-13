@@ -14,15 +14,18 @@ use crate::metrics::{
 };
 use crate::speed::{
     RouteClass, RouteSpeedCard, RouteSpeedSummary, StopSpacing,
-    build_speed_cards, classify_by_spacing,
-    route_speed_by_day_type, route_speed_summary, route_speed_trend_by_direction,
+    VariantSpeedTrend, build_speed_cards, classify_by_spacing,
+    route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,
     route_stop_spacings,
 };
 use crate::web::AppState;
 
 struct RouteSpeedDetailDirection {
+    pub variant_id: String,
     pub direction_name: String,
     pub first_stop_name: String,
+    pub is_primary: bool,
+    pub trip_count: i64,
     pub avg_spacing_m: f64,
     pub spacings: Vec<StopSpacing>,
     pub weekday_chart_id: String,
@@ -58,6 +61,18 @@ impl RouteSpeedDetailDirection {
         } else {
             ""
         }
+    }
+
+    pub fn direction_badge_label(&self) -> String {
+        if self.is_primary {
+            format!("Primary · {} trips", self.trip_count)
+        } else {
+            format!("{} trips", self.trip_count)
+        }
+    }
+
+    pub fn direction_badge_variant(&self) -> &'static str {
+        if self.is_primary { "oxford" } else { "neutral" }
     }
 }
 
@@ -121,7 +136,7 @@ pub async fn route_speed_detail(
 
     let (spacings_res, trends_res) = tokio::join!(
         route_stop_spacings(&state.db, &agency_id, &route_id),
-        route_speed_trend_by_direction(&state.db, &agency_id, &route_id, 28),
+        route_speed_trend_by_variant(&state.db, &agency_id, &route_id, 28),
     );
 
     let spacings = spacings_res.unwrap_or_else(|e| {
@@ -129,7 +144,7 @@ pub async fn route_speed_detail(
         vec![]
     });
     let trends = trends_res.unwrap_or_else(|e| {
-        tracing::error!("route_speed_trend_by_direction failed for {agency_id}/{route_id}: {e}");
+        tracing::error!("route_speed_trend_by_variant failed for {agency_id}/{route_id}: {e}");
         vec![]
     });
 
@@ -147,13 +162,16 @@ pub async fn route_speed_detail(
         .map(|(i, spacing)| {
             let trend = trends
                 .iter()
-                .find(|t| t.direction_id == spacing.direction_id);
+                .find(|t| t.variant_id == spacing.variant_id);
             let (weekday, saturday, sunday) = trend
                 .map(|t| (t.weekday.clone(), t.saturday.clone(), t.sunday.clone()))
                 .unwrap_or_default();
             RouteSpeedDetailDirection {
+                variant_id: spacing.variant_id,
                 direction_name: spacing.direction_name,
                 first_stop_name: spacing.first_stop_name,
+                is_primary: spacing.is_primary,
+                trip_count: spacing.trip_count,
                 avg_spacing_m: spacing.avg_spacing_m,
                 spacings: spacing.spacings,
                 weekday_chart_id: format!("weekday-{i}"),
@@ -842,8 +860,11 @@ mod tests {
 
     fn direction(avg_spacing_m: f64) -> RouteSpeedDetailDirection {
         RouteSpeedDetailDirection {
+            variant_id: String::new(),
             direction_name: String::new(),
             first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
             avg_spacing_m,
             spacings: vec![],
             weekday_chart_id: String::new(),
