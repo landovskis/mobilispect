@@ -846,7 +846,7 @@ pub async fn compute_route_speed_daily(
             "SELECT AVG(dwell_secs)::DOUBLE PRECISION
              FROM (
                  SELECT DISTINCT ON (ste.trip_id, ste.stop_id)
-                     ste.dwell_secs
+                     LEAST(ste.dwell_secs, 300) AS dwell_secs
                  FROM stop_time_events ste
                  JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
                  WHERE ste.agency_id = $1
@@ -2710,6 +2710,55 @@ mod tests {
         assert!(
             (dwell - 25.0).abs() < 0.01,
             "expected 25.0 (deduped), got {dwell} — duplicate rows are inflating the average"
+        );
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_daily_caps_dwell_at_300s() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let agency = test_agency();
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','Stop 1',45.50,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Stop 2',45.51,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
+            .execute(&db.pool).await.unwrap();
+        // S1: 1200s dwell (20 min anomaly) → should be capped to 300s
+        // S2: 60s dwell → kept as-is
+        // Expected avg: (300 + 60) / 2 = 180s
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:00:00Z','T1','S1',1,1000,2200)",
+        )
+        .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:10:00Z','T1','S2',2,4000,4060)",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        let service_date = chrono::NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        compute_route_speed_daily(&db, &agency, service_date).await.unwrap();
+
+        let dwell: Option<f64> = sqlx::query_scalar(
+            "SELECT avg_dwell_secs FROM route_speed_daily WHERE agency_id = '0' AND route_id = 'R1'",
+        )
+        .fetch_one(&db.pool).await.unwrap();
+
+        let dwell = dwell.expect("expected avg_dwell_secs to be Some");
+        assert!(
+            (dwell - 180.0).abs() < 0.01,
+            "expected 180.0 ((300+60)/2 with cap), got {dwell}"
         );
     }
 
