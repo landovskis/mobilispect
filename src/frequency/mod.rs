@@ -56,6 +56,14 @@ impl RouteHeadwayRow {
         Self::headway_badge_variant(self.sunday_headway_mins)
     }
 
+    pub fn direction_label(&self) -> &'static str {
+        match self.direction_id {
+            0 => "Outbound",
+            1 => "Inbound",
+            _ => "—",
+        }
+    }
+
     pub fn primary_headway_min(&self) -> Option<f64> {
         self.weekday_headway_mins
             .or(self.saturday_headway_mins)
@@ -234,6 +242,19 @@ mod tests {
             saturday_headway_mins: sat,
             sunday_headway_mins: sun,
         }
+    }
+
+    #[test]
+    fn direction_label_outbound() {
+        let row = make_row(None, None, None);
+        assert_eq!(row.direction_label(), "Outbound"); // direction_id = 0 from make_row
+    }
+
+    #[test]
+    fn direction_label_inbound() {
+        let mut row = make_row(None, None, None);
+        row.direction_id = 1;
+        assert_eq!(row.direction_label(), "Inbound");
     }
 
     #[test]

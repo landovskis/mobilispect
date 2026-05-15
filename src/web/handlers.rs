@@ -1444,4 +1444,81 @@ mod e2e_tests {
         );
     }
 
+    #[tokio::test]
+    async fn frequency_page_returns_full_html() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/frequency")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(
+            html.contains("<html"),
+            "full page response must contain an <html> element"
+        );
+        assert!(
+            html.contains("Route Frequency"),
+            "full page response must contain the page title text"
+        );
+        assert!(
+            html.contains(r#"id="freq-content""#),
+            "full page response must contain the freq-content swap target"
+        );
+    }
+
+    #[tokio::test]
+    async fn frequency_page_with_hx_request_returns_fragment() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/frequency")
+                    .header("hx-request", "true")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(
+            html.contains(r#"id="freq-content""#),
+            "fragment must contain the freq-content swap target div"
+        );
+        assert!(
+            !html.contains("<!DOCTYPE html"),
+            "fragment must not contain a full HTML document"
+        );
+        assert!(
+            !html.contains("<html"),
+            "fragment must not contain an <html> element"
+        );
+    }
+
 }

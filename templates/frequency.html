@@ -49,6 +49,11 @@
       <p class="page-subtitle">Routes ranked by average headway — most frequent first</p>
     </div>
   </div>
+  <span id="freq-loading"
+        class="freq-loading htmx-indicator"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true">Loading route frequency</span>
   {% include "frequency_content.html" %}
 </div>
 {% endblock %}

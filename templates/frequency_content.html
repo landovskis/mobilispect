@@ -16,11 +16,6 @@
        hx-push-url="true"
        class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
     {% endfor %}
-    <span id="freq-loading"
-          class="freq-loading htmx-indicator"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true">Loading</span>
   </div>
 
   {% if rows.is_empty() %}
@@ -44,9 +39,7 @@
         <td style="color:var(--ink-500);font-size:0.8rem;">{{ i + 1 }}</td>
         <td><span class="route-id">{{ row.short_name }}</span></td>
         <td style="color:var(--ink-700);">{{ row.long_name }}</td>
-        <td style="color:var(--ink-500);font-size:0.85rem;">
-          {% if row.direction_id == 0 %}Outbound{% else %}Inbound{% endif %}
-        </td>
+        <td style="color:var(--ink-500);font-size:0.85rem;">{{ row.direction_label() }}</td>
         <td>
           <span class="badge badge--{{ row.weekday_badge_variant() }}">{{ row.weekday_display() }}</span>
         </td>
