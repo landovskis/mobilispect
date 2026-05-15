@@ -18,6 +18,7 @@ use crate::speed::{
     route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,
     route_stop_spacings,
 };
+use crate::frequency::{RouteHeadwayRow, route_headways};
 use crate::web::AppState;
 
 struct RouteSpeedDetailDirection {
@@ -656,6 +657,61 @@ pub async fn api_route_speed(
                 axum::Json(serde_json::json!({ "error": e.to_string() })),
             )
         })
+}
+
+#[derive(Template)]
+#[template(path = "frequency.html")]
+struct FrequencyTemplate {
+    region_name: String,
+    rows: Vec<RouteHeadwayRow>,
+    agencies: Vec<(String, String)>,
+    active_agency: String,
+}
+
+#[derive(Template)]
+#[template(path = "frequency_content.html")]
+struct FrequencyContentTemplate {
+    rows: Vec<RouteHeadwayRow>,
+    agencies: Vec<(String, String)>,
+    active_agency: String,
+}
+
+pub async fn frequency_page(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Query(params): Query<AgencyFilterParams>,
+) -> Html<String> {
+    let agencies: Vec<(String, String)> = state
+        .config
+        .agencies
+        .iter()
+        .map(|a| (a.id.to_string(), a.name.clone()))
+        .collect();
+    let active_agency = params
+        .agency
+        .filter(|s| agencies.iter().any(|(id, _)| id == s))
+        .unwrap_or_default();
+    let filter = if active_agency.is_empty() {
+        None
+    } else {
+        Some(active_agency.as_str())
+    };
+    let rows = route_headways(&state.db, filter)
+        .await
+        .unwrap_or_default();
+
+    if headers.contains_key("hx-request") {
+        let tmpl = FrequencyContentTemplate { rows, agencies, active_agency };
+        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+    } else {
+        let tmpl = FrequencyTemplate {
+            region_name: state.config.region.name.clone(),
+            rows,
+            agencies,
+            active_agency,
+        };
+        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+    }
 }
 
 #[cfg(test)]
