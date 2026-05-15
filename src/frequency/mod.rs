@@ -202,6 +202,7 @@ mod tests {
 
     #[test]
     fn headway_badge_variant_good() {
+        assert_eq!(RouteHeadwayRow::headway_badge_variant(Some(0.0)), "good");
         assert_eq!(RouteHeadwayRow::headway_badge_variant(Some(9.9)), "good");
     }
 
