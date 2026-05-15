@@ -233,6 +233,7 @@
         .badge--bad     { background: var(--civic-red-bg);   color: var(--civic-red); }
         .badge--mixed   { background: var(--civic-amber-bg); color: var(--civic-amber); }
         .badge--neutral { background: var(--link-blue-bg);   color: var(--link-blue); }
+        .badge--oxford  { background: var(--link-blue-bg);   color: var(--link-blue); }
 
         .mono {
             font-family: 'Fira Code', monospace;
@@ -453,6 +454,7 @@
         </a>
         <nav>
             <a href="/" class="{% block nav_speed %}{% endblock %}">Speeds</a>
+            <a href="/frequency" class="{% block nav_frequency %}{% endblock %}">Frequency</a>
             <button id="theme-toggle" type="button" aria-label="Toggle colour scheme" onclick="toggleTheme()"
               style="background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);border-radius:6px;padding:4px 10px;cursor:pointer;font-family:'Fira Code',monospace;font-size:0.68rem;letter-spacing:0.05em;display:flex;align-items:center;gap:6px;">
               <span id="theme-icon">☀️</span><span id="theme-label">LIGHT</span>

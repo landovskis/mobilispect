@@ -130,7 +130,10 @@ pub struct StopSpacing {
 /// All stop spacings for one direction of a route.
 pub struct DirectionStopSpacings {
     pub direction_id: i64,
-    /// Name of the terminal (last) stop — used as the direction label.
+    pub variant_id: String,
+    pub is_primary: bool,
+    pub trip_count: i64,
+    /// "First Stop → Last Stop"
     pub direction_name: String,
     /// Name of the first stop — rendered as the leftmost dot in the strip.
     pub first_stop_name: String,
@@ -142,7 +145,10 @@ pub struct DirectionStopSpacings {
 /// Raw row returned by the stop spacings SQL query.
 #[derive(sqlx::FromRow)]
 struct StopSpacingEntry {
+    variant_id: String,
     direction_id: i64,
+    is_primary: bool,
+    trip_count: i64,
     to_stop_name: String,
     distance_m: Option<f64>,
     is_first: bool,
@@ -175,10 +181,10 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
     let mut result: Vec<DirectionStopSpacings> = Vec::new();
     let mut i = 0;
     while i < rows.len() {
-        let dir_id = rows[i].direction_id;
+        let variant_id = rows[i].variant_id.clone();
         let end = rows[i..]
             .iter()
-            .position(|r| r.direction_id != dir_id)
+            .position(|r| r.variant_id != variant_id)
             .map(|p| i + p)
             .unwrap_or(rows.len());
         let dir_rows = &rows[i..end];
@@ -189,11 +195,13 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
             .map(|r| r.to_stop_name.clone())
             .unwrap_or_default();
 
-        let direction_name = dir_rows
+        let last_stop_name = dir_rows
             .iter()
             .find(|r| r.is_last)
             .map(|r| r.to_stop_name.clone())
             .unwrap_or_default();
+
+        let direction_name = format!("{first_stop_name} → {last_stop_name}");
 
         let distances: Vec<(String, f64)> = dir_rows
             .iter()
@@ -237,8 +245,12 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
             })
             .collect();
 
+        let first_row = &dir_rows[0];
         result.push(DirectionStopSpacings {
-            direction_id: dir_id,
+            direction_id: first_row.direction_id,
+            variant_id: variant_id.clone(),
+            is_primary: first_row.is_primary,
+            trip_count: first_row.trip_count,
             direction_name,
             first_stop_name,
             avg_spacing_m,
@@ -318,6 +330,89 @@ fn build_direction_trends_with_scheduled(rows: Vec<SpeedTrendRow>) -> Vec<Direct
     build_direction_trends(rows)
 }
 
+pub struct VariantSpeedTrend {
+    pub variant_id: String,
+    pub weekday: Vec<(String, f64, Option<f64>)>,
+    pub saturday: Vec<(String, f64, Option<f64>)>,
+    pub sunday: Vec<(String, f64, Option<f64>)>,
+}
+
+#[derive(sqlx::FromRow)]
+struct SpeedTrendVariantRow {
+    variant_id: String,
+    service_date: String,
+    actual_speed_mps: f64,
+    scheduled_speed_mps: Option<f64>,
+}
+
+fn build_variant_trends(rows: Vec<SpeedTrendVariantRow>) -> Vec<VariantSpeedTrend> {
+    use chrono::Datelike;
+    use std::str::FromStr;
+
+    let mut map: std::collections::HashMap<
+        String,
+        (
+            Vec<(String, f64, Option<f64>)>,
+            Vec<(String, f64, Option<f64>)>,
+            Vec<(String, f64, Option<f64>)>,
+        ),
+    > = std::collections::HashMap::new();
+
+    for row in rows {
+        let dow = chrono::NaiveDate::from_str(&row.service_date)
+            .map(|d| d.weekday().num_days_from_sunday())
+            .unwrap_or(1);
+        let entry = map.entry(row.variant_id).or_default();
+        let point = (row.service_date, row.actual_speed_mps, row.scheduled_speed_mps);
+        match dow {
+            0 => entry.2.push(point), // Sunday
+            6 => entry.1.push(point), // Saturday
+            _ => entry.0.push(point), // Weekday
+        }
+    }
+
+    let mut result: Vec<VariantSpeedTrend> = map
+        .into_iter()
+        .map(|(variant_id, (weekday, saturday, sunday))| VariantSpeedTrend {
+            variant_id,
+            weekday,
+            saturday,
+            sunday,
+        })
+        .collect();
+    result.sort_by(|a, b| a.variant_id.cmp(&b.variant_id));
+    result
+}
+
+pub async fn route_speed_trend_by_variant(
+    db: &Database,
+    agency_id: &str,
+    route_id: &str,
+    days: i64,
+) -> Result<Vec<VariantSpeedTrend>> {
+    let rows: Vec<SpeedTrendVariantRow> = sqlx::query_as(
+        "SELECT d.variant_id,
+                d.service_date,
+                d.actual_speed_mps,
+                r.scheduled_speed_mps
+         FROM route_speed_daily d
+         LEFT JOIN route_speed r ON r.agency_id = d.agency_id
+           AND r.route_id = d.route_id AND r.direction_id = d.direction_id
+         WHERE d.agency_id = $1
+           AND d.route_id = $2
+           AND d.variant_id != ''
+           AND d.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
+         ORDER BY d.variant_id, d.service_date",
+    )
+    .bind(agency_id)
+    .bind(route_id)
+    .bind(days)
+    .fetch_all(&db.pool)
+    .await?;
+
+    Ok(build_variant_trends(rows))
+}
+
 /// Fetch per-stop spacing data for a single route, grouped by direction.
 /// Returns one `DirectionStopSpacings` per direction. Empty if route has no trips.
 pub async fn route_stop_spacings(
@@ -326,32 +421,38 @@ pub async fn route_stop_spacings(
     route_id: &str,
 ) -> Result<Vec<DirectionStopSpacings>> {
     let rows: Vec<StopSpacingEntry> = sqlx::query_as(
-        "WITH primary_variant AS (
-            SELECT variant_id, direction_id
+        "WITH all_variants AS (
+            SELECT variant_id, direction_id, is_primary, trip_count
             FROM route_variants
-            WHERE agency_id = $1 AND route_id = $2 AND is_primary = TRUE
-            -- one row per direction (each direction has exactly one primary variant)
+            WHERE agency_id = $1 AND route_id = $2
         ),
         ordered AS (
             SELECT
-                pv.direction_id,
+                av.variant_id,
+                av.direction_id,
+                av.is_primary,
+                av.trip_count,
                 s.stop_name,
                 s.stop_lat, s.stop_lon,
-                ROW_NUMBER() OVER (PARTITION BY pv.direction_id ORDER BY rvs.stop_sequence) AS rn,
-                COUNT(*)    OVER (PARTITION BY pv.direction_id)                              AS total_stops
-            FROM primary_variant pv
-            JOIN route_variant_stops rvs ON rvs.agency_id = $1 AND rvs.variant_id = pv.variant_id
+                ROW_NUMBER() OVER (PARTITION BY av.variant_id ORDER BY rvs.stop_sequence) AS rn,
+                COUNT(*)    OVER (PARTITION BY av.variant_id)                              AS total_stops
+            FROM all_variants av
+            JOIN route_variant_stops rvs ON rvs.agency_id = $1 AND rvs.variant_id = av.variant_id
             JOIN stops s ON s.agency_id = $1 AND s.stop_id = rvs.stop_id
         ),
         with_prev AS (
             SELECT
-                direction_id, stop_name, rn, total_stops, stop_lat, stop_lon,
-                LAG(stop_lat) OVER (PARTITION BY direction_id ORDER BY rn) AS prev_lat,
-                LAG(stop_lon) OVER (PARTITION BY direction_id ORDER BY rn) AS prev_lon
+                variant_id, direction_id, is_primary, trip_count,
+                stop_name, rn, total_stops, stop_lat, stop_lon,
+                LAG(stop_lat) OVER (PARTITION BY variant_id ORDER BY rn) AS prev_lat,
+                LAG(stop_lon) OVER (PARTITION BY variant_id ORDER BY rn) AS prev_lon
             FROM ordered
         )
         SELECT
+            variant_id,
             direction_id,
+            is_primary,
+            trip_count,
             stop_name AS to_stop_name,
             CASE WHEN prev_lat IS NOT NULL THEN
                 2 * 6371000 * asin(sqrt(
@@ -363,7 +464,7 @@ pub async fn route_stop_spacings(
             (rn = 1)           AS is_first,
             (rn = total_stops) AS is_last
         FROM with_prev
-        ORDER BY direction_id, rn",
+        ORDER BY trip_count DESC, variant_id, rn",
     )
     .bind(&agency_id)
     .bind(route_id)
@@ -661,9 +762,12 @@ pub async fn compute_route_speed_daily(
     let now = Utc::now().to_rfc3339();
     let agency_id = agency.id.to_string();
 
-    // All distinct route + direction combos with stop time events on this date.
-    let combos: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
+    // All distinct route + direction + variant combos with stop time events on this date.
+    let combos: Vec<(String, i64, String)> = sqlx::query_as(
+        "SELECT DISTINCT
+             t.route_id,
+             COALESCE(t.direction_id, 0) AS direction_id,
+             COALESCE(t.variant_id, '')  AS variant_id
          FROM stop_time_events ste
          JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
          WHERE ste.agency_id = $1 AND ste.observed_at::TIMESTAMPTZ::DATE = $2::DATE
@@ -674,19 +778,19 @@ pub async fn compute_route_speed_daily(
     .fetch_all(&db.pool)
     .await?;
 
-    for (route_id, direction_id) in &combos {
+    for (route_id, direction_id, variant_id) in &combos {
         let trips: Vec<(String,)> = sqlx::query_as(
             "SELECT DISTINCT ste.trip_id
              FROM stop_time_events ste
              JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
              WHERE t.agency_id = $1 AND t.route_id = $2
-               AND COALESCE(t.direction_id, 0) = $3
+               AND COALESCE(t.variant_id, '') = $3
                AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
                AND ste.arrival_time_unix IS NOT NULL",
         )
         .bind(&agency_id)
         .bind(route_id)
-        .bind(direction_id)
+        .bind(variant_id)
         .bind(&date_str)
         .fetch_all(&db.pool)
         .await?;
@@ -738,20 +842,47 @@ pub async fn compute_route_speed_daily(
         let avg_speed = trip_speeds.iter().sum::<f64>() / trip_speeds.len() as f64;
         let trip_count = trip_speeds.len() as i64;
 
+        let avg_dwell_secs: Option<f64> = sqlx::query_scalar!(
+            "SELECT AVG(dwell_secs)::DOUBLE PRECISION
+             FROM (
+                 SELECT DISTINCT ON (ste.trip_id, ste.stop_id)
+                     LEAST(ste.dwell_secs, 300) AS dwell_secs
+                 FROM stop_time_events ste
+                 JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
+                 WHERE ste.agency_id = $1
+                   AND t.route_id = $2
+                   AND COALESCE(t.direction_id, 0) = $3
+                   AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
+                   AND COALESCE(t.variant_id, '') = $5
+                   AND ste.dwell_secs > 0
+                 ORDER BY ste.trip_id, ste.stop_id, ste.arrival_time_unix DESC
+             ) deduped",
+            &agency_id as &str,
+            route_id as &str,
+            *direction_id,
+            &date_str as &str,
+            variant_id as &str,
+        )
+        .fetch_one(&db.pool)
+        .await?;
+
         sqlx::query!(
             "INSERT INTO route_speed_daily
-             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (agency_id, route_id, service_date, direction_id) DO UPDATE SET
+             (agency_id, route_id, service_date, direction_id, variant_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             ON CONFLICT (agency_id, route_id, service_date, direction_id, variant_id) DO UPDATE SET
                actual_speed_mps = EXCLUDED.actual_speed_mps,
                trip_count = EXCLUDED.trip_count,
+               avg_dwell_secs = EXCLUDED.avg_dwell_secs,
                computed_at = EXCLUDED.computed_at",
             &agency_id,
             route_id,
             date_str,
             direction_id,
+            variant_id,
             avg_speed,
             trip_count,
+            avg_dwell_secs as Option<f64>,
             now,
         )
         .execute(&db.pool)
@@ -999,6 +1130,8 @@ pub struct RouteSpeedDayType {
     pub last_stop_name: Option<String>,
     /// Average distance between consecutive stops for this route+direction (metres).
     pub avg_stop_spacing_m: Option<f64>,
+    /// Average dwell time at stops over the last 28 days (seconds). None if no data.
+    pub avg_dwell_secs: Option<f64>,
 }
 
 pub async fn route_speed_by_day_type(
@@ -1015,7 +1148,8 @@ pub async fn route_speed_by_day_type(
                 AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) = 6
                          THEN actual_speed_mps END) AS actual_saturday_speed_mps,
                 AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) = 0
-                         THEN actual_speed_mps END) AS actual_sunday_speed_mps
+                         THEN actual_speed_mps END) AS actual_sunday_speed_mps,
+                AVG(avg_dwell_secs) AS avg_dwell_secs
             FROM route_speed_daily
             WHERE service_date::date >= CURRENT_DATE - INTERVAL '28 days'
               AND actual_speed_mps IS NOT NULL
@@ -1050,6 +1184,7 @@ pub async fn route_speed_by_day_type(
           act.actual_weekday_speed_mps,
           act.actual_saturday_speed_mps,
           act.actual_sunday_speed_mps,
+          act.avg_dwell_secs,
           lsn.stop_name AS last_stop_name,
           rs.avg_stop_spacing_m
         FROM route_speed rs
@@ -1503,6 +1638,54 @@ mod tests {
             "expected ~1.235 m/s, got {speed}"
         );
         assert_eq!(count, 1);
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_daily_stores_variant_id() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        // Trip T1 with variant_id set
+        sqlx::query(
+            "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id, variant_id)
+             VALUES ('0', 'T1', 'R1', 'WD', 0, 'VAR1')",
+        ).execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        ).execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        ).execute(&db.pool).await.unwrap();
+
+        let t_s1: i64 = 1767225600;
+        let t_s2: i64 = t_s1 + 900;
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
+             VALUES ('0', '2026-01-01T08:00:00Z', 'T1', 'S1', 1, $1)",
+        ).bind(t_s1).execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
+             VALUES ('0', '2026-01-01T08:15:00Z', 'T1', 'S2', 2, $1)",
+        ).bind(t_s2).execute(&db.pool).await.unwrap();
+
+        let date = chrono::NaiveDate::from_ymd_opt(2026, 1, 1).unwrap();
+        compute_route_speed_daily(&db, &test_agency(), date).await.unwrap();
+
+        let variant_id: (String,) = sqlx::query_as(
+            "SELECT variant_id FROM route_speed_daily WHERE route_id = 'R1' AND service_date = '2026-01-01'",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(variant_id.0, "VAR1");
     }
 
     #[tokio::test]
@@ -2111,13 +2294,21 @@ mod tests {
         .await
         .unwrap();
 
-        // Seed route_speed_daily with a recent weekday row (2026-04-07 = Monday)
-        // and an old row that should be excluded (2024-01-01)
+        // Seed route_speed_daily with a recent weekday row (within 28 days)
+        // and an old row that should be excluded (2 years ago)
+        let recent_monday = {
+            use chrono::{Datelike, Duration, Local};
+            let today = Local::now().date_naive();
+            let days_from_monday = today.weekday().num_days_from_monday() as i64;
+            today - Duration::days(days_from_monday + 7)
+        };
+        let recent_monday_str = recent_monday.format("%Y-%m-%d").to_string();
         sqlx::query(
             "INSERT INTO route_speed_daily
              (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('0', 'R1', '2026-04-07', 0, 2.0, 1, '2026-04-07')",
+             VALUES ('0', 'R1', $1, 0, 2.0, 1, $1)",
         )
+        .bind(&recent_monday_str)
         .execute(&db.pool)
         .await
         .unwrap();
@@ -2322,6 +2513,14 @@ mod tests {
             .execute(&db.pool)
             .await
             .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 2, 1, true)",
+        ).execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
+            .execute(&db.pool).await.unwrap();
 
         compute_route_speed(&db, &test_agency()).await.unwrap();
 
@@ -2346,34 +2545,263 @@ mod tests {
         assert_eq!(rows[0].avg_stop_spacing_m, persisted.0);
     }
 
+    #[tokio::test]
+    async fn route_speed_by_day_type_aggregates_avg_dwell_secs() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed
+             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
+             VALUES ('0', 'R1', 0, 8.0, 500.0, 1, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool).await.unwrap();
+        // Two weekday rows within the 28-day window with avg_dwell_secs
+        sqlx::query(
+            "INSERT INTO route_speed_daily
+             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
+             VALUES
+               ('0', 'R1', (CURRENT_DATE - INTERVAL '2 days')::TEXT, 0, 5.0, 10, 25.0, '2026-01-01T00:00:00Z'),
+               ('0', 'R1', (CURRENT_DATE - INTERVAL '3 days')::TEXT, 0, 5.0, 10, 35.0, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        let rows = route_speed_by_day_type(&db, None).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        let dwell = rows[0].avg_dwell_secs.expect("expected avg_dwell_secs to be Some");
+        assert!(
+            (dwell - 30.0).abs() < 0.01,
+            "expected avg dwell ~30.0, got {dwell}"
+        );
+    }
+
+    #[tokio::test]
+    async fn route_speed_by_day_type_avg_dwell_secs_null_when_no_dwell_data() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed
+             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
+             VALUES ('0', 'R1', 0, 8.0, 500.0, 1, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed_daily
+             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
+             VALUES ('0', 'R1', (CURRENT_DATE - INTERVAL '1 day')::TEXT, 0, 5.0, 10, NULL, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        let rows = route_speed_by_day_type(&db, None).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        assert!(rows[0].avg_dwell_secs.is_none());
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_daily_stores_avg_dwell_secs() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let agency = test_agency();
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','Stop 1',45.50,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Stop 2',45.51,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
+            .execute(&db.pool).await.unwrap();
+        // S1: arrive 1000, depart 1030 → dwell_secs = 30
+        // S2: arrive 1700, depart 1720 → dwell_secs = 20
+        // avg = 25.0
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:00:00Z','T1','S1',1,1000,1030)",
+        )
+        .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:10:00Z','T1','S2',2,1700,1720)",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        let service_date = chrono::NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        compute_route_speed_daily(&db, &agency, service_date)
+            .await
+            .unwrap();
+
+        let dwell: Option<f64> = sqlx::query_scalar(
+            "SELECT avg_dwell_secs FROM route_speed_daily WHERE agency_id = '0' AND route_id = 'R1'",
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+
+        let dwell = dwell.expect("expected avg_dwell_secs to be Some");
+        assert!(
+            (dwell - 25.0).abs() < 0.01,
+            "expected avg dwell ~25.0 (30+20)/2, got {dwell}"
+        );
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_daily_deduplicates_dwell_per_stop_visit() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let agency = test_agency();
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','Stop 1',45.50,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Stop 2',45.51,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
+            .execute(&db.pool).await.unwrap();
+
+        // S1: dwell = 30s, but appears 5 times due to repeated RT polls
+        for i in 0..5i64 {
+            sqlx::query(
+                "INSERT INTO stop_time_events
+                 (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+                 VALUES ('0','2026-04-01T08:00:00Z','T1','S1',1,1000,1030)",
+            )
+            .execute(&db.pool).await.unwrap();
+            let _ = i;
+        }
+        // S2: dwell = 20s, appears once
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:10:00Z','T1','S2',2,1700,1720)",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        // Without dedup: (30×5 + 20×1)/6 = 170/6 ≈ 28.3s — wrong
+        // With dedup:    (30 + 20)/2       = 25.0s — correct
+        let service_date = chrono::NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        compute_route_speed_daily(&db, &agency, service_date).await.unwrap();
+
+        let dwell: Option<f64> = sqlx::query_scalar(
+            "SELECT avg_dwell_secs FROM route_speed_daily WHERE agency_id = '0' AND route_id = 'R1'",
+        )
+        .fetch_one(&db.pool).await.unwrap();
+
+        let dwell = dwell.expect("expected avg_dwell_secs to be Some");
+        assert!(
+            (dwell - 25.0).abs() < 0.01,
+            "expected 25.0 (deduped), got {dwell} — duplicate rows are inflating the average"
+        );
+    }
+
+    #[tokio::test]
+    async fn compute_route_speed_daily_caps_dwell_at_300s() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let agency = test_agency();
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S1','Stop 1',45.50,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0','S2','Stop 2',45.51,-73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S1',1,'08:00:00','08:00:00')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO scheduled_stops VALUES ('0','T1','S2',2,'08:10:00','08:10:00')")
+            .execute(&db.pool).await.unwrap();
+        // S1: 1200s dwell (20 min anomaly) → should be capped to 300s
+        // S2: 60s dwell → kept as-is
+        // Expected avg: (300 + 60) / 2 = 180s
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:00:00Z','T1','S1',1,1000,2200)",
+        )
+        .execute(&db.pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix, departure_time_unix)
+             VALUES ('0','2026-04-01T08:10:00Z','T1','S2',2,4000,4060)",
+        )
+        .execute(&db.pool).await.unwrap();
+
+        let service_date = chrono::NaiveDate::from_ymd_opt(2026, 4, 1).unwrap();
+        compute_route_speed_daily(&db, &agency, service_date).await.unwrap();
+
+        let dwell: Option<f64> = sqlx::query_scalar(
+            "SELECT avg_dwell_secs FROM route_speed_daily WHERE agency_id = '0' AND route_id = 'R1'",
+        )
+        .fetch_one(&db.pool).await.unwrap();
+
+        let dwell = dwell.expect("expected avg_dwell_secs to be Some");
+        assert!(
+            (dwell - 180.0).abs() < 0.01,
+            "expected 180.0 ((300+60)/2 with cap), got {dwell}"
+        );
+    }
+
     #[test]
     fn build_direction_spacings_flags_outliers() {
         // distances: [100, 100, 300] → avg = 166.7, threshold = 1.5 × 166.7 = 250
         // only the 300m segment is an outlier
         let rows = vec![
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "B".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "C".into(),
                 distance_m: Some(300.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "D".into(),
                 distance_m: Some(100.0),
                 is_first: true,
@@ -2392,21 +2820,30 @@ mod tests {
     fn build_direction_spacings_sets_first_and_direction_names() {
         let rows = vec![
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "Origin".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "Middle".into(),
                 distance_m: Some(100.0),
                 is_first: false,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "Terminal".into(),
                 distance_m: Some(100.0),
                 is_first: false,
@@ -2415,35 +2852,47 @@ mod tests {
         ];
         let result = build_direction_spacings(rows);
         assert_eq!(result[0].first_stop_name, "Origin");
-        assert_eq!(result[0].direction_name, "Terminal");
+        assert_eq!(result[0].direction_name, "Origin → Terminal");
     }
 
     #[test]
     fn build_direction_spacings_groups_two_directions() {
         let rows = vec![
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "B".into(),
                 distance_m: Some(300.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR1".into(),
                 direction_id: 1,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "X".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR1".into(),
                 direction_id: 1,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "Y".into(),
                 distance_m: Some(100.0),
                 is_first: true,
@@ -2460,21 +2909,30 @@ mod tests {
     fn build_direction_spacings_width_px_max_is_200() {
         let rows = vec![
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "A".into(),
                 distance_m: Some(100.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "B".into(),
                 distance_m: Some(300.0),
                 is_first: true,
                 is_last: false,
             },
             StopSpacingEntry {
+                variant_id: "VAR0".into(),
                 direction_id: 0,
+                is_primary: true,
+                trip_count: 1,
                 to_stop_name: "C".into(),
                 distance_m: Some(100.0),
                 is_first: true,
@@ -2491,6 +2949,66 @@ mod tests {
             spacings[0].width_px < 200,
             "smaller distance should map to less than 200px"
         );
+    }
+
+    #[test]
+    fn build_direction_spacings_formats_direction_name_as_first_to_last() {
+        let rows = vec![
+            StopSpacingEntry {
+                variant_id: "VAR1".into(),
+                direction_id: 0,
+                is_primary: true,
+                trip_count: 5,
+                to_stop_name: "First Stop".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingEntry {
+                variant_id: "VAR1".into(),
+                direction_id: 0,
+                is_primary: true,
+                trip_count: 5,
+                to_stop_name: "Last Stop".into(),
+                distance_m: Some(500.0),
+                is_first: false,
+                is_last: true,
+            },
+        ];
+        let result = build_direction_spacings(rows);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].direction_name, "First Stop → Last Stop");
+    }
+
+    #[test]
+    fn build_direction_spacings_carries_variant_fields() {
+        let rows = vec![
+            StopSpacingEntry {
+                variant_id: "VARABC".into(),
+                direction_id: 1,
+                is_primary: false,
+                trip_count: 3,
+                to_stop_name: "A".into(),
+                distance_m: None,
+                is_first: true,
+                is_last: false,
+            },
+            StopSpacingEntry {
+                variant_id: "VARABC".into(),
+                direction_id: 1,
+                is_primary: false,
+                trip_count: 3,
+                to_stop_name: "B".into(),
+                distance_m: Some(300.0),
+                is_first: false,
+                is_last: true,
+            },
+        ];
+        let result = build_direction_spacings(rows);
+        assert_eq!(result[0].variant_id, "VARABC");
+        assert_eq!(result[0].direction_id, 1);
+        assert!(!result[0].is_primary);
+        assert_eq!(result[0].trip_count, 3);
     }
 
     #[test]
@@ -2555,76 +3073,106 @@ mod tests {
         let db = &td.db;
 
         sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        // direction 0 trip with 3 stops in sequence order
-        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Terminus')")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+            .execute(&db.pool).await.unwrap();
+
         // S1 and S2 are 0.01° apart in latitude ≈ 1111 m; S2 and S3 are 0.001° ≈ 111 m
         sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'First Stop',  45.500, -73.50)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+            .execute(&db.pool).await.unwrap();
         sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Middle Stop', 45.510, -73.50)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+            .execute(&db.pool).await.unwrap();
         sqlx::query("INSERT INTO stops VALUES ('0', 'S3', 'Terminus',    45.511, -73.50)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+            .execute(&db.pool).await.unwrap();
+
+        // One variant, direction 0, is_primary=true, trip_count=5
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:05:00', '08:05:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S3', 3, '08:07:00', '08:07:00')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 3, 5, true)",
+        ).execute(&db.pool).await.unwrap();
+
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 3, 'S3')")
+            .execute(&db.pool).await.unwrap();
 
         let directions = route_stop_spacings(db, "0", "R1").await.unwrap();
 
-        assert_eq!(directions.len(), 1, "one direction expected");
+        assert_eq!(directions.len(), 1, "one variant expected");
         let dir = &directions[0];
+        assert_eq!(dir.variant_id, "VAR1");
+        assert!(dir.is_primary);
+        assert_eq!(dir.trip_count, 5);
         assert_eq!(dir.first_stop_name, "First Stop");
-        assert_eq!(dir.direction_name, "Terminus");
+        assert_eq!(dir.direction_name, "First Stop → Terminus");
         assert_eq!(dir.spacings.len(), 2, "two segments (S1→S2, S2→S3)");
         assert_eq!(dir.spacings[0].to_stop_name, "Middle Stop");
         assert_eq!(dir.spacings[1].to_stop_name, "Terminus");
-        // S1→S2: ~0.01° lat ≈ 1111 m; allow ±50 m tolerance
         assert!(
             (dir.spacings[0].distance_m - 1111.0).abs() < 50.0,
             "S1→S2 should be ~1111 m, got {}",
             dir.spacings[0].distance_m
         );
-        // S2→S3: ~0.001° lat ≈ 111 m
         assert!(
             (dir.spacings[1].distance_m - 111.0).abs() < 10.0,
             "S2→S3 should be ~111 m, got {}",
             dir.spacings[1].distance_m
         );
-        // avg ≈ 611 m, threshold ≈ 917 m → S1→S2 (1111 m) is an outlier
-        assert!(
-            dir.spacings[0].is_outlier,
-            "S1→S2 should be flagged as outlier"
-        );
-        assert!(
-            !dir.spacings[1].is_outlier,
-            "S2→S3 should not be an outlier"
-        );
+        assert!(dir.spacings[0].is_outlier, "S1→S2 should be flagged as outlier");
+        assert!(!dir.spacings[1].is_outlier, "S2→S3 should not be an outlier");
+    }
+
+    #[tokio::test]
+    async fn route_stop_spacings_returns_all_variants_ordered_by_trip_count_desc() {
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool).await.unwrap();
+
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SA', 'Alpha',  45.500, -73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SB', 'Beta',   45.505, -73.50)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'SC', 'Gamma',  45.510, -73.50)")
+            .execute(&db.pool).await.unwrap();
+
+        // VAR2 has fewer trips than VAR1 — should come second even though lexicographically first
+        sqlx::query(
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 3, 10, true),
+                    ('0', 'VAR2', 'R1', 0, 2,  3, false)",
+        ).execute(&db.pool).await.unwrap();
+
+        // VAR1: SA → SB → SC
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'SA')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'SB')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 3, 'SC')")
+            .execute(&db.pool).await.unwrap();
+
+        // VAR2: SA → SC (short turn, skips SB)
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR2', 1, 'SA')")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR2', 2, 'SC')")
+            .execute(&db.pool).await.unwrap();
+
+        let directions = route_stop_spacings(db, "0", "R1").await.unwrap();
+
+        assert_eq!(directions.len(), 2, "two variants expected");
+        // VAR1 first (trip_count=10 > 3)
+        assert_eq!(directions[0].variant_id, "VAR1");
+        assert!(directions[0].is_primary);
+        assert_eq!(directions[0].trip_count, 10);
+        assert_eq!(directions[0].direction_name, "Alpha → Gamma");
+        assert_eq!(directions[0].spacings.len(), 2);
+        // VAR2 second
+        assert_eq!(directions[1].variant_id, "VAR2");
+        assert!(!directions[1].is_primary);
+        assert_eq!(directions[1].trip_count, 3);
+        assert_eq!(directions[1].direction_name, "Alpha → Gamma");
+        assert_eq!(directions[1].spacings.len(), 1);
     }
 
     #[tokio::test]
@@ -2758,5 +3306,117 @@ mod tests {
             dir.weekday[0].2.is_none(),
             "scheduled speed should be None when route_speed row is missing"
         );
+    }
+
+    #[test]
+    fn build_variant_trends_buckets_weekday_saturday_sunday() {
+        // 2024-01-01 = Monday, 2024-01-06 = Saturday, 2024-01-07 = Sunday
+        let rows = vec![
+            SpeedTrendVariantRow {
+                variant_id: "VAR1".into(),
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 5.0,
+                scheduled_speed_mps: Some(6.0),
+            },
+            SpeedTrendVariantRow {
+                variant_id: "VAR1".into(),
+                service_date: "2024-01-06".into(),
+                actual_speed_mps: 6.0,
+                scheduled_speed_mps: Some(7.0),
+            },
+            SpeedTrendVariantRow {
+                variant_id: "VAR1".into(),
+                service_date: "2024-01-07".into(),
+                actual_speed_mps: 7.0,
+                scheduled_speed_mps: Some(8.0),
+            },
+        ];
+        let result = build_variant_trends(rows);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].variant_id, "VAR1");
+        assert_eq!(result[0].weekday, vec![("2024-01-01".to_string(), 5.0, Some(6.0))]);
+        assert_eq!(result[0].saturday, vec![("2024-01-06".to_string(), 6.0, Some(7.0))]);
+        assert_eq!(result[0].sunday, vec![("2024-01-07".to_string(), 7.0, Some(8.0))]);
+    }
+
+    #[test]
+    fn build_variant_trends_groups_two_variants() {
+        let rows = vec![
+            SpeedTrendVariantRow {
+                variant_id: "VAR1".into(),
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 5.0,
+                scheduled_speed_mps: Some(6.0),
+            },
+            SpeedTrendVariantRow {
+                variant_id: "VAR2".into(),
+                service_date: "2024-01-01".into(),
+                actual_speed_mps: 4.0,
+                scheduled_speed_mps: Some(5.0),
+            },
+        ];
+        let result = build_variant_trends(rows);
+        assert_eq!(result.len(), 2);
+        // sorted by variant_id
+        assert_eq!(result[0].variant_id, "VAR1");
+        assert_eq!(result[1].variant_id, "VAR2");
+        assert_eq!(result[0].weekday[0].1, 5.0);
+        assert_eq!(result[1].weekday[0].1, 4.0);
+    }
+
+    #[tokio::test]
+    async fn route_speed_trend_by_variant_groups_and_buckets() {
+        use chrono::{Datelike, Duration, Local};
+
+        fn last_monday(offset_weeks: i64) -> chrono::NaiveDate {
+            let today = Local::now().naive_local().date();
+            let days_from_monday = today.weekday().num_days_from_monday() as i64;
+            today - Duration::days(days_from_monday + offset_weeks * 7)
+        }
+        fn fmt(d: chrono::NaiveDate) -> String {
+            d.format("%Y-%m-%d").to_string()
+        }
+
+        let monday = last_monday(1);
+        let weekday_date = fmt(monday);
+        let saturday_date = fmt(monday + Duration::days(5));
+
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        sqlx::query(
+            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
+             VALUES ('0', 'R1', 0, 6.0, 1, 'now')",
+        ).execute(&db.pool).await.unwrap();
+
+        for (date, variant_id, speed) in [
+            (weekday_date.as_str(), "VAR1", 5.0_f64),
+            (saturday_date.as_str(), "VAR1", 6.0),
+            (weekday_date.as_str(), "VAR2", 4.0),
+        ] {
+            sqlx::query(
+                "INSERT INTO route_speed_daily
+                 (agency_id, route_id, service_date, direction_id, variant_id, actual_speed_mps, trip_count, computed_at)
+                 VALUES ('0', 'R1', $1, 0, $2, $3, 1, 'now')",
+            )
+            .bind(date)
+            .bind(variant_id)
+            .bind(speed)
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+
+        let trends = route_speed_trend_by_variant(db, "0", "R1", 28).await.unwrap();
+
+        assert_eq!(trends.len(), 2, "two variants expected");
+        assert_eq!(trends[0].variant_id, "VAR1");
+        assert_eq!(trends[0].weekday.len(), 1);
+        assert!((trends[0].weekday[0].1 - 5.0).abs() < 0.01);
+        assert_eq!(trends[0].saturday.len(), 1);
+        assert!((trends[0].saturday[0].1 - 6.0).abs() < 0.01);
+        assert_eq!(trends[1].variant_id, "VAR2");
+        assert_eq!(trends[1].weekday.len(), 1);
+        assert!((trends[1].weekday[0].1 - 4.0).abs() < 0.01);
     }
 }

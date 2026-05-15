@@ -14,15 +14,19 @@ use crate::metrics::{
 };
 use crate::speed::{
     RouteClass, RouteSpeedCard, RouteSpeedSummary, StopSpacing,
-    build_speed_cards, classify_by_spacing,
-    route_speed_by_day_type, route_speed_summary, route_speed_trend_by_direction,
+    VariantSpeedTrend, build_speed_cards, classify_by_spacing,
+    route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,
     route_stop_spacings,
 };
+use crate::frequency::{RouteHeadwayRow, route_headways};
 use crate::web::AppState;
 
 struct RouteSpeedDetailDirection {
+    pub variant_id: String,
     pub direction_name: String,
     pub first_stop_name: String,
+    pub is_primary: bool,
+    pub trip_count: i64,
     pub avg_spacing_m: f64,
     pub spacings: Vec<StopSpacing>,
     pub weekday_chart_id: String,
@@ -58,6 +62,18 @@ impl RouteSpeedDetailDirection {
         } else {
             ""
         }
+    }
+
+    pub fn direction_badge_label(&self) -> String {
+        if self.is_primary {
+            format!("Primary · {} trips", self.trip_count)
+        } else {
+            format!("{} trips", self.trip_count)
+        }
+    }
+
+    pub fn direction_badge_variant(&self) -> &'static str {
+        if self.is_primary { "oxford" } else { "neutral" }
     }
 }
 
@@ -121,7 +137,7 @@ pub async fn route_speed_detail(
 
     let (spacings_res, trends_res) = tokio::join!(
         route_stop_spacings(&state.db, &agency_id, &route_id),
-        route_speed_trend_by_direction(&state.db, &agency_id, &route_id, 28),
+        route_speed_trend_by_variant(&state.db, &agency_id, &route_id, 28),
     );
 
     let spacings = spacings_res.unwrap_or_else(|e| {
@@ -129,7 +145,7 @@ pub async fn route_speed_detail(
         vec![]
     });
     let trends = trends_res.unwrap_or_else(|e| {
-        tracing::error!("route_speed_trend_by_direction failed for {agency_id}/{route_id}: {e}");
+        tracing::error!("route_speed_trend_by_variant failed for {agency_id}/{route_id}: {e}");
         vec![]
     });
 
@@ -147,13 +163,16 @@ pub async fn route_speed_detail(
         .map(|(i, spacing)| {
             let trend = trends
                 .iter()
-                .find(|t| t.direction_id == spacing.direction_id);
+                .find(|t| t.variant_id == spacing.variant_id);
             let (weekday, saturday, sunday) = trend
                 .map(|t| (t.weekday.clone(), t.saturday.clone(), t.sunday.clone()))
                 .unwrap_or_default();
             RouteSpeedDetailDirection {
+                variant_id: spacing.variant_id,
                 direction_name: spacing.direction_name,
                 first_stop_name: spacing.first_stop_name,
+                is_primary: spacing.is_primary,
+                trip_count: spacing.trip_count,
                 avg_spacing_m: spacing.avg_spacing_m,
                 spacings: spacing.spacings,
                 weekday_chart_id: format!("weekday-{i}"),
@@ -640,6 +659,61 @@ pub async fn api_route_speed(
         })
 }
 
+#[derive(Template)]
+#[template(path = "frequency.html")]
+struct FrequencyTemplate {
+    region_name: String,
+    rows: Vec<RouteHeadwayRow>,
+    agencies: Vec<(String, String)>,
+    active_agency: String,
+}
+
+#[derive(Template)]
+#[template(path = "frequency_content.html")]
+struct FrequencyContentTemplate {
+    rows: Vec<RouteHeadwayRow>,
+    agencies: Vec<(String, String)>,
+    active_agency: String,
+}
+
+pub async fn frequency_page(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Query(params): Query<AgencyFilterParams>,
+) -> Html<String> {
+    let agencies: Vec<(String, String)> = state
+        .config
+        .agencies
+        .iter()
+        .map(|a| (a.id.to_string(), a.name.clone()))
+        .collect();
+    let active_agency = params
+        .agency
+        .filter(|s| agencies.iter().any(|(id, _)| id == s))
+        .unwrap_or_default();
+    let filter = if active_agency.is_empty() {
+        None
+    } else {
+        Some(active_agency.as_str())
+    };
+    let rows = route_headways(&state.db, filter)
+        .await
+        .unwrap_or_default();
+
+    if headers.contains_key("hx-request") {
+        let tmpl = FrequencyContentTemplate { rows, agencies, active_agency };
+        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+    } else {
+        let tmpl = FrequencyTemplate {
+            region_name: state.config.region.name.clone(),
+            rows,
+            agencies,
+            active_agency,
+        };
+        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -656,6 +730,7 @@ mod tests {
             avg_scheduled_speed_mps: Some(scheduled),
             avg_actual_speed_mps: actual,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
             classification: None,
         }
     }
@@ -671,6 +746,7 @@ mod tests {
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
             classification: None,
         }
     }
@@ -740,6 +816,7 @@ mod tests {
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
             avg_stop_spacing_m: spacing,
+            avg_dwell_secs: None,
             classification: None,
         }
     }
@@ -787,6 +864,7 @@ mod tests {
             avg_scheduled_speed_mps: None,
             avg_actual_speed_mps: None,
             avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
             classification: class,
         }
     }
@@ -838,8 +916,11 @@ mod tests {
 
     fn direction(avg_spacing_m: f64) -> RouteSpeedDetailDirection {
         RouteSpeedDetailDirection {
+            variant_id: String::new(),
             direction_name: String::new(),
             first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
             avg_spacing_m,
             spacings: vec![],
             weekday_chart_id: String::new(),
@@ -937,6 +1018,15 @@ mod e2e_tests {
         .execute(&td.db.pool)
         .await
         .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 2, 1, true)",
+        )
+        .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
+            .execute(&td.db.pool).await.unwrap();
 
         let state = AppState {
             db: td.db,
@@ -1315,6 +1405,15 @@ mod e2e_tests {
         .execute(&td.db.pool)
         .await
         .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES ('0', 'VAR1', 'R1', 0, 2, 1, true)",
+        )
+        .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
+            .execute(&td.db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
+            .execute(&td.db.pool).await.unwrap();
 
         let state = AppState {
             db: td.db,
@@ -1342,6 +1441,83 @@ mod e2e_tests {
         assert!(
             html.contains("badge--neutral"),
             "detail page HTML should contain 'badge--neutral' CSS class for route classification"
+        );
+    }
+
+    #[tokio::test]
+    async fn frequency_page_returns_full_html() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/frequency")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(
+            html.contains("<html"),
+            "full page response must contain an <html> element"
+        );
+        assert!(
+            html.contains("Route Frequency"),
+            "full page response must contain the page title text"
+        );
+        assert!(
+            html.contains(r#"id="freq-content""#),
+            "full page response must contain the freq-content swap target"
+        );
+    }
+
+    #[tokio::test]
+    async fn frequency_page_with_hx_request_returns_fragment() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/frequency")
+                    .header("hx-request", "true")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(
+            html.contains(r#"id="freq-content""#),
+            "fragment must contain the freq-content swap target div"
+        );
+        assert!(
+            !html.contains("<!DOCTYPE html"),
+            "fragment must not contain a full HTML document"
+        );
+        assert!(
+            !html.contains("<html"),
+            "fragment must not contain an <html> element"
         );
     }
 
