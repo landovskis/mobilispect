@@ -94,41 +94,10 @@ cargo test <test_name>   # run a single test
 
 ## UI & Design System
 
-All UI must use the **Lumina design system** — see `frontend/design-system.html` for the full reference.
-
-**Typography**
-- Display/headings: `font-family: 'Cormorant', serif` — use for `h1`–`h3`, stat numbers
-- Body/UI: `font-family: 'Jost', sans-serif` — default for all UI text
-- Code/labels: `font-family: 'Fira Code', monospace` — section labels, data values
-
-**Colour palette (Tailwind custom tokens)**
-- `cream` — neutral scale; use for backgrounds, borders, text hierarchy
-- `cinnabar` — primary accent (action, active states); `cinnabar-500` = `#C8463A`
-- `oxford` — secondary accent (info, links); `oxford-500` = `#1D4E89`
-- `saffron` — warning; `saffron-500` = `#E8A020`
-- Sage (`#3D9A6B`) — success (CSS var only, no Tailwind token)
-
-**CSS custom properties (semantic tokens)**
-Use these instead of raw hex values:
-- `--bg`, `--bg-subtle`, `--surface` — background layers
-- `--ink`, `--secondary`, `--muted`, `--dim` — text hierarchy
-- `--border`, `--border-light` — borders
-- `--cinn`, `--ox`, `--saff`, `--sage` — accent colours
-- Badge variants: `--b-cinn-bg/fg`, `--b-ox-bg/fg`, `--b-saff-bg/fg`, `--b-neu-bg/fg`
-- Alert variants: `--al-info-*`, `--al-ok-*`, `--al-warn-*`, `--al-err-*`
-
-**Dark mode:** toggle via `html.dark` class; all CSS vars switch automatically.
-
-**Key component classes**
-- `.btn` — base button; primary = `bg-cinnabar-500 text-cream-50 hover:bg-cinnabar-600`
-- `.field` — text input with focus ring in cinnabar
-- `.card` — `border-radius: 12px`, hover lift (`translateY(-2px)`)
-- `.badge` — small label with variant bg/fg vars
-- `.alert` — info/ok/warn/err with matching vars
-- `.stat-num` — Cormorant 3rem weight-300 for metric display numbers
-- `.section-label` — Fira Code uppercase tracking, cinnabar colour
-
-Do not introduce other component libraries (Bootstrap, shadcn, etc.) unless explicitly requested.
+This project uses a design system defined in @DESIGN.md.
+Follow strictly the rules defined in @DESIGN.md for all UI generation.
+Do not invent colors, fonts, or spacing values outside the design system.
+Match component states (hover, focus, active, disabled) to patterns in @DESIGN.md.
 
 ## Safety Rules
 
