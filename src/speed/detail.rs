@@ -98,19 +98,26 @@ pub fn build_detail_directions(
         .collect()
 }
 
+#[derive(sqlx::FromRow)]
+struct RouteInfoRow {
+    short_name: String,
+    long_name: String,
+}
+
 pub async fn fetch_route_info(
     db: &crate::db::Database,
     agency_id: &str,
     route_id: &str,
 ) -> anyhow::Result<Option<(String, String)>> {
-    let row: Option<(String, String)> = sqlx::query_as(
+    let row = sqlx::query_as!(
+        RouteInfoRow,
         "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
+        agency_id,
+        route_id,
     )
-    .bind(agency_id)
-    .bind(route_id)
     .fetch_optional(&db.pool)
     .await?;
-    Ok(row)
+    Ok(row.map(|r| (r.short_name, r.long_name)))
 }
 
 #[cfg(test)]
@@ -159,11 +166,15 @@ mod tests {
     }
 
     #[test]
-    fn build_detail_directions_matching_trend_produces_non_empty_json() {
+    fn build_detail_directions_matching_trend_weekday_json_contains_date_and_speeds() {
         let spacings = vec![make_spacing("V1")];
         let trends = vec![make_trend("V1")];
         let dirs = build_detail_directions(spacings, trends);
-        assert_ne!(dirs[0].weekday_json, "[]");
+        // make_trend sets weekday: [("2026-01-06", 8.0 mps, Some(9.0 mps))]
+        // 8.0 m/s → 28.8 km/h, 9.0 m/s → 32.4 km/h
+        assert!(dirs[0].weekday_json.contains("2026-01-06"), "date must appear in JSON");
+        assert!(dirs[0].weekday_json.contains("28.8"), "actual km/h must appear");
+        assert!(dirs[0].weekday_json.contains("32.4"), "scheduled km/h must appear");
     }
 
     #[test]
@@ -229,6 +240,32 @@ mod tests {
     fn avg_spacing_status_class_in_range_is_empty() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 400.0,
+            variant_id: String::new(), direction_name: String::new(),
+            first_stop_name: String::new(), is_primary: false, trip_count: 0,
+            spacings: vec![], weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
+            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+        };
+        assert_eq!(d.avg_spacing_status_class(), "");
+    }
+
+    #[test]
+    fn avg_spacing_status_class_exactly_300_is_in_range() {
+        let d = RouteSpeedDetailDirection {
+            avg_spacing_m: 300.0,
+            variant_id: String::new(), direction_name: String::new(),
+            first_stop_name: String::new(), is_primary: false, trip_count: 0,
+            spacings: vec![], weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
+            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+        };
+        assert_eq!(d.avg_spacing_status_class(), "");
+    }
+
+    #[test]
+    fn avg_spacing_status_class_exactly_5000_is_in_range() {
+        let d = RouteSpeedDetailDirection {
+            avg_spacing_m: 5000.0,
             variant_id: String::new(), direction_name: String::new(),
             first_stop_name: String::new(), is_primary: false, trip_count: 0,
             spacings: vec![], weekday_chart_id: String::new(),
