@@ -86,6 +86,7 @@ cargo test <test_name>   # run a single test
 ## Conventions
 
 - Vertical Slice Architecture: each feature owns its DB query, computation, and handler
+- **Functional Core / Imperative Shell is mandatory:** pure domain logic (computation, validation, transformations) must be in functions that take plain values and return plain values — no I/O, no side effects. I/O (DB, HTTP, file system) belongs only in the shell layer (handlers, workers, feed ingestors) that calls into the core. Never mix the two.
 - No mocks in tests — use real Postgres via testcontainers (see `.claude/rules/testing.md`)
 - Prefer explicit error types over `unwrap()` in production paths
 - sqlx queries must be compile-time checked (`query!` / `query_as!`)
