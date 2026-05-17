@@ -64,6 +64,41 @@ impl RouteTrend {
 use crate::config::{AgencyConfig, Config};
 use crate::db::Database;
 
+pub struct TripResult {
+    pub on_time: i64,
+    pub avg_delay_secs: f64,
+    pub max_delay_secs: f64,
+}
+
+pub fn classify_trip_delays(
+    delays: &[i64],
+    early_threshold: i64,
+    late_threshold: i64,
+) -> TripResult {
+    if delays.is_empty() {
+        return TripResult {
+            on_time: 1,
+            avg_delay_secs: 0.0,
+            max_delay_secs: 0.0,
+        };
+    }
+    let avg_delay_secs = delays.iter().sum::<i64>() as f64 / delays.len() as f64;
+    let max_delay_secs = delays.iter().copied().max().unwrap_or(0) as f64;
+    let on_time = if delays
+        .iter()
+        .all(|&d| d >= early_threshold && d <= late_threshold)
+    {
+        1
+    } else {
+        0
+    };
+    TripResult {
+        on_time,
+        avg_delay_secs,
+        max_delay_secs,
+    }
+}
+
 /// Compute on-time performance for all routes on a given service date.
 pub async fn compute_route_daily(
     db: &Database,
@@ -1174,5 +1209,62 @@ mod tests {
         let rtl = scorecard_routes(&db, 30, Some("rtl")).await.unwrap();
         assert_eq!(rtl.len(), 1);
         assert_eq!(rtl[0].agency_id, "rtl");
+    }
+
+    // ── classify_trip_delays pure fn tests ──────────────────────────────────────
+
+    #[test]
+    fn classify_all_on_time_returns_one() {
+        let delays = vec![0i64, 60, 120];
+        let r = classify_trip_delays(&delays, -60, 300);
+        assert_eq!(r.on_time, 1);
+    }
+
+    #[test]
+    fn classify_one_late_returns_zero() {
+        let delays = vec![0i64, 60, 400];
+        let r = classify_trip_delays(&delays, -60, 300);
+        assert_eq!(r.on_time, 0);
+    }
+
+    #[test]
+    fn classify_one_early_returns_zero() {
+        let delays = vec![0i64, 60, -120];
+        let r = classify_trip_delays(&delays, -60, 300);
+        assert_eq!(r.on_time, 0);
+    }
+
+    #[test]
+    fn classify_avg_delay_computed_correctly() {
+        let delays = vec![100i64, 200, 300];
+        let r = classify_trip_delays(&delays, -60, 300);
+        assert!((r.avg_delay_secs - 200.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn classify_max_delay_computed_correctly() {
+        let delays = vec![100i64, 200, 300];
+        let r = classify_trip_delays(&delays, -60, 300);
+        assert!((r.max_delay_secs - 300.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn classify_empty_delays_returns_on_time_with_zeros() {
+        let r = classify_trip_delays(&[], -60, 300);
+        assert_eq!(r.on_time, 1);
+        assert_eq!(r.avg_delay_secs, 0.0);
+        assert_eq!(r.max_delay_secs, 0.0);
+    }
+
+    #[test]
+    fn classify_late_threshold_boundary_is_inclusive() {
+        let r = classify_trip_delays(&[300], -60, 300);
+        assert_eq!(r.on_time, 1);
+    }
+
+    #[test]
+    fn classify_early_threshold_boundary_is_inclusive() {
+        let r = classify_trip_delays(&[-60], -60, 300);
+        assert_eq!(r.on_time, 1);
     }
 }
