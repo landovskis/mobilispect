@@ -167,15 +167,11 @@ pub async fn compute_route_daily(
         if delays.is_empty() {
             continue;
         }
-        let avg_delay = delays.iter().sum::<i64>() as f64 / delays.len() as f64;
-        let max_delay = delays.iter().copied().max().unwrap_or(0) as f64;
-        let on_time_flag: i64 = if delays.iter().all(|&d| {
-            d >= config.on_time_early_threshold_secs && d <= config.on_time_late_threshold_secs
-        }) {
-            1
-        } else {
-            0
-        };
+        let trip_result = classify_trip_delays(
+            &delays,
+            config.on_time_early_threshold_secs,
+            config.on_time_late_threshold_secs,
+        );
 
         sqlx::query!(
             "INSERT INTO trip_results
@@ -192,9 +188,9 @@ pub async fn compute_route_daily(
             trip.trip_id,
             date_str,
             trip.route_id,
-            on_time_flag,
-            avg_delay,
-            max_delay,
+            trip_result.on_time,
+            trip_result.avg_delay_secs,
+            trip_result.max_delay_secs,
             now,
         )
         .execute(&db.pool)
