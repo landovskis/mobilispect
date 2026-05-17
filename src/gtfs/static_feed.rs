@@ -434,7 +434,10 @@ mod tests {
         })
     }
 
-    fn make_stop_time(stop: std::sync::Arc<gtfs_structures::Stop>, seq: u32) -> gtfs_structures::StopTime {
+    fn make_stop_time(
+        stop: std::sync::Arc<gtfs_structures::Stop>,
+        seq: u32,
+    ) -> gtfs_structures::StopTime {
         gtfs_structures::StopTime {
             stop,
             stop_sequence: seq as u16,
@@ -496,8 +499,18 @@ mod tests {
         let sc = make_stop("C");
 
         // Two trips with the same stop sequence → same variant.
-        let trip1 = make_trip("T1", "45", Some(gtfs_structures::DirectionType::Outbound), vec![sa.clone(), sb.clone(), sc.clone()]);
-        let trip2 = make_trip("T2", "45", Some(gtfs_structures::DirectionType::Outbound), vec![sa.clone(), sb.clone(), sc.clone()]);
+        let trip1 = make_trip(
+            "T1",
+            "45",
+            Some(gtfs_structures::DirectionType::Outbound),
+            vec![sa.clone(), sb.clone(), sc.clone()],
+        );
+        let trip2 = make_trip(
+            "T2",
+            "45",
+            Some(gtfs_structures::DirectionType::Outbound),
+            vec![sa.clone(), sb.clone(), sc.clone()],
+        );
 
         // Insert the trips first (load_variants expects them already in trips table).
         for t in [&trip1, &trip2] {
@@ -592,7 +605,12 @@ mod tests {
             .enumerate()
         {
             let id = format!("T{i}");
-            let trip = make_trip(&id, "45", Some(gtfs_structures::DirectionType::Outbound), (*stops).clone());
+            let trip = make_trip(
+                &id,
+                "45",
+                Some(gtfs_structures::DirectionType::Outbound),
+                (*stops).clone(),
+            );
             sqlx::query(
                 "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id)
                  VALUES ('stm', $1, '45', 'WD', 0)",
@@ -623,7 +641,10 @@ mod tests {
         .fetch_one(&db.pool)
         .await
         .unwrap();
-        assert_eq!(primary_stop_count.0, 4, "primary variant should be the 4-stop full route");
+        assert_eq!(
+            primary_stop_count.0, 4,
+            "primary variant should be the 4-stop full route"
+        );
     }
 
     #[tokio::test]

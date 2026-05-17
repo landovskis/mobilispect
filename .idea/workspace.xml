@@ -5,16 +5,24 @@
   </component>
   <component name="CargoProjects">
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml">
-      <package file="$PROJECT_DIR$">
+      <package file="$PROJECT_DIR$/crates/core">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/crates/server">
+        <feature name="default" enabled="true" />
+      </package>
+      <package file="$PROJECT_DIR$/crates/worker">
         <feature name="default" enabled="true" />
       </package>
     </cargoProject>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9226ce73-78e3-4239-bfdc-9c5c04f89917" name="Changes" comment="Remove orange speed segment caption">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" />
+    <list default="true" id="9226ce73-78e3-4239-bfdc-9c5c04f89917" name="Changes" comment="Update all dependencies">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/mobilispect.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/mobilispect.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/speed_card.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/speed_card.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/frequency/mod.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/frequency/mod.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gtfs/static_feed.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/gtfs/static_feed.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -22,7 +30,8 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="20749" />
+    <option name="cachedIndexableFilesCount" value="28190" />
+    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="RsBuildProfile:dev" />
   <component name="Git.Settings">
@@ -72,7 +81,7 @@
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;#203 on feat/speed-card-improvements&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -139,6 +148,7 @@
       <option name="presentableId" value="Default" />
       <updated>1777235546037</updated>
       <workItem from="1777235547468" duration="7079000" />
+      <workItem from="1779033271142" duration="2031000" />
     </task>
     <task id="LOCAL-00001" summary="Remove orange speed segment caption">
       <option name="closed" value="true" />
