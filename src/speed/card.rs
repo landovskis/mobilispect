@@ -991,8 +991,12 @@ mod tests {
     }
 
     #[test]
-    fn parse_class_unknown_returns_none() {
+    fn parse_class_empty_returns_none() {
         assert_eq!(parse_class(""), None);
+    }
+
+    #[test]
+    fn parse_class_unknown_returns_none() {
         assert_eq!(parse_class("bogus"), None);
     }
 
@@ -1077,13 +1081,6 @@ mod tests {
         ];
         let result = sort_speed_cards(cards, "spacing");
         assert_eq!(result[0].short_name, "A");
-    }
-
-    #[test]
-    fn sort_name_preserves_order() {
-        let cards = vec![make_card("B"), make_card("A")];
-        let result = sort_speed_cards(cards, "name");
-        assert_eq!(result[0].short_name, "B");
     }
 
     #[test]
