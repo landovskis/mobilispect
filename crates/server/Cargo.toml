@@ -1,0 +1,23 @@
+[package]
+name = "mobilispect-server"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "mobilispect-server"
+path = "src/main.rs"
+
+[dependencies]
+mobilispect-core = { path = "../core" }
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.7", features = ["macros"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+askama = { version = "0.15", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+
+[dev-dependencies]
+mobilispect-core = { path = "../core", features = ["test-utils"] }
+tokio = { version = "1", features = ["full"] }
