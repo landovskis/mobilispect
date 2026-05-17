@@ -1636,30 +1636,52 @@ dependencies = [
 ]
 
 [[package]]
-name = "mobilispect"
+name = "mobilispect-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "askama",
- "axum",
  "bytes",
  "chrono",
- "gtfs-structures",
- "hex",
- "prost",
- "prost-build",
- "reqwest 0.12.28",
  "serde",
  "serde_json",
- "sha2 0.10.9",
  "sqlx",
  "testcontainers",
  "testcontainers-modules",
  "thiserror 2.0.18",
  "tokio",
  "toml",
+ "tracing",
+]
+
+[[package]]
+name = "mobilispect-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "askama",
+ "axum",
+ "mobilispect-core",
+ "tokio",
  "tower",
  "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "mobilispect-worker"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bytes",
+ "gtfs-structures",
+ "hex",
+ "mobilispect-core",
+ "prost",
+ "prost-build",
+ "reqwest 0.12.28",
+ "sha2 0.10.9",
+ "tokio",
  "tracing",
  "tracing-subscriber",
 ]
