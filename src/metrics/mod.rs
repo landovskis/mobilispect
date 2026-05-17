@@ -65,8 +65,11 @@ use crate::config::{AgencyConfig, Config};
 use crate::db::Database;
 
 pub struct TripResult {
+    /// 1 if all stops were within the on-time window, 0 otherwise.
+    /// Stored as i64 for direct use in SQL SUM aggregations.
     pub on_time: i64,
     pub avg_delay_secs: f64,
+    /// Algebraically largest delay (most late). Negative when all stops are early.
     pub max_delay_secs: f64,
 }
 
@@ -77,7 +80,7 @@ pub fn classify_trip_delays(
 ) -> TripResult {
     if delays.is_empty() {
         return TripResult {
-            on_time: 1,
+            on_time: 0,
             avg_delay_secs: 0.0,
             max_delay_secs: 0.0,
         };
@@ -1251,7 +1254,7 @@ mod tests {
     #[test]
     fn classify_empty_delays_returns_on_time_with_zeros() {
         let r = classify_trip_delays(&[], -60, 300);
-        assert_eq!(r.on_time, 1);
+        assert_eq!(r.on_time, 0);
         assert_eq!(r.avg_delay_secs, 0.0);
         assert_eq!(r.max_delay_secs, 0.0);
     }
@@ -1266,5 +1269,12 @@ mod tests {
     fn classify_early_threshold_boundary_is_inclusive() {
         let r = classify_trip_delays(&[-60], -60, 300);
         assert_eq!(r.on_time, 1);
+    }
+
+    #[test]
+    fn classify_all_early_returns_zero() {
+        let delays = vec![-120i64, -90, -60]; // all more than 60s early → not on-time
+        let r = classify_trip_delays(&delays, -60, 300);
+        assert_eq!(r.on_time, 0);
     }
 }
