@@ -40,17 +40,20 @@ pub async fn route_speed_detail(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let (short_name, long_name) = match fetch_route_info(&state.db, &agency_id, &route_id)
-        .await
-        .unwrap_or_else(|e| {
-            tracing::error!("DB error fetching route {agency_id}/{route_id}: {e}");
-            None
-        }) {
-        Some(r) => r,
-        None => {
+    let (short_name, long_name) = match fetch_route_info(&state.db, &agency_id, &route_id).await {
+        Ok(Some(r)) => r,
+        Ok(None) => {
             return (
                 axum::http::StatusCode::NOT_FOUND,
                 Html("<h1>Not Found</h1>".to_string()),
+            )
+                .into_response();
+        }
+        Err(e) => {
+            tracing::error!("DB error fetching route {agency_id}/{route_id}: {e}");
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Html("<h1>Internal Server Error</h1>".to_string()),
             )
                 .into_response();
         }
