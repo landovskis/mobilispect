@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mobilispect — Delay Hotspots</title>
+  <meta name="region" content="{{ region_name }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --ink-900: #1A1814;
+      --ink-500: #888480;
+      --ink-400: #A8A49B;
+      --paper: #FAFAF7;
+      --surface: #FFFFFF;
+      --surface-muted: #F4F4EF;
+      --line: #E0DDD6;
+      --line-soft: #ECEAE4;
+      --civic-green: #3D9A6B;
+      --civic-amber: #E8A020;
+      --civic-red: #C8463A;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Jost', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+           background: var(--paper); color: var(--ink-900); display: flex; flex-direction: column; height: 100vh; }
+    header { background: var(--ink-900); color: white; padding: 0.85rem 1.5rem;
+             display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+             border-bottom: 1px solid var(--line); }
+    header h1 { font-size: 1.1rem; font-weight: 700; }
+    header nav a { color: var(--ink-400); font-size: 0.85rem; text-decoration: none; margin-left: 1.25rem; font-weight: 600; }
+    header nav a:hover { color: white; }
+    .layout { display: flex; flex: 1; overflow: hidden; }
+    #map { flex: 1; }
+    .sidebar { width: 360px; overflow-y: auto; background: var(--surface);
+               border-left: 1px solid var(--line); flex-shrink: 0; }
+    .sidebar-header { padding: 1rem; border-bottom: 1px solid var(--line); background: var(--surface-muted); }
+    .sidebar-header h2 { font-size: 1rem; font-weight: 700; color: var(--ink-900); }
+    .sidebar-header p { font-size: 0.8rem; color: var(--ink-500); margin-top: 0.25rem; }
+    .legend { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.75rem 1rem;
+              border-bottom: 1px solid var(--line); background: var(--surface); font-size: 0.75rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.35rem; color: var(--ink-500); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    thead { background: var(--surface-muted); position: sticky; top: 0; }
+    th { padding: 0.6rem 0.75rem; text-align: left; font-size: 0.72rem;
+         text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-500); font-weight: 700; }
+    td { padding: 0.6rem 0.75rem; border-top: 1px solid var(--line-soft); }
+    tr:hover td { background: var(--surface-muted); cursor: pointer; }
+    .rank { color: var(--ink-400); font-size: 0.75rem; width: 24px; }
+    .delay { font-weight: 600; }
+    .obs { color: var(--ink-400); font-size: 0.75rem; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Mobilispect — Delay Hotspots</h1>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/scorecard">Scorecard</a>
+      <a href="/report">Report</a>
+    </nav>
+  </header>
+  <div class="layout">
+    <div id="map"></div>
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h2>Worst stops · last {{ period_days }} days</h2>
+        <p>{{ hotspots.len() }} stops with ≥ 5 observations, ranked by avg delay</p>
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--civic-red)"></div> ≥ 5 min</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--civic-amber)"></div> 1–5 min</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--civic-amber)"></div> &lt; 1 min late</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--civic-green)"></div> On time</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Stop</th>
+            <th>Avg delay</th>
+            <th>Obs.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stop in hotspots %}
+          <tr data-stop-id="{{ stop.stop_id }}" onclick="focusStop('{{ stop.stop_id }}')">
+            <td class="rank">{{ loop.index }}</td>
+            <td>
+              <span class="dot" style="background:{{ stop.color() }}"></span>
+              {{ stop.stop_name }}
+            </td>
+            <td class="delay">{{ stop.delay_display() }}</td>
+            <td class="obs">{{ stop.observation_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const stops = {{ hotspots_json|safe }};
+
+    const map = L.map('map').setView([45.508, -73.587], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    function delayColor(d) {
+      if (d === null) return '#3D9A6B';
+      if (d >= 300) return '#C8463A';
+      if (d >= 60)  return '#E8A020';
+      if (d > 0)    return '#E8A020';
+      return '#3D9A6B';
+    }
+
+    function delayLabel(d) {
+      if (d === null) return 'On time';
+      if (d > 0) return '+' + Math.round(d) + 's';
+      return Math.round(d) + 's';
+    }
+
+    const markers = {};
+    const maxObs = Math.max(...stops.map(s => s.observation_count), 1);
+
+    stops.forEach(stop => {
+      const color = delayColor(stop.avg_delay_secs);
+      const radius = 6 + (stop.observation_count / maxObs) * 14;
+      const marker = L.circleMarker([stop.stop_lat, stop.stop_lon], {
+        radius,
+        color: '#fff',
+        weight: 1,
+        fillColor: color,
+        fillOpacity: 0.85,
+      }).addTo(map);
+
+      marker.bindPopup(
+        `<strong>${stop.stop_name}</strong><br>` +
+        `Avg delay: <strong>${delayLabel(stop.avg_delay_secs)}</strong><br>` +
+        `Observations: ${stop.observation_count}`
+      );
+
+      markers[stop.stop_id] = marker;
+    });
+
+    function focusStop(stopId) {
+      const marker = markers[stopId];
+      if (!marker) return;
+      map.setView(marker.getLatLng(), 16);
+      marker.openPopup();
+    }
+  </script>
+</body>
+</html>

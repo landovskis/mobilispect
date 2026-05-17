@@ -1,0 +1,57 @@
+<!-- HTMX target: id="freq-content" must match hx-target on every control link -->
+<div id="freq-content" hx-indicator="#freq-loading">
+  <div class="control-row" style="margin-bottom:1.5rem;">
+    <span class="control-label">Agency:</span>
+    <a href="/frequency"
+       hx-get="/frequency"
+       hx-target="#freq-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
+    {% for (slug, name) in &agencies %}
+    <a href="/frequency?agency={{ slug }}"
+       hx-get="/frequency?agency={{ slug }}"
+       hx-target="#freq-content"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="{% if active_agency == *slug %}active{% endif %}">{{ name }}</a>
+    {% endfor %}
+  </div>
+
+  {% if rows.is_empty() %}
+  <div class="empty-state">No frequency data available. Routes appear once GTFS schedule data has been ingested.</div>
+  {% else %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Route</th>
+        <th>Name</th>
+        <th>Dir</th>
+        <th>Weekday</th>
+        <th>Saturday</th>
+        <th>Sunday</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for (i, row) in rows.iter().enumerate() %}
+      <tr>
+        <td style="color:var(--ink-500);font-size:0.8rem;">{{ i + 1 }}</td>
+        <td><span class="route-id">{{ row.short_name }}</span></td>
+        <td style="color:var(--ink-700);">{{ row.long_name }}</td>
+        <td style="color:var(--ink-500);font-size:0.85rem;">{{ row.direction_label() }}</td>
+        <td>
+          <span class="badge badge--{{ row.weekday_badge_variant() }}">{{ row.weekday_display() }}</span>
+        </td>
+        <td>
+          <span class="badge badge--{{ row.saturday_badge_variant() }}">{{ row.saturday_display() }}</span>
+        </td>
+        <td>
+          <span class="badge badge--{{ row.sunday_badge_variant() }}">{{ row.sunday_display() }}</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>

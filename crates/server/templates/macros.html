@@ -1,0 +1,27 @@
+{% macro badge(variant, label) %}
+<span class="badge badge--{{ variant }}">{{ label }}</span>
+{% endmacro badge %}
+
+{% macro stat(label, value, unit, variant) %}
+<div class="spacing-stat-label">{{ label }}</div>
+<div class="spacing-stat-num{% if variant != "" %} spacing-{{ variant }}{% endif %}">{{ value }}<span class="spacing-stat-unit">{{ unit }}</span></div>
+{% endmacro stat %}
+
+{% macro section_label(text) %}
+<div class="section-label">{{ text }}</div>
+{% endmacro section_label %}
+
+{% macro chip(href, label, active) %}
+<a class="chip{% if active %} active{% endif %}" href="{{ href }}">{{ label }}</a>
+{% endmacro chip %}
+
+{% macro metric_card(label, value, unit) %}
+<div class="metric-card">
+  <div class="metric-label">{{ label }}</div>
+  <div class="metric-value">{{ value }}{{ unit }}</div>
+</div>
+{% endmacro metric_card %}
+
+{% macro alert(variant, message) %}
+<div class="alert alert--{{ variant }}">{{ message }}</div>
+{% endmacro alert %}
