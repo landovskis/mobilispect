@@ -8,74 +8,19 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde_json;
 
+use crate::frequency::{RouteHeadwayRow, route_headways};
 use crate::metrics::{
     Benchmark, RouteSummary, RouteTrend, ScorecardRoute, StopHotspot, load_benchmarks,
     route_summary, route_trend, scorecard_routes, stop_hotspots,
 };
 use crate::speed::{
-    RouteClass, RouteSpeedCard, RouteSpeedSummary, StopSpacing,
-    VariantSpeedTrend, build_speed_cards, classify_by_spacing,
-    route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,
-    route_stop_spacings,
+    RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary,
+    assign_indices, build_detail_directions, build_speed_cards, classify_by_spacing,
+    fetch_route_info, filter_speed_cards, route_speed_by_day_type,
+    route_speed_summary, route_speed_trend_by_variant, route_stop_spacings, sort_speed_cards,
 };
-use crate::frequency::{RouteHeadwayRow, route_headways};
 use crate::web::AppState;
 
-struct RouteSpeedDetailDirection {
-    pub variant_id: String,
-    pub direction_name: String,
-    pub first_stop_name: String,
-    pub is_primary: bool,
-    pub trip_count: i64,
-    pub avg_spacing_m: f64,
-    pub spacings: Vec<StopSpacing>,
-    pub weekday_chart_id: String,
-    pub saturday_chart_id: String,
-    pub sunday_chart_id: String,
-    pub weekday_json: String,
-    pub saturday_json: String,
-    pub sunday_json: String,
-}
-
-impl RouteSpeedDetailDirection {
-    pub fn avg_spacing_display(&self) -> String {
-        if self.avg_spacing_m >= 1000.0 {
-            format!("{:.1} km", self.avg_spacing_m / 1000.0)
-        } else {
-            format!("{:.0} m", self.avg_spacing_m)
-        }
-    }
-
-    pub fn avg_spacing_status_class(&self) -> &str {
-        let avg = self.avg_spacing_m;
-        let (range_min, range_max) = if avg < 500.0 {
-            (300.0, 500.0)
-        } else if avg < 1500.0 {
-            (500.0, 1500.0)
-        } else {
-            (1500.0, 5000.0)
-        };
-        if avg < range_min {
-            "slow"
-        } else if avg > range_max {
-            "outlier"
-        } else {
-            ""
-        }
-    }
-
-    pub fn direction_badge_label(&self) -> String {
-        if self.is_primary {
-            format!("Primary · {} trips", self.trip_count)
-        } else {
-            format!("{} trips", self.trip_count)
-        }
-    }
-
-    pub fn direction_badge_variant(&self) -> &'static str {
-        if self.is_primary { "oxford" } else { "neutral" }
-    }
-}
 
 #[derive(Template)]
 #[template(path = "route_speed_detail.html")]
@@ -88,23 +33,6 @@ struct RouteSpeedDetailTemplate {
     classification: Option<RouteClass>,
 }
 
-fn trend_to_json(points: Vec<(String, f64, Option<f64>)>) -> String {
-    #[derive(serde::Serialize)]
-    struct TrendPoint {
-        date: String,
-        actual_kmh: f64,
-        scheduled_kmh: Option<f64>,
-    }
-    let pts: Vec<TrendPoint> = points
-        .into_iter()
-        .map(|(date, actual_mps, scheduled_mps)| TrendPoint {
-            date,
-            actual_kmh: (actual_mps * 3.6 * 10.0).round() / 10.0,
-            scheduled_kmh: scheduled_mps.map(|s| (s * 3.6 * 10.0).round() / 10.0),
-        })
-        .collect();
-    serde_json::to_string(&pts).unwrap_or_else(|_| "[]".to_string())
-}
 
 pub async fn route_speed_detail(
     State(state): State<AppState>,
@@ -112,19 +40,12 @@ pub async fn route_speed_detail(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let route_info: Option<(String, String)> = sqlx::query_as(
-        "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
-    )
-    .bind(&agency_id)
-    .bind(&route_id)
-    .fetch_optional(&state.db.pool)
-    .await
-    .unwrap_or_else(|e| {
-        tracing::error!("DB error fetching route {agency_id}/{route_id}: {e}");
-        None
-    });
-
-    let (short_name, long_name) = match route_info {
+    let (short_name, long_name) = match fetch_route_info(&state.db, &agency_id, &route_id)
+        .await
+        .unwrap_or_else(|e| {
+            tracing::error!("DB error fetching route {agency_id}/{route_id}: {e}");
+            None
+        }) {
         Some(r) => r,
         None => {
             return (
@@ -157,34 +78,7 @@ pub async fn route_speed_detail(
             .into_response();
     }
 
-    let directions: Vec<RouteSpeedDetailDirection> = spacings
-        .into_iter()
-        .enumerate()
-        .map(|(i, spacing)| {
-            let trend = trends
-                .iter()
-                .find(|t| t.variant_id == spacing.variant_id);
-            let (weekday, saturday, sunday) = trend
-                .map(|t| (t.weekday.clone(), t.saturday.clone(), t.sunday.clone()))
-                .unwrap_or_default();
-            RouteSpeedDetailDirection {
-                variant_id: spacing.variant_id,
-                direction_name: spacing.direction_name,
-                first_stop_name: spacing.first_stop_name,
-                is_primary: spacing.is_primary,
-                trip_count: spacing.trip_count,
-                avg_spacing_m: spacing.avg_spacing_m,
-                spacings: spacing.spacings,
-                weekday_chart_id: format!("weekday-{i}"),
-                saturday_chart_id: format!("saturday-{i}"),
-                sunday_chart_id: format!("sunday-{i}"),
-                weekday_json: trend_to_json(weekday),
-                saturday_json: trend_to_json(saturday),
-                sunday_json: trend_to_json(sunday),
-            }
-        })
-        .collect();
-
+    let directions = build_detail_directions(spacings, trends);
     let avg_spacing_m: Option<f64> = {
         let vals: Vec<f64> = directions.iter().map(|d| d.avg_spacing_m).collect();
         if vals.is_empty() {
@@ -414,62 +308,6 @@ pub async fn route_detail(
     }
 }
 
-fn sort_speed_cards(cards: &mut Vec<RouteSpeedCard>, sort: &str) {
-    match sort {
-        "scheduled" => {
-            cards.sort_by(
-                |a, b| match (a.avg_scheduled_speed_mps, b.avg_scheduled_speed_mps) {
-                    (Some(x), Some(y)) => x
-                        .partial_cmp(&y)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                        .then(a.short_name.cmp(&b.short_name)),
-                    (Some(_), None) => std::cmp::Ordering::Less,
-                    (None, Some(_)) => std::cmp::Ordering::Greater,
-                    (None, None) => a.short_name.cmp(&b.short_name),
-                },
-            )
-        }
-        "actual" => cards.sort_by(
-            |a, b| match (a.avg_actual_speed_mps, b.avg_actual_speed_mps) {
-                (Some(x), Some(y)) => x
-                    .partial_cmp(&y)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-                    .then(a.short_name.cmp(&b.short_name)),
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => a.short_name.cmp(&b.short_name),
-            },
-        ),
-        "spacing" => cards.sort_by(
-            |a, b| match (a.avg_stop_spacing_m, b.avg_stop_spacing_m) {
-                (Some(x), Some(y)) => x
-                    .partial_cmp(&y)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-                    .then(a.short_name.cmp(&b.short_name)),
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => a.short_name.cmp(&b.short_name),
-            },
-        ),
-        _ => {} // "name" or unknown — preserve SQL order
-    }
-}
-
-fn parse_class(class: &str) -> Option<RouteClass> {
-    match class {
-        "local" => Some(RouteClass::Local),
-        "rapid" => Some(RouteClass::Rapid),
-        "express" => Some(RouteClass::Express),
-        _ => None,
-    }
-}
-
-fn filter_speed_cards(cards: &mut Vec<RouteSpeedCard>, class: &str) {
-    let Some(target) = parse_class(class) else {
-        return;
-    };
-    cards.retain(|c| c.classification == Some(target));
-}
 
 pub async fn speed_page(
     State(state): State<AppState>,
@@ -510,12 +348,10 @@ pub async fn speed_page(
     let rows = route_speed_by_day_type(&state.db, filter)
         .await
         .unwrap_or_default();
-    let mut cards = build_speed_cards(rows, &agency_names);
-    filter_speed_cards(&mut cards, &active_class);
-    sort_speed_cards(&mut cards, &active_sort);
-    for (i, card) in cards.iter_mut().enumerate() {
-        card.idx = i;
-    }
+    let cards = assign_indices(sort_speed_cards(
+        filter_speed_cards(build_speed_cards(rows, &agency_names), &active_class),
+        &active_sort,
+    ));
 
     if headers.contains_key("hx-request") {
         let tmpl = SpeedContentTemplate {
@@ -696,13 +532,18 @@ pub async fn frequency_page(
     } else {
         Some(active_agency.as_str())
     };
-    let rows = route_headways(&state.db, filter)
-        .await
-        .unwrap_or_default();
+    let rows = route_headways(&state.db, filter).await.unwrap_or_default();
 
     if headers.contains_key("hx-request") {
-        let tmpl = FrequencyContentTemplate { rows, agencies, active_agency };
-        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+        let tmpl = FrequencyContentTemplate {
+            rows,
+            agencies,
+            active_agency,
+        };
+        Html(
+            tmpl.render()
+                .unwrap_or_else(|e| format!("Template error: {e}")),
+        )
     } else {
         let tmpl = FrequencyTemplate {
             region_name: state.config.region.name.clone(),
@@ -710,245 +551,13 @@ pub async fn frequency_page(
             agencies,
             active_agency,
         };
-        Html(tmpl.render().unwrap_or_else(|e| format!("Template error: {e}")))
+        Html(
+            tmpl.render()
+                .unwrap_or_else(|e| format!("Template error: {e}")),
+        )
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::speed::RouteSpeedCard;
-
-    fn card(short_name: &str, scheduled: f64, actual: Option<f64>) -> RouteSpeedCard {
-        RouteSpeedCard {
-            idx: 0,
-            agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
-            short_name: short_name.into(),
-            long_name: short_name.into(),
-            avg_scheduled_speed_mps: Some(scheduled),
-            avg_actual_speed_mps: actual,
-            avg_stop_spacing_m: None,
-            avg_dwell_secs: None,
-            classification: None,
-        }
-    }
-
-    fn card_no_scheduled(short_name: &str) -> RouteSpeedCard {
-        RouteSpeedCard {
-            idx: 0,
-            agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
-            short_name: short_name.into(),
-            long_name: short_name.into(),
-            avg_scheduled_speed_mps: None,
-            avg_actual_speed_mps: None,
-            avg_stop_spacing_m: None,
-            avg_dwell_secs: None,
-            classification: None,
-        }
-    }
-
-    #[test]
-    fn sort_scheduled_orders_ascending_by_scheduled_speed() {
-        let mut cards = vec![card("B", 10.0, None), card("A", 5.0, None)];
-        sort_speed_cards(&mut cards, "scheduled");
-        assert_eq!(cards[0].short_name, "A");
-        assert_eq!(cards[1].short_name, "B");
-    }
-
-    #[test]
-    fn sort_actual_orders_ascending_by_actual_speed() {
-        let mut cards = vec![card("B", 10.0, Some(8.0)), card("A", 5.0, Some(3.0))];
-        sort_speed_cards(&mut cards, "actual");
-        assert_eq!(cards[0].short_name, "A");
-        assert_eq!(cards[1].short_name, "B");
-    }
-
-    #[test]
-    fn sort_actual_puts_none_last() {
-        let mut cards = vec![card("A", 5.0, None), card("B", 10.0, Some(3.0))];
-        sort_speed_cards(&mut cards, "actual");
-        assert_eq!(cards[0].short_name, "B");
-        assert_eq!(cards[1].short_name, "A");
-    }
-
-    #[test]
-    fn sort_name_leaves_order_unchanged() {
-        let mut cards = vec![card("B", 5.0, None), card("A", 10.0, None)];
-        sort_speed_cards(&mut cards, "name");
-        assert_eq!(cards[0].short_name, "B");
-        assert_eq!(cards[1].short_name, "A");
-    }
-
-    #[test]
-    fn sort_unknown_param_leaves_order_unchanged() {
-        let mut cards = vec![card("B", 5.0, None), card("A", 10.0, None)];
-        sort_speed_cards(&mut cards, "bogus");
-        assert_eq!(cards[0].short_name, "B");
-    }
-
-    #[test]
-    fn sort_scheduled_puts_none_last() {
-        let mut cards = vec![card_no_scheduled("A"), card("B", 5.0, None)];
-        sort_speed_cards(&mut cards, "scheduled");
-        assert_eq!(cards[0].short_name, "B");
-        assert_eq!(cards[1].short_name, "A");
-    }
-
-    #[test]
-    fn sort_scheduled_breaks_ties_by_name() {
-        let mut cards = vec![card("Z", 5.0, None), card("A", 5.0, None)];
-        sort_speed_cards(&mut cards, "scheduled");
-        assert_eq!(cards[0].short_name, "A");
-    }
-
-    fn card_with_spacing(short_name: &str, spacing: Option<f64>) -> RouteSpeedCard {
-        RouteSpeedCard {
-            idx: 0,
-            agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
-            short_name: short_name.into(),
-            long_name: short_name.into(),
-            avg_scheduled_speed_mps: None,
-            avg_actual_speed_mps: None,
-            avg_stop_spacing_m: spacing,
-            avg_dwell_secs: None,
-            classification: None,
-        }
-    }
-
-    #[test]
-    fn sort_spacing_orders_ascending_by_stop_spacing() {
-        let mut cards = vec![
-            card_with_spacing("B", Some(800.0)),
-            card_with_spacing("A", Some(300.0)),
-        ];
-        sort_speed_cards(&mut cards, "spacing");
-        assert_eq!(cards[0].short_name, "A");
-        assert_eq!(cards[1].short_name, "B");
-    }
-
-    #[test]
-    fn sort_spacing_puts_none_last() {
-        let mut cards = vec![
-            card_with_spacing("A", None),
-            card_with_spacing("B", Some(500.0)),
-        ];
-        sort_speed_cards(&mut cards, "spacing");
-        assert_eq!(cards[0].short_name, "B");
-        assert_eq!(cards[1].short_name, "A");
-    }
-
-    #[test]
-    fn sort_spacing_breaks_ties_by_name() {
-        let mut cards = vec![
-            card_with_spacing("Z", Some(500.0)),
-            card_with_spacing("A", Some(500.0)),
-        ];
-        sort_speed_cards(&mut cards, "spacing");
-        assert_eq!(cards[0].short_name, "A");
-    }
-
-    fn card_with_class(short_name: &str, class: Option<RouteClass>) -> RouteSpeedCard {
-        RouteSpeedCard {
-            idx: 0,
-            agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
-            short_name: short_name.into(),
-            long_name: short_name.into(),
-            avg_scheduled_speed_mps: None,
-            avg_actual_speed_mps: None,
-            avg_stop_spacing_m: None,
-            avg_dwell_secs: None,
-            classification: class,
-        }
-    }
-
-    #[test]
-    fn filter_by_class_keeps_matching_cards() {
-        let mut cards = vec![
-            card_with_class("L1", Some(RouteClass::Local)),
-            card_with_class("R1", Some(RouteClass::Rapid)),
-            card_with_class("U1", None),
-        ];
-        filter_speed_cards(&mut cards, "rapid");
-        assert_eq!(cards.len(), 1);
-        assert_eq!(cards[0].short_name, "R1");
-    }
-
-    #[test]
-    fn filter_by_class_hides_unclassified() {
-        let mut cards = vec![
-            card_with_class("U1", None),
-            card_with_class("L1", Some(RouteClass::Local)),
-        ];
-        filter_speed_cards(&mut cards, "local");
-        assert_eq!(cards.len(), 1);
-        assert_eq!(cards[0].short_name, "L1");
-    }
-
-    #[test]
-    fn filter_by_empty_class_keeps_all() {
-        let mut cards = vec![
-            card_with_class("L1", Some(RouteClass::Local)),
-            card_with_class("U1", None),
-        ];
-        filter_speed_cards(&mut cards, "");
-        assert_eq!(cards.len(), 2);
-    }
-
-    #[test]
-    fn filter_by_class_keeps_only_express_cards() {
-        let mut cards = vec![
-            card_with_class("E1", Some(RouteClass::Express)),
-            card_with_class("L1", Some(RouteClass::Local)),
-            card_with_class("U1", None),
-        ];
-        filter_speed_cards(&mut cards, "express");
-        assert_eq!(cards.len(), 1);
-        assert_eq!(cards[0].short_name, "E1");
-    }
-
-    fn direction(avg_spacing_m: f64) -> RouteSpeedDetailDirection {
-        RouteSpeedDetailDirection {
-            variant_id: String::new(),
-            direction_name: String::new(),
-            first_stop_name: String::new(),
-            is_primary: false,
-            trip_count: 0,
-            avg_spacing_m,
-            spacings: vec![],
-            weekday_chart_id: String::new(),
-            saturday_chart_id: String::new(),
-            sunday_chart_id: String::new(),
-            weekday_json: String::new(),
-            saturday_json: String::new(),
-            sunday_json: String::new(),
-        }
-    }
-
-    #[test]
-    fn avg_spacing_status_class_returns_slow_when_below_local_range_min() {
-        assert_eq!(direction(200.0).avg_spacing_status_class(), "slow");
-    }
-
-    #[test]
-    fn avg_spacing_status_class_returns_empty_when_in_range() {
-        assert_eq!(direction(400.0).avg_spacing_status_class(), "");
-        assert_eq!(direction(1000.0).avg_spacing_status_class(), "");
-        assert_eq!(direction(2000.0).avg_spacing_status_class(), "");
-    }
-
-    #[test]
-    fn avg_spacing_status_class_returns_outlier_when_above_express_range_max() {
-        assert_eq!(direction(6000.0).avg_spacing_status_class(), "outlier");
-    }
-}
 
 #[cfg(test)]
 mod e2e_tests {
@@ -1024,9 +633,13 @@ mod e2e_tests {
         )
         .execute(&td.db.pool).await.unwrap();
         sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
 
         let state = AppState {
             db: td.db,
@@ -1411,9 +1024,13 @@ mod e2e_tests {
         )
         .execute(&td.db.pool).await.unwrap();
         sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
-            .execute(&td.db.pool).await.unwrap();
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
 
         let state = AppState {
             db: td.db,
@@ -1520,5 +1137,4 @@ mod e2e_tests {
             "fragment must not contain an <html> element"
         );
     }
-
 }
