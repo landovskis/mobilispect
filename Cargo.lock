@@ -1678,6 +1678,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "chrono",
  "gtfs-structures",
  "hex",
  "mobilispect-core",
@@ -1685,6 +1686,7 @@ dependencies = [
  "prost-build",
  "reqwest 0.12.28",
  "sha2 0.10.9",
+ "sqlx",
  "tokio",
  "tracing",
  "tracing-subscriber",
