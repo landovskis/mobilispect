@@ -198,6 +198,67 @@ pub fn build_speed_cards(
     cards
 }
 
+pub fn parse_class(class: &str) -> Option<RouteClass> {
+    match class {
+        "local" => Some(RouteClass::Local),
+        "rapid" => Some(RouteClass::Rapid),
+        "express" => Some(RouteClass::Express),
+        _ => None,
+    }
+}
+
+pub fn filter_speed_cards(cards: Vec<RouteSpeedCard>, class: &str) -> Vec<RouteSpeedCard> {
+    let Some(target) = parse_class(class) else {
+        return cards;
+    };
+    cards.into_iter().filter(|c| c.classification == Some(target)).collect()
+}
+
+pub fn sort_speed_cards(mut cards: Vec<RouteSpeedCard>, sort: &str) -> Vec<RouteSpeedCard> {
+    match sort {
+        "scheduled" => cards.sort_by(
+            |a, b| match (a.avg_scheduled_speed_mps, b.avg_scheduled_speed_mps) {
+                (Some(x), Some(y)) => x
+                    .partial_cmp(&y)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .then(a.short_name.cmp(&b.short_name)),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => a.short_name.cmp(&b.short_name),
+            },
+        ),
+        "actual" => cards.sort_by(
+            |a, b| match (a.avg_actual_speed_mps, b.avg_actual_speed_mps) {
+                (Some(x), Some(y)) => x
+                    .partial_cmp(&y)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .then(a.short_name.cmp(&b.short_name)),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => a.short_name.cmp(&b.short_name),
+            },
+        ),
+        "spacing" => cards.sort_by(|a, b| match (a.avg_stop_spacing_m, b.avg_stop_spacing_m) {
+            (Some(x), Some(y)) => x
+                .partial_cmp(&y)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then(a.short_name.cmp(&b.short_name)),
+            (Some(_), None) => std::cmp::Ordering::Less,
+            (None, Some(_)) => std::cmp::Ordering::Greater,
+            (None, None) => a.short_name.cmp(&b.short_name),
+        }),
+        _ => {}
+    }
+    cards
+}
+
+pub fn assign_indices(mut cards: Vec<RouteSpeedCard>) -> Vec<RouteSpeedCard> {
+    for (i, card) in cards.iter_mut().enumerate() {
+        card.idx = i;
+    }
+    cards
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -399,7 +460,10 @@ mod tests {
         row1.avg_stop_spacing_m = Some(600.0);
         let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
         let spacing = cards[0].avg_stop_spacing_m.unwrap();
-        assert!((spacing - 500.0).abs() < 0.001, "expected 500.0, got {spacing}");
+        assert!(
+            (spacing - 500.0).abs() < 0.001,
+            "expected 500.0, got {spacing}"
+        );
     }
 
     #[test]
@@ -500,12 +564,18 @@ mod tests {
 
     #[test]
     fn spacing_number_metres() {
-        assert_eq!(card_with_spacing(Some(342.0)).avg_stop_spacing_number(), "342");
+        assert_eq!(
+            card_with_spacing(Some(342.0)).avg_stop_spacing_number(),
+            "342"
+        );
     }
 
     #[test]
     fn spacing_number_kilometres() {
-        assert_eq!(card_with_spacing(Some(1200.0)).avg_stop_spacing_number(), "1.2");
+        assert_eq!(
+            card_with_spacing(Some(1200.0)).avg_stop_spacing_number(),
+            "1.2"
+        );
     }
 
     #[test]
@@ -520,24 +590,42 @@ mod tests {
 
     #[test]
     fn spacing_unit_kilometres() {
-        assert_eq!(card_with_spacing(Some(1200.0)).avg_stop_spacing_unit(), "km");
+        assert_eq!(
+            card_with_spacing(Some(1200.0)).avg_stop_spacing_unit(),
+            "km"
+        );
     }
 
     #[test]
     fn stop_spacing_variant_neutral_when_no_data() {
-        assert_eq!(card_with_spacing(None).avg_stop_spacing_variant(), "neutral");
+        assert_eq!(
+            card_with_spacing(None).avg_stop_spacing_variant(),
+            "neutral"
+        );
     }
 
     #[test]
     fn stop_spacing_variant_bad_below_300m() {
-        assert_eq!(card_with_spacing(Some(0.0)).avg_stop_spacing_variant(), "bad");
-        assert_eq!(card_with_spacing(Some(299.9)).avg_stop_spacing_variant(), "bad");
+        assert_eq!(
+            card_with_spacing(Some(0.0)).avg_stop_spacing_variant(),
+            "bad"
+        );
+        assert_eq!(
+            card_with_spacing(Some(299.9)).avg_stop_spacing_variant(),
+            "bad"
+        );
     }
 
     #[test]
     fn stop_spacing_variant_good_at_or_above_300m() {
-        assert_eq!(card_with_spacing(Some(300.0)).avg_stop_spacing_variant(), "good");
-        assert_eq!(card_with_spacing(Some(1500.0)).avg_stop_spacing_variant(), "good");
+        assert_eq!(
+            card_with_spacing(Some(300.0)).avg_stop_spacing_variant(),
+            "good"
+        );
+        assert_eq!(
+            card_with_spacing(Some(1500.0)).avg_stop_spacing_variant(),
+            "good"
+        );
     }
 
     #[test]
@@ -632,26 +720,50 @@ mod tests {
 
     #[test]
     fn scheduled_speed_variant_bad_below_12kmh_for_local_route() {
-        assert_eq!(local_card_with_scheduled(Some(11.0 / 3.6)).scheduled_speed_variant(), "bad");
-        assert_eq!(local_card_with_scheduled(Some(0.0)).scheduled_speed_variant(), "bad");
+        assert_eq!(
+            local_card_with_scheduled(Some(11.0 / 3.6)).scheduled_speed_variant(),
+            "bad"
+        );
+        assert_eq!(
+            local_card_with_scheduled(Some(0.0)).scheduled_speed_variant(),
+            "bad"
+        );
     }
 
     #[test]
     fn scheduled_speed_variant_mixed_at_12_to_15_kmh_for_local_route() {
-        assert_eq!(local_card_with_scheduled(Some(12.0 / 3.6)).scheduled_speed_variant(), "mixed");
-        assert_eq!(local_card_with_scheduled(Some(13.5 / 3.6)).scheduled_speed_variant(), "mixed");
-        assert_eq!(local_card_with_scheduled(Some(15.0 / 3.6)).scheduled_speed_variant(), "mixed");
+        assert_eq!(
+            local_card_with_scheduled(Some(12.0 / 3.6)).scheduled_speed_variant(),
+            "mixed"
+        );
+        assert_eq!(
+            local_card_with_scheduled(Some(13.5 / 3.6)).scheduled_speed_variant(),
+            "mixed"
+        );
+        assert_eq!(
+            local_card_with_scheduled(Some(15.0 / 3.6)).scheduled_speed_variant(),
+            "mixed"
+        );
     }
 
     #[test]
     fn scheduled_speed_variant_good_above_15kmh_for_local_route() {
-        assert_eq!(local_card_with_scheduled(Some(16.0 / 3.6)).scheduled_speed_variant(), "good");
-        assert_eq!(local_card_with_scheduled(Some(30.0 / 3.6)).scheduled_speed_variant(), "good");
+        assert_eq!(
+            local_card_with_scheduled(Some(16.0 / 3.6)).scheduled_speed_variant(),
+            "good"
+        );
+        assert_eq!(
+            local_card_with_scheduled(Some(30.0 / 3.6)).scheduled_speed_variant(),
+            "good"
+        );
     }
 
     #[test]
     fn scheduled_speed_variant_empty_when_no_data() {
-        assert_eq!(local_card_with_scheduled(None).scheduled_speed_variant(), "");
+        assert_eq!(
+            local_card_with_scheduled(None).scheduled_speed_variant(),
+            ""
+        );
     }
 
     #[test]
@@ -690,21 +802,42 @@ mod tests {
 
     #[test]
     fn actual_speed_variant_bad_below_12kmh_for_local_route() {
-        assert_eq!(local_card_with_actual(Some(11.0 / 3.6)).actual_speed_variant(), "bad");
-        assert_eq!(local_card_with_actual(Some(0.0)).actual_speed_variant(), "bad");
+        assert_eq!(
+            local_card_with_actual(Some(11.0 / 3.6)).actual_speed_variant(),
+            "bad"
+        );
+        assert_eq!(
+            local_card_with_actual(Some(0.0)).actual_speed_variant(),
+            "bad"
+        );
     }
 
     #[test]
     fn actual_speed_variant_mixed_at_12_to_15_kmh_for_local_route() {
-        assert_eq!(local_card_with_actual(Some(12.0 / 3.6)).actual_speed_variant(), "mixed");
-        assert_eq!(local_card_with_actual(Some(13.5 / 3.6)).actual_speed_variant(), "mixed");
-        assert_eq!(local_card_with_actual(Some(15.0 / 3.6)).actual_speed_variant(), "mixed");
+        assert_eq!(
+            local_card_with_actual(Some(12.0 / 3.6)).actual_speed_variant(),
+            "mixed"
+        );
+        assert_eq!(
+            local_card_with_actual(Some(13.5 / 3.6)).actual_speed_variant(),
+            "mixed"
+        );
+        assert_eq!(
+            local_card_with_actual(Some(15.0 / 3.6)).actual_speed_variant(),
+            "mixed"
+        );
     }
 
     #[test]
     fn actual_speed_variant_good_above_15kmh_for_local_route() {
-        assert_eq!(local_card_with_actual(Some(16.0 / 3.6)).actual_speed_variant(), "good");
-        assert_eq!(local_card_with_actual(Some(30.0 / 3.6)).actual_speed_variant(), "good");
+        assert_eq!(
+            local_card_with_actual(Some(16.0 / 3.6)).actual_speed_variant(),
+            "good"
+        );
+        assert_eq!(
+            local_card_with_actual(Some(30.0 / 3.6)).actual_speed_variant(),
+            "good"
+        );
     }
 
     #[test]
@@ -814,5 +947,170 @@ mod tests {
         let row = make_row("stm", "R1", 0, None);
         let cards = build_speed_cards(vec![row], &HashMap::new());
         assert!(cards[0].avg_dwell_secs.is_none());
+    }
+
+    fn make_card(short_name: &str) -> RouteSpeedCard {
+        RouteSpeedCard {
+            idx: 0,
+            agency_name: "Agency".into(),
+            agency_id: "a".into(),
+            route_id: "R1".into(),
+            short_name: short_name.into(),
+            long_name: short_name.into(),
+            avg_scheduled_speed_mps: None,
+            avg_actual_speed_mps: None,
+            avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
+            classification: None,
+        }
+    }
+
+    fn make_card_with_speeds(short_name: &str, scheduled: f64, actual: Option<f64>) -> RouteSpeedCard {
+        RouteSpeedCard {
+            avg_scheduled_speed_mps: Some(scheduled),
+            avg_actual_speed_mps: actual,
+            ..make_card(short_name)
+        }
+    }
+
+    // ── parse_class ────────────────────────────────────────────────────────
+
+    #[test]
+    fn parse_class_local() {
+        assert_eq!(parse_class("local"), Some(RouteClass::Local));
+    }
+
+    #[test]
+    fn parse_class_rapid() {
+        assert_eq!(parse_class("rapid"), Some(RouteClass::Rapid));
+    }
+
+    #[test]
+    fn parse_class_express() {
+        assert_eq!(parse_class("express"), Some(RouteClass::Express));
+    }
+
+    #[test]
+    fn parse_class_unknown_returns_none() {
+        assert_eq!(parse_class(""), None);
+        assert_eq!(parse_class("bogus"), None);
+    }
+
+    // ── filter_speed_cards ─────────────────────────────────────────────────
+
+    #[test]
+    fn filter_keeps_matching_class() {
+        let cards = vec![
+            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
+            RouteSpeedCard { classification: Some(RouteClass::Rapid), ..make_card("R") },
+        ];
+        let result = filter_speed_cards(cards, "rapid");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].short_name, "R");
+    }
+
+    #[test]
+    fn filter_empty_class_keeps_all() {
+        let cards = vec![
+            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
+            RouteSpeedCard { classification: None, ..make_card("U") },
+        ];
+        let result = filter_speed_cards(cards, "");
+        assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn filter_hides_unclassified_when_class_given() {
+        let cards = vec![
+            RouteSpeedCard { classification: None, ..make_card("U") },
+            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
+        ];
+        let result = filter_speed_cards(cards, "local");
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].short_name, "L");
+    }
+
+    // ── sort_speed_cards ───────────────────────────────────────────────────
+
+    #[test]
+    fn sort_scheduled_ascending() {
+        let cards = vec![make_card_with_speeds("B", 10.0, None), make_card_with_speeds("A", 5.0, None)];
+        let result = sort_speed_cards(cards, "scheduled");
+        assert_eq!(result[0].short_name, "A");
+        assert_eq!(result[1].short_name, "B");
+    }
+
+    #[test]
+    fn sort_scheduled_none_last() {
+        let cards = vec![make_card("N"), make_card_with_speeds("B", 5.0, None)];
+        let result = sort_speed_cards(cards, "scheduled");
+        assert_eq!(result[0].short_name, "B");
+        assert_eq!(result[1].short_name, "N");
+    }
+
+    #[test]
+    fn sort_scheduled_ties_broken_by_name() {
+        let cards = vec![make_card_with_speeds("Z", 5.0, None), make_card_with_speeds("A", 5.0, None)];
+        let result = sort_speed_cards(cards, "scheduled");
+        assert_eq!(result[0].short_name, "A");
+    }
+
+    #[test]
+    fn sort_actual_ascending() {
+        let cards = vec![make_card_with_speeds("B", 10.0, Some(8.0)), make_card_with_speeds("A", 5.0, Some(3.0))];
+        let result = sort_speed_cards(cards, "actual");
+        assert_eq!(result[0].short_name, "A");
+    }
+
+    #[test]
+    fn sort_actual_none_last() {
+        let cards = vec![make_card_with_speeds("A", 5.0, None), make_card_with_speeds("B", 10.0, Some(3.0))];
+        let result = sort_speed_cards(cards, "actual");
+        assert_eq!(result[0].short_name, "B");
+    }
+
+    #[test]
+    fn sort_spacing_ascending() {
+        let cards = vec![
+            RouteSpeedCard { avg_stop_spacing_m: Some(800.0), ..make_card("B") },
+            RouteSpeedCard { avg_stop_spacing_m: Some(300.0), ..make_card("A") },
+        ];
+        let result = sort_speed_cards(cards, "spacing");
+        assert_eq!(result[0].short_name, "A");
+    }
+
+    #[test]
+    fn sort_name_preserves_order() {
+        let cards = vec![make_card("B"), make_card("A")];
+        let result = sort_speed_cards(cards, "name");
+        assert_eq!(result[0].short_name, "B");
+    }
+
+    #[test]
+    fn sort_unknown_param_preserves_order() {
+        let cards = vec![make_card("B"), make_card("A")];
+        let result = sort_speed_cards(cards, "bogus");
+        assert_eq!(result[0].short_name, "B");
+    }
+
+    // ── assign_indices ─────────────────────────────────────────────────────
+
+    #[test]
+    fn assign_indices_sets_sequential_idx_from_zero() {
+        let cards = vec![
+            RouteSpeedCard { idx: 99, ..make_card("A") },
+            RouteSpeedCard { idx: 99, ..make_card("B") },
+            RouteSpeedCard { idx: 99, ..make_card("C") },
+        ];
+        let result = assign_indices(cards);
+        assert_eq!(result[0].idx, 0);
+        assert_eq!(result[1].idx, 1);
+        assert_eq!(result[2].idx, 2);
+    }
+
+    #[test]
+    fn assign_indices_empty_input() {
+        let result = assign_indices(vec![]);
+        assert!(result.is_empty());
     }
 }
