@@ -2856,7 +2856,7 @@ mod tests {
         let rows = vec![
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "A".into(),
@@ -2866,7 +2866,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "B".into(),
@@ -2876,7 +2876,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "C".into(),
@@ -2886,7 +2886,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "D".into(),
@@ -2908,7 +2908,7 @@ mod tests {
         let rows = vec![
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "Origin".into(),
@@ -2918,7 +2918,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "Middle".into(),
@@ -2928,7 +2928,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "Terminal".into(),
@@ -2947,7 +2947,7 @@ mod tests {
         let rows = vec![
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "A".into(),
@@ -2957,7 +2957,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "B".into(),
@@ -2967,7 +2967,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR1".into(),
-                direction_id: 1,
+                direction_id: DirectionId(1),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "X".into(),
@@ -2977,7 +2977,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR1".into(),
-                direction_id: 1,
+                direction_id: DirectionId(1),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "Y".into(),
@@ -2997,7 +2997,7 @@ mod tests {
         let rows = vec![
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "A".into(),
@@ -3007,7 +3007,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "B".into(),
@@ -3017,7 +3017,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR0".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 1,
                 to_stop_name: "C".into(),
@@ -3043,7 +3043,7 @@ mod tests {
         let rows = vec![
             StopSpacingEntry {
                 variant_id: "VAR1".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 5,
                 to_stop_name: "First Stop".into(),
@@ -3053,7 +3053,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VAR1".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 is_primary: true,
                 trip_count: 5,
                 to_stop_name: "Last Stop".into(),
@@ -3072,7 +3072,7 @@ mod tests {
         let rows = vec![
             StopSpacingEntry {
                 variant_id: "VARABC".into(),
-                direction_id: 1,
+                direction_id: DirectionId(1),
                 is_primary: false,
                 trip_count: 3,
                 to_stop_name: "A".into(),
@@ -3082,7 +3082,7 @@ mod tests {
             },
             StopSpacingEntry {
                 variant_id: "VARABC".into(),
-                direction_id: 1,
+                direction_id: DirectionId(1),
                 is_primary: false,
                 trip_count: 3,
                 to_stop_name: "B".into(),
@@ -3103,19 +3103,19 @@ mod tests {
         // 2024-01-01 = Monday (weekday), 2024-01-06 = Saturday, 2024-01-07 = Sunday
         let rows = vec![
             SpeedTrendRow {
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 5.0,
                 scheduled_speed_mps: Some(6.0),
             },
             SpeedTrendRow {
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 service_date: "2024-01-06".into(),
                 actual_speed_mps: 6.0,
                 scheduled_speed_mps: Some(7.0),
             },
             SpeedTrendRow {
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 service_date: "2024-01-07".into(),
                 actual_speed_mps: 7.0,
                 scheduled_speed_mps: Some(8.0),
@@ -3133,13 +3133,13 @@ mod tests {
     fn build_direction_trends_groups_two_directions() {
         let rows = vec![
             SpeedTrendRow {
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 5.0,
                 scheduled_speed_mps: Some(6.0),
             },
             SpeedTrendRow {
-                direction_id: 1,
+                direction_id: DirectionId(1),
                 service_date: "2024-01-01".into(),
                 actual_speed_mps: 4.0,
                 scheduled_speed_mps: Some(5.0),
@@ -3197,7 +3197,7 @@ mod tests {
             .await
             .unwrap();
 
-        let directions = route_stop_spacings(db, "0", "R1").await.unwrap();
+        let directions = route_stop_spacings(db, &AgencyId::from("0"), &RouteId::from("R1")).await.unwrap();
 
         assert_eq!(directions.len(), 1, "one variant expected");
         let dir = &directions[0];
@@ -3283,7 +3283,7 @@ mod tests {
             .await
             .unwrap();
 
-        let directions = route_stop_spacings(db, "0", "R1").await.unwrap();
+        let directions = route_stop_spacings(db, &AgencyId::from("0"), &RouteId::from("R1")).await.unwrap();
 
         assert_eq!(directions.len(), 2, "two variants expected");
         // VAR1 first (trip_count=10 > 3)
@@ -3303,7 +3303,7 @@ mod tests {
     #[tokio::test]
     async fn route_stop_spacings_returns_empty_for_unknown_route() {
         let td = test_utils::setup().await;
-        let result = route_stop_spacings(&td.db, "0", "NONEXISTENT")
+        let result = route_stop_spacings(&td.db, &AgencyId::from("0"), &RouteId::from("NONEXISTENT"))
             .await
             .unwrap();
         assert!(result.is_empty());
@@ -3361,7 +3361,7 @@ mod tests {
             .unwrap();
         }
 
-        let trends = route_speed_trend_by_direction(db, "0", "R1", 28)
+        let trends = route_speed_trend_by_direction(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
             .await
             .unwrap();
         assert_eq!(trends.len(), 2, "two directions");
@@ -3385,7 +3385,7 @@ mod tests {
     #[tokio::test]
     async fn route_speed_trend_by_direction_returns_empty_when_no_data() {
         let td = test_utils::setup().await;
-        let result = route_speed_trend_by_direction(&td.db, "0", "R1", 28)
+        let result = route_speed_trend_by_direction(&td.db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
             .await
             .unwrap();
         assert!(result.is_empty());
@@ -3414,7 +3414,7 @@ mod tests {
         .await
         .unwrap();
 
-        let trends = route_speed_trend_by_direction(db, "0", "R1", 28)
+        let trends = route_speed_trend_by_direction(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
             .await
             .unwrap();
 
@@ -3541,7 +3541,7 @@ mod tests {
             .unwrap();
         }
 
-        let trends = route_speed_trend_by_variant(db, "0", "R1", 28)
+        let trends = route_speed_trend_by_variant(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
             .await
             .unwrap();
 
