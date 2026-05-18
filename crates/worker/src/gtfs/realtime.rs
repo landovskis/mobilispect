@@ -4,8 +4,6 @@ use tracing::{error, info};
 
 use mobilispect_core::config::AgencyConfig;
 use mobilispect_core::db::Database;
-use mobilispect_core::speed::compute_route_speed_hourly;
-
 // GTFS-RT protobuf types — generated from the official .proto file
 // Include the generated code from build.rs output
 pub mod proto {
@@ -46,7 +44,7 @@ async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
         0
     };
 
-    compute_route_speed_hourly(db, agency).await?;
+    crate::pipeline::run_realtime_hooks(db, agency).await?;
 
     info!(
         "GTFS-RT poll complete ({}): {} vehicle positions, {} stop time events",

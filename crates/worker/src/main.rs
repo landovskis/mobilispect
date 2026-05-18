@@ -4,8 +4,6 @@ use tracing_subscriber::EnvFilter;
 
 use mobilispect_core::config::Config;
 use mobilispect_core::db::Database;
-use mobilispect_core::speed;
-
 mod gtfs;
 mod maintenance;
 mod pipeline;
@@ -33,12 +31,8 @@ async fn main() -> Result<()> {
             info!("Loading static GTFS for agency: {}", agency.name);
             let result = async {
                 gtfs::static_feed::load_if_needed(&db, &agency).await?;
-                speed::compute_route_speed(&db, &agency).await?;
-                speed::compute_route_speed_by_day_type(&db, &agency).await?;
-                info!(
-                    "Computed scheduled speed (all day types) for agency: {}",
-                    agency.name
-                );
+                pipeline::run_static_hooks(&db, &agency).await?;
+                info!("Static import complete for agency: {}", agency.name);
                 Ok(())
             }
             .await;
