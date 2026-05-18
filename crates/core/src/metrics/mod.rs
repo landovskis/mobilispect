@@ -15,7 +15,7 @@ pub struct DailyTrendPoint {
 /// Per-route trend data: route info + ordered daily points.
 #[derive(Debug, Serialize)]
 pub struct RouteTrend {
-    pub route_id: String,
+    pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
     pub days: Vec<DailyTrendPoint>,
@@ -63,6 +63,7 @@ impl RouteTrend {
 
 use crate::config::{AgencyConfig, Config};
 use crate::db::Database;
+use crate::ids::{AgencyId, RouteId, StopId};
 
 pub struct TripResult {
     /// 1 if all stops were within the on-time window, 0 otherwise.
@@ -111,7 +112,7 @@ pub async fn compute_route_daily(
 ) -> Result<()> {
     let date_str = service_date.to_string();
     let now = chrono::Utc::now().to_rfc3339();
-    let agency_id = agency.id.to_string();
+    let agency_id = AgencyId::from(agency.id);
 
     let trips = sqlx::query!(
         "SELECT DISTINCT t.trip_id, t.route_id
@@ -265,8 +266,8 @@ pub async fn compute_route_daily(
 
 #[derive(Debug, sqlx::FromRow, serde::Serialize)]
 pub struct RouteSummary {
-    pub agency_id: String,
-    pub route_id: String,
+    pub agency_id: AgencyId,
+    pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
     pub avg_on_time_pct: Option<f64>,
@@ -314,7 +315,7 @@ impl RouteSummary {
 /// A stop ranked by average delay — used for the hotspot map.
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct StopHotspot {
-    pub stop_id: String,
+    pub stop_id: StopId,
     pub stop_name: String,
     pub stop_lat: f64,
     pub stop_lon: f64,
@@ -395,16 +396,16 @@ pub async fn stop_hotspots(
 /// Returns None if the route doesn't exist or has no computed data.
 pub async fn route_trend(
     db: &Database,
-    agency_id: &str,
-    route_id: &str,
+    agency_id: &AgencyId,
+    route_id: &RouteId,
     days: i64,
 ) -> Result<Option<RouteTrend>> {
     // Verify route exists.
     let route: Option<(String, String)> = sqlx::query_as(
         "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
     )
-    .bind(&agency_id)
-    .bind(route_id)
+    .bind(agency_id.as_str())
+    .bind(route_id.as_str())
     .fetch_optional(&db.pool)
     .await?;
 
@@ -428,8 +429,8 @@ pub async fn route_trend(
          GROUP BY rd.service_date, rd.on_time_pct, rd.avg_delay_secs
          ORDER BY rd.service_date",
     )
-    .bind(&agency_id)
-    .bind(route_id)
+    .bind(agency_id.as_str())
+    .bind(route_id.as_str())
     .bind(days)
     .fetch_all(&db.pool)
     .await?;
@@ -451,7 +452,7 @@ pub async fn route_trend(
         .collect();
 
     Ok(Some(RouteTrend {
-        route_id: route_id.to_string(),
+        route_id: route_id.clone(),
         short_name,
         long_name,
         days: trend_days,
@@ -463,7 +464,7 @@ pub async fn route_trend(
 pub async fn route_summary(
     db: &Database,
     days: i64,
-    agency_filter: Option<&str>,
+    agency_filter: Option<&AgencyId>,
 ) -> Result<Vec<RouteSummary>> {
     let rows: Vec<RouteSummary> = match agency_filter {
         None => sqlx::query_as(
@@ -510,7 +511,7 @@ pub async fn route_summary(
                r.short_name",
         )
         .bind(days)
-        .bind(agency)
+        .bind(agency.as_str())
         .fetch_all(&db.pool)
         .await?,
     };
@@ -532,8 +533,8 @@ pub struct Benchmark {
 /// Per-route data for the scorecard page.
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct ScorecardRoute {
-    pub agency_id: String,
-    pub route_id: String,
+    pub agency_id: AgencyId,
+    pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
     pub avg_on_time_pct: Option<f64>,
@@ -631,7 +632,7 @@ pub async fn load_benchmarks(db: &Database) -> Result<Vec<Benchmark>> {
 pub async fn scorecard_routes(
     db: &Database,
     days: i64,
-    agency_filter: Option<&str>,
+    agency_filter: Option<&AgencyId>,
 ) -> Result<Vec<ScorecardRoute>> {
     let rows: Vec<ScorecardRoute> = match agency_filter {
         None => sqlx::query_as(
@@ -713,7 +714,7 @@ pub async fn scorecard_routes(
         )
         .bind(days)
         .bind(days)
-        .bind(agency)
+        .bind(agency.as_str())
         .fetch_all(&db.pool)
         .await?,
     };
@@ -729,7 +730,7 @@ mod tests {
     async fn route_trend_returns_none_for_unknown_route() {
         let td = test_utils::setup().await;
         let db = td.db;
-        let result = route_trend(&db, "0", "NONEXISTENT", 30).await.unwrap();
+        let result = route_trend(&db, &AgencyId::from("0"), &RouteId::from("NONEXISTENT"), 30).await.unwrap();
         assert!(result.is_none());
     }
 
@@ -752,7 +753,7 @@ mod tests {
              VALUES ('0', 'R1', '2026-01-02', 68.0, 145.0, 44, 50, '2026-01-02T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
-        let trend = route_trend(&db, "0", "R1", 3650).await.unwrap().unwrap();
+        let trend = route_trend(&db, &AgencyId::from("0"), &RouteId::from("R1"), 3650).await.unwrap().unwrap();
 
         assert_eq!(trend.route_id, "R1");
         assert_eq!(trend.short_name, "45");
@@ -780,7 +781,7 @@ mod tests {
              VALUES ('0', 'R1', '2026-01-01', 0, 5.5, 45, '2026-01-01T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
-        let trend = route_trend(&db, "0", "R1", 3650).await.unwrap().unwrap();
+        let trend = route_trend(&db, &AgencyId::from("0"), &RouteId::from("R1"), 3650).await.unwrap().unwrap();
 
         assert_eq!(trend.days.len(), 1);
         assert!((trend.days[0].actual_speed_mps.unwrap() - 5.5).abs() < 0.01);
@@ -1168,11 +1169,11 @@ mod tests {
         let all = route_summary(&db, 30, None).await.unwrap();
         assert_eq!(all.len(), 2);
 
-        let stm = route_summary(&db, 30, Some("stm")).await.unwrap();
+        let stm = route_summary(&db, 30, Some(&AgencyId::from("stm"))).await.unwrap();
         assert_eq!(stm.len(), 1);
         assert_eq!(stm[0].agency_id, "stm");
 
-        let rtl = route_summary(&db, 30, Some("rtl")).await.unwrap();
+        let rtl = route_summary(&db, 30, Some(&AgencyId::from("rtl"))).await.unwrap();
         assert_eq!(rtl.len(), 1);
         assert_eq!(rtl[0].agency_id, "rtl");
     }
@@ -1201,11 +1202,11 @@ mod tests {
         let all = scorecard_routes(&db, 30, None).await.unwrap();
         assert_eq!(all.len(), 2);
 
-        let stm = scorecard_routes(&db, 30, Some("stm")).await.unwrap();
+        let stm = scorecard_routes(&db, 30, Some(&AgencyId::from("stm"))).await.unwrap();
         assert_eq!(stm.len(), 1);
         assert_eq!(stm[0].agency_id, "stm");
 
-        let rtl = scorecard_routes(&db, 30, Some("rtl")).await.unwrap();
+        let rtl = scorecard_routes(&db, 30, Some(&AgencyId::from("rtl"))).await.unwrap();
         assert_eq!(rtl.len(), 1);
         assert_eq!(rtl[0].agency_id, "rtl");
     }
