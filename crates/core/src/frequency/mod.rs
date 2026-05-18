@@ -2,14 +2,15 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::db::Database;
+use crate::ids::{AgencyId, DirectionId, RouteId};
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteHeadwayRow {
-    pub agency_id: String,
-    pub route_id: String,
+    pub agency_id: AgencyId,
+    pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
-    pub direction_id: i64,
+    pub direction_id: DirectionId,
     pub weekday_headway_mins: Option<f64>,
     pub saturday_headway_mins: Option<f64>,
     pub sunday_headway_mins: Option<f64>,
@@ -73,7 +74,7 @@ impl RouteHeadwayRow {
 
 pub async fn route_headways(
     db: &Database,
-    agency_filter: Option<&str>,
+    agency_filter: Option<&AgencyId>,
 ) -> Result<Vec<RouteHeadwayRow>> {
     let sql = "WITH
 first_stop_dep AS (
@@ -183,7 +184,7 @@ ORDER BY
     rd.direction_id";
 
     let rows = sqlx::query_as(sql)
-        .bind(agency_filter)
+        .bind(agency_filter.map(|a| a.as_str()))
         .fetch_all(&db.pool)
         .await?;
     Ok(rows)
@@ -233,11 +234,11 @@ mod tests {
 
     fn make_row(wd: Option<f64>, sat: Option<f64>, sun: Option<f64>) -> RouteHeadwayRow {
         RouteHeadwayRow {
-            agency_id: "a".to_string(),
-            route_id: "r".to_string(),
+            agency_id: AgencyId::from("a"),
+            route_id: RouteId::from("r"),
             short_name: "1".to_string(),
             long_name: "Route 1".to_string(),
-            direction_id: 0,
+            direction_id: DirectionId(0),
             weekday_headway_mins: wd,
             saturday_headway_mins: sat,
             sunday_headway_mins: sun,
