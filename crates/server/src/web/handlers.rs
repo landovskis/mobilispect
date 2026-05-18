@@ -41,7 +41,10 @@ pub async fn route_speed_detail(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let (short_name, long_name) = match fetch_route_info(&state.db, &agency_id, &route_id).await {
+    let agency_id_typed = AgencyId::from(agency_id.as_str());
+    let route_id_typed = RouteId::from(route_id.as_str());
+
+    let (short_name, long_name) = match fetch_route_info(&state.db, &agency_id_typed, &route_id_typed).await {
         Ok(Some(r)) => r,
         Ok(None) => {
             return (
@@ -59,9 +62,6 @@ pub async fn route_speed_detail(
                 .into_response();
         }
     };
-
-    let agency_id_typed = AgencyId::from(agency_id.as_str());
-    let route_id_typed = RouteId::from(route_id.as_str());
     let (spacings_res, trends_res) = tokio::join!(
         route_stop_spacings(&state.db, &agency_id_typed, &route_id_typed),
         route_speed_trend_by_variant(&state.db, &agency_id_typed, &route_id_typed, 28),

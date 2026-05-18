@@ -1,7 +1,8 @@
+use crate::ids::{AgencyId, RouteId, VariantId};
 use crate::speed::{DirectionStopSpacings, StopSpacing, VariantSpeedTrend};
 
 pub struct RouteSpeedDetailDirection {
-    pub variant_id: String,
+    pub variant_id: VariantId,
     pub direction_name: String,
     pub first_stop_name: String,
     pub is_primary: bool,
@@ -80,7 +81,7 @@ pub fn build_detail_directions(
                 .map(|t| (t.weekday.clone(), t.saturday.clone(), t.sunday.clone()))
                 .unwrap_or_default();
             RouteSpeedDetailDirection {
-                variant_id: spacing.variant_id.to_string(),
+                variant_id: spacing.variant_id,
                 direction_name: spacing.direction_name,
                 first_stop_name: spacing.first_stop_name,
                 is_primary: spacing.is_primary,
@@ -106,14 +107,14 @@ struct RouteInfoRow {
 
 pub async fn fetch_route_info(
     db: &crate::db::Database,
-    agency_id: &str,
-    route_id: &str,
+    agency_id: &AgencyId,
+    route_id: &RouteId,
 ) -> anyhow::Result<Option<(String, String)>> {
     let row = sqlx::query_as!(
         RouteInfoRow,
         "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
-        agency_id,
-        route_id,
+        agency_id.as_str(),
+        route_id.as_str(),
     )
     .fetch_optional(&db.pool)
     .await?;
@@ -203,7 +204,7 @@ mod tests {
     fn avg_spacing_display_under_1km_shows_metres() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 342.0,
-            variant_id: String::new(), direction_name: String::new(),
+            variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), is_primary: false, trip_count: 0,
             spacings: vec![], weekday_chart_id: String::new(),
             saturday_chart_id: String::new(), sunday_chart_id: String::new(),
@@ -216,7 +217,7 @@ mod tests {
     fn avg_spacing_display_at_or_over_1km_shows_km() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 1200.0,
-            variant_id: String::new(), direction_name: String::new(),
+            variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), is_primary: false, trip_count: 0,
             spacings: vec![], weekday_chart_id: String::new(),
             saturday_chart_id: String::new(), sunday_chart_id: String::new(),
@@ -229,7 +230,7 @@ mod tests {
     fn avg_spacing_status_class_below_local_range_min_is_slow() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 200.0,
-            variant_id: String::new(), direction_name: String::new(),
+            variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), is_primary: false, trip_count: 0,
             spacings: vec![], weekday_chart_id: String::new(),
             saturday_chart_id: String::new(), sunday_chart_id: String::new(),
@@ -242,7 +243,7 @@ mod tests {
     fn avg_spacing_status_class_in_range_is_empty() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 400.0,
-            variant_id: String::new(), direction_name: String::new(),
+            variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), is_primary: false, trip_count: 0,
             spacings: vec![], weekday_chart_id: String::new(),
             saturday_chart_id: String::new(), sunday_chart_id: String::new(),
@@ -255,7 +256,7 @@ mod tests {
     fn avg_spacing_status_class_exactly_300_is_in_range() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 300.0,
-            variant_id: String::new(), direction_name: String::new(),
+            variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), is_primary: false, trip_count: 0,
             spacings: vec![], weekday_chart_id: String::new(),
             saturday_chart_id: String::new(), sunday_chart_id: String::new(),
@@ -268,7 +269,7 @@ mod tests {
     fn avg_spacing_status_class_exactly_5000_is_in_range() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 5000.0,
-            variant_id: String::new(), direction_name: String::new(),
+            variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), is_primary: false, trip_count: 0,
             spacings: vec![], weekday_chart_id: String::new(),
             saturday_chart_id: String::new(), sunday_chart_id: String::new(),
@@ -281,7 +282,7 @@ mod tests {
     fn avg_spacing_status_class_above_express_max_is_outlier() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 6000.0,
-            variant_id: String::new(), direction_name: String::new(),
+            variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), is_primary: false, trip_count: 0,
             spacings: vec![], weekday_chart_id: String::new(),
             saturday_chart_id: String::new(), sunday_chart_id: String::new(),
@@ -294,7 +295,7 @@ mod tests {
     fn direction_badge_label_primary_includes_primary_text() {
         let d = RouteSpeedDetailDirection {
             is_primary: true, trip_count: 42,
-            avg_spacing_m: 0.0, variant_id: String::new(), direction_name: String::new(),
+            avg_spacing_m: 0.0, variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), spacings: vec![],
             weekday_chart_id: String::new(), saturday_chart_id: String::new(),
             sunday_chart_id: String::new(), weekday_json: String::new(),
@@ -307,7 +308,7 @@ mod tests {
     fn direction_badge_label_non_primary_shows_trip_count_only() {
         let d = RouteSpeedDetailDirection {
             is_primary: false, trip_count: 7,
-            avg_spacing_m: 0.0, variant_id: String::new(), direction_name: String::new(),
+            avg_spacing_m: 0.0, variant_id: VariantId::from(""), direction_name: String::new(),
             first_stop_name: String::new(), spacings: vec![],
             weekday_chart_id: String::new(), saturday_chart_id: String::new(),
             sunday_chart_id: String::new(), weekday_json: String::new(),
