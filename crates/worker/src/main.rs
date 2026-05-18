@@ -8,6 +8,7 @@ use mobilispect_core::speed;
 
 mod gtfs;
 mod maintenance;
+mod pipeline;
 
 #[tokio::main]
 async fn main() -> Result<()> {
