@@ -29,32 +29,43 @@ Avoid over-abstraction — prefer clear domain logic over clever generics.
 
 ## Structure
 
+Cargo workspace with three crates:
+
 ```
-src/
-  bin/
-    server.rs      # HTTP server entry point
-    worker.rs      # Background ingestion entry point
-  config.rs        # Config + AgencyConfig from config.toml plus dotenvx env refs
-  db/              # Database wrapper (sqlx PgPool)
-  gtfs/
-    static_feed.rs # GTFS zip download + upsert
-    realtime.rs    # GTFS-RT protobuf polling
-  metrics/         # Query functions (on-time %, delays, hotspots, scorecard)
-  speed/
-    mod.rs         # Scheduled/actual speed computation
-    card.rs        # RouteSpeedCard builder
-  web/
-    mod.rs         # Axum router + AppState
-    handlers.rs    # HTTP handlers → Askama templates
-migrations/        # SQL schema (001_schema.sql)
-templates/         # Askama HTML templates
+crates/
+  core/            # mobilispect-core (library)
+    src/
+      config.rs    # Config + AgencyConfig from config.toml plus dotenvx env refs
+      db/          # Database wrapper (sqlx PgPool)
+      metrics/     # Query functions (on-time %, delays, hotspots, scorecard)
+      speed/
+        mod.rs     # Scheduled/actual speed computation
+        card.rs    # RouteSpeedCard builder
+      frequency/   # Headway computation
+    migrations/    # SQL schema migrations
+  server/          # mobilispect-server (binary)
+    src/
+      main.rs      # HTTP server entry point
+      web/
+        mod.rs     # Axum router + AppState
+        handlers.rs # HTTP handlers → Askama templates
+    templates/     # Askama HTML templates
+  worker/          # mobilispect-worker (binary)
+    src/
+      main.rs      # Background ingestion entry point
+      gtfs/
+        static_feed.rs # GTFS zip download + upsert
+        realtime.rs    # GTFS-RT protobuf polling
+      maintenance/     # Data retention cleanup
+    proto/         # GTFS-RT .proto definition
+    build.rs       # prost protobuf compilation
 ```
 
 Where new code goes:
-- New metric or analysis: add a module under `metrics/` or a new top-level slice
-- New web page: handler in `web/handlers.rs` + template in `templates/`
-- New GTFS feed type: extend `gtfs/`
-- Shared DB logic: `db/`
+- New metric or analysis: add a module under `crates/core/src/metrics/` or a new slice in core
+- New web page: handler in `crates/server/src/web/handlers.rs` + template in `crates/server/templates/`
+- New GTFS feed type: extend `crates/worker/src/gtfs/`
+- Shared DB logic: `crates/core/src/db/`
 - Each vertical slice owns its query, computation, and presentation layer
 
 ## Commands
