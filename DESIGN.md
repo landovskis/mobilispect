@@ -10,7 +10,7 @@ description: Warm, editorial design system for Mobilispect built on Tailwind CSS
 > Every token, every component — deliberate.
 
 **Version:** 1.0 · Tailwind CSS
-**Reference file:** `frontend/design-system.html`
+**Reference file:** `docs/design/design-system.html`
 
 ---
 
