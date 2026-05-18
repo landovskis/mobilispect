@@ -1234,6 +1234,10 @@ pub async fn on_static_loaded(db: &Database, agency: &AgencyConfig) -> Result<()
     Ok(())
 }
 
+pub async fn on_realtime_polled(db: &Database, agency: &AgencyConfig) -> Result<()> {
+    compute_route_speed_hourly(db, agency).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3556,5 +3560,12 @@ mod tests {
         let td = test_utils::setup().await;
         let agency = test_agency();
         on_static_loaded(&td.db, &agency).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn on_realtime_polled_succeeds_on_empty_db() {
+        let td = test_utils::setup().await;
+        let agency = test_agency();
+        on_realtime_polled(&td.db, &agency).await.unwrap();
     }
 }
