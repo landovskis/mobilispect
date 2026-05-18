@@ -9,6 +9,7 @@ use tracing::{info, warn};
 
 use mobilispect_core::config::AgencyConfig;
 use mobilispect_core::db::Database;
+use mobilispect_core::ids::AgencyId;
 
 /// Rows to bundle per INSERT statement.
 const CHUNK: usize = 500;
@@ -16,7 +17,7 @@ const CHUNK: usize = 500;
 /// Load static GTFS data into the database if not already present for this agency.
 /// Re-loads if the feed version has changed.
 pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    let agency_id = agency.id.to_string();
+    let agency_id = AgencyId::from(agency.id);
     let stored_version = get_stored_version(db, &agency_id).await?;
     let last_download = get_last_download(db, &agency_id).await?;
 
@@ -60,31 +61,31 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
     // Drop stale data for this agency and bulk-insert in one transaction
     let mut tx = db.pool.begin().await?;
     sqlx::query("DELETE FROM route_variant_stops WHERE agency_id = $1")
-        .bind(&agency_id)
+        .bind(agency_id.as_str())
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM route_variants WHERE agency_id = $1")
-        .bind(&agency_id)
+        .bind(agency_id.as_str())
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM scheduled_stops WHERE agency_id = $1")
-        .bind(&agency_id)
+        .bind(agency_id.as_str())
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM trips WHERE agency_id = $1")
-        .bind(&agency_id)
+        .bind(agency_id.as_str())
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM stops WHERE agency_id = $1")
-        .bind(&agency_id)
+        .bind(agency_id.as_str())
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM routes WHERE agency_id = $1")
-        .bind(&agency_id)
+        .bind(agency_id.as_str())
         .execute(&mut *tx)
         .await?;
     sqlx::query("DELETE FROM calendar WHERE agency_id = $1")
-        .bind(&agency_id)
+        .bind(agency_id.as_str())
         .execute(&mut *tx)
         .await?;
 
@@ -143,13 +144,13 @@ fn pg_placeholders(rows: usize, cols: usize) -> String {
         .join(",")
 }
 
-async fn load_routes(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()> {
+async fn load_routes(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
     let rows: Vec<(String, String, String, String, i64)> = gtfs
         .routes
         .iter()
         .map(|(id, r)| {
             (
-                agency_id.to_string(),
+                agency_id.0.clone(),
                 id.clone(),
                 r.short_name.clone(),
                 r.long_name.clone(),
@@ -177,13 +178,13 @@ async fn load_routes(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()
     Ok(())
 }
 
-async fn load_trips(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()> {
+async fn load_trips(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
     let rows: Vec<(String, String, String, String, Option<i64>, Option<String>)> = gtfs
         .trips
         .iter()
         .map(|(id, t)| {
             (
-                agency_id.to_string(),
+                agency_id.0.clone(),
                 id.clone(),
                 t.route_id.clone(),
                 t.service_id.clone(),
@@ -219,12 +220,12 @@ async fn load_trips(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()>
     Ok(())
 }
 
-async fn load_stops(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()> {
+async fn load_stops(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
     let mut rows: Vec<(String, String, String, f64, f64)> = Vec::new();
     for (id, stop) in &gtfs.stops {
         match (stop.latitude, stop.longitude) {
             (Some(lat), Some(lon)) => rows.push((
-                agency_id.to_string(),
+                agency_id.0.clone(),
                 id.clone(),
                 stop.name.clone(),
                 lat,
@@ -253,13 +254,13 @@ async fn load_stops(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()>
     Ok(())
 }
 
-async fn load_scheduled_stops(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()> {
+async fn load_scheduled_stops(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
     // Flatten all stop_times into (agency_id, trip_id, stop_id, seq, arrival, departure)
     let mut rows: Vec<(String, String, String, i64, String, String)> = Vec::new();
     for (trip_id, trip) in &gtfs.trips {
         for st in &trip.stop_times {
             rows.push((
-                agency_id.to_string(),
+                agency_id.0.clone(),
                 trip_id.clone(),
                 st.stop.id.clone(),
                 st.stop_sequence as i64,
@@ -317,7 +318,7 @@ fn format_gtfs_time(secs: Option<u32>) -> String {
 
 async fn load_calendar(
     tx: &mut Tx<'_>,
-    agency_id: &str,
+    agency_id: &AgencyId,
     calendar: &std::collections::HashMap<String, gtfs_structures::Calendar>,
 ) -> Result<()> {
     for cal in calendar.values() {
@@ -334,7 +335,7 @@ async fn load_calendar(
                saturday  = EXCLUDED.saturday,
                sunday    = EXCLUDED.sunday",
         )
-        .bind(agency_id)
+        .bind(agency_id.as_str())
         .bind(&cal.id)
         .bind(cal.monday)
         .bind(cal.tuesday)
@@ -356,7 +357,7 @@ async fn load_calendar(
 /// Uses `ON CONFLICT DO NOTHING` so real `calendar.txt` rows are never overwritten.
 pub(crate) async fn load_calendar_from_dates(
     tx: &mut Tx<'_>,
-    agency_id: &str,
+    agency_id: &AgencyId,
     calendar_dates: &std::collections::HashMap<String, Vec<gtfs_structures::CalendarDate>>,
 ) -> Result<()> {
     let mut synthesized = 0usize;
@@ -394,7 +395,7 @@ pub(crate) async fn load_calendar_from_dates(
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              ON CONFLICT (agency_id, service_id) DO NOTHING",
         )
-        .bind(agency_id)
+        .bind(agency_id.as_str())
         .bind(service_id.as_str())
         .bind(monday)
         .bind(tuesday)
@@ -531,7 +532,7 @@ mod tests {
         gtfs.routes.insert("45".to_string(), make_route("45"));
 
         let mut tx = db.pool.begin().await.unwrap();
-        load_variants(&mut tx, "stm", &gtfs).await.unwrap();
+        load_variants(&mut tx, &AgencyId::from("stm"), &gtfs).await.unwrap();
         tx.commit().await.unwrap();
 
         // One variant should exist.
@@ -623,7 +624,7 @@ mod tests {
         }
 
         let mut tx = db.pool.begin().await.unwrap();
-        load_variants(&mut tx, "stm", &gtfs).await.unwrap();
+        load_variants(&mut tx, &AgencyId::from("stm"), &gtfs).await.unwrap();
         tx.commit().await.unwrap();
 
         // Two variants should exist.
@@ -685,7 +686,7 @@ mod tests {
             },
         );
 
-        load_calendar(&mut tx, "stm", &calendar).await.unwrap();
+        load_calendar(&mut tx, &AgencyId::from("stm"), &calendar).await.unwrap();
         tx.commit().await.unwrap();
 
         let rows: Vec<(String, bool, bool, bool)> = sqlx::query_as(
@@ -744,7 +745,7 @@ mod tests {
             }],
         );
 
-        load_calendar_from_dates(&mut tx, "stm", &calendar_dates)
+        load_calendar_from_dates(&mut tx, &AgencyId::from("stm"), &calendar_dates)
             .await
             .unwrap();
         tx.commit().await.unwrap();
@@ -802,7 +803,7 @@ mod tests {
                 end_date: NaiveDate::from_ymd_opt(2026, 12, 31).unwrap(),
             },
         );
-        load_calendar(&mut tx, "stm", &calendar).await.unwrap();
+        load_calendar(&mut tx, &AgencyId::from("stm"), &calendar).await.unwrap();
 
         // calendar_dates claims WD runs on Saturday — should be ignored
         let mut calendar_dates: HashMap<String, Vec<gtfs_structures::CalendarDate>> =
@@ -815,7 +816,7 @@ mod tests {
                 exception_type: gtfs_structures::Exception::Added,
             }],
         );
-        load_calendar_from_dates(&mut tx, "stm", &calendar_dates)
+        load_calendar_from_dates(&mut tx, &AgencyId::from("stm"), &calendar_dates)
             .await
             .unwrap();
         tx.commit().await.unwrap();
@@ -848,7 +849,7 @@ fn variant_id_for(stop_ids: &[String]) -> String {
 /// Build and store route variants from already-loaded trips + scheduled_stops.
 /// Groups trips by their ordered stop sequence, assigns a deterministic variant_id,
 /// marks the variant with the most trips as primary, and links trips to their variant.
-pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs) -> Result<()> {
+pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
     // Collect stop sequences per trip in memory (already loaded into DB, but gtfs struct is handy).
     // key: (route_id, direction_id, stop_ids_csv) → (variant_id, trip_ids, headsign)
     let mut pattern_map: HashMap<(String, i64, String), (String, Vec<String>, Option<String>)> =
@@ -910,7 +911,7 @@ pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs)
                is_primary = EXCLUDED.is_primary,
                headsign   = EXCLUDED.headsign",
         )
-        .bind(agency_id)
+        .bind(agency_id.as_str())
         .bind(vid)
         .bind(route_id)
         .bind(direction_id)
@@ -927,7 +928,7 @@ pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs)
                  VALUES ($1, $2, $3, $4)
                  ON CONFLICT (agency_id, variant_id, stop_sequence) DO NOTHING",
             )
-            .bind(agency_id)
+            .bind(agency_id.as_str())
             .bind(vid)
             .bind(seq as i64)
             .bind(sid)
@@ -941,7 +942,7 @@ pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs)
                  WHERE agency_id = $2 AND trip_id = $3",
             )
             .bind(vid)
-            .bind(agency_id)
+            .bind(agency_id.as_str())
             .bind(trip_id)
             .execute(&mut **tx)
             .await?;
@@ -956,7 +957,7 @@ pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &str, gtfs: &Gtfs)
     Ok(())
 }
 
-async fn get_stored_version(db: &Database, agency_id: &str) -> Result<Option<String>> {
+async fn get_stored_version(db: &Database, agency_id: &AgencyId) -> Result<Option<String>> {
     let key = format!("gtfs_static_version_{agency_id}");
     let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
         .fetch_optional(&db.pool)
@@ -964,7 +965,7 @@ async fn get_stored_version(db: &Database, agency_id: &str) -> Result<Option<Str
     Ok(row.map(|r| r.value))
 }
 
-async fn get_last_download(db: &Database, agency_id: &str) -> Result<Option<String>> {
+async fn get_last_download(db: &Database, agency_id: &AgencyId) -> Result<Option<String>> {
     let key = format!("gtfs_static_last_download_{agency_id}");
     let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
         .fetch_optional(&db.pool)
@@ -972,7 +973,7 @@ async fn get_last_download(db: &Database, agency_id: &str) -> Result<Option<Stri
     Ok(row.map(|r| r.value))
 }
 
-async fn set_stored_version(db: &Database, agency_id: &str, version: &str) -> Result<()> {
+async fn set_stored_version(db: &Database, agency_id: &AgencyId, version: &str) -> Result<()> {
     let key = format!("gtfs_static_version_{agency_id}");
     let now = chrono::Utc::now().to_rfc3339();
     sqlx::query!(
@@ -988,7 +989,7 @@ async fn set_stored_version(db: &Database, agency_id: &str, version: &str) -> Re
     Ok(())
 }
 
-async fn set_last_download(db: &Database, agency_id: &str) -> Result<()> {
+async fn set_last_download(db: &Database, agency_id: &AgencyId) -> Result<()> {
     let key = format!("gtfs_static_last_download_{agency_id}");
     let today = chrono::Utc::now()
         .date_naive()
