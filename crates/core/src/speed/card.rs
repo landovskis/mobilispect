@@ -1,11 +1,12 @@
+use crate::ids::{AgencyId, RouteId};
 use crate::speed::RouteSpeedDayType;
 use std::collections::HashMap;
 
 pub struct RouteSpeedCard {
     pub idx: usize,
     pub agency_name: String,
-    pub agency_id: String,
-    pub route_id: String,
+    pub agency_id: AgencyId,
+    pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
     pub avg_scheduled_speed_mps: Option<f64>,
@@ -184,8 +185,8 @@ pub fn build_speed_cards(
         cards.push(RouteSpeedCard {
             idx: card_idx,
             agency_name,
-            agency_id: first.agency_id.to_string(),
-            route_id: first.route_id.to_string(),
+            agency_id: first.agency_id.clone(),
+            route_id: first.route_id.clone(),
             short_name: first.short_name.clone(),
             long_name: first.long_name.clone(),
             avg_scheduled_speed_mps,
