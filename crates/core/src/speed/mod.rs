@@ -1228,6 +1228,12 @@ pub async fn route_speed_by_day_type(
     Ok(rows)
 }
 
+pub async fn on_static_loaded(db: &Database, agency: &AgencyConfig) -> Result<()> {
+    compute_route_speed(db, agency).await?;
+    compute_route_speed_by_day_type(db, agency).await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3543,5 +3549,12 @@ mod tests {
         assert_eq!(trends[1].variant_id, "VAR2");
         assert_eq!(trends[1].weekday.len(), 1);
         assert!((trends[1].weekday[0].1 - 4.0).abs() < 0.01);
+    }
+
+    #[tokio::test]
+    async fn on_static_loaded_succeeds_on_empty_db() {
+        let td = test_utils::setup().await;
+        let agency = test_agency();
+        on_static_loaded(&td.db, &agency).await.unwrap();
     }
 }
