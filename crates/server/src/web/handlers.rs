@@ -29,7 +29,7 @@ struct RouteSpeedDetailTemplate {
     region_name: String,
     short_name: String,
     long_name: String,
-    agency_id: String,
+    agency_id: AgencyId,
     directions: Vec<RouteSpeedDetailDirection>,
     classification: Option<RouteClass>,
 }
@@ -41,10 +41,10 @@ pub async fn route_speed_detail(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agency_id_typed = AgencyId::from(agency_id.as_str());
-    let route_id_typed = RouteId::from(route_id.as_str());
+    let agency_id = AgencyId::from(agency_id);
+    let route_id = RouteId::from(route_id);
 
-    let (short_name, long_name) = match fetch_route_info(&state.db, &agency_id_typed, &route_id_typed).await {
+    let (short_name, long_name) = match fetch_route_info(&state.db, &agency_id, &route_id).await {
         Ok(Some(r)) => r,
         Ok(None) => {
             return (
@@ -63,8 +63,8 @@ pub async fn route_speed_detail(
         }
     };
     let (spacings_res, trends_res) = tokio::join!(
-        route_stop_spacings(&state.db, &agency_id_typed, &route_id_typed),
-        route_speed_trend_by_variant(&state.db, &agency_id_typed, &route_id_typed, 28),
+        route_stop_spacings(&state.db, &agency_id, &route_id),
+        route_speed_trend_by_variant(&state.db, &agency_id, &route_id, 28),
     );
 
     let spacings = spacings_res.unwrap_or_else(|e| {
@@ -149,12 +149,12 @@ pub async fn dashboard(
 ) -> Html<String> {
     let period_days: i64 = 7;
     let active_agency = params.agency.unwrap_or_default();
-    let filter = if active_agency.is_empty() {
+    let agency_filter: Option<AgencyId> = if active_agency.is_empty() {
         None
     } else {
-        Some(active_agency.as_str())
+        Some(AgencyId::from(active_agency.clone()))
     };
-    let routes = route_summary(&state.db, period_days, filter)
+    let routes = route_summary(&state.db, period_days, agency_filter.as_ref())
         .await
         .unwrap_or_default();
     let agencies: Vec<(String, String)> = state
@@ -293,6 +293,8 @@ pub async fn route_detail(
     axum::extract::Path((agency_id, route_id)): axum::extract::Path<(String, String)>,
 ) -> Html<String> {
     let period_days: i64 = 30;
+    let agency_id = AgencyId::from(agency_id);
+    let route_id = RouteId::from(route_id);
     match route_trend(&state.db, &agency_id, &route_id, period_days).await {
         Ok(Some(trend)) => {
             let trend_json = serde_json::to_string(&trend.days).unwrap_or_default();
@@ -413,13 +415,13 @@ pub async fn scorecard(
 ) -> Html<String> {
     let period_days: i64 = 7;
     let active_agency = params.agency.unwrap_or_default();
-    let filter = if active_agency.is_empty() {
+    let agency_filter: Option<AgencyId> = if active_agency.is_empty() {
         None
     } else {
-        Some(active_agency.as_str())
+        Some(AgencyId::from(active_agency.clone()))
     };
     let benchmarks = load_benchmarks(&state.db).await.unwrap_or_default();
-    let routes = scorecard_routes(&state.db, period_days, filter)
+    let routes = scorecard_routes(&state.db, period_days, agency_filter.as_ref())
         .await
         .unwrap_or_default();
 
@@ -534,12 +536,12 @@ pub async fn frequency_page(
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
         .unwrap_or_default();
-    let filter = if active_agency.is_empty() {
+    let agency_filter: Option<AgencyId> = if active_agency.is_empty() {
         None
     } else {
-        Some(active_agency.as_str())
+        Some(AgencyId::from(active_agency.clone()))
     };
-    let rows = route_headways(&state.db, filter).await.unwrap_or_default();
+    let rows = route_headways(&state.db, agency_filter.as_ref()).await.unwrap_or_default();
 
     if headers.contains_key("hx-request") {
         let tmpl = FrequencyContentTemplate {
