@@ -4,6 +4,7 @@ use tracing::{error, info};
 
 use mobilispect_core::config::AgencyConfig;
 use mobilispect_core::db::Database;
+use mobilispect_core::ids::AgencyId;
 // GTFS-RT protobuf types — generated from the official .proto file
 // Include the generated code from build.rs output
 pub mod proto {
@@ -24,7 +25,7 @@ pub async fn poll_loop(db: &Database, agency: &AgencyConfig, poll_interval_secs:
 
 async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
-    let agency_id = agency.id.to_string();
+    let agency_id = AgencyId::from(agency.id);
 
     // Fetch VehiclePositions (optional — skip if URL not configured)
     let vp_count = if let Some(url) = &agency.gtfs_rt_vehicle_positions_url {
@@ -67,7 +68,7 @@ async fn store_vehicle_positions(
     db: &Database,
     feed: &proto::FeedMessage,
     observed_at: &str,
-    agency_id: &str,
+    agency_id: &AgencyId,
 ) -> Result<usize> {
     let mut count = 0;
     for entity in &feed.entity {
@@ -87,7 +88,7 @@ async fn store_vehicle_positions(
             "INSERT INTO vehicle_positions
              (agency_id, observed_at, trip_id, vehicle_id, latitude, longitude, bearing, speed, current_status, stop_sequence)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-            agency_id,
+            agency_id.as_str(),
             observed_at,
             trip_id,
             vehicle_id,
@@ -109,7 +110,7 @@ async fn store_trip_updates(
     db: &Database,
     feed: &proto::FeedMessage,
     observed_at: &str,
-    agency_id: &str,
+    agency_id: &AgencyId,
 ) -> Result<usize> {
     let mut count = 0;
     for entity in &feed.entity {
@@ -142,7 +143,7 @@ async fn store_trip_updates(
                  (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_delay, departure_delay,
                   arrival_time_unix, departure_time_unix)
                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-                agency_id,
+                agency_id.as_str(),
                 observed_at,
                 trip_id,
                 stop_id,
