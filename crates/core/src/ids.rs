@@ -82,8 +82,9 @@ impl From<u32> for AgencyId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, sqlx::Type, serde::Serialize, serde::Deserialize)]
 #[sqlx(transparent)]
+#[serde(transparent)]
 pub struct DirectionId(pub i64);
 
 impl DirectionId {

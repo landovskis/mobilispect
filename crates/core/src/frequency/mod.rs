@@ -58,7 +58,7 @@ impl RouteHeadwayRow {
     }
 
     pub fn direction_label(&self) -> &'static str {
-        match self.direction_id {
+        match self.direction_id.as_i64() {
             0 => "Outbound",
             1 => "Inbound",
             _ => "—",
@@ -254,7 +254,7 @@ mod tests {
     #[test]
     fn direction_label_inbound() {
         let mut row = make_row(None, None, None);
-        row.direction_id = 1;
+        row.direction_id = DirectionId(1);
         assert_eq!(row.direction_label(), "Inbound");
     }
 
