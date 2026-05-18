@@ -80,7 +80,7 @@ pub fn build_detail_directions(
                 .map(|t| (t.weekday.clone(), t.saturday.clone(), t.sunday.clone()))
                 .unwrap_or_default();
             RouteSpeedDetailDirection {
-                variant_id: spacing.variant_id,
+                variant_id: spacing.variant_id.to_string(),
                 direction_name: spacing.direction_name,
                 first_stop_name: spacing.first_stop_name,
                 is_primary: spacing.is_primary,
@@ -125,9 +125,10 @@ mod tests {
     use super::*;
 
     fn make_spacing(variant_id: &str) -> DirectionStopSpacings {
+        use crate::ids::{DirectionId, VariantId};
         DirectionStopSpacings {
-            direction_id: 0,
-            variant_id: variant_id.to_string(),
+            direction_id: DirectionId(0),
+            variant_id: VariantId::from(variant_id),
             is_primary: true,
             trip_count: 10,
             direction_name: "A \u{2192} B".to_string(),
@@ -138,8 +139,9 @@ mod tests {
     }
 
     fn make_trend(variant_id: &str) -> VariantSpeedTrend {
+        use crate::ids::VariantId;
         VariantSpeedTrend {
-            variant_id: variant_id.to_string(),
+            variant_id: VariantId::from(variant_id),
             weekday: vec![("2026-01-06".to_string(), 8.0, Some(9.0))],
             saturday: vec![],
             sunday: vec![],

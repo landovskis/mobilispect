@@ -4,6 +4,7 @@ use serde::Serialize;
 
 use crate::config::AgencyConfig;
 use crate::db::Database;
+use crate::ids::{AgencyId, DirectionId, RouteId, VariantId};
 
 pub mod card;
 pub mod detail;
@@ -13,8 +14,8 @@ pub use card::{
 };
 pub use detail::{RouteSpeedDetailDirection, build_detail_directions, fetch_route_info};
 
-pub(crate) fn direction_label(direction_id: i64) -> &'static str {
-    match direction_id {
+pub(crate) fn direction_label(direction_id: DirectionId) -> &'static str {
+    match direction_id.as_i64() {
         0 => "Outbound",
         1 => "Inbound",
         _ => "Unknown",
@@ -23,11 +24,11 @@ pub(crate) fn direction_label(direction_id: i64) -> &'static str {
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteSpeedSummary {
-    pub agency_id: String,
-    pub route_id: String,
+    pub agency_id: AgencyId,
+    pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
-    pub direction_id: i64,
+    pub direction_id: DirectionId,
     pub scheduled_speed_mps: f64,
     pub trip_count: i64,
     /// Average speed from vehicles observed in the last hour (m/s). None if no recent data.
@@ -132,8 +133,8 @@ pub struct StopSpacing {
 
 /// All stop spacings for one direction of a route.
 pub struct DirectionStopSpacings {
-    pub direction_id: i64,
-    pub variant_id: String,
+    pub direction_id: DirectionId,
+    pub variant_id: VariantId,
     pub is_primary: bool,
     pub trip_count: i64,
     /// "First Stop → Last Stop"
@@ -148,8 +149,8 @@ pub struct DirectionStopSpacings {
 /// Raw row returned by the stop spacings SQL query.
 #[derive(sqlx::FromRow)]
 struct StopSpacingEntry {
-    variant_id: String,
-    direction_id: i64,
+    variant_id: VariantId,
+    direction_id: DirectionId,
     is_primary: bool,
     trip_count: i64,
     to_stop_name: String,
@@ -266,7 +267,7 @@ fn build_direction_spacings(rows: Vec<StopSpacingEntry>) -> Vec<DirectionStopSpa
 
 /// Speed trend data for one direction of a route.
 pub struct DirectionSpeedTrend {
-    pub direction_id: i64,
+    pub direction_id: DirectionId,
     /// (service_date as "YYYY-MM-DD", actual_speed_mps, scheduled_speed_mps)
     /// `scheduled_speed_mps` is `None` when no scheduled speed has been computed for the route.
     pub weekday: Vec<(String, f64, Option<f64>)>,
@@ -277,7 +278,7 @@ pub struct DirectionSpeedTrend {
 /// Raw row returned by the speed trend SQL query.
 #[derive(sqlx::FromRow)]
 struct SpeedTrendRow {
-    direction_id: i64,
+    direction_id: DirectionId,
     service_date: String,
     actual_speed_mps: f64,
     scheduled_speed_mps: Option<f64>,
@@ -288,7 +289,7 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
     use std::str::FromStr;
 
     let mut map: std::collections::HashMap<
-        i64,
+        DirectionId,
         (
             Vec<(String, f64, Option<f64>)>,
             Vec<(String, f64, Option<f64>)>,
@@ -334,7 +335,7 @@ fn build_direction_trends_with_scheduled(rows: Vec<SpeedTrendRow>) -> Vec<Direct
 }
 
 pub struct VariantSpeedTrend {
-    pub variant_id: String,
+    pub variant_id: VariantId,
     pub weekday: Vec<(String, f64, Option<f64>)>,
     pub saturday: Vec<(String, f64, Option<f64>)>,
     pub sunday: Vec<(String, f64, Option<f64>)>,
@@ -342,7 +343,7 @@ pub struct VariantSpeedTrend {
 
 #[derive(sqlx::FromRow)]
 struct SpeedTrendVariantRow {
-    variant_id: String,
+    variant_id: VariantId,
     service_date: String,
     actual_speed_mps: f64,
     scheduled_speed_mps: Option<f64>,
@@ -353,7 +354,7 @@ fn build_variant_trends(rows: Vec<SpeedTrendVariantRow>) -> Vec<VariantSpeedTren
     use std::str::FromStr;
 
     let mut map: std::collections::HashMap<
-        String,
+        VariantId,
         (
             Vec<(String, f64, Option<f64>)>,
             Vec<(String, f64, Option<f64>)>,
@@ -389,14 +390,14 @@ fn build_variant_trends(rows: Vec<SpeedTrendVariantRow>) -> Vec<VariantSpeedTren
             },
         )
         .collect();
-    result.sort_by(|a, b| a.variant_id.cmp(&b.variant_id));
+    result.sort_by_key(|t| t.variant_id.clone());
     result
 }
 
 pub async fn route_speed_trend_by_variant(
     db: &Database,
-    agency_id: &str,
-    route_id: &str,
+    agency_id: &AgencyId,
+    route_id: &RouteId,
     days: i64,
 ) -> Result<Vec<VariantSpeedTrend>> {
     let rows: Vec<SpeedTrendVariantRow> = sqlx::query_as(
@@ -413,8 +414,8 @@ pub async fn route_speed_trend_by_variant(
            AND d.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
          ORDER BY d.variant_id, d.service_date",
     )
-    .bind(agency_id)
-    .bind(route_id)
+    .bind(agency_id.as_str())
+    .bind(route_id.as_str())
     .bind(days)
     .fetch_all(&db.pool)
     .await?;
@@ -426,8 +427,8 @@ pub async fn route_speed_trend_by_variant(
 /// Returns one `DirectionStopSpacings` per direction. Empty if route has no trips.
 pub async fn route_stop_spacings(
     db: &Database,
-    agency_id: &str,
-    route_id: &str,
+    agency_id: &AgencyId,
+    route_id: &RouteId,
 ) -> Result<Vec<DirectionStopSpacings>> {
     let rows: Vec<StopSpacingEntry> = sqlx::query_as(
         "WITH all_variants AS (
@@ -475,8 +476,8 @@ pub async fn route_stop_spacings(
         FROM with_prev
         ORDER BY trip_count DESC, variant_id, rn",
     )
-    .bind(&agency_id)
-    .bind(route_id)
+    .bind(agency_id.as_str())
+    .bind(route_id.as_str())
     .fetch_all(&db.pool)
     .await?;
 
@@ -487,8 +488,8 @@ pub async fn route_stop_spacings(
 /// `days` controls how many days back to look (use 28 to match other data windows).
 pub async fn route_speed_trend_by_direction(
     db: &Database,
-    agency_id: &str,
-    route_id: &str,
+    agency_id: &AgencyId,
+    route_id: &RouteId,
     days: i64,
 ) -> Result<Vec<DirectionSpeedTrend>> {
     let rows: Vec<SpeedTrendRow> = sqlx::query_as(
@@ -503,8 +504,8 @@ pub async fn route_speed_trend_by_direction(
            AND d.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
          ORDER BY d.direction_id, d.service_date",
     )
-    .bind(&agency_id)
-    .bind(route_id)
+    .bind(agency_id.as_str())
+    .bind(route_id.as_str())
     .bind(days)
     .fetch_all(&db.pool)
     .await?;
@@ -907,7 +908,7 @@ pub async fn compute_route_speed_daily(
 /// If `agency_filter` is Some, only returns routes for that agency.
 pub async fn route_speed_summary(
     db: &Database,
-    agency_filter: Option<&str>,
+    agency_filter: Option<&AgencyId>,
 ) -> Result<Vec<RouteSpeedSummary>> {
     let rows: Vec<RouteSpeedSummary> = match agency_filter {
         None => sqlx::query_as(
@@ -1008,7 +1009,7 @@ pub async fn route_speed_summary(
              WHERE rs.agency_id = $1
              ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
         )
-        .bind(agency)
+        .bind(agency.as_str())
         .fetch_all(&db.pool)
         .await?,
     };
@@ -1124,11 +1125,11 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
 /// (weekday / Saturday / Sunday), sourced from `route_speed_day_type`.
 #[derive(Debug, sqlx::FromRow)]
 pub struct RouteSpeedDayType {
-    pub agency_id: String,
-    pub route_id: String,
+    pub agency_id: AgencyId,
+    pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
-    pub direction_id: i64,
+    pub direction_id: DirectionId,
     pub weekday_speed_mps: Option<f64>,
     pub saturday_speed_mps: Option<f64>,
     pub sunday_speed_mps: Option<f64>,
@@ -1145,7 +1146,7 @@ pub struct RouteSpeedDayType {
 
 pub async fn route_speed_by_day_type(
     db: &Database,
-    agency_filter: Option<&str>,
+    agency_filter: Option<&AgencyId>,
 ) -> Result<Vec<RouteSpeedDayType>> {
     let base_sql = "WITH actual_by_day_type AS (
             SELECT
@@ -1222,7 +1223,7 @@ pub async fn route_speed_by_day_type(
     let rows = sqlx::query_as(&format!(
         "{base_sql} WHERE ($1::text IS NULL OR rs.agency_id = $1) AND r.route_type IN (0, 3) {order_sql}"
     ))
-    .bind(agency_filter)
+    .bind(agency_filter.map(|a| a.as_str()))
     .fetch_all(&db.pool)
     .await?;
     Ok(rows)
@@ -1812,11 +1813,11 @@ mod tests {
         let all = route_speed_summary(&db, None).await.unwrap();
         assert_eq!(all.len(), 2);
 
-        let stm = route_speed_summary(&db, Some("stm")).await.unwrap();
+        let stm = route_speed_summary(&db, Some(&AgencyId::from("stm"))).await.unwrap();
         assert_eq!(stm.len(), 1);
         assert_eq!(stm[0].agency_id, "stm");
 
-        let rtl = route_speed_summary(&db, Some("rtl")).await.unwrap();
+        let rtl = route_speed_summary(&db, Some(&AgencyId::from("rtl"))).await.unwrap();
         assert_eq!(rtl.len(), 1);
         assert_eq!(rtl[0].agency_id, "rtl");
     }
@@ -1902,11 +1903,11 @@ mod tests {
 
     fn make_summary(scheduled: f64, actual: Option<f64>) -> RouteSpeedSummary {
         RouteSpeedSummary {
-            agency_id: "0".into(),
-            route_id: "R1".into(),
+            agency_id: AgencyId::from("0"),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
-            direction_id: 0,
+            direction_id: DirectionId(0),
             scheduled_speed_mps: scheduled,
             trip_count: 1,
             live_speed_mps: None,
@@ -2109,7 +2110,7 @@ mod tests {
         .await
         .unwrap();
 
-        let rows = route_speed_by_day_type(&db, Some("0")).await.unwrap();
+        let rows = route_speed_by_day_type(&db, Some(&AgencyId::from("0"))).await.unwrap();
 
         assert_eq!(rows.len(), 1);
         let r = &rows[0];
@@ -2272,7 +2273,7 @@ mod tests {
             .await
             .unwrap();
 
-        let rows = route_speed_by_day_type(&db, Some("agency_a"))
+        let rows = route_speed_by_day_type(&db, Some(&AgencyId::from("agency_a")))
             .await
             .unwrap();
         assert_eq!(rows.len(), 1);

@@ -13,6 +13,7 @@ use mobilispect_core::metrics::{
     Benchmark, RouteSummary, RouteTrend, ScorecardRoute, StopHotspot, load_benchmarks,
     route_summary, route_trend, scorecard_routes, stop_hotspots,
 };
+use mobilispect_core::ids::{AgencyId, RouteId};
 use mobilispect_core::speed::{
     RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary,
     assign_indices, build_detail_directions, build_speed_cards, classify_by_spacing,
@@ -59,9 +60,11 @@ pub async fn route_speed_detail(
         }
     };
 
+    let agency_id_typed = AgencyId::from(agency_id.as_str());
+    let route_id_typed = RouteId::from(route_id.as_str());
     let (spacings_res, trends_res) = tokio::join!(
-        route_stop_spacings(&state.db, &agency_id, &route_id),
-        route_speed_trend_by_variant(&state.db, &agency_id, &route_id, 28),
+        route_stop_spacings(&state.db, &agency_id_typed, &route_id_typed),
+        route_speed_trend_by_variant(&state.db, &agency_id_typed, &route_id_typed, 28),
     );
 
     let spacings = spacings_res.unwrap_or_else(|e| {
@@ -341,11 +344,12 @@ pub async fn speed_page(
         _ => "",
     }
     .to_string();
-    let filter = if active_agency.is_empty() {
+    let filter_agency_id = if active_agency.is_empty() {
         None
     } else {
-        Some(active_agency.as_str())
+        Some(AgencyId::from(active_agency.as_str()))
     };
+    let filter = filter_agency_id.as_ref();
     let agency_names: std::collections::HashMap<String, String> =
         agencies.iter().cloned().collect();
     let rows = route_speed_by_day_type(&state.db, filter)

@@ -160,9 +160,9 @@ pub fn build_speed_cards(
     for route_rows in rows.chunk_by(|a, b| a.agency_id == b.agency_id && a.route_id == b.route_id) {
         let first = &route_rows[0];
         let agency_name = agency_names
-            .get(&first.agency_id)
+            .get(first.agency_id.as_str())
             .cloned()
-            .unwrap_or_else(|| first.agency_id.clone());
+            .unwrap_or_else(|| first.agency_id.to_string());
         let card_idx = cards.len();
         let avg_scheduled_speed_mps = avg_speeds(route_rows.iter().flat_map(|r| {
             [
@@ -184,8 +184,8 @@ pub fn build_speed_cards(
         cards.push(RouteSpeedCard {
             idx: card_idx,
             agency_name,
-            agency_id: first.agency_id.clone(),
-            route_id: first.route_id.clone(),
+            agency_id: first.agency_id.to_string(),
+            route_id: first.route_id.to_string(),
             short_name: first.short_name.clone(),
             long_name: first.long_name.clone(),
             avg_scheduled_speed_mps,
@@ -262,6 +262,7 @@ pub fn assign_indices(mut cards: Vec<RouteSpeedCard>) -> Vec<RouteSpeedCard> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ids::{AgencyId, DirectionId, RouteId};
 
     fn make_row(
         agency_id: &str,
@@ -270,11 +271,11 @@ mod tests {
         weekday: Option<f64>,
     ) -> RouteSpeedDayType {
         RouteSpeedDayType {
-            agency_id: agency_id.to_string(),
-            route_id: route_id.to_string(),
+            agency_id: AgencyId::from(agency_id),
+            route_id: RouteId::from(route_id),
             short_name: route_id.to_string(),
             long_name: format!("Route {route_id}"),
-            direction_id,
+            direction_id: DirectionId(direction_id),
             weekday_speed_mps: weekday,
             saturday_speed_mps: None,
             sunday_speed_mps: None,
@@ -348,7 +349,7 @@ mod tests {
                 route_id: "R1".into(),
                 short_name: "R1".into(),
                 long_name: "Route R1".into(),
-                direction_id: 0,
+                direction_id: DirectionId(0),
                 weekday_speed_mps: Some(8.0),
                 saturday_speed_mps: None,
                 sunday_speed_mps: None,
@@ -364,7 +365,7 @@ mod tests {
                 route_id: "R1".into(),
                 short_name: "R1".into(),
                 long_name: "Route R1".into(),
-                direction_id: 1,
+                direction_id: DirectionId(1),
                 weekday_speed_mps: Some(6.0),
                 saturday_speed_mps: None,
                 sunday_speed_mps: None,
@@ -389,7 +390,7 @@ mod tests {
             route_id: "R1".into(),
             short_name: "R1".into(),
             long_name: "Route R1".into(),
-            direction_id: 0,
+            direction_id: DirectionId(0),
             weekday_speed_mps: Some(9.0),
             saturday_speed_mps: Some(6.0),
             sunday_speed_mps: Some(3.0),
@@ -420,7 +421,7 @@ mod tests {
             route_id: "R1".into(),
             short_name: "R1".into(),
             long_name: "Route R1".into(),
-            direction_id: 0,
+            direction_id: DirectionId(0),
             weekday_speed_mps: Some(8.0),
             saturday_speed_mps: None,
             sunday_speed_mps: None,
