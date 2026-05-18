@@ -517,7 +517,7 @@ pub async fn route_speed_trend_by_direction(
 /// Reads only static GTFS tables — safe to call on startup after GTFS load.
 pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
-    let agency_id = agency.id.to_string();
+    let agency_id = AgencyId::from(agency.id);
 
     // All distinct route + direction combinations that have trips with stops.
     let combos: Vec<(String, i64)> = sqlx::query_as(
@@ -646,7 +646,7 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
 /// Stores results in `route_speed_day_type`.
 pub async fn compute_route_speed_by_day_type(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
-    let agency_id = agency.id.to_string();
+    let agency_id = AgencyId::from(agency.id);
 
     let combos: Vec<(String, i64)> = sqlx::query_as(
         "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
@@ -770,7 +770,7 @@ pub async fn compute_route_speed_daily(
 ) -> Result<()> {
     let date_str = service_date.to_string();
     let now = Utc::now().to_rfc3339();
-    let agency_id = agency.id.to_string();
+    let agency_id = AgencyId::from(agency.id);
 
     // All distinct route + direction + variant combos with stop time events on this date.
     let combos: Vec<(String, i64, String)> = sqlx::query_as(
@@ -1020,7 +1020,7 @@ pub async fn route_speed_summary(
 /// observed in the last 4 hours. Called after every GTFS-RT poll so the data stays fresh.
 pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
-    let agency_id = agency.id.to_string();
+    let agency_id = AgencyId::from(agency.id);
 
     let combos: Vec<(String, i64)> = sqlx::query_as(
         "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
