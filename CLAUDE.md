@@ -104,6 +104,12 @@ cargo test <test_name>   # run a single test
 - Askama templates are type-safe — keep logic out of templates
 - Config lives in `config.toml`; secrets via dotenvx env refs only
 
+## ID Newtypes
+
+Defined in `crates/core/src/ids.rs`, re-exported from `mobilispect_core`. String-inner: `AgencyId`, `RouteId`, `TripId`, `StopId`, `VariantId`, `ServiceId`, `VehicleId`. `DirectionId` wraps `i64`.
+
+All use `#[sqlx(transparent)]`. In `query!` binds use `.as_str()` / `.as_i64()`; in `query_as` they decode automatically. Convert from config: `AgencyId::from(agency.id)`. Never use raw `String` or `i64` for IDs.
+
 ## UI & Design System
 
 This project uses a design system defined in @DESIGN.md.
