@@ -175,28 +175,56 @@ struct RouteDetailTemplate {
 pub async fn route_detail(
     State(state): State<AppState>,
     axum::extract::Path((agency_id, route_id)): axum::extract::Path<(String, String)>,
-) -> Html<String> {
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+
     let period_days: i64 = 30;
     let agency_id = AgencyId::from(agency_id);
     let route_id = RouteId::from(route_id);
     match route_trend(&state.db, &agency_id, &route_id, period_days).await {
         Ok(Some(trend)) => {
-            let trend_json = serde_json::to_string(&trend.days).unwrap_or_default();
+            let trend_json = match serde_json::to_string(&trend.days) {
+                Ok(json) => json,
+                Err(e) => {
+                    tracing::error!("Failed to serialize trend data for {agency_id}/{route_id}: {e}");
+                    return (
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        Html("<h1>Internal Server Error</h1>".to_string()),
+                    )
+                        .into_response();
+                }
+            };
             let tmpl = RouteDetailTemplate {
                 region_name: state.config.region.name.clone(),
                 trend,
                 trend_json,
                 period_days,
             };
-            Html(
-                tmpl.render()
-                    .unwrap_or_else(|e| format!("Template error: {e}")),
-            )
+            match tmpl.render() {
+                Ok(html) => Html(html).into_response(),
+                Err(e) => {
+                    tracing::error!("Template render error for route_detail {agency_id}/{route_id}: {e}");
+                    (
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        Html("<h1>Internal Server Error</h1>".to_string()),
+                    )
+                        .into_response()
+                }
+            }
         }
-        Ok(None) => Html(format!(
-            "<p>Route '{agency_id}/{route_id}' not found or no data yet.</p>"
-        )),
-        Err(e) => Html(format!("<p>Error: {e}</p>")),
+        Ok(None) => (
+            axum::http::StatusCode::NOT_FOUND,
+            Html("<h1>Not Found</h1>".to_string()),
+        )
+            .into_response(),
+        Err(e) => {
+            tracing::error!("DB error fetching route trend for {agency_id}/{route_id}: {e}");
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Html("<h1>Internal Server Error</h1>".to_string()),
+            )
+                .into_response()
+        }
     }
 }
 
