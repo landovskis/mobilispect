@@ -17,9 +17,7 @@ pub struct AppState {
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(handlers::speed_page))
-        .route("/report", get(handlers::report))
         .route("/speed", get(handlers::speed_page))
-        .route("/scorecard", get(handlers::scorecard))
         .route("/frequency", get(handlers::frequency_page))
         // /speed route registered BEFORE bare :route_id to avoid shadowing
         .route(
