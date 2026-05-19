@@ -6,6 +6,3 @@ pub use route_summary::*;
 
 mod trend;
 pub use trend::*;
-
-mod scorecard;
-pub use scorecard::*;
