@@ -4,15 +4,11 @@ use axum::{
     http::HeaderMap,
     response::Html,
 };
-use chrono::Utc;
 use serde::Deserialize;
 use serde_json;
 
 use mobilispect_core::frequency::{RouteHeadwayRow, route_headways};
-use mobilispect_core::metrics::{
-    Benchmark, RouteSummary, RouteTrend, ScorecardRoute, load_benchmarks,
-    route_summary, route_trend, scorecard_routes,
-};
+use mobilispect_core::metrics::{RouteSummary, RouteTrend, route_summary, route_trend};
 use mobilispect_core::ids::{AgencyId, RouteId};
 use mobilispect_core::speed::{
     RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary,
@@ -122,87 +118,6 @@ pub struct SpeedParams {
     class: Option<String>,
 }
 
-#[derive(Template)]
-#[template(path = "dashboard.html")]
-struct DashboardTemplate {
-    region_name: String,
-    routes: Vec<RouteSummary>,
-    period_days: i64,
-    agencies: Vec<(String, String)>,
-    agency_names: std::collections::HashMap<String, String>,
-    active_agency: String,
-}
-
-#[derive(Template)]
-#[template(path = "report.html")]
-struct ReportTemplate {
-    region_name: String,
-    routes: Vec<RouteSummary>,
-    period_days: i64,
-    generated_at: String,
-    agency_names: std::collections::HashMap<String, String>,
-}
-
-pub async fn dashboard(
-    State(state): State<AppState>,
-    Query(params): Query<AgencyFilterParams>,
-) -> Html<String> {
-    let period_days: i64 = 7;
-    let active_agency = params.agency.unwrap_or_default();
-    let agency_filter: Option<AgencyId> = if active_agency.is_empty() {
-        None
-    } else {
-        Some(AgencyId::from(active_agency.clone()))
-    };
-    let routes = route_summary(&state.db, period_days, agency_filter.as_ref())
-        .await
-        .unwrap_or_default();
-    let agencies: Vec<(String, String)> = state
-        .config
-        .agencies
-        .iter()
-        .map(|a| (a.id.to_string(), a.name.clone()))
-        .collect();
-    let agency_names: std::collections::HashMap<String, String> =
-        agencies.iter().cloned().collect();
-    let tmpl = DashboardTemplate {
-        region_name: state.config.region.name.clone(),
-        routes,
-        period_days,
-        agencies,
-        agency_names,
-        active_agency,
-    };
-    Html(
-        tmpl.render()
-            .unwrap_or_else(|e| format!("Template error: {e}")),
-    )
-}
-
-pub async fn report(State(state): State<AppState>) -> Html<String> {
-    let period_days: i64 = 7;
-    let routes = route_summary(&state.db, period_days, None)
-        .await
-        .unwrap_or_default();
-    let generated_at = Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
-    let agency_names: std::collections::HashMap<String, String> = state
-        .config
-        .agencies
-        .iter()
-        .map(|a| (a.id.to_string(), a.name.clone()))
-        .collect();
-    let tmpl = ReportTemplate {
-        region_name: state.config.region.name.clone(),
-        routes,
-        period_days,
-        generated_at,
-        agency_names,
-    };
-    Html(
-        tmpl.render()
-            .unwrap_or_else(|e| format!("Template error: {e}")),
-    )
-}
 
 #[derive(Deserialize)]
 pub struct ApiRoutesParams {
@@ -357,102 +272,6 @@ pub async fn speed_page(
                 .unwrap_or_else(|e| format!("Template error: {e}")),
         )
     }
-}
-
-#[derive(Template)]
-#[template(path = "scorecard.html")]
-struct ScorecardTemplate {
-    region_name: String,
-    routes: Vec<ScorecardRoute>,
-    benchmarks: Vec<Benchmark>,
-    floor_pct: f64,
-    ceiling_pct: f64,
-    floor_city: String,
-    ceiling_city: String,
-    routes_meeting_floor: usize,
-    worst_gap: Option<f64>,
-    period_days: i64,
-    generated_at: String,
-    agencies: Vec<(String, String)>,
-    agency_names: std::collections::HashMap<String, String>,
-    active_agency: String,
-}
-
-pub async fn scorecard(
-    State(state): State<AppState>,
-    Query(params): Query<AgencyFilterParams>,
-) -> Html<String> {
-    let period_days: i64 = 7;
-    let active_agency = params.agency.unwrap_or_default();
-    let agency_filter: Option<AgencyId> = if active_agency.is_empty() {
-        None
-    } else {
-        Some(AgencyId::from(active_agency.clone()))
-    };
-    let benchmarks = load_benchmarks(&state.db).await.unwrap_or_default();
-    let routes = scorecard_routes(&state.db, period_days, agency_filter.as_ref())
-        .await
-        .unwrap_or_default();
-
-    let floor_pct = benchmarks.first().map(|b| b.on_time_pct).unwrap_or(89.0);
-    let floor_speed = benchmarks
-        .first()
-        .map(|b| b.speed_vs_scheduled_pct)
-        .unwrap_or(3.0);
-    let ceiling_pct = benchmarks.last().map(|b| b.on_time_pct).unwrap_or(96.0);
-    let floor_city = benchmarks
-        .first()
-        .map(|b| b.city.clone())
-        .unwrap_or_else(|| "Helsinki".to_string());
-    let ceiling_city = benchmarks
-        .last()
-        .map(|b| b.city.clone())
-        .unwrap_or_else(|| "Tokyo".to_string());
-
-    let routes_meeting_floor = routes
-        .iter()
-        .filter(|r| {
-            r.avg_on_time_pct.map_or(false, |p| p >= floor_pct)
-                && r.speed_vs_scheduled_pct.map_or(true, |s| s <= floor_speed)
-        })
-        .count();
-
-    let worst_gap = routes
-        .iter()
-        .filter_map(|r| r.on_time_gap_vs(floor_pct))
-        .reduce(f64::min);
-
-    let generated_at = Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
-
-    let agencies: Vec<(String, String)> = state
-        .config
-        .agencies
-        .iter()
-        .map(|a| (a.id.to_string(), a.name.clone()))
-        .collect();
-    let agency_names: std::collections::HashMap<String, String> =
-        agencies.iter().cloned().collect();
-
-    let tmpl = ScorecardTemplate {
-        region_name: state.config.region.name.clone(),
-        routes,
-        benchmarks,
-        floor_pct,
-        ceiling_pct,
-        floor_city,
-        ceiling_city,
-        routes_meeting_floor,
-        worst_gap,
-        period_days,
-        generated_at,
-        agencies,
-        agency_names,
-        active_agency,
-    };
-    Html(
-        tmpl.render()
-            .unwrap_or_else(|e| format!("Template error: {e}")),
-    )
 }
 
 /// Return scheduled average speed per route+direction as JSON.
