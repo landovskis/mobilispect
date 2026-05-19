@@ -27,7 +27,6 @@ pub fn build_router(state: AppState) -> Router {
             get(handlers::route_speed_detail),
         )
         .route("/routes/:agency_id/:route_id", get(handlers::route_detail))
-        .route("/hotspots", get(handlers::hotspots))
         .route("/api/routes", get(handlers::api_routes))
         .route("/api/routes/speed", get(handlers::api_route_speed))
         .layer(TraceLayer::new_for_http())

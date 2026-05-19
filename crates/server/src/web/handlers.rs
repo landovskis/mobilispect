@@ -10,8 +10,8 @@ use serde_json;
 
 use mobilispect_core::frequency::{RouteHeadwayRow, route_headways};
 use mobilispect_core::metrics::{
-    Benchmark, RouteSummary, RouteTrend, ScorecardRoute, StopHotspot, load_benchmarks,
-    route_summary, route_trend, scorecard_routes, stop_hotspots,
+    Benchmark, RouteSummary, RouteTrend, ScorecardRoute, load_benchmarks,
+    route_summary, route_trend, scorecard_routes,
 };
 use mobilispect_core::ids::{AgencyId, RouteId};
 use mobilispect_core::speed::{
@@ -197,37 +197,6 @@ pub async fn report(State(state): State<AppState>) -> Html<String> {
         period_days,
         generated_at,
         agency_names,
-    };
-    Html(
-        tmpl.render()
-            .unwrap_or_else(|e| format!("Template error: {e}")),
-    )
-}
-
-#[derive(Template)]
-#[template(path = "hotspots.html")]
-struct HotspotsTemplate {
-    region_name: String,
-    hotspots: Vec<StopHotspot>,
-    hotspots_json: String,
-    period_days: i64,
-}
-
-pub async fn hotspots(State(state): State<AppState>) -> Html<String> {
-    let period_days: i64 = 7;
-    // All monitored agencies share the same UTC offset (Montreal area), so using the
-    // first agency's offset for time-bucketing is correct in practice. If agencies
-    // from different timezones are ever added, this should be revisited.
-    let agency = &state.config.agencies[0];
-    let hotspots = stop_hotspots(&state.db, agency, period_days, 100)
-        .await
-        .unwrap_or_default();
-    let hotspots_json = serde_json::to_string(&hotspots).unwrap_or_default();
-    let tmpl = HotspotsTemplate {
-        region_name: state.config.region.name.clone(),
-        hotspots,
-        hotspots_json,
-        period_days,
     };
     Html(
         tmpl.render()
