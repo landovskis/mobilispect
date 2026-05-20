@@ -52,7 +52,7 @@ impl RouteSummary {
     }
 }
 
-/// Fetch route performance summary for the dashboard (last N days).
+/// Fetch route performance summary for the /api/routes endpoint (last N days).
 /// If `agency_filter` is Some, only returns routes for that agency.
 pub async fn route_summary(
     db: &Database,
