@@ -1094,4 +1094,69 @@ mod e2e_tests {
         assert!(html.contains("10.0 min"));
         assert!(html.contains("20.0 min"));
     }
+
+    #[tokio::test]
+    async fn schedule_page_combines_directions_into_one_route_card() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        for (direction_id, trip_id, dep_time, arr_time) in [
+            (0, "T1", "06:00:00", "06:30:00"),
+            (0, "T2", "06:10:00", "06:40:00"),
+            (1, "T3", "06:05:00", "06:35:00"),
+            (1, "T4", "06:15:00", "06:45:00"),
+        ] {
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', $2, 'Downtown')")
+                .bind(trip_id)
+                .bind(direction_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(trip_id)
+                .bind(dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(trip_id)
+                .bind(arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/schedule")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert_eq!(html.matches("card schedule-card").count(), 1);
+        assert!(!html.contains("Outbound"));
+        assert!(!html.contains("Inbound"));
+    }
 }

@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::db::Database;
-use crate::ids::{AgencyId, DirectionId, RouteId};
+use crate::ids::{AgencyId, RouteId};
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteHeadwayRow {
@@ -10,7 +10,6 @@ pub struct RouteHeadwayRow {
     pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
-    pub direction_id: DirectionId,
     pub weekday_headway_mins: Option<f64>,
     pub saturday_headway_mins: Option<f64>,
     pub sunday_headway_mins: Option<f64>,
@@ -97,14 +96,6 @@ impl RouteHeadwayRow {
         Self::headway_badge_variant(self.max_headway_mins)
     }
 
-    pub fn direction_label(&self) -> &'static str {
-        match self.direction_id.as_i64() {
-            0 => "Outbound",
-            1 => "Inbound",
-            _ => "—",
-        }
-    }
-
     pub fn primary_headway_min(&self) -> Option<f64> {
         self.weekday_headway_mins
             .or(self.saturday_headway_mins)
@@ -181,25 +172,25 @@ sun_gaps AS (
     WHERE is_sunday
 ),
 wd_headways AS (
-    SELECT agency_id, route_id, direction_id,
+    SELECT agency_id, route_id,
         AVG(gap_secs::double precision) / 60.0 AS weekday_headway_mins
     FROM wd_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id, direction_id
+    GROUP BY agency_id, route_id
 ),
 sat_headways AS (
-    SELECT agency_id, route_id, direction_id,
+    SELECT agency_id, route_id,
         AVG(gap_secs::double precision) / 60.0 AS saturday_headway_mins
     FROM sat_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id, direction_id
+    GROUP BY agency_id, route_id
 ),
 sun_headways AS (
-    SELECT agency_id, route_id, direction_id,
+    SELECT agency_id, route_id,
         AVG(gap_secs::double precision) / 60.0 AS sunday_headway_mins
     FROM sun_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id, direction_id
+    GROUP BY agency_id, route_id
 ),
 all_gaps AS (
     SELECT * FROM wd_gaps
@@ -209,28 +200,27 @@ all_gaps AS (
     SELECT * FROM sun_gaps
 ),
 gap_summary AS (
-    SELECT agency_id, route_id, direction_id,
+    SELECT agency_id, route_id,
         MIN(gap_secs::double precision) / 60.0 AS min_headway_mins,
         MAX(gap_secs::double precision) / 60.0 AS max_headway_mins
     FROM all_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id, direction_id
+    GROUP BY agency_id, route_id
 ),
 service_summary AS (
-    SELECT agency_id, route_id, direction_id,
+    SELECT agency_id, route_id,
         MIN(start_secs) AS service_start_secs,
         MAX(end_secs) AS service_end_secs,
         COUNT(*) AS trip_count
     FROM trip_times
-    GROUP BY agency_id, route_id, direction_id
+    GROUP BY agency_id, route_id
 ),
 route_dirs AS (
     SELECT DISTINCT
         tt.agency_id,
         tt.route_id,
         r.short_name,
-        r.long_name,
-        tt.direction_id
+        r.long_name
     FROM trip_times tt
     JOIN routes r ON r.agency_id = tt.agency_id AND r.route_id = tt.route_id
 )
@@ -239,7 +229,6 @@ SELECT
     rd.route_id,
     rd.short_name,
     rd.long_name,
-    rd.direction_id,
     wd.weekday_headway_mins,
     sat.saturday_headway_mins,
     sun.sunday_headway_mins,
@@ -252,23 +241,18 @@ FROM route_dirs rd
 LEFT JOIN wd_headways wd
   ON wd.agency_id = rd.agency_id
  AND wd.route_id  = rd.route_id
- AND wd.direction_id = rd.direction_id
 LEFT JOIN sat_headways sat
   ON sat.agency_id = rd.agency_id
  AND sat.route_id  = rd.route_id
- AND sat.direction_id = rd.direction_id
 LEFT JOIN sun_headways sun
   ON sun.agency_id = rd.agency_id
  AND sun.route_id  = rd.route_id
- AND sun.direction_id = rd.direction_id
 LEFT JOIN gap_summary gs
   ON gs.agency_id = rd.agency_id
  AND gs.route_id  = rd.route_id
- AND gs.direction_id = rd.direction_id
 LEFT JOIN service_summary ss
   ON ss.agency_id = rd.agency_id
  AND ss.route_id  = rd.route_id
- AND ss.direction_id = rd.direction_id
 WHERE ($1::text IS NULL OR rd.agency_id = $1)
   AND (
       wd.weekday_headway_mins IS NOT NULL
@@ -284,8 +268,7 @@ ORDER BY
     ) ASC NULLS LAST,
     CASE WHEN rd.short_name ~ '^[0-9]+$'
          THEN rd.short_name::INTEGER ELSE NULL END NULLS LAST,
-    rd.short_name,
-    rd.direction_id";
+    rd.short_name";
 
     let rows = sqlx::query_as(sql)
         .bind(agency_filter.map(|a| a.as_str()))
@@ -342,7 +325,6 @@ mod tests {
             route_id: RouteId::from("r"),
             short_name: "1".to_string(),
             long_name: "Route 1".to_string(),
-            direction_id: DirectionId(0),
             weekday_headway_mins: wd,
             saturday_headway_mins: sat,
             sunday_headway_mins: sun,
@@ -352,19 +334,6 @@ mod tests {
             service_end_secs: Some(23 * 3600 + 30 * 60),
             trip_count: 42,
         }
-    }
-
-    #[test]
-    fn direction_label_outbound() {
-        let row = make_row(None, None, None);
-        assert_eq!(row.direction_label(), "Outbound"); // direction_id = 0 from make_row
-    }
-
-    #[test]
-    fn direction_label_inbound() {
-        let mut row = make_row(None, None, None);
-        row.direction_id = DirectionId(1);
-        assert_eq!(row.direction_label(), "Inbound");
     }
 
     #[test]
