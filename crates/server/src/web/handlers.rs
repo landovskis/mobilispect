@@ -7,17 +7,16 @@ use axum::{
 use serde::Deserialize;
 use serde_json;
 
-use mobilispect_core::frequency::{RouteHeadwayRow, route_headways};
-use mobilispect_core::metrics::{RouteSummary, RouteTrend, route_summary, route_trend};
-use mobilispect_core::ids::{AgencyId, RouteId};
-use mobilispect_core::speed::{
-    RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary,
-    assign_indices, build_detail_directions, build_speed_cards, classify_by_spacing,
-    fetch_route_info, filter_speed_cards, route_speed_by_day_type,
-    route_speed_summary, route_speed_trend_by_variant, route_stop_spacings, sort_speed_cards,
-};
 use crate::web::AppState;
-
+use mobilispect_core::frequency::{RouteHeadwayRow, route_headways};
+use mobilispect_core::ids::{AgencyId, RouteId};
+use mobilispect_core::metrics::{RouteSummary, RouteTrend, route_summary, route_trend};
+use mobilispect_core::speed::{
+    RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary, assign_indices,
+    build_detail_directions, build_speed_cards, classify_by_spacing, fetch_route_info,
+    filter_speed_cards, route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,
+    route_stop_spacings, sort_speed_cards,
+};
 
 #[derive(Template)]
 #[template(path = "route_speed_detail.html")]
@@ -29,7 +28,6 @@ struct RouteSpeedDetailTemplate {
     directions: Vec<RouteSpeedDetailDirection>,
     classification: Option<RouteClass>,
 }
-
 
 pub async fn route_speed_detail(
     State(state): State<AppState>,
@@ -108,7 +106,9 @@ pub async fn route_speed_detail(
     match tmpl.render() {
         Ok(html) => Html(html).into_response(),
         Err(e) => {
-            tracing::error!("Template render error for route_speed_detail {agency_id}/{route_id}: {e}");
+            tracing::error!(
+                "Template render error for route_speed_detail {agency_id}/{route_id}: {e}"
+            );
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 Html("<h1>Internal Server Error</h1>".to_string()),
@@ -129,7 +129,6 @@ pub struct SpeedParams {
     sort: Option<String>,
     class: Option<String>,
 }
-
 
 #[derive(Deserialize)]
 pub struct ApiRoutesParams {
@@ -199,7 +198,9 @@ pub async fn route_detail(
             let trend_json = match serde_json::to_string(&trend.days) {
                 Ok(json) => json,
                 Err(e) => {
-                    tracing::error!("Failed to serialize trend data for {agency_id}/{route_id}: {e}");
+                    tracing::error!(
+                        "Failed to serialize trend data for {agency_id}/{route_id}: {e}"
+                    );
                     return (
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                         Html("<h1>Internal Server Error</h1>".to_string()),
@@ -216,7 +217,9 @@ pub async fn route_detail(
             match tmpl.render() {
                 Ok(html) => Html(html).into_response(),
                 Err(e) => {
-                    tracing::error!("Template render error for route_detail {agency_id}/{route_id}: {e}");
+                    tracing::error!(
+                        "Template render error for route_detail {agency_id}/{route_id}: {e}"
+                    );
                     (
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                         Html("<h1>Internal Server Error</h1>".to_string()),
@@ -240,7 +243,6 @@ pub async fn route_detail(
         }
     }
 }
-
 
 pub async fn speed_page(
     State(state): State<AppState>,
@@ -447,15 +449,14 @@ pub async fn frequency_page(
     }
 }
 
-
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
-    use mobilispect_core::config::{AgencyConfig, Config, RegionConfig};
-    use mobilispect_core::db::test_utils;
     use crate::web::build_router;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
+    use mobilispect_core::config::{AgencyConfig, Config, RegionConfig};
+    use mobilispect_core::db::test_utils;
     use tower::ServiceExt;
 
     fn test_config() -> Config {
@@ -951,7 +952,7 @@ mod e2e_tests {
     }
 
     #[tokio::test]
-    async fn frequency_page_returns_full_html() {
+    async fn schedule_page_returns_full_html() {
         let td = test_utils::setup().await;
         let state = AppState {
             db: td.db,
@@ -979,8 +980,8 @@ mod e2e_tests {
             "full page response must contain an <html> element"
         );
         assert!(
-            html.contains("Route Frequency"),
-            "full page response must contain the page title text"
+            html.contains("Route Schedule"),
+            "full page response must contain the renamed page title text"
         );
         assert!(
             html.contains(r#"id="freq-content""#),
@@ -989,7 +990,7 @@ mod e2e_tests {
     }
 
     #[tokio::test]
-    async fn frequency_page_with_hx_request_returns_fragment() {
+    async fn schedule_page_with_hx_request_returns_fragment() {
         let td = test_utils::setup().await;
         let state = AppState {
             db: td.db,
@@ -1025,5 +1026,72 @@ mod e2e_tests {
             !html.contains("<html"),
             "fragment must not contain an <html> element"
         );
+    }
+
+    #[tokio::test]
+    async fn schedule_page_renders_route_schedule_cards() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        for (trip_id, dep_time, arr_time) in [
+            ("T1", "06:00:00", "06:30:00"),
+            ("T2", "06:10:00", "06:40:00"),
+            ("T3", "06:30:00", "07:00:00"),
+        ] {
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', 0, 'Downtown')")
+                .bind(trip_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(trip_id)
+                .bind(dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(trip_id)
+                .bind(arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/frequency")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("schedule-card"));
+        assert!(html.contains("Min headway"));
+        assert!(html.contains("Max headway"));
+        assert!(html.contains("Service span"));
+        assert!(html.contains("06:00-07:00"));
+        assert!(html.contains("10.0 min"));
+        assert!(html.contains("20.0 min"));
     }
 }

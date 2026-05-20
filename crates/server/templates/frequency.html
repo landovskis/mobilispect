@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Mobilispect — Route Frequency{% endblock %}
+{% block title %}Mobilispect — Route Schedule{% endblock %}
 {% block region_name %}{{ region_name }}{% endblock %}
 {% block nav_frequency %}active{% endblock %}
 
@@ -38,6 +38,62 @@
 @keyframes freq-loading-spin {
   to { transform: rotate(360deg); }
 }
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 0.75rem;
+}
+.schedule-card {
+  padding: 1rem 1.25rem;
+}
+.schedule-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.schedule-card__name {
+  margin-top: 0.15rem;
+  color: var(--ink-500);
+  font-size: 0.82rem;
+}
+.schedule-card__direction {
+  color: var(--ink-500);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.schedule-card__stats {
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 0.75rem;
+}
+.schedule-card__badges {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.schedule-card__badges .badge {
+  gap: 0.35rem;
+}
+.schedule-card__badge-label {
+  color: currentColor;
+  opacity: 0.72;
+}
+@media (max-width: 720px) {
+  .schedule-grid {
+    grid-template-columns: 1fr;
+  }
+  .schedule-card__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 </style>
 {% endblock %}
 
@@ -45,15 +101,15 @@
 <div class="container">
   <div class="page-header">
     <div>
-      <h1 class="page-title">Route Frequency</h1>
-      <p class="page-subtitle">Routes ranked by average headway — most frequent first</p>
+      <h1 class="page-title">Route Schedule</h1>
+      <p class="page-subtitle">Routes ranked by scheduled headway, with service span and day-type patterns</p>
     </div>
   </div>
   <span id="freq-loading"
         class="freq-loading htmx-indicator"
         role="status"
         aria-live="polite"
-        aria-atomic="true">Loading route frequency</span>
+        aria-atomic="true">Loading route schedule</span>
   {% include "frequency_content.html" %}
 </div>
 {% endblock %}

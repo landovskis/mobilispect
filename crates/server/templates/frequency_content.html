@@ -2,15 +2,15 @@
 <div id="freq-content" hx-indicator="#freq-loading">
   <div class="control-row" style="margin-bottom:1.5rem;">
     <span class="control-label">Agency:</span>
-    <a href="/frequency"
-       hx-get="/frequency"
+    <a href="/schedule"
+       hx-get="/schedule"
        hx-target="#freq-content"
        hx-swap="outerHTML"
        hx-push-url="true"
        class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
     {% for (slug, name) in &agencies %}
-    <a href="/frequency?agency={{ slug }}"
-       hx-get="/frequency?agency={{ slug }}"
+    <a href="/schedule?agency={{ slug }}"
+       hx-get="/schedule?agency={{ slug }}"
        hx-target="#freq-content"
        hx-swap="outerHTML"
        hx-push-url="true"
@@ -19,39 +19,45 @@
   </div>
 
   {% if rows.is_empty() %}
-  <div class="empty-state">No frequency data available. Routes appear once GTFS schedule data has been ingested.</div>
+  <div class="empty-state">No schedule data available. Routes appear once GTFS schedule data has been ingested.</div>
   {% else %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Route</th>
-        <th>Name</th>
-        <th>Dir</th>
-        <th>Weekday</th>
-        <th>Saturday</th>
-        <th>Sunday</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for (i, row) in rows.iter().enumerate() %}
-      <tr>
-        <td style="color:var(--ink-500);font-size:0.8rem;">{{ i + 1 }}</td>
-        <td><span class="route-id">{{ row.short_name }}</span></td>
-        <td style="color:var(--ink-700);">{{ row.long_name }}</td>
-        <td style="color:var(--ink-500);font-size:0.85rem;">{{ row.direction_label() }}</td>
-        <td>
-          <span class="badge badge--{{ row.weekday_badge_variant() }}">{{ row.weekday_display() }}</span>
-        </td>
-        <td>
-          <span class="badge badge--{{ row.saturday_badge_variant() }}">{{ row.saturday_display() }}</span>
-        </td>
-        <td>
-          <span class="badge badge--{{ row.sunday_badge_variant() }}">{{ row.sunday_display() }}</span>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="schedule-grid">
+    {% for (i, row) in rows.iter().enumerate() %}
+    <div class="card schedule-card">
+      <div class="schedule-card__header">
+        <div>
+          <div class="route-id">{{ i + 1 }}. {{ row.short_name }}</div>
+          <div class="schedule-card__name">{{ row.long_name }}</div>
+        </div>
+        <div class="schedule-card__direction">{{ row.direction_label() }}</div>
+      </div>
+
+      <div class="schedule-card__stats">
+        <div>
+          <div class="spacing-stat-label">Min headway</div>
+          <div class="spacing-stat-num spacing-{{ row.min_headway_badge_variant() }}">{{ row.min_headway_display() }}</div>
+        </div>
+        <div>
+          <div class="spacing-stat-label">Max headway</div>
+          <div class="spacing-stat-num spacing-{{ row.max_headway_badge_variant() }}">{{ row.max_headway_display() }}</div>
+        </div>
+        <div>
+          <div class="spacing-stat-label">Service span</div>
+          <div class="spacing-stat-num spacing-neutral" style="font-size:1.35rem;">{{ row.service_span_display() }}</div>
+        </div>
+        <div>
+          <div class="spacing-stat-label">Trips</div>
+          <div class="spacing-stat-num">{{ row.trip_count_display() }}</div>
+        </div>
+      </div>
+
+      <div class="schedule-card__badges">
+        <span class="badge badge--{{ row.weekday_badge_variant() }}"><span class="schedule-card__badge-label">Weekday</span> {{ row.weekday_display() }}</span>
+        <span class="badge badge--{{ row.saturday_badge_variant() }}"><span class="schedule-card__badge-label">Saturday</span> {{ row.saturday_display() }}</span>
+        <span class="badge badge--{{ row.sunday_badge_variant() }}"><span class="schedule-card__badge-label">Sunday</span> {{ row.sunday_display() }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
   {% endif %}
 </div>
