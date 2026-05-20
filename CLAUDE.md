@@ -29,32 +29,43 @@ Avoid over-abstraction — prefer clear domain logic over clever generics.
 
 ## Structure
 
+Cargo workspace with three crates:
+
 ```
-src/
-  bin/
-    server.rs      # HTTP server entry point
-    worker.rs      # Background ingestion entry point
-  config.rs        # Config + AgencyConfig from config.toml plus dotenvx env refs
-  db/              # Database wrapper (sqlx PgPool)
-  gtfs/
-    static_feed.rs # GTFS zip download + upsert
-    realtime.rs    # GTFS-RT protobuf polling
-  metrics/         # Query functions (on-time %, delays, hotspots, scorecard)
-  speed/
-    mod.rs         # Scheduled/actual speed computation
-    card.rs        # RouteSpeedCard builder
-  web/
-    mod.rs         # Axum router + AppState
-    handlers.rs    # HTTP handlers → Askama templates
-migrations/        # SQL schema (001_schema.sql)
-templates/         # Askama HTML templates
+crates/
+  core/            # mobilispect-core (library)
+    src/
+      config.rs    # Config + AgencyConfig from config.toml plus dotenvx env refs
+      db/          # Database wrapper (sqlx PgPool)
+      metrics/     # Query functions (on-time %, delays, hotspots, scorecard)
+      speed/
+        mod.rs     # Scheduled/actual speed computation
+        card.rs    # RouteSpeedCard builder
+      frequency/   # Headway computation
+    migrations/    # SQL schema migrations
+  server/          # mobilispect-server (binary)
+    src/
+      main.rs      # HTTP server entry point
+      web/
+        mod.rs     # Axum router + AppState
+        handlers.rs # HTTP handlers → Askama templates
+    templates/     # Askama HTML templates
+  worker/          # mobilispect-worker (binary)
+    src/
+      main.rs      # Background ingestion entry point
+      gtfs/
+        static_feed.rs # GTFS zip download + upsert
+        realtime.rs    # GTFS-RT protobuf polling
+      maintenance/     # Data retention cleanup
+    proto/         # GTFS-RT .proto definition
+    build.rs       # prost protobuf compilation
 ```
 
 Where new code goes:
-- New metric or analysis: add a module under `metrics/` or a new top-level slice
-- New web page: handler in `web/handlers.rs` + template in `templates/`
-- New GTFS feed type: extend `gtfs/`
-- Shared DB logic: `db/`
+- New metric or analysis: add a module under `crates/core/src/metrics/` or a new slice in core
+- New web page: handler in `crates/server/src/web/handlers.rs` + template in `crates/server/templates/`
+- New GTFS feed type: extend `crates/worker/src/gtfs/`
+- Shared DB logic: `crates/core/src/db/`
 - Each vertical slice owns its query, computation, and presentation layer
 
 ## Commands
@@ -86,49 +97,25 @@ cargo test <test_name>   # run a single test
 ## Conventions
 
 - Vertical Slice Architecture: each feature owns its DB query, computation, and handler
+- **Functional Core / Imperative Shell is mandatory:** pure domain logic (computation, validation, transformations) must be in functions that take plain values and return plain values — no I/O, no side effects. I/O (DB, HTTP, file system) belongs only in the shell layer (handlers, workers, feed ingestors) that calls into the core. Never mix the two.
 - No mocks in tests — use real Postgres via testcontainers (see `.claude/rules/testing.md`)
 - Prefer explicit error types over `unwrap()` in production paths
 - sqlx queries must be compile-time checked (`query!` / `query_as!`)
 - Askama templates are type-safe — keep logic out of templates
 - Config lives in `config.toml`; secrets via dotenvx env refs only
 
+## ID Newtypes
+
+Defined in `crates/core/src/ids.rs`, re-exported from `mobilispect_core`. String-inner: `AgencyId`, `RouteId`, `TripId`, `StopId`, `VariantId`, `ServiceId`, `VehicleId`. `DirectionId` wraps `i64`.
+
+All use `#[sqlx(transparent)]`. In `query!` binds use `.as_str()` / `.as_i64()`; in `query_as` they decode automatically. Convert from config: `AgencyId::from(agency.id)`. Never use raw `String` or `i64` for IDs.
+
 ## UI & Design System
 
-All UI must use the **Lumina design system** — see `frontend/design-system.html` for the full reference.
-
-**Typography**
-- Display/headings: `font-family: 'Cormorant', serif` — use for `h1`–`h3`, stat numbers
-- Body/UI: `font-family: 'Jost', sans-serif` — default for all UI text
-- Code/labels: `font-family: 'Fira Code', monospace` — section labels, data values
-
-**Colour palette (Tailwind custom tokens)**
-- `cream` — neutral scale; use for backgrounds, borders, text hierarchy
-- `cinnabar` — primary accent (action, active states); `cinnabar-500` = `#C8463A`
-- `oxford` — secondary accent (info, links); `oxford-500` = `#1D4E89`
-- `saffron` — warning; `saffron-500` = `#E8A020`
-- Sage (`#3D9A6B`) — success (CSS var only, no Tailwind token)
-
-**CSS custom properties (semantic tokens)**
-Use these instead of raw hex values:
-- `--bg`, `--bg-subtle`, `--surface` — background layers
-- `--ink`, `--secondary`, `--muted`, `--dim` — text hierarchy
-- `--border`, `--border-light` — borders
-- `--cinn`, `--ox`, `--saff`, `--sage` — accent colours
-- Badge variants: `--b-cinn-bg/fg`, `--b-ox-bg/fg`, `--b-saff-bg/fg`, `--b-neu-bg/fg`
-- Alert variants: `--al-info-*`, `--al-ok-*`, `--al-warn-*`, `--al-err-*`
-
-**Dark mode:** toggle via `html.dark` class; all CSS vars switch automatically.
-
-**Key component classes**
-- `.btn` — base button; primary = `bg-cinnabar-500 text-cream-50 hover:bg-cinnabar-600`
-- `.field` — text input with focus ring in cinnabar
-- `.card` — `border-radius: 12px`, hover lift (`translateY(-2px)`)
-- `.badge` — small label with variant bg/fg vars
-- `.alert` — info/ok/warn/err with matching vars
-- `.stat-num` — Cormorant 3rem weight-300 for metric display numbers
-- `.section-label` — Fira Code uppercase tracking, cinnabar colour
-
-Do not introduce other component libraries (Bootstrap, shadcn, etc.) unless explicitly requested.
+This project uses a design system defined in @DESIGN.md.
+Follow strictly the rules defined in @DESIGN.md for all UI generation.
+Do not invent colors, fonts, or spacing values outside the design system.
+Match component states (hover, focus, active, disabled) to patterns in @DESIGN.md.
 
 ## Safety Rules
 

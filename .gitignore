@@ -7,3 +7,5 @@
 /target
 /.claude/settings.json
 /.claude/worktrees
+/.symphony
+/.symphony-runtime.json
