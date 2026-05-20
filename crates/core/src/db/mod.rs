@@ -27,53 +27,27 @@ impl Database {
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils {
     use super::Database;
-    use sqlx::PgPool;
-    use std::sync::atomic::{AtomicU64, Ordering};
-    use testcontainers::{ContainerAsync, runners::AsyncRunner};
+    use testcontainers::{ContainerAsync, ImageExt, runners::AsyncRunner};
     use testcontainers_modules::postgres::Postgres;
-    use tokio::sync::OnceCell;
-
-    static CONTAINER: OnceCell<ContainerAsync<Postgres>> = OnceCell::const_new();
-    static DB_COUNTER: AtomicU64 = AtomicU64::new(0);
-
-    async fn container_port() -> u16 {
-        let container = CONTAINER
-            .get_or_init(|| async {
-                use testcontainers::ImageExt;
-                Postgres::default()
-                    .with_tag("16-alpine")
-                    .start()
-                    .await
-                    .unwrap()
-            })
-            .await;
-        container.get_host_port_ipv4(5432).await.unwrap()
-    }
 
     pub struct TestDb {
         pub db: Database,
+        _container: ContainerAsync<Postgres>,
     }
 
     pub async fn setup() -> TestDb {
-        let port = container_port().await;
-        let db_name = format!("test_{}", DB_COUNTER.fetch_add(1, Ordering::Relaxed));
-
-        let admin = PgPool::connect(&format!(
+        let container = Postgres::default()
+            .with_tag("16-alpine")
+            .start()
+            .await
+            .unwrap();
+        let port = container.get_host_port_ipv4(5432).await.unwrap();
+        let db = Database::connect(&format!(
             "postgres://postgres:postgres@127.0.0.1:{port}/postgres"
         ))
         .await
         .unwrap();
-        sqlx::query(&format!("CREATE DATABASE {db_name}"))
-            .execute(&admin)
-            .await
-            .unwrap();
-
-        let db = Database::connect(&format!(
-            "postgres://postgres:postgres@127.0.0.1:{port}/{db_name}"
-        ))
-        .await
-        .unwrap();
         db.migrate().await.unwrap();
-        TestDb { db }
+        TestDb { db, _container: container }
     }
 }
