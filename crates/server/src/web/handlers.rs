@@ -63,22 +63,28 @@ pub async fn route_speed_detail(
         route_speed_trend_by_variant(&state.db, &agency_id, &route_id, 28),
     );
 
-    let spacings = spacings_res.unwrap_or_else(|e| {
-        tracing::error!("route_stop_spacings failed for {agency_id}/{route_id}: {e}");
-        vec![]
-    });
+    let spacings = match spacings_res {
+        Ok(s) if s.is_empty() => {
+            return (
+                axum::http::StatusCode::NOT_FOUND,
+                Html("<h1>Not Found</h1>".to_string()),
+            )
+                .into_response();
+        }
+        Ok(s) => s,
+        Err(e) => {
+            tracing::error!("route_stop_spacings failed for {agency_id}/{route_id}: {e}");
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Html("<h1>Internal Server Error</h1>".to_string()),
+            )
+                .into_response();
+        }
+    };
     let trends = trends_res.unwrap_or_else(|e| {
         tracing::error!("route_speed_trend_by_variant failed for {agency_id}/{route_id}: {e}");
         vec![]
     });
-
-    if spacings.is_empty() {
-        return (
-            axum::http::StatusCode::NOT_FOUND,
-            Html("<h1>Not Found</h1>".to_string()),
-        )
-            .into_response();
-    }
 
     let directions = build_detail_directions(spacings, trends);
     let avg_spacing_m: Option<f64> = {
@@ -95,15 +101,21 @@ pub async fn route_speed_detail(
         region_name: state.config.region.name.clone(),
         short_name,
         long_name,
-        agency_id,
+        agency_id: agency_id.clone(),
         directions,
         classification,
     };
-    Html(
-        tmpl.render()
-            .unwrap_or_else(|e| format!("Template error: {e}")),
-    )
-    .into_response()
+    match tmpl.render() {
+        Ok(html) => Html(html).into_response(),
+        Err(e) => {
+            tracing::error!("Template render error for route_speed_detail {agency_id}/{route_id}: {e}");
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Html("<h1>Internal Server Error</h1>".to_string()),
+            )
+                .into_response()
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -135,6 +147,7 @@ pub async fn api_routes(
         .await
         .map(axum::Json)
         .map_err(|e| {
+            tracing::error!(days = days, error = %e, "DB error in api_routes");
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!({ "error": e.to_string() })),
@@ -233,7 +246,9 @@ pub async fn speed_page(
     State(state): State<AppState>,
     headers: HeaderMap,
     Query(params): Query<SpeedParams>,
-) -> Html<String> {
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+
     let agencies: Vec<(String, String)> = state
         .config
         .agencies
@@ -266,9 +281,17 @@ pub async fn speed_page(
     let filter = filter_agency_id.as_ref();
     let agency_names: std::collections::HashMap<String, String> =
         agencies.iter().cloned().collect();
-    let rows = route_speed_by_day_type(&state.db, filter)
-        .await
-        .unwrap_or_default();
+    let rows = match route_speed_by_day_type(&state.db, filter).await {
+        Ok(rows) => rows,
+        Err(e) => {
+            tracing::error!(error = %e, "DB error in speed_page");
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Html("<h1>Internal Server Error</h1>".to_string()),
+            )
+                .into_response();
+        }
+    };
     let cards = assign_indices(sort_speed_cards(
         filter_speed_cards(build_speed_cards(rows, &agency_names), &active_class),
         &active_sort,
@@ -282,10 +305,17 @@ pub async fn speed_page(
             active_sort,
             active_class,
         };
-        Html(
-            tmpl.render()
-                .unwrap_or_else(|e| format!("Template error: {e}")),
-        )
+        match tmpl.render() {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => {
+                tracing::error!(error = %e, "Template render error in speed_page (content)");
+                (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    Html("<h1>Internal Server Error</h1>".to_string()),
+                )
+                    .into_response()
+            }
+        }
     } else {
         let tmpl = SpeedTemplate {
             region_name: state.config.region.name.clone(),
@@ -295,10 +325,17 @@ pub async fn speed_page(
             active_sort,
             active_class,
         };
-        Html(
-            tmpl.render()
-                .unwrap_or_else(|e| format!("Template error: {e}")),
-        )
+        match tmpl.render() {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => {
+                tracing::error!(error = %e, "Template render error in speed_page");
+                (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    Html("<h1>Internal Server Error</h1>".to_string()),
+                )
+                    .into_response()
+            }
+        }
     }
 }
 
@@ -313,6 +350,7 @@ pub async fn api_route_speed(
         .await
         .map(axum::Json)
         .map_err(|e| {
+            tracing::error!(error = %e, "DB error in api_route_speed");
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 axum::Json(serde_json::json!({ "error": e.to_string() })),
@@ -341,7 +379,9 @@ pub async fn frequency_page(
     State(state): State<AppState>,
     headers: HeaderMap,
     Query(params): Query<AgencyFilterParams>,
-) -> Html<String> {
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+
     let agencies: Vec<(String, String)> = state
         .config
         .agencies
@@ -357,7 +397,17 @@ pub async fn frequency_page(
     } else {
         Some(AgencyId::from(active_agency.clone()))
     };
-    let rows = route_headways(&state.db, agency_filter.as_ref()).await.unwrap_or_default();
+    let rows = match route_headways(&state.db, agency_filter.as_ref()).await {
+        Ok(rows) => rows,
+        Err(e) => {
+            tracing::error!(error = %e, "DB error in frequency_page");
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Html("<h1>Internal Server Error</h1>".to_string()),
+            )
+                .into_response();
+        }
+    };
 
     if headers.contains_key("hx-request") {
         let tmpl = FrequencyContentTemplate {
@@ -365,10 +415,17 @@ pub async fn frequency_page(
             agencies,
             active_agency,
         };
-        Html(
-            tmpl.render()
-                .unwrap_or_else(|e| format!("Template error: {e}")),
-        )
+        match tmpl.render() {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => {
+                tracing::error!(error = %e, "Template render error in frequency_page (content)");
+                (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    Html("<h1>Internal Server Error</h1>".to_string()),
+                )
+                    .into_response()
+            }
+        }
     } else {
         let tmpl = FrequencyTemplate {
             region_name: state.config.region.name.clone(),
@@ -376,10 +433,17 @@ pub async fn frequency_page(
             agencies,
             active_agency,
         };
-        Html(
-            tmpl.render()
-                .unwrap_or_else(|e| format!("Template error: {e}")),
-        )
+        match tmpl.render() {
+            Ok(html) => Html(html).into_response(),
+            Err(e) => {
+                tracing::error!(error = %e, "Template render error in frequency_page");
+                (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    Html("<h1>Internal Server Error</h1>".to_string()),
+                )
+                    .into_response()
+            }
+        }
     }
 }
 
