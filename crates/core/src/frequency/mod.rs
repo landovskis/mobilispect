@@ -217,28 +217,55 @@ sun_headways AS (
     WHERE gap_secs > 0
     GROUP BY agency_id, route_id
 ),
-all_gaps AS (
-    SELECT * FROM wd_gaps
-    UNION ALL
-    SELECT * FROM sat_gaps
-    UNION ALL
-    SELECT * FROM sun_gaps
-),
-gap_summary AS (
+wd_gap_summary AS (
     SELECT agency_id, route_id,
         PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
-            AS top_decile_headway_mins,
-        MAX(gap_secs::double precision) / 60.0 AS max_headway_mins
-    FROM all_gaps
+            AS weekday_top_decile_mins,
+        MAX(gap_secs::double precision) / 60.0 AS weekday_max_headway_mins
+    FROM wd_gaps
     WHERE gap_secs > 0
     GROUP BY agency_id, route_id
 ),
-service_summary AS (
+sat_gap_summary AS (
     SELECT agency_id, route_id,
-        MIN(start_secs) AS service_start_secs,
-        MAX(end_secs) AS service_end_secs,
-        COUNT(*) AS trip_count
+        PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
+            AS saturday_top_decile_mins,
+        MAX(gap_secs::double precision) / 60.0 AS saturday_max_headway_mins
+    FROM sat_gaps
+    WHERE gap_secs > 0
+    GROUP BY agency_id, route_id
+),
+sun_gap_summary AS (
+    SELECT agency_id, route_id,
+        PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
+            AS sunday_top_decile_mins,
+        MAX(gap_secs::double precision) / 60.0 AS sunday_max_headway_mins
+    FROM sun_gaps
+    WHERE gap_secs > 0
+    GROUP BY agency_id, route_id
+),
+wd_service AS (
+    SELECT agency_id, route_id,
+        MIN(start_secs) AS weekday_service_start_secs,
+        MAX(end_secs)   AS weekday_service_end_secs
     FROM trip_times
+    WHERE is_weekday
+    GROUP BY agency_id, route_id
+),
+sat_service AS (
+    SELECT agency_id, route_id,
+        MIN(start_secs) AS saturday_service_start_secs,
+        MAX(end_secs)   AS saturday_service_end_secs
+    FROM trip_times
+    WHERE is_saturday
+    GROUP BY agency_id, route_id
+),
+sun_service AS (
+    SELECT agency_id, route_id,
+        MIN(start_secs) AS sunday_service_start_secs,
+        MAX(end_secs)   AS sunday_service_end_secs
+    FROM trip_times
+    WHERE is_sunday
     GROUP BY agency_id, route_id
 ),
 route_dirs AS (
@@ -258,11 +285,18 @@ SELECT
     wd.weekday_headway_mins,
     sat.saturday_headway_mins,
     sun.sunday_headway_mins,
-    gs.top_decile_headway_mins,
-    gs.max_headway_mins,
-    ss.service_start_secs,
-    ss.service_end_secs,
-    ss.trip_count
+    wgs.weekday_top_decile_mins,
+    wgs.weekday_max_headway_mins,
+    ws.weekday_service_start_secs,
+    ws.weekday_service_end_secs,
+    sgs.saturday_top_decile_mins,
+    sgs.saturday_max_headway_mins,
+    ss_sat.saturday_service_start_secs,
+    ss_sat.saturday_service_end_secs,
+    sugs.sunday_top_decile_mins,
+    sugs.sunday_max_headway_mins,
+    ss_sun.sunday_service_start_secs,
+    ss_sun.sunday_service_end_secs
 FROM route_dirs rd
 LEFT JOIN wd_headways wd
   ON wd.agency_id = rd.agency_id
@@ -273,12 +307,24 @@ LEFT JOIN sat_headways sat
 LEFT JOIN sun_headways sun
   ON sun.agency_id = rd.agency_id
  AND sun.route_id  = rd.route_id
-LEFT JOIN gap_summary gs
-  ON gs.agency_id = rd.agency_id
- AND gs.route_id  = rd.route_id
-LEFT JOIN service_summary ss
-  ON ss.agency_id = rd.agency_id
- AND ss.route_id  = rd.route_id
+LEFT JOIN wd_gap_summary wgs
+  ON wgs.agency_id = rd.agency_id
+ AND wgs.route_id  = rd.route_id
+LEFT JOIN sat_gap_summary sgs
+  ON sgs.agency_id = rd.agency_id
+ AND sgs.route_id  = rd.route_id
+LEFT JOIN sun_gap_summary sugs
+  ON sugs.agency_id = rd.agency_id
+ AND sugs.route_id  = rd.route_id
+LEFT JOIN wd_service ws
+  ON ws.agency_id = rd.agency_id
+ AND ws.route_id  = rd.route_id
+LEFT JOIN sat_service ss_sat
+  ON ss_sat.agency_id = rd.agency_id
+ AND ss_sat.route_id  = rd.route_id
+LEFT JOIN sun_service ss_sun
+  ON ss_sun.agency_id = rd.agency_id
+ AND ss_sun.route_id  = rd.route_id
 WHERE ($1::text IS NULL OR rd.agency_id = $1)
   AND (
       wd.weekday_headway_mins IS NOT NULL
