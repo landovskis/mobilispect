@@ -65,33 +65,52 @@
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
-.schedule-card__stats {
+.schedule-card__days {
   margin-top: 0.75rem;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 6px;
   border-top: 1px solid var(--line-soft);
   padding-top: 0.75rem;
 }
-.schedule-card__badges {
-  margin-top: 0.75rem;
+.day-col {
+  background: var(--bg-subtle, #F4F4EF);
+  border-radius: 8px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.day-col .spacing-stat-num {
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+.day-col__hdr {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  margin-bottom: 4px;
+}
+.day-col__stat {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 3px;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--ink-500);
 }
-.schedule-card__badges .badge {
-  gap: 0.35rem;
-}
-.schedule-card__badge-label {
-  color: currentColor;
-  opacity: 0.72;
+.day-col__lbl {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-400);
+  white-space: nowrap;
 }
 @media (max-width: 720px) {
   .schedule-grid {
     grid-template-columns: 1fr;
-  }
-  .schedule-card__stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

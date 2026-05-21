@@ -30,30 +30,34 @@
           <div class="schedule-card__name">{{ row.long_name }}</div>
         </div>
       </div>
-
-      <div class="schedule-card__stats">
-        <div>
-          <div class="spacing-stat-label">Min headway</div>
-          <div class="spacing-stat-num spacing-{{ row.min_headway_badge_variant() }}">{{ row.min_headway_display() }}</div>
+      <div class="schedule-card__days">
+        {% if row.weekday_headway_mins.is_some() %}
+        <div class="day-col">
+          <div class="day-col__hdr">Weekday</div>
+          <div class="spacing-stat-num spacing-{{ row.weekday_badge_variant() }}">{{ row.weekday_display() }}</div>
+          <div class="day-col__stat"><span class="day-col__lbl">Top 10%</span><span>{{ row.weekday_top_decile_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Max</span><span>{{ row.weekday_max_headway_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Span</span><span>{{ row.weekday_service_span_display() }}</span></div>
         </div>
-        <div>
-          <div class="spacing-stat-label">Max headway</div>
-          <div class="spacing-stat-num spacing-{{ row.max_headway_badge_variant() }}">{{ row.max_headway_display() }}</div>
+        {% endif %}
+        {% if row.saturday_headway_mins.is_some() %}
+        <div class="day-col">
+          <div class="day-col__hdr">Saturday</div>
+          <div class="spacing-stat-num spacing-{{ row.saturday_badge_variant() }}">{{ row.saturday_display() }}</div>
+          <div class="day-col__stat"><span class="day-col__lbl">Top 10%</span><span>{{ row.saturday_top_decile_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Max</span><span>{{ row.saturday_max_headway_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Span</span><span>{{ row.saturday_service_span_display() }}</span></div>
         </div>
-        <div>
-          <div class="spacing-stat-label">Service span</div>
-          <div class="spacing-stat-num spacing-neutral" style="font-size:1.35rem;">{{ row.service_span_display() }}</div>
+        {% endif %}
+        {% if row.sunday_headway_mins.is_some() %}
+        <div class="day-col">
+          <div class="day-col__hdr">Sunday</div>
+          <div class="spacing-stat-num spacing-{{ row.sunday_badge_variant() }}">{{ row.sunday_display() }}</div>
+          <div class="day-col__stat"><span class="day-col__lbl">Top 10%</span><span>{{ row.sunday_top_decile_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Max</span><span>{{ row.sunday_max_headway_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Span</span><span>{{ row.sunday_service_span_display() }}</span></div>
         </div>
-        <div>
-          <div class="spacing-stat-label">Trips</div>
-          <div class="spacing-stat-num">{{ row.trip_count_display() }}</div>
-        </div>
-      </div>
-
-      <div class="schedule-card__badges">
-        <span class="badge badge--{{ row.weekday_badge_variant() }}"><span class="schedule-card__badge-label">Weekday</span> {{ row.weekday_display() }}</span>
-        <span class="badge badge--{{ row.saturday_badge_variant() }}"><span class="schedule-card__badge-label">Saturday</span> {{ row.saturday_display() }}</span>
-        <span class="badge badge--{{ row.sunday_badge_variant() }}"><span class="schedule-card__badge-label">Sunday</span> {{ row.sunday_display() }}</span>
+        {% endif %}
       </div>
     </div>
     {% endfor %}

@@ -13,11 +13,18 @@ pub struct RouteHeadwayRow {
     pub weekday_headway_mins: Option<f64>,
     pub saturday_headway_mins: Option<f64>,
     pub sunday_headway_mins: Option<f64>,
-    pub min_headway_mins: Option<f64>,
-    pub max_headway_mins: Option<f64>,
-    pub service_start_secs: Option<i64>,
-    pub service_end_secs: Option<i64>,
-    pub trip_count: i64,
+    pub weekday_top_decile_mins: Option<f64>,
+    pub weekday_max_headway_mins: Option<f64>,
+    pub weekday_service_start_secs: Option<i64>,
+    pub weekday_service_end_secs: Option<i64>,
+    pub saturday_top_decile_mins: Option<f64>,
+    pub saturday_max_headway_mins: Option<f64>,
+    pub saturday_service_start_secs: Option<i64>,
+    pub saturday_service_end_secs: Option<i64>,
+    pub sunday_top_decile_mins: Option<f64>,
+    pub sunday_max_headway_mins: Option<f64>,
+    pub sunday_service_start_secs: Option<i64>,
+    pub sunday_service_end_secs: Option<i64>,
 }
 
 impl RouteHeadwayRow {
@@ -40,22 +47,46 @@ impl RouteHeadwayRow {
         Self::headway_display(self.sunday_headway_mins)
     }
 
-    pub fn min_headway_display(&self) -> String {
-        Self::headway_display(self.min_headway_mins)
+    pub fn weekday_top_decile_display(&self) -> String {
+        Self::headway_display(self.weekday_top_decile_mins)
     }
 
-    pub fn max_headway_display(&self) -> String {
-        Self::headway_display(self.max_headway_mins)
+    pub fn weekday_max_headway_display(&self) -> String {
+        Self::headway_display(self.weekday_max_headway_mins)
     }
 
-    pub fn trip_count_display(&self) -> String {
-        self.trip_count.to_string()
+    pub fn saturday_top_decile_display(&self) -> String {
+        Self::headway_display(self.saturday_top_decile_mins)
     }
 
-    pub fn service_span_display(&self) -> String {
-        match (self.service_start_secs, self.service_end_secs) {
-            (Some(start), Some(end)) => {
-                format!("{}-{}", Self::time_display(start), Self::time_display(end))
+    pub fn saturday_max_headway_display(&self) -> String {
+        Self::headway_display(self.saturday_max_headway_mins)
+    }
+
+    pub fn sunday_top_decile_display(&self) -> String {
+        Self::headway_display(self.sunday_top_decile_mins)
+    }
+
+    pub fn sunday_max_headway_display(&self) -> String {
+        Self::headway_display(self.sunday_max_headway_mins)
+    }
+
+    pub fn weekday_service_span_display(&self) -> String {
+        Self::service_span(self.weekday_service_start_secs, self.weekday_service_end_secs)
+    }
+
+    pub fn saturday_service_span_display(&self) -> String {
+        Self::service_span(self.saturday_service_start_secs, self.saturday_service_end_secs)
+    }
+
+    pub fn sunday_service_span_display(&self) -> String {
+        Self::service_span(self.sunday_service_start_secs, self.sunday_service_end_secs)
+    }
+
+    pub fn service_span(start: Option<i64>, end: Option<i64>) -> String {
+        match (start, end) {
+            (Some(s), Some(e)) => {
+                format!("{}-{}", Self::time_display(s), Self::time_display(e))
             }
             _ => "—".to_string(),
         }
@@ -88,14 +119,6 @@ impl RouteHeadwayRow {
         Self::headway_badge_variant(self.sunday_headway_mins)
     }
 
-    pub fn min_headway_badge_variant(&self) -> &'static str {
-        Self::headway_badge_variant(self.min_headway_mins)
-    }
-
-    pub fn max_headway_badge_variant(&self) -> &'static str {
-        Self::headway_badge_variant(self.max_headway_mins)
-    }
-
     pub fn primary_headway_min(&self) -> Option<f64> {
         self.weekday_headway_mins
             .or(self.saturday_headway_mins)
@@ -114,6 +137,7 @@ trip_times AS (
         t.route_id,
         COALESCE(t.direction_id, 0)                              AS direction_id,
         t.trip_id,
+        t.service_id,
         MIN((
             SPLIT_PART(ss.departure_time, ':', 1)::INT * 3600
           + SPLIT_PART(ss.departure_time, ':', 2)::INT * 60
@@ -140,6 +164,7 @@ trip_times AS (
         t.route_id,
         COALESCE(t.direction_id, 0),
         t.trip_id,
+        t.service_id,
         is_weekday,
         c.saturday,
         c.sunday
@@ -147,7 +172,7 @@ trip_times AS (
 wd_gaps AS (
     SELECT agency_id, route_id, direction_id,
         LEAD(start_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id
+            PARTITION BY agency_id, route_id, direction_id, service_id
             ORDER BY start_secs
         ) - start_secs AS gap_secs
     FROM trip_times
@@ -156,7 +181,7 @@ wd_gaps AS (
 sat_gaps AS (
     SELECT agency_id, route_id, direction_id,
         LEAD(start_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id
+            PARTITION BY agency_id, route_id, direction_id, service_id
             ORDER BY start_secs
         ) - start_secs AS gap_secs
     FROM trip_times
@@ -165,7 +190,7 @@ sat_gaps AS (
 sun_gaps AS (
     SELECT agency_id, route_id, direction_id,
         LEAD(start_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id
+            PARTITION BY agency_id, route_id, direction_id, service_id
             ORDER BY start_secs
         ) - start_secs AS gap_secs
     FROM trip_times
@@ -201,7 +226,8 @@ all_gaps AS (
 ),
 gap_summary AS (
     SELECT agency_id, route_id,
-        MIN(gap_secs::double precision) / 60.0 AS min_headway_mins,
+        PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
+            AS top_decile_headway_mins,
         MAX(gap_secs::double precision) / 60.0 AS max_headway_mins
     FROM all_gaps
     WHERE gap_secs > 0
@@ -232,7 +258,7 @@ SELECT
     wd.weekday_headway_mins,
     sat.saturday_headway_mins,
     sun.sunday_headway_mins,
-    gs.min_headway_mins,
+    gs.top_decile_headway_mins,
     gs.max_headway_mins,
     ss.service_start_secs,
     ss.service_end_secs,
@@ -328,11 +354,18 @@ mod tests {
             weekday_headway_mins: wd,
             saturday_headway_mins: sat,
             sunday_headway_mins: sun,
-            min_headway_mins: Some(5.0),
-            max_headway_mins: Some(30.0),
-            service_start_secs: Some(6 * 3600),
-            service_end_secs: Some(23 * 3600 + 30 * 60),
-            trip_count: 42,
+            weekday_top_decile_mins: wd.map(|_| 5.0),
+            weekday_max_headway_mins: wd.map(|_| 30.0),
+            weekday_service_start_secs: wd.map(|_| 6 * 3600),
+            weekday_service_end_secs: wd.map(|_| 23 * 3600 + 30 * 60),
+            saturday_top_decile_mins: sat.map(|_| 10.0),
+            saturday_max_headway_mins: sat.map(|_| 40.0),
+            saturday_service_start_secs: sat.map(|_| 8 * 3600),
+            saturday_service_end_secs: sat.map(|_| 22 * 3600),
+            sunday_top_decile_mins: sun.map(|_| 15.0),
+            sunday_max_headway_mins: sun.map(|_| 50.0),
+            sunday_service_start_secs: sun.map(|_| 9 * 3600),
+            sunday_service_end_secs: sun.map(|_| 21 * 3600),
         }
     }
 
@@ -361,22 +394,39 @@ mod tests {
     }
 
     #[test]
-    fn min_max_headway_display_formats_range() {
-        let row = make_row(Some(8.0), Some(15.0), Some(20.0));
-        assert_eq!(row.min_headway_display(), "5.0 min");
-        assert_eq!(row.max_headway_display(), "30.0 min");
+    fn service_span_none_none_returns_dash() {
+        assert_eq!(RouteHeadwayRow::service_span(None, None), "—");
     }
 
     #[test]
-    fn service_span_display_formats_times() {
-        let row = make_row(Some(8.0), Some(15.0), Some(20.0));
-        assert_eq!(row.service_span_display(), "06:00-23:30");
+    fn weekday_service_span_display_formats_correctly() {
+        let row = make_row(Some(8.0), None, None);
+        assert_eq!(row.weekday_service_span_display(), "06:00-23:30");
     }
 
     #[test]
-    fn service_span_display_wraps_after_midnight() {
-        let mut row = make_row(Some(8.0), Some(15.0), Some(20.0));
-        row.service_end_secs = Some(25 * 3600 + 15 * 60);
-        assert_eq!(row.service_span_display(), "06:00-25:15");
+    fn weekday_service_span_display_wraps_after_midnight() {
+        let mut row = make_row(Some(8.0), None, None);
+        row.weekday_service_end_secs = Some(25 * 3600 + 15 * 60);
+        assert_eq!(row.weekday_service_span_display(), "06:00-25:15");
+    }
+
+    #[test]
+    fn saturday_service_span_display_formats_correctly() {
+        let row = make_row(None, Some(15.0), None);
+        assert_eq!(row.saturday_service_span_display(), "08:00-22:00");
+    }
+
+    #[test]
+    fn sunday_service_span_display_formats_correctly() {
+        let row = make_row(None, None, Some(20.0));
+        assert_eq!(row.sunday_service_span_display(), "09:00-21:00");
+    }
+
+    #[test]
+    fn weekday_top_decile_and_max_display() {
+        let row = make_row(Some(8.0), None, None);
+        assert_eq!(row.weekday_top_decile_display(), "5.0 min");
+        assert_eq!(row.weekday_max_headway_display(), "30.0 min");
     }
 }
