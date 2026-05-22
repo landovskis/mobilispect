@@ -1310,4 +1310,80 @@ mod e2e_tests {
         assert!(!html.contains("Outbound"));
         assert!(!html.contains("Inbound"));
     }
+
+    #[tokio::test]
+    async fn schedule_page_renders_saturday_column_when_saturday_service_exists() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'SAT', false, false, false, false, false, true, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+
+        for (trip_id, service_id, dep_time, arr_time) in [
+            ("T1", "WD", "06:00:00", "06:30:00"),
+            ("T2", "WD", "06:10:00", "06:40:00"),
+            ("T3", "SAT", "09:00:00", "09:30:00"),
+            ("T4", "SAT", "09:20:00", "09:50:00"),
+        ] {
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', $2, 0, 'Downtown')")
+                .bind(trip_id)
+                .bind(service_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(trip_id)
+                .bind(dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(trip_id)
+                .bind(arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/schedule")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Weekday"), "weekday column should render");
+        assert!(html.contains("Saturday"), "saturday column should render");
+        assert!(!html.contains("Sunday"), "sunday column should not render");
+        assert!(
+            html.contains("09:00-09:50"),
+            "saturday service span should be 09:00-09:50"
+        );
+    }
 }
