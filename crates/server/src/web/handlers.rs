@@ -1087,12 +1087,163 @@ mod e2e_tests {
             .unwrap();
         let html = String::from_utf8(bytes.to_vec()).unwrap();
         assert!(html.contains("schedule-card"));
-        assert!(html.contains("Min headway"));
-        assert!(html.contains("Max headway"));
-        assert!(html.contains("Service span"));
+        assert!(html.contains("Top 10%"));
+        assert!(html.contains("Max"));
+        assert!(html.contains("Span"));
         assert!(html.contains("06:00-07:00"));
-        assert!(html.contains("10.0 min"));
+        assert!(html.contains("11.0 min"));
         assert!(html.contains("20.0 min"));
+    }
+
+    #[tokio::test]
+    async fn schedule_page_uses_top_decile_headway_instead_of_minimum() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+
+        let mut departure_secs = 6 * 3600;
+        for i in 0..21 {
+            let trip_id = format!("T{i}");
+            let dep_time = format!(
+                "{:02}:{:02}:00",
+                departure_secs / 3600,
+                (departure_secs % 3600) / 60
+            );
+            let arr_secs = departure_secs + 30 * 60;
+            let arr_time = format!("{:02}:{:02}:00", arr_secs / 3600, (arr_secs % 3600) / 60);
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', 0, 'Downtown')")
+                .bind(&trip_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(&trip_id)
+                .bind(&dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(&trip_id)
+                .bind(&arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+
+            departure_secs += if i == 0 { 60 } else { 10 * 60 };
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/schedule")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Top 10%"));
+        assert!(
+            html.contains("10.0 min"),
+            "top decile should ignore the single 1-minute minimum gap"
+        );
+        assert!(
+            !html.contains("1.0 min"),
+            "raw minimum gap should not be displayed as the best headway"
+        );
+    }
+
+    #[tokio::test]
+    async fn schedule_page_computes_headways_within_each_service_id() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        for service_id in ["WD1", "WD2"] {
+            sqlx::query(
+                "INSERT INTO calendar VALUES ('0', $1, true, true, true, true, true, false, false)",
+            )
+            .bind(service_id)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        }
+
+        for (trip_id, service_id, dep_time, arr_time) in [
+            ("T1", "WD1", "06:00:00", "06:30:00"),
+            ("T2", "WD1", "06:10:00", "06:40:00"),
+            ("T3", "WD1", "06:20:00", "06:50:00"),
+            ("T4", "WD2", "06:01:00", "06:31:00"),
+            ("T5", "WD2", "06:11:00", "06:41:00"),
+            ("T6", "WD2", "06:21:00", "06:51:00"),
+        ] {
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', $2, 0, 'Downtown')")
+                .bind(trip_id)
+                .bind(service_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(trip_id)
+                .bind(dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(trip_id)
+                .bind(arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/schedule")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Top 10%"));
+        assert!(
+            html.contains("10.0 min"),
+            "overlapping service calendars should not create 1-minute headways"
+        );
+        assert!(!html.contains("1.0 min"));
     }
 
     #[tokio::test]
