@@ -2,15 +2,15 @@
 <div id="freq-content" hx-indicator="#freq-loading">
   <div class="control-row" style="margin-bottom:1.5rem;">
     <span class="control-label">Agency:</span>
-    <a href="/frequency"
-       hx-get="/frequency"
+    <a href="/schedule"
+       hx-get="/schedule"
        hx-target="#freq-content"
        hx-swap="outerHTML"
        hx-push-url="true"
        class="{% if active_agency.is_empty() %}active{% endif %}">All</a>
     {% for (slug, name) in &agencies %}
-    <a href="/frequency?agency={{ slug }}"
-       hx-get="/frequency?agency={{ slug }}"
+    <a href="/schedule?agency={{ slug }}"
+       hx-get="/schedule?agency={{ slug }}"
        hx-target="#freq-content"
        hx-swap="outerHTML"
        hx-push-url="true"
@@ -19,39 +19,48 @@
   </div>
 
   {% if rows.is_empty() %}
-  <div class="empty-state">No frequency data available. Routes appear once GTFS schedule data has been ingested.</div>
+  <div class="empty-state">No schedule data available. Routes appear once GTFS schedule data has been ingested.</div>
   {% else %}
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Route</th>
-        <th>Name</th>
-        <th>Dir</th>
-        <th>Weekday</th>
-        <th>Saturday</th>
-        <th>Sunday</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for (i, row) in rows.iter().enumerate() %}
-      <tr>
-        <td style="color:var(--ink-500);font-size:0.8rem;">{{ i + 1 }}</td>
-        <td><span class="route-id">{{ row.short_name }}</span></td>
-        <td style="color:var(--ink-700);">{{ row.long_name }}</td>
-        <td style="color:var(--ink-500);font-size:0.85rem;">{{ row.direction_label() }}</td>
-        <td>
-          <span class="badge badge--{{ row.weekday_badge_variant() }}">{{ row.weekday_display() }}</span>
-        </td>
-        <td>
-          <span class="badge badge--{{ row.saturday_badge_variant() }}">{{ row.saturday_display() }}</span>
-        </td>
-        <td>
-          <span class="badge badge--{{ row.sunday_badge_variant() }}">{{ row.sunday_display() }}</span>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="schedule-grid">
+    {% for (i, row) in rows.iter().enumerate() %}
+    <div class="card schedule-card">
+      <div class="schedule-card__header">
+        <div>
+          <div class="route-id">{{ i + 1 }}. {{ row.short_name }}</div>
+          <div class="schedule-card__name">{{ row.long_name }}</div>
+        </div>
+      </div>
+      <div class="schedule-card__days">
+        {% if row.weekday_headway_mins.is_some() %}
+        <div class="day-col">
+          <div class="day-col__hdr">Weekday</div>
+          <div class="spacing-stat-num spacing-{{ row.weekday_badge_variant() }}">{{ row.weekday_display() }}</div>
+          <div class="day-col__stat"><span class="day-col__lbl">Top 10%</span><span>{{ row.weekday_top_decile_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Max</span><span>{{ row.weekday_max_headway_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Span</span><span>{{ row.weekday_service_span_display() }}</span></div>
+        </div>
+        {% endif %}
+        {% if row.saturday_headway_mins.is_some() %}
+        <div class="day-col">
+          <div class="day-col__hdr">Saturday</div>
+          <div class="spacing-stat-num spacing-{{ row.saturday_badge_variant() }}">{{ row.saturday_display() }}</div>
+          <div class="day-col__stat"><span class="day-col__lbl">Top 10%</span><span>{{ row.saturday_top_decile_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Max</span><span>{{ row.saturday_max_headway_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Span</span><span>{{ row.saturday_service_span_display() }}</span></div>
+        </div>
+        {% endif %}
+        {% if row.sunday_headway_mins.is_some() %}
+        <div class="day-col">
+          <div class="day-col__hdr">Sunday</div>
+          <div class="spacing-stat-num spacing-{{ row.sunday_badge_variant() }}">{{ row.sunday_display() }}</div>
+          <div class="day-col__stat"><span class="day-col__lbl">Top 10%</span><span>{{ row.sunday_top_decile_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Max</span><span>{{ row.sunday_max_headway_display() }}</span></div>
+          <div class="day-col__stat"><span class="day-col__lbl">Span</span><span>{{ row.sunday_service_span_display() }}</span></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
   {% endif %}
 </div>

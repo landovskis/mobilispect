@@ -48,6 +48,9 @@ pub mod test_utils {
         .await
         .unwrap();
         db.migrate().await.unwrap();
-        TestDb { db, _container: container }
+        TestDb {
+            db,
+            _container: container,
+        }
     }
 }

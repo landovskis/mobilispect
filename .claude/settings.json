@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -qE 'git push|cargo publish'; then cargo test; fi",
+            "timeout": 120,
+            "statusMessage": "Running tests before push..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; [[ \"$f\" == *.rs ]] && cargo fmt 2>/dev/null || true; }",
+            "timeout": 30,
+            "statusMessage": "Formatting Rust..."
+          }
+        ]
+      }
+    ]
+  }
+}

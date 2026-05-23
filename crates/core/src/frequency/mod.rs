@@ -2,7 +2,7 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::db::Database;
-use crate::ids::{AgencyId, DirectionId, RouteId};
+use crate::ids::{AgencyId, RouteId};
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteHeadwayRow {
@@ -10,10 +10,21 @@ pub struct RouteHeadwayRow {
     pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
-    pub direction_id: DirectionId,
     pub weekday_headway_mins: Option<f64>,
     pub saturday_headway_mins: Option<f64>,
     pub sunday_headway_mins: Option<f64>,
+    pub weekday_top_decile_mins: Option<f64>,
+    pub weekday_max_headway_mins: Option<f64>,
+    pub weekday_service_start_secs: Option<i64>,
+    pub weekday_service_end_secs: Option<i64>,
+    pub saturday_top_decile_mins: Option<f64>,
+    pub saturday_max_headway_mins: Option<f64>,
+    pub saturday_service_start_secs: Option<i64>,
+    pub saturday_service_end_secs: Option<i64>,
+    pub sunday_top_decile_mins: Option<f64>,
+    pub sunday_max_headway_mins: Option<f64>,
+    pub sunday_service_start_secs: Option<i64>,
+    pub sunday_service_end_secs: Option<i64>,
 }
 
 impl RouteHeadwayRow {
@@ -34,6 +45,63 @@ impl RouteHeadwayRow {
 
     pub fn sunday_display(&self) -> String {
         Self::headway_display(self.sunday_headway_mins)
+    }
+
+    pub fn weekday_top_decile_display(&self) -> String {
+        Self::headway_display(self.weekday_top_decile_mins)
+    }
+
+    pub fn weekday_max_headway_display(&self) -> String {
+        Self::headway_display(self.weekday_max_headway_mins)
+    }
+
+    pub fn saturday_top_decile_display(&self) -> String {
+        Self::headway_display(self.saturday_top_decile_mins)
+    }
+
+    pub fn saturday_max_headway_display(&self) -> String {
+        Self::headway_display(self.saturday_max_headway_mins)
+    }
+
+    pub fn sunday_top_decile_display(&self) -> String {
+        Self::headway_display(self.sunday_top_decile_mins)
+    }
+
+    pub fn sunday_max_headway_display(&self) -> String {
+        Self::headway_display(self.sunday_max_headway_mins)
+    }
+
+    pub fn weekday_service_span_display(&self) -> String {
+        Self::service_span(
+            self.weekday_service_start_secs,
+            self.weekday_service_end_secs,
+        )
+    }
+
+    pub fn saturday_service_span_display(&self) -> String {
+        Self::service_span(
+            self.saturday_service_start_secs,
+            self.saturday_service_end_secs,
+        )
+    }
+
+    pub fn sunday_service_span_display(&self) -> String {
+        Self::service_span(self.sunday_service_start_secs, self.sunday_service_end_secs)
+    }
+
+    pub fn service_span(start: Option<i64>, end: Option<i64>) -> String {
+        match (start, end) {
+            (Some(s), Some(e)) => {
+                format!("{}-{}", Self::time_display(s), Self::time_display(e))
+            }
+            _ => "—".to_string(),
+        }
+    }
+
+    fn time_display(secs: i64) -> String {
+        let hours = secs.div_euclid(3600);
+        let minutes = secs.rem_euclid(3600).div_euclid(60);
+        format!("{hours:02}:{minutes:02}")
     }
 
     pub fn headway_badge_variant(mins: Option<f64>) -> &'static str {
@@ -57,14 +125,6 @@ impl RouteHeadwayRow {
         Self::headway_badge_variant(self.sunday_headway_mins)
     }
 
-    pub fn direction_label(&self) -> &'static str {
-        match self.direction_id.as_i64() {
-            0 => "Outbound",
-            1 => "Inbound",
-            _ => "—",
-        }
-    }
-
     pub fn primary_headway_min(&self) -> Option<f64> {
         self.weekday_headway_mins
             .or(self.saturday_headway_mins)
@@ -77,16 +137,23 @@ pub async fn route_headways(
     agency_filter: Option<&AgencyId>,
 ) -> Result<Vec<RouteHeadwayRow>> {
     let sql = "WITH
-first_stop_dep AS (
-    SELECT DISTINCT ON (ss.agency_id, ss.trip_id)
+trip_times AS (
+    SELECT
         t.agency_id,
         t.route_id,
         COALESCE(t.direction_id, 0)                              AS direction_id,
-        (
+        t.trip_id,
+        t.service_id,
+        MIN((
             SPLIT_PART(ss.departure_time, ':', 1)::INT * 3600
           + SPLIT_PART(ss.departure_time, ':', 2)::INT * 60
           + SPLIT_PART(ss.departure_time, ':', 3)::INT
-        )                                                        AS dep_secs,
+        )::BIGINT)                                               AS start_secs,
+        MAX((
+            SPLIT_PART(ss.departure_time, ':', 1)::INT * 3600
+          + SPLIT_PART(ss.departure_time, ':', 2)::INT * 60
+          + SPLIT_PART(ss.departure_time, ':', 3)::INT
+        )::BIGINT)                                               AS end_secs,
         (c.monday OR c.tuesday OR c.wednesday
          OR c.thursday OR c.friday)                             AS is_weekday,
         c.saturday                                               AS is_saturday,
@@ -98,90 +165,188 @@ first_stop_dep AS (
       ON ss.agency_id = t.agency_id AND ss.trip_id = t.trip_id
     WHERE (c.monday OR c.tuesday OR c.wednesday OR c.thursday
            OR c.friday OR c.saturday OR c.sunday)
-    ORDER BY ss.agency_id, ss.trip_id, ss.stop_sequence ASC
+    GROUP BY
+        t.agency_id,
+        t.route_id,
+        COALESCE(t.direction_id, 0),
+        t.trip_id,
+        t.service_id,
+        is_weekday,
+        c.saturday,
+        c.sunday
 ),
 wd_gaps AS (
     SELECT agency_id, route_id, direction_id,
-        LEAD(dep_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id
-            ORDER BY dep_secs
-        ) - dep_secs AS gap_secs
-    FROM first_stop_dep
+        LEAD(start_secs) OVER (
+            PARTITION BY agency_id, route_id, direction_id, service_id
+            ORDER BY start_secs
+        ) - start_secs AS gap_secs
+    FROM trip_times
     WHERE is_weekday
 ),
 sat_gaps AS (
     SELECT agency_id, route_id, direction_id,
-        LEAD(dep_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id
-            ORDER BY dep_secs
-        ) - dep_secs AS gap_secs
-    FROM first_stop_dep
+        LEAD(start_secs) OVER (
+            PARTITION BY agency_id, route_id, direction_id, service_id
+            ORDER BY start_secs
+        ) - start_secs AS gap_secs
+    FROM trip_times
     WHERE is_saturday
 ),
 sun_gaps AS (
     SELECT agency_id, route_id, direction_id,
-        LEAD(dep_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id
-            ORDER BY dep_secs
-        ) - dep_secs AS gap_secs
-    FROM first_stop_dep
+        LEAD(start_secs) OVER (
+            PARTITION BY agency_id, route_id, direction_id, service_id
+            ORDER BY start_secs
+        ) - start_secs AS gap_secs
+    FROM trip_times
     WHERE is_sunday
+),
+wd_headways AS (
+    SELECT agency_id, route_id,
+        AVG(gap_secs::double precision) / 60.0 AS weekday_headway_mins
+    FROM wd_gaps
+    WHERE gap_secs > 0
+    GROUP BY agency_id, route_id
+),
+sat_headways AS (
+    SELECT agency_id, route_id,
+        AVG(gap_secs::double precision) / 60.0 AS saturday_headway_mins
+    FROM sat_gaps
+    WHERE gap_secs > 0
+    GROUP BY agency_id, route_id
+),
+sun_headways AS (
+    SELECT agency_id, route_id,
+        AVG(gap_secs::double precision) / 60.0 AS sunday_headway_mins
+    FROM sun_gaps
+    WHERE gap_secs > 0
+    GROUP BY agency_id, route_id
+),
+wd_gap_summary AS (
+    SELECT agency_id, route_id,
+        PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
+            AS weekday_top_decile_mins,
+        MAX(gap_secs::double precision) / 60.0 AS weekday_max_headway_mins
+    FROM wd_gaps
+    WHERE gap_secs > 0
+    GROUP BY agency_id, route_id
+),
+sat_gap_summary AS (
+    SELECT agency_id, route_id,
+        PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
+            AS saturday_top_decile_mins,
+        MAX(gap_secs::double precision) / 60.0 AS saturday_max_headway_mins
+    FROM sat_gaps
+    WHERE gap_secs > 0
+    GROUP BY agency_id, route_id
+),
+sun_gap_summary AS (
+    SELECT agency_id, route_id,
+        PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
+            AS sunday_top_decile_mins,
+        MAX(gap_secs::double precision) / 60.0 AS sunday_max_headway_mins
+    FROM sun_gaps
+    WHERE gap_secs > 0
+    GROUP BY agency_id, route_id
+),
+wd_service AS (
+    SELECT agency_id, route_id,
+        MIN(start_secs) AS weekday_service_start_secs,
+        MAX(end_secs)   AS weekday_service_end_secs
+    FROM trip_times
+    WHERE is_weekday
+    GROUP BY agency_id, route_id
+),
+sat_service AS (
+    SELECT agency_id, route_id,
+        MIN(start_secs) AS saturday_service_start_secs,
+        MAX(end_secs)   AS saturday_service_end_secs
+    FROM trip_times
+    WHERE is_saturday
+    GROUP BY agency_id, route_id
+),
+sun_service AS (
+    SELECT agency_id, route_id,
+        MIN(start_secs) AS sunday_service_start_secs,
+        MAX(end_secs)   AS sunday_service_end_secs
+    FROM trip_times
+    WHERE is_sunday
+    GROUP BY agency_id, route_id
 ),
 route_dirs AS (
     SELECT DISTINCT
-        t.agency_id,
-        t.route_id,
+        tt.agency_id,
+        tt.route_id,
         r.short_name,
-        r.long_name,
-        COALESCE(t.direction_id, 0) AS direction_id
-    FROM trips t
-    JOIN routes r ON r.agency_id = t.agency_id AND r.route_id = t.route_id
-    JOIN calendar c ON c.agency_id = t.agency_id AND c.service_id = t.service_id
-    WHERE (c.monday OR c.tuesday OR c.wednesday OR c.thursday
-           OR c.friday OR c.saturday OR c.sunday)
+        r.long_name
+    FROM trip_times tt
+    JOIN routes r ON r.agency_id = tt.agency_id AND r.route_id = tt.route_id
 )
 SELECT
     rd.agency_id,
     rd.route_id,
     rd.short_name,
     rd.long_name,
-    rd.direction_id,
-    AVG(CASE WHEN wd.gap_secs > 0 THEN wd.gap_secs END) / 60.0
-        AS weekday_headway_mins,
-    AVG(CASE WHEN sat.gap_secs > 0 THEN sat.gap_secs END) / 60.0
-        AS saturday_headway_mins,
-    AVG(CASE WHEN sun.gap_secs > 0 THEN sun.gap_secs END) / 60.0
-        AS sunday_headway_mins
+    wd.weekday_headway_mins,
+    sat.saturday_headway_mins,
+    sun.sunday_headway_mins,
+    wgs.weekday_top_decile_mins,
+    wgs.weekday_max_headway_mins,
+    ws.weekday_service_start_secs,
+    ws.weekday_service_end_secs,
+    sgs.saturday_top_decile_mins,
+    sgs.saturday_max_headway_mins,
+    ss_sat.saturday_service_start_secs,
+    ss_sat.saturday_service_end_secs,
+    sugs.sunday_top_decile_mins,
+    sugs.sunday_max_headway_mins,
+    ss_sun.sunday_service_start_secs,
+    ss_sun.sunday_service_end_secs
 FROM route_dirs rd
-LEFT JOIN wd_gaps wd
+LEFT JOIN wd_headways wd
   ON wd.agency_id = rd.agency_id
  AND wd.route_id  = rd.route_id
- AND wd.direction_id = rd.direction_id
-LEFT JOIN sat_gaps sat
+LEFT JOIN sat_headways sat
   ON sat.agency_id = rd.agency_id
  AND sat.route_id  = rd.route_id
- AND sat.direction_id = rd.direction_id
-LEFT JOIN sun_gaps sun
+LEFT JOIN sun_headways sun
   ON sun.agency_id = rd.agency_id
  AND sun.route_id  = rd.route_id
- AND sun.direction_id = rd.direction_id
+LEFT JOIN wd_gap_summary wgs
+  ON wgs.agency_id = rd.agency_id
+ AND wgs.route_id  = rd.route_id
+LEFT JOIN sat_gap_summary sgs
+  ON sgs.agency_id = rd.agency_id
+ AND sgs.route_id  = rd.route_id
+LEFT JOIN sun_gap_summary sugs
+  ON sugs.agency_id = rd.agency_id
+ AND sugs.route_id  = rd.route_id
+LEFT JOIN wd_service ws
+  ON ws.agency_id = rd.agency_id
+ AND ws.route_id  = rd.route_id
+LEFT JOIN sat_service ss_sat
+  ON ss_sat.agency_id = rd.agency_id
+ AND ss_sat.route_id  = rd.route_id
+LEFT JOIN sun_service ss_sun
+  ON ss_sun.agency_id = rd.agency_id
+ AND ss_sun.route_id  = rd.route_id
 WHERE ($1::text IS NULL OR rd.agency_id = $1)
-GROUP BY rd.agency_id, rd.route_id, rd.short_name, rd.long_name, rd.direction_id
-HAVING
-    AVG(CASE WHEN wd.gap_secs  > 0 THEN wd.gap_secs  END) IS NOT NULL
- OR AVG(CASE WHEN sat.gap_secs > 0 THEN sat.gap_secs END) IS NOT NULL
- OR AVG(CASE WHEN sun.gap_secs > 0 THEN sun.gap_secs END) IS NOT NULL
+  AND (
+      wd.weekday_headway_mins IS NOT NULL
+   OR sat.saturday_headway_mins IS NOT NULL
+   OR sun.sunday_headway_mins IS NOT NULL
+  )
 ORDER BY
     rd.agency_id,
     COALESCE(
-        AVG(CASE WHEN wd.gap_secs  > 0 THEN wd.gap_secs  END),
-        AVG(CASE WHEN sat.gap_secs > 0 THEN sat.gap_secs END),
-        AVG(CASE WHEN sun.gap_secs > 0 THEN sun.gap_secs END)
-    ) / 60.0 ASC NULLS LAST,
+        wd.weekday_headway_mins,
+        sat.saturday_headway_mins,
+        sun.sunday_headway_mins
+    ) ASC NULLS LAST,
     CASE WHEN rd.short_name ~ '^[0-9]+$'
          THEN rd.short_name::INTEGER ELSE NULL END NULLS LAST,
-    rd.short_name,
-    rd.direction_id";
+    rd.short_name";
 
     let rows = sqlx::query_as(sql)
         .bind(agency_filter.map(|a| a.as_str()))
@@ -238,24 +403,22 @@ mod tests {
             route_id: RouteId::from("r"),
             short_name: "1".to_string(),
             long_name: "Route 1".to_string(),
-            direction_id: DirectionId(0),
             weekday_headway_mins: wd,
             saturday_headway_mins: sat,
             sunday_headway_mins: sun,
+            weekday_top_decile_mins: wd.map(|_| 5.0),
+            weekday_max_headway_mins: wd.map(|_| 30.0),
+            weekday_service_start_secs: wd.map(|_| 6 * 3600),
+            weekday_service_end_secs: wd.map(|_| 23 * 3600 + 30 * 60),
+            saturday_top_decile_mins: sat.map(|_| 10.0),
+            saturday_max_headway_mins: sat.map(|_| 40.0),
+            saturday_service_start_secs: sat.map(|_| 8 * 3600),
+            saturday_service_end_secs: sat.map(|_| 22 * 3600),
+            sunday_top_decile_mins: sun.map(|_| 15.0),
+            sunday_max_headway_mins: sun.map(|_| 50.0),
+            sunday_service_start_secs: sun.map(|_| 9 * 3600),
+            sunday_service_end_secs: sun.map(|_| 21 * 3600),
         }
-    }
-
-    #[test]
-    fn direction_label_outbound() {
-        let row = make_row(None, None, None);
-        assert_eq!(row.direction_label(), "Outbound"); // direction_id = 0 from make_row
-    }
-
-    #[test]
-    fn direction_label_inbound() {
-        let mut row = make_row(None, None, None);
-        row.direction_id = DirectionId(1);
-        assert_eq!(row.direction_label(), "Inbound");
     }
 
     #[test]
@@ -280,5 +443,42 @@ mod tests {
     fn primary_headway_min_all_none() {
         let row = make_row(None, None, None);
         assert_eq!(row.primary_headway_min(), None);
+    }
+
+    #[test]
+    fn service_span_none_none_returns_dash() {
+        assert_eq!(RouteHeadwayRow::service_span(None, None), "—");
+    }
+
+    #[test]
+    fn weekday_service_span_display_formats_correctly() {
+        let row = make_row(Some(8.0), None, None);
+        assert_eq!(row.weekday_service_span_display(), "06:00-23:30");
+    }
+
+    #[test]
+    fn weekday_service_span_display_wraps_after_midnight() {
+        let mut row = make_row(Some(8.0), None, None);
+        row.weekday_service_end_secs = Some(25 * 3600 + 15 * 60);
+        assert_eq!(row.weekday_service_span_display(), "06:00-25:15");
+    }
+
+    #[test]
+    fn saturday_service_span_display_formats_correctly() {
+        let row = make_row(None, Some(15.0), None);
+        assert_eq!(row.saturday_service_span_display(), "08:00-22:00");
+    }
+
+    #[test]
+    fn sunday_service_span_display_formats_correctly() {
+        let row = make_row(None, None, Some(20.0));
+        assert_eq!(row.sunday_service_span_display(), "09:00-21:00");
+    }
+
+    #[test]
+    fn weekday_top_decile_and_max_display() {
+        let row = make_row(Some(8.0), None, None);
+        assert_eq!(row.weekday_top_decile_display(), "5.0 min");
+        assert_eq!(row.weekday_max_headway_display(), "30.0 min");
     }
 }

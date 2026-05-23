@@ -7,17 +7,16 @@ use axum::{
 use serde::Deserialize;
 use serde_json;
 
-use mobilispect_core::frequency::{RouteHeadwayRow, route_headways};
-use mobilispect_core::metrics::{RouteSummary, RouteTrend, route_summary, route_trend};
-use mobilispect_core::ids::{AgencyId, RouteId};
-use mobilispect_core::speed::{
-    RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary,
-    assign_indices, build_detail_directions, build_speed_cards, classify_by_spacing,
-    fetch_route_info, filter_speed_cards, route_speed_by_day_type,
-    route_speed_summary, route_speed_trend_by_variant, route_stop_spacings, sort_speed_cards,
-};
 use crate::web::AppState;
-
+use mobilispect_core::frequency::{RouteHeadwayRow, route_headways};
+use mobilispect_core::ids::{AgencyId, RouteId};
+use mobilispect_core::metrics::{RouteSummary, RouteTrend, route_summary, route_trend};
+use mobilispect_core::speed::{
+    RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary, assign_indices,
+    build_detail_directions, build_speed_cards, classify_by_spacing, fetch_route_info,
+    filter_speed_cards, route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,
+    route_stop_spacings, sort_speed_cards,
+};
 
 #[derive(Template)]
 #[template(path = "route_speed_detail.html")]
@@ -29,7 +28,6 @@ struct RouteSpeedDetailTemplate {
     directions: Vec<RouteSpeedDetailDirection>,
     classification: Option<RouteClass>,
 }
-
 
 pub async fn route_speed_detail(
     State(state): State<AppState>,
@@ -108,7 +106,9 @@ pub async fn route_speed_detail(
     match tmpl.render() {
         Ok(html) => Html(html).into_response(),
         Err(e) => {
-            tracing::error!("Template render error for route_speed_detail {agency_id}/{route_id}: {e}");
+            tracing::error!(
+                "Template render error for route_speed_detail {agency_id}/{route_id}: {e}"
+            );
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 Html("<h1>Internal Server Error</h1>".to_string()),
@@ -129,7 +129,6 @@ pub struct SpeedParams {
     sort: Option<String>,
     class: Option<String>,
 }
-
 
 #[derive(Deserialize)]
 pub struct ApiRoutesParams {
@@ -199,7 +198,9 @@ pub async fn route_detail(
             let trend_json = match serde_json::to_string(&trend.days) {
                 Ok(json) => json,
                 Err(e) => {
-                    tracing::error!("Failed to serialize trend data for {agency_id}/{route_id}: {e}");
+                    tracing::error!(
+                        "Failed to serialize trend data for {agency_id}/{route_id}: {e}"
+                    );
                     return (
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                         Html("<h1>Internal Server Error</h1>".to_string()),
@@ -216,7 +217,9 @@ pub async fn route_detail(
             match tmpl.render() {
                 Ok(html) => Html(html).into_response(),
                 Err(e) => {
-                    tracing::error!("Template render error for route_detail {agency_id}/{route_id}: {e}");
+                    tracing::error!(
+                        "Template render error for route_detail {agency_id}/{route_id}: {e}"
+                    );
                     (
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                         Html("<h1>Internal Server Error</h1>".to_string()),
@@ -240,7 +243,6 @@ pub async fn route_detail(
         }
     }
 }
-
 
 pub async fn speed_page(
     State(state): State<AppState>,
@@ -447,15 +449,14 @@ pub async fn frequency_page(
     }
 }
 
-
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
-    use mobilispect_core::config::{AgencyConfig, Config, RegionConfig};
-    use mobilispect_core::db::test_utils;
     use crate::web::build_router;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
+    use mobilispect_core::config::{AgencyConfig, Config, RegionConfig};
+    use mobilispect_core::db::test_utils;
     use tower::ServiceExt;
 
     fn test_config() -> Config {
@@ -951,7 +952,7 @@ mod e2e_tests {
     }
 
     #[tokio::test]
-    async fn frequency_page_returns_full_html() {
+    async fn schedule_page_returns_full_html() {
         let td = test_utils::setup().await;
         let state = AppState {
             db: td.db,
@@ -979,8 +980,8 @@ mod e2e_tests {
             "full page response must contain an <html> element"
         );
         assert!(
-            html.contains("Route Frequency"),
-            "full page response must contain the page title text"
+            html.contains("Route Schedule"),
+            "full page response must contain the renamed page title text"
         );
         assert!(
             html.contains(r#"id="freq-content""#),
@@ -989,7 +990,7 @@ mod e2e_tests {
     }
 
     #[tokio::test]
-    async fn frequency_page_with_hx_request_returns_fragment() {
+    async fn schedule_page_with_hx_request_returns_fragment() {
         let td = test_utils::setup().await;
         let state = AppState {
             db: td.db,
@@ -1024,6 +1025,365 @@ mod e2e_tests {
         assert!(
             !html.contains("<html"),
             "fragment must not contain an <html> element"
+        );
+    }
+
+    #[tokio::test]
+    async fn schedule_page_renders_route_schedule_cards() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        for (trip_id, dep_time, arr_time) in [
+            ("T1", "06:00:00", "06:30:00"),
+            ("T2", "06:10:00", "06:40:00"),
+            ("T3", "06:30:00", "07:00:00"),
+        ] {
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', 0, 'Downtown')")
+                .bind(trip_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(trip_id)
+                .bind(dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(trip_id)
+                .bind(arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/frequency")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("schedule-card"));
+        assert!(html.contains("Top 10%"));
+        assert!(html.contains("Max"));
+        assert!(html.contains("Span"));
+        assert!(html.contains("06:00-07:00"));
+        assert!(html.contains("11.0 min"));
+        assert!(html.contains("20.0 min"));
+    }
+
+    #[tokio::test]
+    async fn schedule_page_uses_top_decile_headway_instead_of_minimum() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+
+        let mut departure_secs = 6 * 3600;
+        for i in 0..21 {
+            let trip_id = format!("T{i}");
+            let dep_time = format!(
+                "{:02}:{:02}:00",
+                departure_secs / 3600,
+                (departure_secs % 3600) / 60
+            );
+            let arr_secs = departure_secs + 30 * 60;
+            let arr_time = format!("{:02}:{:02}:00", arr_secs / 3600, (arr_secs % 3600) / 60);
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', 0, 'Downtown')")
+                .bind(&trip_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(&trip_id)
+                .bind(&dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(&trip_id)
+                .bind(&arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+
+            departure_secs += if i == 0 { 60 } else { 10 * 60 };
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/schedule")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Top 10%"));
+        assert!(
+            html.contains("10.0 min"),
+            "top decile should ignore the single 1-minute minimum gap"
+        );
+        assert!(
+            !html.contains("1.0 min"),
+            "raw minimum gap should not be displayed as the best headway"
+        );
+    }
+
+    #[tokio::test]
+    async fn schedule_page_computes_headways_within_each_service_id() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        for service_id in ["WD1", "WD2"] {
+            sqlx::query(
+                "INSERT INTO calendar VALUES ('0', $1, true, true, true, true, true, false, false)",
+            )
+            .bind(service_id)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        }
+
+        for (trip_id, service_id, dep_time, arr_time) in [
+            ("T1", "WD1", "06:00:00", "06:30:00"),
+            ("T2", "WD1", "06:10:00", "06:40:00"),
+            ("T3", "WD1", "06:20:00", "06:50:00"),
+            ("T4", "WD2", "06:01:00", "06:31:00"),
+            ("T5", "WD2", "06:11:00", "06:41:00"),
+            ("T6", "WD2", "06:21:00", "06:51:00"),
+        ] {
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', $2, 0, 'Downtown')")
+                .bind(trip_id)
+                .bind(service_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(trip_id)
+                .bind(dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(trip_id)
+                .bind(arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/schedule")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Top 10%"));
+        assert!(
+            html.contains("10.0 min"),
+            "overlapping service calendars should not create 1-minute headways"
+        );
+        assert!(!html.contains("1.0 min"));
+    }
+
+    #[tokio::test]
+    async fn schedule_page_combines_directions_into_one_route_card() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        for (direction_id, trip_id, dep_time, arr_time) in [
+            (0, "T1", "06:00:00", "06:30:00"),
+            (0, "T2", "06:10:00", "06:40:00"),
+            (1, "T3", "06:05:00", "06:35:00"),
+            (1, "T4", "06:15:00", "06:45:00"),
+        ] {
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', $2, 'Downtown')")
+                .bind(trip_id)
+                .bind(direction_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(trip_id)
+                .bind(dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(trip_id)
+                .bind(arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/schedule")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert_eq!(html.matches("card schedule-card").count(), 1);
+        assert!(!html.contains("Outbound"));
+        assert!(!html.contains("Inbound"));
+    }
+
+    #[tokio::test]
+    async fn schedule_page_renders_saturday_column_when_saturday_service_exists() {
+        let td = test_utils::setup().await;
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('0', 'SAT', false, false, false, false, false, true, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+
+        for (trip_id, service_id, dep_time, arr_time) in [
+            ("T1", "WD", "06:00:00", "06:30:00"),
+            ("T2", "WD", "06:10:00", "06:40:00"),
+            ("T3", "SAT", "09:00:00", "09:30:00"),
+            ("T4", "SAT", "09:20:00", "09:50:00"),
+        ] {
+            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', $2, 0, 'Downtown')")
+                .bind(trip_id)
+                .bind(service_id)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
+                .bind(trip_id)
+                .bind(dep_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
+                .bind(trip_id)
+                .bind(arr_time)
+                .execute(&td.db.pool)
+                .await
+                .unwrap();
+        }
+
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/schedule")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+            .await
+            .unwrap();
+        let html = String::from_utf8(bytes.to_vec()).unwrap();
+        assert!(html.contains("Weekday"), "weekday column should render");
+        assert!(html.contains("Saturday"), "saturday column should render");
+        assert!(!html.contains("Sunday"), "sunday column should not render");
+        assert!(
+            html.contains("09:00-09:50"),
+            "saturday service span should be 09:00-09:50"
         );
     }
 }
