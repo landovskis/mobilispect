@@ -178,11 +178,15 @@ mod tests {
         let all = route_summary(&db, 30, None).await.unwrap();
         assert_eq!(all.len(), 2);
 
-        let stm = route_summary(&db, 30, Some(&AgencyId::from("stm"))).await.unwrap();
+        let stm = route_summary(&db, 30, Some(&AgencyId::from("stm")))
+            .await
+            .unwrap();
         assert_eq!(stm.len(), 1);
         assert_eq!(stm[0].agency_id, "stm");
 
-        let rtl = route_summary(&db, 30, Some(&AgencyId::from("rtl"))).await.unwrap();
+        let rtl = route_summary(&db, 30, Some(&AgencyId::from("rtl")))
+            .await
+            .unwrap();
         assert_eq!(rtl.len(), 1);
         assert_eq!(rtl[0].agency_id, "rtl");
     }

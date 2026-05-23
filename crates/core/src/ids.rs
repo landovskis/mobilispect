@@ -3,9 +3,16 @@ use std::{fmt, ops::Deref};
 macro_rules! string_id {
     ($name:ident) => {
         #[derive(
-            Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash,
+            Debug,
+            Clone,
+            PartialEq,
+            Eq,
+            PartialOrd,
+            Ord,
+            Hash,
             sqlx::Type,
-            serde::Serialize, serde::Deserialize,
+            serde::Serialize,
+            serde::Deserialize,
         )]
         #[sqlx(transparent)]
         #[serde(transparent)]
@@ -82,7 +89,19 @@ impl From<u32> for AgencyId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, sqlx::Type, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    sqlx::Type,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[sqlx(transparent)]
 #[serde(transparent)]
 pub struct DirectionId(pub i64);

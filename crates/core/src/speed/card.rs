@@ -212,22 +212,27 @@ pub fn filter_speed_cards(cards: Vec<RouteSpeedCard>, class: &str) -> Vec<RouteS
     let Some(target) = parse_class(class) else {
         return cards;
     };
-    cards.into_iter().filter(|c| c.classification == Some(target)).collect()
+    cards
+        .into_iter()
+        .filter(|c| c.classification == Some(target))
+        .collect()
 }
 
 pub fn sort_speed_cards(mut cards: Vec<RouteSpeedCard>, sort: &str) -> Vec<RouteSpeedCard> {
     match sort {
-        "scheduled" => cards.sort_by(
-            |a, b| match (a.avg_scheduled_speed_mps, b.avg_scheduled_speed_mps) {
-                (Some(x), Some(y)) => x
-                    .partial_cmp(&y)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-                    .then(a.short_name.cmp(&b.short_name)),
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => a.short_name.cmp(&b.short_name),
-            },
-        ),
+        "scheduled" => {
+            cards.sort_by(
+                |a, b| match (a.avg_scheduled_speed_mps, b.avg_scheduled_speed_mps) {
+                    (Some(x), Some(y)) => x
+                        .partial_cmp(&y)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                        .then(a.short_name.cmp(&b.short_name)),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => a.short_name.cmp(&b.short_name),
+                },
+            )
+        }
         "actual" => cards.sort_by(
             |a, b| match (a.avg_actual_speed_mps, b.avg_actual_speed_mps) {
                 (Some(x), Some(y)) => x
@@ -967,7 +972,11 @@ mod tests {
         }
     }
 
-    fn make_card_with_speeds(short_name: &str, scheduled: f64, actual: Option<f64>) -> RouteSpeedCard {
+    fn make_card_with_speeds(
+        short_name: &str,
+        scheduled: f64,
+        actual: Option<f64>,
+    ) -> RouteSpeedCard {
         RouteSpeedCard {
             avg_scheduled_speed_mps: Some(scheduled),
             avg_actual_speed_mps: actual,
@@ -1007,8 +1016,14 @@ mod tests {
     #[test]
     fn filter_keeps_matching_class() {
         let cards = vec![
-            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
-            RouteSpeedCard { classification: Some(RouteClass::Rapid), ..make_card("R") },
+            RouteSpeedCard {
+                classification: Some(RouteClass::Local),
+                ..make_card("L")
+            },
+            RouteSpeedCard {
+                classification: Some(RouteClass::Rapid),
+                ..make_card("R")
+            },
         ];
         let result = filter_speed_cards(cards, "rapid");
         assert_eq!(result.len(), 1);
@@ -1018,8 +1033,14 @@ mod tests {
     #[test]
     fn filter_empty_class_keeps_all() {
         let cards = vec![
-            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
-            RouteSpeedCard { classification: None, ..make_card("U") },
+            RouteSpeedCard {
+                classification: Some(RouteClass::Local),
+                ..make_card("L")
+            },
+            RouteSpeedCard {
+                classification: None,
+                ..make_card("U")
+            },
         ];
         let result = filter_speed_cards(cards, "");
         assert_eq!(result.len(), 2);
@@ -1028,8 +1049,14 @@ mod tests {
     #[test]
     fn filter_hides_unclassified_when_class_given() {
         let cards = vec![
-            RouteSpeedCard { classification: None, ..make_card("U") },
-            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
+            RouteSpeedCard {
+                classification: None,
+                ..make_card("U")
+            },
+            RouteSpeedCard {
+                classification: Some(RouteClass::Local),
+                ..make_card("L")
+            },
         ];
         let result = filter_speed_cards(cards, "local");
         assert_eq!(result.len(), 1);
@@ -1040,7 +1067,10 @@ mod tests {
 
     #[test]
     fn sort_scheduled_ascending() {
-        let cards = vec![make_card_with_speeds("B", 10.0, None), make_card_with_speeds("A", 5.0, None)];
+        let cards = vec![
+            make_card_with_speeds("B", 10.0, None),
+            make_card_with_speeds("A", 5.0, None),
+        ];
         let result = sort_speed_cards(cards, "scheduled");
         assert_eq!(result[0].short_name, "A");
         assert_eq!(result[1].short_name, "B");
@@ -1056,21 +1086,30 @@ mod tests {
 
     #[test]
     fn sort_scheduled_ties_broken_by_name() {
-        let cards = vec![make_card_with_speeds("Z", 5.0, None), make_card_with_speeds("A", 5.0, None)];
+        let cards = vec![
+            make_card_with_speeds("Z", 5.0, None),
+            make_card_with_speeds("A", 5.0, None),
+        ];
         let result = sort_speed_cards(cards, "scheduled");
         assert_eq!(result[0].short_name, "A");
     }
 
     #[test]
     fn sort_actual_ascending() {
-        let cards = vec![make_card_with_speeds("B", 10.0, Some(8.0)), make_card_with_speeds("A", 5.0, Some(3.0))];
+        let cards = vec![
+            make_card_with_speeds("B", 10.0, Some(8.0)),
+            make_card_with_speeds("A", 5.0, Some(3.0)),
+        ];
         let result = sort_speed_cards(cards, "actual");
         assert_eq!(result[0].short_name, "A");
     }
 
     #[test]
     fn sort_actual_none_last() {
-        let cards = vec![make_card_with_speeds("A", 5.0, None), make_card_with_speeds("B", 10.0, Some(3.0))];
+        let cards = vec![
+            make_card_with_speeds("A", 5.0, None),
+            make_card_with_speeds("B", 10.0, Some(3.0)),
+        ];
         let result = sort_speed_cards(cards, "actual");
         assert_eq!(result[0].short_name, "B");
     }
@@ -1078,8 +1117,14 @@ mod tests {
     #[test]
     fn sort_spacing_ascending() {
         let cards = vec![
-            RouteSpeedCard { avg_stop_spacing_m: Some(800.0), ..make_card("B") },
-            RouteSpeedCard { avg_stop_spacing_m: Some(300.0), ..make_card("A") },
+            RouteSpeedCard {
+                avg_stop_spacing_m: Some(800.0),
+                ..make_card("B")
+            },
+            RouteSpeedCard {
+                avg_stop_spacing_m: Some(300.0),
+                ..make_card("A")
+            },
         ];
         let result = sort_speed_cards(cards, "spacing");
         assert_eq!(result[0].short_name, "A");
@@ -1097,9 +1142,18 @@ mod tests {
     #[test]
     fn assign_indices_sets_sequential_idx_from_zero() {
         let cards = vec![
-            RouteSpeedCard { idx: 99, ..make_card("A") },
-            RouteSpeedCard { idx: 99, ..make_card("B") },
-            RouteSpeedCard { idx: 99, ..make_card("C") },
+            RouteSpeedCard {
+                idx: 99,
+                ..make_card("A")
+            },
+            RouteSpeedCard {
+                idx: 99,
+                ..make_card("B")
+            },
+            RouteSpeedCard {
+                idx: 99,
+                ..make_card("C")
+            },
         ];
         let result = assign_indices(cards);
         assert_eq!(result[0].idx, 0);

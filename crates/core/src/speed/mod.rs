@@ -1813,11 +1813,15 @@ mod tests {
         let all = route_speed_summary(&db, None).await.unwrap();
         assert_eq!(all.len(), 2);
 
-        let stm = route_speed_summary(&db, Some(&AgencyId::from("stm"))).await.unwrap();
+        let stm = route_speed_summary(&db, Some(&AgencyId::from("stm")))
+            .await
+            .unwrap();
         assert_eq!(stm.len(), 1);
         assert_eq!(stm[0].agency_id, "stm");
 
-        let rtl = route_speed_summary(&db, Some(&AgencyId::from("rtl"))).await.unwrap();
+        let rtl = route_speed_summary(&db, Some(&AgencyId::from("rtl")))
+            .await
+            .unwrap();
         assert_eq!(rtl.len(), 1);
         assert_eq!(rtl[0].agency_id, "rtl");
     }
@@ -2110,7 +2114,9 @@ mod tests {
         .await
         .unwrap();
 
-        let rows = route_speed_by_day_type(&db, Some(&AgencyId::from("0"))).await.unwrap();
+        let rows = route_speed_by_day_type(&db, Some(&AgencyId::from("0")))
+            .await
+            .unwrap();
 
         assert_eq!(rows.len(), 1);
         let r = &rows[0];
@@ -2187,8 +2193,8 @@ mod tests {
         // from calendar_dates.txt (the STM case — no calendar.txt).
         // 2026-01-05 = Monday → SVC_WD weekday; 2026-01-10 = Saturday; 2026-01-11 = Sunday
         for (svc, mon, tue, wed, thu, fri, sat, sun) in [
-            ("SVC_WD",  true,  true,  true,  true,  true,  false, false),
-            ("SVC_SAT", false, false, false, false, false, true,  false),
+            ("SVC_WD", true, true, true, true, true, false, false),
+            ("SVC_SAT", false, false, false, false, false, true, false),
             ("SVC_SUN", false, false, false, false, false, false, true),
         ] {
             sqlx::query(
@@ -3197,7 +3203,9 @@ mod tests {
             .await
             .unwrap();
 
-        let directions = route_stop_spacings(db, &AgencyId::from("0"), &RouteId::from("R1")).await.unwrap();
+        let directions = route_stop_spacings(db, &AgencyId::from("0"), &RouteId::from("R1"))
+            .await
+            .unwrap();
 
         assert_eq!(directions.len(), 1, "one variant expected");
         let dir = &directions[0];
@@ -3283,7 +3291,9 @@ mod tests {
             .await
             .unwrap();
 
-        let directions = route_stop_spacings(db, &AgencyId::from("0"), &RouteId::from("R1")).await.unwrap();
+        let directions = route_stop_spacings(db, &AgencyId::from("0"), &RouteId::from("R1"))
+            .await
+            .unwrap();
 
         assert_eq!(directions.len(), 2, "two variants expected");
         // VAR1 first (trip_count=10 > 3)
@@ -3303,9 +3313,10 @@ mod tests {
     #[tokio::test]
     async fn route_stop_spacings_returns_empty_for_unknown_route() {
         let td = test_utils::setup().await;
-        let result = route_stop_spacings(&td.db, &AgencyId::from("0"), &RouteId::from("NONEXISTENT"))
-            .await
-            .unwrap();
+        let result =
+            route_stop_spacings(&td.db, &AgencyId::from("0"), &RouteId::from("NONEXISTENT"))
+                .await
+                .unwrap();
         assert!(result.is_empty());
     }
 
@@ -3361,9 +3372,10 @@ mod tests {
             .unwrap();
         }
 
-        let trends = route_speed_trend_by_direction(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
-            .await
-            .unwrap();
+        let trends =
+            route_speed_trend_by_direction(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
+                .await
+                .unwrap();
         assert_eq!(trends.len(), 2, "two directions");
 
         let dir0 = trends.iter().find(|t| t.direction_id == 0).unwrap();
@@ -3385,9 +3397,10 @@ mod tests {
     #[tokio::test]
     async fn route_speed_trend_by_direction_returns_empty_when_no_data() {
         let td = test_utils::setup().await;
-        let result = route_speed_trend_by_direction(&td.db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
-            .await
-            .unwrap();
+        let result =
+            route_speed_trend_by_direction(&td.db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
+                .await
+                .unwrap();
         assert!(result.is_empty());
     }
 
@@ -3414,9 +3427,10 @@ mod tests {
         .await
         .unwrap();
 
-        let trends = route_speed_trend_by_direction(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
-            .await
-            .unwrap();
+        let trends =
+            route_speed_trend_by_direction(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
+                .await
+                .unwrap();
 
         // Actual data must appear even without a scheduled speed row.
         assert_eq!(trends.len(), 1, "one direction");
@@ -3541,9 +3555,10 @@ mod tests {
             .unwrap();
         }
 
-        let trends = route_speed_trend_by_variant(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
-            .await
-            .unwrap();
+        let trends =
+            route_speed_trend_by_variant(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
+                .await
+                .unwrap();
 
         assert_eq!(trends.len(), 2, "two variants expected");
         assert_eq!(trends[0].variant_id, "VAR1");

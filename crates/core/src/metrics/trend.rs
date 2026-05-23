@@ -138,7 +138,9 @@ mod tests {
     async fn route_trend_returns_none_for_unknown_route() {
         let td = test_utils::setup().await;
         let db = td.db;
-        let result = route_trend(&db, &AgencyId::from("0"), &RouteId::from("NONEXISTENT"), 30).await.unwrap();
+        let result = route_trend(&db, &AgencyId::from("0"), &RouteId::from("NONEXISTENT"), 30)
+            .await
+            .unwrap();
         assert!(result.is_none());
     }
 
@@ -161,7 +163,10 @@ mod tests {
              VALUES ('0', 'R1', '2026-01-02', 68.0, 145.0, 44, 50, '2026-01-02T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
-        let trend = route_trend(&db, &AgencyId::from("0"), &RouteId::from("R1"), 3650).await.unwrap().unwrap();
+        let trend = route_trend(&db, &AgencyId::from("0"), &RouteId::from("R1"), 3650)
+            .await
+            .unwrap()
+            .unwrap();
 
         assert_eq!(trend.route_id, "R1");
         assert_eq!(trend.short_name, "45");
@@ -189,7 +194,10 @@ mod tests {
              VALUES ('0', 'R1', '2026-01-01', 0, 5.5, 45, '2026-01-01T12:00:00Z')",
         ).execute(&db.pool).await.unwrap();
 
-        let trend = route_trend(&db, &AgencyId::from("0"), &RouteId::from("R1"), 3650).await.unwrap().unwrap();
+        let trend = route_trend(&db, &AgencyId::from("0"), &RouteId::from("R1"), 3650)
+            .await
+            .unwrap()
+            .unwrap();
 
         assert_eq!(trend.days.len(), 1);
         assert!((trend.days[0].actual_speed_mps.unwrap() - 5.5).abs() < 0.01);

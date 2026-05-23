@@ -175,9 +175,18 @@ mod tests {
         let dirs = build_detail_directions(spacings, trends);
         // make_trend sets weekday: [("2026-01-06", 8.0 mps, Some(9.0 mps))]
         // 8.0 m/s → 28.8 km/h, 9.0 m/s → 32.4 km/h
-        assert!(dirs[0].weekday_json.contains("2026-01-06"), "date must appear in JSON");
-        assert!(dirs[0].weekday_json.contains("28.8"), "actual km/h must appear");
-        assert!(dirs[0].weekday_json.contains("32.4"), "scheduled km/h must appear");
+        assert!(
+            dirs[0].weekday_json.contains("2026-01-06"),
+            "date must appear in JSON"
+        );
+        assert!(
+            dirs[0].weekday_json.contains("28.8"),
+            "actual km/h must appear"
+        );
+        assert!(
+            dirs[0].weekday_json.contains("32.4"),
+            "scheduled km/h must appear"
+        );
     }
 
     #[test]
@@ -204,11 +213,18 @@ mod tests {
     fn avg_spacing_display_under_1km_shows_metres() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 342.0,
-            variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), is_primary: false, trip_count: 0,
-            spacings: vec![], weekday_chart_id: String::new(),
-            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
-            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.avg_spacing_display(), "342 m");
     }
@@ -217,11 +233,18 @@ mod tests {
     fn avg_spacing_display_at_or_over_1km_shows_km() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 1200.0,
-            variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), is_primary: false, trip_count: 0,
-            spacings: vec![], weekday_chart_id: String::new(),
-            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
-            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.avg_spacing_display(), "1.2 km");
     }
@@ -230,11 +253,18 @@ mod tests {
     fn avg_spacing_status_class_below_local_range_min_is_slow() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 200.0,
-            variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), is_primary: false, trip_count: 0,
-            spacings: vec![], weekday_chart_id: String::new(),
-            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
-            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.avg_spacing_status_class(), "slow");
     }
@@ -243,11 +273,18 @@ mod tests {
     fn avg_spacing_status_class_in_range_is_empty() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 400.0,
-            variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), is_primary: false, trip_count: 0,
-            spacings: vec![], weekday_chart_id: String::new(),
-            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
-            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.avg_spacing_status_class(), "");
     }
@@ -256,11 +293,18 @@ mod tests {
     fn avg_spacing_status_class_exactly_300_is_in_range() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 300.0,
-            variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), is_primary: false, trip_count: 0,
-            spacings: vec![], weekday_chart_id: String::new(),
-            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
-            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.avg_spacing_status_class(), "");
     }
@@ -269,11 +313,18 @@ mod tests {
     fn avg_spacing_status_class_exactly_5000_is_in_range() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 5000.0,
-            variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), is_primary: false, trip_count: 0,
-            spacings: vec![], weekday_chart_id: String::new(),
-            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
-            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.avg_spacing_status_class(), "");
     }
@@ -282,11 +333,18 @@ mod tests {
     fn avg_spacing_status_class_above_express_max_is_outlier() {
         let d = RouteSpeedDetailDirection {
             avg_spacing_m: 6000.0,
-            variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), is_primary: false, trip_count: 0,
-            spacings: vec![], weekday_chart_id: String::new(),
-            saturday_chart_id: String::new(), sunday_chart_id: String::new(),
-            weekday_json: String::new(), saturday_json: String::new(), sunday_json: String::new(),
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            is_primary: false,
+            trip_count: 0,
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.avg_spacing_status_class(), "outlier");
     }
@@ -294,12 +352,19 @@ mod tests {
     #[test]
     fn direction_badge_label_primary_includes_primary_text() {
         let d = RouteSpeedDetailDirection {
-            is_primary: true, trip_count: 42,
-            avg_spacing_m: 0.0, variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), spacings: vec![],
-            weekday_chart_id: String::new(), saturday_chart_id: String::new(),
-            sunday_chart_id: String::new(), weekday_json: String::new(),
-            saturday_json: String::new(), sunday_json: String::new(),
+            is_primary: true,
+            trip_count: 42,
+            avg_spacing_m: 0.0,
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.direction_badge_label(), "Primary \u{00B7} 42 trips");
     }
@@ -307,12 +372,19 @@ mod tests {
     #[test]
     fn direction_badge_label_non_primary_shows_trip_count_only() {
         let d = RouteSpeedDetailDirection {
-            is_primary: false, trip_count: 7,
-            avg_spacing_m: 0.0, variant_id: VariantId::from(""), direction_name: String::new(),
-            first_stop_name: String::new(), spacings: vec![],
-            weekday_chart_id: String::new(), saturday_chart_id: String::new(),
-            sunday_chart_id: String::new(), weekday_json: String::new(),
-            saturday_json: String::new(), sunday_json: String::new(),
+            is_primary: false,
+            trip_count: 7,
+            avg_spacing_m: 0.0,
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
         };
         assert_eq!(d.direction_badge_label(), "7 trips");
     }

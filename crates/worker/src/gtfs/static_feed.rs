@@ -224,13 +224,9 @@ async fn load_stops(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Resul
     let mut rows: Vec<(String, String, String, f64, f64)> = Vec::new();
     for (id, stop) in &gtfs.stops {
         match (stop.latitude, stop.longitude) {
-            (Some(lat), Some(lon)) => rows.push((
-                agency_id.0.clone(),
-                id.clone(),
-                stop.name.clone(),
-                lat,
-                lon,
-            )),
+            (Some(lat), Some(lon)) => {
+                rows.push((agency_id.0.clone(), id.clone(), stop.name.clone(), lat, lon))
+            }
             _ => warn!("Stop {} missing coordinates, skipping", id),
         }
     }
@@ -418,9 +414,9 @@ pub(crate) async fn load_calendar_from_dates(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mobilispect_core::db::test_utils;
     use chrono::NaiveDate;
     use gtfs_structures::Calendar;
+    use mobilispect_core::db::test_utils;
     use std::collections::HashMap;
 
     // ── helpers for building minimal Gtfs structs ──────────────────────────
@@ -532,7 +528,9 @@ mod tests {
         gtfs.routes.insert("45".to_string(), make_route("45"));
 
         let mut tx = db.pool.begin().await.unwrap();
-        load_variants(&mut tx, &AgencyId::from("stm"), &gtfs).await.unwrap();
+        load_variants(&mut tx, &AgencyId::from("stm"), &gtfs)
+            .await
+            .unwrap();
         tx.commit().await.unwrap();
 
         // One variant should exist.
@@ -624,7 +622,9 @@ mod tests {
         }
 
         let mut tx = db.pool.begin().await.unwrap();
-        load_variants(&mut tx, &AgencyId::from("stm"), &gtfs).await.unwrap();
+        load_variants(&mut tx, &AgencyId::from("stm"), &gtfs)
+            .await
+            .unwrap();
         tx.commit().await.unwrap();
 
         // Two variants should exist.
@@ -686,7 +686,9 @@ mod tests {
             },
         );
 
-        load_calendar(&mut tx, &AgencyId::from("stm"), &calendar).await.unwrap();
+        load_calendar(&mut tx, &AgencyId::from("stm"), &calendar)
+            .await
+            .unwrap();
         tx.commit().await.unwrap();
 
         let rows: Vec<(String, bool, bool, bool)> = sqlx::query_as(
@@ -803,7 +805,9 @@ mod tests {
                 end_date: NaiveDate::from_ymd_opt(2026, 12, 31).unwrap(),
             },
         );
-        load_calendar(&mut tx, &AgencyId::from("stm"), &calendar).await.unwrap();
+        load_calendar(&mut tx, &AgencyId::from("stm"), &calendar)
+            .await
+            .unwrap();
 
         // calendar_dates claims WD runs on Saturday — should be ignored
         let mut calendar_dates: HashMap<String, Vec<gtfs_structures::CalendarDate>> =
@@ -849,7 +853,11 @@ fn variant_id_for(stop_ids: &[String]) -> String {
 /// Build and store route variants from already-loaded trips + scheduled_stops.
 /// Groups trips by their ordered stop sequence, assigns a deterministic variant_id,
 /// marks the variant with the most trips as primary, and links trips to their variant.
-pub(crate) async fn load_variants(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
+pub(crate) async fn load_variants(
+    tx: &mut Tx<'_>,
+    agency_id: &AgencyId,
+    gtfs: &Gtfs,
+) -> Result<()> {
     // Collect stop sequences per trip in memory (already loaded into DB, but gtfs struct is handy).
     // key: (route_id, direction_id, stop_ids_csv) → (variant_id, trip_ids, headsign)
     let mut pattern_map: HashMap<(String, i64, String), (String, Vec<String>, Option<String>)> =

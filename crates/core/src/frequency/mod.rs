@@ -72,11 +72,17 @@ impl RouteHeadwayRow {
     }
 
     pub fn weekday_service_span_display(&self) -> String {
-        Self::service_span(self.weekday_service_start_secs, self.weekday_service_end_secs)
+        Self::service_span(
+            self.weekday_service_start_secs,
+            self.weekday_service_end_secs,
+        )
     }
 
     pub fn saturday_service_span_display(&self) -> String {
-        Self::service_span(self.saturday_service_start_secs, self.saturday_service_end_secs)
+        Self::service_span(
+            self.saturday_service_start_secs,
+            self.saturday_service_end_secs,
+        )
     }
 
     pub fn sunday_service_span_display(&self) -> String {
