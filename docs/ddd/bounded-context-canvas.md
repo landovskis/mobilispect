@@ -20,6 +20,8 @@ Four contexts, aligned to the Cargo crate structure.
 
 **External dependency:** GTFS provider (upstream, opaque). Treated as an untrusted external model — all GTFS types are translated at the boundary.
 
+**Also writes:** `stop_time_events`, `vehicle_positions` tables (real-time observations from GTFS-RT).
+
 **Policy:** No GTFS-native types (`gtfs_structures::*`, prost-generated protobuf types) may leak past this context.
 
 ---
