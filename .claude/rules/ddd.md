@@ -5,8 +5,9 @@ DDD artifacts for the Mobilispect domain live in `docs/ddd/`. They are the autho
 ## Before Writing Any Feature Spec
 
 1. Read `docs/ddd/bounded-context-canvas.md` — identify which bounded context(s) the feature touches.
-2. Read `docs/ddd/aggregate-specs.md` — identify which aggregates are involved.
-3. Every feature spec must include a **Domain Context** section:
+2. Read `docs/ddd/context-map.md` — understand how the touched contexts relate to upstream/downstream dependencies.
+3. Read `docs/ddd/aggregate-specs.md` — identify which aggregates are involved.
+4. Every feature spec must include a **Domain Context** section:
 
 ```markdown
 ## Domain Context
