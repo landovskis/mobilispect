@@ -1,5 +1,5 @@
 use crate::ids::{AgencyId, RouteId};
-use crate::speed::RouteSpeedDayType;
+use crate::speed_analysis::RouteSpeedDayType;
 use std::collections::HashMap;
 
 pub struct RouteSpeedCard {
@@ -218,40 +218,48 @@ pub fn filter_speed_cards(cards: Vec<RouteSpeedCard>, class: &str) -> Vec<RouteS
         .collect()
 }
 
+fn cmp_optional_f64_none_last(
+    a: Option<f64>,
+    b: Option<f64>,
+    name_a: &str,
+    name_b: &str,
+) -> std::cmp::Ordering {
+    match (a, b) {
+        (Some(x), Some(y)) => x
+            .partial_cmp(&y)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then(name_a.cmp(name_b)),
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (None, None) => name_a.cmp(name_b),
+    }
+}
+
 pub fn sort_speed_cards(mut cards: Vec<RouteSpeedCard>, sort: &str) -> Vec<RouteSpeedCard> {
     match sort {
-        "scheduled" => {
-            cards.sort_by(
-                |a, b| match (a.avg_scheduled_speed_mps, b.avg_scheduled_speed_mps) {
-                    (Some(x), Some(y)) => x
-                        .partial_cmp(&y)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                        .then(a.short_name.cmp(&b.short_name)),
-                    (Some(_), None) => std::cmp::Ordering::Less,
-                    (None, Some(_)) => std::cmp::Ordering::Greater,
-                    (None, None) => a.short_name.cmp(&b.short_name),
-                },
+        "scheduled" => cards.sort_by(|a, b| {
+            cmp_optional_f64_none_last(
+                a.avg_scheduled_speed_mps,
+                b.avg_scheduled_speed_mps,
+                &a.short_name,
+                &b.short_name,
             )
-        }
-        "actual" => cards.sort_by(
-            |a, b| match (a.avg_actual_speed_mps, b.avg_actual_speed_mps) {
-                (Some(x), Some(y)) => x
-                    .partial_cmp(&y)
-                    .unwrap_or(std::cmp::Ordering::Equal)
-                    .then(a.short_name.cmp(&b.short_name)),
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => a.short_name.cmp(&b.short_name),
-            },
-        ),
-        "spacing" => cards.sort_by(|a, b| match (a.avg_stop_spacing_m, b.avg_stop_spacing_m) {
-            (Some(x), Some(y)) => x
-                .partial_cmp(&y)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then(a.short_name.cmp(&b.short_name)),
-            (Some(_), None) => std::cmp::Ordering::Less,
-            (None, Some(_)) => std::cmp::Ordering::Greater,
-            (None, None) => a.short_name.cmp(&b.short_name),
+        }),
+        "actual" => cards.sort_by(|a, b| {
+            cmp_optional_f64_none_last(
+                a.avg_actual_speed_mps,
+                b.avg_actual_speed_mps,
+                &a.short_name,
+                &b.short_name,
+            )
+        }),
+        "spacing" => cards.sort_by(|a, b| {
+            cmp_optional_f64_none_last(
+                a.avg_stop_spacing_m,
+                b.avg_stop_spacing_m,
+                &a.short_name,
+                &b.short_name,
+            )
         }),
         _ => {}
     }
