@@ -8,10 +8,10 @@ use serde::Deserialize;
 use serde_json;
 
 use crate::web::AppState;
-use mobilispect_core::frequency::{RouteHeadwayRow, route_headways};
 use mobilispect_core::ids::{AgencyId, RouteId};
-use mobilispect_core::metrics::{RouteSummary, RouteTrend, route_summary, route_trend};
-use mobilispect_core::speed::{
+use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
+use mobilispect_core::service_frequency::{RouteHeadwayRow, route_headways};
+use mobilispect_core::speed_analysis::{
     RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary, assign_indices,
     build_detail_directions, build_speed_cards, classify_by_spacing, fetch_route_info,
     filter_speed_cards, route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,

@@ -59,55 +59,30 @@ pub async fn route_summary(
     days: i64,
     agency_filter: Option<&AgencyId>,
 ) -> Result<Vec<RouteSummary>> {
-    let rows: Vec<RouteSummary> = match agency_filter {
-        None => sqlx::query_as(
-            "SELECT
-               rd.agency_id,
-               rd.route_id,
-               r.short_name,
-               r.long_name,
-               ROUND(AVG(rd.on_time_pct)::NUMERIC, 1)::FLOAT8 as avg_on_time_pct,
-               ROUND(AVG(rd.avg_delay_secs)::NUMERIC, 0)::FLOAT8 as avg_delay_secs,
-               SUM(rd.trips_run)::BIGINT as trips_run,
-               SUM(rd.trips_total)::BIGINT as trips_total,
-               COUNT(rd.service_date) as days_measured
-             FROM route_daily rd
-             JOIN routes r ON rd.agency_id = r.agency_id AND rd.route_id = r.route_id
-             WHERE rd.service_date >= (CURRENT_DATE - $1::INT * INTERVAL '1 day')::TEXT
-             GROUP BY rd.agency_id, rd.route_id, r.short_name, r.long_name
-             ORDER BY rd.agency_id,
-               CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
-               r.short_name",
-        )
-        .bind(days)
-        .fetch_all(&db.pool)
-        .await?,
-
-        Some(agency) => sqlx::query_as(
-            "SELECT
-               rd.agency_id,
-               rd.route_id,
-               r.short_name,
-               r.long_name,
-               ROUND(AVG(rd.on_time_pct)::NUMERIC, 1)::FLOAT8 as avg_on_time_pct,
-               ROUND(AVG(rd.avg_delay_secs)::NUMERIC, 0)::FLOAT8 as avg_delay_secs,
-               SUM(rd.trips_run)::BIGINT as trips_run,
-               SUM(rd.trips_total)::BIGINT as trips_total,
-               COUNT(rd.service_date) as days_measured
-             FROM route_daily rd
-             JOIN routes r ON rd.agency_id = r.agency_id AND rd.route_id = r.route_id
-             WHERE rd.service_date >= (CURRENT_DATE - $1::INT * INTERVAL '1 day')::TEXT
-               AND rd.agency_id = $2
-             GROUP BY rd.agency_id, rd.route_id, r.short_name, r.long_name
-             ORDER BY rd.agency_id,
-               CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
-               r.short_name",
-        )
-        .bind(days)
-        .bind(agency.as_str())
-        .fetch_all(&db.pool)
-        .await?,
-    };
+    let rows: Vec<RouteSummary> = sqlx::query_as(
+        "SELECT
+           rd.agency_id,
+           rd.route_id,
+           r.short_name,
+           r.long_name,
+           ROUND(AVG(rd.on_time_pct)::NUMERIC, 1)::FLOAT8 as avg_on_time_pct,
+           ROUND(AVG(rd.avg_delay_secs)::NUMERIC, 0)::FLOAT8 as avg_delay_secs,
+           SUM(rd.trips_run)::BIGINT as trips_run,
+           SUM(rd.trips_total)::BIGINT as trips_total,
+           COUNT(rd.service_date) as days_measured
+         FROM route_daily rd
+         JOIN routes r ON rd.agency_id = r.agency_id AND rd.route_id = r.route_id
+         WHERE rd.service_date >= (CURRENT_DATE - $1::INT * INTERVAL '1 day')::TEXT
+           AND ($2::text IS NULL OR rd.agency_id = $2)
+         GROUP BY rd.agency_id, rd.route_id, r.short_name, r.long_name
+         ORDER BY rd.agency_id,
+           CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
+           r.short_name",
+    )
+    .bind(days)
+    .bind(agency_filter.map(|a| a.as_str()))
+    .fetch_all(&db.pool)
+    .await?;
     Ok(rows)
 }
 

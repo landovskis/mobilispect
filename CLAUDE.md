@@ -37,11 +37,15 @@ crates/
     src/
       config.rs    # Config + AgencyConfig from config.toml plus dotenvx env refs
       db/          # Database wrapper (sqlx PgPool)
-      metrics/     # Query functions (on-time %, delays, hotspots, scorecard)
-      speed/
-        mod.rs     # Scheduled/actual speed computation
-        card.rs    # RouteSpeedCard builder
-      frequency/   # Headway computation
+      on_time_performance/  # On-time %, delay classification, route trends
+        on_time.rs          # classify_trip_delays, compute_route_daily
+        route_summary.rs    # RouteSummary query
+        trend.rs            # RouteTrend, route_trend query
+      speed_analysis/       # Scheduled/actual speed computation
+        mod.rs              # Speed queries and computation hooks
+        card.rs             # RouteSpeedCard builder
+        detail.rs           # Per-direction stop spacing detail
+      service_frequency/    # Headway / frequency computation
     migrations/    # SQL schema migrations
   server/          # mobilispect-server (binary)
     src/
@@ -53,7 +57,7 @@ crates/
   worker/          # mobilispect-worker (binary)
     src/
       main.rs      # Background ingestion entry point
-      gtfs/
+      feed_ingestion/
         static_feed.rs # GTFS zip download + upsert
         realtime.rs    # GTFS-RT protobuf polling
       maintenance/     # Data retention cleanup
@@ -62,9 +66,9 @@ crates/
 ```
 
 Where new code goes:
-- New metric or analysis: add a module under `crates/core/src/metrics/` or a new slice in core
+- New metric or analysis: add a module under `crates/core/src/on_time_performance/`, `speed_analysis/`, or `service_frequency/` as appropriate, or a new top-level slice in core
 - New web page: handler in `crates/server/src/web/handlers.rs` + template in `crates/server/templates/`
-- New GTFS feed type: extend `crates/worker/src/gtfs/`
+- New GTFS feed type: extend `crates/worker/src/feed_ingestion/`
 - Shared DB logic: `crates/core/src/db/`
 - Each vertical slice owns its query, computation, and presentation layer
 

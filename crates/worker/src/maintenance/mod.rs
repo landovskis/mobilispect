@@ -5,8 +5,8 @@ use tracing::info;
 
 use mobilispect_core::config::Config;
 use mobilispect_core::db::Database;
-use mobilispect_core::metrics::compute_route_daily;
-use mobilispect_core::speed::compute_route_speed_daily;
+use mobilispect_core::on_time_performance::compute_route_daily;
+use mobilispect_core::speed_analysis::compute_route_speed_daily;
 
 pub async fn retention_loop(db: &Database, config: &Config) {
     let mut interval = tokio::time::interval(Duration::from_secs(86400));
