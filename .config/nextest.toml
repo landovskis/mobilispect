@@ -1,0 +1,9 @@
+[profile.default]
+# testcontainers spin up real Postgres — allow enough time for cold Docker pulls.
+# No terminate-after: slow tests are flagged but never hard-killed.
+slow-timeout = { period = "60s" }
+
+[profile.ci]
+# CI has warm Docker layer caches so 60s is plenty; fail fast on first failure.
+slow-timeout = { period = "60s" }
+fail-fast = true

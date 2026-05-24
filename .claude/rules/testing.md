@@ -64,5 +64,5 @@ sqlx::migrate!().run(&pool).await.unwrap();
 - All tests pass, output pristine
 - Edge cases covered
 
-Run tests with cargo test or cargo test <test_name> for a single test.  
+Run tests with `cargo nextest run` or `cargo nextest run <test_name>` for a single test.  
                                               
