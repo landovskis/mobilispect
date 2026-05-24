@@ -1,15 +1,15 @@
 use anyhow::Result;
 use mobilispect_core::config::AgencyConfig;
 use mobilispect_core::db::Database;
-use mobilispect_core::speed;
+use mobilispect_core::speed_analysis;
 
 pub async fn run_static_hooks(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    speed::on_static_loaded(db, agency).await?;
+    speed_analysis::on_static_loaded(db, agency).await?;
     Ok(())
 }
 
 pub async fn run_realtime_hooks(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    speed::on_realtime_polled(db, agency).await?;
+    speed_analysis::on_realtime_polled(db, agency).await?;
     Ok(())
 }
 

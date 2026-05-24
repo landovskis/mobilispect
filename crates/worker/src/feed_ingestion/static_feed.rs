@@ -999,11 +999,9 @@ async fn set_stored_version(db: &Database, agency_id: &AgencyId, version: &str) 
 
 async fn set_last_download(db: &Database, agency_id: &AgencyId) -> Result<()> {
     let key = format!("gtfs_static_last_download_{agency_id}");
-    let today = chrono::Utc::now()
-        .date_naive()
-        .format("%Y-%m-%d")
-        .to_string();
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = chrono::Utc::now();
+    let today = now.date_naive().format("%Y-%m-%d").to_string();
+    let now = now.to_rfc3339();
     sqlx::query!(
         "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
          ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",

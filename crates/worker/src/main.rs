@@ -4,7 +4,7 @@ use tracing_subscriber::EnvFilter;
 
 use mobilispect_core::config::Config;
 use mobilispect_core::db::Database;
-mod gtfs;
+mod feed_ingestion;
 mod maintenance;
 mod pipeline;
 
@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
         set.spawn(async move {
             info!("Loading static GTFS for agency: {}", agency.name);
             let result = async {
-                gtfs::static_feed::load_if_needed(&db, &agency).await?;
+                feed_ingestion::static_feed::load_if_needed(&db, &agency).await?;
                 pipeline::run_static_hooks(&db, &agency).await?;
                 info!("Static import complete for agency: {}", agency.name);
                 Ok(())
@@ -57,7 +57,7 @@ async fn main() -> Result<()> {
         let poll_interval = config.poll_interval_secs;
         tokio::spawn(async move {
             loop {
-                gtfs::realtime::poll_loop(&db_rt, &agency, poll_interval).await;
+                feed_ingestion::realtime::poll_loop(&db_rt, &agency, poll_interval).await;
                 warn!(agency = %agency.name, "RT poll loop exited unexpectedly, restarting in 30s");
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
             }
