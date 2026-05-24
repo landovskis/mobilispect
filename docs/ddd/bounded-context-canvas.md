@@ -30,7 +30,7 @@ Four contexts, aligned to the Cargo crate structure.
 **Purpose:** The planned timetable as stored in Postgres. Source of truth for what was scheduled.
 
 **Owns:**
-- `agencies`, `routes`, `variants`, `trips`, `stops`, `stop_times`, `service_calendars` tables
+- `routes`, `trips`, `stops`, `scheduled_stops`, `route_variants`, `route_variant_stops`, `calendar` tables
 - Query functions that return planned data
 
 **Consumed by:** Performance (read-only)
@@ -48,12 +48,14 @@ Four contexts, aligned to the Cargo crate structure.
 - Delay computation, on-time classification
 - Speed computation (scheduled and actual)
 - Headway computation
-- `route_daily`, `trip_results`, `speed_observations` tables
+- `route_daily`, `trip_results`, `route_speed`, `route_speed_daily`, `route_speed_hourly`, `route_speed_day_type` tables
 - Query functions returning computed metrics
 
 **Depends on:** Schedule (reads planned data); real-time delay observations written by Feed Ingestion.
 
 **Produces:** Route Daily records, speed cards, schedule cards.
+
+**Policy:** All computation is pure (no I/O). Query functions are the only public API — handlers never access Performance tables directly.
 
 ---
 
