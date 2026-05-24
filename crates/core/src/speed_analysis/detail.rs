@@ -1,5 +1,5 @@
 use crate::ids::{AgencyId, RouteId, VariantId};
-use crate::speed::{DirectionStopSpacings, StopSpacing, VariantSpeedTrend};
+use crate::speed_analysis::{DirectionStopSpacings, StopSpacing, VariantSpeedTrend};
 
 pub struct RouteSpeedDetailDirection {
     pub variant_id: VariantId,
