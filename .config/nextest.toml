@@ -1,0 +1,11 @@
+[profile.default]
+# testcontainers spin up real Postgres — allow enough time
+slow-timeout = { period = "60s", terminate-after = 3 }
+# run integration tests sequentially to avoid port conflicts
+# (each test gets its own container, but Docker pulls can be slow)
+test-threads = "num-cpus"
+
+[profile.ci]
+# Tighter CI settings
+slow-timeout = { period = "120s", terminate-after = 2 }
+fail-fast = true

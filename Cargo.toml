@@ -1,3 +1,6 @@
 [workspace]
 members = ["crates/core", "crates/server", "crates/worker"]
 resolver = "2"
+
+[workspace.metadata.tools]
+cargo-nextest = "0.9.136"

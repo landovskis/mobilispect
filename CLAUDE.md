@@ -90,8 +90,8 @@ cargo clippy
 cargo fm
 
 # Tests
-cargo test
-cargo test <test_name>   # run a single test
+cargo nextest run
+cargo nextest run <test_name>   # run a single test
 ```
 
 ## Conventions
