@@ -2,5 +2,7 @@
 members = ["crates/core", "crates/server", "crates/worker"]
 resolver = "2"
 
+# Binary tool requirements (not enforced by Cargo — install manually):
+#   cargo install cargo-nextest --locked
 [workspace.metadata.tools]
 cargo-nextest = "0.9.136"
