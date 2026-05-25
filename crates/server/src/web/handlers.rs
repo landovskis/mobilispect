@@ -1,8 +1,9 @@
 use askama::Template;
 use axum::{
+    Json,
     extract::{Query, State},
-    http::HeaderMap,
-    response::Html,
+    http::{HeaderMap, StatusCode},
+    response::{Html, IntoResponse},
 };
 use serde::Deserialize;
 use serde_json;
@@ -450,10 +451,6 @@ pub async fn frequency_page(
 }
 
 pub async fn health_check(State(state): State<AppState>) -> axum::response::Response {
-    use axum::Json;
-    use axum::http::StatusCode;
-    use axum::response::IntoResponse;
-
     match mobilispect_core::health::db_ping(&state.db.pool).await {
         Ok(()) => (StatusCode::OK, Json(serde_json::json!({"status": "ok"}))).into_response(),
         Err(e) => (
