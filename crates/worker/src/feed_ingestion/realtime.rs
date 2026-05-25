@@ -8,6 +8,7 @@ use mobilispect_core::ids::AgencyId;
 // GTFS-RT protobuf types — generated from the official .proto file
 // Include the generated code from build.rs output
 pub mod proto {
+    #![allow(clippy::enum_variant_names)]
     include!(concat!(env!("OUT_DIR"), "/transit_realtime.rs"));
 }
 
@@ -131,12 +132,8 @@ async fn store_trip_updates(
                 .as_ref()
                 .and_then(|d| d.delay)
                 .map(|d| d as i64);
-            let arrival_time_unix = stu.arrival.as_ref().and_then(|a| a.time).map(|t| t as i64);
-            let departure_time_unix = stu
-                .departure
-                .as_ref()
-                .and_then(|d| d.time)
-                .map(|t| t as i64);
+            let arrival_time_unix = stu.arrival.as_ref().and_then(|a| a.time);
+            let departure_time_unix = stu.departure.as_ref().and_then(|d| d.time);
 
             sqlx::query!(
                 "INSERT INTO stop_time_events
