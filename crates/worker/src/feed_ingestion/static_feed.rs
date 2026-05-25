@@ -24,7 +24,7 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
     if let Some(last) = last_download {
         let last_date = chrono::NaiveDate::parse_from_str(&last, "%Y-%m-%d").ok();
         let today = Utc::now().date_naive();
-        if let Some(date) = last_date.filter(|d| *d >= today) {
+        if last_date.filter(|d| *d >= today).is_some() {
             info!("Static GTFS already downloaded today, skipping download");
             return Ok(());
         }
@@ -152,8 +152,8 @@ async fn load_routes(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Resu
             (
                 agency_id.0.clone(),
                 id.clone(),
-                r.short_name.clone(),
-                r.long_name.clone(),
+                r.short_name.clone().unwrap_or_default(),
+                r.long_name.clone().unwrap_or_default(),
                 route_type_to_int(&r.route_type),
             )
         })
@@ -224,9 +224,13 @@ async fn load_stops(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Resul
     let mut rows: Vec<(String, String, String, f64, f64)> = Vec::new();
     for (id, stop) in &gtfs.stops {
         match (stop.latitude, stop.longitude) {
-            (Some(lat), Some(lon)) => {
-                rows.push((agency_id.0.clone(), id.clone(), stop.name.clone(), lat, lon))
-            }
+            (Some(lat), Some(lon)) => rows.push((
+                agency_id.0.clone(),
+                id.clone(),
+                stop.name.clone().unwrap_or_default(),
+                lat,
+                lon,
+            )),
             _ => warn!("Stop {} missing coordinates, skipping", id),
         }
     }
