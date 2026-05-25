@@ -248,4 +248,70 @@ mod tests {
         let pct = trend.speed_change_pct().unwrap();
         assert!((pct - 20.0).abs() < 0.1, "expected ~20%, got {pct}");
     }
+
+    fn make_trend_with_speeds(first: f64, last: f64) -> RouteTrend {
+        let days = (0..14)
+            .map(|i| DailyTrendPoint {
+                service_date: format!("2026-01-{:02}", i + 1),
+                on_time_pct: None,
+                avg_delay_secs: None,
+                actual_speed_mps: Some(if i < 7 { first } else { last }),
+            })
+            .collect();
+        RouteTrend {
+            route_id: "R1".into(),
+            short_name: "45".into(),
+            long_name: "PAPINEAU".into(),
+            days,
+        }
+    }
+
+    #[test]
+    fn speed_change_display_insufficient_data_when_too_few_days() {
+        let trend = RouteTrend {
+            route_id: "R1".into(),
+            short_name: "45".into(),
+            long_name: "PAPINEAU".into(),
+            days: vec![],
+        };
+        assert_eq!(trend.speed_change_display(), "Insufficient data");
+    }
+
+    #[test]
+    fn speed_change_display_faster_when_route_speeds_up() {
+        // 5.0 → 6.0 m/s = +20%
+        let trend = make_trend_with_speeds(5.0, 6.0);
+        assert_eq!(trend.speed_change_display(), "+20.0% faster");
+    }
+
+    #[test]
+    fn speed_change_display_slower_when_route_slows_down() {
+        // 6.0 → 5.0 m/s = -16.7%
+        let trend = make_trend_with_speeds(6.0, 5.0);
+        assert!(trend.speed_change_display().contains("slower"));
+    }
+
+    #[test]
+    fn speed_change_display_stable_when_no_significant_change() {
+        let trend = make_trend_with_speeds(5.0, 5.0);
+        assert_eq!(trend.speed_change_display(), "Stable");
+    }
+
+    #[test]
+    fn speed_change_class_decline_when_route_slows_down() {
+        let trend = make_trend_with_speeds(6.0, 5.0);
+        assert_eq!(trend.speed_change_class(), "decline");
+    }
+
+    #[test]
+    fn speed_change_class_improve_when_route_speeds_up() {
+        let trend = make_trend_with_speeds(5.0, 6.0);
+        assert_eq!(trend.speed_change_class(), "improve");
+    }
+
+    #[test]
+    fn speed_change_class_empty_when_stable() {
+        let trend = make_trend_with_speeds(5.0, 5.0);
+        assert_eq!(trend.speed_change_class(), "");
+    }
 }

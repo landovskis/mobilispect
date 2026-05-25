@@ -1919,6 +1919,130 @@ mod tests {
     }
 
     #[test]
+    fn actual_speed_display_formats_kmh_one_decimal() {
+        // 10.0 m/s = 36.0 km/h
+        let s = make_summary(10.0, Some(10.0));
+        assert_eq!(s.actual_speed_display(), "36.0 km/h");
+    }
+
+    #[test]
+    fn actual_speed_display_dash_when_none() {
+        let s = make_summary(10.0, None);
+        assert_eq!(s.actual_speed_display(), "—");
+    }
+
+    #[test]
+    fn live_speed_display_formats_kmh_one_decimal() {
+        // 5.0 m/s = 18.0 km/h
+        let mut s = make_summary(10.0, None);
+        s.live_speed_mps = Some(5.0);
+        assert_eq!(s.live_speed_display(), "18.0 km/h");
+    }
+
+    #[test]
+    fn live_speed_display_dash_when_none() {
+        let s = make_summary(10.0, None);
+        assert_eq!(s.live_speed_display(), "—");
+    }
+
+    #[test]
+    fn direction_label_free_fn_outbound_inbound_unknown() {
+        assert_eq!(direction_label(DirectionId(0)), "Outbound");
+        assert_eq!(direction_label(DirectionId(1)), "Inbound");
+        assert_eq!(direction_label(DirectionId(99)), "Unknown");
+    }
+
+    #[test]
+    fn direction_label_instance_uses_last_stop_name_when_present() {
+        let mut s = make_summary(10.0, None);
+        s.last_stop_name = Some("Terminus Est".to_string());
+        assert_eq!(s.direction_label(), "Terminus Est");
+    }
+
+    #[test]
+    fn direction_label_instance_falls_back_to_direction_id_label() {
+        let s = make_summary(10.0, None); // direction_id = 0 → "Outbound"
+        assert_eq!(s.direction_label(), "Outbound");
+    }
+
+    #[test]
+    fn speed_class_slower_when_actual_lags_by_more_than_one_pct() {
+        // 10 m/s scheduled, 8 m/s actual → 20% deficit → "slower"
+        let s = make_summary(10.0, Some(8.0));
+        assert_eq!(s.speed_class(), "slower");
+    }
+
+    #[test]
+    fn speed_class_faster_when_actual_exceeds_by_more_than_one_pct() {
+        // 10 m/s scheduled, 11 m/s actual → -10% deficit → "faster"
+        let s = make_summary(10.0, Some(11.0));
+        assert_eq!(s.speed_class(), "faster");
+    }
+
+    #[test]
+    fn speed_class_onpace_within_threshold() {
+        // 10 m/s both → 0% deficit → "onpace"
+        let s = make_summary(10.0, Some(10.0));
+        assert_eq!(s.speed_class(), "onpace");
+    }
+
+    #[test]
+    fn speed_class_onpace_when_no_actual_data() {
+        let s = make_summary(10.0, None);
+        assert_eq!(s.speed_class(), "onpace");
+    }
+
+    fn make_stop_spacing(distance_m: f64, spacing_status: &str) -> StopSpacing {
+        StopSpacing {
+            to_stop_name: "Stop B".to_string(),
+            distance_m,
+            is_outlier: false,
+            width_px: 50,
+            spacing_status: spacing_status.to_string(),
+        }
+    }
+
+    #[test]
+    fn stop_spacing_distance_display_under_1km_shows_metres() {
+        assert_eq!(
+            make_stop_spacing(342.0, "in_range").distance_display(),
+            "342 m"
+        );
+    }
+
+    #[test]
+    fn stop_spacing_distance_display_at_or_over_1km_shows_km() {
+        assert_eq!(
+            make_stop_spacing(1200.0, "in_range").distance_display(),
+            "1.2 km"
+        );
+    }
+
+    #[test]
+    fn stop_spacing_status_class_below_is_slow() {
+        assert_eq!(
+            make_stop_spacing(200.0, "below").spacing_status_class(),
+            "slow"
+        );
+    }
+
+    #[test]
+    fn stop_spacing_status_class_above_is_outlier() {
+        assert_eq!(
+            make_stop_spacing(6000.0, "above").spacing_status_class(),
+            "outlier"
+        );
+    }
+
+    #[test]
+    fn stop_spacing_status_class_in_range_is_empty() {
+        assert_eq!(
+            make_stop_spacing(500.0, "in_range").spacing_status_class(),
+            ""
+        );
+    }
+
+    #[test]
     fn speed_deficit_pct_is_none_without_actual_data() {
         let s = make_summary(10.0, None);
         assert!(s.speed_deficit_pct().is_none());

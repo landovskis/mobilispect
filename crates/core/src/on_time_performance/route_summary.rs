@@ -129,6 +129,78 @@ mod tests {
         assert_eq!(make_route_summary(None).badge_variant(), "neutral");
     }
 
+    #[test]
+    fn status_label_on_track_at_or_above_80() {
+        assert_eq!(make_route_summary(Some(80.0)).status_label(), "On track");
+        assert_eq!(make_route_summary(Some(95.0)).status_label(), "On track");
+    }
+
+    #[test]
+    fn status_label_degraded_between_60_and_80() {
+        assert_eq!(make_route_summary(Some(60.0)).status_label(), "Degraded");
+        assert_eq!(make_route_summary(Some(79.9)).status_label(), "Degraded");
+    }
+
+    #[test]
+    fn status_label_poor_below_60() {
+        assert_eq!(make_route_summary(Some(59.9)).status_label(), "Poor");
+        assert_eq!(make_route_summary(Some(0.0)).status_label(), "Poor");
+    }
+
+    #[test]
+    fn status_label_no_data_when_none() {
+        assert_eq!(make_route_summary(None).status_label(), "No data");
+    }
+
+    #[test]
+    fn on_time_display_formats_percentage() {
+        assert_eq!(make_route_summary(Some(87.0)).on_time_display(), "87%");
+    }
+
+    #[test]
+    fn on_time_display_dash_when_none() {
+        assert_eq!(make_route_summary(None).on_time_display(), "—");
+    }
+
+    fn make_route_summary_with_delay(delay: Option<f64>) -> RouteSummary {
+        RouteSummary {
+            agency_id: "stm".into(),
+            route_id: "R1".into(),
+            short_name: "1".into(),
+            long_name: "Route 1".into(),
+            avg_on_time_pct: None,
+            avg_delay_secs: delay,
+            trips_run: None,
+            trips_total: None,
+            days_measured: None,
+        }
+    }
+
+    #[test]
+    fn delay_display_formats_positive_delay() {
+        assert_eq!(
+            make_route_summary_with_delay(Some(120.0)).delay_display(),
+            "+120s"
+        );
+    }
+
+    #[test]
+    fn delay_display_formats_non_positive_delay() {
+        assert_eq!(
+            make_route_summary_with_delay(Some(-30.0)).delay_display(),
+            "-30s"
+        );
+        assert_eq!(
+            make_route_summary_with_delay(Some(0.0)).delay_display(),
+            "0s"
+        );
+    }
+
+    #[test]
+    fn delay_display_dash_when_none() {
+        assert_eq!(make_route_summary_with_delay(None).delay_display(), "—");
+    }
+
     #[tokio::test]
     async fn route_summary_filters_by_agency() {
         let td = test_utils::setup().await;

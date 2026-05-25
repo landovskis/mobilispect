@@ -358,6 +358,54 @@ ORDER BY
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db::test_utils;
+
+    #[tokio::test]
+    async fn route_headways_returns_row_when_route_has_weekday_trips() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        sqlx::query("INSERT INTO routes VALUES ('stm', 'R1', '1', 'Route 1', 3)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO calendar VALUES ('stm', 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        // Two trips 30 minutes apart → 30-minute weekday headway
+        sqlx::query("INSERT INTO trips VALUES ('stm', 'T1', 'R1', 'WD', 0, null)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('stm', 'T2', 'R1', 'WD', 0, null)")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('stm', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('stm', 'T2', 'S1', 1, '08:30:00', '08:30:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let rows = route_headways(&db, None).await.unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].route_id, "R1");
+        let headway = rows[0].weekday_headway_mins.unwrap();
+        assert!(
+            (headway - 30.0).abs() < 0.1,
+            "expected 30 min headway, got {headway}"
+        );
+    }
 
     #[test]
     fn headway_display_none() {
@@ -480,5 +528,55 @@ mod tests {
         let row = make_row(Some(8.0), None, None);
         assert_eq!(row.weekday_top_decile_display(), "5.0 min");
         assert_eq!(row.weekday_max_headway_display(), "30.0 min");
+    }
+
+    #[test]
+    fn weekday_display_formats_headway() {
+        let row = make_row(Some(8.0), None, None);
+        assert_eq!(row.weekday_display(), "8.0 min");
+    }
+
+    #[test]
+    fn saturday_display_formats_headway() {
+        let row = make_row(None, Some(15.0), None);
+        assert_eq!(row.saturday_display(), "15.0 min");
+    }
+
+    #[test]
+    fn sunday_display_formats_headway() {
+        let row = make_row(None, None, Some(20.0));
+        assert_eq!(row.sunday_display(), "20.0 min");
+    }
+
+    #[test]
+    fn saturday_top_decile_and_max_display() {
+        let row = make_row(None, Some(15.0), None);
+        assert_eq!(row.saturday_top_decile_display(), "10.0 min");
+        assert_eq!(row.saturday_max_headway_display(), "40.0 min");
+    }
+
+    #[test]
+    fn sunday_top_decile_and_max_display() {
+        let row = make_row(None, None, Some(20.0));
+        assert_eq!(row.sunday_top_decile_display(), "15.0 min");
+        assert_eq!(row.sunday_max_headway_display(), "50.0 min");
+    }
+
+    #[test]
+    fn weekday_badge_variant_delegates_to_headway() {
+        let row = make_row(Some(8.0), None, None);
+        assert_eq!(row.weekday_badge_variant(), "good");
+    }
+
+    #[test]
+    fn saturday_badge_variant_delegates_to_headway() {
+        let row = make_row(None, Some(15.0), None);
+        assert_eq!(row.saturday_badge_variant(), "mixed");
+    }
+
+    #[test]
+    fn sunday_badge_variant_delegates_to_headway() {
+        let row = make_row(None, None, Some(25.0));
+        assert_eq!(row.sunday_badge_variant(), "bad");
     }
 }

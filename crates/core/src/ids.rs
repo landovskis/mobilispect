@@ -164,6 +164,11 @@ mod tests {
     }
 
     #[test]
+    fn direction_id_as_i64_returns_nonzero_inner_value() {
+        assert_eq!(DirectionId(1).as_i64(), 1);
+    }
+
+    #[test]
     fn direction_id_display() {
         let id = DirectionId(1);
         assert_eq!(id.to_string(), "1");

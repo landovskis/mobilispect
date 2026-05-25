@@ -516,6 +516,13 @@ mod tests {
     }
 
     #[test]
+    fn route_class_speed_range() {
+        assert_eq!(RouteClass::Local.speed_range(), "12-18 km/h");
+        assert_eq!(RouteClass::Rapid.speed_range(), "18-25 km/h");
+        assert_eq!(RouteClass::Express.speed_range(), ">25 km/h");
+    }
+
+    #[test]
     fn route_class_css_class() {
         assert_eq!(RouteClass::Local.css_class(), "local");
         assert_eq!(RouteClass::Rapid.css_class(), "rapid");
