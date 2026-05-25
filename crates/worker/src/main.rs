@@ -5,6 +5,7 @@ use tracing_subscriber::EnvFilter;
 use mobilispect_core::config::Config;
 use mobilispect_core::db::Database;
 mod feed_ingestion;
+mod health;
 mod maintenance;
 mod pipeline;
 
@@ -71,6 +72,14 @@ async fn main() -> Result<()> {
             maintenance::retention_loop(&db_maint, &config_maint).await;
             warn!("Maintenance loop exited unexpectedly, restarting in 30s");
             tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+        }
+    });
+
+    let db_health = db.clone();
+    let health_addr = config.worker_health_bind_address.clone();
+    tokio::spawn(async move {
+        if let Err(e) = health::serve(db_health, &health_addr).await {
+            warn!("Health server failed: {e:#}");
         }
     });
 
