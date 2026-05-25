@@ -1,6 +1,7 @@
 database_url_env = "MOBILISPECT_DATABASE_URL"
 poll_interval_secs = 30
 bind_address = "0.0.0.0:3000"
+# worker_health_bind_address = "0.0.0.0:9090"
 on_time_early_threshold_secs = -60
 on_time_late_threshold_secs = 300
 retention_days = 30
