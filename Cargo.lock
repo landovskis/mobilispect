@@ -1675,6 +1675,7 @@ name = "mobilispect-worker"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "axum",
  "bytes",
  "chrono",
  "gtfs-structures",
@@ -1683,6 +1684,7 @@ dependencies = [
  "prost",
  "prost-build",
  "reqwest 0.12.28",
+ "serde_json",
  "sha2 0.10.9",
  "sqlx",
  "tokio",
