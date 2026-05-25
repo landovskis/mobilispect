@@ -19,6 +19,8 @@ WORKDIR /build
 # query metadata in .sqlx/ instead of requiring a live database connection.
 ENV SQLX_OFFLINE=true
 
+# Copy config separately from source so config changes don't invalidate the Rust build cache.
+COPY config.toml ./
 COPY . .
 
 RUN cargo build --release
@@ -36,18 +38,40 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only the compiled binary from the builder stage.
+WORKDIR /app
+
+# Copy compiled binaries.
 # NOTE: migrations/ is NOT copied here. sqlx::migrate!() is a compile-time
 # macro that embeds migration SQL directly into the binary.
 COPY --from=builder /build/target/release/mobilispect-server /usr/local/bin/mobilispect-server
 COPY --from=builder /build/target/release/mobilispect-worker /usr/local/bin/mobilispect-worker
 
-# config.toml must be available in the working directory, or set MOBILISPECT_CONFIG.
-# Secret values referenced by *_env config fields must be present in the process env.
-# On Railway, reference the Postgres plugin: postgres://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE
+# Write config.toml inline. All values here are non-secret; secrets (database URL,
+# API keys) are resolved at startup via the *_env fields from process environment variables.
+RUN printf '%s\n' \
+    'database_url_env = "MOBILISPECT_DATABASE_URL"' \
+    'poll_interval_secs = 30' \
+    'bind_address = "0.0.0.0:3000"' \
+    'on_time_early_threshold_secs = -60' \
+    'on_time_late_threshold_secs = 300' \
+    'retention_days = 30' \
+    '' \
+    '[region]' \
+    'name = "Montreal"' \
+    'timezone = "America/Toronto"' \
+    '' \
+    '[[region.agencies]]' \
+    'id = 0' \
+    'name = "STM"' \
+    'gtfs_static_url = "https://www.stm.info/sites/default/files/gtfs/gtfs_stm.zip"' \
+    'gtfs_rt_vehicle_positions_url = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/vehiclePositions"' \
+    'gtfs_rt_trip_updates_url = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/tripUpdates"' \
+    'gtfs_api_key_env = "STM_GTFS_RT_API_KEY"' \
+    'agency_utc_offset = "-04:00"' \
+    > /app/config.toml
 
 # The application listens on port 3000 by default (bind_address in config.toml).
 EXPOSE 3000
 
-# Default to server; override with: docker run --entrypoint /usr/local/bin/mobilispect-worker <image>
-ENTRYPOINT ["/usr/local/bin/mobilispect-server"]
+# Default to server. Railway overrides CMD per service via the startCommand setting.
+CMD ["/usr/local/bin/mobilispect-server"]
