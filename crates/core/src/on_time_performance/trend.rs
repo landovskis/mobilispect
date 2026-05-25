@@ -5,7 +5,7 @@ use crate::db::Database;
 use crate::ids::{AgencyId, RouteId};
 
 /// One day of combined on-time and speed data for a route.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, sqlx::FromRow)]
 pub struct DailyTrendPoint {
     pub service_date: String,
     pub on_time_pct: Option<f64>,
@@ -84,7 +84,7 @@ pub async fn route_trend(
     };
 
     // Daily points: LEFT JOIN speed (averaged across directions) onto on-time data.
-    let points: Vec<(String, Option<f64>, Option<f64>, Option<f64>)> = sqlx::query_as(
+    let trend_days: Vec<DailyTrendPoint> = sqlx::query_as(
         "SELECT
            rd.service_date,
            rd.on_time_pct,
@@ -104,21 +104,9 @@ pub async fn route_trend(
     .fetch_all(&db.pool)
     .await?;
 
-    if points.is_empty() {
+    if trend_days.is_empty() {
         return Ok(None);
     }
-
-    let trend_days = points
-        .into_iter()
-        .map(
-            |(service_date, on_time_pct, avg_delay_secs, actual_speed_mps)| DailyTrendPoint {
-                service_date,
-                on_time_pct,
-                avg_delay_secs,
-                actual_speed_mps,
-            },
-        )
-        .collect();
 
     Ok(Some(RouteTrend {
         route_id: route_id.clone(),

@@ -11,6 +11,12 @@ use mobilispect_core::config::AgencyConfig;
 use mobilispect_core::db::Database;
 use mobilispect_core::ids::AgencyId;
 
+type TripRow = (String, String, String, String, Option<i64>, Option<String>);
+type PatternKey = (String, i64, String);
+type PatternVal = (String, Vec<String>, Option<String>);
+#[cfg(test)]
+type CalendarRow = (String, bool, bool, bool, bool, bool, bool, bool);
+
 /// Rows to bundle per INSERT statement.
 const CHUNK: usize = 500;
 
@@ -24,7 +30,7 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
     if let Some(last) = last_download {
         let last_date = chrono::NaiveDate::parse_from_str(&last, "%Y-%m-%d").ok();
         let today = Utc::now().date_naive();
-        if let Some(date) = last_date.filter(|d| *d >= today) {
+        if let Some(_date) = last_date.filter(|d| *d >= today) {
             info!("Static GTFS already downloaded today, skipping download");
             return Ok(());
         }
@@ -179,7 +185,7 @@ async fn load_routes(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Resu
 }
 
 async fn load_trips(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
-    let rows: Vec<(String, String, String, String, Option<i64>, Option<String>)> = gtfs
+    let rows: Vec<TripRow> = gtfs
         .trips
         .iter()
         .map(|(id, t)| {
@@ -408,6 +414,179 @@ pub(crate) async fn load_calendar_from_dates(
         "Synthesized {} calendar entries from calendar_dates",
         synthesized
     );
+    Ok(())
+}
+
+/// Compute a deterministic variant_id for a given stop sequence.
+/// Input: "{stop1_id},{stop2_id},..." — route and direction are intentionally
+/// excluded so the same physical pattern gets the same ID regardless of
+/// how the agency numbers or labels the route.
+fn variant_id_for(stop_ids: &[String]) -> String {
+    let input = stop_ids.join(",");
+    let digest = Sha256::digest(input.as_bytes());
+    hex::encode(&digest[..16])
+}
+
+/// Build and store route variants from already-loaded trips + scheduled_stops.
+/// Groups trips by their ordered stop sequence, assigns a deterministic variant_id,
+/// marks the variant with the most trips as primary, and links trips to their variant.
+pub(crate) async fn load_variants(
+    tx: &mut Tx<'_>,
+    agency_id: &AgencyId,
+    gtfs: &Gtfs,
+) -> Result<()> {
+    // Collect stop sequences per trip in memory (already loaded into DB, but gtfs struct is handy).
+    // key: (route_id, direction_id, stop_ids_csv) → (variant_id, trip_ids, headsign)
+    let mut pattern_map: HashMap<PatternKey, PatternVal> = HashMap::new();
+
+    for (trip_id, trip) in &gtfs.trips {
+        let direction_id = trip
+            .direction_id
+            .as_ref()
+            .map(direction_to_int)
+            .unwrap_or(0);
+
+        let stop_ids: Vec<String> = trip
+            .stop_times
+            .iter()
+            .map(|st| st.stop.id.clone())
+            .collect();
+        // stop_times from gtfs-structures are already ordered by stop_sequence
+        let stop_ids_csv = stop_ids.join(",");
+
+        let key = (trip.route_id.clone(), direction_id, stop_ids_csv.clone());
+        let vid = variant_id_for(&stop_ids);
+
+        let entry = pattern_map.entry(key).or_insert_with(|| {
+            let headsign = trip.trip_headsign.clone();
+            (vid.clone(), Vec::new(), headsign)
+        });
+        entry.1.push(trip_id.clone());
+    }
+
+    // Determine is_primary per (route_id, direction_id): variant with highest trip_count.
+    // Build: (route_id, direction_id) → max trip_count seen so far
+    let mut primary_map: HashMap<(String, i64), (usize, String)> = HashMap::new();
+    for ((route_id, direction_id, _), (vid, trip_ids, _)) in &pattern_map {
+        let count = trip_ids.len();
+        let entry = primary_map
+            .entry((route_id.clone(), *direction_id))
+            .or_insert((0, vid.clone()));
+        if count > entry.0 || (count == entry.0 && vid < &entry.1) {
+            *entry = (count, vid.clone());
+        }
+    }
+
+    for ((route_id, direction_id, stop_ids_csv), (vid, trip_ids, headsign)) in &pattern_map {
+        let stop_ids: Vec<&str> = stop_ids_csv.split(',').collect();
+        let stop_count = stop_ids.len() as i64;
+        let trip_count = trip_ids.len() as i64;
+        let is_primary = primary_map
+            .get(&(route_id.clone(), *direction_id))
+            .map(|(_, primary_vid)| primary_vid == vid)
+            .unwrap_or(false);
+
+        sqlx::query(
+            "INSERT INTO route_variants
+             (agency_id, variant_id, route_id, direction_id, headsign, stop_count, trip_count, is_primary)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (agency_id, route_id, direction_id, variant_id) DO UPDATE SET
+               trip_count = EXCLUDED.trip_count,
+               is_primary = EXCLUDED.is_primary,
+               headsign   = EXCLUDED.headsign",
+        )
+        .bind(agency_id.as_str())
+        .bind(vid)
+        .bind(route_id)
+        .bind(direction_id)
+        .bind(headsign.as_deref())
+        .bind(stop_count)
+        .bind(trip_count)
+        .bind(is_primary)
+        .execute(&mut **tx)
+        .await?;
+
+        for (seq, sid) in stop_ids.iter().enumerate() {
+            sqlx::query(
+                "INSERT INTO route_variant_stops (agency_id, variant_id, stop_sequence, stop_id)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (agency_id, variant_id, stop_sequence) DO NOTHING",
+            )
+            .bind(agency_id.as_str())
+            .bind(vid)
+            .bind(seq as i64)
+            .bind(sid)
+            .execute(&mut **tx)
+            .await?;
+        }
+
+        for trip_id in trip_ids {
+            sqlx::query(
+                "UPDATE trips SET variant_id = $1
+                 WHERE agency_id = $2 AND trip_id = $3",
+            )
+            .bind(vid)
+            .bind(agency_id.as_str())
+            .bind(trip_id)
+            .execute(&mut **tx)
+            .await?;
+        }
+    }
+
+    info!(
+        "Loaded {} route variants for agency {}",
+        pattern_map.len(),
+        agency_id
+    );
+    Ok(())
+}
+
+async fn get_stored_version(db: &Database, agency_id: &AgencyId) -> Result<Option<String>> {
+    let key = format!("gtfs_static_version_{agency_id}");
+    let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
+        .fetch_optional(&db.pool)
+        .await?;
+    Ok(row.map(|r| r.value))
+}
+
+async fn get_last_download(db: &Database, agency_id: &AgencyId) -> Result<Option<String>> {
+    let key = format!("gtfs_static_last_download_{agency_id}");
+    let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
+        .fetch_optional(&db.pool)
+        .await?;
+    Ok(row.map(|r| r.value))
+}
+
+async fn set_stored_version(db: &Database, agency_id: &AgencyId, version: &str) -> Result<()> {
+    let key = format!("gtfs_static_version_{agency_id}");
+    let now = chrono::Utc::now().to_rfc3339();
+    sqlx::query!(
+        "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
+        key,
+        version,
+        now,
+    )
+    .execute(&db.pool)
+    .await?;
+    set_last_download(db, agency_id).await?;
+    Ok(())
+}
+
+async fn set_last_download(db: &Database, agency_id: &AgencyId) -> Result<()> {
+    let key = format!("gtfs_static_last_download_{agency_id}");
+    let now = chrono::Utc::now();
+    let today = now.date_naive().format("%Y-%m-%d").to_string();
+    let now = now.to_rfc3339();
+    sqlx::query!(
+        "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
+        key,
+        today,
+        now,
+    )
+    .execute(&db.pool)
+    .await?;
     Ok(())
 }
 
@@ -752,7 +931,7 @@ mod tests {
             .unwrap();
         tx.commit().await.unwrap();
 
-        let rows: Vec<(String, bool, bool, bool, bool, bool, bool, bool)> = sqlx::query_as(
+        let rows: Vec<CalendarRow> = sqlx::query_as(
             "SELECT service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday
              FROM calendar WHERE agency_id = 'stm' ORDER BY service_id",
         )
@@ -838,178 +1017,4 @@ mod tests {
         );
         assert!(row.1, "monday should still be true");
     }
-}
-
-/// Compute a deterministic variant_id for a given stop sequence.
-/// Input: "{stop1_id},{stop2_id},..." — route and direction are intentionally
-/// excluded so the same physical pattern gets the same ID regardless of
-/// how the agency numbers or labels the route.
-fn variant_id_for(stop_ids: &[String]) -> String {
-    let input = stop_ids.join(",");
-    let digest = Sha256::digest(input.as_bytes());
-    hex::encode(&digest[..16])
-}
-
-/// Build and store route variants from already-loaded trips + scheduled_stops.
-/// Groups trips by their ordered stop sequence, assigns a deterministic variant_id,
-/// marks the variant with the most trips as primary, and links trips to their variant.
-pub(crate) async fn load_variants(
-    tx: &mut Tx<'_>,
-    agency_id: &AgencyId,
-    gtfs: &Gtfs,
-) -> Result<()> {
-    // Collect stop sequences per trip in memory (already loaded into DB, but gtfs struct is handy).
-    // key: (route_id, direction_id, stop_ids_csv) → (variant_id, trip_ids, headsign)
-    let mut pattern_map: HashMap<(String, i64, String), (String, Vec<String>, Option<String>)> =
-        HashMap::new();
-
-    for (trip_id, trip) in &gtfs.trips {
-        let direction_id = trip
-            .direction_id
-            .as_ref()
-            .map(direction_to_int)
-            .unwrap_or(0);
-
-        let stop_ids: Vec<String> = trip
-            .stop_times
-            .iter()
-            .map(|st| st.stop.id.clone())
-            .collect();
-        // stop_times from gtfs-structures are already ordered by stop_sequence
-        let stop_ids_csv = stop_ids.join(",");
-
-        let key = (trip.route_id.clone(), direction_id, stop_ids_csv.clone());
-        let vid = variant_id_for(&stop_ids);
-
-        let entry = pattern_map.entry(key).or_insert_with(|| {
-            let headsign = trip.trip_headsign.clone();
-            (vid.clone(), Vec::new(), headsign)
-        });
-        entry.1.push(trip_id.clone());
-    }
-
-    // Determine is_primary per (route_id, direction_id): variant with highest trip_count.
-    // Build: (route_id, direction_id) → max trip_count seen so far
-    let mut primary_map: HashMap<(String, i64), (usize, String)> = HashMap::new();
-    for ((route_id, direction_id, _), (vid, trip_ids, _)) in &pattern_map {
-        let count = trip_ids.len();
-        let entry = primary_map
-            .entry((route_id.clone(), *direction_id))
-            .or_insert((0, vid.clone()));
-        if count > entry.0 || (count == entry.0 && vid < &entry.1) {
-            *entry = (count, vid.clone());
-        }
-    }
-
-    for ((route_id, direction_id, stop_ids_csv), (vid, trip_ids, headsign)) in &pattern_map {
-        let stop_ids: Vec<&str> = stop_ids_csv.split(',').collect();
-        let stop_count = stop_ids.len() as i64;
-        let trip_count = trip_ids.len() as i64;
-        let is_primary = primary_map
-            .get(&(route_id.clone(), *direction_id))
-            .map(|(_, primary_vid)| primary_vid == vid)
-            .unwrap_or(false);
-
-        sqlx::query(
-            "INSERT INTO route_variants
-             (agency_id, variant_id, route_id, direction_id, headsign, stop_count, trip_count, is_primary)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             ON CONFLICT (agency_id, route_id, direction_id, variant_id) DO UPDATE SET
-               trip_count = EXCLUDED.trip_count,
-               is_primary = EXCLUDED.is_primary,
-               headsign   = EXCLUDED.headsign",
-        )
-        .bind(agency_id.as_str())
-        .bind(vid)
-        .bind(route_id)
-        .bind(direction_id)
-        .bind(headsign.as_deref())
-        .bind(stop_count)
-        .bind(trip_count)
-        .bind(is_primary)
-        .execute(&mut **tx)
-        .await?;
-
-        for (seq, sid) in stop_ids.iter().enumerate() {
-            sqlx::query(
-                "INSERT INTO route_variant_stops (agency_id, variant_id, stop_sequence, stop_id)
-                 VALUES ($1, $2, $3, $4)
-                 ON CONFLICT (agency_id, variant_id, stop_sequence) DO NOTHING",
-            )
-            .bind(agency_id.as_str())
-            .bind(vid)
-            .bind(seq as i64)
-            .bind(sid)
-            .execute(&mut **tx)
-            .await?;
-        }
-
-        for trip_id in trip_ids {
-            sqlx::query(
-                "UPDATE trips SET variant_id = $1
-                 WHERE agency_id = $2 AND trip_id = $3",
-            )
-            .bind(vid)
-            .bind(agency_id.as_str())
-            .bind(trip_id)
-            .execute(&mut **tx)
-            .await?;
-        }
-    }
-
-    info!(
-        "Loaded {} route variants for agency {}",
-        pattern_map.len(),
-        agency_id
-    );
-    Ok(())
-}
-
-async fn get_stored_version(db: &Database, agency_id: &AgencyId) -> Result<Option<String>> {
-    let key = format!("gtfs_static_version_{agency_id}");
-    let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
-        .fetch_optional(&db.pool)
-        .await?;
-    Ok(row.map(|r| r.value))
-}
-
-async fn get_last_download(db: &Database, agency_id: &AgencyId) -> Result<Option<String>> {
-    let key = format!("gtfs_static_last_download_{agency_id}");
-    let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
-        .fetch_optional(&db.pool)
-        .await?;
-    Ok(row.map(|r| r.value))
-}
-
-async fn set_stored_version(db: &Database, agency_id: &AgencyId, version: &str) -> Result<()> {
-    let key = format!("gtfs_static_version_{agency_id}");
-    let now = chrono::Utc::now().to_rfc3339();
-    sqlx::query!(
-        "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
-         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
-        key,
-        version,
-        now,
-    )
-    .execute(&db.pool)
-    .await?;
-    set_last_download(db, agency_id).await?;
-    Ok(())
-}
-
-async fn set_last_download(db: &Database, agency_id: &AgencyId) -> Result<()> {
-    let key = format!("gtfs_static_last_download_{agency_id}");
-    let now = chrono::Utc::now();
-    let today = now.date_naive().format("%Y-%m-%d").to_string();
-    let now = now.to_rfc3339();
-    sqlx::query!(
-        "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
-         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
-        key,
-        today,
-        now,
-    )
-    .execute(&db.pool)
-    .await?;
-    Ok(())
 }
