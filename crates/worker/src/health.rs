@@ -2,13 +2,13 @@ use anyhow::Result;
 use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::get};
 use mobilispect_core::db::Database;
 
-pub fn router(db: Database) -> Router {
+pub(crate) fn router(db: Database) -> Router {
     Router::new()
         .route("/health", get(health_check))
         .with_state(db)
 }
 
-pub async fn serve(db: Database, bind_address: &str) -> Result<()> {
+pub(crate) async fn serve(db: Database, bind_address: &str) -> Result<()> {
     let listener = tokio::net::TcpListener::bind(bind_address).await?;
     axum::serve(listener, router(db)).await?;
     Ok(())
@@ -38,7 +38,7 @@ mod tests {
 
         let db = td.db.clone();
         tokio::spawn(async move {
-            axum::serve(listener, router(db)).await.unwrap();
+            let _ = axum::serve(listener, router(db)).await;
         });
 
         let response = reqwest::get(format!("http://{addr}/health")).await.unwrap();
