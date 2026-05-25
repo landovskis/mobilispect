@@ -73,14 +73,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config libssl-dev protobuf-compiler
       - uses: taiki-e/install-action@v2
         with:
-          tool: cargo-mutants
-        # If taiki-e/install-action fails to find a cargo-mutants binary,
-        # replace the two lines above with:
-        #   run: cargo install cargo-mutants --locked
+          tool: cargo-mutants,nextest
+        # If taiki-e/install-action fails to find a binary,
+        # replace with: cargo install cargo-mutants --locked && cargo install cargo-nextest --locked
       - name: Compute PR diff
         run: git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
       - name: Run mutation tests
-        run: cargo mutants --in-diff /tmp/pr.diff --timeout 120
+        run: cargo mutants --in-diff /tmp/pr.diff --timeout 300 --jobs 1 --test-tool nextest -- --profile ci
       - name: Upload mutants output
         if: always()
         uses: actions/upload-artifact@v4
