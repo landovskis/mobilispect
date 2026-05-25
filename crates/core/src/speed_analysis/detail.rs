@@ -388,4 +388,32 @@ mod tests {
         };
         assert_eq!(d.direction_badge_label(), "7 trips");
     }
+
+    fn make_direction(is_primary: bool) -> RouteSpeedDetailDirection {
+        RouteSpeedDetailDirection {
+            is_primary,
+            trip_count: 5,
+            avg_spacing_m: 400.0,
+            variant_id: VariantId::from(""),
+            direction_name: String::new(),
+            first_stop_name: String::new(),
+            spacings: vec![],
+            weekday_chart_id: String::new(),
+            saturday_chart_id: String::new(),
+            sunday_chart_id: String::new(),
+            weekday_json: String::new(),
+            saturday_json: String::new(),
+            sunday_json: String::new(),
+        }
+    }
+
+    #[test]
+    fn direction_badge_variant_primary_is_oxford() {
+        assert_eq!(make_direction(true).direction_badge_variant(), "oxford");
+    }
+
+    #[test]
+    fn direction_badge_variant_non_primary_is_neutral() {
+        assert_eq!(make_direction(false).direction_badge_variant(), "neutral");
+    }
 }
