@@ -483,6 +483,7 @@ mod e2e_tests {
             on_time_early_threshold_secs: -60,
             on_time_late_threshold_secs: 300,
             retention_days: 30,
+            worker_health_bind_address: "0.0.0.0:9090".to_string(),
         }
     }
 

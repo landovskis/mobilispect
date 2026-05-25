@@ -26,6 +26,7 @@ pub struct Config {
     pub on_time_late_threshold_secs: i64,
     /// Number of days to retain rows in stop_time_events and vehicle_positions
     pub retention_days: u32,
+    pub worker_health_bind_address: String,
 }
 
 #[derive(Debug, Clone)]
@@ -97,6 +98,9 @@ impl Config {
             on_time_early_threshold_secs: file.on_time_early_threshold_secs.unwrap_or(-60),
             on_time_late_threshold_secs: file.on_time_late_threshold_secs.unwrap_or(300),
             retention_days: file.retention_days.unwrap_or(30),
+            worker_health_bind_address: file
+                .worker_health_bind_address
+                .unwrap_or_else(|| "0.0.0.0:9090".to_string()),
         })
     }
 }
@@ -111,6 +115,7 @@ struct TomlConfig {
     on_time_early_threshold_secs: Option<i64>,
     on_time_late_threshold_secs: Option<i64>,
     retention_days: Option<u32>,
+    worker_health_bind_address: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -291,6 +296,7 @@ gtfs_static_url = "https://example.com/rtl.zip"
         assert_eq!(config.on_time_early_threshold_secs, -60);
         assert_eq!(config.on_time_late_threshold_secs, 300);
         assert_eq!(config.retention_days, 30);
+        assert_eq!(config.worker_health_bind_address, "0.0.0.0:9090");
         assert_eq!(config.region.name, "Montreal");
         assert_eq!(config.region.timezone, "America/Toronto");
         assert_eq!(config.region.agencies.len(), 1);
