@@ -158,8 +158,8 @@ async fn load_routes(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Resu
             (
                 agency_id.0.clone(),
                 id.clone(),
-                r.short_name.clone(),
-                r.long_name.clone(),
+                r.short_name.clone().unwrap_or_default(),
+                r.long_name.clone().unwrap_or_default(),
                 route_type_to_int(&r.route_type),
             )
         })
@@ -230,9 +230,13 @@ async fn load_stops(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Resul
     let mut rows: Vec<(String, String, String, f64, f64)> = Vec::new();
     for (id, stop) in &gtfs.stops {
         match (stop.latitude, stop.longitude) {
-            (Some(lat), Some(lon)) => {
-                rows.push((agency_id.0.clone(), id.clone(), stop.name.clone(), lat, lon))
-            }
+            (Some(lat), Some(lon)) => rows.push((
+                agency_id.0.clone(),
+                id.clone(),
+                stop.name.clone().unwrap_or_default(),
+                lat,
+                lon,
+            )),
             _ => warn!("Stop {} missing coordinates, skipping", id),
         }
     }
@@ -603,7 +607,7 @@ mod tests {
     fn make_stop(id: &str) -> std::sync::Arc<gtfs_structures::Stop> {
         std::sync::Arc::new(gtfs_structures::Stop {
             id: id.to_string(),
-            name: id.to_string(),
+            name: Some(id.to_string()),
             latitude: Some(45.0),
             longitude: Some(-73.0),
             ..Default::default()
@@ -616,7 +620,7 @@ mod tests {
     ) -> gtfs_structures::StopTime {
         gtfs_structures::StopTime {
             stop,
-            stop_sequence: seq as u16,
+            stop_sequence: seq,
             arrival_time: Some(seq * 60),
             departure_time: Some(seq * 60),
             ..Default::default()
@@ -626,8 +630,8 @@ mod tests {
     fn make_route(id: &str) -> gtfs_structures::Route {
         gtfs_structures::Route {
             id: id.to_string(),
-            short_name: id.to_string(),
-            long_name: id.to_string(),
+            short_name: Some(id.to_string()),
+            long_name: Some(id.to_string()),
             route_type: gtfs_structures::RouteType::Bus,
             ..Default::default()
         }
