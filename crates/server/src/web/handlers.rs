@@ -449,6 +449,21 @@ pub async fn frequency_page(
     }
 }
 
+pub async fn health_check(State(state): State<AppState>) -> axum::response::Response {
+    use axum::Json;
+    use axum::http::StatusCode;
+    use axum::response::IntoResponse;
+
+    match mobilispect_core::health::db_ping(&state.db.pool).await {
+        Ok(()) => (StatusCode::OK, Json(serde_json::json!({"status": "ok"}))).into_response(),
+        Err(e) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({"status": "error", "message": format!("db ping failed: {e}")})),
+        )
+            .into_response(),
+    }
+}
+
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
@@ -1386,5 +1401,32 @@ mod e2e_tests {
             html.contains("09:00-09:50"),
             "saturday service span should be 09:00-09:50"
         );
+    }
+
+    #[tokio::test]
+    async fn health_check_returns_200_with_db_up() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+        };
+        let app = build_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["status"], "ok");
     }
 }
