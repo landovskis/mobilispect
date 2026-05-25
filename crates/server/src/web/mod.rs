@@ -28,6 +28,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/routes/:agency_id/:route_id", get(handlers::route_detail))
         .route("/api/routes", get(handlers::api_routes))
         .route("/api/routes/speed", get(handlers::api_route_speed))
+        .route("/health", get(handlers::health_check))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

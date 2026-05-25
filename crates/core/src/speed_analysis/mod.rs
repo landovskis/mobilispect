@@ -6,6 +6,9 @@ use crate::config::AgencyConfig;
 use crate::db::Database;
 use crate::ids::{AgencyId, DirectionId, RouteId, VariantId};
 
+type SpeedPoint = (String, f64, Option<f64>);
+type DayBuckets = (Vec<SpeedPoint>, Vec<SpeedPoint>, Vec<SpeedPoint>);
+
 pub mod card;
 pub mod detail;
 pub use card::{
@@ -288,14 +291,8 @@ fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> 
     use chrono::Datelike;
     use std::str::FromStr;
 
-    let mut map: std::collections::HashMap<
-        DirectionId,
-        (
-            Vec<(String, f64, Option<f64>)>,
-            Vec<(String, f64, Option<f64>)>,
-            Vec<(String, f64, Option<f64>)>,
-        ),
-    > = std::collections::HashMap::new();
+    let mut map: std::collections::HashMap<DirectionId, DayBuckets> =
+        std::collections::HashMap::new();
 
     for row in rows {
         // num_days_from_sunday(): 0 = Sunday, 1 = Monday, …, 6 = Saturday
@@ -353,14 +350,8 @@ fn build_variant_trends(rows: Vec<SpeedTrendVariantRow>) -> Vec<VariantSpeedTren
     use chrono::Datelike;
     use std::str::FromStr;
 
-    let mut map: std::collections::HashMap<
-        VariantId,
-        (
-            Vec<(String, f64, Option<f64>)>,
-            Vec<(String, f64, Option<f64>)>,
-            Vec<(String, f64, Option<f64>)>,
-        ),
-    > = std::collections::HashMap::new();
+    let mut map: std::collections::HashMap<VariantId, DayBuckets> =
+        std::collections::HashMap::new();
 
     for row in rows {
         let dow = chrono::NaiveDate::from_str(&row.service_date)
