@@ -59,3 +59,32 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+  mutants:
+    name: Mutation Testing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install native dependencies
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pkg-config libssl-dev protobuf-compiler
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants
+        # If taiki-e/install-action fails to find a cargo-mutants binary,
+        # replace the two lines above with:
+        #   run: cargo install cargo-mutants --locked
+      - name: Compute PR diff
+        run: git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+      - name: Run mutation tests
+        run: cargo mutants --in-diff /tmp/pr.diff --timeout 120
+      - name: Upload mutants output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-out
+          path: mutants.out/
+          retention-days: 7
