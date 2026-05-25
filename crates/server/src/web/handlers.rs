@@ -6,7 +6,6 @@ use axum::{
     response::{Html, IntoResponse},
 };
 use serde::Deserialize;
-use serde_json;
 
 use crate::web::AppState;
 use mobilispect_core::ids::{AgencyId, RouteId};
