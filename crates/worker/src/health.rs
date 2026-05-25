@@ -1,6 +1,7 @@
 use anyhow::Result;
 use axum::{Json, Router, extract::State, http::StatusCode, response::IntoResponse, routing::get};
 use mobilispect_core::db::Database;
+use tracing::info;
 
 pub(crate) fn router(db: Database) -> Router {
     Router::new()
@@ -10,6 +11,7 @@ pub(crate) fn router(db: Database) -> Router {
 
 pub(crate) async fn serve(db: Database, bind_address: &str) -> Result<()> {
     let listener = tokio::net::TcpListener::bind(bind_address).await?;
+    info!("Health server listening on {bind_address}");
     axum::serve(listener, router(db)).await?;
     Ok(())
 }

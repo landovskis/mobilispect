@@ -2,7 +2,11 @@ use anyhow::Result;
 use sqlx::PgPool;
 
 pub async fn db_ping(pool: &PgPool) -> Result<()> {
-    pool.acquire().await?;
+    // Runtime query intentional: SELECT 1 is a constant, parameter-free probe with
+    // no type-safety concerns, and compile-time checking would require updating the
+    // sqlx offline cache. pool.acquire() is insufficient — it may return a cached
+    // connection without a real round-trip.
+    sqlx::query("SELECT 1").execute(pool).await?;
     Ok(())
 }
 
