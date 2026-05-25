@@ -78,7 +78,16 @@ jobs:
         # replace with: cargo install cargo-mutants --locked && cargo install cargo-nextest --locked
       - name: Compute PR diff
         run: git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+      - name: Check for Rust changes
+        id: rust_changes
+        run: |
+          if git diff origin/${{ github.base_ref }}...HEAD --name-only | grep -q '\.rs$'; then
+            echo "has_rust=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_rust=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run mutation tests
+        if: steps.rust_changes.outputs.has_rust == 'true'
         run: cargo mutants --in-diff /tmp/pr.diff --timeout 300 --jobs 1 --test-tool nextest -- --profile ci
       - name: Upload mutants output
         if: always()
