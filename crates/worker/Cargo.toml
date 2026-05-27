@@ -30,3 +30,7 @@ tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
 prost-build = "0.13"
+
+[package.metadata.cargo-mutants]
+# main() is the entry point and cannot be unit tested.
+skip_source_files = ["src/main.rs"]

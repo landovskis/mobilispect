@@ -78,9 +78,7 @@ pub async fn retention_loop(db: &Database, config: &Config) {
 
         // Compute metrics for yesterday (completed service day) and today (partial data so far).
         // Yesterday is always fully populated regardless of when the worker restarts.
-        let today = Utc::now().date_naive();
-        let yesterday = today - ChronoDuration::days(1);
-        for date in [yesterday, today] {
+        for date in daily_metrics_window(Utc::now().date_naive()) {
             for agency in &config.agencies {
                 match compute_route_daily(db, config, agency, date).await {
                     Ok(()) => info!(agency = %agency.id, %date, "Computed daily on-time metrics"),
@@ -96,5 +94,164 @@ pub async fn retention_loop(db: &Database, config: &Config) {
                 }
             }
         }
+    }
+}
+
+/// Returns the two UTC dates to compute daily metrics for on each maintenance tick:
+/// `[yesterday, today]`. Yesterday is the most recently completed service day;
+/// today captures partial data accumulated since midnight UTC.
+fn daily_metrics_window(today: chrono::NaiveDate) -> [chrono::NaiveDate; 2] {
+    let yesterday = today - ChronoDuration::days(1);
+    [yesterday, today]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDate;
+    use mobilispect_core::config::AgencyConfig;
+    use mobilispect_core::db::test_utils;
+
+    fn test_config() -> Config {
+        use mobilispect_core::config::RegionConfig;
+        let agency = AgencyConfig {
+            id: 0,
+            name: "Test Agency".to_string(),
+            gtfs_static_url: String::new(),
+            gtfs_rt_vehicle_positions_url: None,
+            gtfs_rt_trip_updates_url: None,
+            gtfs_api_key: None,
+            agency_utc_offset: "-04:00".to_string(),
+        };
+        Config {
+            agencies: vec![agency.clone()],
+            region: RegionConfig {
+                name: "Test Region".to_string(),
+                timezone: "America/Montreal".to_string(),
+                agencies: vec![agency],
+            },
+            database_url: String::new(),
+            poll_interval_secs: 30,
+            bind_address: "0.0.0.0:3000".to_string(),
+            on_time_early_threshold_secs: 60,
+            on_time_late_threshold_secs: 300,
+            retention_days: 30,
+            worker_health_bind_address: "0.0.0.0:8080".to_string(),
+        }
+    }
+
+    /// Insert minimal static GTFS + one trip's stop time events for the given `observed_at` timestamp.
+    async fn insert_speed_data(pool: &sqlx::PgPool, observed_at: &str) {
+        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+            .execute(pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
+            .execute(pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
+            .execute(pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
+            .execute(pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+        // Two stop time events for the trip with distinct arrival_time_unix values.
+        let t1: i64 = 1_767_225_600;
+        let t2: i64 = t1 + 900;
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
+             VALUES ('0', $1, 'T1', 'S1', 1, $2)",
+        )
+        .bind(observed_at)
+        .bind(t1)
+        .execute(pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stop_time_events
+             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
+             VALUES ('0', $1, 'T1', 'S2', 2, $2)",
+        )
+        .bind(observed_at)
+        .bind(t2)
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    #[test]
+    fn daily_metrics_window_returns_yesterday_and_today() {
+        let today = NaiveDate::from_ymd_opt(2026, 5, 27).unwrap();
+        let [yesterday, window_today] = daily_metrics_window(today);
+        assert_eq!(yesterday, NaiveDate::from_ymd_opt(2026, 5, 26).unwrap());
+        assert_eq!(window_today, today);
+        assert!(yesterday < window_today, "yesterday must be before today");
+    }
+
+    #[tokio::test]
+    async fn backfill_daily_metrics_populates_route_speed_daily_for_past_dates() {
+        let td = test_utils::setup().await;
+        let yesterday = Utc::now().date_naive() - ChronoDuration::days(1);
+        let observed_at = format!("{}T12:00:00Z", yesterday);
+        insert_speed_data(&td.db.pool, &observed_at).await;
+
+        backfill_daily_metrics(&td.db, &test_config(), 1).await;
+
+        let (count,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM route_speed_daily WHERE route_id = 'R1' AND service_date = $1",
+        )
+        .bind(yesterday.to_string())
+        .fetch_one(&td.db.pool)
+        .await
+        .unwrap();
+        assert!(
+            count > 0,
+            "backfill must populate route_speed_daily for yesterday"
+        );
+    }
+
+    #[tokio::test]
+    async fn retention_loop_computes_daily_speed_for_yesterday_on_first_tick() {
+        let td = test_utils::setup().await;
+        let yesterday = Utc::now().date_naive() - ChronoDuration::days(1);
+        let observed_at = format!("{}T12:00:00Z", yesterday);
+        insert_speed_data(&td.db.pool, &observed_at).await;
+
+        let db_clone = td.db.clone();
+        let config = test_config();
+        // retention_loop fires its first tick immediately; spawn and let it run.
+        let handle = tokio::spawn(async move {
+            retention_loop(&db_clone, &config).await;
+        });
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        handle.abort();
+
+        let (count,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM route_speed_daily WHERE route_id = 'R1' AND service_date = $1",
+        )
+        .bind(yesterday.to_string())
+        .fetch_one(&td.db.pool)
+        .await
+        .unwrap();
+        assert!(
+            count > 0,
+            "retention_loop must compute route_speed_daily for yesterday on first tick"
+        );
     }
 }
