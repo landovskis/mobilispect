@@ -53,6 +53,11 @@ async fn main() -> Result<()> {
         }
     }
 
+    // Backfill the last 7 days of daily metrics on startup to recover from any gaps
+    // caused by restarts or deployments that ran at the start of the UTC day before
+    // any service data had accumulated.
+    maintenance::backfill_daily_metrics(&db, &config, 7).await;
+
     for agency in loaded {
         let db_rt = db.clone();
         let poll_interval = config.poll_interval_secs;

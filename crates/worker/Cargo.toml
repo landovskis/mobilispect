@@ -30,3 +30,7 @@ tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
 prost-build = "0.13"
+
+[package.metadata.cargo-mutants]
+# main() is the binary entry point and cannot be unit tested.
+exclude_re = ["crates/worker/src/main\\.rs"]
