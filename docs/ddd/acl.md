@@ -51,6 +51,26 @@ Fields are extracted as plain Rust primitives before any DB write:
 
 No protobuf types leak past `realtime.rs`. The domain `AgencyId` is passed in from the caller; it is the only domain newtype used inside this file.
 
+## Transitland API
+
+Translation happens in `crates/worker/src/transitland/`. The Transitland REST API is called
+during static feed ingest to resolve GTFS-local IDs to canonical Onestop IDs.
+
+**Rule:** No `reqwest` calls to Transitland may appear in `crates/core/` or `crates/server/`.
+
+Translations:
+- `gtfs_agency_id: String` → `AgencyId` (operator Onestop ID, `o-` prefix)
+- `gtfs_route_id: String` → `RouteId` (route Onestop ID, `r-` prefix)
+- `gtfs_stop_id: String` → `StopId` or `StationId` (stop Onestop ID, `s-` prefix; split by `location_type`)
+
+If no Transitland match exists for an entity, it is skipped. All dependent downstream
+entities (routes of unresolved agencies, trips of unresolved routes, etc.) are also skipped.
+
+Junction tables (`feed_agency_ids`, `feed_route_ids`, `feed_stop_ids`) are the persisted
+translation boundary — they map feed-local GTFS IDs to canonical Onestop IDs.
+
+---
+
 ## Adding a New External Source
 
 If a future feature adds a new external data source (e.g., a cycling network feed):
