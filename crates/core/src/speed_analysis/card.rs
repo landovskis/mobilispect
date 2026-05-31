@@ -1,11 +1,11 @@
-use crate::ids::{AgencyId, RouteId};
+use crate::ids::{FeedId, RouteId};
 use crate::speed_analysis::RouteSpeedDayType;
 use std::collections::HashMap;
 
 pub struct RouteSpeedCard {
     pub idx: usize,
     pub agency_name: String,
-    pub agency_id: AgencyId,
+    pub feed_id: FeedId,
     pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
@@ -158,12 +158,12 @@ pub fn build_speed_cards(
     agency_names: &HashMap<String, String>,
 ) -> Vec<RouteSpeedCard> {
     let mut cards: Vec<RouteSpeedCard> = Vec::new();
-    for route_rows in rows.chunk_by(|a, b| a.agency_id == b.agency_id && a.route_id == b.route_id) {
+    for route_rows in rows.chunk_by(|a, b| a.feed_id == b.feed_id && a.route_id == b.route_id) {
         let first = &route_rows[0];
         let agency_name = agency_names
-            .get(first.agency_id.as_str())
+            .get(&first.feed_id.to_string())
             .cloned()
-            .unwrap_or_else(|| first.agency_id.to_string());
+            .unwrap_or_else(|| first.feed_id.to_string());
         let card_idx = cards.len();
         let avg_scheduled_speed_mps = avg_speeds(route_rows.iter().flat_map(|r| {
             [
@@ -185,7 +185,7 @@ pub fn build_speed_cards(
         cards.push(RouteSpeedCard {
             idx: card_idx,
             agency_name,
-            agency_id: first.agency_id.clone(),
+            feed_id: first.feed_id,
             route_id: first.route_id.clone(),
             short_name: first.short_name.clone(),
             long_name: first.long_name.clone(),
@@ -276,20 +276,20 @@ pub fn assign_indices(mut cards: Vec<RouteSpeedCard>) -> Vec<RouteSpeedCard> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ids::{AgencyId, DirectionId, RouteId};
+    use crate::ids::{DirectionId, FeedId, RouteId};
 
     fn make_row(
-        agency_id: &str,
+        feed_id: i64,
         route_id: &str,
-        direction_id: i64,
+        _direction_id: i64,
         weekday: Option<f64>,
     ) -> RouteSpeedDayType {
         RouteSpeedDayType {
-            agency_id: AgencyId::from(agency_id),
+            feed_id: FeedId::from(feed_id),
             route_id: RouteId::from(route_id),
             short_name: route_id.to_string(),
             long_name: format!("Route {route_id}"),
-            direction_id: DirectionId(direction_id),
+            variant_id: VariantId::from(format!("{route_id}-var")),
             weekday_speed_mps: weekday,
             saturday_speed_mps: None,
             sunday_speed_mps: None,
@@ -304,12 +304,14 @@ mod tests {
 
     #[test]
     fn build_speed_cards_groups_directions_into_one_card() {
-        let rows = vec![
-            make_row("stm", "R1", 0, Some(8.0)),
-            make_row("stm", "R1", 1, Some(7.5)),
-        ];
+        let mut row1 = make_row(1, "R1", 0, Some(8.0));
+        let mut row2 = make_row(1, "R1", 1, Some(7.5));
+        // Same variant to allow chunking
+        row1.variant_id = VariantId::from("R1-var");
+        row2.variant_id = VariantId::from("R1-var2");
+        let rows = vec![row1, row2];
         let mut names = HashMap::new();
-        names.insert("stm".to_string(), "STM".to_string());
+        names.insert("1".to_string(), "STM".to_string());
         let cards = build_speed_cards(rows, &names);
         assert_eq!(cards.len(), 1);
         assert_eq!(cards[0].agency_name, "STM");
@@ -320,8 +322,8 @@ mod tests {
     #[test]
     fn build_speed_cards_assigns_sequential_idx() {
         let rows = vec![
-            make_row("stm", "R1", 0, None),
-            make_row("stm", "R2", 0, None),
+            make_row(1, "R1", 0, None),
+            make_row(1, "R2", 0, None),
         ];
         let names = HashMap::new();
         let cards = build_speed_cards(rows, &names);
@@ -330,11 +332,11 @@ mod tests {
     }
 
     #[test]
-    fn build_speed_cards_falls_back_to_agency_id_when_name_missing() {
-        let rows = vec![make_row("unknown", "R1", 0, None)];
+    fn build_speed_cards_falls_back_to_feed_id_when_name_missing() {
+        let rows = vec![make_row(99, "R1", 0, None)];
         let names = HashMap::new();
         let cards = build_speed_cards(rows, &names);
-        assert_eq!(cards[0].agency_name, "unknown");
+        assert_eq!(cards[0].agency_name, "99");
     }
 
     #[test]
@@ -346,50 +348,39 @@ mod tests {
     #[test]
     fn build_speed_cards_handles_route_ids_not_in_lexicographic_order() {
         let rows = vec![
-            make_row("stm", "uuid-z", 0, Some(8.0)),
-            make_row("stm", "uuid-a", 0, Some(7.0)),
+            make_row(1, "uuid-z", 0, Some(8.0)),
+            make_row(1, "uuid-a", 0, Some(7.0)),
         ];
         let names = HashMap::new();
         let cards = build_speed_cards(rows, &names);
         assert_eq!(cards.len(), 2);
     }
 
+    fn make_row_full(feed_id: i64, route_id: &str, variant_id: &str, weekday: Option<f64>) -> RouteSpeedDayType {
+        RouteSpeedDayType {
+            feed_id: FeedId::from(feed_id),
+            route_id: RouteId::from(route_id),
+            short_name: route_id.to_string(),
+            long_name: format!("Route {route_id}"),
+            variant_id: VariantId::from(variant_id),
+            weekday_speed_mps: weekday,
+            saturday_speed_mps: None,
+            sunday_speed_mps: None,
+            actual_weekday_speed_mps: None,
+            actual_saturday_speed_mps: None,
+            actual_sunday_speed_mps: None,
+            last_stop_name: None,
+            avg_stop_spacing_m: None,
+            avg_dwell_secs: None,
+        }
+    }
+
     #[test]
     fn build_speed_cards_computes_avg_scheduled_speed() {
-        // Two directions, weekday only. avg = (8.0 + 6.0) / 2 = 7.0 m/s
+        // Two variants, weekday only. avg = (8.0 + 6.0) / 2 = 7.0 m/s
         let rows = vec![
-            RouteSpeedDayType {
-                agency_id: "stm".into(),
-                route_id: "R1".into(),
-                short_name: "R1".into(),
-                long_name: "Route R1".into(),
-                direction_id: DirectionId(0),
-                weekday_speed_mps: Some(8.0),
-                saturday_speed_mps: None,
-                sunday_speed_mps: None,
-                actual_weekday_speed_mps: None,
-                actual_saturday_speed_mps: None,
-                actual_sunday_speed_mps: None,
-                last_stop_name: None,
-                avg_stop_spacing_m: None,
-                avg_dwell_secs: None,
-            },
-            RouteSpeedDayType {
-                agency_id: "stm".into(),
-                route_id: "R1".into(),
-                short_name: "R1".into(),
-                long_name: "Route R1".into(),
-                direction_id: DirectionId(1),
-                weekday_speed_mps: Some(6.0),
-                saturday_speed_mps: None,
-                sunday_speed_mps: None,
-                actual_weekday_speed_mps: None,
-                actual_saturday_speed_mps: None,
-                actual_sunday_speed_mps: None,
-                last_stop_name: None,
-                avg_stop_spacing_m: None,
-                avg_dwell_secs: None,
-            },
+            make_row_full(1, "R1", "VAR-A", Some(8.0)),
+            make_row_full(1, "R1", "VAR-B", Some(6.0)),
         ];
         let cards = build_speed_cards(rows, &HashMap::new());
         let avg = cards[0].avg_scheduled_speed_mps.unwrap();
@@ -398,31 +389,18 @@ mod tests {
 
     #[test]
     fn build_speed_cards_avg_scheduled_uses_all_day_types() {
-        // One direction, three day types: (9.0 + 6.0 + 3.0) / 3 = 6.0
-        let rows = vec![RouteSpeedDayType {
-            agency_id: "stm".into(),
-            route_id: "R1".into(),
-            short_name: "R1".into(),
-            long_name: "Route R1".into(),
-            direction_id: DirectionId(0),
-            weekday_speed_mps: Some(9.0),
-            saturday_speed_mps: Some(6.0),
-            sunday_speed_mps: Some(3.0),
-            actual_weekday_speed_mps: None,
-            actual_saturday_speed_mps: None,
-            actual_sunday_speed_mps: None,
-            last_stop_name: None,
-            avg_stop_spacing_m: None,
-            avg_dwell_secs: None,
-        }];
-        let cards = build_speed_cards(rows, &HashMap::new());
+        // One variant, three day types: (9.0 + 6.0 + 3.0) / 3 = 6.0
+        let mut row = make_row_full(1, "R1", "VAR-A", Some(9.0));
+        row.saturday_speed_mps = Some(6.0);
+        row.sunday_speed_mps = Some(3.0);
+        let cards = build_speed_cards(vec![row], &HashMap::new());
         let avg = cards[0].avg_scheduled_speed_mps.unwrap();
         assert!((avg - 6.0).abs() < 0.001, "expected 6.0, got {avg}");
     }
 
     #[test]
     fn build_speed_cards_avg_actual_is_none_when_no_actual_data() {
-        let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
+        let rows = vec![make_row(1, "R1", 0, Some(8.0))];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].avg_actual_speed_mps.is_none());
     }
@@ -430,48 +408,35 @@ mod tests {
     #[test]
     fn build_speed_cards_computes_avg_actual_speed() {
         // actual weekday = 5.0, actual saturday = 7.0 → avg = 6.0
-        let rows = vec![RouteSpeedDayType {
-            agency_id: "stm".into(),
-            route_id: "R1".into(),
-            short_name: "R1".into(),
-            long_name: "Route R1".into(),
-            direction_id: DirectionId(0),
-            weekday_speed_mps: Some(8.0),
-            saturday_speed_mps: None,
-            sunday_speed_mps: None,
-            actual_weekday_speed_mps: Some(5.0),
-            actual_saturday_speed_mps: Some(7.0),
-            actual_sunday_speed_mps: None,
-            last_stop_name: None,
-            avg_stop_spacing_m: None,
-            avg_dwell_secs: None,
-        }];
-        let cards = build_speed_cards(rows, &HashMap::new());
+        let mut row = make_row_full(1, "R1", "VAR-A", Some(8.0));
+        row.actual_weekday_speed_mps = Some(5.0);
+        row.actual_saturday_speed_mps = Some(7.0);
+        let cards = build_speed_cards(vec![row], &HashMap::new());
         let avg = cards[0].avg_actual_speed_mps.unwrap();
         assert!((avg - 6.0).abs() < 0.001, "expected 6.0, got {avg}");
     }
 
     #[test]
     fn build_speed_cards_avg_scheduled_is_none_when_all_scheduled_speeds_none() {
-        let rows = vec![make_row("stm", "R1", 0, None)];
+        let rows = vec![make_row(1, "R1", 0, None)];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].avg_scheduled_speed_mps.is_none());
     }
 
     #[test]
     fn build_speed_cards_carries_avg_stop_spacing() {
-        let mut row = make_row("stm", "R1", 0, Some(8.0));
+        let mut row = make_row(1, "R1", 0, Some(8.0));
         row.avg_stop_spacing_m = Some(450.0);
         let cards = build_speed_cards(vec![row], &HashMap::new());
         assert_eq!(cards[0].avg_stop_spacing_m, Some(450.0));
     }
 
     #[test]
-    fn build_speed_cards_averages_stop_spacing_across_directions() {
-        // direction 0: 400 m, direction 1: 600 m → avg 500 m
-        let mut row0 = make_row("stm", "R1", 0, Some(8.0));
+    fn build_speed_cards_averages_stop_spacing_across_variants() {
+        // variant A: 400 m, variant B: 600 m → avg 500 m
+        let mut row0 = make_row_full(1, "R1", "VAR-A", Some(8.0));
         row0.avg_stop_spacing_m = Some(400.0);
-        let mut row1 = make_row("stm", "R1", 1, Some(7.0));
+        let mut row1 = make_row_full(1, "R1", "VAR-B", Some(7.0));
         row1.avg_stop_spacing_m = Some(600.0);
         let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
         let spacing = cards[0].avg_stop_spacing_m.unwrap();
@@ -482,11 +447,11 @@ mod tests {
     }
 
     #[test]
-    fn build_speed_cards_carries_agency_id_and_route_id() {
-        let rows = vec![make_row("stm", "R99", 0, None)];
+    fn build_speed_cards_carries_feed_id_and_route_id() {
+        let rows = vec![make_row(42, "R99", 0, None)];
         let names = HashMap::new();
         let cards = build_speed_cards(rows, &names);
-        assert_eq!(cards[0].agency_id, "stm");
+        assert_eq!(cards[0].feed_id, 42i64);
         assert_eq!(cards[0].route_id, "R99");
     }
 
@@ -539,7 +504,7 @@ mod tests {
     #[test]
     fn build_speed_cards_sets_classification_from_stop_spacing() {
         // avg spacing of 620 m → Rapid
-        let mut row = make_row("stm", "R1", 0, Some(8.0));
+        let mut row = make_row(1, "R1", 0, Some(8.0));
         row.avg_stop_spacing_m = Some(620.0);
         let cards = build_speed_cards(vec![row], &HashMap::new());
         assert_eq!(cards[0].classification, Some(RouteClass::Rapid));
@@ -547,17 +512,17 @@ mod tests {
 
     #[test]
     fn build_speed_cards_classification_is_none_when_no_spacing_data() {
-        let rows = vec![make_row("stm", "R1", 0, Some(8.0))];
+        let rows = vec![make_row(1, "R1", 0, Some(8.0))];
         let cards = build_speed_cards(rows, &HashMap::new());
         assert!(cards[0].classification.is_none());
     }
 
     #[test]
-    fn build_speed_cards_classification_averages_across_directions() {
-        // direction 0: 400 m (Local), direction 1: 600 m (Rapid) → avg 500 m → Rapid
-        let mut row0 = make_row("stm", "R1", 0, Some(8.0));
+    fn build_speed_cards_classification_averages_across_variants() {
+        // variant A: 400 m (Local), variant B: 600 m (Rapid) → avg 500 m → Rapid
+        let mut row0 = make_row_full(1, "R1", "VAR-A", Some(8.0));
         row0.avg_stop_spacing_m = Some(400.0);
-        let mut row1 = make_row("stm", "R1", 1, Some(7.0));
+        let mut row1 = make_row_full(1, "R1", "VAR-B", Some(7.0));
         row1.avg_stop_spacing_m = Some(600.0);
         let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
         assert_eq!(cards[0].classification, Some(RouteClass::Rapid));
@@ -567,8 +532,8 @@ mod tests {
         RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: None,
@@ -656,8 +621,8 @@ mod tests {
         let card = RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: Some(10.0),
@@ -674,8 +639,8 @@ mod tests {
         let card = RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: None,
@@ -693,8 +658,8 @@ mod tests {
         let card = RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: None,
@@ -711,8 +676,8 @@ mod tests {
         let card = RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: None,
@@ -728,8 +693,8 @@ mod tests {
         RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: mps,
@@ -793,8 +758,8 @@ mod tests {
         let card = RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: Some(5.0),
@@ -810,8 +775,8 @@ mod tests {
         RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: None,
@@ -872,8 +837,8 @@ mod tests {
         let card = RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: None,
@@ -890,8 +855,8 @@ mod tests {
         let card = RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: None,
@@ -907,8 +872,8 @@ mod tests {
         RouteSpeedCard {
             idx: 0,
             agency_name: "A".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
             avg_scheduled_speed_mps: None,
@@ -946,18 +911,18 @@ mod tests {
 
     #[test]
     fn build_speed_cards_carries_avg_dwell_secs() {
-        let mut row = make_row("stm", "R1", 0, Some(8.0));
+        let mut row = make_row(1, "R1", 0, Some(8.0));
         row.avg_dwell_secs = Some(30.0);
         let cards = build_speed_cards(vec![row], &HashMap::new());
         assert_eq!(cards[0].avg_dwell_secs, Some(30.0));
     }
 
     #[test]
-    fn build_speed_cards_averages_avg_dwell_across_directions() {
-        // direction 0: 20s, direction 1: 40s → avg 30s
-        let mut row0 = make_row("stm", "R1", 0, Some(8.0));
+    fn build_speed_cards_averages_avg_dwell_across_variants() {
+        // variant A: 20s, variant B: 40s → avg 30s
+        let mut row0 = make_row_full(1, "R1", "VAR-A", Some(8.0));
         row0.avg_dwell_secs = Some(20.0);
-        let mut row1 = make_row("stm", "R1", 1, Some(7.0));
+        let mut row1 = make_row_full(1, "R1", "VAR-B", Some(7.0));
         row1.avg_dwell_secs = Some(40.0);
         let cards = build_speed_cards(vec![row0, row1], &HashMap::new());
         let dwell = cards[0].avg_dwell_secs.unwrap();
@@ -966,7 +931,7 @@ mod tests {
 
     #[test]
     fn build_speed_cards_avg_dwell_none_when_all_none() {
-        let row = make_row("stm", "R1", 0, None);
+        let row = make_row(1, "R1", 0, None);
         let cards = build_speed_cards(vec![row], &HashMap::new());
         assert!(cards[0].avg_dwell_secs.is_none());
     }
@@ -975,8 +940,8 @@ mod tests {
         RouteSpeedCard {
             idx: 0,
             agency_name: "Agency".into(),
-            agency_id: "a".into(),
-            route_id: "R1".into(),
+            feed_id: FeedId::from(1i64),
+            route_id: RouteId::from("R1"),
             short_name: short_name.into(),
             long_name: short_name.into(),
             avg_scheduled_speed_mps: None,
@@ -1031,14 +996,8 @@ mod tests {
     #[test]
     fn filter_keeps_matching_class() {
         let cards = vec![
-            RouteSpeedCard {
-                classification: Some(RouteClass::Local),
-                ..make_card("L")
-            },
-            RouteSpeedCard {
-                classification: Some(RouteClass::Rapid),
-                ..make_card("R")
-            },
+            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
+            RouteSpeedCard { classification: Some(RouteClass::Rapid), ..make_card("R") },
         ];
         let result = filter_speed_cards(cards, "rapid");
         assert_eq!(result.len(), 1);
@@ -1048,14 +1007,8 @@ mod tests {
     #[test]
     fn filter_empty_class_keeps_all() {
         let cards = vec![
-            RouteSpeedCard {
-                classification: Some(RouteClass::Local),
-                ..make_card("L")
-            },
-            RouteSpeedCard {
-                classification: None,
-                ..make_card("U")
-            },
+            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
+            RouteSpeedCard { classification: None, ..make_card("U") },
         ];
         let result = filter_speed_cards(cards, "");
         assert_eq!(result.len(), 2);
@@ -1064,14 +1017,8 @@ mod tests {
     #[test]
     fn filter_hides_unclassified_when_class_given() {
         let cards = vec![
-            RouteSpeedCard {
-                classification: None,
-                ..make_card("U")
-            },
-            RouteSpeedCard {
-                classification: Some(RouteClass::Local),
-                ..make_card("L")
-            },
+            RouteSpeedCard { classification: None, ..make_card("U") },
+            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
         ];
         let result = filter_speed_cards(cards, "local");
         assert_eq!(result.len(), 1);

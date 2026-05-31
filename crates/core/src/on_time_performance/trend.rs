@@ -2,10 +2,10 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::db::Database;
-use crate::ids::{AgencyId, RouteId};
+use crate::ids::{FeedId, RouteId};
 
 /// One day of combined on-time and speed data for a route.
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize)]
 pub struct DailyTrendPoint {
     pub service_date: String,
     pub on_time_pct: Option<f64>,
@@ -66,14 +66,13 @@ impl RouteTrend {
 /// Returns None if the route doesn't exist or has no computed data.
 pub async fn route_trend(
     db: &Database,
-    agency_id: &AgencyId,
+    feed_id: FeedId,
     route_id: &RouteId,
     days: i64,
 ) -> Result<Option<RouteTrend>> {
     let route: Option<(String, String)> = sqlx::query_as(
-        "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
+        "SELECT short_name, long_name FROM routes WHERE onestop_id = $1",
     )
-    .bind(agency_id.as_str())
     .bind(route_id.as_str())
     .fetch_optional(&db.pool)
     .await?;
@@ -83,30 +82,40 @@ pub async fn route_trend(
         None => return Ok(None),
     };
 
-    // Daily points: LEFT JOIN speed (averaged across directions) onto on-time data.
-    let trend_days: Vec<DailyTrendPoint> = sqlx::query_as(
+    // Daily points: on-time and speed data from route_daily_stats.
+    // Average across variants per day to get a single daily point.
+    let rows: Vec<(chrono::NaiveDate, Option<f64>, Option<f64>, Option<f64>)> = sqlx::query_as(
         "SELECT
-           rd.service_date,
-           rd.on_time_pct,
-           rd.avg_delay_secs,
-           AVG(rsd.actual_speed_mps) as actual_speed_mps
-         FROM route_daily rd
-         LEFT JOIN route_speed_daily rsd
-           ON rsd.agency_id = rd.agency_id AND rsd.route_id = rd.route_id AND rsd.service_date = rd.service_date
-         WHERE rd.agency_id = $1 AND rd.route_id = $2
-           AND rd.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
-         GROUP BY rd.service_date, rd.on_time_pct, rd.avg_delay_secs
-         ORDER BY rd.service_date",
+           rds.service_date,
+           AVG(rds.on_time_stops::float8 / NULLIF(rds.total_stops, 0) * 100.0) AS on_time_pct,
+           AVG(rds.avg_delay_secs) AS avg_delay_secs,
+           AVG(rds.actual_speed_mps) AS actual_speed_mps
+         FROM route_daily_stats rds
+         WHERE rds.feed_id = $1
+           AND rds.route_id = $2
+           AND rds.service_date >= CURRENT_DATE - ($3::INT * INTERVAL '1 day')
+         GROUP BY rds.service_date
+         ORDER BY rds.service_date",
     )
-    .bind(agency_id.as_str())
+    .bind(feed_id.as_i64())
     .bind(route_id.as_str())
     .bind(days)
     .fetch_all(&db.pool)
     .await?;
 
-    if trend_days.is_empty() {
+    if rows.is_empty() {
         return Ok(None);
     }
+
+    let trend_days = rows
+        .into_iter()
+        .map(|(service_date, on_time_pct, avg_delay_secs, actual_speed_mps)| DailyTrendPoint {
+            service_date: service_date.to_string(),
+            on_time_pct,
+            avg_delay_secs,
+            actual_speed_mps,
+        })
+        .collect();
 
     Ok(Some(RouteTrend {
         route_id: route_id.clone(),
@@ -120,13 +129,13 @@ pub async fn route_trend(
 mod tests {
     use super::*;
     use crate::db::test_utils;
-    use crate::ids::AgencyId;
+    use crate::ids::FeedId;
 
     #[tokio::test]
     async fn route_trend_returns_none_for_unknown_route() {
         let td = test_utils::setup().await;
         let db = td.db;
-        let result = route_trend(&db, &AgencyId::from("0"), &RouteId::from("NONEXISTENT"), 30)
+        let result = route_trend(&db, FeedId::from(1i64), &RouteId::from("NONEXISTENT"), 30)
             .await
             .unwrap();
         assert!(result.is_none());
@@ -136,53 +145,60 @@ mod tests {
     async fn route_trend_returns_daily_points_with_on_time_data() {
         let td = test_utils::setup().await;
         let db = td.db;
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '45', 'PAPINEAU', 3)")
+
+        // Insert required feed row
+        sqlx::query("INSERT INTO feeds (id, onestop_id, name) VALUES (1, 'f-test', 'Test')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-test-R1', 'test', '45', 'PAPINEAU', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO route_daily
-             (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('0', 'R1', '2026-01-01', 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
+            "INSERT INTO route_daily_stats
+             (feed_id, route_id, service_date, variant_id, on_time_stops, total_stops, skipped_stops, trips_run, trips_total, avg_delay_secs, computed_at)
+             VALUES (1, 'r-test-R1', '2026-01-01', 'var1', 72, 100, 0, 45, 50, 120.0, NOW())",
         ).execute(&db.pool).await.unwrap();
         sqlx::query(
-            "INSERT INTO route_daily
-             (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('0', 'R1', '2026-01-02', 68.0, 145.0, 44, 50, '2026-01-02T12:00:00Z')",
+            "INSERT INTO route_daily_stats
+             (feed_id, route_id, service_date, variant_id, on_time_stops, total_stops, skipped_stops, trips_run, trips_total, avg_delay_secs, computed_at)
+             VALUES (1, 'r-test-R1', '2026-01-02', 'var1', 68, 100, 0, 44, 50, 145.0, NOW())",
         ).execute(&db.pool).await.unwrap();
 
-        let trend = route_trend(&db, &AgencyId::from("0"), &RouteId::from("R1"), 3650)
+        let trend = route_trend(&db, FeedId::from(1i64), &RouteId::from("r-test-R1"), 3650)
             .await
             .unwrap()
             .unwrap();
 
-        assert_eq!(trend.route_id, "R1");
+        assert_eq!(trend.route_id, "r-test-R1");
         assert_eq!(trend.short_name, "45");
         assert_eq!(trend.days.len(), 2);
         assert_eq!(trend.days[0].service_date, "2026-01-01");
-        assert!((trend.days[0].on_time_pct.unwrap() - 72.5).abs() < 0.01);
+        // on_time_pct = 72 / 100 * 100 = 72.0
+        assert!((trend.days[0].on_time_pct.unwrap() - 72.0).abs() < 0.01);
     }
 
     #[tokio::test]
     async fn route_trend_includes_speed_when_available() {
         let td = test_utils::setup().await;
         let db = td.db;
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '45', 'PAPINEAU', 3)")
+
+        sqlx::query("INSERT INTO feeds (id, onestop_id, name) VALUES (1, 'f-test', 'Test')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-test-R1', 'test', '45', 'PAPINEAU', 3)")
             .execute(&db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO route_daily
-             (agency_id, route_id, service_date, on_time_pct, avg_delay_secs, trips_run, trips_total, computed_at)
-             VALUES ('0', 'R1', '2026-01-01', 72.5, 120.0, 45, 50, '2026-01-01T12:00:00Z')",
-        ).execute(&db.pool).await.unwrap();
-        sqlx::query(
-            "INSERT INTO route_speed_daily
-             (agency_id, route_id, service_date, direction_id, actual_speed_mps, trip_count, computed_at)
-             VALUES ('0', 'R1', '2026-01-01', 0, 5.5, 45, '2026-01-01T12:00:00Z')",
+            "INSERT INTO route_daily_stats
+             (feed_id, route_id, service_date, variant_id, on_time_stops, total_stops, skipped_stops, trips_run, trips_total, actual_speed_mps, computed_at)
+             VALUES (1, 'r-test-R1', '2026-01-01', 'var1', 72, 100, 0, 45, 50, 5.5, NOW())",
         ).execute(&db.pool).await.unwrap();
 
-        let trend = route_trend(&db, &AgencyId::from("0"), &RouteId::from("R1"), 3650)
+        let trend = route_trend(&db, FeedId::from(1i64), &RouteId::from("r-test-R1"), 3650)
             .await
             .unwrap()
             .unwrap();
@@ -194,7 +210,7 @@ mod tests {
     #[test]
     fn speed_change_pct_returns_none_with_too_few_days() {
         let trend = RouteTrend {
-            route_id: "R1".into(),
+            route_id: RouteId::from("R1"),
             short_name: "45".into(),
             long_name: "PAPINEAU".into(),
             days: vec![DailyTrendPoint {
@@ -219,7 +235,7 @@ mod tests {
             })
             .collect();
         let trend = RouteTrend {
-            route_id: "R1".into(),
+            route_id: RouteId::from("R1"),
             short_name: "45".into(),
             long_name: "PAPINEAU".into(),
             days,
@@ -240,7 +256,7 @@ mod tests {
             })
             .collect();
         let trend = RouteTrend {
-            route_id: "R1".into(),
+            route_id: RouteId::from("R1"),
             short_name: "45".into(),
             long_name: "PAPINEAU".into(),
             days,
@@ -259,7 +275,7 @@ mod tests {
             })
             .collect();
         RouteTrend {
-            route_id: "R1".into(),
+            route_id: RouteId::from("R1"),
             short_name: "45".into(),
             long_name: "PAPINEAU".into(),
             days,
@@ -269,7 +285,7 @@ mod tests {
     #[test]
     fn speed_change_display_insufficient_data_when_too_few_days() {
         let trend = RouteTrend {
-            route_id: "R1".into(),
+            route_id: RouteId::from("R1"),
             short_name: "45".into(),
             long_name: "PAPINEAU".into(),
             days: vec![],

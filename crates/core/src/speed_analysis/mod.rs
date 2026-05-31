@@ -1,11 +1,10 @@
 use anyhow::Result;
 use chrono::{NaiveDate, Timelike, Utc};
 use serde::Serialize;
-use tracing::warn;
 
 use crate::config::AgencyConfig;
 use crate::db::Database;
-use crate::ids::{AgencyId, DirectionId, FeedId, RouteId, VariantId};
+use crate::ids::{DirectionId, FeedId, RouteId, VariantId};
 
 type SpeedPoint = (String, f64, Option<f64>);
 type DayBuckets = (Vec<SpeedPoint>, Vec<SpeedPoint>, Vec<SpeedPoint>);
@@ -28,18 +27,16 @@ pub(crate) fn direction_label(direction_id: DirectionId) -> &'static str {
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteSpeedSummary {
-    pub agency_id: AgencyId,
+    pub feed_id: FeedId,
     pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
-    pub direction_id: DirectionId,
+    pub variant_id: VariantId,
     pub scheduled_speed_mps: f64,
     pub trip_count: i64,
-    /// Average speed from vehicles observed in the last hour (m/s). None if no recent data.
-    pub live_speed_mps: Option<f64>,
-    /// Average actual speed over the last 7 days from stop arrival times (m/s). None if no history.
+    /// Average actual speed over the last 7 days from route_daily_stats (m/s). None if no history.
     pub actual_speed_mps: Option<f64>,
-    /// Name of the last stop for this route+direction. None if stop data is unavailable.
+    /// Name of the last stop for this route+variant. None if stop data is unavailable.
     pub last_stop_name: Option<String>,
 }
 
@@ -51,13 +48,6 @@ impl RouteSpeedSummary {
 
     pub fn actual_speed_display(&self) -> String {
         match self.actual_speed_mps {
-            Some(s) => format!("{:.1} km/h", s * 3.6),
-            None => "—".to_string(),
-        }
-    }
-
-    pub fn live_speed_display(&self) -> String {
-        match self.live_speed_mps {
             Some(s) => format!("{:.1} km/h", s * 3.6),
             None => "—".to_string(),
         }
@@ -87,7 +77,7 @@ impl RouteSpeedSummary {
     pub fn direction_label(&self) -> String {
         self.last_stop_name
             .clone()
-            .unwrap_or_else(|| direction_label(self.direction_id).to_string())
+            .unwrap_or_else(|| self.variant_id.to_string())
     }
 
     /// CSS class for the vs-schedule cell: "slower", "faster", or "onpace".
@@ -288,6 +278,16 @@ struct SpeedTrendRow {
     scheduled_speed_mps: Option<f64>,
 }
 
+/// Raw row returned by the variant-level speed trend SQL query (new schema).
+#[derive(sqlx::FromRow)]
+struct SpeedTrendVariantRowNew {
+    variant_id: VariantId,
+    direction_id: DirectionId,
+    service_date: String,
+    actual_speed_mps: f64,
+    scheduled_speed_mps: Option<f64>,
+}
+
 fn build_direction_trends(rows: Vec<SpeedTrendRow>) -> Vec<DirectionSpeedTrend> {
     use chrono::Datelike;
     use std::str::FromStr;
@@ -388,25 +388,31 @@ fn build_variant_trends(rows: Vec<SpeedTrendVariantRow>) -> Vec<VariantSpeedTren
 
 pub async fn route_speed_trend_by_variant(
     db: &Database,
-    agency_id: &AgencyId,
+    feed_id: FeedId,
     route_id: &RouteId,
     days: i64,
 ) -> Result<Vec<VariantSpeedTrend>> {
+    // Use route_daily_stats for actual speed and route_speed for scheduled speed.
+    // Group by variant_id and service_date, averaging across any sub-groupings.
     let rows: Vec<SpeedTrendVariantRow> = sqlx::query_as(
-        "SELECT d.variant_id,
-                d.service_date,
-                d.actual_speed_mps,
-                r.scheduled_speed_mps
-         FROM route_speed_daily d
-         LEFT JOIN route_speed r ON r.agency_id = d.agency_id
-           AND r.route_id = d.route_id AND r.direction_id = d.direction_id
-         WHERE d.agency_id = $1
-           AND d.route_id = $2
-           AND d.variant_id != ''
-           AND d.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
-         ORDER BY d.variant_id, d.service_date",
+        "SELECT
+                rds.variant_id,
+                rds.service_date::TEXT AS service_date,
+                AVG(rds.actual_speed_mps) AS actual_speed_mps,
+                MAX(rs.scheduled_speed_mps) AS scheduled_speed_mps
+         FROM route_daily_stats rds
+         LEFT JOIN route_speed rs
+           ON rs.feed_id = rds.feed_id
+           AND rs.route_id = rds.route_id
+           AND rs.variant_id = rds.variant_id
+         WHERE rds.feed_id = $1
+           AND rds.route_id = $2
+           AND rds.actual_speed_mps IS NOT NULL
+           AND rds.service_date >= CURRENT_DATE - ($3::INT * INTERVAL '1 day')
+         GROUP BY rds.variant_id, rds.service_date
+         ORDER BY rds.variant_id, rds.service_date",
     )
-    .bind(agency_id.as_str())
+    .bind(feed_id.as_i64())
     .bind(route_id.as_str())
     .bind(days)
     .fetch_all(&db.pool)
@@ -415,18 +421,18 @@ pub async fn route_speed_trend_by_variant(
     Ok(build_variant_trends(rows))
 }
 
-/// Fetch per-stop spacing data for a single route, grouped by direction.
-/// Returns one `DirectionStopSpacings` per direction. Empty if route has no trips.
+/// Fetch per-stop spacing data for a single route, grouped by variant.
+/// Returns one `DirectionStopSpacings` per variant. Empty if route has no trips.
 pub async fn route_stop_spacings(
     db: &Database,
-    agency_id: &AgencyId,
+    feed_id: FeedId,
     route_id: &RouteId,
 ) -> Result<Vec<DirectionStopSpacings>> {
     let rows: Vec<StopSpacingEntry> = sqlx::query_as(
         "WITH all_variants AS (
             SELECT variant_id, direction_id, is_primary, trip_count
             FROM route_variants
-            WHERE agency_id = $1 AND route_id = $2
+            WHERE feed_id = $1 AND route_id = $2
         ),
         ordered AS (
             SELECT
@@ -439,8 +445,8 @@ pub async fn route_stop_spacings(
                 ROW_NUMBER() OVER (PARTITION BY av.variant_id ORDER BY rvs.stop_sequence) AS rn,
                 COUNT(*)    OVER (PARTITION BY av.variant_id)                              AS total_stops
             FROM all_variants av
-            JOIN route_variant_stops rvs ON rvs.agency_id = $1 AND rvs.variant_id = av.variant_id
-            JOIN stops s ON s.agency_id = $1 AND s.stop_id = rvs.stop_id
+            JOIN route_variant_stops rvs ON rvs.feed_id = $1 AND rvs.variant_id = av.variant_id
+            JOIN stops s ON s.onestop_id = rvs.stop_id
         ),
         with_prev AS (
             SELECT
@@ -468,7 +474,7 @@ pub async fn route_stop_spacings(
         FROM with_prev
         ORDER BY trip_count DESC, variant_id, rn",
     )
-    .bind(agency_id.as_str())
+    .bind(feed_id.as_i64())
     .bind(route_id.as_str())
     .fetch_all(&db.pool)
     .await?;
@@ -478,31 +484,52 @@ pub async fn route_stop_spacings(
 
 /// Fetch per-day actual speed for a single route, grouped by direction and day type.
 /// `days` controls how many days back to look (use 28 to match other data windows).
+/// Direction is derived from route_variants via variant_id.
 pub async fn route_speed_trend_by_direction(
     db: &Database,
-    agency_id: &AgencyId,
+    feed_id: FeedId,
     route_id: &RouteId,
     days: i64,
 ) -> Result<Vec<DirectionSpeedTrend>> {
-    let rows: Vec<SpeedTrendRow> = sqlx::query_as(
-        "SELECT d.direction_id,
-                d.service_date,
-                d.actual_speed_mps,
-                r.scheduled_speed_mps
-         FROM route_speed_daily d
-         LEFT JOIN route_speed r ON r.agency_id = d.agency_id AND r.route_id = d.route_id AND r.direction_id = d.direction_id
-         WHERE d.agency_id = $1
-           AND d.route_id = $2
-           AND d.service_date >= (CURRENT_DATE - $3::INT * INTERVAL '1 day')::TEXT
-         ORDER BY d.direction_id, d.service_date",
+    let rows: Vec<SpeedTrendVariantRowNew> = sqlx::query_as(
+        "SELECT
+                rv.direction_id,
+                rds.variant_id,
+                rds.service_date::TEXT AS service_date,
+                AVG(rds.actual_speed_mps) AS actual_speed_mps,
+                MAX(rs.scheduled_speed_mps) AS scheduled_speed_mps
+         FROM route_daily_stats rds
+         JOIN route_variants rv
+           ON rv.feed_id = rds.feed_id AND rv.variant_id = rds.variant_id
+         LEFT JOIN route_speed rs
+           ON rs.feed_id = rds.feed_id
+           AND rs.route_id = rds.route_id
+           AND rs.variant_id = rds.variant_id
+         WHERE rds.feed_id = $1
+           AND rds.route_id = $2
+           AND rds.actual_speed_mps IS NOT NULL
+           AND rds.service_date >= CURRENT_DATE - ($3::INT * INTERVAL '1 day')
+         GROUP BY rv.direction_id, rds.variant_id, rds.service_date
+         ORDER BY rv.direction_id, rds.service_date",
     )
-    .bind(agency_id.as_str())
+    .bind(feed_id.as_i64())
     .bind(route_id.as_str())
     .bind(days)
     .fetch_all(&db.pool)
     .await?;
 
-    Ok(build_direction_trends_with_scheduled(rows))
+    // Convert new rows to the legacy SpeedTrendRow format for the existing bucketing logic
+    let legacy_rows: Vec<SpeedTrendRow> = rows
+        .into_iter()
+        .map(|r| SpeedTrendRow {
+            direction_id: r.direction_id,
+            service_date: r.service_date,
+            actual_speed_mps: r.actual_speed_mps,
+            scheduled_speed_mps: r.scheduled_speed_mps,
+        })
+        .collect();
+
+    Ok(build_direction_trends_with_scheduled(legacy_rows))
 }
 
 /// Compute scheduled average speed (m/s) for every route+variant and store in `route_speed`.
@@ -788,117 +815,55 @@ pub async fn compute_route_speed_daily(
     Ok(())
 }
 
-/// Fetch scheduled, live, and historical actual speed for all routes.
-/// Live speed: average from vehicle positions in the last hour.
-/// Actual speed: average from route_speed_daily over the last 7 days.
-/// If `agency_filter` is Some, only returns routes for that agency.
+/// Fetch scheduled and historical actual speed for all routes.
+/// Actual speed: average from route_daily_stats over the last 7 days.
+/// If `feed_filter` is Some, only returns routes for that feed.
 pub async fn route_speed_summary(
     db: &Database,
-    agency_filter: Option<&AgencyId>,
+    feed_filter: Option<FeedId>,
 ) -> Result<Vec<RouteSpeedSummary>> {
-    let rows: Vec<RouteSpeedSummary> = match agency_filter {
-        None => sqlx::query_as(
-            "SELECT
-               rs.agency_id,
-               rs.route_id,
-               r.short_name,
-               r.long_name,
-               rs.direction_id,
-               rs.scheduled_speed_mps,
-               rs.trip_count,
-               live.avg_live_speed as live_speed_mps,
-               hist.avg_actual_speed as actual_speed_mps,
-               lsn.stop_name as last_stop_name
-             FROM route_speed rs
-             JOIN routes r ON rs.agency_id = r.agency_id AND rs.route_id = r.route_id
-             LEFT JOIN (
-               SELECT t.agency_id, t.route_id, AVG(vp.speed) as avg_live_speed
-               FROM vehicle_positions vp
-               JOIN trips t ON t.trip_id = vp.trip_id AND t.agency_id = vp.agency_id
-               WHERE vp.speed IS NOT NULL
-                 AND vp.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '1 hour'
-               GROUP BY t.agency_id, t.route_id
-             ) live ON live.agency_id = rs.agency_id AND live.route_id = rs.route_id
-             LEFT JOIN (
-               SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) as avg_actual_speed
-               FROM route_speed_daily
-               WHERE service_date >= (CURRENT_DATE - INTERVAL '7 days')::TEXT
-               GROUP BY agency_id, route_id, direction_id
-             ) hist ON hist.agency_id = rs.agency_id AND hist.route_id = rs.route_id AND hist.direction_id = rs.direction_id
-             LEFT JOIN (
-               SELECT DISTINCT ON (t.agency_id, t.route_id, COALESCE(t.direction_id, 0))
-                 t.agency_id, t.route_id, COALESCE(t.direction_id, 0) AS direction_id,
-                 s.stop_name
-               FROM trips t
-               JOIN (
-                 SELECT agency_id, trip_id, stop_id
-                 FROM (
-                   SELECT agency_id, trip_id, stop_id,
-                          ROW_NUMBER() OVER (PARTITION BY agency_id, trip_id ORDER BY stop_sequence DESC) AS rn
-                   FROM scheduled_stops
-                 ) ranked
-                 WHERE rn = 1
-               ) last_ss ON last_ss.agency_id = t.agency_id AND last_ss.trip_id = t.trip_id
-               JOIN stops s ON s.agency_id = t.agency_id AND s.stop_id = last_ss.stop_id
-               ORDER BY t.agency_id, t.route_id, COALESCE(t.direction_id, 0)
-             ) lsn ON lsn.agency_id = rs.agency_id AND lsn.route_id = rs.route_id AND lsn.direction_id = rs.direction_id
-             ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
-        )
-        .fetch_all(&db.pool)
-        .await?,
+    let rows: Vec<RouteSpeedSummary> = sqlx::query_as(
+        "SELECT
+           rs.feed_id,
+           rs.route_id,
+           r.short_name,
+           r.long_name,
+           rs.variant_id,
+           rs.scheduled_speed_mps,
+           rs.trip_count,
+           hist.avg_actual_speed AS actual_speed_mps,
+           lsn.stop_name AS last_stop_name
+         FROM route_speed rs
+         JOIN routes r ON rs.route_id = r.onestop_id
+         LEFT JOIN (
+           SELECT feed_id, route_id, variant_id,
+                  AVG(actual_speed_mps) AS avg_actual_speed
+           FROM route_daily_stats
+           WHERE service_date >= CURRENT_DATE - INTERVAL '7 days'
+             AND actual_speed_mps IS NOT NULL
+           GROUP BY feed_id, route_id, variant_id
+         ) hist ON hist.feed_id = rs.feed_id
+               AND hist.route_id = rs.route_id
+               AND hist.variant_id = rs.variant_id
+         LEFT JOIN (
+           SELECT DISTINCT ON (rvs.feed_id, rvs.variant_id)
+             rvs.feed_id,
+             rvs.variant_id,
+             s.stop_name
+           FROM route_variant_stops rvs
+           JOIN stops s ON s.onestop_id = rvs.stop_id
+           ORDER BY rvs.feed_id, rvs.variant_id, rvs.stop_sequence DESC
+         ) lsn ON lsn.feed_id = rs.feed_id AND lsn.variant_id = rs.variant_id
+         WHERE ($1::BIGINT IS NULL OR rs.feed_id = $1)
+         ORDER BY rs.feed_id,
+           CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
+           r.short_name,
+           rs.variant_id",
+    )
+    .bind(feed_filter.map(|f| f.as_i64()))
+    .fetch_all(&db.pool)
+    .await?;
 
-        Some(agency) => sqlx::query_as(
-            "SELECT
-               rs.agency_id,
-               rs.route_id,
-               r.short_name,
-               r.long_name,
-               rs.direction_id,
-               rs.scheduled_speed_mps,
-               rs.trip_count,
-               live.avg_live_speed as live_speed_mps,
-               hist.avg_actual_speed as actual_speed_mps,
-               lsn.stop_name as last_stop_name
-             FROM route_speed rs
-             JOIN routes r ON rs.agency_id = r.agency_id AND rs.route_id = r.route_id
-             LEFT JOIN (
-               SELECT t.agency_id, t.route_id, AVG(vp.speed) as avg_live_speed
-               FROM vehicle_positions vp
-               JOIN trips t ON t.trip_id = vp.trip_id AND t.agency_id = vp.agency_id
-               WHERE vp.speed IS NOT NULL
-                 AND vp.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '1 hour'
-               GROUP BY t.agency_id, t.route_id
-             ) live ON live.agency_id = rs.agency_id AND live.route_id = rs.route_id
-             LEFT JOIN (
-               SELECT agency_id, route_id, direction_id, AVG(actual_speed_mps) as avg_actual_speed
-               FROM route_speed_daily
-               WHERE service_date >= (CURRENT_DATE - INTERVAL '7 days')::TEXT
-               GROUP BY agency_id, route_id, direction_id
-             ) hist ON hist.agency_id = rs.agency_id AND hist.route_id = rs.route_id AND hist.direction_id = rs.direction_id
-             LEFT JOIN (
-               SELECT DISTINCT ON (t.agency_id, t.route_id, COALESCE(t.direction_id, 0))
-                 t.agency_id, t.route_id, COALESCE(t.direction_id, 0) AS direction_id,
-                 s.stop_name
-               FROM trips t
-               JOIN (
-                 SELECT agency_id, trip_id, stop_id
-                 FROM (
-                   SELECT agency_id, trip_id, stop_id,
-                          ROW_NUMBER() OVER (PARTITION BY agency_id, trip_id ORDER BY stop_sequence DESC) AS rn
-                   FROM scheduled_stops
-                 ) ranked
-                 WHERE rn = 1
-               ) last_ss ON last_ss.agency_id = t.agency_id AND last_ss.trip_id = t.trip_id
-               JOIN stops s ON s.agency_id = t.agency_id AND s.stop_id = last_ss.stop_id
-               ORDER BY t.agency_id, t.route_id, COALESCE(t.direction_id, 0)
-             ) lsn ON lsn.agency_id = rs.agency_id AND lsn.route_id = rs.route_id AND lsn.direction_id = rs.direction_id
-             WHERE rs.agency_id = $1
-             ORDER BY rs.agency_id, CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST, r.short_name, rs.direction_id",
-        )
-        .bind(agency.as_str())
-        .fetch_all(&db.pool)
-        .await?,
-    };
     Ok(rows)
 }
 
@@ -1016,24 +981,24 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
     Ok(())
 }
 
-/// Per-route, per-direction scheduled speed broken down by day type
-/// (weekday / Saturday / Sunday), sourced from `route_speed_day_type`.
+/// Per-route, per-variant speed broken down by day type
+/// (weekday / Saturday / Sunday), sourced from `route_daily_stats`.
 #[derive(Debug, sqlx::FromRow)]
 pub struct RouteSpeedDayType {
-    pub agency_id: AgencyId,
+    pub feed_id: FeedId,
     pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
-    pub direction_id: DirectionId,
+    pub variant_id: VariantId,
     pub weekday_speed_mps: Option<f64>,
     pub saturday_speed_mps: Option<f64>,
     pub sunday_speed_mps: Option<f64>,
     pub actual_weekday_speed_mps: Option<f64>,
     pub actual_saturday_speed_mps: Option<f64>,
     pub actual_sunday_speed_mps: Option<f64>,
-    /// Name of the last stop for this route+direction. None if stop data is unavailable.
+    /// Name of the last stop for this route+variant. None if stop data is unavailable.
     pub last_stop_name: Option<String>,
-    /// Average distance between consecutive stops for this route+direction (metres).
+    /// Average distance between consecutive stops for this route+variant (metres).
     pub avg_stop_spacing_m: Option<f64>,
     /// Average dwell time at stops over the last 28 days (seconds). None if no data.
     pub avg_dwell_secs: Option<f64>,
@@ -1041,86 +1006,79 @@ pub struct RouteSpeedDayType {
 
 pub async fn route_speed_by_day_type(
     db: &Database,
-    agency_filter: Option<&AgencyId>,
+    feed_filter: Option<FeedId>,
 ) -> Result<Vec<RouteSpeedDayType>> {
-    let base_sql = "WITH actual_by_day_type AS (
+    let sql = "WITH actual_by_day_type AS (
             SELECT
-                agency_id,
+                feed_id,
                 route_id,
-                direction_id,
-                AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) BETWEEN 1 AND 5
+                variant_id,
+                AVG(CASE WHEN EXTRACT(DOW FROM service_date) BETWEEN 1 AND 5
                          THEN actual_speed_mps END) AS actual_weekday_speed_mps,
-                AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) = 6
+                AVG(CASE WHEN EXTRACT(DOW FROM service_date) = 6
                          THEN actual_speed_mps END) AS actual_saturday_speed_mps,
-                AVG(CASE WHEN EXTRACT(DOW FROM service_date::date) = 0
+                AVG(CASE WHEN EXTRACT(DOW FROM service_date) = 0
                          THEN actual_speed_mps END) AS actual_sunday_speed_mps,
                 AVG(avg_dwell_secs) AS avg_dwell_secs
-            FROM route_speed_daily
-            WHERE service_date::date >= CURRENT_DATE - INTERVAL '28 days'
+            FROM route_daily_stats
+            WHERE service_date >= CURRENT_DATE - INTERVAL '28 days'
               AND actual_speed_mps IS NOT NULL
-            GROUP BY agency_id, route_id, direction_id
+            GROUP BY feed_id, route_id, variant_id
         ),
-        last_stop_per_route_dir AS (
-            SELECT DISTINCT ON (t.agency_id, t.route_id, COALESCE(t.direction_id, 0))
-              t.agency_id, t.route_id, COALESCE(t.direction_id, 0) AS direction_id,
+        scheduled_by_day_type AS (
+            SELECT
+                feed_id,
+                route_id,
+                variant_id,
+                scheduled_speed_mps AS weekday_speed_mps,
+                scheduled_speed_mps AS saturday_speed_mps,
+                scheduled_speed_mps AS sunday_speed_mps,
+                avg_stop_spacing_m
+            FROM route_speed
+        ),
+        last_stop_per_variant AS (
+            SELECT DISTINCT ON (rvs.feed_id, rvs.variant_id)
+              rvs.feed_id,
+              rvs.variant_id,
               s.stop_name
-            FROM trips t
-            JOIN (
-              SELECT agency_id, trip_id, stop_id
-              FROM (
-                SELECT agency_id, trip_id, stop_id,
-                       ROW_NUMBER() OVER (PARTITION BY agency_id, trip_id ORDER BY stop_sequence DESC) AS rn
-                FROM scheduled_stops
-              ) ranked
-              WHERE rn = 1
-            ) last_ss ON last_ss.agency_id = t.agency_id AND last_ss.trip_id = t.trip_id
-            JOIN stops s ON s.agency_id = t.agency_id AND s.stop_id = last_ss.stop_id
-            ORDER BY t.agency_id, t.route_id, COALESCE(t.direction_id, 0)
+            FROM route_variant_stops rvs
+            JOIN stops s ON s.onestop_id = rvs.stop_id
+            ORDER BY rvs.feed_id, rvs.variant_id, rvs.stop_sequence DESC
         )
         SELECT
-          rs.agency_id,
+          rs.feed_id,
           rs.route_id,
           r.short_name,
           r.long_name,
-          rs.direction_id,
-          wd.scheduled_speed_mps  AS weekday_speed_mps,
-          sat.scheduled_speed_mps AS saturday_speed_mps,
-          sun.scheduled_speed_mps AS sunday_speed_mps,
+          rs.variant_id,
+          rs.weekday_speed_mps,
+          rs.saturday_speed_mps,
+          rs.sunday_speed_mps,
           act.actual_weekday_speed_mps,
           act.actual_saturday_speed_mps,
           act.actual_sunday_speed_mps,
           act.avg_dwell_secs,
           lsn.stop_name AS last_stop_name,
           rs.avg_stop_spacing_m
-        FROM route_speed rs
-        JOIN routes r ON r.agency_id = rs.agency_id AND r.route_id = rs.route_id
-        LEFT JOIN route_speed_day_type wd
-          ON wd.agency_id = rs.agency_id AND wd.route_id = rs.route_id
-         AND wd.direction_id = rs.direction_id AND wd.day_type = 'weekday'
-        LEFT JOIN route_speed_day_type sat
-          ON sat.agency_id = rs.agency_id AND sat.route_id = rs.route_id
-         AND sat.direction_id = rs.direction_id AND sat.day_type = 'saturday'
-        LEFT JOIN route_speed_day_type sun
-          ON sun.agency_id = rs.agency_id AND sun.route_id = rs.route_id
-         AND sun.direction_id = rs.direction_id AND sun.day_type = 'sunday'
+        FROM scheduled_by_day_type rs
+        JOIN routes r ON r.onestop_id = rs.route_id
         LEFT JOIN actual_by_day_type act
-          ON act.agency_id = rs.agency_id AND act.route_id = rs.route_id
-         AND act.direction_id = rs.direction_id
-        LEFT JOIN last_stop_per_route_dir lsn
-          ON lsn.agency_id = rs.agency_id AND lsn.route_id = rs.route_id
-         AND lsn.direction_id = rs.direction_id
-        ";
-
-    let order_sql = "ORDER BY rs.agency_id,
+          ON act.feed_id = rs.feed_id
+         AND act.route_id = rs.route_id
+         AND act.variant_id = rs.variant_id
+        LEFT JOIN last_stop_per_variant lsn
+          ON lsn.feed_id = rs.feed_id
+         AND lsn.variant_id = rs.variant_id
+        WHERE ($1::BIGINT IS NULL OR rs.feed_id = $1)
+          AND r.route_type IN (0, 3)
+        ORDER BY rs.feed_id,
           CASE WHEN r.short_name ~ '^[0-9]+$' THEN r.short_name::INTEGER ELSE NULL END NULLS LAST,
-          r.short_name, rs.direction_id";
+          r.short_name, rs.variant_id";
 
-    let rows = sqlx::query_as(&format!(
-        "{base_sql} WHERE ($1::text IS NULL OR rs.agency_id = $1) AND r.route_type IN (0, 3) {order_sql}"
-    ))
-    .bind(agency_filter.map(|a| a.as_str()))
-    .fetch_all(&db.pool)
-    .await?;
+    let rows = sqlx::query_as(sql)
+        .bind(feed_filter.map(|f| f.as_i64()))
+        .fetch_all(&db.pool)
+        .await?;
     Ok(rows)
 }
 
@@ -1139,6 +1097,7 @@ mod tests {
     use super::*;
     use crate::config::AgencyConfig;
     use crate::db::test_utils;
+    use crate::ids::AgencyId;
 
     fn test_agency() -> AgencyConfig {
         AgencyConfig {
