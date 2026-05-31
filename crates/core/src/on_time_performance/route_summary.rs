@@ -60,6 +60,7 @@ pub async fn route_summary(
     feed_filter: Option<FeedId>,
 ) -> Result<Vec<RouteSummary>> {
     // Use dynamic query to avoid sqlx offline cache issues with conditional filter.
+    #[allow(clippy::type_complexity)]
     let rows: Vec<(i64, String, String, String, Option<f64>, Option<f64>, Option<i64>, Option<i64>, Option<i64>)> =
         sqlx::query_as(
             "SELECT

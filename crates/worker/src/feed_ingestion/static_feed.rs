@@ -1339,7 +1339,7 @@ mod tests {
                 gtfs_structures::CalendarDate {
                     service_id: "WD".to_string(),
                     date: NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
-                    exception_type: gtfs_structures::Exception::Removed,
+                    exception_type: gtfs_structures::Exception::Deleted,
                 },
             ],
         );

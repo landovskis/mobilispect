@@ -17,6 +17,7 @@ pub use card::{
 };
 pub use detail::{RouteSpeedDetailDirection, build_detail_directions, fetch_route_info};
 
+#[allow(dead_code)]
 pub(crate) fn direction_label(direction_id: DirectionId) -> &'static str {
     match direction_id.as_i64() {
         0 => "Outbound",
@@ -281,6 +282,7 @@ struct SpeedTrendRow {
 /// Raw row returned by the variant-level speed trend SQL query (new schema).
 #[derive(sqlx::FromRow)]
 struct SpeedTrendVariantRowNew {
+    #[allow(dead_code)]
     variant_id: VariantId,
     direction_id: DirectionId,
     service_date: String,
@@ -1081,7 +1083,7 @@ mod tests {
     use super::*;
     use crate::config::AgencyConfig;
     use crate::db::test_utils;
-    use crate::ids::{AgencyId, FeedId};
+    use crate::ids::FeedId;
 
     fn test_agency() -> AgencyConfig {
         AgencyConfig {

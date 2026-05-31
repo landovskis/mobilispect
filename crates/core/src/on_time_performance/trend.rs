@@ -84,6 +84,7 @@ pub async fn route_trend(
 
     // Daily points: on-time and speed data from route_daily_stats.
     // Average across variants per day to get a single daily point.
+    #[allow(clippy::type_complexity)]
     let rows: Vec<(chrono::NaiveDate, Option<f64>, Option<f64>, Option<f64>)> = sqlx::query_as(
         "SELECT
            rds.service_date,

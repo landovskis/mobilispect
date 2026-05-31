@@ -129,7 +129,7 @@ async fn store_vehicle_positions(
 
         let trip_id = vp.trip.as_ref().and_then(|t| t.trip_id.clone());
         let vehicle_id = vp.vehicle.as_ref().and_then(|v| v.id.clone());
-        let status = vp.current_status.map(vehicle_stop_status_str).flatten();
+        let status = vp.current_status.and_then(vehicle_stop_status_str);
         let stop_seq = vp.current_stop_sequence.map(|s| s as i64);
         let lat = pos.latitude as f64;
         let lon = pos.longitude as f64;
@@ -137,7 +137,7 @@ async fn store_vehicle_positions(
         let speed = pos.speed.map(|s| s as f64);
         // occupancy_status is not present in the current proto definition
         let occupancy: Option<String> = None;
-        let congestion = vp.congestion_level.map(congestion_level_str).flatten();
+        let congestion = vp.congestion_level.and_then(congestion_level_str);
 
         // Resolve stop Onestop ID from feed_stop_ids mapping
         let stop_onestop_id = if let Some(ref gtfs_stop_id) = vp.stop_id {
@@ -191,8 +191,7 @@ async fn store_trip_updates(
         let schedule_rel = tu
             .trip
             .schedule_relationship
-            .map(schedule_relationship_str)
-            .flatten();
+            .and_then(schedule_relationship_str);
 
         for stu in &tu.stop_time_update {
             let gtfs_stop_id = stu.stop_id.as_deref().unwrap_or_default();
@@ -232,8 +231,7 @@ async fn store_trip_updates(
             // Per-stop schedule relationship overrides trip-level if set
             let stu_schedule_rel = stu
                 .schedule_relationship
-                .map(schedule_relationship_str)
-                .flatten()
+                .and_then(schedule_relationship_str)
                 .or_else(|| schedule_rel.clone());
 
             sqlx::query!(
