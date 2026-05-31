@@ -73,7 +73,7 @@ async fn resolve_stop_onestop_id(
     gtfs_stop_id: &str,
 ) -> Option<String> {
     sqlx::query_scalar!(
-        "SELECT onestop_id FROM feed_stop_ids WHERE feed_id = $1 AND gtfs_stop_id = $2",
+        r#"SELECT onestop_id as "onestop_id: String" FROM feed_stop_ids WHERE feed_id = $1 AND gtfs_stop_id = $2"#,
         feed_id.as_i64(),
         gtfs_stop_id
     )
@@ -89,22 +89,6 @@ fn vehicle_stop_status_str(status: i32) -> Option<String> {
         0 => Some("IN_TRANSIT_TO".to_string()),
         1 => Some("INCOMING_AT".to_string()),
         2 => Some("STOPPED_AT".to_string()),
-        _ => None,
-    }
-}
-
-/// Map a GTFS-RT OccupancyStatus proto enum value to its SQL enum string.
-fn occupancy_status_str(status: i32) -> Option<String> {
-    match status {
-        0 => Some("EMPTY".to_string()),
-        1 => Some("MANY_SEATS_AVAILABLE".to_string()),
-        2 => Some("FEW_SEATS_AVAILABLE".to_string()),
-        3 => Some("STANDING_ROOM_ONLY".to_string()),
-        4 => Some("CRUSHED_STANDING_ROOM_ONLY".to_string()),
-        5 => Some("FULL".to_string()),
-        6 => Some("NOT_ACCEPTING_PASSENGERS".to_string()),
-        7 => Some("NO_DATA_AVAILABLE".to_string()),
-        8 => Some("NOT_BOARDABLE".to_string()),
         _ => None,
     }
 }
@@ -151,7 +135,8 @@ async fn store_vehicle_positions(
         let lon = pos.longitude as f64;
         let bearing = pos.bearing.map(|b| b as f64);
         let speed = pos.speed.map(|s| s as f64);
-        let occupancy = vp.occupancy_status.map(occupancy_status_str).flatten();
+        // occupancy_status is not present in the current proto definition
+        let occupancy: Option<String> = None;
         let congestion = vp.congestion_level.map(congestion_level_str).flatten();
 
         // Resolve stop Onestop ID from feed_stop_ids mapping
@@ -237,10 +222,12 @@ async fn store_trip_updates(
                 .and_then(|d| d.time)
                 .and_then(|ts| DateTime::from_timestamp(ts, 0));
 
-            let uncertainty = stu
+            // Proto defines uncertainty as float; DB column is INTEGER — truncate.
+            let uncertainty: Option<i32> = stu
                 .arrival
                 .as_ref()
-                .and_then(|a| a.uncertainty);
+                .and_then(|a| a.uncertainty)
+                .map(|u| u as i32);
 
             // Per-stop schedule relationship overrides trip-level if set
             let stu_schedule_rel = stu

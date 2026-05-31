@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT onestop_id as \"onestop_id: String\" FROM feed_stop_ids WHERE feed_id = $1 AND gtfs_stop_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "onestop_id: String",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2634e53d50bb627d3799e2a5c6230b7bf0b0c9cebb3df0f51f8b39140c48c391"
+}

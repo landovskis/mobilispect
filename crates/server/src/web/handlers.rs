@@ -38,7 +38,7 @@ pub async fn route_speed_detail(
     let agency_id = AgencyId::from(agency_id);
     let route_id = RouteId::from(route_id);
 
-    let (short_name, long_name) = match fetch_route_info(&state.db, &agency_id, &route_id).await {
+    let (short_name, long_name) = match fetch_route_info(&state.db, &route_id).await {
         Ok(Some(r)) => r,
         Ok(None) => {
             return (
@@ -253,7 +253,7 @@ pub async fn speed_page(
 
     let agencies: Vec<(String, String)> = state
         .config
-        .agencies
+        .feeds
         .iter()
         .map(|a| (a.id.to_string(), a.name.clone()))
         .collect();
@@ -386,7 +386,7 @@ pub async fn frequency_page(
 
     let agencies: Vec<(String, String)> = state
         .config
-        .agencies
+        .feeds
         .iter()
         .map(|a| (a.id.to_string(), a.name.clone()))
         .collect();

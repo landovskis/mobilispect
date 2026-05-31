@@ -1,10 +1,11 @@
 use anyhow::Result;
-use chrono::{NaiveDate, Utc};
+use chrono::{NaiveDate, Timelike, Utc};
 use serde::Serialize;
+use tracing::warn;
 
 use crate::config::AgencyConfig;
 use crate::db::Database;
-use crate::ids::{AgencyId, DirectionId, RouteId, VariantId};
+use crate::ids::{AgencyId, DirectionId, FeedId, RouteId, VariantId};
 
 type SpeedPoint = (String, f64, Option<f64>);
 type DayBuckets = (Vec<SpeedPoint>, Vec<SpeedPoint>, Vec<SpeedPoint>);
@@ -504,32 +505,34 @@ pub async fn route_speed_trend_by_direction(
     Ok(build_direction_trends_with_scheduled(rows))
 }
 
-/// Compute scheduled average speed (m/s) for every route+direction and store in `route_speed`.
+/// Compute scheduled average speed (m/s) for every route+variant and store in `route_speed`.
 /// Reads only static GTFS tables — safe to call on startup after GTFS load.
 pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    let now = Utc::now().to_rfc3339();
-    let agency_id = AgencyId::from(agency.id.to_string());
+    let now = Utc::now();
+    let feed_id = FeedId::from(agency.id);
 
-    // All distinct route + direction combinations that have trips with stops.
-    let combos: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
-         FROM trips t
-         JOIN scheduled_stops ss ON ss.trip_id = t.trip_id AND ss.agency_id = t.agency_id
-         WHERE t.agency_id = $1
-         GROUP BY t.route_id, t.direction_id
-         HAVING COUNT(ss.stop_sequence) >= 2",
+    // All distinct primary variants with enough stops for speed computation.
+    // trips.route_id and trips.direction_id were dropped in migration 013;
+    // route_id and direction_id now live in route_variants.
+    let combos: Vec<(String, String)> = sqlx::query_as(
+        "SELECT rv.variant_id, fri.onestop_id AS onestop_route_id
+         FROM route_variants rv
+         JOIN feed_route_ids fri ON fri.feed_id = rv.feed_id AND fri.gtfs_route_id = rv.route_id
+         JOIN route_variant_stops rvs ON rvs.feed_id = rv.feed_id AND rvs.variant_id = rv.variant_id
+         WHERE rv.feed_id = $1 AND rv.is_primary = TRUE
+         GROUP BY rv.variant_id, fri.onestop_id
+         HAVING COUNT(rvs.stop_sequence) >= 2",
     )
-    .bind(&agency_id)
+    .bind(feed_id.as_i64())
     .fetch_all(&db.pool)
     .await?;
 
-    for (route_id, direction_id) in &combos {
+    for (variant_id, onestop_route_id) in &combos {
         let trips: Vec<(String,)> = sqlx::query_as(
-            "SELECT trip_id FROM trips WHERE agency_id = $1 AND route_id = $2 AND COALESCE(direction_id, 0) = $3",
+            "SELECT trip_id FROM trips WHERE feed_id = $1 AND variant_id = $2",
         )
-        .bind(&agency_id)
-        .bind(route_id)
-        .bind(direction_id)
+        .bind(feed_id.as_i64())
+        .bind(variant_id)
         .fetch_all(&db.pool)
         .await?;
 
@@ -539,11 +542,11 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
             let stops: Vec<(f64, f64, String)> = sqlx::query_as(
                 "SELECT s.stop_lat, s.stop_lon, ss.arrival_time
                  FROM scheduled_stops ss
-                 JOIN stops s ON s.stop_id = ss.stop_id AND s.agency_id = ss.agency_id
-                 WHERE ss.agency_id = $1 AND ss.trip_id = $2
+                 JOIN stops s ON s.onestop_id = ss.stop_id
+                 WHERE ss.feed_id = $1 AND ss.trip_id = $2
                  ORDER BY ss.stop_sequence",
             )
-            .bind(&agency_id)
+            .bind(feed_id.as_i64())
             .bind(trip_id)
             .fetch_all(&db.pool)
             .await?;
@@ -574,19 +577,16 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
             continue;
         }
 
-        // Derive avg_stop_spacing_m from the primary variant's canonical stop list,
-        // not from averaging across all trips (which conflates short-turns and full routes).
+        // Derive avg_stop_spacing_m from this variant's canonical stop list.
         let primary_stops: Vec<(f64, f64)> = sqlx::query_as(
             "SELECT s.stop_lat, s.stop_lon
              FROM route_variant_stops rvs
-             JOIN route_variants rv ON rv.agency_id = rvs.agency_id AND rv.variant_id = rvs.variant_id
-             JOIN stops s ON s.agency_id = rvs.agency_id AND s.stop_id = rvs.stop_id
-             WHERE rvs.agency_id = $1 AND rv.route_id = $2 AND rv.direction_id = $3 AND rv.is_primary = TRUE
+             JOIN stops s ON s.onestop_id = rvs.stop_id
+             WHERE rvs.feed_id = $1 AND rvs.variant_id = $2
              ORDER BY rvs.stop_sequence",
         )
-        .bind(&agency_id)
-        .bind(route_id)
-        .bind(direction_id)
+        .bind(feed_id.as_i64())
+        .bind(variant_id)
         .fetch_all(&db.pool)
         .await?;
 
@@ -610,21 +610,21 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
 
         sqlx::query(
             "INSERT INTO route_speed
-             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
+             (feed_id, route_id, variant_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (agency_id, route_id, direction_id) DO UPDATE SET
+             ON CONFLICT (feed_id, route_id, variant_id) DO UPDATE SET
                scheduled_speed_mps = EXCLUDED.scheduled_speed_mps,
                avg_stop_spacing_m = EXCLUDED.avg_stop_spacing_m,
                trip_count = EXCLUDED.trip_count,
                computed_at = EXCLUDED.computed_at",
         )
-        .bind(&agency_id)
-        .bind(route_id)
-        .bind(direction_id)
+        .bind(feed_id.as_i64())
+        .bind(onestop_route_id)
+        .bind(variant_id)
         .bind(avg_speed)
         .bind(avg_stop_spacing_m)
         .bind(trip_count)
-        .bind(&now)
+        .bind(now)
         .execute(&db.pool)
         .await?;
     }
@@ -634,187 +634,81 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
 
 /// Compute scheduled average speed per route+direction broken down by day type
 /// (weekday / saturday / sunday) using GTFS calendar data.
-/// Stores results in `route_speed_day_type`.
+///
+/// NOTE: `route_speed_day_type` was dropped in migration 010. Day-type breakdowns
+/// are now derived from `route_daily_stats` at query time. This function is a no-op.
+#[allow(unused_variables)]
 pub async fn compute_route_speed_by_day_type(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    let now = Utc::now().to_rfc3339();
-    let agency_id = AgencyId::from(agency.id.to_string());
-
-    let combos: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
-         FROM trips t
-         JOIN scheduled_stops ss ON ss.trip_id = t.trip_id AND ss.agency_id = t.agency_id
-         WHERE t.agency_id = $1
-         GROUP BY t.route_id, t.direction_id
-         HAVING COUNT(ss.stop_sequence) >= 2",
-    )
-    .bind(&agency_id)
-    .fetch_all(&db.pool)
-    .await?;
-
-    for (route_id, direction_id) in &combos {
-        let trips: Vec<(String, String)> = sqlx::query_as(
-            "SELECT t.trip_id, t.service_id FROM trips t
-             WHERE t.agency_id = $1 AND t.route_id = $2 AND COALESCE(t.direction_id, 0) = $3",
-        )
-        .bind(&agency_id)
-        .bind(route_id)
-        .bind(direction_id)
-        .fetch_all(&db.pool)
-        .await?;
-
-        // day_type -> Vec<speed_mps>
-        let mut day_speeds: std::collections::HashMap<&'static str, Vec<f64>> =
-            std::collections::HashMap::new();
-
-        for (trip_id, service_id) in &trips {
-            let cal: Option<(bool, bool, bool, bool, bool, bool, bool)> = sqlx::query_as(
-                "SELECT monday, tuesday, wednesday, thursday, friday, saturday, sunday
-                 FROM calendar WHERE agency_id = $1 AND service_id = $2",
-            )
-            .bind(&agency_id)
-            .bind(service_id)
-            .fetch_optional(&db.pool)
-            .await?;
-
-            let Some((mon, tue, wed, thu, fri, sat, sun)) = cal else {
-                continue;
-            };
-
-            let stops: Vec<(f64, f64, String)> = sqlx::query_as(
-                "SELECT s.stop_lat, s.stop_lon, ss.arrival_time
-                 FROM scheduled_stops ss
-                 JOIN stops s ON s.stop_id = ss.stop_id AND s.agency_id = ss.agency_id
-                 WHERE ss.agency_id = $1 AND ss.trip_id = $2
-                 ORDER BY ss.stop_sequence",
-            )
-            .bind(&agency_id)
-            .bind(trip_id)
-            .fetch_all(&db.pool)
-            .await?;
-
-            if stops.len() < 2 {
-                continue;
-            }
-
-            let total_distance_m: f64 = stops
-                .windows(2)
-                .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
-                .sum();
-
-            let first_secs = parse_time_secs(&stops.first().unwrap().2);
-            let last_secs = parse_time_secs(&stops.last().unwrap().2);
-            let duration_secs = match (first_secs, last_secs) {
-                (Some(f), Some(l)) if l > f => (l - f) as f64,
-                _ => continue,
-            };
-
-            if total_distance_m <= 0.0 || duration_secs <= 0.0 {
-                continue;
-            }
-
-            let speed = total_distance_m / duration_secs;
-
-            if mon || tue || wed || thu || fri {
-                day_speeds.entry("weekday").or_default().push(speed);
-            }
-            if sat {
-                day_speeds.entry("saturday").or_default().push(speed);
-            }
-            if sun {
-                day_speeds.entry("sunday").or_default().push(speed);
-            }
-        }
-
-        for (day_type, speeds) in &day_speeds {
-            let avg_speed = speeds.iter().sum::<f64>() / speeds.len() as f64;
-            let trip_count = speeds.len() as i64;
-            sqlx::query(
-                "INSERT INTO route_speed_day_type
-                 (agency_id, route_id, direction_id, day_type, scheduled_speed_mps, trip_count, computed_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7)
-                 ON CONFLICT (agency_id, route_id, direction_id, day_type) DO UPDATE SET
-                   scheduled_speed_mps = EXCLUDED.scheduled_speed_mps,
-                   trip_count          = EXCLUDED.trip_count,
-                   computed_at         = EXCLUDED.computed_at",
-            )
-            .bind(agency_id.as_str())
-            .bind(route_id.as_str())
-            .bind(direction_id)
-            .bind(*day_type)
-            .bind(avg_speed)
-            .bind(trip_count)
-            .bind(now.as_str())
-            .execute(&db.pool)
-            .await?;
-        }
-    }
-
+    // route_speed_day_type dropped in migration 010; day-type breakdown is now
+    // computed on-the-fly from route_daily_stats.
     Ok(())
 }
 
-/// Compute actual average speed per route+direction for a service date from stop arrival times.
-/// Uses `stop_time_events.arrival_time_unix` to determine actual travel time per trip.
+/// Compute actual average speed per route+variant for a service date from stop arrival times.
+/// Uses `stop_time_events.arrival_time` (TIMESTAMPTZ) to determine actual travel time per trip.
+/// Results are written to `route_daily_stats` (updating actual_speed_mps / avg_dwell_secs).
 pub async fn compute_route_speed_daily(
     db: &Database,
     agency: &AgencyConfig,
     service_date: NaiveDate,
 ) -> Result<()> {
-    let date_str = service_date.to_string();
-    let now = Utc::now().to_rfc3339();
-    let agency_id = AgencyId::from(agency.id.to_string());
+    let now = Utc::now();
+    let feed_id = FeedId::from(agency.id);
 
-    // All distinct route + direction + variant combos with stop time events on this date.
-    let combos: Vec<(String, i64, String)> = sqlx::query_as(
+    // All distinct variant_id + onestop_route_id combos with arrival times on this date.
+    let combos: Vec<(String, String)> = sqlx::query_as(
         "SELECT DISTINCT
-             t.route_id,
-             COALESCE(t.direction_id, 0) AS direction_id,
-             COALESCE(t.variant_id, '')  AS variant_id
+             t.variant_id,
+             fri.onestop_id AS onestop_route_id
          FROM stop_time_events ste
-         JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-         WHERE ste.agency_id = $1 AND ste.observed_at::TIMESTAMPTZ::DATE = $2::DATE
-           AND ste.arrival_time_unix IS NOT NULL",
+         JOIN trips t ON t.trip_id = ste.trip_id AND t.feed_id = ste.feed_id
+         JOIN route_variants rv ON rv.feed_id = t.feed_id AND rv.variant_id = t.variant_id
+         JOIN feed_route_ids fri ON fri.feed_id = rv.feed_id AND fri.gtfs_route_id = rv.route_id
+         WHERE ste.feed_id = $1
+           AND ste.observed_at::DATE = $2::DATE
+           AND ste.arrival_time IS NOT NULL",
     )
-    .bind(&agency_id)
-    .bind(&date_str)
+    .bind(feed_id.as_i64())
+    .bind(service_date)
     .fetch_all(&db.pool)
     .await?;
 
-    for (route_id, direction_id, variant_id) in &combos {
+    for (variant_id, onestop_route_id) in &combos {
         let trips: Vec<(String,)> = sqlx::query_as(
             "SELECT DISTINCT ste.trip_id
              FROM stop_time_events ste
-             JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-             WHERE t.agency_id = $1 AND t.route_id = $2
-               AND COALESCE(t.variant_id, '') = $3
-               AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
-               AND ste.arrival_time_unix IS NOT NULL",
+             JOIN trips t ON t.trip_id = ste.trip_id AND t.feed_id = ste.feed_id
+             WHERE t.feed_id = $1
+               AND t.variant_id = $2
+               AND ste.observed_at::DATE = $3::DATE
+               AND ste.arrival_time IS NOT NULL",
         )
-        .bind(&agency_id)
-        .bind(route_id)
+        .bind(feed_id.as_i64())
         .bind(variant_id)
-        .bind(&date_str)
+        .bind(service_date)
         .fetch_all(&db.pool)
         .await?;
 
         let mut trip_speeds: Vec<f64> = Vec::new();
 
         for (trip_id,) in &trips {
-            // Get last observed arrival_time_unix per stop (closest to actual arrival).
-            let stops: Vec<(f64, f64, i64)> = sqlx::query_as(
-                "SELECT s.stop_lat, s.stop_lon, MAX(ste.arrival_time_unix) as arrival_time_unix
+            // Get the latest observed arrival_time per scheduled stop for this trip.
+            let stops: Vec<(f64, f64, chrono::DateTime<Utc>)> = sqlx::query_as(
+                "SELECT s.stop_lat, s.stop_lon,
+                        MAX(ste.arrival_time) AS arrival_time
                  FROM stop_time_events ste
                  JOIN scheduled_stops ss
-                   ON ss.trip_id = ste.trip_id AND ss.stop_id = ste.stop_id AND ss.agency_id = ste.agency_id
-                 JOIN stops s ON s.stop_id = ste.stop_id AND s.agency_id = ste.agency_id
-                 WHERE ste.agency_id = $1 AND ste.trip_id = $2
-                   AND ste.observed_at::TIMESTAMPTZ::DATE = $3::DATE
-                   AND ste.arrival_time_unix IS NOT NULL
+                   ON ss.feed_id = ste.feed_id AND ss.trip_id = ste.trip_id
+                 JOIN stops s ON s.onestop_id = ste.stop_id
+                 WHERE ste.feed_id = $1 AND ste.trip_id = $2
+                   AND ste.observed_at::DATE = $3::DATE
+                   AND ste.arrival_time IS NOT NULL
                  GROUP BY ss.stop_sequence, s.stop_lat, s.stop_lon
                  ORDER BY ss.stop_sequence",
             )
-            .bind(&agency_id)
+            .bind(feed_id.as_i64())
             .bind(trip_id)
-            .bind(&date_str)
+            .bind(service_date)
             .fetch_all(&db.pool)
             .await?;
 
@@ -827,9 +721,9 @@ pub async fn compute_route_speed_daily(
                 .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
                 .sum();
 
-            let first_unix = stops.first().unwrap().2;
-            let last_unix = stops.last().unwrap().2;
-            let duration_secs = (last_unix - first_unix) as f64;
+            let first_ts = stops.first().unwrap().2;
+            let last_ts = stops.last().unwrap().2;
+            let duration_secs = (last_ts - first_ts).num_seconds() as f64;
 
             if total_distance_m > 0.0 && duration_secs > 0.0 {
                 trip_speeds.push(total_distance_m / duration_secs);
@@ -843,49 +737,50 @@ pub async fn compute_route_speed_daily(
         let avg_speed = trip_speeds.iter().sum::<f64>() / trip_speeds.len() as f64;
         let trip_count = trip_speeds.len() as i64;
 
-        let avg_dwell_secs: Option<f64> = sqlx::query_scalar!(
+        let avg_dwell_secs: Option<f64> = sqlx::query_scalar(
             "SELECT AVG(dwell_secs)::DOUBLE PRECISION
              FROM (
                  SELECT DISTINCT ON (ste.trip_id, ste.stop_id)
                      LEAST(ste.dwell_secs, 300) AS dwell_secs
                  FROM stop_time_events ste
-                 JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-                 WHERE ste.agency_id = $1
-                   AND t.route_id = $2
-                   AND COALESCE(t.direction_id, 0) = $3
-                   AND ste.observed_at::TIMESTAMPTZ::DATE = $4::DATE
-                   AND COALESCE(t.variant_id, '') = $5
+                 JOIN trips t ON t.trip_id = ste.trip_id AND t.feed_id = ste.feed_id
+                 WHERE ste.feed_id = $1
+                   AND t.variant_id = $2
+                   AND ste.observed_at::DATE = $3::DATE
                    AND ste.dwell_secs > 0
-                 ORDER BY ste.trip_id, ste.stop_id, ste.arrival_time_unix DESC
+                 ORDER BY ste.trip_id, ste.stop_id, ste.arrival_time DESC
              ) deduped",
-            &agency_id as &str,
-            route_id as &str,
-            *direction_id,
-            &date_str as &str,
-            variant_id as &str,
         )
+        .bind(feed_id.as_i64())
+        .bind(variant_id)
+        .bind(service_date)
         .fetch_one(&db.pool)
         .await?;
 
-        sqlx::query!(
-            "INSERT INTO route_speed_daily
-             (agency_id, route_id, service_date, direction_id, variant_id, actual_speed_mps, trip_count, avg_dwell_secs, computed_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-             ON CONFLICT (agency_id, route_id, service_date, direction_id, variant_id) DO UPDATE SET
+        // Write speed data into route_daily_stats. If a row already exists (written by
+        // compute_route_daily), update the speed fields; otherwise insert a stub row.
+        sqlx::query(
+            "INSERT INTO route_daily_stats
+             (feed_id, route_id, service_date, variant_id,
+              on_time_stops, total_stops, skipped_stops,
+              trips_run, trips_total,
+              avg_delay_secs, max_delay_secs,
+              actual_speed_mps, avg_dwell_secs,
+              computed_at)
+             VALUES ($1, $2, $3, $4, 0, 0, 0, $5, 0, NULL, NULL, $6, $7, $8)
+             ON CONFLICT (feed_id, route_id, service_date, variant_id) DO UPDATE SET
                actual_speed_mps = EXCLUDED.actual_speed_mps,
-               trip_count = EXCLUDED.trip_count,
-               avg_dwell_secs = EXCLUDED.avg_dwell_secs,
-               computed_at = EXCLUDED.computed_at",
-            &agency_id,
-            route_id,
-            date_str,
-            direction_id,
-            variant_id,
-            avg_speed,
-            trip_count,
-            avg_dwell_secs as Option<f64>,
-            now,
+               avg_dwell_secs   = EXCLUDED.avg_dwell_secs,
+               computed_at      = EXCLUDED.computed_at",
         )
+        .bind(feed_id.as_i64())
+        .bind(onestop_route_id)
+        .bind(service_date)
+        .bind(variant_id)
+        .bind(trip_count)
+        .bind(avg_speed)
+        .bind(avg_dwell_secs)
+        .bind(now)
         .execute(&db.pool)
         .await?;
     }
@@ -1007,56 +902,61 @@ pub async fn route_speed_summary(
     Ok(rows)
 }
 
-/// Compute actual average speed per route+direction for each UTC hour, from stop arrival times
+/// Compute actual average speed per route+variant for each UTC hour, from stop arrival times
 /// observed in the last 4 hours. Called after every GTFS-RT poll so the data stays fresh.
 pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    let now = Utc::now().to_rfc3339();
-    let agency_id = AgencyId::from(agency.id.to_string());
+    let now = Utc::now();
+    let feed_id = FeedId::from(agency.id);
 
-    let combos: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT DISTINCT t.route_id, COALESCE(t.direction_id, 0) as direction_id
+    // All distinct variant_id + onestop_route_id combos with arrivals in the last 4 hours.
+    let combos: Vec<(String, String)> = sqlx::query_as(
+        "SELECT DISTINCT t.variant_id, fri.onestop_id AS onestop_route_id
          FROM stop_time_events ste
-         JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-         WHERE ste.agency_id = $1 AND ste.arrival_time_unix IS NOT NULL
-           AND ste.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '4 hours'",
+         JOIN trips t ON t.trip_id = ste.trip_id AND t.feed_id = ste.feed_id
+         JOIN route_variants rv ON rv.feed_id = t.feed_id AND rv.variant_id = t.variant_id
+         JOIN feed_route_ids fri ON fri.feed_id = rv.feed_id AND fri.gtfs_route_id = rv.route_id
+         WHERE ste.feed_id = $1
+           AND ste.arrival_time IS NOT NULL
+           AND ste.observed_at >= NOW() - INTERVAL '4 hours'",
     )
-    .bind(&agency_id)
+    .bind(feed_id.as_i64())
     .fetch_all(&db.pool)
     .await?;
 
-    for (route_id, direction_id) in &combos {
+    for (variant_id, onestop_route_id) in &combos {
         let trips: Vec<(String,)> = sqlx::query_as(
             "SELECT DISTINCT ste.trip_id
              FROM stop_time_events ste
-             JOIN trips t ON t.trip_id = ste.trip_id AND t.agency_id = ste.agency_id
-             WHERE t.agency_id = $1 AND t.route_id = $2
-               AND COALESCE(t.direction_id, 0) = $3
-               AND ste.arrival_time_unix IS NOT NULL
-               AND ste.observed_at::TIMESTAMPTZ >= NOW() - INTERVAL '4 hours'",
+             JOIN trips t ON t.trip_id = ste.trip_id AND t.feed_id = ste.feed_id
+             WHERE t.feed_id = $1
+               AND t.variant_id = $2
+               AND ste.arrival_time IS NOT NULL
+               AND ste.observed_at >= NOW() - INTERVAL '4 hours'",
         )
-        .bind(&agency_id)
-        .bind(route_id)
-        .bind(direction_id)
+        .bind(feed_id.as_i64())
+        .bind(variant_id)
         .fetch_all(&db.pool)
         .await?;
 
-        // Accumulate per-hour speed samples: hour_utc -> Vec<speed_mps>
-        let mut hour_speeds: std::collections::HashMap<String, Vec<f64>> =
+        // Accumulate per-hour speed samples: hour_ts -> Vec<speed_mps>
+        let mut hour_speeds: std::collections::HashMap<chrono::DateTime<Utc>, Vec<f64>> =
             std::collections::HashMap::new();
 
         for (trip_id,) in &trips {
-            let stops: Vec<(f64, f64, i64)> = sqlx::query_as(
-                "SELECT s.stop_lat, s.stop_lon, MAX(ste.arrival_time_unix) as arrival_time_unix
+            // Get the latest observed arrival_time per scheduled stop for this trip.
+            let stops: Vec<(f64, f64, chrono::DateTime<Utc>)> = sqlx::query_as(
+                "SELECT s.stop_lat, s.stop_lon,
+                        MAX(ste.arrival_time) AS arrival_time
                  FROM stop_time_events ste
                  JOIN scheduled_stops ss
-                   ON ss.trip_id = ste.trip_id AND ss.stop_id = ste.stop_id AND ss.agency_id = ste.agency_id
-                 JOIN stops s ON s.stop_id = ste.stop_id AND s.agency_id = ste.agency_id
-                 WHERE ste.agency_id = $1 AND ste.trip_id = $2
-                   AND ste.arrival_time_unix IS NOT NULL
+                   ON ss.feed_id = ste.feed_id AND ss.trip_id = ste.trip_id
+                 JOIN stops s ON s.onestop_id = ste.stop_id
+                 WHERE ste.feed_id = $1 AND ste.trip_id = $2
+                   AND ste.arrival_time IS NOT NULL
                  GROUP BY ss.stop_sequence, s.stop_lat, s.stop_lon
                  ORDER BY ss.stop_sequence",
             )
-            .bind(&agency_id)
+            .bind(feed_id.as_i64())
             .bind(trip_id)
             .fetch_all(&db.pool)
             .await?;
@@ -1070,40 +970,44 @@ pub async fn compute_route_speed_hourly(db: &Database, agency: &AgencyConfig) ->
                 .map(|w| haversine_meters(w[0].0, w[0].1, w[1].0, w[1].1))
                 .sum();
 
-            let first_unix = stops.first().unwrap().2;
-            let last_unix = stops.last().unwrap().2;
-            let duration_secs = (last_unix - first_unix) as f64;
+            let first_ts = stops.first().unwrap().2;
+            let last_ts = stops.last().unwrap().2;
+            let duration_secs = (last_ts - first_ts).num_seconds() as f64;
 
             if total_distance_m > 0.0 && duration_secs > 0.0 {
-                let hour_utc = chrono::DateTime::from_timestamp(first_unix, 0)
-                    .map(|dt: chrono::DateTime<Utc>| dt.format("%Y-%m-%d %H").to_string())
-                    .unwrap_or_else(|| "1970-01-01 00".to_string());
+                // Truncate to the start of the UTC hour
+                use chrono::Timelike;
+                let hour_ts = first_ts
+                    .with_minute(0)
+                    .and_then(|dt| dt.with_second(0))
+                    .and_then(|dt| dt.with_nanosecond(0))
+                    .unwrap_or(first_ts);
                 hour_speeds
-                    .entry(hour_utc)
+                    .entry(hour_ts)
                     .or_default()
                     .push(total_distance_m / duration_secs);
             }
         }
 
-        for (hour_utc, speeds) in &hour_speeds {
+        for (hour_ts, speeds) in &hour_speeds {
             let avg_speed = speeds.iter().sum::<f64>() / speeds.len() as f64;
             let trip_count = speeds.len() as i64;
             sqlx::query(
                 "INSERT INTO route_speed_hourly
-                 (agency_id, route_id, direction_id, hour_utc, actual_speed_mps, trip_count, computed_at)
+                 (feed_id, route_id, variant_id, hour, actual_speed_mps, trip_count, computed_at)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)
-                 ON CONFLICT (agency_id, route_id, direction_id, hour_utc) DO UPDATE SET
+                 ON CONFLICT (feed_id, route_id, variant_id, hour) DO UPDATE SET
                    actual_speed_mps = EXCLUDED.actual_speed_mps,
                    trip_count = EXCLUDED.trip_count,
                    computed_at = EXCLUDED.computed_at",
             )
-            .bind(agency_id.as_str())
-            .bind(route_id.as_str())
-            .bind(direction_id)
-            .bind(hour_utc.as_str())
+            .bind(feed_id.as_i64())
+            .bind(onestop_route_id)
+            .bind(variant_id)
+            .bind(hour_ts)
             .bind(avg_speed)
             .bind(trip_count)
-            .bind(now.as_str())
+            .bind(now)
             .execute(&db.pool)
             .await?;
         }
