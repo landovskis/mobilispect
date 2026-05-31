@@ -1,15 +1,15 @@
 use anyhow::Result;
-use chrono::NaiveDate;
-use tracing::info;
+use chrono::{NaiveDate, Utc};
+use tracing::{info, warn};
 
 use crate::config::{AgencyConfig, Config};
 use crate::db::Database;
-use crate::ids::AgencyId;
+use crate::ids::{AgencyId, FeedId};
 
 pub struct TripResult {
-    /// 1 if all stops were within the on-time window, 0 otherwise.
+    /// Number of stops observed within the on-time window.
     /// Stored as i64 for direct use in SQL SUM aggregations.
-    pub on_time: i64,
+    pub on_time_stops: i64,
     pub avg_delay_secs: f64,
     /// Algebraically largest delay (most late). Negative when all stops are early.
     pub max_delay_secs: f64,
@@ -22,23 +22,19 @@ pub fn classify_trip_delays(
 ) -> TripResult {
     if delays.is_empty() {
         return TripResult {
-            on_time: 0,
+            on_time_stops: 0,
             avg_delay_secs: 0.0,
             max_delay_secs: 0.0,
         };
     }
     let avg_delay_secs = delays.iter().sum::<i64>() as f64 / delays.len() as f64;
     let max_delay_secs = delays.iter().copied().max().unwrap_or(0) as f64;
-    let on_time = if delays
+    let on_time_stops = delays
         .iter()
-        .all(|&d| d >= early_threshold && d <= late_threshold)
-    {
-        1
-    } else {
-        0
-    };
+        .filter(|&&d| d >= early_threshold && d <= late_threshold)
+        .count() as i64;
     TripResult {
-        on_time,
+        on_time_stops,
         avg_delay_secs,
         max_delay_secs,
     }
@@ -126,7 +122,7 @@ pub async fn compute_route_daily(
             trip.trip_id,
             date_str,
             trip.route_id,
-            trip_result.on_time,
+            trip_result.on_time_stops,
             trip_result.avg_delay_secs,
             trip_result.max_delay_secs,
             now,
@@ -209,21 +205,21 @@ mod tests {
     fn classify_all_on_time_returns_one() {
         let delays = vec![0i64, 60, 120];
         let r = classify_trip_delays(&delays, -60, 300);
-        assert_eq!(r.on_time, 1);
+        assert_eq!(r.on_time_stops, 3);
     }
 
     #[test]
     fn classify_one_late_returns_zero() {
         let delays = vec![0i64, 60, 400];
         let r = classify_trip_delays(&delays, -60, 300);
-        assert_eq!(r.on_time, 0);
+        assert_eq!(r.on_time_stops, 2);
     }
 
     #[test]
     fn classify_one_early_returns_zero() {
         let delays = vec![0i64, 60, -120];
         let r = classify_trip_delays(&delays, -60, 300);
-        assert_eq!(r.on_time, 0);
+        assert_eq!(r.on_time_stops, 2);
     }
 
     #[test]
