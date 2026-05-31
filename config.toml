@@ -10,7 +10,11 @@ retention_days = 30
 name = "Montreal"
 timezone = "America/Toronto"
 
-[[region.agencies]]
+[[region.networks]]
+id = 0
+name = "Montreal Transit"
+
+[[region.networks.feeds]]
 id = 0
 name = "STM"
 gtfs_static_url = "https://www.stm.info/sites/default/files/gtfs/gtfs_stm.zip"
