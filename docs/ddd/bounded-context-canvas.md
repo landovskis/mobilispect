@@ -10,19 +10,24 @@ Four contexts, aligned to the Cargo crate structure.
 **Purpose:** Download, parse, and persist GTFS data into the domain model.
 
 **Owns:**
+- Config-driven upsert of `regions`, `networks`, `feeds` on startup
 - GTFS static feed download, ZIP extraction, CSV parsing
-- GTFS-RT protobuf polling and decoding
+- Transitland API resolution: GTFS IDs → Onestop IDs (agencies, routes, stops)
+- Upsert of canonical entities (`agencies`, `routes`, `stops`, `stations`) and junction tables
 - Upsert logic for all schedule and real-time data
+- GTFS-RT protobuf polling and decoding
 
 **Commands:**
-- `IngestStaticFeed(agency_id: AgencyId, url: &str)` — downloads and upserts a full GTFS static archive
-- `PollRealtimeFeed(agency_id: AgencyId, url: &str)` — fetches and processes one GTFS-RT snapshot
+- `IngestStaticFeed(feed_id: FeedId, url: &str)` — downloads and upserts a full GTFS static archive
+- `PollRealtimeFeed(feed_id: FeedId, url: &str)` — fetches and processes one GTFS-RT snapshot
 
-**External dependency:** GTFS provider (upstream, opaque). Treated as an untrusted external model — all GTFS types are translated at the boundary.
+**External dependencies:**
+- GTFS provider (upstream, opaque) — all GTFS types translated at boundary
+- Transitland API (upstream) — resolves canonical Onestop IDs; all Transitland types translated in `crates/worker/src/transitland/`
 
 **Also writes:** `stop_time_events`, `vehicle_positions` tables (real-time observations from GTFS-RT).
 
-**Policy:** No GTFS-native types (`gtfs_structures::*`, prost-generated protobuf types) may leak past this context.
+**Policy:** No GTFS-native types (`gtfs_structures::*`, prost-generated protobuf types) may leak past this context. No Transitland API calls outside `crates/worker/src/transitland/`.
 
 ---
 
@@ -32,7 +37,7 @@ Four contexts, aligned to the Cargo crate structure.
 **Purpose:** The planned timetable as stored in Postgres. Source of truth for what was scheduled.
 
 **Owns:**
-- `routes`, `trips`, `stops`, `scheduled_stops`, `route_variants`, `route_variant_stops`, `calendar` tables
+- `routes`, `trips`, `stops`, `stations`, `scheduled_stops`, `route_variants`, `route_variant_stops`, `services`, `service_exceptions` tables
 - Query functions that return planned data
 
 **Consumed by:** Performance (read-only)
@@ -50,7 +55,7 @@ Four contexts, aligned to the Cargo crate structure.
 - Delay computation, on-time classification
 - Speed computation (scheduled and actual)
 - Headway computation
-- `route_daily`, `trip_results`, `route_speed`, `route_speed_daily`, `route_speed_hourly`, `route_speed_day_type` tables
+- `route_daily_stats`, `trip_results`, `route_speed`, `route_speed_hourly` tables
 - Query functions returning computed metrics
 
 **Depends on:** Schedule (reads planned data); real-time delay observations written by Feed Ingestion.

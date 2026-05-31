@@ -4,12 +4,17 @@ Terms used consistently across code, specs, and conversations. When a new featur
 
 | Term | Rust Type | Definition |
 |------|-----------|------------|
-| Agency | `AgencyId` | A transit operating company (e.g. STM). Top-level grouping for all routes. |
-| Route | `RouteId` | A named service corridor. Has one or more variants. |
-| Variant | `VariantId` | A specific stop-sequence pattern within a route. Different variants of the same route may serve different stops. |
-| Trip | `TripId` | A single scheduled run of a route on a specific service day. |
-| Stop | `StopId` | A physical or logical transit stop where passengers board or alight. |
-| Service | `ServiceId` | A GTFS service calendar that defines which calendar days a trip operates. |
+| Region | `RegionId` | A geographic area served by one or more transit networks (e.g. Greater Montreal). Stored in DB; config-assigned id. |
+| Network | `NetworkId` | A transit network serving a region, built from one or more feeds (e.g. Montreal Transit). Stored in DB; config-assigned id. |
+| Feed | `FeedId` | A single GTFS data source: one static zip URL plus optional RT URLs. The ingest unit and partition key for all operational data. Replaces the former AgencyConfig concept. |
+| Agency | `AgencyId` | The planning authority responsible for a set of routes. Ingested from GTFS `agency.txt`. Keyed by Transitland operator Onestop ID (e.g. `o-f25d-stm`). Distinct from operator (who physically runs vehicles, not modelled). |
+| Station | `StationId` | A named interchange location (GTFS location_type=1) that contains one or more stops. Keyed by Transitland stop Onestop ID. |
+| Route | `RouteId` | A named service corridor. Has one or more variants. Keyed by Transitland route Onestop ID (e.g. `r-f25e-14`). |
+| Variant | `VariantId` | A specific stop-sequence pattern within a route direction. SHA-256 of the ordered canonical stop Onestop IDs. The same physical pattern retains its id across route renames or feed versions. |
+| Trip | `TripId` | A single scheduled run of a variant on a specific service day. Belongs to a variant (not directly to a route). |
+| Stop | `StopId` | A boarding/alighting location (GTFS location_type=0). Keyed by Transitland stop Onestop ID. De-duplicated across feeds. |
+| Service | `ServiceId` | A GTFS service calendar that defines which calendar days a trip operates. Belongs to an agency within a feed. |
+| Onestop ID | `String` | Transitland's globally stable canonical identifier. Prefixes: `o-` agency, `r-` route, `s-` stop/station. Used as the primary key for Agency, Route, Stop, and Station. |
 | Vehicle | `VehicleId` | A physical vehicle serving a trip in real time. |
 | Direction | `DirectionId` | Outbound (0) or inbound (1) for a route. |
 | Delay | `i64` (seconds) | Actual arrival minus scheduled arrival. Positive = late, negative = early. |
@@ -17,7 +22,7 @@ Terms used consistently across code, specs, and conversations. When a new featur
 | On-time Rate | `f64` (0–100) | Percentage of trips arriving within the configured early/late thresholds. |
 | Speed | `f64` (m/s internally, displayed as km/h) | Average speed of a vehicle over a route segment or full run. |
 | Dwell Time | seconds | Time a vehicle spends stopped at a station. |
-| Route Daily | DB: `route_daily` | Aggregated performance metrics for a route on a specific calendar date. Computed from all trip results for that day. |
+| Route Daily Stats | DB: `route_daily_stats` | Pre-aggregated performance metrics at the variant+date grain. Consolidates on-time, speed, and dwell metrics. Replaces `route_daily`, `route_speed_daily`, `route_speed_day_type`. |
 | Trip Result | `TripResult` | The computed outcome of a single trip: on-time flag (1/0), avg delay, and max delay in seconds. |
 | Route Summary | `RouteSummary` | Aggregated per-route performance view over a date window: avg on-time %, avg delay, trips run/total, days measured. |
 | Route Headway Row | `RouteHeadwayRow` | Scheduled headway statistics for a route broken down by day type (weekday, Saturday, Sunday), including median, top-decile, max, and service span. |

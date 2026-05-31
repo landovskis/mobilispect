@@ -28,6 +28,7 @@ mod tests {
             gtfs_rt_trip_updates_url: None,
             gtfs_api_key: None,
             agency_utc_offset: "-04:00".to_string(),
+            transitland_feed_id: None,
         }
     }
 

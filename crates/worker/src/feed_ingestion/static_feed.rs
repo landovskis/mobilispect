@@ -7,38 +7,40 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use tracing::{info, warn};
 
-use mobilispect_core::config::AgencyConfig;
+use mobilispect_core::config::FeedConfig;
 use mobilispect_core::db::Database;
-use mobilispect_core::ids::AgencyId;
+use mobilispect_core::ids::{AgencyId, FeedId, RouteId, StopId};
 
-type TripRow = (String, String, String, String, Option<i64>, Option<String>);
+use crate::transitland::TransitlandClient;
+
 type PatternKey = (String, i64, String);
 type PatternVal = (String, Vec<String>, Option<String>);
-#[cfg(test)]
-type CalendarRow = (String, bool, bool, bool, bool, bool, bool, bool);
 
 /// Rows to bundle per INSERT statement.
 const CHUNK: usize = 500;
 
-/// Load static GTFS data into the database if not already present for this agency.
+/// Load static GTFS data into the database if not already present for this feed.
 /// Re-loads if the feed version has changed.
-pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    let agency_id = AgencyId::from(agency.id);
-    let stored_version = get_stored_version(db, &agency_id).await?;
-    let last_download = get_last_download(db, &agency_id).await?;
+pub async fn load_if_needed(
+    db: &Database,
+    feed: &FeedConfig,
+    feed_id: FeedId,
+    transitland: &TransitlandClient,
+) -> Result<()> {
+    let stored_version = get_stored_version(db, feed_id).await?;
+    let last_ingested = get_last_ingested(db, feed_id).await?;
 
-    if let Some(last) = last_download {
-        let last_date = chrono::NaiveDate::parse_from_str(&last, "%Y-%m-%d").ok();
+    if let Some(last) = last_ingested {
         let today = Utc::now().date_naive();
-        if let Some(_date) = last_date.filter(|d| *d >= today) {
+        if last.date_naive() >= today {
             info!("Static GTFS already downloaded today, skipping download");
             return Ok(());
         }
     }
 
     // Download and parse the GTFS zip (blocking I/O — run on thread pool)
-    info!("Downloading static GTFS from {}", agency.gtfs_static_url);
-    let url = agency.gtfs_static_url.clone();
+    info!("Downloading static GTFS from {}", feed.gtfs_static_url);
+    let url = feed.gtfs_static_url.clone();
     let gtfs = tokio::task::spawn_blocking(move || {
         Gtfs::from_url(&url).map_err(|e| anyhow::anyhow!("Failed to load GTFS: {}", e))
     })
@@ -56,57 +58,363 @@ pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> 
     }
 
     info!(
-        "Loading static GTFS for {} version: {} ({} routes, {} trips, {} stops)",
-        agency_id,
+        "Loading static GTFS for feed {} version: {} ({} routes, {} trips, {} stops)",
+        feed_id,
         feed_version,
         gtfs.routes.len(),
         gtfs.trips.len(),
         gtfs.stops.len()
     );
 
-    // Drop stale data for this agency and bulk-insert in one transaction
+    // Drop stale data for this feed and bulk-insert in one transaction
     let mut tx = db.pool.begin().await?;
-    sqlx::query("DELETE FROM route_variant_stops WHERE agency_id = $1")
-        .bind(agency_id.as_str())
+
+    sqlx::query("DELETE FROM route_variant_stops WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM route_variants WHERE agency_id = $1")
-        .bind(agency_id.as_str())
+    sqlx::query("DELETE FROM scheduled_stops WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM scheduled_stops WHERE agency_id = $1")
-        .bind(agency_id.as_str())
+    sqlx::query("DELETE FROM trips WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM trips WHERE agency_id = $1")
-        .bind(agency_id.as_str())
+    sqlx::query("DELETE FROM route_variants WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM stops WHERE agency_id = $1")
-        .bind(agency_id.as_str())
+    sqlx::query("DELETE FROM services WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM routes WHERE agency_id = $1")
-        .bind(agency_id.as_str())
+    sqlx::query("DELETE FROM service_exceptions WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM calendar WHERE agency_id = $1")
-        .bind(agency_id.as_str())
+    // Remove feed_*_ids mappings — canonical rows (agencies/routes/stops) are shared, keep them
+    sqlx::query("DELETE FROM feed_stop_ids WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("DELETE FROM feed_route_ids WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("DELETE FROM feed_agency_ids WHERE feed_id = $1")
+        .bind(feed_id.as_i64())
         .execute(&mut *tx)
         .await?;
 
-    load_routes(&mut tx, &agency_id, &gtfs).await?;
-    load_trips(&mut tx, &agency_id, &gtfs).await?;
-    load_stops(&mut tx, &agency_id, &gtfs).await?;
-    load_scheduled_stops(&mut tx, &agency_id, &gtfs).await?;
-    load_calendar(&mut tx, &agency_id, &gtfs.calendar).await?;
-    load_calendar_from_dates(&mut tx, &agency_id, &gtfs.calendar_dates).await?;
-    load_variants(&mut tx, &agency_id, &gtfs).await?;
+    // Resolve Transitland Onestop IDs (if configured)
+    let (agency_map, route_map, stop_map) = if let Some(tl_feed_id) = &feed.transitland_feed_id {
+        resolve_transitland_entities(
+            &mut tx,
+            feed_id,
+            tl_feed_id,
+            &gtfs,
+            transitland,
+        )
+        .await?
+    } else {
+        warn!(
+            "No transitland_feed_id configured for feed {} — skipping Onestop ID resolution",
+            feed_id
+        );
+        (HashMap::new(), HashMap::new(), HashMap::new())
+    };
+
+    // Load timetable data
+    load_variants(&mut tx, feed_id, &gtfs, &route_map, &stop_map).await?;
+    load_trips(&mut tx, feed_id, &gtfs).await?;
+    load_scheduled_stops(&mut tx, feed_id, &gtfs, &stop_map).await?;
+    load_services(&mut tx, feed_id, &agency_map, &gtfs.calendar).await?;
+    load_service_exceptions(&mut tx, feed_id, &gtfs.calendar_dates).await?;
+    load_services_from_dates(&mut tx, feed_id, &agency_map, &gtfs.calendar_dates).await?;
+
     tx.commit().await?;
 
-    set_stored_version(db, &agency_id, &feed_version).await?;
-    info!("Static GTFS load complete for {}", agency_id);
+    set_stored_version(db, feed_id, &feed_version).await?;
+    info!("Static GTFS load complete for feed {}", feed_id);
     Ok(())
+}
+
+/// Resolve agencies, routes, and stops via Transitland.
+/// Returns maps from GTFS IDs to Onestop IDs.
+async fn resolve_transitland_entities(
+    tx: &mut Tx<'_>,
+    feed_id: FeedId,
+    tl_feed_id: &str,
+    gtfs: &Gtfs,
+    transitland: &TransitlandClient,
+) -> Result<(
+    HashMap<String, AgencyId>,
+    HashMap<String, RouteId>,
+    HashMap<String, StopId>,
+)> {
+    let agency_map = resolve_agencies(tx, feed_id, tl_feed_id, gtfs, transitland).await?;
+    let route_map = resolve_routes(tx, feed_id, tl_feed_id, gtfs, &agency_map, transitland).await?;
+    let stop_map = resolve_stops(tx, feed_id, tl_feed_id, gtfs, transitland).await?;
+    Ok((agency_map, route_map, stop_map))
+}
+
+async fn resolve_agencies(
+    tx: &mut Tx<'_>,
+    feed_id: FeedId,
+    tl_feed_id: &str,
+    gtfs: &Gtfs,
+    transitland: &TransitlandClient,
+) -> Result<HashMap<String, AgencyId>> {
+    let mut map: HashMap<String, AgencyId> = HashMap::new();
+
+    for agency in &gtfs.agencies {
+        // agency.id is Option<String>; use empty string as fallback for GTFS agencies without an explicit ID
+        let gtfs_agency_id = agency.id.as_deref().unwrap_or("");
+        match transitland.resolve_agency(gtfs_agency_id, tl_feed_id).await {
+            Ok(Some(onestop_id)) => {
+                // Upsert canonical agency
+                sqlx::query(
+                    "INSERT INTO agencies (onestop_id, name, url, timezone, lang, phone)
+                     VALUES ($1, $2, $3, $4, $5, $6)
+                     ON CONFLICT (onestop_id) DO UPDATE SET
+                       name = EXCLUDED.name,
+                       url = EXCLUDED.url,
+                       timezone = EXCLUDED.timezone,
+                       lang = EXCLUDED.lang,
+                       phone = EXCLUDED.phone",
+                )
+                .bind(onestop_id.as_str())
+                .bind(&agency.name)
+                .bind(&agency.url)
+                .bind(&agency.timezone)
+                .bind(agency.lang.as_deref())
+                .bind(agency.phone.as_deref())
+                .execute(&mut **tx)
+                .await?;
+
+                // Record feed mapping
+                sqlx::query(
+                    "INSERT INTO feed_agency_ids (feed_id, gtfs_agency_id, onestop_id)
+                     VALUES ($1, $2, $3)
+                     ON CONFLICT (feed_id, gtfs_agency_id) DO UPDATE SET
+                       onestop_id = EXCLUDED.onestop_id",
+                )
+                .bind(feed_id.as_i64())
+                .bind(gtfs_agency_id)
+                .bind(onestop_id.as_str())
+                .execute(&mut **tx)
+                .await?;
+
+                map.insert(agency.id.clone().unwrap_or_default(), onestop_id);
+            }
+            Ok(None) => {
+                warn!(
+                    "Transitland: no match for agency {} in feed {} — skipping",
+                    gtfs_agency_id, tl_feed_id
+                );
+            }
+            Err(e) => {
+                warn!(
+                    "Transitland: error resolving agency {} in feed {}: {:#} — skipping",
+                    gtfs_agency_id, tl_feed_id, e
+                );
+            }
+        }
+    }
+
+    info!("Resolved {}/{} agencies via Transitland", map.len(), gtfs.agencies.len());
+    Ok(map)
+}
+
+async fn resolve_routes(
+    tx: &mut Tx<'_>,
+    feed_id: FeedId,
+    tl_feed_id: &str,
+    gtfs: &Gtfs,
+    agency_map: &HashMap<String, AgencyId>,
+    transitland: &TransitlandClient,
+) -> Result<HashMap<String, RouteId>> {
+    let mut map: HashMap<String, RouteId> = HashMap::new();
+    let mut skipped = 0usize;
+
+    for (gtfs_route_id, route) in &gtfs.routes {
+        // Look up the canonical agency ID for this route
+        // route.agency_id is Option<String>; use empty string as fallback
+        let gtfs_agency_key = route.agency_id.as_deref().unwrap_or("");
+        let canonical_agency_id = agency_map.get(gtfs_agency_key);
+        if canonical_agency_id.is_none() {
+            warn!(
+                "No canonical agency ID for route {} (agency {:?}), skipping",
+                gtfs_route_id, route.agency_id
+            );
+            skipped += 1;
+            continue;
+        }
+        let canonical_agency_id = canonical_agency_id.unwrap();
+
+        match transitland.resolve_route(gtfs_route_id, tl_feed_id).await {
+            Ok(Some(onestop_id)) => {
+                // Upsert canonical route
+                sqlx::query(
+                    "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type)
+                     VALUES ($1, $2, $3, $4, $5)
+                     ON CONFLICT (onestop_id) DO UPDATE SET
+                       agency_id = EXCLUDED.agency_id,
+                       short_name = EXCLUDED.short_name,
+                       long_name = EXCLUDED.long_name,
+                       route_type = EXCLUDED.route_type",
+                )
+                .bind(onestop_id.as_str())
+                .bind(canonical_agency_id.as_str())
+                .bind(route.short_name.as_deref().unwrap_or(""))
+                .bind(route.long_name.as_deref().unwrap_or(""))
+                .bind(route_type_to_int(&route.route_type))
+                .execute(&mut **tx)
+                .await?;
+
+                // Record feed mapping
+                sqlx::query(
+                    "INSERT INTO feed_route_ids (feed_id, gtfs_route_id, onestop_id)
+                     VALUES ($1, $2, $3)
+                     ON CONFLICT (feed_id, gtfs_route_id) DO UPDATE SET
+                       onestop_id = EXCLUDED.onestop_id",
+                )
+                .bind(feed_id.as_i64())
+                .bind(gtfs_route_id.as_str())
+                .bind(onestop_id.as_str())
+                .execute(&mut **tx)
+                .await?;
+
+                map.insert(gtfs_route_id.clone(), onestop_id);
+            }
+            Ok(None) => {
+                warn!(
+                    "Transitland: no match for route {} in feed {} — skipping",
+                    gtfs_route_id, tl_feed_id
+                );
+                skipped += 1;
+            }
+            Err(e) => {
+                warn!(
+                    "Transitland: error resolving route {} in feed {}: {:#} — skipping",
+                    gtfs_route_id, tl_feed_id, e
+                );
+                skipped += 1;
+            }
+        }
+    }
+
+    info!(
+        "Resolved {}/{} routes via Transitland ({} skipped)",
+        map.len(),
+        gtfs.routes.len(),
+        skipped
+    );
+    Ok(map)
+}
+
+async fn resolve_stops(
+    tx: &mut Tx<'_>,
+    feed_id: FeedId,
+    tl_feed_id: &str,
+    gtfs: &Gtfs,
+    transitland: &TransitlandClient,
+) -> Result<HashMap<String, StopId>> {
+    let mut map: HashMap<String, StopId> = HashMap::new();
+    let mut skipped = 0usize;
+
+    for (gtfs_stop_id, stop) in &gtfs.stops {
+        match transitland.resolve_stop(gtfs_stop_id, tl_feed_id).await {
+            Ok(Some((stop_onestop_id, maybe_station_id))) => {
+                // Upsert parent station if present
+                if let Some(station_id) = &maybe_station_id {
+                    let (lat, lon) = (
+                        stop.latitude.unwrap_or(0.0),
+                        stop.longitude.unwrap_or(0.0),
+                    );
+                    sqlx::query(
+                        "INSERT INTO stations (onestop_id, name, lat, lon)
+                         VALUES ($1, $2, $3, $4)
+                         ON CONFLICT (onestop_id) DO UPDATE SET
+                           name = EXCLUDED.name,
+                           lat = EXCLUDED.lat,
+                           lon = EXCLUDED.lon",
+                    )
+                    .bind(station_id.as_str())
+                    .bind(stop.name.as_deref().unwrap_or(""))
+                    .bind(lat)
+                    .bind(lon)
+                    .execute(&mut **tx)
+                    .await?;
+                }
+
+                let (lat, lon) = match (stop.latitude, stop.longitude) {
+                    (Some(lat), Some(lon)) => (lat, lon),
+                    _ => {
+                        warn!("Stop {} missing coordinates, skipping", gtfs_stop_id);
+                        skipped += 1;
+                        continue;
+                    }
+                };
+
+                // Upsert canonical stop
+                sqlx::query(
+                    "INSERT INTO stops (onestop_id, station_id, name, lat, lon)
+                     VALUES ($1, $2, $3, $4, $5)
+                     ON CONFLICT (onestop_id) DO UPDATE SET
+                       station_id = EXCLUDED.station_id,
+                       name = EXCLUDED.name,
+                       lat = EXCLUDED.lat,
+                       lon = EXCLUDED.lon",
+                )
+                .bind(stop_onestop_id.as_str())
+                .bind(maybe_station_id.as_ref().map(|s| s.as_str()))
+                .bind(stop.name.as_deref().unwrap_or(""))
+                .bind(lat)
+                .bind(lon)
+                .execute(&mut **tx)
+                .await?;
+
+                // Record feed mapping
+                sqlx::query(
+                    "INSERT INTO feed_stop_ids (feed_id, gtfs_stop_id, onestop_id)
+                     VALUES ($1, $2, $3)
+                     ON CONFLICT (feed_id, gtfs_stop_id) DO UPDATE SET
+                       onestop_id = EXCLUDED.onestop_id",
+                )
+                .bind(feed_id.as_i64())
+                .bind(gtfs_stop_id.as_str())
+                .bind(stop_onestop_id.as_str())
+                .execute(&mut **tx)
+                .await?;
+
+                map.insert(gtfs_stop_id.clone(), stop_onestop_id);
+            }
+            Ok(None) => {
+                warn!(
+                    "Transitland: no match for stop {} in feed {} — skipping",
+                    gtfs_stop_id, tl_feed_id
+                );
+                skipped += 1;
+            }
+            Err(e) => {
+                warn!(
+                    "Transitland: error resolving stop {} in feed {}: {:#} — skipping",
+                    gtfs_stop_id, tl_feed_id, e
+                );
+                skipped += 1;
+            }
+        }
+    }
+
+    info!(
+        "Resolved {}/{} stops via Transitland ({} skipped)",
+        map.len(),
+        gtfs.stops.len(),
+        skipped
+    );
+    Ok(map)
 }
 
 fn route_type_to_int(rt: &RouteType) -> i64 {
@@ -150,75 +458,188 @@ fn pg_placeholders(rows: usize, cols: usize) -> String {
         .join(",")
 }
 
-async fn load_routes(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
-    let rows: Vec<(String, String, String, String, i64)> = gtfs
-        .routes
-        .iter()
-        .map(|(id, r)| {
-            (
-                agency_id.0.clone(),
-                id.clone(),
-                r.short_name.clone().unwrap_or_default(),
-                r.long_name.clone().unwrap_or_default(),
-                route_type_to_int(&r.route_type),
-            )
-        })
-        .collect();
+/// Compute a deterministic variant_id for a given stop sequence.
+/// Input: "{stop1_id},{stop2_id},..." — route and direction are intentionally
+/// excluded so the same physical pattern gets the same ID regardless of
+/// how the agency numbers or labels the route.
+fn variant_id_for(stop_ids: &[String]) -> String {
+    let input = stop_ids.join(",");
+    let digest = Sha256::digest(input.as_bytes());
+    hex::encode(&digest[..16])
+}
+
+/// Build and store route variants from gtfs trips.
+/// Groups trips by their ordered stop sequence, assigns a deterministic variant_id,
+/// marks the variant with the most trips as primary.
+/// Note: variants must be inserted BEFORE trips because trips FK to route_variants.
+pub(crate) async fn load_variants(
+    tx: &mut Tx<'_>,
+    feed_id: FeedId,
+    gtfs: &Gtfs,
+    route_map: &HashMap<String, RouteId>,
+    stop_map: &HashMap<String, StopId>,
+) -> Result<()> {
+    // key: (route_id, direction_id, stop_ids_csv) → (variant_id, trip_ids, headsign)
+    let mut pattern_map: HashMap<PatternKey, PatternVal> = HashMap::new();
+
+    for (trip_id, trip) in &gtfs.trips {
+        let direction_id = trip
+            .direction_id
+            .as_ref()
+            .map(direction_to_int)
+            .unwrap_or(0);
+
+        // Use Onestop IDs when available; fall back to GTFS stop IDs
+        let stop_ids: Vec<String> = trip
+            .stop_times
+            .iter()
+            .map(|st| {
+                stop_map
+                    .get(&st.stop.id)
+                    .map(|sid| sid.as_str().to_owned())
+                    .unwrap_or_else(|| st.stop.id.clone())
+            })
+            .collect();
+
+        let stop_ids_csv = stop_ids.join(",");
+        let key = (trip.route_id.clone(), direction_id, stop_ids_csv.clone());
+        let vid = variant_id_for(&stop_ids);
+
+        let entry = pattern_map.entry(key).or_insert_with(|| {
+            let headsign = trip.trip_headsign.clone();
+            (vid.clone(), Vec::new(), headsign)
+        });
+        entry.1.push(trip_id.clone());
+    }
+
+    // Determine is_primary per (route_id, direction_id): variant with highest trip_count.
+    let mut primary_map: HashMap<(String, i64), (usize, String)> = HashMap::new();
+    for ((route_id, direction_id, _), (vid, trip_ids, _)) in &pattern_map {
+        let count = trip_ids.len();
+        let entry = primary_map
+            .entry((route_id.clone(), *direction_id))
+            .or_insert((0, vid.clone()));
+        if count > entry.0 || (count == entry.0 && vid < &entry.1) {
+            *entry = (count, vid.clone());
+        }
+    }
+
+    for ((gtfs_route_id, direction_id, stop_ids_csv), (vid, trip_ids, headsign)) in &pattern_map {
+        let stop_ids: Vec<&str> = stop_ids_csv.split(',').collect();
+        let stop_count = stop_ids.len() as i64;
+        let trip_count = trip_ids.len() as i64;
+        let is_primary = primary_map
+            .get(&(gtfs_route_id.clone(), *direction_id))
+            .map(|(_, primary_vid)| primary_vid == vid)
+            .unwrap_or(false);
+
+        // Use Onestop route ID when available; fall back to GTFS route ID
+        let route_id_str = route_map
+            .get(gtfs_route_id)
+            .map(|rid| rid.as_str().to_owned())
+            .unwrap_or_else(|| gtfs_route_id.clone());
+
+        sqlx::query(
+            "INSERT INTO route_variants
+             (feed_id, variant_id, route_id, direction_id, headsign, stop_count, trip_count, is_primary)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (feed_id, variant_id) DO UPDATE SET
+               trip_count = EXCLUDED.trip_count,
+               is_primary = EXCLUDED.is_primary,
+               headsign   = EXCLUDED.headsign",
+        )
+        .bind(feed_id.as_i64())
+        .bind(vid)
+        .bind(&route_id_str)
+        .bind(direction_id)
+        .bind(headsign.as_deref())
+        .bind(stop_count)
+        .bind(trip_count)
+        .bind(is_primary)
+        .execute(&mut **tx)
+        .await?;
+
+        // Only insert route_variant_stops when stop_map is populated (Transitland mode).
+        // In degraded mode stop_id would be a raw GTFS ID which violates the FK to stops(onestop_id).
+        if !stop_map.is_empty() {
+            for (seq, sid) in stop_ids.iter().enumerate() {
+                // sid is an Onestop ID (resolved by Transitland) — only insert if it resolved
+                let is_resolved = stop_map.values().any(|v| v.as_str() == *sid);
+                if is_resolved {
+                    sqlx::query(
+                        "INSERT INTO route_variant_stops (feed_id, variant_id, stop_sequence, stop_id)
+                         VALUES ($1, $2, $3, $4)
+                         ON CONFLICT (feed_id, variant_id, stop_sequence) DO NOTHING",
+                    )
+                    .bind(feed_id.as_i64())
+                    .bind(vid)
+                    .bind(seq as i64)
+                    .bind(sid)
+                    .execute(&mut **tx)
+                    .await?;
+                }
+            }
+        }
+    }
+
+    info!(
+        "Loaded {} route variants for feed {}",
+        pattern_map.len(),
+        feed_id
+    );
+    Ok(())
+}
+
+/// Load trips into the `trips` table.
+/// Schema after migration 013: (feed_id, trip_id, service_id, trip_headsign, variant_id).
+/// variant_id is recomputed using the same hash logic as load_variants — reading the
+/// stop remapping from feed_stop_ids (populated earlier in the same transaction).
+async fn load_trips(tx: &mut Tx<'_>, feed_id: FeedId, gtfs: &Gtfs) -> Result<()> {
+    // Fetch stop_id remapping from feed_stop_ids (already populated by resolve_stops)
+    // to produce the same variant_id hash as load_variants.
+    let feed_stop_rows: Vec<(String, String)> =
+        sqlx::query_as("SELECT gtfs_stop_id, onestop_id FROM feed_stop_ids WHERE feed_id = $1")
+            .bind(feed_id.as_i64())
+            .fetch_all(&mut **tx)
+            .await?;
+    let stop_remap: HashMap<String, String> = feed_stop_rows.into_iter().collect();
+
+    type TripRow = (i64, String, String, Option<String>, String);
+    let mut rows: Vec<TripRow> = Vec::new();
+
+    for (trip_id, trip) in &gtfs.trips {
+        let stop_ids: Vec<String> = trip
+            .stop_times
+            .iter()
+            .map(|st| {
+                stop_remap
+                    .get(&st.stop.id)
+                    .cloned()
+                    .unwrap_or_else(|| st.stop.id.clone())
+            })
+            .collect();
+        let variant_id = variant_id_for(&stop_ids);
+        rows.push((
+            feed_id.as_i64(),
+            trip_id.clone(),
+            trip.service_id.clone(),
+            trip.trip_headsign.clone(),
+            variant_id,
+        ));
+    }
 
     for chunk in rows.chunks(CHUNK) {
         let placeholders = pg_placeholders(chunk.len(), 5);
         let sql = format!(
-            "INSERT INTO routes (agency_id, route_id, short_name, long_name, route_type) VALUES {placeholders}
-             ON CONFLICT (agency_id, route_id) DO UPDATE SET
-               short_name = EXCLUDED.short_name,
-               long_name = EXCLUDED.long_name,
-               route_type = EXCLUDED.route_type"
+            "INSERT INTO trips (feed_id, trip_id, service_id, trip_headsign, variant_id) VALUES {placeholders}
+             ON CONFLICT (feed_id, trip_id) DO UPDATE SET
+               service_id    = EXCLUDED.service_id,
+               trip_headsign = EXCLUDED.trip_headsign,
+               variant_id    = EXCLUDED.variant_id"
         );
         let mut q = sqlx::query(&sql);
-        for (aid, id, short, long, rt) in chunk {
-            q = q.bind(aid).bind(id).bind(short).bind(long).bind(rt);
-        }
-        q.execute(&mut **tx).await?;
-    }
-    info!("Loaded {} routes", gtfs.routes.len());
-    Ok(())
-}
-
-async fn load_trips(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
-    let rows: Vec<TripRow> = gtfs
-        .trips
-        .iter()
-        .map(|(id, t)| {
-            (
-                agency_id.0.clone(),
-                id.clone(),
-                t.route_id.clone(),
-                t.service_id.clone(),
-                t.direction_id.as_ref().map(direction_to_int),
-                t.trip_headsign.clone(),
-            )
-        })
-        .collect();
-
-    for chunk in rows.chunks(CHUNK) {
-        let placeholders = pg_placeholders(chunk.len(), 6);
-        let sql = format!(
-            "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id, trip_headsign) VALUES {placeholders}
-             ON CONFLICT (agency_id, trip_id) DO UPDATE SET
-               route_id = EXCLUDED.route_id,
-               service_id = EXCLUDED.service_id,
-               direction_id = EXCLUDED.direction_id,
-               trip_headsign = EXCLUDED.trip_headsign"
-        );
-        let mut q = sqlx::query(&sql);
-        for (aid, id, route, svc, dir, head) in chunk {
-            q = q
-                .bind(aid)
-                .bind(id)
-                .bind(route)
-                .bind(svc)
-                .bind(dir)
-                .bind(head);
+        for (fid, tid, svc, head, vid) in chunk {
+            q = q.bind(fid).bind(tid).bind(svc).bind(head).bind(vid);
         }
         q.execute(&mut **tx).await?;
     }
@@ -226,49 +647,26 @@ async fn load_trips(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Resul
     Ok(())
 }
 
-async fn load_stops(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
-    let mut rows: Vec<(String, String, String, f64, f64)> = Vec::new();
-    for (id, stop) in &gtfs.stops {
-        match (stop.latitude, stop.longitude) {
-            (Some(lat), Some(lon)) => rows.push((
-                agency_id.0.clone(),
-                id.clone(),
-                stop.name.clone().unwrap_or_default(),
-                lat,
-                lon,
-            )),
-            _ => warn!("Stop {} missing coordinates, skipping", id),
-        }
-    }
-
-    for chunk in rows.chunks(CHUNK) {
-        let placeholders = pg_placeholders(chunk.len(), 5);
-        let sql = format!(
-            "INSERT INTO stops (agency_id, stop_id, stop_name, stop_lat, stop_lon) VALUES {placeholders}
-             ON CONFLICT (agency_id, stop_id) DO UPDATE SET
-               stop_name = EXCLUDED.stop_name,
-               stop_lat = EXCLUDED.stop_lat,
-               stop_lon = EXCLUDED.stop_lon"
-        );
-        let mut q = sqlx::query(&sql);
-        for (aid, id, name, lat, lon) in chunk {
-            q = q.bind(aid).bind(id).bind(name).bind(lat).bind(lon);
-        }
-        q.execute(&mut **tx).await?;
-    }
-    info!("Loaded {} stops", rows.len());
-    Ok(())
-}
-
-async fn load_scheduled_stops(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs) -> Result<()> {
-    // Flatten all stop_times into (agency_id, trip_id, stop_id, seq, arrival, departure)
-    let mut rows: Vec<(String, String, String, i64, String, String)> = Vec::new();
+async fn load_scheduled_stops(
+    tx: &mut Tx<'_>,
+    feed_id: FeedId,
+    gtfs: &Gtfs,
+    stop_map: &HashMap<String, StopId>,
+) -> Result<()> {
+    // Flatten all stop_times into (feed_id, trip_id, stop_id, seq, arrival, departure)
+    // stop_id is Onestop ID when available; NULL when stop wasn't resolved
+    let mut rows: Vec<(i64, String, Option<String>, i64, String, String)> = Vec::new();
     for (trip_id, trip) in &gtfs.trips {
         for st in &trip.stop_times {
+            // Use Onestop ID when available; NULL when stop wasn't resolved.
+            // In degraded mode (no Transitland), stop_map is empty so stop_id is always NULL —
+            // this satisfies the nullable FK on scheduled_stops.stop_id → stops(onestop_id).
+            let stop_id: Option<String> =
+                stop_map.get(&st.stop.id).map(|sid| sid.as_str().to_owned());
             rows.push((
-                agency_id.0.clone(),
+                feed_id.as_i64(),
                 trip_id.clone(),
-                st.stop.id.clone(),
+                stop_id,
                 st.stop_sequence as i64,
                 format_gtfs_time(st.arrival_time),
                 format_gtfs_time(st.departure_time),
@@ -281,16 +679,16 @@ async fn load_scheduled_stops(tx: &mut Tx<'_>, agency_id: &AgencyId, gtfs: &Gtfs
         let placeholders = pg_placeholders(chunk.len(), 6);
         let sql = format!(
             "INSERT INTO scheduled_stops \
-             (agency_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time) VALUES {placeholders}
-             ON CONFLICT (agency_id, trip_id, stop_sequence) DO UPDATE SET
-               stop_id = EXCLUDED.stop_id,
-               arrival_time = EXCLUDED.arrival_time,
+             (feed_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time) VALUES {placeholders}
+             ON CONFLICT (feed_id, trip_id, stop_sequence) DO UPDATE SET
+               stop_id        = EXCLUDED.stop_id,
+               arrival_time   = EXCLUDED.arrival_time,
                departure_time = EXCLUDED.departure_time"
         );
         let mut q = sqlx::query(&sql);
-        for (aid, tid, sid, seq, arr, dep) in chunk {
+        for (fid, tid, sid, seq, arr, dep) in chunk {
             q = q
-                .bind(aid)
+                .bind(fid)
                 .bind(tid)
                 .bind(sid)
                 .bind(seq)
@@ -322,27 +720,38 @@ fn format_gtfs_time(secs: Option<u32>) -> String {
     }
 }
 
-async fn load_calendar(
+/// Load calendar.txt entries into the `services` table.
+async fn load_services(
     tx: &mut Tx<'_>,
-    agency_id: &AgencyId,
+    feed_id: FeedId,
+    agency_map: &HashMap<String, AgencyId>,
     calendar: &std::collections::HashMap<String, gtfs_structures::Calendar>,
 ) -> Result<()> {
+    // Use the first resolved agency as the canonical agency_id for services
+    // (GTFS calendar entries don't directly reference agency_id — they're referenced
+    // by trips.service_id which belongs to a specific agency)
+    let canonical_agency_id: Option<&str> = agency_map.values().next().map(|a| a.as_str());
+
     for cal in calendar.values() {
         sqlx::query(
-            "INSERT INTO calendar
-             (agency_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-             ON CONFLICT (agency_id, service_id) DO UPDATE SET
-               monday    = EXCLUDED.monday,
-               tuesday   = EXCLUDED.tuesday,
-               wednesday = EXCLUDED.wednesday,
-               thursday  = EXCLUDED.thursday,
-               friday    = EXCLUDED.friday,
-               saturday  = EXCLUDED.saturday,
-               sunday    = EXCLUDED.sunday",
+            "INSERT INTO services
+             (feed_id, service_id, agency_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday, start_date, end_date)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+             ON CONFLICT (feed_id, service_id) DO UPDATE SET
+               agency_id  = EXCLUDED.agency_id,
+               monday     = EXCLUDED.monday,
+               tuesday    = EXCLUDED.tuesday,
+               wednesday  = EXCLUDED.wednesday,
+               thursday   = EXCLUDED.thursday,
+               friday     = EXCLUDED.friday,
+               saturday   = EXCLUDED.saturday,
+               sunday     = EXCLUDED.sunday,
+               start_date = EXCLUDED.start_date,
+               end_date   = EXCLUDED.end_date",
         )
-        .bind(agency_id.as_str())
+        .bind(feed_id.as_i64())
         .bind(&cal.id)
+        .bind(canonical_agency_id)
         .bind(cal.monday)
         .bind(cal.tuesday)
         .bind(cal.wednesday)
@@ -350,23 +759,59 @@ async fn load_calendar(
         .bind(cal.friday)
         .bind(cal.saturday)
         .bind(cal.sunday)
+        .bind(cal.start_date)
+        .bind(cal.end_date)
         .execute(&mut **tx)
         .await?;
     }
-    info!("Loaded {} calendar entries", calendar.len());
+    info!("Loaded {} service entries", calendar.len());
     Ok(())
 }
 
-/// Synthesize calendar rows from `calendar_dates.txt` for service_ids that have no
-/// entry in `calendar.txt`. For each such service, inspects the Added dates and sets
-/// the day-of-week flags based on which weekdays those dates fall on.
-/// Uses `ON CONFLICT DO NOTHING` so real `calendar.txt` rows are never overwritten.
-pub(crate) async fn load_calendar_from_dates(
+/// Load calendar_dates.txt exceptions into the `service_exceptions` table.
+pub(crate) async fn load_service_exceptions(
     tx: &mut Tx<'_>,
-    agency_id: &AgencyId,
+    feed_id: FeedId,
     calendar_dates: &std::collections::HashMap<String, Vec<gtfs_structures::CalendarDate>>,
 ) -> Result<()> {
+    let mut count = 0usize;
+    for (service_id, dates) in calendar_dates {
+        for cd in dates {
+            let exception_type: i16 = match cd.exception_type {
+                Exception::Added => 1,
+                Exception::Deleted => 2,
+            };
+            sqlx::query(
+                "INSERT INTO service_exceptions (feed_id, service_id, date, exception_type)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (feed_id, service_id, date) DO NOTHING",
+            )
+            .bind(feed_id.as_i64())
+            .bind(service_id.as_str())
+            .bind(cd.date)
+            .bind(exception_type)
+            .execute(&mut **tx)
+            .await?;
+            count += 1;
+        }
+    }
+    info!("Loaded {} service exceptions", count);
+    Ok(())
+}
+
+/// Synthesize service rows from `calendar_dates.txt` for service_ids that have no
+/// entry in `services` (was `calendar`). For each such service, inspects the Added dates
+/// and sets the day-of-week flags based on which weekdays those dates fall on.
+/// Uses `ON CONFLICT DO NOTHING` so real `calendar.txt` rows are never overwritten.
+pub(crate) async fn load_services_from_dates(
+    tx: &mut Tx<'_>,
+    feed_id: FeedId,
+    agency_map: &HashMap<String, AgencyId>,
+    calendar_dates: &std::collections::HashMap<String, Vec<gtfs_structures::CalendarDate>>,
+) -> Result<()> {
+    let canonical_agency_id: Option<&str> = agency_map.values().next().map(|a| a.as_str());
     let mut synthesized = 0usize;
+
     for (service_id, dates) in calendar_dates {
         let mut monday = false;
         let mut tuesday = false;
@@ -396,13 +841,14 @@ pub(crate) async fn load_calendar_from_dates(
         }
 
         sqlx::query(
-            "INSERT INTO calendar
-             (agency_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-             ON CONFLICT (agency_id, service_id) DO NOTHING",
+            "INSERT INTO services
+             (feed_id, service_id, agency_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             ON CONFLICT (feed_id, service_id) DO NOTHING",
         )
-        .bind(agency_id.as_str())
+        .bind(feed_id.as_i64())
         .bind(service_id.as_str())
+        .bind(canonical_agency_id)
         .bind(monday)
         .bind(tuesday)
         .bind(wednesday)
@@ -415,182 +861,41 @@ pub(crate) async fn load_calendar_from_dates(
         synthesized += 1;
     }
     info!(
-        "Synthesized {} calendar entries from calendar_dates",
+        "Synthesized {} service entries from calendar_dates",
         synthesized
     );
     Ok(())
 }
 
-/// Compute a deterministic variant_id for a given stop sequence.
-/// Input: "{stop1_id},{stop2_id},..." — route and direction are intentionally
-/// excluded so the same physical pattern gets the same ID regardless of
-/// how the agency numbers or labels the route.
-fn variant_id_for(stop_ids: &[String]) -> String {
-    let input = stop_ids.join(",");
-    let digest = Sha256::digest(input.as_bytes());
-    hex::encode(&digest[..16])
-}
-
-/// Build and store route variants from already-loaded trips + scheduled_stops.
-/// Groups trips by their ordered stop sequence, assigns a deterministic variant_id,
-/// marks the variant with the most trips as primary, and links trips to their variant.
-pub(crate) async fn load_variants(
-    tx: &mut Tx<'_>,
-    agency_id: &AgencyId,
-    gtfs: &Gtfs,
-) -> Result<()> {
-    // Collect stop sequences per trip in memory (already loaded into DB, but gtfs struct is handy).
-    // key: (route_id, direction_id, stop_ids_csv) → (variant_id, trip_ids, headsign)
-    let mut pattern_map: HashMap<PatternKey, PatternVal> = HashMap::new();
-
-    for (trip_id, trip) in &gtfs.trips {
-        let direction_id = trip
-            .direction_id
-            .as_ref()
-            .map(direction_to_int)
-            .unwrap_or(0);
-
-        let stop_ids: Vec<String> = trip
-            .stop_times
-            .iter()
-            .map(|st| st.stop.id.clone())
-            .collect();
-        // stop_times from gtfs-structures are already ordered by stop_sequence
-        let stop_ids_csv = stop_ids.join(",");
-
-        let key = (trip.route_id.clone(), direction_id, stop_ids_csv.clone());
-        let vid = variant_id_for(&stop_ids);
-
-        let entry = pattern_map.entry(key).or_insert_with(|| {
-            let headsign = trip.trip_headsign.clone();
-            (vid.clone(), Vec::new(), headsign)
-        });
-        entry.1.push(trip_id.clone());
-    }
-
-    // Determine is_primary per (route_id, direction_id): variant with highest trip_count.
-    // Build: (route_id, direction_id) → max trip_count seen so far
-    let mut primary_map: HashMap<(String, i64), (usize, String)> = HashMap::new();
-    for ((route_id, direction_id, _), (vid, trip_ids, _)) in &pattern_map {
-        let count = trip_ids.len();
-        let entry = primary_map
-            .entry((route_id.clone(), *direction_id))
-            .or_insert((0, vid.clone()));
-        if count > entry.0 || (count == entry.0 && vid < &entry.1) {
-            *entry = (count, vid.clone());
-        }
-    }
-
-    for ((route_id, direction_id, stop_ids_csv), (vid, trip_ids, headsign)) in &pattern_map {
-        let stop_ids: Vec<&str> = stop_ids_csv.split(',').collect();
-        let stop_count = stop_ids.len() as i64;
-        let trip_count = trip_ids.len() as i64;
-        let is_primary = primary_map
-            .get(&(route_id.clone(), *direction_id))
-            .map(|(_, primary_vid)| primary_vid == vid)
-            .unwrap_or(false);
-
-        sqlx::query(
-            "INSERT INTO route_variants
-             (agency_id, variant_id, route_id, direction_id, headsign, stop_count, trip_count, is_primary)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-             ON CONFLICT (agency_id, route_id, direction_id, variant_id) DO UPDATE SET
-               trip_count = EXCLUDED.trip_count,
-               is_primary = EXCLUDED.is_primary,
-               headsign   = EXCLUDED.headsign",
-        )
-        .bind(agency_id.as_str())
-        .bind(vid)
-        .bind(route_id)
-        .bind(direction_id)
-        .bind(headsign.as_deref())
-        .bind(stop_count)
-        .bind(trip_count)
-        .bind(is_primary)
-        .execute(&mut **tx)
-        .await?;
-
-        for (seq, sid) in stop_ids.iter().enumerate() {
-            sqlx::query(
-                "INSERT INTO route_variant_stops (agency_id, variant_id, stop_sequence, stop_id)
-                 VALUES ($1, $2, $3, $4)
-                 ON CONFLICT (agency_id, variant_id, stop_sequence) DO NOTHING",
-            )
-            .bind(agency_id.as_str())
-            .bind(vid)
-            .bind(seq as i64)
-            .bind(sid)
-            .execute(&mut **tx)
+async fn get_stored_version(db: &Database, feed_id: FeedId) -> Result<Option<String>> {
+    let row: Option<(Option<String>,)> =
+        sqlx::query_as("SELECT feed_version FROM feeds WHERE id = $1")
+            .bind(feed_id.as_i64())
+            .fetch_optional(&db.pool)
             .await?;
-        }
+    Ok(row.and_then(|(v,)| v))
+}
 
-        for trip_id in trip_ids {
-            sqlx::query(
-                "UPDATE trips SET variant_id = $1
-                 WHERE agency_id = $2 AND trip_id = $3",
-            )
-            .bind(vid)
-            .bind(agency_id.as_str())
-            .bind(trip_id)
-            .execute(&mut **tx)
+async fn get_last_ingested(
+    db: &Database,
+    feed_id: FeedId,
+) -> Result<Option<chrono::DateTime<chrono::Utc>>> {
+    let row: Option<(Option<chrono::DateTime<chrono::Utc>>,)> =
+        sqlx::query_as("SELECT last_ingested_at FROM feeds WHERE id = $1")
+            .bind(feed_id.as_i64())
+            .fetch_optional(&db.pool)
             .await?;
-        }
-    }
-
-    info!(
-        "Loaded {} route variants for agency {}",
-        pattern_map.len(),
-        agency_id
-    );
-    Ok(())
+    Ok(row.and_then(|(v,)| v))
 }
 
-async fn get_stored_version(db: &Database, agency_id: &AgencyId) -> Result<Option<String>> {
-    let key = format!("gtfs_static_version_{agency_id}");
-    let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
-        .fetch_optional(&db.pool)
-        .await?;
-    Ok(row.map(|r| r.value))
-}
-
-async fn get_last_download(db: &Database, agency_id: &AgencyId) -> Result<Option<String>> {
-    let key = format!("gtfs_static_last_download_{agency_id}");
-    let row = sqlx::query!("SELECT value FROM feed_info WHERE key = $1", key,)
-        .fetch_optional(&db.pool)
-        .await?;
-    Ok(row.map(|r| r.value))
-}
-
-async fn set_stored_version(db: &Database, agency_id: &AgencyId, version: &str) -> Result<()> {
-    let key = format!("gtfs_static_version_{agency_id}");
-    let now = chrono::Utc::now().to_rfc3339();
-    sqlx::query!(
-        "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
-         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
-        key,
-        version,
-        now,
-    )
-    .execute(&db.pool)
-    .await?;
-    set_last_download(db, agency_id).await?;
-    Ok(())
-}
-
-async fn set_last_download(db: &Database, agency_id: &AgencyId) -> Result<()> {
-    let key = format!("gtfs_static_last_download_{agency_id}");
+async fn set_stored_version(db: &Database, feed_id: FeedId, version: &str) -> Result<()> {
     let now = chrono::Utc::now();
-    let today = now.date_naive().format("%Y-%m-%d").to_string();
-    let now = now.to_rfc3339();
-    sqlx::query!(
-        "INSERT INTO feed_info (key, value, updated_at) VALUES ($1, $2, $3)
-         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = EXCLUDED.updated_at",
-        key,
-        today,
-        now,
-    )
-    .execute(&db.pool)
-    .await?;
+    sqlx::query("UPDATE feeds SET last_ingested_at = $1, feed_version = $2 WHERE id = $3")
+        .bind(now)
+        .bind(version)
+        .bind(feed_id.as_i64())
+        .execute(&db.pool)
+        .await?;
     Ok(())
 }
 
@@ -658,21 +963,26 @@ mod tests {
         }
     }
 
+    /// Insert a feed row so that FK constraints on feed_id are satisfied.
+    async fn insert_feed(db: &Database, feed_id: i64) {
+        sqlx::query(
+            "INSERT INTO feeds (id, gtfs_static_url) VALUES ($1, 'https://example.com/test.zip')
+             ON CONFLICT (id) DO NOTHING",
+        )
+        .bind(feed_id)
+        .execute(&db.pool)
+        .await
+        .unwrap();
+    }
+
     // ── load_variants tests ────────────────────────────────────────────────
 
     #[tokio::test]
     async fn load_variants_creates_variant_and_links_trips() {
         let td = test_utils::setup().await;
         let db = td.db;
-
-        // Insert a route so the FK is satisfied.
-        sqlx::query(
-            "INSERT INTO routes (agency_id, route_id, short_name, long_name, route_type)
-             VALUES ('stm', '45', '45', 'Papineau', 3)",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
+        let feed_id = FeedId::from(1i64);
+        insert_feed(&db, feed_id.as_i64()).await;
 
         let sa = make_stop("A");
         let sb = make_stop("B");
@@ -692,33 +1002,24 @@ mod tests {
             vec![sa.clone(), sb.clone(), sc.clone()],
         );
 
-        // Insert the trips first (load_variants expects them already in trips table).
-        for t in [&trip1, &trip2] {
-            sqlx::query(
-                "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id)
-                 VALUES ('stm', $1, $2, 'WD', 0)",
-            )
-            .bind(&t.id)
-            .bind(&t.route_id)
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        }
-
         let mut gtfs = Gtfs::default();
         gtfs.trips.insert("T1".to_string(), trip1);
         gtfs.trips.insert("T2".to_string(), trip2);
         gtfs.routes.insert("45".to_string(), make_route("45"));
 
+        let stop_map: HashMap<String, StopId> = HashMap::new();
+        let route_map: HashMap<String, RouteId> = HashMap::new();
+
         let mut tx = db.pool.begin().await.unwrap();
-        load_variants(&mut tx, &AgencyId::from("stm"), &gtfs)
+        load_variants(&mut tx, feed_id, &gtfs, &route_map, &stop_map)
             .await
             .unwrap();
         tx.commit().await.unwrap();
 
         // One variant should exist.
         let variant_count: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM route_variants WHERE agency_id = 'stm'")
+            sqlx::query_as("SELECT COUNT(*) FROM route_variants WHERE feed_id = $1")
+                .bind(feed_id.as_i64())
                 .fetch_one(&db.pool)
                 .await
                 .unwrap();
@@ -726,48 +1027,22 @@ mod tests {
 
         // That variant should be primary with trip_count = 2.
         let (trip_count, is_primary): (i64, bool) = sqlx::query_as(
-            "SELECT trip_count, is_primary FROM route_variants WHERE agency_id = 'stm'",
+            "SELECT trip_count, is_primary FROM route_variants WHERE feed_id = $1",
         )
+        .bind(feed_id.as_i64())
         .fetch_one(&db.pool)
         .await
         .unwrap();
         assert_eq!(trip_count, 2);
         assert!(is_primary);
-
-        // Stops should be recorded in order.
-        let stop_ids: Vec<(i64, String)> = sqlx::query_as(
-            "SELECT stop_sequence, stop_id FROM route_variant_stops WHERE agency_id = 'stm' ORDER BY stop_sequence",
-        )
-        .fetch_all(&db.pool)
-        .await
-        .unwrap();
-        assert_eq!(stop_ids.len(), 3);
-        assert_eq!(stop_ids[0].1, "A");
-        assert_eq!(stop_ids[1].1, "B");
-        assert_eq!(stop_ids[2].1, "C");
-
-        // Both trips should be linked to the variant.
-        let linked: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM trips WHERE agency_id = 'stm' AND variant_id IS NOT NULL",
-        )
-        .fetch_one(&db.pool)
-        .await
-        .unwrap();
-        assert_eq!(linked.0, 2);
     }
 
     #[tokio::test]
     async fn load_variants_marks_most_common_as_primary() {
         let td = test_utils::setup().await;
         let db = td.db;
-
-        sqlx::query(
-            "INSERT INTO routes (agency_id, route_id, short_name, long_name, route_type)
-             VALUES ('stm', '45', '45', 'Papineau', 3)",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
+        let feed_id = FeedId::from(1i64);
+        insert_feed(&db, feed_id.as_i64()).await;
 
         let sa = make_stop("A");
         let sb = make_stop("B");
@@ -793,26 +1068,22 @@ mod tests {
                 Some(gtfs_structures::DirectionType::Outbound),
                 (*stops).clone(),
             );
-            sqlx::query(
-                "INSERT INTO trips (agency_id, trip_id, route_id, service_id, direction_id)
-                 VALUES ('stm', $1, '45', 'WD', 0)",
-            )
-            .bind(&id)
-            .execute(&db.pool)
-            .await
-            .unwrap();
             gtfs.trips.insert(id, trip);
         }
 
+        let stop_map: HashMap<String, StopId> = HashMap::new();
+        let route_map: HashMap<String, RouteId> = HashMap::new();
+
         let mut tx = db.pool.begin().await.unwrap();
-        load_variants(&mut tx, &AgencyId::from("stm"), &gtfs)
+        load_variants(&mut tx, feed_id, &gtfs, &route_map, &stop_map)
             .await
             .unwrap();
         tx.commit().await.unwrap();
 
         // Two variants should exist.
         let count: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM route_variants WHERE agency_id = 'stm'")
+            sqlx::query_as("SELECT COUNT(*) FROM route_variants WHERE feed_id = $1")
+                .bind(feed_id.as_i64())
                 .fetch_one(&db.pool)
                 .await
                 .unwrap();
@@ -820,8 +1091,9 @@ mod tests {
 
         // The full-route variant (3 trips) should be primary.
         let primary_stop_count: (i64,) = sqlx::query_as(
-            "SELECT stop_count FROM route_variants WHERE agency_id = 'stm' AND is_primary = TRUE",
+            "SELECT stop_count FROM route_variants WHERE feed_id = $1 AND is_primary = TRUE",
         )
+        .bind(feed_id.as_i64())
         .fetch_one(&db.pool)
         .await
         .unwrap();
@@ -832,9 +1104,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn load_calendar_inserts_service_day_flags() {
+    async fn load_services_inserts_service_day_flags() {
         let td = test_utils::setup().await;
         let db = td.db;
+        let feed_id = FeedId::from(1i64);
+        insert_feed(&db, feed_id.as_i64()).await;
         let mut tx = db.pool.begin().await.unwrap();
 
         let mut calendar: HashMap<String, Calendar> = HashMap::new();
@@ -869,14 +1143,16 @@ mod tests {
             },
         );
 
-        load_calendar(&mut tx, &AgencyId::from("stm"), &calendar)
+        let agency_map: HashMap<String, AgencyId> = HashMap::new();
+        load_services(&mut tx, feed_id, &agency_map, &calendar)
             .await
             .unwrap();
         tx.commit().await.unwrap();
 
         let rows: Vec<(String, bool, bool, bool)> = sqlx::query_as(
-            "SELECT service_id, monday, saturday, sunday FROM calendar WHERE agency_id = 'stm' ORDER BY service_id",
+            "SELECT service_id, monday, saturday, sunday FROM services WHERE feed_id = $1 ORDER BY service_id",
         )
+        .bind(feed_id.as_i64())
         .fetch_all(&db.pool)
         .await
         .unwrap();
@@ -890,9 +1166,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn load_calendar_from_dates_synthesizes_day_flags_from_added_dates() {
+    async fn load_services_from_dates_synthesizes_day_flags_from_added_dates() {
         let td = test_utils::setup().await;
         let db = td.db;
+        let feed_id = FeedId::from(1i64);
+        insert_feed(&db, feed_id.as_i64()).await;
         let mut tx = db.pool.begin().await.unwrap();
 
         // 2026-01-05 = Mon, 2026-01-09 = Fri, 2026-01-10 = Sat, 2026-01-11 = Sun
@@ -930,15 +1208,18 @@ mod tests {
             }],
         );
 
-        load_calendar_from_dates(&mut tx, &AgencyId::from("stm"), &calendar_dates)
+        let agency_map: HashMap<String, AgencyId> = HashMap::new();
+        load_services_from_dates(&mut tx, feed_id, &agency_map, &calendar_dates)
             .await
             .unwrap();
         tx.commit().await.unwrap();
 
-        let rows: Vec<CalendarRow> = sqlx::query_as(
+        type ServiceRow = (String, bool, bool, bool, bool, bool, bool, bool);
+        let rows: Vec<ServiceRow> = sqlx::query_as(
             "SELECT service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday
-             FROM calendar WHERE agency_id = 'stm' ORDER BY service_id",
+             FROM services WHERE feed_id = $1 ORDER BY service_id",
         )
+        .bind(feed_id.as_i64())
         .fetch_all(&db.pool)
         .await
         .unwrap();
@@ -966,9 +1247,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn load_calendar_from_dates_does_not_overwrite_calendar_txt_entry() {
+    async fn load_services_from_dates_does_not_overwrite_calendar_txt_entry() {
         let td = test_utils::setup().await;
         let db = td.db;
+        let feed_id = FeedId::from(1i64);
+        insert_feed(&db, feed_id.as_i64()).await;
         let mut tx = db.pool.begin().await.unwrap();
 
         // Load a real calendar.txt entry: WD is weekdays-only
@@ -988,7 +1271,8 @@ mod tests {
                 end_date: NaiveDate::from_ymd_opt(2026, 12, 31).unwrap(),
             },
         );
-        load_calendar(&mut tx, &AgencyId::from("stm"), &calendar)
+        let agency_map: HashMap<String, AgencyId> = HashMap::new();
+        load_services(&mut tx, feed_id, &agency_map, &calendar)
             .await
             .unwrap();
 
@@ -1003,14 +1287,15 @@ mod tests {
                 exception_type: gtfs_structures::Exception::Added,
             }],
         );
-        load_calendar_from_dates(&mut tx, &AgencyId::from("stm"), &calendar_dates)
+        load_services_from_dates(&mut tx, feed_id, &agency_map, &calendar_dates)
             .await
             .unwrap();
         tx.commit().await.unwrap();
 
         let row: (bool, bool) = sqlx::query_as(
-            "SELECT saturday, monday FROM calendar WHERE agency_id = 'stm' AND service_id = 'WD'",
+            "SELECT saturday, monday FROM services WHERE feed_id = $1 AND service_id = 'WD'",
         )
+        .bind(feed_id.as_i64())
         .fetch_one(&db.pool)
         .await
         .unwrap();
@@ -1020,5 +1305,60 @@ mod tests {
             "saturday should remain false — calendar.txt takes precedence"
         );
         assert!(row.1, "monday should still be true");
+    }
+
+    #[tokio::test]
+    async fn load_service_exceptions_inserts_added_and_removed() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let feed_id = FeedId::from(1i64);
+        insert_feed(&db, feed_id.as_i64()).await;
+
+        // Insert service row first (FK constraint)
+        sqlx::query(
+            "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+             VALUES ($1, 'WD', true, true, true, true, true, false, false)",
+        )
+        .bind(feed_id.as_i64())
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        let mut tx = db.pool.begin().await.unwrap();
+
+        let mut calendar_dates: HashMap<String, Vec<gtfs_structures::CalendarDate>> =
+            HashMap::new();
+        calendar_dates.insert(
+            "WD".to_string(),
+            vec![
+                gtfs_structures::CalendarDate {
+                    service_id: "WD".to_string(),
+                    date: NaiveDate::from_ymd_opt(2026, 1, 1).unwrap(),
+                    exception_type: gtfs_structures::Exception::Added,
+                },
+                gtfs_structures::CalendarDate {
+                    service_id: "WD".to_string(),
+                    date: NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
+                    exception_type: gtfs_structures::Exception::Removed,
+                },
+            ],
+        );
+
+        load_service_exceptions(&mut tx, feed_id, &calendar_dates)
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+
+        let rows: Vec<(String, i16)> = sqlx::query_as(
+            "SELECT date::TEXT, exception_type FROM service_exceptions WHERE feed_id = $1 ORDER BY date",
+        )
+        .bind(feed_id.as_i64())
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].1, 1, "Added = 1");
+        assert_eq!(rows[1].1, 2, "Removed = 2");
     }
 }

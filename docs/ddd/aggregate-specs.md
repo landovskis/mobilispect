@@ -4,29 +4,50 @@ Each aggregate defines a consistency boundary. Invariants listed here must be en
 
 ---
 
+## Feed
+
+**Root:** `FeedId`
+**Table:** `feeds`
+
+**Invariants:**
+- Has a valid `gtfs_static_url`
+- `last_ingested_at` is null until the first successful ingest
+
+**Lifecycle:** Upserted from `config.toml` at startup by the worker. Ingest metadata
+(`last_ingested_at`, `feed_hash`, `feed_version`) updated after each successful static ingest.
+API keys are never persisted to the database.
+
+---
+
 ## Agency
 
-**Root:** `AgencyId`
-**Table:** none — Agency has no database table. Agency identity is configuration, not database state.
+**Root:** `AgencyId` (Transitland operator Onestop ID)
+**Table:** `agencies`
 
 **Invariants:**
 - Has at least one route (enforced at query time; an agency with no routes produces no metrics)
+- `onestop_id` is a valid Transitland operator Onestop ID (`o-` prefix)
 
-**Lifecycle:** Loaded from `config.toml` at startup. Agency records are config-driven and never written to the database directly.
+**Lifecycle:** Ingested from GTFS `agency.txt` during static feed ingest. Resolved to a
+Transitland operator Onestop ID via the Transitland API. Upserted on each feed ingest.
+If no Transitland match exists, the agency and all its dependent routes are skipped.
 
 ---
 
 ## Route
 
-**Root:** `RouteId`
+**Root:** `RouteId` (Transitland route Onestop ID)
 **Table:** `routes`
-**Contains:** One or more variants (each variant is a unique ordered stop sequence stored in `route_variants` and `route_variant_stops`)
+**Contains:** One or more variants (each a unique ordered stop sequence in `route_variants` and `route_variant_stops`)
 
 **Invariants:**
 - Belongs to exactly one `AgencyId`
 - Has at least one variant
+- `onestop_id` is a valid Transitland route Onestop ID (`r-` prefix)
 
-**Lifecycle:** Upserted on each static feed ingest. A route's variants may change between feed versions.
+**Lifecycle:** Ingested from GTFS `routes.txt`. Resolved to a Transitland route Onestop ID.
+Canonical route attributes (name, type) are upserted. Feed-local variants are upserted
+per feed ingest and may change between feed versions.
 
 ---
 
@@ -34,41 +55,53 @@ Each aggregate defines a consistency boundary. Invariants listed here must be en
 
 **Root:** `TripId`
 **Table:** `trips`
-**Belongs to:** One `RouteId`, one service calendar entry, optionally one `VariantId`
+**Belongs to:** One `VariantId` (mandatory), one `ServiceId`
 
 **Invariants:**
-- `direction_id` is 0 (outbound) or 1 (inbound)
+- `variant_id` is NOT NULL — every trip belongs to a variant
+- Direction is derivable via `variant_id → route_variants.direction_id`; not stored on trip
+- Route is derivable via `variant_id → route_variants.route_id`; not stored on trip
 - Scheduled stop times are monotonically increasing (stored in `scheduled_stops`)
-- Belongs to exactly one route and exactly one service calendar
+- Belongs to exactly one service calendar entry
 
-**Lifecycle:** Upserted on each static feed ingest. Delay observations are appended to `stop_time_events` during GTFS-RT polling. `TripResult` (computed in memory from `stop_time_events`) is written to `trip_results` after each service day is processed.
+**Lifecycle:** Upserted on each static feed ingest. Delay observations appended to
+`stop_time_events` during GTFS-RT polling. `TripResult` written to `trip_results` after
+each service day is processed.
 
 ---
 
-## RouteDailyMetrics (computed aggregate)
+## RouteDailyStats (computed aggregate)
 
-**Root:** `(AgencyId, RouteId, Date)`
-**Table:** `route_daily`
-**Derived from:** All rows in `trip_results` for a given agency, route, and service date
+**Root:** `(FeedId, RouteId, Date, VariantId)`
+**Table:** `route_daily_stats`
+**Derived from:** All rows in `trip_results` for a given feed, route, service date, and variant
 
 **Fields:**
-- `on_time_pct` — percentage of trips that were on time (all stops within threshold window)
-- `avg_delay_secs` — average delay in seconds across completed trips
+- `on_time_stops` — count of stops observed within the threshold window
+- `total_stops` — total scheduled stops across all trips of this variant on this date
+- `skipped_stops` — stops explicitly skipped by the operator (`schedule_relationship=SKIPPED`)
 - `trips_run` — number of trips with observed stop-time data
-- `trips_total` — total scheduled trips for the route
+- `trips_total` — total scheduled trips for this variant on this date (excluding `service_exceptions` with `exception_type=2`)
+- `avg_delay_secs`, `max_delay_secs` — delay aggregates in seconds
+- `actual_speed_mps`, `avg_dwell_secs` — speed and dwell aggregates
 
 **Invariants:**
-- `on_time_pct` ∈ [0, 100]
-- `avg_delay_secs` is in seconds
+- `on_time_stops` ≤ `total_stops`
+- `skipped_stops` ≤ `total_stops`
+- `trips_run` ≤ `trips_total`
 - Immutable once written — recomputed by re-running the worker, not by mutation
 
-**Lifecycle:** Written by the worker after processing a service day. Not user-writable.
+**Derived query:** on-time % = `on_time_stops::float / total_stops * 100`
+**Derived query:** route-level rollup = aggregate over `variant_id` at query time
+
+**Lifecycle:** Written by the worker after processing a service day. Insert-only. Not user-writable.
 
 ---
 
 ## Notes
 
-- `Vehicle` is referenced in GTFS-RT (`vehicle_positions`) but is not a domain aggregate — vehicles are ephemeral identifiers for real-time observations, not persisted entities with invariants.
-- `Stop` and `Service` are referenced by aggregates but are themselves reference data, not aggregates with invariants.
-- `TripResult` is a pure computation value (a Rust struct returned by `classify_trip_delays`) that is then persisted to the `trip_results` table. It is not an aggregate root — it does not enforce invariants and has no lifecycle of its own beyond write-once semantics.
-- `route_daily` does not store `max_delay_secs` at the route level; that field exists only in `trip_results` at the individual trip level.
+- `Vehicle` is referenced in GTFS-RT (`vehicle_positions`) but is not a domain aggregate — vehicles are ephemeral identifiers, not persisted entities with invariants.
+- `Stop` and `Station` are reference data (canonical entities keyed by Transitland Onestop ID), not aggregates.
+- `Service` and `ServiceException` are reference data owned by the Schedule context.
+- `TripResult` is a pure computation value (Rust struct from `classify_trip_delays`) persisted to `trip_results`. Not an aggregate root — write-once, no invariants of its own.
+- `route_daily_stats` replaces `route_daily`, `route_speed_daily`, and `route_speed_day_type`. Day-type breakdowns (weekday/Saturday/Sunday) are derived at query time by grouping on `calendar.day_of_week`.

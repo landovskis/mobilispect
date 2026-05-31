@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
+  "query": "SELECT short_name, long_name FROM routes WHERE onestop_id = $1",
   "describe": {
     "columns": [
       {
@@ -16,7 +16,6 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
         "Text"
       ]
     },
@@ -25,5 +24,5 @@
       false
     ]
   },
-  "hash": "ec56fb721f04b8ce1fdc3c533da44d88fdd9759d9a57bea0cc13aa06697e5b50"
+  "hash": "234fba754d40b10c531f527aa239ac6403b44f8ff81ab9cad9a079db7169512a"
 }

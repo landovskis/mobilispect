@@ -1,4 +1,4 @@
-use crate::ids::{AgencyId, RouteId, VariantId};
+use crate::ids::{RouteId, VariantId};
 use crate::speed_analysis::{DirectionStopSpacings, StopSpacing, VariantSpeedTrend};
 
 pub struct RouteSpeedDetailDirection {
@@ -105,15 +105,15 @@ struct RouteInfoRow {
     long_name: String,
 }
 
+/// Look up display names for a route by its Onestop ID.
+/// `route_id` is the Onestop ID (primary key of the `routes` table).
 pub async fn fetch_route_info(
     db: &crate::db::Database,
-    agency_id: &AgencyId,
     route_id: &RouteId,
 ) -> anyhow::Result<Option<(String, String)>> {
     let row = sqlx::query_as!(
         RouteInfoRow,
-        "SELECT short_name, long_name FROM routes WHERE agency_id = $1 AND route_id = $2",
-        agency_id.as_str(),
+        "SELECT short_name, long_name FROM routes WHERE onestop_id = $1",
         route_id.as_str(),
     )
     .fetch_optional(&db.pool)

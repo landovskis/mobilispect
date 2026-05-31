@@ -2,11 +2,11 @@ use anyhow::Result;
 use serde::Serialize;
 
 use crate::db::Database;
-use crate::ids::{AgencyId, RouteId};
+use crate::ids::{FeedId, RouteId};
 
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteHeadwayRow {
-    pub agency_id: AgencyId,
+    pub feed_id: FeedId,
     pub route_id: RouteId,
     pub short_name: String,
     pub long_name: String,
@@ -134,14 +134,14 @@ impl RouteHeadwayRow {
 
 pub async fn route_headways(
     db: &Database,
-    agency_filter: Option<&AgencyId>,
+    feed_filter: Option<FeedId>,
 ) -> Result<Vec<RouteHeadwayRow>> {
     let sql = "WITH
 trip_times AS (
     SELECT
-        t.agency_id,
-        t.route_id,
-        COALESCE(t.direction_id, 0)                              AS direction_id,
+        t.feed_id,
+        rv.route_id,
+        COALESCE(rv.direction_id, 0)                             AS direction_id,
         t.trip_id,
         t.service_id,
         MIN((
@@ -154,137 +154,139 @@ trip_times AS (
           + SPLIT_PART(ss.departure_time, ':', 2)::INT * 60
           + SPLIT_PART(ss.departure_time, ':', 3)::INT
         )::BIGINT)                                               AS end_secs,
-        (c.monday OR c.tuesday OR c.wednesday
-         OR c.thursday OR c.friday)                             AS is_weekday,
-        c.saturday                                               AS is_saturday,
-        c.sunday                                                 AS is_sunday
+        (svc.monday OR svc.tuesday OR svc.wednesday
+         OR svc.thursday OR svc.friday)                          AS is_weekday,
+        svc.saturday                                             AS is_saturday,
+        svc.sunday                                               AS is_sunday
     FROM trips t
-    JOIN calendar c
-      ON c.agency_id = t.agency_id AND c.service_id = t.service_id
+    JOIN route_variants rv
+      ON rv.feed_id = t.feed_id AND rv.variant_id = t.variant_id
+    JOIN services svc
+      ON svc.feed_id = t.feed_id AND svc.service_id = t.service_id
     JOIN scheduled_stops ss
-      ON ss.agency_id = t.agency_id AND ss.trip_id = t.trip_id
-    WHERE (c.monday OR c.tuesday OR c.wednesday OR c.thursday
-           OR c.friday OR c.saturday OR c.sunday)
+      ON ss.feed_id = t.feed_id AND ss.trip_id = t.trip_id
+    WHERE (svc.monday OR svc.tuesday OR svc.wednesday OR svc.thursday
+           OR svc.friday OR svc.saturday OR svc.sunday)
     GROUP BY
-        t.agency_id,
-        t.route_id,
-        COALESCE(t.direction_id, 0),
+        t.feed_id,
+        rv.route_id,
+        COALESCE(rv.direction_id, 0),
         t.trip_id,
         t.service_id,
         is_weekday,
-        c.saturday,
-        c.sunday
+        svc.saturday,
+        svc.sunday
 ),
 wd_gaps AS (
-    SELECT agency_id, route_id, direction_id,
+    SELECT feed_id, route_id, direction_id,
         LEAD(start_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id, service_id
+            PARTITION BY feed_id, route_id, direction_id, service_id
             ORDER BY start_secs
         ) - start_secs AS gap_secs
     FROM trip_times
     WHERE is_weekday
 ),
 sat_gaps AS (
-    SELECT agency_id, route_id, direction_id,
+    SELECT feed_id, route_id, direction_id,
         LEAD(start_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id, service_id
+            PARTITION BY feed_id, route_id, direction_id, service_id
             ORDER BY start_secs
         ) - start_secs AS gap_secs
     FROM trip_times
     WHERE is_saturday
 ),
 sun_gaps AS (
-    SELECT agency_id, route_id, direction_id,
+    SELECT feed_id, route_id, direction_id,
         LEAD(start_secs) OVER (
-            PARTITION BY agency_id, route_id, direction_id, service_id
+            PARTITION BY feed_id, route_id, direction_id, service_id
             ORDER BY start_secs
         ) - start_secs AS gap_secs
     FROM trip_times
     WHERE is_sunday
 ),
 wd_headways AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         AVG(gap_secs::double precision) / 60.0 AS weekday_headway_mins
     FROM wd_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 sat_headways AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         AVG(gap_secs::double precision) / 60.0 AS saturday_headway_mins
     FROM sat_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 sun_headways AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         AVG(gap_secs::double precision) / 60.0 AS sunday_headway_mins
     FROM sun_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 wd_gap_summary AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
             AS weekday_top_decile_mins,
         MAX(gap_secs::double precision) / 60.0 AS weekday_max_headway_mins
     FROM wd_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 sat_gap_summary AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
             AS saturday_top_decile_mins,
         MAX(gap_secs::double precision) / 60.0 AS saturday_max_headway_mins
     FROM sat_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 sun_gap_summary AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         PERCENTILE_CONT(0.10) WITHIN GROUP (ORDER BY gap_secs::double precision) / 60.0
             AS sunday_top_decile_mins,
         MAX(gap_secs::double precision) / 60.0 AS sunday_max_headway_mins
     FROM sun_gaps
     WHERE gap_secs > 0
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 wd_service AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         MIN(start_secs) AS weekday_service_start_secs,
         MAX(end_secs)   AS weekday_service_end_secs
     FROM trip_times
     WHERE is_weekday
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 sat_service AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         MIN(start_secs) AS saturday_service_start_secs,
         MAX(end_secs)   AS saturday_service_end_secs
     FROM trip_times
     WHERE is_saturday
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 sun_service AS (
-    SELECT agency_id, route_id,
+    SELECT feed_id, route_id,
         MIN(start_secs) AS sunday_service_start_secs,
         MAX(end_secs)   AS sunday_service_end_secs
     FROM trip_times
     WHERE is_sunday
-    GROUP BY agency_id, route_id
+    GROUP BY feed_id, route_id
 ),
 route_dirs AS (
     SELECT DISTINCT
-        tt.agency_id,
+        tt.feed_id,
         tt.route_id,
         r.short_name,
         r.long_name
     FROM trip_times tt
-    JOIN routes r ON r.agency_id = tt.agency_id AND r.route_id = tt.route_id
+    JOIN routes r ON r.onestop_id = tt.route_id
 )
 SELECT
-    rd.agency_id,
+    rd.feed_id,
     rd.route_id,
     rd.short_name,
     rd.long_name,
@@ -305,40 +307,40 @@ SELECT
     ss_sun.sunday_service_end_secs
 FROM route_dirs rd
 LEFT JOIN wd_headways wd
-  ON wd.agency_id = rd.agency_id
- AND wd.route_id  = rd.route_id
+  ON wd.feed_id  = rd.feed_id
+ AND wd.route_id = rd.route_id
 LEFT JOIN sat_headways sat
-  ON sat.agency_id = rd.agency_id
- AND sat.route_id  = rd.route_id
+  ON sat.feed_id  = rd.feed_id
+ AND sat.route_id = rd.route_id
 LEFT JOIN sun_headways sun
-  ON sun.agency_id = rd.agency_id
- AND sun.route_id  = rd.route_id
+  ON sun.feed_id  = rd.feed_id
+ AND sun.route_id = rd.route_id
 LEFT JOIN wd_gap_summary wgs
-  ON wgs.agency_id = rd.agency_id
- AND wgs.route_id  = rd.route_id
+  ON wgs.feed_id  = rd.feed_id
+ AND wgs.route_id = rd.route_id
 LEFT JOIN sat_gap_summary sgs
-  ON sgs.agency_id = rd.agency_id
- AND sgs.route_id  = rd.route_id
+  ON sgs.feed_id  = rd.feed_id
+ AND sgs.route_id = rd.route_id
 LEFT JOIN sun_gap_summary sugs
-  ON sugs.agency_id = rd.agency_id
- AND sugs.route_id  = rd.route_id
+  ON sugs.feed_id  = rd.feed_id
+ AND sugs.route_id = rd.route_id
 LEFT JOIN wd_service ws
-  ON ws.agency_id = rd.agency_id
- AND ws.route_id  = rd.route_id
+  ON ws.feed_id  = rd.feed_id
+ AND ws.route_id = rd.route_id
 LEFT JOIN sat_service ss_sat
-  ON ss_sat.agency_id = rd.agency_id
- AND ss_sat.route_id  = rd.route_id
+  ON ss_sat.feed_id  = rd.feed_id
+ AND ss_sat.route_id = rd.route_id
 LEFT JOIN sun_service ss_sun
-  ON ss_sun.agency_id = rd.agency_id
- AND ss_sun.route_id  = rd.route_id
-WHERE ($1::text IS NULL OR rd.agency_id = $1)
+  ON ss_sun.feed_id  = rd.feed_id
+ AND ss_sun.route_id = rd.route_id
+WHERE ($1::BIGINT IS NULL OR rd.feed_id = $1)
   AND (
       wd.weekday_headway_mins IS NOT NULL
    OR sat.saturday_headway_mins IS NOT NULL
    OR sun.sunday_headway_mins IS NOT NULL
   )
 ORDER BY
-    rd.agency_id,
+    rd.feed_id,
     COALESCE(
         wd.weekday_headway_mins,
         sat.saturday_headway_mins,
@@ -349,7 +351,7 @@ ORDER BY
     rd.short_name";
 
     let rows = sqlx::query_as(sql)
-        .bind(agency_filter.map(|a| a.as_str()))
+        .bind(feed_filter.map(|f| f.as_i64()))
         .fetch_all(&db.pool)
         .await?;
     Ok(rows)
@@ -359,39 +361,67 @@ ORDER BY
 mod tests {
     use super::*;
     use crate::db::test_utils;
+    use crate::ids::FeedId;
 
     #[tokio::test]
     async fn route_headways_returns_row_when_route_has_weekday_trips() {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('stm', 'R1', '1', 'Route 1', 3)")
+        // Insert feed
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (1, 'http://stm')")
             .execute(&db.pool)
             .await
             .unwrap();
+        // Insert route
         sqlx::query(
-            "INSERT INTO calendar VALUES ('stm', 'WD', true, true, true, true, true, false, false)",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-stm-R1', 'stm', '1', 'Route 1', 3)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        // Insert service (replaces calendar after migration 014)
+        sqlx::query(
+            "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (1, 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        // Insert route variant
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (1, 'VAR1', 'r-stm-R1', 0, 1, 2, true)",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         // Two trips 30 minutes apart → 30-minute weekday headway
-        sqlx::query("INSERT INTO trips VALUES ('stm', 'T1', 'R1', 'WD', 0, null)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('stm', 'T2', 'R1', 'WD', 0, null)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('stm', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO trips (feed_id, trip_id, service_id, variant_id) VALUES (1, 'T1', 'WD', 'VAR1')",
         )
         .execute(&db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('stm', 'T2', 'S1', 1, '08:30:00', '08:30:00')",
+            "INSERT INTO trips (feed_id, trip_id, service_id, variant_id) VALUES (1, 'T2', 'WD', 'VAR1')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        // Insert a stop for scheduled_stops FK
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.5, -73.5)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops (feed_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time) VALUES (1, 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops (feed_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time) VALUES (1, 'T2', 'S1', 1, '08:30:00', '08:30:00')",
         )
         .execute(&db.pool)
         .await
@@ -399,7 +429,7 @@ mod tests {
 
         let rows = route_headways(&db, None).await.unwrap();
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].route_id, "R1");
+        assert_eq!(rows[0].route_id, "r-stm-R1");
         let headway = rows[0].weekday_headway_mins.unwrap();
         assert!(
             (headway - 30.0).abs() < 0.1,
@@ -447,7 +477,7 @@ mod tests {
 
     fn make_row(wd: Option<f64>, sat: Option<f64>, sun: Option<f64>) -> RouteHeadwayRow {
         RouteHeadwayRow {
-            agency_id: AgencyId::from("a"),
+            feed_id: FeedId::from(1i64),
             route_id: RouteId::from("r"),
             short_name: "1".to_string(),
             long_name: "Route 1".to_string(),
