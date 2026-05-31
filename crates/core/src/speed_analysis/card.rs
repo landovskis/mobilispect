@@ -276,7 +276,7 @@ pub fn assign_indices(mut cards: Vec<RouteSpeedCard>) -> Vec<RouteSpeedCard> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ids::{DirectionId, FeedId, RouteId};
+    use crate::ids::{FeedId, RouteId, VariantId};
 
     fn make_row(
         feed_id: i64,

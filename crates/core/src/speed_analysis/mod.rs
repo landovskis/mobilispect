@@ -1097,7 +1097,7 @@ mod tests {
     use super::*;
     use crate::config::AgencyConfig;
     use crate::db::test_utils;
-    use crate::ids::AgencyId;
+    use crate::ids::{AgencyId, FeedId};
 
     fn test_agency() -> AgencyConfig {
         AgencyConfig {
@@ -1361,81 +1361,8 @@ mod tests {
         assert_eq!(summary.len(), 1);
         assert_eq!(summary[0].short_name, "42");
         assert_eq!(summary[0].long_name, "The Answer");
-        assert_eq!(summary[0].direction_id, 0);
         assert_eq!(summary[0].scheduled_speed_mps, 10.0);
         assert_eq!(summary[0].trip_count, 5);
-    }
-
-    #[tokio::test]
-    async fn route_speed_summary_includes_live_speed_from_recent_vehicles() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        sqlx::query(
-            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('0', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-
-        // Vehicle active now with speed 15 m/s.
-        sqlx::query(
-            "INSERT INTO vehicle_positions
-             (agency_id, observed_at, trip_id, latitude, longitude, speed)
-             VALUES ('0', NOW()::TEXT, 'T1', 45.5, -73.5, 15.0)",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-
-        let summary = route_speed_summary(&db, None).await.unwrap();
-
-        assert_eq!(summary.len(), 1);
-        let live = summary[0].live_speed_mps.expect("expected live speed");
-        assert!((live - 15.0).abs() < 0.01, "expected 15.0 m/s, got {live}");
-    }
-
-    #[tokio::test]
-    async fn route_speed_summary_live_speed_is_none_when_no_recent_vehicles() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        sqlx::query(
-            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('0', 'R1', 0, 8.0, 3, '2026-01-01T00:00:00Z')",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-
-        // Vehicle last seen 2 hours ago — outside the 1-hour window.
-        sqlx::query(
-            "INSERT INTO vehicle_positions
-             (agency_id, observed_at, trip_id, latitude, longitude, speed)
-             VALUES ('0', (NOW() - INTERVAL '2 hours')::TEXT, 'T1', 45.5, -73.5, 15.0)",
-        )
-        .execute(&db.pool)
-        .await
-        .unwrap();
-
-        let summary = route_speed_summary(&db, None).await.unwrap();
-
-        assert_eq!(summary.len(), 1);
-        assert!(
-            summary[0].live_speed_mps.is_none(),
-            "expected None for stale vehicle"
-        );
     }
 
     #[tokio::test]
@@ -1645,40 +1572,57 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn route_speed_summary_filters_by_agency() {
+    async fn route_speed_summary_filters_by_feed() {
         let td = test_utils::setup().await;
         let db = td.db;
-        sqlx::query("INSERT INTO routes VALUES ('stm', 'R1', '15', 'Papineau', 3)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO routes VALUES ('rtl', 'R2', '10', 'Longueuil', 3)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+        // Insert feeds so route_speed FK is satisfied
         sqlx::query(
-            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
-             VALUES ('stm', 'R1', 0, 5.5, 10, '2026-01-01T00:00:00Z')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO feeds (id, gtfs_static_url) VALUES (1, 'http://stm'), (2, 'http://rtl')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at)
-             VALUES ('rtl', 'R2', 0, 6.0, 8, '2026-01-01T00:00:00Z')"
-        ).execute(&db.pool).await.unwrap();
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-stm-R1', 'stm', '15', 'Papineau', 3)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-rtl-R2', 'rtl', '10', 'Longueuil', 3)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed (feed_id, route_id, variant_id, scheduled_speed_mps, trip_count, computed_at)
+             VALUES (1, 'r-stm-R1', 'VAR1', 5.5, 10, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed (feed_id, route_id, variant_id, scheduled_speed_mps, trip_count, computed_at)
+             VALUES (2, 'r-rtl-R2', 'VAR2', 6.0, 8, '2026-01-01T00:00:00Z')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
         let all = route_speed_summary(&db, None).await.unwrap();
         assert_eq!(all.len(), 2);
 
-        let stm = route_speed_summary(&db, Some(&AgencyId::from("stm")))
+        let feed1 = route_speed_summary(&db, Some(FeedId::from(1i64)))
             .await
             .unwrap();
-        assert_eq!(stm.len(), 1);
-        assert_eq!(stm[0].agency_id, "stm");
+        assert_eq!(feed1.len(), 1);
+        assert_eq!(feed1[0].feed_id, 1i64);
 
-        let rtl = route_speed_summary(&db, Some(&AgencyId::from("rtl")))
+        let feed2 = route_speed_summary(&db, Some(FeedId::from(2i64)))
             .await
             .unwrap();
-        assert_eq!(rtl.len(), 1);
-        assert_eq!(rtl[0].agency_id, "rtl");
+        assert_eq!(feed2.len(), 1);
+        assert_eq!(feed2[0].feed_id, 2i64);
     }
 
     #[tokio::test]
@@ -1762,14 +1706,13 @@ mod tests {
 
     fn make_summary(scheduled: f64, actual: Option<f64>) -> RouteSpeedSummary {
         RouteSpeedSummary {
-            agency_id: AgencyId::from("0"),
+            feed_id: FeedId::from(1i64),
             route_id: RouteId::from("R1"),
             short_name: "1".into(),
             long_name: "Route 1".into(),
-            direction_id: DirectionId(0),
+            variant_id: VariantId::from("VAR1"),
             scheduled_speed_mps: scheduled,
             trip_count: 1,
-            live_speed_mps: None,
             actual_speed_mps: actual,
             last_stop_name: None,
         }
@@ -1796,20 +1739,6 @@ mod tests {
     }
 
     #[test]
-    fn live_speed_display_formats_kmh_one_decimal() {
-        // 5.0 m/s = 18.0 km/h
-        let mut s = make_summary(10.0, None);
-        s.live_speed_mps = Some(5.0);
-        assert_eq!(s.live_speed_display(), "18.0 km/h");
-    }
-
-    #[test]
-    fn live_speed_display_dash_when_none() {
-        let s = make_summary(10.0, None);
-        assert_eq!(s.live_speed_display(), "—");
-    }
-
-    #[test]
     fn direction_label_free_fn_outbound_inbound_unknown() {
         assert_eq!(direction_label(DirectionId(0)), "Outbound");
         assert_eq!(direction_label(DirectionId(1)), "Inbound");
@@ -1824,9 +1753,9 @@ mod tests {
     }
 
     #[test]
-    fn direction_label_instance_falls_back_to_direction_id_label() {
-        let s = make_summary(10.0, None); // direction_id = 0 → "Outbound"
-        assert_eq!(s.direction_label(), "Outbound");
+    fn direction_label_instance_falls_back_to_variant_id() {
+        let s = make_summary(10.0, None); // variant_id = "VAR1"
+        assert_eq!(s.direction_label(), "VAR1");
     }
 
     #[test]
@@ -2093,7 +2022,7 @@ mod tests {
         .await
         .unwrap();
 
-        let rows = route_speed_by_day_type(&db, Some(&AgencyId::from("0")))
+        let rows = route_speed_by_day_type(&db, Some(FeedId::from(1i64)))
             .await
             .unwrap();
 
@@ -2237,33 +2166,47 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn route_speed_by_day_type_filters_by_agency() {
+    async fn route_speed_by_day_type_filters_by_feed() {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO routes VALUES ('agency_a', 'R1', '1', 'Route 1', 3)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO routes VALUES ('agency_b', 'R2', '2', 'Route 2', 3)")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('agency_a', 'R1', 0, 10.0, 1, '2026-01-01')")
-            .execute(&db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('agency_b', 'R2', 0, 12.0, 1, '2026-01-01')")
-            .execute(&db.pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO feeds (id, gtfs_static_url) VALUES (10, 'http://a'), (20, 'http://b')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-a-R1', 'agency_a', '1', 'Route 1', 3)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-b-R2', 'agency_b', '2', 'Route 2', 3)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed (feed_id, route_id, variant_id, scheduled_speed_mps, trip_count, computed_at) VALUES (10, 'r-a-R1', 'VA', 10.0, 1, '2026-01-01')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_speed (feed_id, route_id, variant_id, scheduled_speed_mps, trip_count, computed_at) VALUES (20, 'r-b-R2', 'VB', 12.0, 1, '2026-01-01')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
 
-        let rows = route_speed_by_day_type(&db, Some(&AgencyId::from("agency_a")))
+        let rows = route_speed_by_day_type(&db, Some(FeedId::from(10i64)))
             .await
             .unwrap();
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0].agency_id, "agency_a");
-        assert_eq!(rows[0].route_id, "R1");
+        assert_eq!(rows[0].feed_id, 10i64);
+        assert_eq!(rows[0].route_id, "r-a-R1");
     }
 
     #[tokio::test]
@@ -3182,7 +3125,7 @@ mod tests {
             .await
             .unwrap();
 
-        let directions = route_stop_spacings(db, &AgencyId::from("0"), &RouteId::from("R1"))
+        let directions = route_stop_spacings(db, FeedId::from(0i64), &RouteId::from("R1"))
             .await
             .unwrap();
 
@@ -3270,7 +3213,7 @@ mod tests {
             .await
             .unwrap();
 
-        let directions = route_stop_spacings(db, &AgencyId::from("0"), &RouteId::from("R1"))
+        let directions = route_stop_spacings(db, FeedId::from(0i64), &RouteId::from("R1"))
             .await
             .unwrap();
 
@@ -3293,7 +3236,7 @@ mod tests {
     async fn route_stop_spacings_returns_empty_for_unknown_route() {
         let td = test_utils::setup().await;
         let result =
-            route_stop_spacings(&td.db, &AgencyId::from("0"), &RouteId::from("NONEXISTENT"))
+            route_stop_spacings(&td.db, FeedId::from(0i64), &RouteId::from("NONEXISTENT"))
                 .await
                 .unwrap();
         assert!(result.is_empty());
@@ -3352,7 +3295,7 @@ mod tests {
         }
 
         let trends =
-            route_speed_trend_by_direction(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
+            route_speed_trend_by_direction(db, FeedId::from(0i64), &RouteId::from("R1"), 28)
                 .await
                 .unwrap();
         assert_eq!(trends.len(), 2, "two directions");
@@ -3377,7 +3320,7 @@ mod tests {
     async fn route_speed_trend_by_direction_returns_empty_when_no_data() {
         let td = test_utils::setup().await;
         let result =
-            route_speed_trend_by_direction(&td.db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
+            route_speed_trend_by_direction(&td.db, FeedId::from(0i64), &RouteId::from("R1"), 28)
                 .await
                 .unwrap();
         assert!(result.is_empty());
@@ -3407,7 +3350,7 @@ mod tests {
         .unwrap();
 
         let trends =
-            route_speed_trend_by_direction(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
+            route_speed_trend_by_direction(db, FeedId::from(0i64), &RouteId::from("R1"), 28)
                 .await
                 .unwrap();
 
@@ -3535,7 +3478,7 @@ mod tests {
         }
 
         let trends =
-            route_speed_trend_by_variant(db, &AgencyId::from("0"), &RouteId::from("R1"), 28)
+            route_speed_trend_by_variant(db, FeedId::from(0i64), &RouteId::from("R1"), 28)
                 .await
                 .unwrap();
 

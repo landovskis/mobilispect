@@ -8,7 +8,7 @@ use axum::{
 use serde::Deserialize;
 
 use crate::web::AppState;
-use mobilispect_core::ids::{AgencyId, FeedId, RouteId};
+use mobilispect_core::ids::{FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
 use mobilispect_core::service_frequency::{RouteHeadwayRow, route_headways};
 use mobilispect_core::speed_analysis::{
@@ -399,12 +399,12 @@ pub async fn frequency_page(
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
         .unwrap_or_default();
-    let agency_filter: Option<AgencyId> = if active_agency.is_empty() {
+    let feed_filter: Option<FeedId> = if active_agency.is_empty() {
         None
     } else {
-        Some(AgencyId::from(active_agency.clone()))
+        active_agency.parse::<i64>().ok().map(FeedId::from)
     };
-    let rows = match route_headways(&state.db, agency_filter.as_ref()).await {
+    let rows = match route_headways(&state.db, feed_filter).await {
         Ok(rows) => rows,
         Err(e) => {
             tracing::error!(error = %e, "DB error in frequency_page");
