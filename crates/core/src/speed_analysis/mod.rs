@@ -1,5 +1,5 @@
 use anyhow::Result;
-use chrono::{NaiveDate, Timelike, Utc};
+use chrono::{NaiveDate, Utc};
 use serde::Serialize;
 
 use crate::config::AgencyConfig;
