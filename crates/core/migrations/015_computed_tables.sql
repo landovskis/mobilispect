@@ -69,6 +69,7 @@ CREATE TABLE route_speed (
     avg_stop_spacing_m    DOUBLE PRECISION,
     trip_count            BIGINT NOT NULL,
     computed_at           TIMESTAMPTZ NOT NULL,
+    last_stop_name        TEXT,
     PRIMARY KEY (feed_id, route_id, variant_id)
 );
 
