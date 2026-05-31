@@ -5,6 +5,7 @@ bind_address = "0.0.0.0:3000"
 on_time_early_threshold_secs = -60
 on_time_late_threshold_secs = 300
 retention_days = 30
+# transitland_api_key_env = "TRANSITLAND_API_KEY"
 
 [region]
 name = "Montreal"
@@ -22,3 +23,4 @@ gtfs_rt_vehicle_positions_url = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/vehic
 gtfs_rt_trip_updates_url = "https://api.stm.info/pub/od/gtfs-rt/ic/v2/tripUpdates"
 gtfs_api_key_env = "STM_GTFS_RT_API_KEY"
 agency_utc_offset = "-04:00"
+# transitland_feed_id = "f-f25d-stm"

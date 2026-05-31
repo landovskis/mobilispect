@@ -17,6 +17,9 @@ pub struct FeedConfig {
     pub gtfs_api_key: Option<String>,
     /// UTC offset string for agency local time, e.g. "-04:00" or "-05:00"
     pub agency_utc_offset: String,
+    /// Transitland feed Onestop ID (e.g. "f-f25d-stm"). When None, Transitland
+    /// resolution is skipped for this feed.
+    pub transitland_feed_id: Option<String>,
 }
 
 /// A transit network built from one or more feeds.
@@ -47,6 +50,9 @@ pub struct Config {
     /// Number of days to retain rows in stop_time_events and vehicle_positions
     pub retention_days: u32,
     pub worker_health_bind_address: String,
+    /// Shared Transitland API key for all feeds. When None, unauthenticated requests
+    /// are made (subject to rate limits).
+    pub transitland_api_key: Option<String>,
 }
 
 impl Config {
@@ -79,6 +85,14 @@ impl Config {
             file.database_url_env,
             "database_url",
             "database_url_env",
+            &env,
+        )?;
+
+        let transitland_api_key = resolve_optional_secret(
+            file.transitland_api_key,
+            file.transitland_api_key_env,
+            "transitland_api_key",
+            "transitland_api_key_env",
             &env,
         )?;
 
@@ -136,6 +150,7 @@ impl Config {
             worker_health_bind_address: file
                 .worker_health_bind_address
                 .unwrap_or_else(|| "0.0.0.0:9090".to_string()),
+            transitland_api_key,
         })
     }
 }
@@ -151,6 +166,10 @@ struct TomlConfig {
     on_time_late_threshold_secs: Option<i64>,
     retention_days: Option<u32>,
     worker_health_bind_address: Option<String>,
+    /// Transitland API key (direct value — not recommended for secrets).
+    transitland_api_key: Option<String>,
+    /// Env var name holding the Transitland API key (preferred for secrets).
+    transitland_api_key_env: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -177,6 +196,8 @@ struct TomlFeedConfig {
     gtfs_api_key: Option<String>,
     gtfs_api_key_env: Option<String>,
     agency_utc_offset: Option<String>,
+    /// Transitland feed Onestop ID for this specific feed (e.g. "f-f25d-stm").
+    transitland_feed_id: Option<String>,
 }
 
 impl TomlFeedConfig {
@@ -202,6 +223,7 @@ impl TomlFeedConfig {
             agency_utc_offset: self
                 .agency_utc_offset
                 .unwrap_or_else(|| "-05:00".to_string()),
+            transitland_feed_id: self.transitland_feed_id,
         })
     }
 }
