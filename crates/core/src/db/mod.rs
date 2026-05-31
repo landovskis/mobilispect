@@ -2,6 +2,7 @@ use anyhow::Result;
 use sqlx::PgPool;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use std::str::FromStr;
+use std::time::Duration;
 
 #[derive(Clone, Debug)]
 pub struct Database {
@@ -13,6 +14,8 @@ impl Database {
         let options = PgConnectOptions::from_str(database_url)?;
         let pool = PgPoolOptions::new()
             .max_connections(5)
+            .idle_timeout(Duration::from_secs(300))
+            .test_before_acquire(true)
             .connect_with(options)
             .await?;
         Ok(Self { pool })
