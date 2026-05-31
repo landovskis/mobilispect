@@ -8,7 +8,7 @@ use axum::{
 use serde::Deserialize;
 
 use crate::web::AppState;
-use mobilispect_core::ids::{AgencyId, RouteId};
+use mobilispect_core::ids::{AgencyId, FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
 use mobilispect_core::service_frequency::{RouteHeadwayRow, route_headways};
 use mobilispect_core::speed_analysis::{
@@ -24,18 +24,21 @@ struct RouteSpeedDetailTemplate {
     region_name: String,
     short_name: String,
     long_name: String,
-    agency_id: AgencyId,
+    agency_id: FeedId,
     directions: Vec<RouteSpeedDetailDirection>,
     classification: Option<RouteClass>,
 }
 
 pub async fn route_speed_detail(
     State(state): State<AppState>,
-    axum::extract::Path((agency_id, route_id)): axum::extract::Path<(String, String)>,
+    axum::extract::Path((feed_id_str, route_id)): axum::extract::Path<(String, String)>,
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agency_id = AgencyId::from(agency_id);
+    let feed_id = feed_id_str
+        .parse::<i64>()
+        .map(FeedId::from)
+        .unwrap_or_else(|_| FeedId::from(0i64));
     let route_id = RouteId::from(route_id);
 
     let (short_name, long_name) = match fetch_route_info(&state.db, &route_id).await {
@@ -48,7 +51,7 @@ pub async fn route_speed_detail(
                 .into_response();
         }
         Err(e) => {
-            tracing::error!("DB error fetching route {agency_id}/{route_id}: {e}");
+            tracing::error!("DB error fetching route {feed_id}/{route_id}: {e}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 Html("<h1>Internal Server Error</h1>".to_string()),
@@ -57,8 +60,8 @@ pub async fn route_speed_detail(
         }
     };
     let (spacings_res, trends_res) = tokio::join!(
-        route_stop_spacings(&state.db, &agency_id, &route_id),
-        route_speed_trend_by_variant(&state.db, &agency_id, &route_id, 28),
+        route_stop_spacings(&state.db, feed_id, &route_id),
+        route_speed_trend_by_variant(&state.db, feed_id, &route_id, 28),
     );
 
     let spacings = match spacings_res {
@@ -71,7 +74,7 @@ pub async fn route_speed_detail(
         }
         Ok(s) => s,
         Err(e) => {
-            tracing::error!("route_stop_spacings failed for {agency_id}/{route_id}: {e}");
+            tracing::error!("route_stop_spacings failed for {feed_id}/{route_id}: {e}");
             return (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 Html("<h1>Internal Server Error</h1>".to_string()),
@@ -80,7 +83,7 @@ pub async fn route_speed_detail(
         }
     };
     let trends = trends_res.unwrap_or_else(|e| {
-        tracing::error!("route_speed_trend_by_variant failed for {agency_id}/{route_id}: {e}");
+        tracing::error!("route_speed_trend_by_variant failed for {feed_id}/{route_id}: {e}");
         vec![]
     });
 
@@ -99,7 +102,7 @@ pub async fn route_speed_detail(
         region_name: state.config.region.name.clone(),
         short_name,
         long_name,
-        agency_id: agency_id.clone(),
+        agency_id: feed_id,
         directions,
         classification,
     };
@@ -107,7 +110,7 @@ pub async fn route_speed_detail(
         Ok(html) => Html(html).into_response(),
         Err(e) => {
             tracing::error!(
-                "Template render error for route_speed_detail {agency_id}/{route_id}: {e}"
+                "Template render error for route_speed_detail {feed_id}/{route_id}: {e}"
             );
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -186,20 +189,23 @@ struct RouteDetailTemplate {
 
 pub async fn route_detail(
     State(state): State<AppState>,
-    axum::extract::Path((agency_id, route_id)): axum::extract::Path<(String, String)>,
+    axum::extract::Path((feed_id_str, route_id)): axum::extract::Path<(String, String)>,
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
     let period_days: i64 = 30;
-    let agency_id = AgencyId::from(agency_id);
+    let feed_id = feed_id_str
+        .parse::<i64>()
+        .map(FeedId::from)
+        .unwrap_or_else(|_| FeedId::from(0i64));
     let route_id = RouteId::from(route_id);
-    match route_trend(&state.db, &agency_id, &route_id, period_days).await {
+    match route_trend(&state.db, feed_id, &route_id, period_days).await {
         Ok(Some(trend)) => {
             let trend_json = match serde_json::to_string(&trend.days) {
                 Ok(json) => json,
                 Err(e) => {
                     tracing::error!(
-                        "Failed to serialize trend data for {agency_id}/{route_id}: {e}"
+                        "Failed to serialize trend data for {feed_id}/{route_id}: {e}"
                     );
                     return (
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -218,7 +224,7 @@ pub async fn route_detail(
                 Ok(html) => Html(html).into_response(),
                 Err(e) => {
                     tracing::error!(
-                        "Template render error for route_detail {agency_id}/{route_id}: {e}"
+                        "Template render error for route_detail {feed_id}/{route_id}: {e}"
                     );
                     (
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -234,7 +240,7 @@ pub async fn route_detail(
         )
             .into_response(),
         Err(e) => {
-            tracing::error!("DB error fetching route trend for {agency_id}/{route_id}: {e}");
+            tracing::error!("DB error fetching route trend for {feed_id}/{route_id}: {e}");
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 Html("<h1>Internal Server Error</h1>".to_string()),
@@ -275,15 +281,14 @@ pub async fn speed_page(
         _ => "",
     }
     .to_string();
-    let filter_agency_id = if active_agency.is_empty() {
+    let feed_id_filter: Option<FeedId> = if active_agency.is_empty() {
         None
     } else {
-        Some(AgencyId::from(active_agency.as_str()))
+        active_agency.parse::<i64>().ok().map(FeedId::from)
     };
-    let filter = filter_agency_id.as_ref();
     let agency_names: std::collections::HashMap<String, String> =
         agencies.iter().cloned().collect();
-    let rows = match route_speed_by_day_type(&state.db, filter).await {
+    let rows = match route_speed_by_day_type(&state.db, feed_id_filter).await {
         Ok(rows) => rows,
         Err(e) => {
             tracing::error!(error = %e, "DB error in speed_page");
