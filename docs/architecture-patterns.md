@@ -1,0 +1,20 @@
+<!-- architecture: auto-generated -->
+# Design Patterns
+
+> Last updated: 2026-05-26
+
+Patterns identified in the codebase, with evidence.
+
+| Pattern | Category | Usage in this codebase | Evidence |
+|---------|----------|------------------------|----------|
+| Functional Core / Imperative Shell | Architectural | All domain computation (speed metrics, headway calculation, on-time classification) lives in pure functions in `mobilispect-core` that take plain values and return plain values. I/O (DB, HTTP, file system) is restricted to the shell layer: handlers in `mobilispect-server` and feed ingestors / maintenance loop in `mobilispect-worker`. | `crates/core/src/speed_analysis/mod.rs`, `crates/core/src/service_frequency/mod.rs`, `crates/core/src/on_time_performance/on_time.rs` |
+| Vertical Slice Architecture | Architectural | Each analytics feature (on-time performance, speed analysis, service frequency) owns its DB queries, computation logic, and data types together in one module. No shared "service layer" or "repository layer" spans features. | `crates/core/src/on_time_performance/`, `crates/core/src/speed_analysis/`, `crates/core/src/service_frequency/` |
+| Anti-Corruption Layer (ACL) | Architectural | `gtfs_structures::*` types and prost-generated Protobuf types are used only inside `mobilispect-worker/src/feed_ingestion/`. They never appear in `mobilispect-core` or `mobilispect-server`. The feed ingestors translate external GTFS concepts into the system's own domain types before writing to the database. | `crates/worker/src/feed_ingestion/static_feed.rs:4`, `crates/worker/src/feed_ingestion/realtime.rs:14`, `crates/.claude/rules/ddd.md` ACL boundary rule |
+| Newtype / Semantic ID | Structural | Domain identifiers are wrapped in newtypes (`AgencyId`, `RouteId`, `TripId`, `StopId`, `VariantId`, `ServiceId`, `VehicleId`, `DirectionId`) to prevent mixing up string and integer IDs at compile time. All use `#[sqlx(transparent)]` for ergonomic DB mapping. | `crates/core/src/ids.rs` |
+| Post-Import Pipeline / Hook | Behavioral | After a static GTFS load completes, `pipeline::run_static_hooks` is called. After each realtime poll, `pipeline::run_realtime_hooks` is called. These hooks invoke metric recomputation in `mobilispect-core` (e.g., `speed_analysis::on_static_loaded`), decoupling ingestion from derived-data computation. | `crates/worker/src/pipeline.rs:6-9`, `crates/worker/src/feed_ingestion/realtime.rs:48` |
+| Partial Response / HTMX Fragment | Behavioral | HTTP handlers inspect the `hx-request` header. When present (HTMX-driven request), they return an HTML fragment template (e.g., `SpeedContentTemplate`). Otherwise they return the full-page template (`SpeedTemplate`). Keeps server-side rendering compatible with partial page replacement. | `crates/server/src/web/handlers.rs:302`, `:414` |
+| Builder (function pipeline) | Creational | Speed card construction is a pipeline of pure builder functions: `build_speed_cards` → `filter_speed_cards` → `sort_speed_cards` → `assign_indices`. Each step takes and returns a `Vec<RouteSpeedCard>`, composing the final result without mutation. | `crates/server/src/web/handlers.rs:297-301` |
+| Repository (query function) | Structural | Domain query functions (`route_summary`, `route_trend`, `route_headways`, `route_speed_by_day_type`, `route_stop_spacings`) encapsulate all SQL for a given domain slice and return typed result structs. Handlers never write SQL directly. | `crates/core/src/on_time_performance/route_summary.rs`, `crates/core/src/service_frequency/mod.rs:135`, `crates/server/src/web/handlers.rs:145` |
+| Deterministic Content Hash | Creational | Route variant IDs are derived by SHA-256 hashing the ordered stop-ID sequence of a trip pattern. This ensures the same physical stop pattern always maps to the same `variant_id` regardless of agency-assigned trip numbering or route labelling. | `crates/worker/src/feed_ingestion/static_feed.rs:847-851` |
+
+<!-- manually maintained: extended notes below this line -->
