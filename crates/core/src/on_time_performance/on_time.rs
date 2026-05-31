@@ -53,7 +53,7 @@ pub async fn compute_route_daily(
 ) -> Result<()> {
     let date_str = service_date.to_string();
     let now = chrono::Utc::now().to_rfc3339();
-    let agency_id = AgencyId::from(agency.id);
+    let agency_id = AgencyId::from(agency.id.to_string());
 
     let trips = sqlx::query!(
         "SELECT DISTINCT t.trip_id, t.route_id

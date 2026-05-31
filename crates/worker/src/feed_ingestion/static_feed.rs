@@ -23,7 +23,7 @@ const CHUNK: usize = 500;
 /// Load static GTFS data into the database if not already present for this agency.
 /// Re-loads if the feed version has changed.
 pub async fn load_if_needed(db: &Database, agency: &AgencyConfig) -> Result<()> {
-    let agency_id = AgencyId::from(agency.id);
+    let agency_id = AgencyId::from(agency.id.to_string());
     let stored_version = get_stored_version(db, &agency_id).await?;
     let last_download = get_last_download(db, &agency_id).await?;
 

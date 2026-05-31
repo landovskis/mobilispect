@@ -15,7 +15,7 @@ pub async fn backfill_daily_metrics(db: &Database, config: &Config, days: u32) {
     let today = Utc::now().date_naive();
     for days_back in 1..=days as i64 {
         let date = today - ChronoDuration::days(days_back);
-        for agency in &config.agencies {
+        for agency in &config.feeds {
             match compute_route_daily(db, config, agency, date).await {
                 Ok(()) => info!(agency = %agency.id, %date, "Backfilled daily on-time metrics"),
                 Err(e) => {
@@ -79,7 +79,7 @@ pub async fn retention_loop(db: &Database, config: &Config) {
         // Compute metrics for yesterday (completed service day) and today (partial data so far).
         // Yesterday is always fully populated regardless of when the worker restarts.
         for date in daily_metrics_window(Utc::now().date_naive()) {
-            for agency in &config.agencies {
+            for agency in &config.feeds {
                 match compute_route_daily(db, config, agency, date).await {
                     Ok(()) => info!(agency = %agency.id, %date, "Computed daily on-time metrics"),
                     Err(e) => {
@@ -113,8 +113,8 @@ mod tests {
     use mobilispect_core::db::test_utils;
 
     fn test_config() -> Config {
-        use mobilispect_core::config::RegionConfig;
-        let agency = AgencyConfig {
+        use mobilispect_core::config::{NetworkConfig, RegionConfig};
+        let feed = AgencyConfig {
             id: 0,
             name: "Test Agency".to_string(),
             gtfs_static_url: String::new(),
@@ -122,13 +122,18 @@ mod tests {
             gtfs_rt_trip_updates_url: None,
             gtfs_api_key: None,
             agency_utc_offset: "-04:00".to_string(),
+            transitland_feed_id: None,
         };
         Config {
-            agencies: vec![agency.clone()],
+            feeds: vec![feed.clone()],
             region: RegionConfig {
                 name: "Test Region".to_string(),
                 timezone: "America/Montreal".to_string(),
-                agencies: vec![agency],
+                networks: vec![NetworkConfig {
+                    id: 0,
+                    name: "Test Network".to_string(),
+                    feeds: vec![feed],
+                }],
             },
             database_url: String::new(),
             poll_interval_secs: 30,
@@ -137,6 +142,7 @@ mod tests {
             on_time_late_threshold_secs: 300,
             retention_days: 30,
             worker_health_bind_address: "0.0.0.0:8080".to_string(),
+            transitland_api_key: None,
         }
     }
 

@@ -8,6 +8,7 @@ mod feed_ingestion;
 mod health;
 mod maintenance;
 mod pipeline;
+pub mod transitland;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -19,13 +20,13 @@ async fn main() -> Result<()> {
     let db = Database::connect(&config.database_url).await?;
 
     info!(
-        "Mobilispect worker starting — {} agency/agencies configured",
-        config.agencies.len()
+        "Mobilispect worker starting — {} feed(s) configured",
+        config.feeds.len()
     );
 
-    let mut set: tokio::task::JoinSet<(mobilispect_core::config::AgencyConfig, Result<()>)> =
+    let mut set: tokio::task::JoinSet<(mobilispect_core::config::FeedConfig, Result<()>)> =
         tokio::task::JoinSet::new();
-    for agency in &config.agencies {
+    for agency in &config.feeds {
         let db = db.clone();
         let agency = agency.clone();
         set.spawn(async move {

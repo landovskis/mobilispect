@@ -471,7 +471,8 @@ mod e2e_tests {
     use tower::ServiceExt;
 
     fn test_config() -> Config {
-        let agencies = vec![AgencyConfig {
+        use mobilispect_core::config::NetworkConfig;
+        let feed = AgencyConfig {
             id: 0,
             name: "Test Agency".to_string(),
             gtfs_static_url: String::new(),
@@ -479,14 +480,19 @@ mod e2e_tests {
             gtfs_rt_trip_updates_url: None,
             gtfs_api_key: None,
             agency_utc_offset: "-04:00".to_string(),
-        }];
+            transitland_feed_id: None,
+        };
 
         Config {
-            agencies: agencies.clone(),
+            feeds: vec![feed.clone()],
             region: RegionConfig {
                 name: "Test Region".to_string(),
                 timezone: "America/Toronto".to_string(),
-                agencies,
+                networks: vec![NetworkConfig {
+                    id: 0,
+                    name: "Test Network".to_string(),
+                    feeds: vec![feed],
+                }],
             },
             database_url: String::new(),
             poll_interval_secs: 30,
@@ -495,6 +501,7 @@ mod e2e_tests {
             on_time_late_threshold_secs: 300,
             retention_days: 30,
             worker_health_bind_address: "0.0.0.0:9090".to_string(),
+            transitland_api_key: None,
         }
     }
 

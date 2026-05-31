@@ -26,7 +26,7 @@ pub async fn poll_loop(db: &Database, agency: &AgencyConfig, poll_interval_secs:
 
 async fn poll_once(db: &Database, agency: &AgencyConfig) -> Result<()> {
     let now = Utc::now().to_rfc3339();
-    let agency_id = AgencyId::from(agency.id);
+    let agency_id = AgencyId::from(agency.id.to_string());
 
     // Fetch VehiclePositions (optional — skip if URL not configured)
     let vp_count = if let Some(url) = &agency.gtfs_rt_vehicle_positions_url {
