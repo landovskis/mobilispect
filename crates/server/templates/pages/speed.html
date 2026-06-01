@@ -1,15 +1,18 @@
-{% extends "base.html" %}
+{% extends "layouts/base.html" %}
 
 {% block title %}Mobilispect — Route Speeds{% endblock %}
 {% block region_name %}{{ region_name }}{% endblock %}
 {% block nav_speed %}active{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"
+        integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
+        crossorigin="anonymous" defer></script>
 <style>
 .controls { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
-.card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-@media (max-width: 900px) { .card-grid { grid-template-columns: 1fr; } }
+.card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 1100px) { .card-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 700px) { .card-grid { grid-template-columns: 1fr; } }
 .speed-loading {
   display: inline-flex;
   align-items: center;
@@ -52,6 +55,6 @@
       <p class="page-subtitle">Scheduled and actual speed evidence by route</p>
     </div>
   </div>
-  {% include "speed_content.html" %}
+  {% include "partials/speed_content.html" %}
 </div>
 {% endblock %}

@@ -1,11 +1,13 @@
-{% extends "base.html" %}
+{% extends "layouts/base.html" %}
 
 {% block title %}Mobilispect — Route Schedule{% endblock %}
 {% block region_name %}{{ region_name }}{% endblock %}
 {% block nav_frequency %}active{% endblock %}
 
 {% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"
+        integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
+        crossorigin="anonymous" defer></script>
 <style>
 .freq-loading {
   display: inline-flex;
@@ -129,6 +131,6 @@
         role="status"
         aria-live="polite"
         aria-atomic="true">Loading route schedule</span>
-  {% include "frequency_content.html" %}
+  {% include "partials/frequency_content.html" %}
 </div>
 {% endblock %}

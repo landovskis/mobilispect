@@ -1,4 +1,4 @@
-{% import "macros.html" as ui %}
+{% import "layouts/macros.html" as ui %}
 <a href="/routes/{{ card.feed_id }}/{{ card.route_id }}/speed"
    style="text-decoration: none; color: inherit; display: block;">
 <div class="card" style="padding:1rem 1.25rem;">
@@ -15,7 +15,7 @@
     <div>{{ ui::stat(label="Scheduled", value=card.avg_scheduled_speed_kmh_display(), unit=" km/h", variant=card.scheduled_speed_variant()) }}</div>
     <div>{{ ui::stat(label="Actual", value=card.avg_actual_speed_kmh_display(), unit=" km/h", variant=card.actual_speed_variant()) }}</div>
     <div>{{ ui::stat(label="Avg dwell", value=card.avg_dwell_number(), unit=card.avg_dwell_unit(), variant="neutral") }}</div>
-    <div style="margin-left:auto;">{{ ui::stat(label="Avg stop spacing", value=card.avg_stop_spacing_number(), unit=card.avg_stop_spacing_unit(), variant=card.avg_stop_spacing_variant()) }}</div>
+    <div>{{ ui::stat(label="Avg stop spacing", value=card.avg_stop_spacing_number(), unit=card.avg_stop_spacing_unit(), variant=card.avg_stop_spacing_variant()) }}</div>
   </div>
 </div>
 </a>

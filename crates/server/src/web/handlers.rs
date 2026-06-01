@@ -19,7 +19,7 @@ use mobilispect_core::speed_analysis::{
 };
 
 #[derive(Template)]
-#[template(path = "route_speed_detail.html")]
+#[template(path = "pages/route_speed_detail.html")]
 struct RouteSpeedDetailTemplate {
     region_name: String,
     short_name: String,
@@ -158,7 +158,7 @@ pub async fn api_routes(
 }
 
 #[derive(Template)]
-#[template(path = "speed.html")]
+#[template(path = "pages/speed.html")]
 struct SpeedTemplate {
     region_name: String,
     cards: Vec<RouteSpeedCard>,
@@ -169,7 +169,7 @@ struct SpeedTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "speed_content.html")]
+#[template(path = "partials/speed_content.html")]
 struct SpeedContentTemplate {
     cards: Vec<RouteSpeedCard>,
     agencies: Vec<(String, String)>,
@@ -179,7 +179,7 @@ struct SpeedContentTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "route_detail.html")]
+#[template(path = "pages/route_detail.html")]
 struct RouteDetailTemplate {
     region_name: String,
     trend: RouteTrend,
@@ -366,7 +366,7 @@ pub async fn api_route_speed(
 }
 
 #[derive(Template)]
-#[template(path = "frequency.html")]
+#[template(path = "pages/frequency.html")]
 struct FrequencyTemplate {
     region_name: String,
     rows: Vec<RouteHeadwayRow>,
@@ -375,7 +375,7 @@ struct FrequencyTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "frequency_content.html")]
+#[template(path = "partials/frequency_content.html")]
 struct FrequencyContentTemplate {
     rows: Vec<RouteHeadwayRow>,
     agencies: Vec<(String, String)>,
