@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "layouts/base.html" %}
 
 {% block title %}Mobilispect — Route Schedule{% endblock %}
 {% block region_name %}{{ region_name }}{% endblock %}
@@ -131,6 +131,6 @@
         role="status"
         aria-live="polite"
         aria-atomic="true">Loading route schedule</span>
-  {% include "frequency_content.html" %}
+  {% include "partials/frequency_content.html" %}
 </div>
 {% endblock %}
