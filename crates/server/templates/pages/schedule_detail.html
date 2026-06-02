@@ -1,0 +1,159 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Mobilispect — Route {{ frequency.short_name }} Schedule{% endblock %}
+{% block region_name %}{{ region_name }}{% endblock %}
+{% block nav_frequency %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+.freq-plot-section {
+  margin-bottom: 2rem;
+}
+.freq-plot-label {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+  margin-bottom: 0.75rem;
+}
+.freq-plot-wrap {
+  background: var(--surface-muted);
+  border-radius: 8px;
+  padding: 1rem 1rem 0.5rem;
+  overflow-x: auto;
+}
+.freq-plot {
+  min-width: 100%;
+}
+.freq-plot svg {
+  display: block;
+  overflow: visible;
+}
+.no-data {
+  color: var(--ink-400);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Route {{ frequency.short_name }} — {{ frequency.long_name }}</h1>
+      <p class="page-subtitle">Hourly trip frequency by day type</p>
+    </div>
+    <a class="chip" href="/schedule?agency={{ feed_id }}">← Back to schedule overview</a>
+  </div>
+
+  {% if !frequency.has_weekday() && !frequency.has_saturday() && !frequency.has_sunday() %}
+  <p class="no-data">No schedule data available for this route.</p>
+  {% else %}
+
+  {% if frequency.has_weekday() %}
+  <div class="card freq-plot-section" style="padding:1.25rem 1.5rem;">
+    <div class="freq-plot-label">Weekday</div>
+    <div class="freq-plot-wrap">
+      <div class="freq-plot" data-bins="{{ frequency.weekday_json()|e }}" data-color="oxford"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if frequency.has_saturday() %}
+  <div class="card freq-plot-section" style="padding:1.25rem 1.5rem;">
+    <div class="freq-plot-label">Saturday</div>
+    <div class="freq-plot-wrap">
+      <div class="freq-plot" data-bins="{{ frequency.saturday_json()|e }}" data-color="oxford"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if frequency.has_sunday() %}
+  <div class="card freq-plot-section" style="padding:1.25rem 1.5rem;">
+    <div class="freq-plot-label">Sunday</div>
+    <div class="freq-plot-wrap">
+      <div class="freq-plot" data-bins="{{ frequency.sunday_json()|e }}" data-color="oxford"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const BAR_W = 18;
+  const BAR_GAP = 3;
+  const CHART_H = 100;
+  const AXIS_H = 20;
+  const PAD_TOP = 8;
+
+  function drawPlot(el) {
+    const bins = JSON.parse(el.dataset.bins || '[]');
+    if (!bins.length) return;
+
+    const style = getComputedStyle(document.documentElement);
+    const barColor = style.getPropertyValue('--link-blue').trim() || '#1D4E89';
+    const gridColor = style.getPropertyValue('--line-soft').trim() || '#ECEAE4';
+    const labelColor = style.getPropertyValue('--ink-400').trim() || '#A8A49B';
+
+    const maxCount = Math.max(...bins.map(b => b.trip_count), 1);
+    const minHour = bins[0].hour;
+    const maxHour = bins[bins.length - 1].hour;
+    const numHours = maxHour - minHour + 1;
+    const totalW = numHours * (BAR_W + BAR_GAP);
+    const svgH = CHART_H + AXIS_H + PAD_TOP;
+
+    // Index bins by hour for O(1) lookup
+    const byHour = {};
+    bins.forEach(b => { byHour[b.hour] = b.trip_count; });
+
+    let bars = '';
+    let labels = '';
+    let gridLines = '';
+
+    // Horizontal guide lines at 25%, 50%, 75%, 100%
+    [0.25, 0.5, 0.75, 1.0].forEach(frac => {
+      const y = PAD_TOP + CHART_H - Math.round(frac * CHART_H);
+      gridLines += `<line x1="0" y1="${y}" x2="${totalW}" y2="${y}" stroke="${gridColor}" stroke-width="1"/>`;
+    });
+
+    for (let i = 0; i < numHours; i++) {
+      const hour = minHour + i;
+      const count = byHour[hour] || 0;
+      const barH = Math.max(1, Math.round(count / maxCount * CHART_H));
+      const x = i * (BAR_W + BAR_GAP);
+      const y = PAD_TOP + CHART_H - barH;
+
+      bars += `<rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}" fill="${barColor}" rx="2" opacity="${count === 0 ? 0.08 : 0.85}"/>`;
+
+      // Label every 4 hours and the last hour
+      if (hour % 4 === 0 || i === numHours - 1) {
+        const lx = x + BAR_W / 2;
+        const label = String(hour).padStart(2, '0') + ':00';
+        labels += `<text x="${lx}" y="${PAD_TOP + CHART_H + 14}" font-size="8" fill="${labelColor}" text-anchor="middle" font-family="'Fira Code',monospace">${label}</text>`;
+      }
+
+      // Count label above tall bars
+      if (count > 0) {
+        const lx = x + BAR_W / 2;
+        labels += `<text x="${lx}" y="${y - 3}" font-size="7.5" fill="${labelColor}" text-anchor="middle" font-family="'Fira Code',monospace">${count}</text>`;
+      }
+    }
+
+    // Axis baseline
+    const baseline = `<line x1="0" y1="${PAD_TOP + CHART_H}" x2="${totalW}" y2="${PAD_TOP + CHART_H}" stroke="${gridColor}" stroke-width="1.5"/>`;
+
+    el.innerHTML = `<svg viewBox="0 0 ${totalW} ${svgH}" width="${Math.max(totalW, 480)}" height="${svgH}" style="min-width:${Math.max(totalW, 480)}px">
+      ${gridLines}${baseline}${bars}${labels}
+    </svg>`;
+  }
+
+  document.querySelectorAll('.freq-plot').forEach(drawPlot);
+})();
+</script>
+{% endblock %}

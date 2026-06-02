@@ -4,6 +4,143 @@ use serde::Serialize;
 use crate::db::Database;
 use crate::ids::{FeedId, RouteId};
 
+#[derive(Debug, Serialize)]
+pub struct HourBin {
+    pub hour: i32,
+    pub trip_count: i32,
+}
+
+pub struct RouteHourlyFrequency {
+    pub short_name: String,
+    pub long_name: String,
+    pub weekday_bins: Vec<HourBin>,
+    pub saturday_bins: Vec<HourBin>,
+    pub sunday_bins: Vec<HourBin>,
+}
+
+impl RouteHourlyFrequency {
+    pub fn has_weekday(&self) -> bool {
+        !self.weekday_bins.is_empty()
+    }
+
+    pub fn has_saturday(&self) -> bool {
+        !self.saturday_bins.is_empty()
+    }
+
+    pub fn has_sunday(&self) -> bool {
+        !self.sunday_bins.is_empty()
+    }
+
+    pub fn weekday_json(&self) -> String {
+        serde_json::to_string(&self.weekday_bins).unwrap_or_else(|_| "[]".to_string())
+    }
+
+    pub fn saturday_json(&self) -> String {
+        serde_json::to_string(&self.saturday_bins).unwrap_or_else(|_| "[]".to_string())
+    }
+
+    pub fn sunday_json(&self) -> String {
+        serde_json::to_string(&self.sunday_bins).unwrap_or_else(|_| "[]".to_string())
+    }
+}
+
+#[derive(sqlx::FromRow)]
+struct HourlyRow {
+    day_type: Option<String>,
+    hour: i32,
+    trip_count: i32,
+}
+
+pub async fn route_hourly_frequency(
+    db: &Database,
+    feed_id: FeedId,
+    route_id: &RouteId,
+) -> Result<Option<RouteHourlyFrequency>> {
+    let route_info = sqlx::query!(
+        "SELECT short_name, long_name FROM routes WHERE onestop_id = $1",
+        route_id.as_str()
+    )
+    .fetch_optional(&db.pool)
+    .await?;
+
+    let (short_name, long_name) = match route_info {
+        Some(r) => (r.short_name, r.long_name),
+        None => return Ok(None),
+    };
+
+    let sql = "WITH trip_first AS (
+    SELECT
+        t.trip_id,
+        (svc.monday OR svc.tuesday OR svc.wednesday
+         OR svc.thursday OR svc.friday) AS is_weekday,
+        svc.saturday                     AS is_saturday,
+        svc.sunday                       AS is_sunday,
+        MIN(
+            SPLIT_PART(ss.departure_time, ':', 1)::INT * 3600
+          + SPLIT_PART(ss.departure_time, ':', 2)::INT * 60
+          + SPLIT_PART(ss.departure_time, ':', 3)::INT
+        ) AS departure_secs
+    FROM trips t
+    JOIN route_variants rv
+      ON rv.feed_id = t.feed_id AND rv.variant_id = t.variant_id
+    JOIN services svc
+      ON svc.feed_id = t.feed_id AND svc.service_id = t.service_id
+    JOIN scheduled_stops ss
+      ON ss.feed_id = t.feed_id AND ss.trip_id = t.trip_id
+    WHERE t.feed_id = $1
+      AND rv.route_id = $2
+      AND (svc.monday OR svc.tuesday OR svc.wednesday OR svc.thursday
+           OR svc.friday OR svc.saturday OR svc.sunday)
+    GROUP BY t.trip_id,
+             svc.monday, svc.tuesday, svc.wednesday,
+             svc.thursday, svc.friday, svc.saturday, svc.sunday
+),
+hourly AS (
+    SELECT
+        CASE
+            WHEN is_weekday THEN 'weekday'
+            WHEN is_saturday THEN 'saturday'
+            WHEN is_sunday   THEN 'sunday'
+        END AS day_type,
+        departure_secs / 3600 AS hour,
+        COUNT(*)::INT          AS trip_count
+    FROM trip_first
+    GROUP BY day_type, hour
+)
+SELECT day_type, hour::INT AS hour, trip_count
+FROM hourly
+WHERE day_type IS NOT NULL
+ORDER BY day_type, hour";
+
+    let rows: Vec<HourlyRow> = sqlx::query_as(sql)
+        .bind(feed_id.as_i64())
+        .bind(route_id.as_str())
+        .fetch_all(&db.pool)
+        .await?;
+
+    let mut weekday_bins = Vec::new();
+    let mut saturday_bins = Vec::new();
+    let mut sunday_bins = Vec::new();
+
+    for row in rows {
+        let bin = HourBin { hour: row.hour, trip_count: row.trip_count };
+        match row.day_type.as_deref() {
+            Some("weekday") => weekday_bins.push(bin),
+            Some("saturday") => saturday_bins.push(bin),
+            Some("sunday") => sunday_bins.push(bin),
+            _ => {}
+        }
+    }
+
+    Ok(Some(RouteHourlyFrequency {
+        short_name,
+        long_name,
+        weekday_bins,
+        saturday_bins,
+        sunday_bins,
+    }))
+}
+
 #[derive(Debug, sqlx::FromRow, Serialize)]
 pub struct RouteHeadwayRow {
     pub feed_id: FeedId,
@@ -608,5 +745,154 @@ mod tests {
     fn sunday_badge_variant_delegates_to_headway() {
         let row = make_row(None, None, Some(25.0));
         assert_eq!(row.sunday_badge_variant(), "bad");
+    }
+
+    async fn setup_route(
+        db: &crate::db::Database,
+        feed_id: i64,
+        route_id: &str,
+        short_name: &str,
+        long_name: &str,
+    ) {
+        sqlx::query(&format!(
+            "INSERT INTO feeds (id, gtfs_static_url) VALUES ({feed_id}, 'http://test')"
+        ))
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(&format!(
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('{route_id}', 'agency', '{short_name}', '{long_name}', 3)"
+        ))
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.5, -73.5)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+    }
+
+    async fn insert_service(db: &crate::db::Database, feed_id: i64, service_id: &str, weekday: bool, saturday: bool, sunday: bool) {
+        sqlx::query(&format!(
+            "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES ({feed_id}, '{service_id}', {weekday}, {weekday}, {weekday}, {weekday}, {weekday}, {saturday}, {sunday})"
+        ))
+        .execute(&db.pool)
+        .await
+        .unwrap();
+    }
+
+    async fn insert_trip_at_hour(
+        db: &crate::db::Database,
+        feed_id: i64,
+        trip_id: &str,
+        service_id: &str,
+        variant_id: &str,
+        hour: u32,
+    ) {
+        sqlx::query(&format!(
+            "INSERT INTO trips (feed_id, trip_id, service_id, variant_id) VALUES ({feed_id}, '{trip_id}', '{service_id}', '{variant_id}')"
+        ))
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query(&format!(
+            "INSERT INTO scheduled_stops (feed_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time) VALUES ({feed_id}, '{trip_id}', 'S1', 1, '{hour:02}:00:00', '{hour:02}:00:00')"
+        ))
+        .execute(&db.pool)
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn route_hourly_frequency_returns_none_for_unknown_route() {
+        let td = test_utils::setup().await;
+        let result = route_hourly_frequency(
+            &td.db,
+            FeedId::from(1i64),
+            &RouteId::from("r-unknown"),
+        )
+        .await
+        .unwrap();
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn route_hourly_frequency_groups_weekday_trips_by_hour() {
+        let td = test_utils::setup().await;
+        let db = &td.db;
+        setup_route(db, 1, "r-test-R1", "1", "Route 1").await;
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (1, 'V1', 'r-test-R1', 0, 1, 3, true)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        insert_service(db, 1, "WD", true, false, false).await;
+        insert_trip_at_hour(db, 1, "T1", "WD", "V1", 8).await;
+        insert_trip_at_hour(db, 1, "T2", "WD", "V1", 8).await;
+        insert_trip_at_hour(db, 1, "T3", "WD", "V1", 9).await;
+
+        let freq = route_hourly_frequency(db, FeedId::from(1i64), &RouteId::from("r-test-R1"))
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(freq.short_name, "1");
+        assert!(freq.has_weekday());
+        assert!(!freq.has_saturday());
+        assert!(!freq.has_sunday());
+        assert_eq!(freq.weekday_bins.len(), 2);
+        assert_eq!(freq.weekday_bins[0].hour, 8);
+        assert_eq!(freq.weekday_bins[0].trip_count, 2);
+        assert_eq!(freq.weekday_bins[1].hour, 9);
+        assert_eq!(freq.weekday_bins[1].trip_count, 1);
+    }
+
+    #[tokio::test]
+    async fn route_hourly_frequency_separates_saturday_and_sunday() {
+        let td = test_utils::setup().await;
+        let db = &td.db;
+        setup_route(db, 1, "r-test-R2", "2", "Route 2").await;
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (1, 'V2', 'r-test-R2', 0, 1, 2, true)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        insert_service(db, 1, "SAT", false, true, false).await;
+        insert_service(db, 1, "SUN", false, false, true).await;
+        insert_trip_at_hour(db, 1, "T1", "SAT", "V2", 10).await;
+        insert_trip_at_hour(db, 1, "T2", "SUN", "V2", 11).await;
+
+        let freq = route_hourly_frequency(db, FeedId::from(1i64), &RouteId::from("r-test-R2"))
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert!(!freq.has_weekday());
+        assert!(freq.has_saturday());
+        assert!(freq.has_sunday());
+        assert_eq!(freq.saturday_bins[0].hour, 10);
+        assert_eq!(freq.saturday_bins[0].trip_count, 1);
+        assert_eq!(freq.sunday_bins[0].hour, 11);
+        assert_eq!(freq.sunday_bins[0].trip_count, 1);
+    }
+
+    #[test]
+    fn route_hourly_frequency_json_methods_serialize_bins() {
+        let freq = RouteHourlyFrequency {
+            short_name: "1".to_string(),
+            long_name: "Route 1".to_string(),
+            weekday_bins: vec![HourBin { hour: 8, trip_count: 3 }],
+            saturday_bins: vec![],
+            sunday_bins: vec![],
+        };
+        let json = freq.weekday_json();
+        assert!(json.contains("\"hour\":8"));
+        assert!(json.contains("\"trip_count\":3"));
+        assert_eq!(freq.saturday_json(), "[]");
+        assert_eq!(freq.sunday_json(), "[]");
     }
 }

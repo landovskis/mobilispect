@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::web::AppState;
 use mobilispect_core::ids::{FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
-use mobilispect_core::service_frequency::{RouteHeadwayRow, route_headways};
+use mobilispect_core::service_frequency::{RouteHeadwayRow, RouteHourlyFrequency, route_headways, route_hourly_frequency};
 use mobilispect_core::speed_analysis::{
     RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary, assign_indices,
     build_detail_directions, build_speed_cards, classify_by_spacing, fetch_route_info,
@@ -450,6 +450,61 @@ pub async fn frequency_page(
                 )
                     .into_response()
             }
+        }
+    }
+}
+
+#[derive(Template)]
+#[template(path = "pages/schedule_detail.html")]
+struct ScheduleDetailTemplate {
+    region_name: String,
+    feed_id: FeedId,
+    frequency: RouteHourlyFrequency,
+}
+
+pub async fn schedule_detail(
+    State(state): State<AppState>,
+    axum::extract::Path((feed_id_str, route_id_str)): axum::extract::Path<(String, String)>,
+) -> axum::response::Response {
+    let feed_id = feed_id_str
+        .parse::<i64>()
+        .map(FeedId::from)
+        .unwrap_or_else(|_| FeedId::from(0i64));
+    let route_id = RouteId::from(route_id_str);
+
+    let frequency = match route_hourly_frequency(&state.db, feed_id, &route_id).await {
+        Ok(Some(f)) => f,
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Html("<h1>Not Found</h1>".to_string()),
+            )
+                .into_response();
+        }
+        Err(e) => {
+            tracing::error!(error = %e, "DB error in schedule_detail");
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("<h1>Internal Server Error</h1>".to_string()),
+            )
+                .into_response();
+        }
+    };
+
+    let tmpl = ScheduleDetailTemplate {
+        region_name: state.config.region.name.clone(),
+        feed_id,
+        frequency,
+    };
+    match tmpl.render() {
+        Ok(html) => Html(html).into_response(),
+        Err(e) => {
+            tracing::error!(error = %e, "Template render error in schedule_detail");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Html("<h1>Internal Server Error</h1>".to_string()),
+            )
+                .into_response()
         }
     }
 }

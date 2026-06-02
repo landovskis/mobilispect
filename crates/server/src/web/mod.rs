@@ -20,6 +20,10 @@ pub fn build_router(state: AppState) -> Router {
         .route("/speed", get(handlers::speed_page))
         .route("/schedule", get(handlers::frequency_page))
         .route("/frequency", get(handlers::frequency_page))
+        .route(
+            "/schedule/:feed_id/:route_id",
+            get(handlers::schedule_detail),
+        )
         // /speed route registered BEFORE bare :route_id to avoid shadowing
         .route(
             "/routes/:agency_id/:route_id/speed",
