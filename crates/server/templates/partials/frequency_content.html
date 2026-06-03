@@ -24,12 +24,13 @@
   <div class="schedule-grid">
     {% for (i, row) in rows.iter().enumerate() %}
     <div class="card schedule-card">
-      <div class="schedule-card__header">
+      <a href="/schedule/{{ row.feed_id }}/{{ row.route_id }}" class="schedule-card__header" style="display:flex;text-decoration:none;color:inherit;">
         <div>
           <div class="route-id">{{ i + 1 }}. {{ row.short_name }}</div>
           <div class="schedule-card__name">{{ row.long_name }}</div>
         </div>
-      </div>
+        <span style="margin-left:auto;font-size:0.72rem;color:var(--link-blue);white-space:nowrap;align-self:center;">Details →</span>
+      </a>
       <div class="schedule-card__days">
         {% if row.weekday_headway_mins.is_some() %}
         <div class="day-col">
