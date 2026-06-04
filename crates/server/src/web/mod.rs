@@ -11,6 +11,7 @@ use mobilispect_core::db::Database;
 mod handlers;
 pub mod middleware;
 
+#[derive(Debug)]
 pub enum SetupState {
     Idle,
     Running,
@@ -43,7 +44,6 @@ pub fn build_router(state: AppState) -> Router {
         .route("/routes/:agency_id/:route_id", get(handlers::route_detail))
         .route("/api/routes", get(handlers::api_routes))
         .route("/api/routes/speed", get(handlers::api_route_speed))
-        .route("/health", get(handlers::health_check))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             middleware::require_region_configured,
@@ -78,7 +78,14 @@ pub async fn serve(db: &Database, config: &Config) -> Result<()> {
         .route("/setup/status", get(handlers::setup_status))
         .with_state(state.clone());
 
-    let app = Router::new().merge(build_router(state)).merge(setup_router);
+    let health_router = Router::new()
+        .route("/health", get(handlers::health_check))
+        .with_state(state.clone());
+
+    let app = Router::new()
+        .merge(build_router(state))
+        .merge(setup_router)
+        .merge(health_router);
 
     let listener = tokio::net::TcpListener::bind(&config.bind_address).await?;
     info!("Dashboard available at http://{}", config.bind_address);

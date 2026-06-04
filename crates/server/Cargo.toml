@@ -25,4 +25,3 @@ sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"] }
 [dev-dependencies]
 mobilispect-core = { path = "../core", features = ["test-utils"] }
 tokio = { version = "1", features = ["full"] }
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres"] }
