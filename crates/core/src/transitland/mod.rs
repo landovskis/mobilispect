@@ -1,4 +1,4 @@
-use mobilispect_core::ids::{AgencyId, RouteId, StationId, StopId};
+use crate::ids::{AgencyId, RouteId, StationId, StopId};
 
 const DEFAULT_BASE_URL: &str = "https://transit.land/api/v2/rest";
 
@@ -42,18 +42,19 @@ impl TransitlandClient {
         feed_onestop_id: &str,
     ) -> anyhow::Result<Option<AgencyId>> {
         let url = format!("{}/agencies.json", self.base_url);
-        let request = self
-            .http
-            .get(&url)
-            .query(&[
-                ("gtfs_agency_id", gtfs_agency_id),
-                ("feed_onestop_id", feed_onestop_id),
-                ("per_page", "1"),
-            ]);
+        let request = self.http.get(&url).query(&[
+            ("gtfs_agency_id", gtfs_agency_id),
+            ("feed_onestop_id", feed_onestop_id),
+            ("per_page", "1"),
+        ]);
         let request = self.apply_auth(request);
         let response = request.send().await?.error_for_status()?;
         let body: AgenciesResponse = response.json().await?;
-        Ok(body.agencies.into_iter().next().map(|r| AgencyId::from(r.onestop_id)))
+        Ok(body
+            .agencies
+            .into_iter()
+            .next()
+            .map(|r| AgencyId::from(r.onestop_id)))
     }
 
     /// Resolve a GTFS route_id within a feed to a Transitland route Onestop ID.
@@ -64,18 +65,19 @@ impl TransitlandClient {
         feed_onestop_id: &str,
     ) -> anyhow::Result<Option<RouteId>> {
         let url = format!("{}/routes.json", self.base_url);
-        let request = self
-            .http
-            .get(&url)
-            .query(&[
-                ("route_id", gtfs_route_id),
-                ("feed_onestop_id", feed_onestop_id),
-                ("per_page", "1"),
-            ]);
+        let request = self.http.get(&url).query(&[
+            ("route_id", gtfs_route_id),
+            ("feed_onestop_id", feed_onestop_id),
+            ("per_page", "1"),
+        ]);
         let request = self.apply_auth(request);
         let response = request.send().await?.error_for_status()?;
         let body: RoutesResponse = response.json().await?;
-        Ok(body.routes.into_iter().next().map(|r| RouteId::from(r.onestop_id)))
+        Ok(body
+            .routes
+            .into_iter()
+            .next()
+            .map(|r| RouteId::from(r.onestop_id)))
     }
 
     /// Resolve a GTFS stop_id within a feed to a Transitland stop/station Onestop ID.
@@ -88,14 +90,11 @@ impl TransitlandClient {
         feed_onestop_id: &str,
     ) -> anyhow::Result<Option<(StopId, Option<StationId>)>> {
         let url = format!("{}/stops.json", self.base_url);
-        let request = self
-            .http
-            .get(&url)
-            .query(&[
-                ("stop_id", gtfs_stop_id),
-                ("feed_onestop_id", feed_onestop_id),
-                ("per_page", "1"),
-            ]);
+        let request = self.http.get(&url).query(&[
+            ("stop_id", gtfs_stop_id),
+            ("feed_onestop_id", feed_onestop_id),
+            ("per_page", "1"),
+        ]);
         let request = self.apply_auth(request);
         let response = request.send().await?.error_for_status()?;
         let body: StopsResponse = response.json().await?;
@@ -191,7 +190,10 @@ mod tests {
             .await;
 
         let client = client_for(&server);
-        let result = client.resolve_agency("UNKNOWN", "f-f25d-stm").await.unwrap();
+        let result = client
+            .resolve_agency("UNKNOWN", "f-f25d-stm")
+            .await
+            .unwrap();
         assert_eq!(result, None);
     }
 
@@ -265,9 +267,6 @@ mod tests {
 
         let client = client_for(&server);
         let result = client.resolve_stop("11111", "f-f25d-stm").await.unwrap();
-        assert_eq!(
-            result,
-            Some((StopId::from("s-f25ek-somewhere"), None))
-        );
+        assert_eq!(result, Some((StopId::from("s-f25ek-somewhere"), None)));
     }
 }

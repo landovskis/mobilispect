@@ -5,11 +5,11 @@ use tracing_subscriber::EnvFilter;
 use mobilispect_core::config::Config;
 use mobilispect_core::db::Database;
 use mobilispect_core::ids::FeedId;
+use mobilispect_core::transitland::TransitlandClient;
 mod feed_ingestion;
 mod health;
 mod maintenance;
 mod pipeline;
-pub mod transitland;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,9 +25,8 @@ async fn main() -> Result<()> {
         config.feeds.len()
     );
 
-    let transitland = std::sync::Arc::new(transitland::TransitlandClient::new(
-        config.transitland_api_key.clone(),
-    ));
+    let transitland =
+        std::sync::Arc::new(TransitlandClient::new(config.transitland_api_key.clone()));
 
     let mut set: tokio::task::JoinSet<(mobilispect_core::config::FeedConfig, Result<()>)> =
         tokio::task::JoinSet::new();
@@ -39,7 +38,8 @@ async fn main() -> Result<()> {
         set.spawn(async move {
             info!("Loading static GTFS for agency: {}", agency.name);
             let result = async {
-                feed_ingestion::static_feed::load_if_needed(&db, &agency, feed_id, &transitland).await?;
+                feed_ingestion::static_feed::load_if_needed(&db, &agency, feed_id, &transitland)
+                    .await?;
                 pipeline::run_static_hooks(&db, &agency).await?;
                 info!("Static import complete for agency: {}", agency.name);
                 Ok(())
