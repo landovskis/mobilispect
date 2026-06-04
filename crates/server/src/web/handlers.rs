@@ -513,11 +513,13 @@ pub async fn health_check(State(state): State<AppState>) -> axum::response::Resp
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
-    use crate::web::build_router;
+    use crate::web::{SetupState, build_router};
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use mobilispect_core::config::Config;
     use mobilispect_core::db::test_utils;
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
     use tower::ServiceExt;
 
     fn test_config() -> Config {
@@ -581,6 +583,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -626,6 +630,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -684,6 +690,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
         let response = app
@@ -789,6 +797,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -824,6 +834,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -859,6 +871,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -899,6 +913,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -972,6 +988,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
         let response = app
@@ -1004,6 +1022,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1042,6 +1062,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1115,6 +1137,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1190,6 +1214,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1267,6 +1293,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1335,6 +1363,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1407,6 +1437,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1440,6 +1472,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
