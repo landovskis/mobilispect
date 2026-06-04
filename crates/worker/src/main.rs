@@ -27,8 +27,11 @@ async fn main() -> Result<()> {
         .map(FeedConfig::from)
         .collect();
 
+    if feeds.is_empty() {
+        warn!("No feeds in DB — worker idle until first-launch setup completes");
+    }
     info!(
-        "Mobilispect worker starting — {} feed(s) configured",
+        "Mobilispect worker starting — {} feed(s) in DB",
         feeds.len()
     );
 
