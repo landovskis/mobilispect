@@ -21,15 +21,14 @@ async fn main() -> Result<()> {
     let config = Config::load()?;
     let db = Database::connect(&config.database_url).await?;
 
-    let feeds: Vec<FeedConfig> = load_feeds(&db.pool)
-        .await?
-        .into_iter()
-        .map(FeedConfig::from)
-        .collect();
-
-    if feeds.is_empty() {
-        warn!("No feeds in DB — worker idle until first-launch setup completes");
-    }
+    let feeds: Vec<FeedConfig> = loop {
+        let db_feeds = load_feeds(&db.pool).await?;
+        if !db_feeds.is_empty() {
+            break db_feeds.into_iter().map(FeedConfig::from).collect();
+        }
+        warn!("No feeds in DB yet — waiting for first-launch setup to complete (retrying in 30s)");
+        tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+    };
     info!(
         "Mobilispect worker starting — {} feed(s) in DB",
         feeds.len()

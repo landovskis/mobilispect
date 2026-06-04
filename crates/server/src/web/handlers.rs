@@ -591,6 +591,7 @@ pub async fn setup_submit(
             Ok(city) => SetupState::Done { city },
             Err(e) => SetupState::Failed {
                 message: e.to_string(),
+                city: city_clone.clone(),
             },
         };
     });
@@ -603,30 +604,23 @@ pub async fn setup_submit(
 }
 
 pub async fn setup_status(State(state): State<AppState>) -> impl IntoResponse {
-    let is_terminal = {
-        let setup = state.setup_state.lock().await;
-        matches!(*setup, SetupState::Done { .. } | SetupState::Failed { .. })
-    };
-
-    if !is_terminal {
-        return Html(
-            r#"<div class="setup-card"
-                     hx-get="/setup/status"
-                     hx-trigger="every 1s"
-                     hx-target="this"
-                     hx-swap="outerHTML">
-                   <h1 class="setup-title">Searching Transitland…</h1>
-                   <div class="spinner"></div>
-                   <p class="setup-sub">Discovering transit feeds for your city.</p>
-                </div>"#,
-        )
-        .into_response();
-    }
-
-    // Terminal state — take ownership by swapping out, then release the lock
-    // before acquiring the region write lock to avoid deadlock.
     let terminal = {
         let mut setup = state.setup_state.lock().await;
+        if !matches!(*setup, SetupState::Done { .. } | SetupState::Failed { .. }) {
+            // Not terminal yet — return spinner and keep the lock short
+            return Html(
+                r#"<div class="setup-card"
+                                 hx-get="/setup/status"
+                                 hx-trigger="every 1s"
+                                 hx-target="this"
+                                 hx-swap="outerHTML">
+                               <h1 class="setup-title">Searching Transitland…</h1>
+                               <div class="spinner"></div>
+                               <p class="setup-sub">Discovering transit feeds for your city.</p>
+                            </div>"#,
+            )
+            .into_response();
+        }
         std::mem::replace(&mut *setup, SetupState::Idle)
     };
 
@@ -637,10 +631,10 @@ pub async fn setup_status(State(state): State<AppState>) -> impl IntoResponse {
             headers.insert("HX-Redirect", HeaderValue::from_static("/"));
             (StatusCode::OK, headers, Html(String::new())).into_response()
         }
-        SetupState::Failed { message } => Html(
+        SetupState::Failed { message, city } => Html(
             SetupFormTemplate {
                 error: Some(message),
-                prefill: String::new(),
+                prefill: city,
             }
             .render()
             .unwrap_or_else(|e| {
@@ -649,7 +643,10 @@ pub async fn setup_status(State(state): State<AppState>) -> impl IntoResponse {
             }),
         )
         .into_response(),
-        _ => unreachable!("checked is_terminal above"),
+        _ => {
+            // Should not be reached — state was terminal when we checked
+            Html(String::new()).into_response()
+        }
     }
 }
 

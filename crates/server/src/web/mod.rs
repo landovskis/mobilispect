@@ -16,7 +16,7 @@ pub enum SetupState {
     Idle,
     Running,
     Done { city: String },
-    Failed { message: String },
+    Failed { message: String, city: String },
 }
 
 #[derive(Clone)]
