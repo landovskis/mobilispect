@@ -2,8 +2,6 @@ use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use std::path::Path;
 
-/// Compatibility alias — will be removed once all callers are migrated to FeedConfig.
-#[doc(hidden)]
 pub type AgencyConfig = FeedConfig;
 
 /// Per-feed settings - one entry per GTFS data source.
