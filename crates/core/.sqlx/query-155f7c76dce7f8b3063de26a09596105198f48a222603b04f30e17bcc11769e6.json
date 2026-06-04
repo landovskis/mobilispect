@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO network_feeds (network_id, feed_id) VALUES (1, $1)\n             ON CONFLICT (network_id, feed_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "155f7c76dce7f8b3063de26a09596105198f48a222603b04f30e17bcc11769e6"
+}
