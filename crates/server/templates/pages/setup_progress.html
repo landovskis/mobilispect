@@ -1,0 +1,51 @@
+{% extends "layouts/base.html" %}
+{% block title %}Mobilispect — Setting Up{% endblock %}
+{% block region_name %}{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"
+        integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
+        crossorigin="anonymous" defer></script>
+<style>
+.setup-wrap { max-width: 480px; margin: 6rem auto 0; padding: 0 1rem; }
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+.setup-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2.2rem;
+  font-weight: 300;
+  color: var(--ink-900);
+  margin-bottom: 1.5rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--line);
+  border-top-color: var(--link-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1.5rem;
+}
+.setup-city { font-family: 'Fira Code', monospace; color: var(--civic-red); font-size: 1.1rem; }
+.setup-sub { color: var(--ink-500); font-size: 0.85rem; margin-top: 0.5rem; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="setup-wrap">
+  <div class="setup-card"
+       hx-get="/setup/status"
+       hx-trigger="every 1s"
+       hx-target="this"
+       hx-swap="outerHTML">
+    <h1 class="setup-title">Searching Transitland…</h1>
+    <div class="spinner"></div>
+    <p class="setup-city">{{ city }}</p>
+    <p class="setup-sub">Discovering transit feeds for your city.</p>
+  </div>
+</div>
+{% endblock %}
