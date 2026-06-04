@@ -20,9 +20,11 @@ async fn main() -> Result<()> {
     let config = Config::load()?;
     let db = Database::connect(&config.database_url).await?;
 
+    let feeds: Vec<mobilispect_core::config::FeedConfig> = vec![];
+
     info!(
         "Mobilispect worker starting — {} feed(s) configured",
-        config.feeds.len()
+        feeds.len()
     );
 
     let transitland =
@@ -30,7 +32,7 @@ async fn main() -> Result<()> {
 
     let mut set: tokio::task::JoinSet<(mobilispect_core::config::FeedConfig, Result<()>)> =
         tokio::task::JoinSet::new();
-    for agency in &config.feeds {
+    for agency in &feeds {
         let db = db.clone();
         let agency = agency.clone();
         let feed_id = FeedId::from(agency.id);

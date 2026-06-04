@@ -10,7 +10,9 @@ use serde::Deserialize;
 use crate::web::AppState;
 use mobilispect_core::ids::{FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
-use mobilispect_core::service_frequency::{RouteHeadwayRow, RouteHourlyFrequency, route_headways, route_hourly_frequency};
+use mobilispect_core::service_frequency::{
+    RouteHeadwayRow, RouteHourlyFrequency, route_headways, route_hourly_frequency,
+};
 use mobilispect_core::speed_analysis::{
     RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary, assign_indices,
     build_detail_directions, build_speed_cards, classify_by_spacing, fetch_route_info,
@@ -99,7 +101,7 @@ pub async fn route_speed_detail(
     let classification = avg_spacing_m.map(classify_by_spacing);
 
     let tmpl = RouteSpeedDetailTemplate {
-        region_name: state.config.region.name.clone(),
+        region_name: String::new(),
         short_name,
         long_name,
         agency_id: feed_id,
@@ -204,9 +206,7 @@ pub async fn route_detail(
             let trend_json = match serde_json::to_string(&trend.days) {
                 Ok(json) => json,
                 Err(e) => {
-                    tracing::error!(
-                        "Failed to serialize trend data for {feed_id}/{route_id}: {e}"
-                    );
+                    tracing::error!("Failed to serialize trend data for {feed_id}/{route_id}: {e}");
                     return (
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                         Html("<h1>Internal Server Error</h1>".to_string()),
@@ -215,7 +215,7 @@ pub async fn route_detail(
                 }
             };
             let tmpl = RouteDetailTemplate {
-                region_name: state.config.region.name.clone(),
+                region_name: String::new(),
                 trend,
                 trend_json,
                 period_days,
@@ -257,12 +257,7 @@ pub async fn speed_page(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agencies: Vec<(String, String)> = state
-        .config
-        .feeds
-        .iter()
-        .map(|a| (a.id.to_string(), a.name.clone()))
-        .collect();
+    let agencies: Vec<(String, String)> = vec![];
     let active_agency = params
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
@@ -325,7 +320,7 @@ pub async fn speed_page(
         }
     } else {
         let tmpl = SpeedTemplate {
-            region_name: state.config.region.name.clone(),
+            region_name: String::new(),
             cards,
             agencies,
             active_agency,
@@ -389,12 +384,7 @@ pub async fn frequency_page(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agencies: Vec<(String, String)> = state
-        .config
-        .feeds
-        .iter()
-        .map(|a| (a.id.to_string(), a.name.clone()))
-        .collect();
+    let agencies: Vec<(String, String)> = vec![];
     let active_agency = params
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
@@ -435,7 +425,7 @@ pub async fn frequency_page(
         }
     } else {
         let tmpl = FrequencyTemplate {
-            region_name: state.config.region.name.clone(),
+            region_name: String::new(),
             rows,
             agencies,
             active_agency,
@@ -492,7 +482,7 @@ pub async fn schedule_detail(
     };
 
     let tmpl = ScheduleDetailTemplate {
-        region_name: state.config.region.name.clone(),
+        region_name: String::new(),
         feed_id,
         frequency,
     };
@@ -526,34 +516,12 @@ mod e2e_tests {
     use crate::web::build_router;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
-    use mobilispect_core::config::{AgencyConfig, Config, RegionConfig};
+    use mobilispect_core::config::Config;
     use mobilispect_core::db::test_utils;
     use tower::ServiceExt;
 
     fn test_config() -> Config {
-        use mobilispect_core::config::NetworkConfig;
-        let feed = AgencyConfig {
-            id: 0,
-            name: "Test Agency".to_string(),
-            gtfs_static_url: String::new(),
-            gtfs_rt_vehicle_positions_url: None,
-            gtfs_rt_trip_updates_url: None,
-            gtfs_api_key: None,
-            agency_utc_offset: "-04:00".to_string(),
-            transitland_feed_id: None,
-        };
-
         Config {
-            feeds: vec![feed.clone()],
-            region: RegionConfig {
-                name: "Test Region".to_string(),
-                timezone: "America/Toronto".to_string(),
-                networks: vec![NetworkConfig {
-                    id: 0,
-                    name: "Test Network".to_string(),
-                    feeds: vec![feed],
-                }],
-            },
             database_url: String::new(),
             poll_interval_secs: 30,
             bind_address: "0.0.0.0:3000".to_string(),
