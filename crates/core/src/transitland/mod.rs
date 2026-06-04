@@ -80,6 +80,66 @@ impl TransitlandClient {
             .map(|r| RouteId::from(r.onestop_id)))
     }
 
+    pub async fn discover_feeds_for_city(&self, city: &str) -> anyhow::Result<Vec<DiscoveredFeed>> {
+        let url = format!("{}/operators.json", self.base_url);
+        let req = self
+            .http
+            .get(&url)
+            .query(&[("city_name", city), ("per_page", "50")]);
+        let body: OperatorsResponse = self
+            .apply_auth(req)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+
+        let mut seen = std::collections::HashSet::new();
+        let mut feed_ids: Vec<(String, String)> = Vec::new();
+        for op in &body.operators {
+            let tz = op.timezone.clone().unwrap_or_else(|| "UTC".to_string());
+            for f in &op.feeds {
+                if seen.insert(f.onestop_id.clone()) {
+                    feed_ids.push((f.onestop_id.clone(), tz.clone()));
+                }
+            }
+        }
+
+        let mut discovered = Vec::new();
+        for (feed_id, timezone) in feed_ids {
+            let url = format!("{}/feeds.json", self.base_url);
+            let req = self
+                .http
+                .get(&url)
+                .query(&[("onestop_id", feed_id.as_str()), ("per_page", "1")]);
+            let body: FeedsResponse = self
+                .apply_auth(req)
+                .send()
+                .await?
+                .error_for_status()?
+                .json()
+                .await?;
+            if let Some(record) = body.feeds.into_iter().next() {
+                let urls = record.urls.unwrap_or(FeedUrls {
+                    static_current: None,
+                    realtime_vehicle_positions: None,
+                    realtime_trip_updates: None,
+                });
+                if let Some(static_url) = urls.static_current {
+                    discovered.push(DiscoveredFeed {
+                        onestop_id: record.onestop_id,
+                        name: record.name.unwrap_or_else(|| feed_id.clone()),
+                        gtfs_static_url: static_url,
+                        gtfs_rt_vehicle_positions_url: urls.realtime_vehicle_positions,
+                        gtfs_rt_trip_updates_url: urls.realtime_trip_updates,
+                        timezone,
+                    });
+                }
+            }
+        }
+        Ok(discovered)
+    }
+
     /// Resolve a GTFS stop_id within a feed to a Transitland stop/station Onestop ID.
     /// Returns `(stop_onestop_id, parent_station_onestop_id)`.
     /// `parent_station_onestop_id` is `Some` when the stop has a parent station.
@@ -104,6 +164,50 @@ impl TransitlandClient {
             (stop_id, station_id)
         }))
     }
+}
+
+pub struct DiscoveredFeed {
+    pub onestop_id: String,
+    pub name: String,
+    pub gtfs_static_url: String,
+    pub gtfs_rt_vehicle_positions_url: Option<String>,
+    pub gtfs_rt_trip_updates_url: Option<String>,
+    pub timezone: String,
+}
+
+#[derive(serde::Deserialize)]
+struct OperatorsResponse {
+    operators: Vec<OperatorRecord>,
+}
+
+#[derive(serde::Deserialize)]
+struct OperatorRecord {
+    timezone: Option<String>,
+    feeds: Vec<FeedRef>,
+}
+
+#[derive(serde::Deserialize)]
+struct FeedRef {
+    onestop_id: String,
+}
+
+#[derive(serde::Deserialize)]
+struct FeedsResponse {
+    feeds: Vec<FeedRecord>,
+}
+
+#[derive(serde::Deserialize)]
+struct FeedRecord {
+    onestop_id: String,
+    name: Option<String>,
+    urls: Option<FeedUrls>,
+}
+
+#[derive(serde::Deserialize)]
+struct FeedUrls {
+    static_current: Option<String>,
+    realtime_vehicle_positions: Option<String>,
+    realtime_trip_updates: Option<String>,
 }
 
 // Private serde structs for deserialising Transitland API responses.
@@ -246,6 +350,90 @@ mod tests {
                 Some(StationId::from("s-f25e-berri"))
             ))
         );
+    }
+
+    // ── Discover Feeds ────────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn discover_feeds_returns_feeds_for_known_city() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/operators.json"))
+            .and(query_param("city_name", "Montreal"))
+            .and(query_param("per_page", "50"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "operators": [{"name": "STM", "timezone": "America/Toronto", "feeds": [{"onestop_id": "f-f25d-stm"}]}]
+            })))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/feeds.json"))
+            .and(query_param("onestop_id", "f-f25d-stm"))
+            .and(query_param("per_page", "1"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "feeds": [{"onestop_id": "f-f25d-stm", "name": "STM GTFS", "urls": {"static_current": "https://stm.info/gtfs.zip", "realtime_vehicle_positions": "https://stm.info/vp.pb", "realtime_trip_updates": "https://stm.info/tu.pb"}}]
+            })))
+            .mount(&server)
+            .await;
+        let client = client_for(&server);
+        let feeds = client.discover_feeds_for_city("Montreal").await.unwrap();
+        assert_eq!(feeds.len(), 1);
+        assert_eq!(feeds[0].onestop_id, "f-f25d-stm");
+        assert_eq!(feeds[0].gtfs_static_url, "https://stm.info/gtfs.zip");
+        assert_eq!(feeds[0].timezone, "America/Toronto");
+        assert_eq!(
+            feeds[0].gtfs_rt_vehicle_positions_url.as_deref(),
+            Some("https://stm.info/vp.pb")
+        );
+    }
+
+    #[tokio::test]
+    async fn discover_feeds_returns_empty_for_unknown_city() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/operators.json"))
+            .and(query_param("city_name", "Nowhere"))
+            .respond_with(
+                ResponseTemplate::new(200).set_body_json(serde_json::json!({"operators": []})),
+            )
+            .mount(&server)
+            .await;
+        let client = client_for(&server);
+        let feeds = client.discover_feeds_for_city("Nowhere").await.unwrap();
+        assert!(feeds.is_empty());
+    }
+
+    #[tokio::test]
+    async fn discover_feeds_skips_feed_with_no_static_url() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/operators.json"))
+            .and(query_param("city_name", "TestCity"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"operators": [{"name": "Op", "timezone": "UTC", "feeds": [{"onestop_id": "f-abc-op"}]}]})))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/feeds.json"))
+            .and(query_param("onestop_id", "f-abc-op"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"feeds": [{"onestop_id": "f-abc-op", "name": "Op", "urls": {}}]})))
+            .mount(&server)
+            .await;
+        let client = client_for(&server);
+        let feeds = client.discover_feeds_for_city("TestCity").await.unwrap();
+        assert!(feeds.is_empty());
+    }
+
+    #[tokio::test]
+    async fn discover_feeds_propagates_http_error() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/operators.json"))
+            .respond_with(ResponseTemplate::new(500))
+            .mount(&server)
+            .await;
+        let client = client_for(&server);
+        let result = client.discover_feeds_for_city("Montreal").await;
+        assert!(result.is_err());
     }
 
     #[tokio::test]
