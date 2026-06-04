@@ -8,10 +8,6 @@
 -- ============================================================
 DROP INDEX IF EXISTS idx_route_daily_date;  -- from old route_daily (dropped in 010)
 
--- Clear before restructuring so the new feed_id FK (DEFAULT 0) does not
--- violate feeds(id) — there is no sentinel row with id = 0.
-TRUNCATE trip_results;
-
 ALTER TABLE trip_results
     DROP COLUMN agency_id,
     DROP COLUMN route_id,              -- derivable via trip_id → variant → route
