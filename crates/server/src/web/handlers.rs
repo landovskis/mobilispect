@@ -541,7 +541,10 @@ pub async fn setup_page() -> impl IntoResponse {
             prefill: String::new(),
         }
         .render()
-        .unwrap_or_default(),
+        .unwrap_or_else(|e| {
+            tracing::warn!("Template render failed: {e}");
+            String::new()
+        }),
     )
 }
 
@@ -552,18 +555,20 @@ pub async fn setup_submit(
     let city = form.city_name.trim().to_string();
 
     {
-        let setup = state.setup_state.lock().await;
+        let mut setup = state.setup_state.lock().await;
         if matches!(*setup, SetupState::Running) {
             return Html(
                 SetupProgressTemplate { city: city.clone() }
                     .render()
-                    .unwrap_or_default(),
+                    .unwrap_or_else(|e| {
+                        tracing::warn!("Template render failed: {e}");
+                        String::new()
+                    }),
             )
             .into_response();
         }
+        *setup = SetupState::Running;
     }
-
-    *state.setup_state.lock().await = SetupState::Running;
 
     let pool = state.db.pool.clone();
     let api_key = state.config.transitland_api_key.clone();
@@ -590,13 +595,21 @@ pub async fn setup_submit(
         };
     });
 
-    Html(SetupProgressTemplate { city }.render().unwrap_or_default()).into_response()
+    Html(SetupProgressTemplate { city }.render().unwrap_or_else(|e| {
+        tracing::warn!("Template render failed: {e}");
+        String::new()
+    }))
+    .into_response()
 }
 
 pub async fn setup_status(State(state): State<AppState>) -> impl IntoResponse {
-    let mut setup = state.setup_state.lock().await;
-    match &*setup {
-        SetupState::Idle | SetupState::Running => Html(
+    let is_terminal = {
+        let setup = state.setup_state.lock().await;
+        matches!(*setup, SetupState::Done { .. } | SetupState::Failed { .. })
+    };
+
+    if !is_terminal {
+        return Html(
             r#"<div class="setup-card"
                      hx-get="/setup/status"
                      hx-trigger="every 1s"
@@ -607,27 +620,36 @@ pub async fn setup_status(State(state): State<AppState>) -> impl IntoResponse {
                    <p class="setup-sub">Discovering transit feeds for your city.</p>
                 </div>"#,
         )
-        .into_response(),
+        .into_response();
+    }
+
+    // Terminal state — take ownership by swapping out, then release the lock
+    // before acquiring the region write lock to avoid deadlock.
+    let terminal = {
+        let mut setup = state.setup_state.lock().await;
+        std::mem::replace(&mut *setup, SetupState::Idle)
+    };
+
+    match terminal {
         SetupState::Done { city } => {
-            *state.region.write().await = Some(city.clone());
-            *setup = SetupState::Idle;
+            *state.region.write().await = Some(city);
             let mut headers = HeaderMap::new();
             headers.insert("HX-Redirect", HeaderValue::from_static("/"));
             (StatusCode::OK, headers, Html(String::new())).into_response()
         }
-        SetupState::Failed { message } => {
-            let msg = message.clone();
-            *setup = SetupState::Idle;
-            Html(
-                SetupFormTemplate {
-                    error: Some(msg),
-                    prefill: String::new(),
-                }
-                .render()
-                .unwrap_or_default(),
-            )
-            .into_response()
-        }
+        SetupState::Failed { message } => Html(
+            SetupFormTemplate {
+                error: Some(message),
+                prefill: String::new(),
+            }
+            .render()
+            .unwrap_or_else(|e| {
+                tracing::warn!("Template render failed: {e}");
+                String::new()
+            }),
+        )
+        .into_response(),
+        _ => unreachable!("checked is_terminal above"),
     }
 }
 
@@ -1614,5 +1636,80 @@ mod e2e_tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["status"], "ok");
+    }
+
+    /// Build a router that includes setup routes (mirrors what `serve()` does, minus the
+    /// health router, for testing setup handlers without starting the TCP listener).
+    fn build_setup_router(state: AppState) -> axum::Router {
+        use axum::routing::get;
+        let setup_router = axum::Router::new()
+            .route("/setup", get(setup_page).post(setup_submit))
+            .route("/setup/status", get(setup_status))
+            .with_state(state.clone());
+        build_router(state).merge(setup_router)
+    }
+
+    #[tokio::test]
+    async fn setup_page_returns_200_with_welcome_text() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+            region: Arc::new(RwLock::new(None)),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
+        };
+        let app = build_setup_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/setup")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(
+            std::str::from_utf8(&body).unwrap().contains("Welcome"),
+            "setup page should contain 'Welcome'"
+        );
+    }
+
+    #[tokio::test]
+    async fn setup_status_returns_spinner_when_idle() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+            region: Arc::new(RwLock::new(None)),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
+        };
+        let app = build_setup_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/setup/status")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(
+            std::str::from_utf8(&body)
+                .unwrap()
+                .contains("/setup/status"),
+            "idle status response should contain polling fragment referencing /setup/status"
+        );
     }
 }
