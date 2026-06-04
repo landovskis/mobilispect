@@ -53,7 +53,7 @@ pub async fn store_discovered_feeds(
     let max_id: i64 = sqlx::query_scalar!("SELECT COALESCE(MAX(id), 0) FROM feeds")
         .fetch_one(&mut *tx)
         .await?
-        .unwrap_or(0);
+        .expect("COALESCE(MAX(id), 0) is never NULL");
 
     for (i, feed) in feeds.iter().enumerate() {
         let new_id = max_id + 1 + i as i64;
