@@ -2,8 +2,9 @@ use anyhow::Result;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
-use mobilispect_core::config::Config;
+use mobilispect_core::config::{Config, FeedConfig};
 use mobilispect_core::db::Database;
+use mobilispect_core::db::feeds::load_feeds;
 use mobilispect_core::ids::FeedId;
 use mobilispect_core::transitland::TransitlandClient;
 mod feed_ingestion;
@@ -20,7 +21,11 @@ async fn main() -> Result<()> {
     let config = Config::load()?;
     let db = Database::connect(&config.database_url).await?;
 
-    let feeds: Vec<mobilispect_core::config::FeedConfig> = vec![];
+    let feeds: Vec<FeedConfig> = load_feeds(&db.pool)
+        .await?
+        .into_iter()
+        .map(FeedConfig::from)
+        .collect();
 
     info!(
         "Mobilispect worker starting — {} feed(s) configured",
@@ -66,7 +71,7 @@ async fn main() -> Result<()> {
     // Backfill the last 7 days of daily metrics on startup to recover from any gaps
     // caused by restarts or deployments that ran at the start of the UTC day before
     // any service data had accumulated.
-    maintenance::backfill_daily_metrics(&db, &config, 7).await;
+    maintenance::backfill_daily_metrics(&db, &config, &feeds, 7).await;
 
     for agency in loaded {
         let db_rt = db.clone();

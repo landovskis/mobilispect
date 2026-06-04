@@ -11,8 +11,12 @@ use mobilispect_core::speed_analysis::compute_route_speed_daily;
 /// Compute daily metrics for the last `days` completed days.
 /// Called once at startup to backfill any gaps from previous restarts or deployments.
 /// Safe to re-run: all computations are `ON CONFLICT DO UPDATE`.
-pub async fn backfill_daily_metrics(db: &Database, config: &Config, days: u32) {
-    let feeds: &[mobilispect_core::config::FeedConfig] = &[];
+pub async fn backfill_daily_metrics(
+    db: &Database,
+    config: &Config,
+    feeds: &[mobilispect_core::config::FeedConfig],
+    days: u32,
+) {
     let today = Utc::now().date_naive();
     for days_back in 1..=days as i64 {
         let date = today - ChronoDuration::days(days_back);
@@ -79,9 +83,19 @@ pub async fn retention_loop(db: &Database, config: &Config) {
 
         // Compute metrics for yesterday (completed service day) and today (partial data so far).
         // Yesterday is always fully populated regardless of when the worker restarts.
-        let feeds: &[mobilispect_core::config::FeedConfig] = &[];
+        let db_feeds = match mobilispect_core::db::feeds::load_feeds(&db.pool).await {
+            Ok(feeds) => feeds,
+            Err(e) => {
+                warn!("Failed to load feeds from DB: {e:#}");
+                vec![]
+            }
+        };
+        let feeds: Vec<mobilispect_core::config::FeedConfig> = db_feeds
+            .into_iter()
+            .map(mobilispect_core::config::FeedConfig::from)
+            .collect();
         for date in daily_metrics_window(Utc::now().date_naive()) {
-            for agency in feeds {
+            for agency in &feeds {
                 match compute_route_daily(db, config, agency, date).await {
                     Ok(()) => info!(agency = %agency.id, %date, "Computed daily on-time metrics"),
                     Err(e) => {
@@ -197,7 +211,7 @@ mod tests {
         let observed_at = format!("{}T12:00:00Z", yesterday);
         insert_speed_data(&td.db.pool, &observed_at).await;
 
-        backfill_daily_metrics(&td.db, &test_config(), 1).await;
+        backfill_daily_metrics(&td.db, &test_config(), &[], 1).await;
 
         let (count,): (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM route_speed_daily WHERE route_id = 'R1' AND service_date = $1",
