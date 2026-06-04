@@ -1,13 +1,14 @@
 use askama::Template;
 use axum::{
-    Json,
+    Form, Json,
     extract::{Query, State},
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::{Html, IntoResponse},
 };
 use serde::Deserialize;
 
-use crate::web::AppState;
+use crate::web::{AppState, SetupState};
+use mobilispect_core::db::feeds::store_discovered_feeds;
 use mobilispect_core::ids::{FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
 use mobilispect_core::service_frequency::{
@@ -19,6 +20,7 @@ use mobilispect_core::speed_analysis::{
     filter_speed_cards, route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,
     route_stop_spacings, sort_speed_cards,
 };
+use mobilispect_core::transitland::TransitlandClient;
 
 #[derive(Template)]
 #[template(path = "pages/route_speed_detail.html")]
@@ -101,7 +103,7 @@ pub async fn route_speed_detail(
     let classification = avg_spacing_m.map(classify_by_spacing);
 
     let tmpl = RouteSpeedDetailTemplate {
-        region_name: String::new(),
+        region_name: region_name(&state).await,
         short_name,
         long_name,
         agency_id: feed_id,
@@ -215,7 +217,7 @@ pub async fn route_detail(
                 }
             };
             let tmpl = RouteDetailTemplate {
-                region_name: String::new(),
+                region_name: region_name(&state).await,
                 trend,
                 trend_json,
                 period_days,
@@ -320,7 +322,7 @@ pub async fn speed_page(
         }
     } else {
         let tmpl = SpeedTemplate {
-            region_name: String::new(),
+            region_name: region_name(&state).await,
             cards,
             agencies,
             active_agency,
@@ -425,7 +427,7 @@ pub async fn frequency_page(
         }
     } else {
         let tmpl = FrequencyTemplate {
-            region_name: String::new(),
+            region_name: region_name(&state).await,
             rows,
             agencies,
             active_agency,
@@ -482,7 +484,7 @@ pub async fn schedule_detail(
     };
 
     let tmpl = ScheduleDetailTemplate {
-        region_name: String::new(),
+        region_name: region_name(&state).await,
         feed_id,
         frequency,
     };
@@ -507,6 +509,125 @@ pub async fn health_check(State(state): State<AppState>) -> axum::response::Resp
             Json(serde_json::json!({"status": "error", "message": format!("db ping failed: {e}")})),
         )
             .into_response(),
+    }
+}
+
+async fn region_name(state: &AppState) -> String {
+    state.region.read().await.clone().unwrap_or_default()
+}
+
+#[derive(Template)]
+#[template(path = "pages/setup.html")]
+struct SetupFormTemplate {
+    error: Option<String>,
+    prefill: String,
+}
+
+#[derive(Template)]
+#[template(path = "pages/setup_progress.html")]
+struct SetupProgressTemplate {
+    city: String,
+}
+
+#[derive(Deserialize)]
+pub struct SetupForm {
+    city_name: String,
+}
+
+pub async fn setup_page() -> impl IntoResponse {
+    Html(
+        SetupFormTemplate {
+            error: None,
+            prefill: String::new(),
+        }
+        .render()
+        .unwrap_or_default(),
+    )
+}
+
+pub async fn setup_submit(
+    State(state): State<AppState>,
+    Form(form): Form<SetupForm>,
+) -> impl IntoResponse {
+    let city = form.city_name.trim().to_string();
+
+    {
+        let setup = state.setup_state.lock().await;
+        if matches!(*setup, SetupState::Running) {
+            return Html(
+                SetupProgressTemplate { city: city.clone() }
+                    .render()
+                    .unwrap_or_default(),
+            )
+            .into_response();
+        }
+    }
+
+    *state.setup_state.lock().await = SetupState::Running;
+
+    let pool = state.db.pool.clone();
+    let api_key = state.config.transitland_api_key.clone();
+    let setup_state = state.setup_state.clone();
+    let city_clone = city.clone();
+    tokio::spawn(async move {
+        let client = TransitlandClient::new(api_key);
+        let result = async {
+            let feeds = client.discover_feeds_for_city(&city_clone).await?;
+            if feeds.is_empty() {
+                anyhow::bail!("No feeds found for '{city_clone}' — try a different city name");
+            }
+            store_discovered_feeds(&pool, &city_clone, &feeds).await?;
+            anyhow::Ok(city_clone.clone())
+        }
+        .await;
+
+        let mut setup = setup_state.lock().await;
+        *setup = match result {
+            Ok(city) => SetupState::Done { city },
+            Err(e) => SetupState::Failed {
+                message: e.to_string(),
+            },
+        };
+    });
+
+    Html(SetupProgressTemplate { city }.render().unwrap_or_default()).into_response()
+}
+
+pub async fn setup_status(State(state): State<AppState>) -> impl IntoResponse {
+    let mut setup = state.setup_state.lock().await;
+    match &*setup {
+        SetupState::Idle | SetupState::Running => Html(
+            r#"<div class="setup-card"
+                     hx-get="/setup/status"
+                     hx-trigger="every 1s"
+                     hx-target="this"
+                     hx-swap="outerHTML">
+                   <h1 class="setup-title">Searching Transitland…</h1>
+                   <div class="spinner"></div>
+                   <p class="setup-sub">Discovering transit feeds for your city.</p>
+                </div>"#,
+        )
+        .into_response(),
+        SetupState::Done { city } => {
+            *state.region.write().await = Some(city.clone());
+            *setup = SetupState::Idle;
+            let mut headers = HeaderMap::new();
+            headers.insert("HX-Redirect", HeaderValue::from_static("/"));
+            (StatusCode::OK, headers, Html(String::new())).into_response()
+        }
+        SetupState::Failed { message } => {
+            let msg = message.clone();
+            *setup = SetupState::Idle;
+            Html(
+                SetupFormTemplate {
+                    error: Some(msg),
+                    prefill: String::new(),
+                }
+                .render()
+                .unwrap_or_default(),
+            )
+            .into_response()
+        }
     }
 }
 
