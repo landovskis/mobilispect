@@ -17,8 +17,8 @@ impl TransitlandClient {
         }
     }
 
-    /// For testing: override base URL.
-    pub fn with_base_url(api_key: Option<String>, base_url: String) -> Self {
+    #[cfg(test)]
+    pub(crate) fn with_base_url(api_key: Option<String>, base_url: String) -> Self {
         Self {
             http: reqwest::Client::new(),
             api_key,
