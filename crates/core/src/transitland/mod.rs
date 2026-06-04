@@ -94,16 +94,7 @@ impl TransitlandClient {
             .json()
             .await?;
 
-        let mut seen = std::collections::HashSet::new();
-        let mut feed_ids: Vec<(String, String)> = Vec::new();
-        for op in &body.operators {
-            let tz = op.timezone.clone().unwrap_or_else(|| "UTC".to_string());
-            for f in &op.feeds {
-                if seen.insert(f.onestop_id.clone()) {
-                    feed_ids.push((f.onestop_id.clone(), tz.clone()));
-                }
-            }
-        }
+        let feed_ids = unique_feed_ids(&body.operators);
 
         let mut discovered = Vec::new();
         for (feed_id, timezone) in feed_ids {
@@ -166,6 +157,7 @@ impl TransitlandClient {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct DiscoveredFeed {
     pub onestop_id: String,
     pub name: String,
@@ -210,8 +202,6 @@ struct FeedUrls {
     realtime_trip_updates: Option<String>,
 }
 
-// Private serde structs for deserialising Transitland API responses.
-
 #[derive(serde::Deserialize)]
 struct AgenciesResponse {
     agencies: Vec<AgencyRecord>,
@@ -246,6 +236,20 @@ struct StopRecord {
 #[derive(serde::Deserialize)]
 struct StationRecord {
     onestop_id: String,
+}
+
+fn unique_feed_ids(operators: &[OperatorRecord]) -> Vec<(String, String)> {
+    let mut seen = std::collections::HashSet::new();
+    let mut out = Vec::new();
+    for op in operators {
+        let tz = op.timezone.clone().unwrap_or_else(|| "UTC".to_string());
+        for f in &op.feeds {
+            if seen.insert(f.onestop_id.clone()) {
+                out.push((f.onestop_id.clone(), tz.clone()));
+            }
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -434,6 +438,34 @@ mod tests {
         let client = client_for(&server);
         let result = client.discover_feeds_for_city("Montreal").await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn discover_feeds_deduplicates_shared_feed_ids() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/operators.json"))
+            .and(query_param("city_name", "TestCity"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "operators": [
+                    {"timezone": "UTC", "feeds": [{"onestop_id": "f-shared"}]},
+                    {"timezone": "UTC", "feeds": [{"onestop_id": "f-shared"}]}
+                ]
+            })))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/feeds.json"))
+            .and(query_param("onestop_id", "f-shared"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "feeds": [{"onestop_id": "f-shared", "name": "Shared", "urls": {"static_current": "https://example.com/gtfs.zip"}}]
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+        let client = client_for(&server);
+        let feeds = client.discover_feeds_for_city("TestCity").await.unwrap();
+        assert_eq!(feeds.len(), 1);
     }
 
     #[tokio::test]
