@@ -25,5 +25,5 @@ testcontainers-modules = { version = "0.9", features = ["postgres"], optional = 
 [dev-dependencies]
 testcontainers = "0.21"
 testcontainers-modules = { version = "0.9", features = ["postgres"] }
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", features = ["full", "test-util"] }
 wiremock = "0.6"

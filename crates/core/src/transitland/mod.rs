@@ -1,29 +1,73 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use crate::ids::{AgencyId, RouteId, StationId, StopId};
 
 const DEFAULT_BASE_URL: &str = "https://transit.land/api/v2/rest";
+
+// Transitland rate limits: 60 req/min unauthenticated, 600 req/min authenticated.
+// We stay safely under by using 1 100 ms / 110 ms gaps (≈ 54 / 545 req/min).
+const UNAUTHENTICATED_MIN_INTERVAL: Duration = Duration::from_millis(1_100);
+const AUTHENTICATED_MIN_INTERVAL: Duration = Duration::from_millis(110);
 
 pub struct TransitlandClient {
     http: reqwest::Client,
     api_key: Option<String>,
     base_url: String,
+    min_request_interval: Duration,
+    last_request: Arc<tokio::sync::Mutex<Option<tokio::time::Instant>>>,
 }
 
 impl TransitlandClient {
     pub fn new(api_key: Option<String>) -> Self {
+        let min_request_interval = if api_key.is_some() {
+            AUTHENTICATED_MIN_INTERVAL
+        } else {
+            UNAUTHENTICATED_MIN_INTERVAL
+        };
         Self {
             http: reqwest::Client::new(),
             api_key,
             base_url: DEFAULT_BASE_URL.to_string(),
+            min_request_interval,
+            last_request: Arc::new(tokio::sync::Mutex::new(None)),
         }
     }
 
     #[cfg(test)]
     pub(crate) fn with_base_url(api_key: Option<String>, base_url: String) -> Self {
+        // Zero interval in tests — actual timing is verified with tokio::time::pause().
         Self {
             http: reqwest::Client::new(),
             api_key,
             base_url,
+            min_request_interval: Duration::ZERO,
+            last_request: Arc::new(tokio::sync::Mutex::new(None)),
         }
+    }
+
+    #[cfg(test)]
+    fn with_rate_limit(base_url: String, min_request_interval: Duration) -> Self {
+        Self {
+            http: reqwest::Client::new(),
+            api_key: None,
+            base_url,
+            min_request_interval,
+            last_request: Arc::new(tokio::sync::Mutex::new(None)),
+        }
+    }
+
+    /// Hold the rate-limit mutex, sleep if needed, then update the timestamp.
+    /// The HTTP call is made after the lock is released.
+    async fn throttle(&self) {
+        let mut guard = self.last_request.lock().await;
+        if let Some(last) = *guard {
+            let elapsed = last.elapsed();
+            if elapsed < self.min_request_interval {
+                tokio::time::sleep(self.min_request_interval - elapsed).await;
+            }
+        }
+        *guard = Some(tokio::time::Instant::now());
     }
 
     fn apply_auth(&self, request: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
@@ -41,6 +85,7 @@ impl TransitlandClient {
         gtfs_agency_id: &str,
         feed_onestop_id: &str,
     ) -> anyhow::Result<Option<AgencyId>> {
+        self.throttle().await;
         let url = format!("{}/agencies.json", self.base_url);
         let request = self.http.get(&url).query(&[
             ("gtfs_agency_id", gtfs_agency_id),
@@ -64,6 +109,7 @@ impl TransitlandClient {
         gtfs_route_id: &str,
         feed_onestop_id: &str,
     ) -> anyhow::Result<Option<RouteId>> {
+        self.throttle().await;
         let url = format!("{}/routes.json", self.base_url);
         let request = self.http.get(&url).query(&[
             ("route_id", gtfs_route_id),
@@ -81,6 +127,7 @@ impl TransitlandClient {
     }
 
     pub async fn discover_feeds_for_city(&self, city: &str) -> anyhow::Result<Vec<DiscoveredFeed>> {
+        self.throttle().await;
         let url = format!("{}/operators.json", self.base_url);
         let req = self
             .http
@@ -98,6 +145,7 @@ impl TransitlandClient {
 
         let mut discovered = Vec::new();
         for (feed_id, timezone) in feed_ids {
+            self.throttle().await;
             let url = format!("{}/feeds.json", self.base_url);
             let req = self
                 .http
@@ -140,6 +188,7 @@ impl TransitlandClient {
         gtfs_stop_id: &str,
         feed_onestop_id: &str,
     ) -> anyhow::Result<Option<(StopId, Option<StationId>)>> {
+        self.throttle().await;
         let url = format!("{}/stops.json", self.base_url);
         let request = self.http.get(&url).query(&[
             ("stop_id", gtfs_stop_id),
@@ -488,5 +537,61 @@ mod tests {
         let client = client_for(&server);
         let result = client.resolve_stop("11111", "f-f25d-stm").await.unwrap();
         assert_eq!(result, Some((StopId::from("s-f25ek-somewhere"), None)));
+    }
+
+    // ── Rate limiter ──────────────────────────────────────────────────────────
+
+    #[tokio::test(start_paused = true)]
+    async fn rate_limiter_enforces_interval_between_requests() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/agencies.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "agencies": [{"onestop_id": "o-test"}]
+            })))
+            .expect(3)
+            .mount(&server)
+            .await;
+
+        let interval = Duration::from_millis(500);
+        let client = TransitlandClient::with_rate_limit(server.uri(), interval);
+
+        let before = tokio::time::Instant::now();
+        client.resolve_agency("A", "f1").await.unwrap();
+        client.resolve_agency("B", "f1").await.unwrap();
+        client.resolve_agency("C", "f1").await.unwrap();
+        let elapsed = before.elapsed();
+
+        // 3 requests with a 500 ms interval means the 2nd and 3rd each wait
+        // 500 ms after the previous one → at least 1 000 ms total (2 gaps).
+        assert!(
+            elapsed >= Duration::from_millis(1_000),
+            "expected ≥1 000 ms for 3 rate-limited requests, got {elapsed:?}"
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn rate_limiter_no_delay_on_first_request() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/agencies.json"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "agencies": []
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let interval = Duration::from_millis(1_000);
+        let client = TransitlandClient::with_rate_limit(server.uri(), interval);
+
+        let before = tokio::time::Instant::now();
+        client.resolve_agency("A", "f1").await.unwrap();
+        let elapsed = before.elapsed();
+
+        assert!(
+            elapsed < interval,
+            "first request must not be delayed, but took {elapsed:?}"
+        );
     }
 }
