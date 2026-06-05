@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT short_name, long_name FROM routes WHERE onestop_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "short_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "long_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "234fba754d40b10c531f527aa239ac6403b44f8ff81ab9cad9a079db7169512a"
+}
