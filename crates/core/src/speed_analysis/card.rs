@@ -321,10 +321,7 @@ mod tests {
 
     #[test]
     fn build_speed_cards_assigns_sequential_idx() {
-        let rows = vec![
-            make_row(1, "R1", 0, None),
-            make_row(1, "R2", 0, None),
-        ];
+        let rows = vec![make_row(1, "R1", 0, None), make_row(1, "R2", 0, None)];
         let names = HashMap::new();
         let cards = build_speed_cards(rows, &names);
         assert_eq!(cards[0].idx, 0);
@@ -356,7 +353,12 @@ mod tests {
         assert_eq!(cards.len(), 2);
     }
 
-    fn make_row_full(feed_id: i64, route_id: &str, variant_id: &str, weekday: Option<f64>) -> RouteSpeedDayType {
+    fn make_row_full(
+        feed_id: i64,
+        route_id: &str,
+        variant_id: &str,
+        weekday: Option<f64>,
+    ) -> RouteSpeedDayType {
         RouteSpeedDayType {
             feed_id: FeedId::from(feed_id),
             route_id: RouteId::from(route_id),
@@ -996,8 +998,14 @@ mod tests {
     #[test]
     fn filter_keeps_matching_class() {
         let cards = vec![
-            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
-            RouteSpeedCard { classification: Some(RouteClass::Rapid), ..make_card("R") },
+            RouteSpeedCard {
+                classification: Some(RouteClass::Local),
+                ..make_card("L")
+            },
+            RouteSpeedCard {
+                classification: Some(RouteClass::Rapid),
+                ..make_card("R")
+            },
         ];
         let result = filter_speed_cards(cards, "rapid");
         assert_eq!(result.len(), 1);
@@ -1007,8 +1015,14 @@ mod tests {
     #[test]
     fn filter_empty_class_keeps_all() {
         let cards = vec![
-            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
-            RouteSpeedCard { classification: None, ..make_card("U") },
+            RouteSpeedCard {
+                classification: Some(RouteClass::Local),
+                ..make_card("L")
+            },
+            RouteSpeedCard {
+                classification: None,
+                ..make_card("U")
+            },
         ];
         let result = filter_speed_cards(cards, "");
         assert_eq!(result.len(), 2);
@@ -1017,8 +1031,14 @@ mod tests {
     #[test]
     fn filter_hides_unclassified_when_class_given() {
         let cards = vec![
-            RouteSpeedCard { classification: None, ..make_card("U") },
-            RouteSpeedCard { classification: Some(RouteClass::Local), ..make_card("L") },
+            RouteSpeedCard {
+                classification: None,
+                ..make_card("U")
+            },
+            RouteSpeedCard {
+                classification: Some(RouteClass::Local),
+                ..make_card("L")
+            },
         ];
         let result = filter_speed_cards(cards, "local");
         assert_eq!(result.len(), 1);
