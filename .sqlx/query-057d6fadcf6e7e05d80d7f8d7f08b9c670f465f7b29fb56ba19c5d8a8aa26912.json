@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO vehicle_positions\n             (feed_id, observed_at, trip_id, vehicle_id, latitude, longitude, bearing, speed,\n              current_status, stop_sequence, stop_id, occupancy_status, congestion_level)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8,\n                     $9::vehicle_stop_status, $10, $11, $12::occupancy_status_enum, $13::congestion_level_enum)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Float8",
+        {
+          "Custom": {
+            "name": "vehicle_stop_status",
+            "kind": {
+              "Enum": [
+                "INCOMING_AT",
+                "STOPPED_AT",
+                "IN_TRANSIT_TO"
+              ]
+            }
+          }
+        },
+        "Int8",
+        "Text",
+        {
+          "Custom": {
+            "name": "occupancy_status_enum",
+            "kind": {
+              "Enum": [
+                "EMPTY",
+                "MANY_SEATS_AVAILABLE",
+                "FEW_SEATS_AVAILABLE",
+                "STANDING_ROOM_ONLY",
+                "CRUSHED_STANDING_ROOM_ONLY",
+                "FULL",
+                "NOT_ACCEPTING_PASSENGERS",
+                "NO_DATA_AVAILABLE",
+                "NOT_BOARDABLE"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "congestion_level_enum",
+            "kind": {
+              "Enum": [
+                "UNKNOWN_CONGESTION_LEVEL",
+                "RUNNING_SMOOTHLY",
+                "STOP_AND_GO",
+                "CONGESTION",
+                "SEVERE_CONGESTION"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "057d6fadcf6e7e05d80d7f8d7f08b9c670f465f7b29fb56ba19c5d8a8aa26912"
+}

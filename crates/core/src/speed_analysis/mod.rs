@@ -17,6 +17,7 @@ pub use card::{
 };
 pub use detail::{RouteSpeedDetailDirection, build_detail_directions, fetch_route_info};
 
+#[cfg(test)]
 pub(crate) fn direction_label(direction_id: DirectionId) -> &'static str {
     match direction_id.as_i64() {
         0 => "Outbound",
@@ -281,6 +282,7 @@ struct SpeedTrendRow {
 /// Raw row returned by the variant-level speed trend SQL query (new schema).
 #[derive(sqlx::FromRow)]
 struct SpeedTrendVariantRowNew {
+    #[allow(dead_code)]
     variant_id: VariantId,
     direction_id: DirectionId,
     service_date: String,
@@ -555,13 +557,12 @@ pub async fn compute_route_speed(db: &Database, agency: &AgencyConfig) -> Result
     .await?;
 
     for (variant_id, onestop_route_id) in &combos {
-        let trips: Vec<(String,)> = sqlx::query_as(
-            "SELECT trip_id FROM trips WHERE feed_id = $1 AND variant_id = $2",
-        )
-        .bind(feed_id.as_i64())
-        .bind(variant_id)
-        .fetch_all(&db.pool)
-        .await?;
+        let trips: Vec<(String,)> =
+            sqlx::query_as("SELECT trip_id FROM trips WHERE feed_id = $1 AND variant_id = $2")
+                .bind(feed_id.as_i64())
+                .bind(variant_id)
+                .fetch_all(&db.pool)
+                .await?;
 
         let mut trip_speeds: Vec<f64> = Vec::new();
 
@@ -3180,10 +3181,9 @@ mod tests {
     #[tokio::test]
     async fn route_stop_spacings_returns_empty_for_unknown_route() {
         let td = test_utils::setup().await;
-        let result =
-            route_stop_spacings(&td.db, FeedId::from(0i64), &RouteId::from("NONEXISTENT"))
-                .await
-                .unwrap();
+        let result = route_stop_spacings(&td.db, FeedId::from(0i64), &RouteId::from("NONEXISTENT"))
+            .await
+            .unwrap();
         assert!(result.is_empty());
     }
 
@@ -3422,10 +3422,9 @@ mod tests {
             .unwrap();
         }
 
-        let trends =
-            route_speed_trend_by_variant(db, FeedId::from(0i64), &RouteId::from("R1"), 28)
-                .await
-                .unwrap();
+        let trends = route_speed_trend_by_variant(db, FeedId::from(0i64), &RouteId::from("R1"), 28)
+            .await
+            .unwrap();
 
         assert_eq!(trends.len(), 2, "two variants expected");
         assert_eq!(trends[0].variant_id, "VAR1");

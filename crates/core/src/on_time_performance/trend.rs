@@ -70,12 +70,11 @@ pub async fn route_trend(
     route_id: &RouteId,
     days: i64,
 ) -> Result<Option<RouteTrend>> {
-    let route: Option<(String, String)> = sqlx::query_as(
-        "SELECT short_name, long_name FROM routes WHERE onestop_id = $1",
-    )
-    .bind(route_id.as_str())
-    .fetch_optional(&db.pool)
-    .await?;
+    let route: Option<(String, String)> =
+        sqlx::query_as("SELECT short_name, long_name FROM routes WHERE onestop_id = $1")
+            .bind(route_id.as_str())
+            .fetch_optional(&db.pool)
+            .await?;
 
     let (short_name, long_name) = match route {
         Some(r) => r,
@@ -84,6 +83,7 @@ pub async fn route_trend(
 
     // Daily points: on-time and speed data from route_daily_stats.
     // Average across variants per day to get a single daily point.
+    #[allow(clippy::type_complexity)]
     let rows: Vec<(chrono::NaiveDate, Option<f64>, Option<f64>, Option<f64>)> = sqlx::query_as(
         "SELECT
            rds.service_date,
@@ -109,12 +109,14 @@ pub async fn route_trend(
 
     let trend_days = rows
         .into_iter()
-        .map(|(service_date, on_time_pct, avg_delay_secs, actual_speed_mps)| DailyTrendPoint {
-            service_date: service_date.to_string(),
-            on_time_pct,
-            avg_delay_secs,
-            actual_speed_mps,
-        })
+        .map(
+            |(service_date, on_time_pct, avg_delay_secs, actual_speed_mps)| DailyTrendPoint {
+                service_date: service_date.to_string(),
+                on_time_pct,
+                avg_delay_secs,
+                actual_speed_mps,
+            },
+        )
         .collect();
 
     Ok(Some(RouteTrend {

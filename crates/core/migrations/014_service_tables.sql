@@ -4,6 +4,10 @@
 -- and create service_exceptions for calendar_dates.txt.
 -- route_speed_day_type was already dropped in 010_drop_obsolete_tables.sql.
 
+-- Clear calendar data before restructuring so the new feed_id FK (DEFAULT 0)
+-- does not violate feeds(id) — there is no sentinel row with id = 0.
+TRUNCATE calendar;
+
 -- Rename calendar → services
 ALTER TABLE calendar RENAME TO services;
 

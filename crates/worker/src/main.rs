@@ -2,14 +2,15 @@ use anyhow::Result;
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
-use mobilispect_core::config::Config;
+use mobilispect_core::config::{Config, FeedConfig};
 use mobilispect_core::db::Database;
+use mobilispect_core::db::feeds::load_feeds;
 use mobilispect_core::ids::FeedId;
+use mobilispect_core::transitland::TransitlandClient;
 mod feed_ingestion;
 mod health;
 mod maintenance;
 mod pipeline;
-pub mod transitland;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,18 +21,25 @@ async fn main() -> Result<()> {
     let config = Config::load()?;
     let db = Database::connect(&config.database_url).await?;
 
+    let feeds: Vec<FeedConfig> = loop {
+        let db_feeds = load_feeds(&db.pool).await?;
+        if !db_feeds.is_empty() {
+            break db_feeds.into_iter().map(FeedConfig::from).collect();
+        }
+        warn!("No feeds in DB yet — waiting for first-launch setup to complete (retrying in 30s)");
+        tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+    };
     info!(
-        "Mobilispect worker starting — {} feed(s) configured",
-        config.feeds.len()
+        "Mobilispect worker starting — {} feed(s) in DB",
+        feeds.len()
     );
 
-    let transitland = std::sync::Arc::new(transitland::TransitlandClient::new(
-        config.transitland_api_key.clone(),
-    ));
+    let transitland =
+        std::sync::Arc::new(TransitlandClient::new(config.transitland_api_key.clone()));
 
     let mut set: tokio::task::JoinSet<(mobilispect_core::config::FeedConfig, Result<()>)> =
         tokio::task::JoinSet::new();
-    for agency in &config.feeds {
+    for agency in &feeds {
         let db = db.clone();
         let agency = agency.clone();
         let feed_id = FeedId::from(agency.id);
@@ -39,7 +47,8 @@ async fn main() -> Result<()> {
         set.spawn(async move {
             info!("Loading static GTFS for agency: {}", agency.name);
             let result = async {
-                feed_ingestion::static_feed::load_if_needed(&db, &agency, feed_id, &transitland).await?;
+                feed_ingestion::static_feed::load_if_needed(&db, &agency, feed_id, &transitland)
+                    .await?;
                 pipeline::run_static_hooks(&db, &agency).await?;
                 info!("Static import complete for agency: {}", agency.name);
                 Ok(())
@@ -64,7 +73,7 @@ async fn main() -> Result<()> {
     // Backfill the last 7 days of daily metrics on startup to recover from any gaps
     // caused by restarts or deployments that ran at the start of the UTC day before
     // any service data had accumulated.
-    maintenance::backfill_daily_metrics(&db, &config, 7).await;
+    maintenance::backfill_daily_metrics(&db, &config, &feeds, 7).await;
 
     for agency in loaded {
         let db_rt = db.clone();

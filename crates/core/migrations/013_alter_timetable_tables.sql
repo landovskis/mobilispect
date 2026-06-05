@@ -2,7 +2,13 @@
 -- Alter route_variants, route_variant_stops, trips, and scheduled_stops to use
 -- feed_id BIGINT instead of agency_id TEXT, reference canonical Onestop IDs for
 -- routes and stops, and enforce the normalized Route → Variant → Trip hierarchy.
--- Existing rows are left with feed_id = 0 (DEFAULT); data will be re-ingested.
+-- Data must be re-ingested after this migration.
+
+-- Clear timetable data before restructuring so the new feed_id FK (DEFAULT 0)
+-- does not violate feeds(id) — there is no sentinel row with id = 0.
+-- No cross-table FKs exist between these four tables at this point in the
+-- migration history, so the order does not matter.
+TRUNCATE route_variants, route_variant_stops, trips, scheduled_stops;
 
 -- ============================================================
 -- route_variants

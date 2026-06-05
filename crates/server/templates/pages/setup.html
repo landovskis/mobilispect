@@ -1,0 +1,77 @@
+{% extends "layouts/base.html" %}
+{% block title %}Mobilispect — Setup{% endblock %}
+{% block region_name %}{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js"
+        integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
+        crossorigin="anonymous" defer></script>
+<style>
+.setup-wrap { max-width: 480px; margin: 6rem auto 0; padding: 0 1rem; }
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  box-shadow: var(--shadow-sm);
+}
+.setup-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 2.2rem;
+  font-weight: 300;
+  color: var(--ink-900);
+  margin-bottom: 0.4rem;
+}
+.setup-sub { color: var(--ink-500); font-size: 0.9rem; margin-bottom: 2rem; }
+.setup-error {
+  background: var(--al-err-bg);
+  color: var(--al-err-fg);
+  border: 1px solid var(--al-err-border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+.field-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ink-500);
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.field {
+  width: 100%;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.875rem;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  padding: 0.6rem 0.875rem;
+  background: var(--surface);
+  color: var(--ink-900);
+  box-sizing: border-box;
+}
+.field:focus {
+  outline: none;
+  border-color: var(--civic-red);
+  box-shadow: 0 0 0 3px rgba(200,70,58,0.12);
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="setup-wrap">
+  <div class="setup-card">
+    <h1 class="setup-title">Welcome to Mobilispect</h1>
+    <p class="setup-sub">Enter your city to discover transit feeds automatically.</p>
+    {% if let Some(err) = error %}
+    <div class="setup-error">{{ err }}</div>
+    {% endif %}
+    <form action="/setup" method="post">
+      <label class="field-label" for="city">City or metro area</label>
+      <input class="field" id="city" name="city_name" type="text"
+             placeholder="e.g. Montreal" value="{{ prefill }}" required autofocus>
+      <button class="btn btn-primary w-full mt-2" type="submit"
+              style="width:100%;margin-top:0.5rem;">Find feeds</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

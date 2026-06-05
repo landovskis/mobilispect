@@ -11,7 +11,7 @@ use mobilispect_core::config::FeedConfig;
 use mobilispect_core::db::Database;
 use mobilispect_core::ids::{AgencyId, FeedId, RouteId, StopId};
 
-use crate::transitland::TransitlandClient;
+use mobilispect_core::transitland::TransitlandClient;
 
 type PatternKey = (String, i64, String);
 type PatternVal = (String, Vec<String>, Option<String>);
@@ -109,14 +109,7 @@ pub async fn load_if_needed(
 
     // Resolve Transitland Onestop IDs (if configured)
     let (agency_map, route_map, stop_map) = if let Some(tl_feed_id) = &feed.transitland_feed_id {
-        resolve_transitland_entities(
-            &mut tx,
-            feed_id,
-            tl_feed_id,
-            &gtfs,
-            transitland,
-        )
-        .await?
+        resolve_transitland_entities(&mut tx, feed_id, tl_feed_id, &gtfs, transitland).await?
     } else {
         warn!(
             "No transitland_feed_id configured for feed {} — skipping Onestop ID resolution",
@@ -223,7 +216,11 @@ async fn resolve_agencies(
         }
     }
 
-    info!("Resolved {}/{} agencies via Transitland", map.len(), gtfs.agencies.len());
+    info!(
+        "Resolved {}/{} agencies via Transitland",
+        map.len(),
+        gtfs.agencies.len()
+    );
     Ok(map)
 }
 
@@ -329,10 +326,7 @@ async fn resolve_stops(
             Ok(Some((stop_onestop_id, maybe_station_id))) => {
                 // Upsert parent station if present
                 if let Some(station_id) = &maybe_station_id {
-                    let (lat, lon) = (
-                        stop.latitude.unwrap_or(0.0),
-                        stop.longitude.unwrap_or(0.0),
-                    );
+                    let (lat, lon) = (stop.latitude.unwrap_or(0.0), stop.longitude.unwrap_or(0.0));
                     sqlx::query(
                         "INSERT INTO stations (onestop_id, name, lat, lon)
                          VALUES ($1, $2, $3, $4)
@@ -1026,13 +1020,12 @@ mod tests {
         assert_eq!(variant_count.0, 1, "expected exactly one variant");
 
         // That variant should be primary with trip_count = 2.
-        let (trip_count, is_primary): (i64, bool) = sqlx::query_as(
-            "SELECT trip_count, is_primary FROM route_variants WHERE feed_id = $1",
-        )
-        .bind(feed_id.as_i64())
-        .fetch_one(&db.pool)
-        .await
-        .unwrap();
+        let (trip_count, is_primary): (i64, bool) =
+            sqlx::query_as("SELECT trip_count, is_primary FROM route_variants WHERE feed_id = $1")
+                .bind(feed_id.as_i64())
+                .fetch_one(&db.pool)
+                .await
+                .unwrap();
         assert_eq!(trip_count, 2);
         assert!(is_primary);
     }
@@ -1339,7 +1332,7 @@ mod tests {
                 gtfs_structures::CalendarDate {
                     service_id: "WD".to_string(),
                     date: NaiveDate::from_ymd_opt(2026, 1, 2).unwrap(),
-                    exception_type: gtfs_structures::Exception::Removed,
+                    exception_type: gtfs_structures::Exception::Deleted,
                 },
             ],
         );

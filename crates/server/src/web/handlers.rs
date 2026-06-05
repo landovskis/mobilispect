@@ -1,22 +1,26 @@
 use askama::Template;
 use axum::{
-    Json,
+    Form, Json,
     extract::{Query, State},
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::{Html, IntoResponse},
 };
 use serde::Deserialize;
 
-use crate::web::AppState;
+use crate::web::{AppState, SetupState};
+use mobilispect_core::db::feeds::store_discovered_feeds;
 use mobilispect_core::ids::{FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
-use mobilispect_core::service_frequency::{RouteHeadwayRow, RouteHourlyFrequency, route_headways, route_hourly_frequency};
+use mobilispect_core::service_frequency::{
+    RouteHeadwayRow, RouteHourlyFrequency, route_headways, route_hourly_frequency,
+};
 use mobilispect_core::speed_analysis::{
     RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary, assign_indices,
     build_detail_directions, build_speed_cards, classify_by_spacing, fetch_route_info,
     filter_speed_cards, route_speed_by_day_type, route_speed_summary, route_speed_trend_by_variant,
     route_stop_spacings, sort_speed_cards,
 };
+use mobilispect_core::transitland::TransitlandClient;
 
 #[derive(Template)]
 #[template(path = "pages/route_speed_detail.html")]
@@ -99,7 +103,7 @@ pub async fn route_speed_detail(
     let classification = avg_spacing_m.map(classify_by_spacing);
 
     let tmpl = RouteSpeedDetailTemplate {
-        region_name: state.config.region.name.clone(),
+        region_name: region_name(&state).await,
         short_name,
         long_name,
         agency_id: feed_id,
@@ -204,9 +208,7 @@ pub async fn route_detail(
             let trend_json = match serde_json::to_string(&trend.days) {
                 Ok(json) => json,
                 Err(e) => {
-                    tracing::error!(
-                        "Failed to serialize trend data for {feed_id}/{route_id}: {e}"
-                    );
+                    tracing::error!("Failed to serialize trend data for {feed_id}/{route_id}: {e}");
                     return (
                         axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                         Html("<h1>Internal Server Error</h1>".to_string()),
@@ -215,7 +217,7 @@ pub async fn route_detail(
                 }
             };
             let tmpl = RouteDetailTemplate {
-                region_name: state.config.region.name.clone(),
+                region_name: region_name(&state).await,
                 trend,
                 trend_json,
                 period_days,
@@ -257,12 +259,7 @@ pub async fn speed_page(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agencies: Vec<(String, String)> = state
-        .config
-        .feeds
-        .iter()
-        .map(|a| (a.id.to_string(), a.name.clone()))
-        .collect();
+    let agencies: Vec<(String, String)> = vec![];
     let active_agency = params
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
@@ -325,7 +322,7 @@ pub async fn speed_page(
         }
     } else {
         let tmpl = SpeedTemplate {
-            region_name: state.config.region.name.clone(),
+            region_name: region_name(&state).await,
             cards,
             agencies,
             active_agency,
@@ -389,12 +386,7 @@ pub async fn frequency_page(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agencies: Vec<(String, String)> = state
-        .config
-        .feeds
-        .iter()
-        .map(|a| (a.id.to_string(), a.name.clone()))
-        .collect();
+    let agencies: Vec<(String, String)> = vec![];
     let active_agency = params
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
@@ -435,7 +427,7 @@ pub async fn frequency_page(
         }
     } else {
         let tmpl = FrequencyTemplate {
-            region_name: state.config.region.name.clone(),
+            region_name: region_name(&state).await,
             rows,
             agencies,
             active_agency,
@@ -492,7 +484,7 @@ pub async fn schedule_detail(
     };
 
     let tmpl = ScheduleDetailTemplate {
-        region_name: state.config.region.name.clone(),
+        region_name: region_name(&state).await,
         feed_id,
         frequency,
     };
@@ -520,40 +512,158 @@ pub async fn health_check(State(state): State<AppState>) -> axum::response::Resp
     }
 }
 
+async fn region_name(state: &AppState) -> String {
+    state.region.read().await.clone().unwrap_or_default()
+}
+
+#[derive(Template)]
+#[template(path = "pages/setup.html")]
+struct SetupFormTemplate {
+    error: Option<String>,
+    prefill: String,
+}
+
+#[derive(Template)]
+#[template(path = "pages/setup_progress.html")]
+struct SetupProgressTemplate {
+    city: String,
+}
+
+#[derive(Deserialize)]
+pub struct SetupForm {
+    city_name: String,
+}
+
+pub async fn setup_page() -> impl IntoResponse {
+    Html(
+        SetupFormTemplate {
+            error: None,
+            prefill: String::new(),
+        }
+        .render()
+        .unwrap_or_else(|e| {
+            tracing::warn!("Template render failed: {e}");
+            String::new()
+        }),
+    )
+}
+
+pub async fn setup_submit(
+    State(state): State<AppState>,
+    Form(form): Form<SetupForm>,
+) -> impl IntoResponse {
+    let city = form.city_name.trim().to_string();
+
+    {
+        let mut setup = state.setup_state.lock().await;
+        if matches!(*setup, SetupState::Running) {
+            return Html(
+                SetupProgressTemplate { city: city.clone() }
+                    .render()
+                    .unwrap_or_else(|e| {
+                        tracing::warn!("Template render failed: {e}");
+                        String::new()
+                    }),
+            )
+            .into_response();
+        }
+        *setup = SetupState::Running;
+    }
+
+    let pool = state.db.pool.clone();
+    let api_key = state.config.transitland_api_key.clone();
+    let setup_state = state.setup_state.clone();
+    let city_clone = city.clone();
+    tokio::spawn(async move {
+        let client = TransitlandClient::new(api_key);
+        let result = async {
+            let feeds = client.discover_feeds_for_city(&city_clone).await?;
+            if feeds.is_empty() {
+                anyhow::bail!("No feeds found for '{city_clone}' — try a different city name");
+            }
+            store_discovered_feeds(&pool, &city_clone, &feeds).await?;
+            anyhow::Ok(city_clone.clone())
+        }
+        .await;
+
+        let mut setup = setup_state.lock().await;
+        *setup = match result {
+            Ok(city) => SetupState::Done { city },
+            Err(e) => SetupState::Failed {
+                message: e.to_string(),
+                city: city_clone.clone(),
+            },
+        };
+    });
+
+    Html(SetupProgressTemplate { city }.render().unwrap_or_else(|e| {
+        tracing::warn!("Template render failed: {e}");
+        String::new()
+    }))
+    .into_response()
+}
+
+pub async fn setup_status(State(state): State<AppState>) -> impl IntoResponse {
+    let terminal = {
+        let mut setup = state.setup_state.lock().await;
+        if !matches!(*setup, SetupState::Done { .. } | SetupState::Failed { .. }) {
+            // Not terminal yet — return spinner and keep the lock short
+            return Html(
+                r#"<div class="setup-card"
+                                 hx-get="/setup/status"
+                                 hx-trigger="every 1s"
+                                 hx-target="this"
+                                 hx-swap="outerHTML">
+                               <h1 class="setup-title">Searching Transitland…</h1>
+                               <div class="spinner"></div>
+                               <p class="setup-sub">Discovering transit feeds for your city.</p>
+                            </div>"#,
+            )
+            .into_response();
+        }
+        std::mem::replace(&mut *setup, SetupState::Idle)
+    };
+
+    match terminal {
+        SetupState::Done { city } => {
+            *state.region.write().await = Some(city);
+            let mut headers = HeaderMap::new();
+            headers.insert("HX-Redirect", HeaderValue::from_static("/"));
+            (StatusCode::OK, headers, Html(String::new())).into_response()
+        }
+        SetupState::Failed { message, city } => Html(
+            SetupFormTemplate {
+                error: Some(message),
+                prefill: city,
+            }
+            .render()
+            .unwrap_or_else(|e| {
+                tracing::warn!("Template render failed: {e}");
+                String::new()
+            }),
+        )
+        .into_response(),
+        _ => {
+            // Should not be reached — state was terminal when we checked
+            Html(String::new()).into_response()
+        }
+    }
+}
+
 #[cfg(test)]
 mod e2e_tests {
     use super::*;
-    use crate::web::build_router;
+    use crate::web::{SetupState, build_router};
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
-    use mobilispect_core::config::{AgencyConfig, Config, RegionConfig};
+    use mobilispect_core::config::Config;
     use mobilispect_core::db::test_utils;
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
     use tower::ServiceExt;
 
     fn test_config() -> Config {
-        use mobilispect_core::config::NetworkConfig;
-        let feed = AgencyConfig {
-            id: 0,
-            name: "Test Agency".to_string(),
-            gtfs_static_url: String::new(),
-            gtfs_rt_vehicle_positions_url: None,
-            gtfs_rt_trip_updates_url: None,
-            gtfs_api_key: None,
-            agency_utc_offset: "-04:00".to_string(),
-            transitland_feed_id: None,
-        };
-
         Config {
-            feeds: vec![feed.clone()],
-            region: RegionConfig {
-                name: "Test Region".to_string(),
-                timezone: "America/Toronto".to_string(),
-                networks: vec![NetworkConfig {
-                    id: 0,
-                    name: "Test Network".to_string(),
-                    feeds: vec![feed],
-                }],
-            },
             database_url: String::new(),
             poll_interval_secs: 30,
             bind_address: "0.0.0.0:3000".to_string(),
@@ -613,6 +723,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -658,6 +770,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -716,6 +830,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
         let response = app
@@ -821,6 +937,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -856,6 +974,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -891,6 +1011,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -931,6 +1053,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1004,6 +1128,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
         let response = app
@@ -1036,6 +1162,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1074,6 +1202,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1147,6 +1277,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1222,6 +1354,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1299,6 +1433,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1367,6 +1503,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1439,6 +1577,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1472,6 +1612,8 @@ mod e2e_tests {
         let state = AppState {
             db: td.db,
             config: test_config(),
+            region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
         let app = build_router(state);
 
@@ -1491,5 +1633,80 @@ mod e2e_tests {
             .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["status"], "ok");
+    }
+
+    /// Build a router that includes setup routes (mirrors what `serve()` does, minus the
+    /// health router, for testing setup handlers without starting the TCP listener).
+    fn build_setup_router(state: AppState) -> axum::Router {
+        use axum::routing::get;
+        let setup_router = axum::Router::new()
+            .route("/setup", get(setup_page).post(setup_submit))
+            .route("/setup/status", get(setup_status))
+            .with_state(state.clone());
+        build_router(state).merge(setup_router)
+    }
+
+    #[tokio::test]
+    async fn setup_page_returns_200_with_welcome_text() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+            region: Arc::new(RwLock::new(None)),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
+        };
+        let app = build_setup_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/setup")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(
+            std::str::from_utf8(&body).unwrap().contains("Welcome"),
+            "setup page should contain 'Welcome'"
+        );
+    }
+
+    #[tokio::test]
+    async fn setup_status_returns_spinner_when_idle() {
+        let td = test_utils::setup().await;
+        let state = AppState {
+            db: td.db,
+            config: test_config(),
+            region: Arc::new(RwLock::new(None)),
+            setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
+        };
+        let app = build_setup_router(state);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/setup/status")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        assert!(
+            std::str::from_utf8(&body)
+                .unwrap()
+                .contains("/setup/status"),
+            "idle status response should contain polling fragment referencing /setup/status"
+        );
     }
 }

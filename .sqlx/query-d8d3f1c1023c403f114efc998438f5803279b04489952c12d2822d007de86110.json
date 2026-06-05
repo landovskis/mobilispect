@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO stop_time_events\n                 (feed_id, observed_at, trip_id, stop_id, stop_sequence, arrival_delay,\n                  departure_delay, arrival_time, departure_time, schedule_relationship, uncertainty)\n                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9,\n                         $10::stop_time_schedule_relationship, $11)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Timestamptz",
+        "Timestamptz",
+        {
+          "Custom": {
+            "name": "stop_time_schedule_relationship",
+            "kind": {
+              "Enum": [
+                "SCHEDULED",
+                "SKIPPED",
+                "NO_DATA",
+                "UNSCHEDULED"
+              ]
+            }
+          }
+        },
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d8d3f1c1023c403f114efc998438f5803279b04489952c12d2822d007de86110"
+}
