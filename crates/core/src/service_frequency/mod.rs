@@ -1075,6 +1075,47 @@ mod tests {
     }
 
     #[test]
+    fn group_by_span_night_threshold_is_exactly_midnight() {
+        // 24*3600 = midnight: Night
+        let mut row = make_row(Some(30.0), None, None);
+        row.weekday_service_start_secs = Some(24 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups[0].title, "Night");
+
+        // 24*3600 - 1 = one second before midnight: not Night
+        let mut row2 = make_row(Some(30.0), None, None);
+        row2.weekday_service_start_secs = Some(24 * 3600 - 1);
+        let groups2 = group_by_span(vec![row2]);
+        assert_ne!(groups2[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_night_routes_sorted_by_headway_asc() {
+        let mut slow = make_row(Some(60.0), None, None);
+        slow.weekday_service_start_secs = Some(25 * 3600);
+        slow.route_id = RouteId::from("r-slow");
+
+        let mut fast = make_row(Some(15.0), None, None);
+        fast.weekday_service_start_secs = Some(25 * 3600);
+        fast.route_id = RouteId::from("r-fast");
+
+        let groups = group_by_span(vec![slow, fast]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+        assert_eq!(groups[0].rows[0].route_id, RouteId::from("r-fast"));
+        assert_eq!(groups[0].rows[1].route_id, RouteId::from("r-slow"));
+    }
+
+    #[test]
+    fn group_by_span_sunday_only_night_route_goes_to_night() {
+        let mut row = make_row(None, None, Some(30.0));
+        row.sunday_service_start_secs = Some(25 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+    }
+
+    #[test]
     fn group_by_span_night_appears_after_rush_hours_in_output() {
         // Every Day route
         let every_day = make_row(Some(10.0), Some(15.0), None);
