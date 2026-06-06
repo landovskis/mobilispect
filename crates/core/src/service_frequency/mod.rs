@@ -284,7 +284,7 @@ fn classify(row: &RouteHeadwayRow) -> &'static str {
     let has_weekend = row.saturday_headway_mins.is_some() || row.sunday_headway_mins.is_some();
 
     // "Every Day": has weekday AND weekend, or no weekday data at all.
-    if !has_weekday || (has_weekday && has_weekend) {
+    if !has_weekday || has_weekend {
         return "Every Day";
     }
 
@@ -294,7 +294,7 @@ fn classify(row: &RouteHeadwayRow) -> &'static str {
         _ => 0,
     };
     let span_hours = span_secs as f64 / 3600.0;
-    let max_gap = row.weekday_max_headway_mins.unwrap_or(0.0);
+    let max_gap = row.weekday_max_headway_mins.unwrap_or(f64::INFINITY);
 
     if span_hours >= 8.0 && max_gap < 180.0 {
         "Weekday — All Day"
@@ -969,11 +969,27 @@ mod tests {
     }
 
     #[test]
-    fn group_by_span_omits_empty_groups() {
-        let row = make_row(Some(10.0), Some(20.0), None);
+    fn group_by_span_weekend_only_route_goes_to_every_day() {
+        let row = make_row(None, Some(20.0), None); // saturday-only, no weekday
         let groups = group_by_span(vec![row]);
-        // Only "Every Day" should be present; the other two groups are absent
         assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Every Day");
+    }
+
+    #[test]
+    fn group_by_span_omits_empty_groups() {
+        // Only every-day and all-day routes — rush-hours bucket should be absent
+        let every_day_row = make_row(Some(10.0), Some(15.0), None);
+        let all_day_row = make_row(Some(8.0), None, None); // weekday-only, wide span, small gap
+        let groups = group_by_span(vec![every_day_row, all_day_row]);
+        assert_eq!(
+            groups.len(),
+            2,
+            "rush-hours group should be omitted when empty"
+        );
+        assert_eq!(groups[0].title, "Every Day");
+        assert_eq!(groups[1].title, "Weekday — All Day");
+        assert!(!groups.iter().any(|g| g.title == "Weekday — Rush Hours"));
     }
 
     #[test]
