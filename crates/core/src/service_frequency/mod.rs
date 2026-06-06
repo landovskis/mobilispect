@@ -280,12 +280,13 @@ pub struct ScheduleGroup {
 
 /// Classify a single row into one of four display buckets.
 fn classify(row: &RouteHeadwayRow) -> &'static str {
-    // Night: primary service starts at or after 20:00 — checked first so it beats all other buckets.
+    // Night: primary service starts at or after midnight (GTFS past-midnight encoding: ≥ 24:00:00 = 86400s)
+    // — checked first so it beats all other buckets.
     let primary_start = row
         .weekday_service_start_secs
         .or(row.saturday_service_start_secs)
         .or(row.sunday_service_start_secs);
-    if primary_start.map_or(false, |s| s >= 20 * 3600) {
+    if primary_start.map_or(false, |s| s >= 24 * 3600) {
         return "Night";
     }
 
@@ -1029,7 +1030,7 @@ mod tests {
     #[test]
     fn group_by_span_weekday_night_route_goes_to_night() {
         let mut row = make_row(Some(30.0), None, None);
-        row.weekday_service_start_secs = Some(22 * 3600);
+        row.weekday_service_start_secs = Some(25 * 3600);
         let groups = group_by_span(vec![row]);
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].title, "Night");
@@ -1038,7 +1039,7 @@ mod tests {
     #[test]
     fn group_by_span_weekend_night_route_goes_to_night() {
         let mut row = make_row(None, Some(30.0), None);
-        row.saturday_service_start_secs = Some(22 * 3600);
+        row.saturday_service_start_secs = Some(25 * 3600);
         let groups = group_by_span(vec![row]);
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].title, "Night");
@@ -1048,7 +1049,7 @@ mod tests {
     fn group_by_span_every_day_night_route_goes_to_night() {
         // Would normally be "Every Day" (weekday + weekend) but night check beats it
         let mut row = make_row(Some(10.0), Some(15.0), None);
-        row.weekday_service_start_secs = Some(22 * 3600);
+        row.weekday_service_start_secs = Some(25 * 3600);
         let groups = group_by_span(vec![row]);
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].title, "Night");
@@ -1064,6 +1065,16 @@ mod tests {
     }
 
     #[test]
+    fn group_by_span_route_starting_at_22_is_not_night() {
+        // 22:00 = 79200s < 86400s — must NOT go to Night
+        let mut row = make_row(Some(10.0), None, None);
+        row.weekday_service_start_secs = Some(22 * 3600); // 79200 < 86400
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_ne!(groups[0].title, "Night");
+    }
+
+    #[test]
     fn group_by_span_night_appears_after_rush_hours_in_output() {
         // Every Day route
         let every_day = make_row(Some(10.0), Some(15.0), None);
@@ -1072,7 +1083,7 @@ mod tests {
         rush.weekday_service_end_secs = Some(9 * 3600);
         // Night route
         let mut night = make_row(Some(30.0), None, None);
-        night.weekday_service_start_secs = Some(22 * 3600);
+        night.weekday_service_start_secs = Some(25 * 3600);
 
         let groups = group_by_span(vec![every_day, rush, night]);
         assert_eq!(groups[0].title, "Every Day");
