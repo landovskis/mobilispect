@@ -286,7 +286,7 @@ fn classify(row: &RouteHeadwayRow) -> &'static str {
         .weekday_service_start_secs
         .or(row.saturday_service_start_secs)
         .or(row.sunday_service_start_secs);
-    if primary_start.map_or(false, |s| s >= 24 * 3600) {
+    if primary_start.is_some_and(|s| s >= 24 * 3600) {
         return "Night";
     }
 
