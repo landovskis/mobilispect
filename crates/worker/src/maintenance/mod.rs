@@ -140,55 +140,133 @@ mod tests {
         }
     }
 
+    fn test_feed() -> mobilispect_core::config::FeedConfig {
+        mobilispect_core::config::FeedConfig {
+            id: 1,
+            name: "Test Feed".to_string(),
+            gtfs_static_url: "http://test".to_string(),
+            gtfs_rt_vehicle_positions_url: None,
+            gtfs_rt_trip_updates_url: None,
+            gtfs_api_key: None,
+            agency_utc_offset: "UTC".to_string(),
+            transitland_feed_id: None,
+        }
+    }
+
     /// Insert minimal static GTFS + one trip's stop time events for the given `observed_at` timestamp.
     async fn insert_speed_data(pool: &sqlx::PgPool, observed_at: &str) {
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
-            .execute(pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Dest')")
-            .execute(pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Stop 1', 45.50, -73.50)")
-            .execute(pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Stop 2', 45.51, -73.50)")
-            .execute(pool)
-            .await
-            .unwrap();
+        // Feed and agency must exist before routes/trips (FK constraints).
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO feeds (id, gtfs_static_url) VALUES (1, 'http://test') ON CONFLICT DO NOTHING",
         )
         .execute(pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO agencies (onestop_id, name) VALUES ('A1', 'Test Agency') ON CONFLICT DO NOTHING",
         )
         .execute(pool)
         .await
         .unwrap();
-        // Two stop time events for the trip with distinct arrival_time_unix values.
-        let t1: i64 = 1_767_225_600;
-        let t2: i64 = t1 + 900;
+
+        // Canonical route (onestop_id-keyed, agency_id references agencies.onestop_id).
+        sqlx::query(
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type)
+             VALUES ('R1', 'A1', '1', 'Route 1', 3) ON CONFLICT DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        // Mapping from GTFS route_id → onestop_id so compute_route_speed_daily can join.
+        sqlx::query(
+            "INSERT INTO feed_route_ids (feed_id, gtfs_route_id, onestop_id)
+             VALUES (1, 'R1', 'R1') ON CONFLICT DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        // Canonical stops.
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon)
+             VALUES ('S1', 'Stop 1', 45.50, -73.50) ON CONFLICT DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon)
+             VALUES ('S2', 'Stop 2', 45.51, -73.50) ON CONFLICT DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        // Route variant (route_id = GTFS route_id 'R1', direction_id 0, is_primary = true).
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
+             VALUES (1, 'VAR1', 'R1', 0, 2, 1, true) ON CONFLICT DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        // Trip belonging to the variant.
+        sqlx::query(
+            "INSERT INTO trips (feed_id, trip_id, variant_id, service_id)
+             VALUES (1, 'T1', 'VAR1', 'WD') ON CONFLICT DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        // Scheduled stops for the trip.
+        sqlx::query(
+            "INSERT INTO scheduled_stops (feed_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time)
+             VALUES (1, 'T1', 'S1', 1, '08:00:00', '08:00:00') ON CONFLICT DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO scheduled_stops (feed_id, trip_id, stop_id, stop_sequence, arrival_time, departure_time)
+             VALUES (1, 'T1', 'S2', 2, '08:10:00', '08:10:00') ON CONFLICT DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        // Partition for stop_time_events (partitioned table requires a matching partition).
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS stop_time_events_maint_test_part \
+             PARTITION OF stop_time_events \
+             FOR VALUES FROM ('2020-01-01') TO ('2030-01-01')",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        // Two stop time events with TIMESTAMPTZ arrival_time (15 min apart → ~1.235 m/s).
+        let t1 = chrono::DateTime::from_timestamp(1_767_225_600, 0).unwrap();
+        let t2 = chrono::DateTime::from_timestamp(1_767_225_600 + 900, 0).unwrap();
+        let observed: chrono::DateTime<chrono::Utc> = observed_at.parse().unwrap();
         sqlx::query(
             "INSERT INTO stop_time_events
-             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('0', $1, 'T1', 'S1', 1, $2)",
+             (feed_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time)
+             VALUES (1, $1, 'T1', 'S1', 1, $2)",
         )
-        .bind(observed_at)
+        .bind(observed)
         .bind(t1)
         .execute(pool)
         .await
         .unwrap();
         sqlx::query(
             "INSERT INTO stop_time_events
-             (agency_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time_unix)
-             VALUES ('0', $1, 'T1', 'S2', 2, $2)",
+             (feed_id, observed_at, trip_id, stop_id, stop_sequence, arrival_time)
+             VALUES (1, $1, 'T1', 'S2', 2, $2)",
         )
-        .bind(observed_at)
+        .bind(observed)
         .bind(t2)
         .execute(pool)
         .await
@@ -211,18 +289,18 @@ mod tests {
         let observed_at = format!("{}T12:00:00Z", yesterday);
         insert_speed_data(&td.db.pool, &observed_at).await;
 
-        backfill_daily_metrics(&td.db, &test_config(), &[], 1).await;
+        backfill_daily_metrics(&td.db, &test_config(), &[test_feed()], 1).await;
 
         let (count,): (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM route_speed_daily WHERE route_id = 'R1' AND service_date = $1",
+            "SELECT COUNT(*) FROM route_daily_stats WHERE route_id = 'R1' AND service_date = $1",
         )
-        .bind(yesterday.to_string())
+        .bind(yesterday)
         .fetch_one(&td.db.pool)
         .await
         .unwrap();
         assert!(
             count > 0,
-            "backfill must populate route_speed_daily for yesterday"
+            "backfill must populate route_daily_stats for yesterday"
         );
     }
 
@@ -239,19 +317,35 @@ mod tests {
         let handle = tokio::spawn(async move {
             retention_loop(&db_clone, &config).await;
         });
-        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        loop {
+            let (count,): (i64,) = sqlx::query_as(
+                "SELECT COUNT(*) FROM route_daily_stats WHERE route_id = 'R1' AND service_date = $1",
+            )
+            .bind(yesterday)
+            .fetch_one(&td.db.pool)
+            .await
+            .unwrap();
+            if count > 0 {
+                break;
+            }
+            if std::time::Instant::now() >= deadline {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
         handle.abort();
 
-        let (count,): (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM route_speed_daily WHERE route_id = 'R1' AND service_date = $1",
+        let (final_count,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM route_daily_stats WHERE route_id = 'R1' AND service_date = $1",
         )
-        .bind(yesterday.to_string())
+        .bind(yesterday)
         .fetch_one(&td.db.pool)
         .await
         .unwrap();
         assert!(
-            count > 0,
-            "retention_loop must compute route_speed_daily for yesterday on first tick"
+            final_count > 0,
+            "retention_loop must compute route_daily_stats for yesterday on first tick"
         );
     }
 }

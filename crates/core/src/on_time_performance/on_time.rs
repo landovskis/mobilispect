@@ -183,7 +183,15 @@ pub async fn compute_route_daily(
         .fetch_one(&db.pool)
         .await?;
 
-        let (trips_run, on_time_stops, total_stops, skipped_stops, avg_delay, max_delay, trips_total) = row;
+        let (
+            trips_run,
+            on_time_stops,
+            total_stops,
+            skipped_stops,
+            avg_delay,
+            max_delay,
+            trips_total,
+        ) = row;
 
         sqlx::query(
             "INSERT INTO route_daily_stats

@@ -123,7 +123,10 @@ ORDER BY day_type, hour";
     let mut sunday_bins = Vec::new();
 
     for row in rows {
-        let bin = HourBin { hour: row.hour, trip_count: row.trip_count };
+        let bin = HourBin {
+            hour: row.hour,
+            trip_count: row.trip_count,
+        };
         match row.day_type.as_deref() {
             Some("weekday") => weekday_bins.push(bin),
             Some("saturday") => saturday_bins.push(bin),
@@ -510,6 +513,11 @@ mod tests {
             .execute(&db.pool)
             .await
             .unwrap();
+        // Insert agency (required by FK constraint on routes.agency_id)
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('stm', 'STM')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
         // Insert route
         sqlx::query(
             "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-stm-R1', 'stm', '1', 'Route 1', 3)",
@@ -760,6 +768,11 @@ mod tests {
         .execute(&db.pool)
         .await
         .unwrap();
+        // Insert agency (required by FK constraint on routes.agency_id)
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('agency', 'Test Agency') ON CONFLICT DO NOTHING")
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(&format!(
             "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('{route_id}', 'agency', '{short_name}', '{long_name}', 3)"
         ))
@@ -774,7 +787,14 @@ mod tests {
         .unwrap();
     }
 
-    async fn insert_service(db: &crate::db::Database, feed_id: i64, service_id: &str, weekday: bool, saturday: bool, sunday: bool) {
+    async fn insert_service(
+        db: &crate::db::Database,
+        feed_id: i64,
+        service_id: &str,
+        weekday: bool,
+        saturday: bool,
+        sunday: bool,
+    ) {
         sqlx::query(&format!(
             "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES ({feed_id}, '{service_id}', {weekday}, {weekday}, {weekday}, {weekday}, {weekday}, {saturday}, {sunday})"
         ))
@@ -808,13 +828,10 @@ mod tests {
     #[tokio::test]
     async fn route_hourly_frequency_returns_none_for_unknown_route() {
         let td = test_utils::setup().await;
-        let result = route_hourly_frequency(
-            &td.db,
-            FeedId::from(1i64),
-            &RouteId::from("r-unknown"),
-        )
-        .await
-        .unwrap();
+        let result =
+            route_hourly_frequency(&td.db, FeedId::from(1i64), &RouteId::from("r-unknown"))
+                .await
+                .unwrap();
         assert!(result.is_none());
     }
 
@@ -885,7 +902,10 @@ mod tests {
         let freq = RouteHourlyFrequency {
             short_name: "1".to_string(),
             long_name: "Route 1".to_string(),
-            weekday_bins: vec![HourBin { hour: 8, trip_count: 3 }],
+            weekday_bins: vec![HourBin {
+                hour: 8,
+                trip_count: 3,
+            }],
             saturday_bins: vec![],
             sunday_bins: vec![],
         };
