@@ -243,7 +243,15 @@ mod tests {
 
         // Insert two feeds
         sqlx::query(
-            "INSERT INTO feeds (id, onestop_id, name) VALUES (1, 'f-stm', 'STM'), (2, 'f-rtl', 'RTL')",
+            "INSERT INTO feeds (id, gtfs_static_url, name) VALUES (1, 'http://stm', 'STM'), (2, 'http://rtl', 'RTL')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        // Insert agencies required by routes FK
+        sqlx::query(
+            "INSERT INTO agencies (onestop_id, name) VALUES ('stm', 'STM'), ('rtl', 'RTL')",
         )
         .execute(&db.pool)
         .await

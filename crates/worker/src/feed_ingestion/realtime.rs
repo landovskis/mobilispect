@@ -266,12 +266,26 @@ mod tests {
     use mobilispect_core::db::test_utils;
     use mobilispect_core::ids::FeedId;
 
+    async fn create_stop_time_events_partition(pool: &sqlx::PgPool) {
+        sqlx::query(
+            "CREATE TABLE IF NOT EXISTS stop_time_events_test_part \
+             PARTITION OF stop_time_events \
+             FOR VALUES FROM ('2020-01-01') TO ('2030-01-01')",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
     #[tokio::test]
     async fn dwell_secs_computed_from_timestamps() {
         let test_db = test_utils::setup().await;
         let pool = &test_db.db.pool;
         let feed_id: i64 = 1;
         let observed_at = Utc::now();
+
+        // Create a partition covering the current date so inserts succeed.
+        create_stop_time_events_partition(pool).await;
         let arrival = chrono::DateTime::from_timestamp(1000, 0).unwrap();
         let departure = chrono::DateTime::from_timestamp(1045, 0).unwrap();
 
@@ -308,6 +322,9 @@ mod tests {
         let pool = &test_db.db.pool;
         let feed_id: i64 = 1;
         let observed_at = Utc::now();
+
+        // Create a partition covering the current date so inserts succeed.
+        create_stop_time_events_partition(pool).await;
         let departure = chrono::DateTime::from_timestamp(1045, 0).unwrap();
 
         sqlx::query!(
