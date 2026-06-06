@@ -12,7 +12,7 @@ use mobilispect_core::db::feeds::{load_feed_options, store_discovered_feeds};
 use mobilispect_core::ids::{FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
 use mobilispect_core::service_frequency::{
-    RouteHeadwayRow, RouteHourlyFrequency, route_headways, route_hourly_frequency,
+    RouteHourlyFrequency, ScheduleGroup, group_by_span, route_headways, route_hourly_frequency,
 };
 use mobilispect_core::speed_analysis::{
     RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary, assign_indices,
@@ -366,7 +366,7 @@ pub async fn api_route_speed(
 #[template(path = "pages/frequency.html")]
 struct FrequencyTemplate {
     region_name: String,
-    rows: Vec<RouteHeadwayRow>,
+    groups: Vec<ScheduleGroup>,
     agencies: Vec<(String, String)>,
     active_agency: String,
 }
@@ -374,7 +374,7 @@ struct FrequencyTemplate {
 #[derive(Template)]
 #[template(path = "partials/frequency_content.html")]
 struct FrequencyContentTemplate {
-    rows: Vec<RouteHeadwayRow>,
+    groups: Vec<ScheduleGroup>,
     agencies: Vec<(String, String)>,
     active_agency: String,
 }
@@ -407,10 +407,11 @@ pub async fn frequency_page(
                 .into_response();
         }
     };
+    let groups = group_by_span(rows);
 
     if headers.contains_key("hx-request") {
         let tmpl = FrequencyContentTemplate {
-            rows,
+            groups,
             agencies,
             active_agency,
         };
@@ -428,7 +429,7 @@ pub async fn frequency_page(
     } else {
         let tmpl = FrequencyTemplate {
             region_name: region_name(&state).await,
-            rows,
+            groups,
             agencies,
             active_agency,
         };

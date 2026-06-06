@@ -18,11 +18,12 @@
     {% endfor %}
   </div>
 
-  {% if rows.is_empty() %}
+  {% if groups.is_empty() %}
   <div class="empty-state">No schedule data available. Routes appear once GTFS schedule data has been ingested.</div>
   {% else %}
   <div class="schedule-grid">
-    {% for (i, row) in rows.iter().enumerate() %}
+    {% for group in &groups %}
+    {% for (i, row) in group.rows.iter().enumerate() %}
     <div class="card schedule-card">
       <a href="/schedule/{{ row.feed_id }}/{{ row.route_id }}" class="schedule-card__header" style="display:flex;text-decoration:none;color:inherit;">
         <div>
@@ -61,6 +62,7 @@
         {% endif %}
       </div>
     </div>
+    {% endfor %}
     {% endfor %}
   </div>
   {% endif %}
