@@ -151,7 +151,9 @@ impl TransitlandClient {
         let body: StopsResponse = response.json().await?;
         Ok(body.stops.into_iter().next().map(|r| {
             let stop_id = StopId::from(r.onestop_id);
-            let station_id = r.parent.map(|s| StationId::from(s.onestop_id));
+            let station_id = r
+                .parent
+                .and_then(|parent| parent.onestop_id.map(StationId::from));
             (stop_id, station_id)
         }))
     }
@@ -162,7 +164,7 @@ impl TransitlandClient {
     ) -> anyhow::Result<std::collections::HashMap<String, (StopId, Option<StationId>)>> {
         let url = format!("{}/stops.json", self.base_url);
         let mut after = None;
-        let mut resolved = std::collections::HashMap::new();
+        let mut records = Vec::new();
 
         loop {
             let request = self
@@ -176,21 +178,37 @@ impl TransitlandClient {
             let response = self.apply_auth(request).send().await?.error_for_status()?;
             let body: StopsResponse = response.json().await?;
             after = body.meta.and_then(|meta| meta.after);
-
-            for record in body.stops {
-                let station_id = record
-                    .parent
-                    .map(|station| StationId::from(station.onestop_id));
-                resolved.insert(
-                    record.stop_id,
-                    (StopId::from(record.onestop_id), station_id),
-                );
-            }
+            records.extend(body.stops);
 
             if after.is_none() {
-                return Ok(resolved);
+                break;
             }
         }
+
+        let onestop_ids_by_stop_id: std::collections::HashMap<_, _> = records
+            .iter()
+            .map(|record| (record.stop_id.clone(), record.onestop_id.clone()))
+            .collect();
+
+        Ok(records
+            .into_iter()
+            .map(|record| {
+                let station_id = record.parent.and_then(|parent| {
+                    parent.onestop_id.or_else(|| {
+                        parent
+                            .stop_id
+                            .and_then(|stop_id| onestop_ids_by_stop_id.get(&stop_id).cloned())
+                    })
+                });
+                (
+                    record.stop_id,
+                    (
+                        StopId::from(record.onestop_id),
+                        station_id.map(StationId::from),
+                    ),
+                )
+            })
+            .collect())
     }
 }
 
@@ -272,7 +290,7 @@ struct StopRecord {
     stop_id: String,
     onestop_id: String,
     #[serde(default, alias = "parent_station")]
-    parent: Option<StationRecord>,
+    parent: Option<ParentStopRef>,
 }
 
 #[derive(serde::Deserialize)]
@@ -281,8 +299,11 @@ struct PaginationMeta {
 }
 
 #[derive(serde::Deserialize)]
-struct StationRecord {
-    onestop_id: String,
+struct ParentStopRef {
+    #[serde(default)]
+    onestop_id: Option<String>,
+    #[serde(default)]
+    stop_id: Option<String>,
 }
 
 fn unique_feed_ids(operators: &[OperatorRecord]) -> Vec<(String, String)> {
@@ -445,6 +466,46 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn resolve_stops_for_feed_resolves_parent_by_stop_id() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/stops.json"))
+            .and(query_param("feed_onestop_id", "f-rem"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "stops": [
+                    {
+                        "stop_id": "STA_QUAI_01",
+                        "onestop_id": "s-platform",
+                        "parent": {
+                            "id": 2242740962_u64,
+                            "stop_id": "ST_DUQ_1",
+                            "stop_name": "Station Du Quartier"
+                        }
+                    },
+                    {
+                        "stop_id": "ST_DUQ_1",
+                        "onestop_id": "s-station",
+                        "parent": null
+                    }
+                ],
+                "meta": null
+            })))
+            .mount(&server)
+            .await;
+
+        let client = client_for(&server);
+        let result = client.resolve_stops_for_feed("f-rem").await.unwrap();
+
+        assert_eq!(
+            result.get("STA_QUAI_01"),
+            Some(&(
+                StopId::from("s-platform"),
+                Some(StationId::from("s-station"))
+            ))
+        );
+    }
+
+    #[tokio::test]
     async fn resolve_stops_for_feed_follows_pagination() {
         let server = MockServer::start().await;
         Mock::given(method("GET"))
@@ -456,7 +517,7 @@ mod tests {
                 "stops": [{
                     "stop_id": "first",
                     "onestop_id": "s-first",
-                    "parent": null
+                    "parent": {"stop_id": "second"}
                 }],
                 "meta": {"after": 42}
             })))
@@ -483,7 +544,10 @@ mod tests {
         let client = client_for(&server);
         let result = client.resolve_stops_for_feed("f-test").await.unwrap();
 
-        assert_eq!(result.get("first"), Some(&(StopId::from("s-first"), None)));
+        assert_eq!(
+            result.get("first"),
+            Some(&(StopId::from("s-first"), Some(StationId::from("s-second"))))
+        );
         assert_eq!(
             result.get("second"),
             Some(&(StopId::from("s-second"), None))
