@@ -278,8 +278,17 @@ pub struct ScheduleGroup {
     pub rows: Vec<RouteHeadwayRow>,
 }
 
-/// Classify a single row into one of three display buckets.
+/// Classify a single row into one of four display buckets.
 fn classify(row: &RouteHeadwayRow) -> &'static str {
+    // Night: primary service starts at or after 20:00 — checked first so it beats all other buckets.
+    let primary_start = row
+        .weekday_service_start_secs
+        .or(row.saturday_service_start_secs)
+        .or(row.sunday_service_start_secs);
+    if primary_start.map_or(false, |s| s >= 20 * 3600) {
+        return "Night";
+    }
+
     let has_weekday = row.weekday_headway_mins.is_some();
     let has_weekend = row.saturday_headway_mins.is_some() || row.sunday_headway_mins.is_some();
 
@@ -305,13 +314,18 @@ fn classify(row: &RouteHeadwayRow) -> &'static str {
 
 /// Group `RouteHeadwayRow` records into display buckets for the UI accordion.
 ///
-/// Groups are ordered: Every Day → Weekday — All Day → Weekday — Rush Hours.
+/// Groups are ordered: Every Day → Weekday — All Day → Weekday — Rush Hours → Night.
 /// Within each group rows are sorted by `primary_headway_min()` ascending.
 /// Empty groups are omitted from the output.
 pub fn group_by_span(rows: Vec<RouteHeadwayRow>) -> Vec<ScheduleGroup> {
-    const TITLES: [&str; 3] = ["Every Day", "Weekday — All Day", "Weekday — Rush Hours"];
+    const TITLES: [&str; 4] = [
+        "Every Day",
+        "Weekday — All Day",
+        "Weekday — Rush Hours",
+        "Night",
+    ];
 
-    let mut buckets: [Vec<RouteHeadwayRow>; 3] = [vec![], vec![], vec![]];
+    let mut buckets: [Vec<RouteHeadwayRow>; 4] = [vec![], vec![], vec![], vec![]];
 
     for row in rows {
         let title = classify(&row);
@@ -1008,6 +1022,61 @@ mod tests {
     fn sunday_badge_variant_delegates_to_headway() {
         let row = make_row(None, None, Some(25.0));
         assert_eq!(row.sunday_badge_variant(), "bad");
+    }
+
+    // --- Night bucket tests ---
+
+    #[test]
+    fn group_by_span_weekday_night_route_goes_to_night() {
+        let mut row = make_row(Some(30.0), None, None);
+        row.weekday_service_start_secs = Some(22 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_weekend_night_route_goes_to_night() {
+        let mut row = make_row(None, Some(30.0), None);
+        row.saturday_service_start_secs = Some(22 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_every_day_night_route_goes_to_night() {
+        // Would normally be "Every Day" (weekday + weekend) but night check beats it
+        let mut row = make_row(Some(10.0), Some(15.0), None);
+        row.weekday_service_start_secs = Some(22 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_daytime_route_is_not_night() {
+        // make_row sets weekday start at 6am — should be "Weekday — All Day", not "Night"
+        let row = make_row(Some(10.0), None, None);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_ne!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_night_appears_after_rush_hours_in_output() {
+        // Every Day route
+        let every_day = make_row(Some(10.0), Some(15.0), None);
+        // Rush Hours route: weekday-only, 3h span (start 06:00, end 09:00)
+        let mut rush = make_row(Some(10.0), None, None);
+        rush.weekday_service_end_secs = Some(9 * 3600);
+        // Night route
+        let mut night = make_row(Some(30.0), None, None);
+        night.weekday_service_start_secs = Some(22 * 3600);
+
+        let groups = group_by_span(vec![every_day, rush, night]);
+        assert_eq!(groups[0].title, "Every Day");
+        assert_eq!(groups[groups.len() - 1].title, "Night");
     }
 
     async fn setup_route(
