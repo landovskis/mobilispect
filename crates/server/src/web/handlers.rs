@@ -8,11 +8,11 @@ use axum::{
 use serde::Deserialize;
 
 use crate::web::{AppState, SetupState};
-use mobilispect_core::db::feeds::store_discovered_feeds;
+use mobilispect_core::db::feeds::{load_feed_options, store_discovered_feeds};
 use mobilispect_core::ids::{FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
 use mobilispect_core::service_frequency::{
-    RouteHeadwayRow, RouteHourlyFrequency, route_headways, route_hourly_frequency,
+    RouteHourlyFrequency, ScheduleGroup, group_by_span, route_headways, route_hourly_frequency,
 };
 use mobilispect_core::speed_analysis::{
     RouteClass, RouteSpeedCard, RouteSpeedDetailDirection, RouteSpeedSummary, assign_indices,
@@ -259,7 +259,7 @@ pub async fn speed_page(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agencies: Vec<(String, String)> = vec![];
+    let agencies = load_feed_options(&state.db.pool).await.unwrap_or_default();
     let active_agency = params
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
@@ -366,7 +366,7 @@ pub async fn api_route_speed(
 #[template(path = "pages/frequency.html")]
 struct FrequencyTemplate {
     region_name: String,
-    rows: Vec<RouteHeadwayRow>,
+    groups: Vec<ScheduleGroup>,
     agencies: Vec<(String, String)>,
     active_agency: String,
 }
@@ -374,7 +374,7 @@ struct FrequencyTemplate {
 #[derive(Template)]
 #[template(path = "partials/frequency_content.html")]
 struct FrequencyContentTemplate {
-    rows: Vec<RouteHeadwayRow>,
+    groups: Vec<ScheduleGroup>,
     agencies: Vec<(String, String)>,
     active_agency: String,
 }
@@ -386,7 +386,7 @@ pub async fn frequency_page(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agencies: Vec<(String, String)> = vec![];
+    let agencies = load_feed_options(&state.db.pool).await.unwrap_or_default();
     let active_agency = params
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
@@ -407,10 +407,11 @@ pub async fn frequency_page(
                 .into_response();
         }
     };
+    let groups = group_by_span(rows);
 
     if headers.contains_key("hx-request") {
         let tmpl = FrequencyContentTemplate {
-            rows,
+            groups,
             agencies,
             active_agency,
         };
@@ -428,7 +429,7 @@ pub async fn frequency_page(
     } else {
         let tmpl = FrequencyTemplate {
             region_name: region_name(&state).await,
-            rows,
+            groups,
             agencies,
             active_agency,
         };
@@ -678,47 +679,50 @@ mod e2e_tests {
     #[tokio::test]
     async fn route_speed_detail_returns_200_with_direction_name() {
         let td = test_utils::setup().await;
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
             .execute(&td.db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Downtown')")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Main St',  45.50, -73.50)")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Downtown', 45.51, -73.50)")
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
             .execute(&td.db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('R1', 'a', '1', 'Route 1', 3)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Main St', 45.50, -73.50)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
-             VALUES ('0', 'VAR1', 'R1', 0, 2, 1, true)",
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S2', 'Downtown', 45.51, -73.50)",
         )
-        .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (0, 'VAR1', 'R1', 0, 2, 1, true)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variant_stops (feed_id, variant_id, stop_sequence, stop_id) VALUES (0, 'VAR1', 1, 'S1')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variant_stops (feed_id, variant_id, stop_sequence, stop_id) VALUES (0, 'VAR1', 2, 'S2')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
 
         let state = AppState {
             db: td.db,
@@ -791,37 +795,23 @@ mod e2e_tests {
     #[tokio::test]
     async fn speed_page_shows_classification_badge_for_rapid_route() {
         let td = test_utils::setup().await;
-        // R1: two stops ~1111 m apart (0.01° lat). Single segment → avg = 1111 m → Rapid.
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+        // R1: avg_stop_spacing_m = 1111 m → Rapid.
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
             .execute(&td.db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Terminus')")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'First',   45.500, -73.50)")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Terminus', 45.510, -73.50)")
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
             .execute(&td.db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('R1', 'a', '1', 'Route 1', 3)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
-        )
-        .execute(&td.db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO route_speed (agency_id, route_id, direction_id, scheduled_speed_mps, trip_count, computed_at) VALUES ('0', 'R1', 0, 8.0, 1, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed (feed_id, route_id, variant_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at) VALUES (0, 'R1', 'VAR1', 8.0, 1111.0, 1, NOW())",
         )
         .execute(&td.db.pool)
         .await
@@ -862,77 +852,42 @@ mod e2e_tests {
     async fn speed_page_filters_by_class_local() {
         let td = test_utils::setup().await;
 
-        // Local route: two stops ~333 m apart (0.003° lat × 111 km/°) → avg < 500 m → Local
-        sqlx::query("INSERT INTO routes VALUES ('0', 'RL', 'LocalX', 'Local Route', 3)")
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
             .execute(&td.db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('0', 'TL', 'RL', 'WD', 0, 'End Local')")
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
             .execute(&td.db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'SL1', 'Local A', 45.500, -73.50)")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'SL2', 'Local B', 45.503, -73.50)")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'TL', 'SL1', 1, '08:00:00', '08:00:00')",
-        )
-        .execute(&td.db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'TL', 'SL2', 2, '08:05:00', '08:05:00')",
-        )
-        .execute(&td.db.pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO route_speed
-             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
-             VALUES ('0', 'RL', 0, 5.0, 333.0, 1, '2026-01-01T00:00:00Z')",
-        )
-            .execute(&td.db.pool).await.unwrap();
 
-        // Rapid route: two stops ~1111 m apart (0.010° lat) → avg 500–1500 m → Rapid
-        sqlx::query("INSERT INTO routes VALUES ('0', 'RR', 'RapidX', 'Rapid Route', 3)")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('0', 'TR', 'RR', 'WD', 0, 'End Rapid')")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'SR1', 'Rapid A', 45.500, -73.50)")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'SR2', 'Rapid B', 45.510, -73.50)")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
+        // Local route: avg_stop_spacing_m = 333 m → Local
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'TR', 'SR1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('RL', 'a', 'LocalX', 'Local Route', 3)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'TR', 'SR2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO route_speed (feed_id, route_id, variant_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at) VALUES (0, 'RL', 'VARL', 5.0, 333.0, 1, NOW())",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+
+        // Rapid route: avg_stop_spacing_m = 1111 m → Rapid
+        sqlx::query(
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('RR', 'a', 'RapidX', 'Rapid Route', 3)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO route_speed
-             (agency_id, route_id, direction_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at)
-             VALUES ('0', 'RR', 0, 8.0, 1111.0, 1, '2026-01-01T00:00:00Z')",
+            "INSERT INTO route_speed (feed_id, route_id, variant_id, scheduled_speed_mps, avg_stop_spacing_m, trip_count, computed_at) VALUES (0, 'RR', 'VARR', 8.0, 1111.0, 1, NOW())",
         )
-            .execute(&td.db.pool).await.unwrap();
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
 
         let state = AppState {
             db: td.db,
@@ -1083,47 +1038,50 @@ mod e2e_tests {
     async fn route_speed_detail_shows_classification_badge() {
         let td = test_utils::setup().await;
         // Two stops ~1111 m apart → avg spacing 1111 m → Rapid
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '1', 'Route 1', 3)")
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
             .execute(&td.db.pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO trips VALUES ('0', 'T1', 'R1', 'WD', 0, 'Downtown')")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S1', 'Main St',  45.50, -73.50)")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO stops VALUES ('0', 'S2', 'Downtown', 45.51, -73.50)")
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
             .execute(&td.db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S1', 1, '08:00:00', '08:00:00')",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('R1', 'a', '1', 'Route 1', 3)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO scheduled_stops VALUES ('0', 'T1', 'S2', 2, '08:10:00', '08:10:00')",
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Main St', 45.50, -73.50)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO route_variants (agency_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary)
-             VALUES ('0', 'VAR1', 'R1', 0, 2, 1, true)",
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S2', 'Downtown', 45.51, -73.50)",
         )
-        .execute(&td.db.pool).await.unwrap();
-        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 1, 'S1')")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO route_variant_stops VALUES ('0', 'VAR1', 2, 'S2')")
-            .execute(&td.db.pool)
-            .await
-            .unwrap();
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (0, 'VAR1', 'R1', 0, 2, 1, true)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variant_stops (feed_id, variant_id, stop_sequence, stop_id) VALUES (0, 'VAR1', 1, 'S1')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variant_stops (feed_id, variant_id, stop_sequence, stop_id) VALUES (0, 'VAR1', 2, 'S2')",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
 
         let state = AppState {
             db: td.db,
@@ -1240,12 +1198,40 @@ mod e2e_tests {
     #[tokio::test]
     async fn schedule_page_renders_route_schedule_cards() {
         let td = test_utils::setup().await;
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
             .execute(&td.db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('R1', 'a', '10', 'Route 10', 3)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (0, 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (0, 'VAR1', 'R1', 0, 2, 3, true)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.50, -73.50)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S2', 'Stop 2', 45.51, -73.50)",
         )
         .execute(&td.db.pool)
         .await
@@ -1255,23 +1241,29 @@ mod e2e_tests {
             ("T2", "06:10:00", "06:40:00"),
             ("T3", "06:30:00", "07:00:00"),
         ] {
-            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', 0, 'Downtown')")
-                .bind(trip_id)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
-                .bind(trip_id)
-                .bind(dep_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
-                .bind(trip_id)
-                .bind(arr_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
+            sqlx::query(
+                "INSERT INTO trips (feed_id, trip_id, variant_id, service_id) VALUES (0, $1, 'VAR1', 'WD')",
+            )
+            .bind(trip_id)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 1, 'S1', $2, $2)",
+            )
+            .bind(trip_id)
+            .bind(dep_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 2, 'S2', $2, $2)",
+            )
+            .bind(trip_id)
+            .bind(arr_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         }
 
         let state = AppState {
@@ -1309,12 +1301,40 @@ mod e2e_tests {
     #[tokio::test]
     async fn schedule_page_uses_top_decile_headway_instead_of_minimum() {
         let td = test_utils::setup().await;
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
             .execute(&td.db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('R1', 'a', '10', 'Route 10', 3)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (0, 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (0, 'VAR1', 'R1', 0, 2, 21, true)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.50, -73.50)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S2', 'Stop 2', 45.51, -73.50)",
         )
         .execute(&td.db.pool)
         .await
@@ -1330,23 +1350,29 @@ mod e2e_tests {
             );
             let arr_secs = departure_secs + 30 * 60;
             let arr_time = format!("{:02}:{:02}:00", arr_secs / 3600, (arr_secs % 3600) / 60);
-            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', 0, 'Downtown')")
-                .bind(&trip_id)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
-                .bind(&trip_id)
-                .bind(&dep_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
-                .bind(&trip_id)
-                .bind(&arr_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
+            sqlx::query(
+                "INSERT INTO trips (feed_id, trip_id, variant_id, service_id) VALUES (0, $1, 'VAR1', 'WD')",
+            )
+            .bind(&trip_id)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 1, 'S1', $2, $2)",
+            )
+            .bind(&trip_id)
+            .bind(&dep_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 2, 'S2', $2, $2)",
+            )
+            .bind(&trip_id)
+            .bind(&arr_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
 
             departure_secs += if i == 0 { 60 } else { 10 * 60 };
         }
@@ -1388,19 +1414,47 @@ mod e2e_tests {
     #[tokio::test]
     async fn schedule_page_computes_headways_within_each_service_id() {
         let td = test_utils::setup().await;
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
             .execute(&td.db.pool)
             .await
             .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('R1', 'a', '10', 'Route 10', 3)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
         for service_id in ["WD1", "WD2"] {
             sqlx::query(
-                "INSERT INTO calendar VALUES ('0', $1, true, true, true, true, true, false, false)",
+                "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (0, $1, true, true, true, true, true, false, false)",
             )
             .bind(service_id)
             .execute(&td.db.pool)
             .await
             .unwrap();
         }
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (0, 'VAR1', 'R1', 0, 2, 6, true)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.50, -73.50)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S2', 'Stop 2', 45.51, -73.50)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
 
         for (trip_id, service_id, dep_time, arr_time) in [
             ("T1", "WD1", "06:00:00", "06:30:00"),
@@ -1410,24 +1464,30 @@ mod e2e_tests {
             ("T5", "WD2", "06:11:00", "06:41:00"),
             ("T6", "WD2", "06:21:00", "06:51:00"),
         ] {
-            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', $2, 0, 'Downtown')")
-                .bind(trip_id)
-                .bind(service_id)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
-                .bind(trip_id)
-                .bind(dep_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
-                .bind(trip_id)
-                .bind(arr_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
+            sqlx::query(
+                "INSERT INTO trips (feed_id, trip_id, variant_id, service_id) VALUES (0, $1, 'VAR1', $2)",
+            )
+            .bind(trip_id)
+            .bind(service_id)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 1, 'S1', $2, $2)",
+            )
+            .bind(trip_id)
+            .bind(dep_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 2, 'S2', $2, $2)",
+            )
+            .bind(trip_id)
+            .bind(arr_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         }
 
         let state = AppState {
@@ -1464,40 +1524,81 @@ mod e2e_tests {
     #[tokio::test]
     async fn schedule_page_combines_directions_into_one_route_card() {
         let td = test_utils::setup().await;
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
             .execute(&td.db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('R1', 'a', '10', 'Route 10', 3)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
-        for (direction_id, trip_id, dep_time, arr_time) in [
-            (0, "T1", "06:00:00", "06:30:00"),
-            (0, "T2", "06:10:00", "06:40:00"),
-            (1, "T3", "06:05:00", "06:35:00"),
-            (1, "T4", "06:15:00", "06:45:00"),
+        sqlx::query(
+            "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (0, 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        // Two variants with different direction_ids for the same route
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (0, 'VARA', 'R1', 0, 2, 2, true)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (0, 'VARB', 'R1', 1, 2, 2, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.50, -73.50)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S2', 'Stop 2', 45.51, -73.50)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        for (variant_id, trip_id, dep_time, arr_time) in [
+            ("VARA", "T1", "06:00:00", "06:30:00"),
+            ("VARA", "T2", "06:10:00", "06:40:00"),
+            ("VARB", "T3", "06:05:00", "06:35:00"),
+            ("VARB", "T4", "06:15:00", "06:45:00"),
         ] {
-            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', 'WD', $2, 'Downtown')")
-                .bind(trip_id)
-                .bind(direction_id)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
-                .bind(trip_id)
-                .bind(dep_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
-                .bind(trip_id)
-                .bind(arr_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
+            sqlx::query(
+                "INSERT INTO trips (feed_id, trip_id, variant_id, service_id) VALUES (0, $1, $2, 'WD')",
+            )
+            .bind(trip_id)
+            .bind(variant_id)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 1, 'S1', $2, $2)",
+            )
+            .bind(trip_id)
+            .bind(dep_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 2, 'S2', $2, $2)",
+            )
+            .bind(trip_id)
+            .bind(arr_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         }
 
         let state = AppState {
@@ -1531,18 +1632,46 @@ mod e2e_tests {
     #[tokio::test]
     async fn schedule_page_renders_saturday_column_when_saturday_service_exists() {
         let td = test_utils::setup().await;
-        sqlx::query("INSERT INTO routes VALUES ('0', 'R1', '10', 'Route 10', 3)")
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (0, 'http://test')")
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('a', 'Agency')")
             .execute(&td.db.pool)
             .await
             .unwrap();
         sqlx::query(
-            "INSERT INTO calendar VALUES ('0', 'WD', true, true, true, true, true, false, false)",
+            "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('R1', 'a', '10', 'Route 10', 3)",
         )
         .execute(&td.db.pool)
         .await
         .unwrap();
         sqlx::query(
-            "INSERT INTO calendar VALUES ('0', 'SAT', false, false, false, false, false, true, false)",
+            "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (0, 'WD', true, true, true, true, true, false, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (0, 'SAT', false, false, false, false, false, true, false)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (0, 'VAR1', 'R1', 0, 2, 4, true)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.50, -73.50)",
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S2', 'Stop 2', 45.51, -73.50)",
         )
         .execute(&td.db.pool)
         .await
@@ -1554,24 +1683,30 @@ mod e2e_tests {
             ("T3", "SAT", "09:00:00", "09:30:00"),
             ("T4", "SAT", "09:20:00", "09:50:00"),
         ] {
-            sqlx::query("INSERT INTO trips VALUES ('0', $1, 'R1', $2, 0, 'Downtown')")
-                .bind(trip_id)
-                .bind(service_id)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S1', 1, $2, $2)")
-                .bind(trip_id)
-                .bind(dep_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
-            sqlx::query("INSERT INTO scheduled_stops VALUES ('0', $1, 'S2', 2, $2, $2)")
-                .bind(trip_id)
-                .bind(arr_time)
-                .execute(&td.db.pool)
-                .await
-                .unwrap();
+            sqlx::query(
+                "INSERT INTO trips (feed_id, trip_id, variant_id, service_id) VALUES (0, $1, 'VAR1', $2)",
+            )
+            .bind(trip_id)
+            .bind(service_id)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 1, 'S1', $2, $2)",
+            )
+            .bind(trip_id)
+            .bind(dep_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
+            sqlx::query(
+                "INSERT INTO scheduled_stops (feed_id, trip_id, stop_sequence, stop_id, arrival_time, departure_time) VALUES (0, $1, 2, 'S2', $2, $2)",
+            )
+            .bind(trip_id)
+            .bind(arr_time)
+            .execute(&td.db.pool)
+            .await
+            .unwrap();
         }
 
         let state = AppState {
@@ -1615,7 +1750,11 @@ mod e2e_tests {
             region: Arc::new(RwLock::new(Some("Test Region".to_string()))),
             setup_state: Arc::new(tokio::sync::Mutex::new(SetupState::Idle)),
         };
-        let app = build_router(state);
+        let app = build_router(state.clone()).merge(
+            axum::Router::new()
+                .route("/health", axum::routing::get(health_check))
+                .with_state(state),
+        );
 
         let response = app
             .oneshot(

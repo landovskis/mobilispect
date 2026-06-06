@@ -24,6 +24,24 @@ pub async fn load_feeds(pool: &PgPool) -> Result<Vec<DbFeed>> {
     .await?)
 }
 
+pub async fn load_feed_options(pool: &PgPool) -> Result<Vec<(String, String)>> {
+    let rows = sqlx::query!(
+        r#"SELECT f.id,
+                  STRING_AGG(a.name, ' / ' ORDER BY a.name) AS "display_name!"
+           FROM feeds f
+           JOIN feed_agency_ids fai ON fai.feed_id = f.id
+           JOIN agencies a ON a.onestop_id = fai.onestop_id
+           GROUP BY f.id
+           ORDER BY 2"#
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|r| (r.id.to_string(), r.display_name))
+        .collect())
+}
+
 pub async fn store_discovered_feeds(
     pool: &PgPool,
     city: &str,

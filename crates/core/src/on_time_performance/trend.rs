@@ -149,7 +149,13 @@ mod tests {
         let db = td.db;
 
         // Insert required feed row
-        sqlx::query("INSERT INTO feeds (id, onestop_id, name) VALUES (1, 'f-test', 'Test')")
+        sqlx::query(
+            "INSERT INTO feeds (id, gtfs_static_url, name) VALUES (1, 'http://test', 'Test')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('test', 'Test Agency')")
             .execute(&db.pool)
             .await
             .unwrap();
@@ -186,7 +192,13 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
 
-        sqlx::query("INSERT INTO feeds (id, onestop_id, name) VALUES (1, 'f-test', 'Test')")
+        sqlx::query(
+            "INSERT INTO feeds (id, gtfs_static_url, name) VALUES (1, 'http://test', 'Test')",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('test', 'Test Agency')")
             .execute(&db.pool)
             .await
             .unwrap();

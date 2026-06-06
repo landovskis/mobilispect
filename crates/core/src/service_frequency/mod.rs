@@ -123,7 +123,10 @@ ORDER BY day_type, hour";
     let mut sunday_bins = Vec::new();
 
     for row in rows {
-        let bin = HourBin { hour: row.hour, trip_count: row.trip_count };
+        let bin = HourBin {
+            hour: row.hour,
+            trip_count: row.trip_count,
+        };
         match row.day_type.as_deref() {
             Some("weekday") => weekday_bins.push(bin),
             Some("saturday") => saturday_bins.push(bin),
@@ -267,6 +270,90 @@ impl RouteHeadwayRow {
             .or(self.saturday_headway_mins)
             .or(self.sunday_headway_mins)
     }
+}
+
+#[derive(Debug)]
+pub struct ScheduleGroup {
+    pub title: &'static str,
+    pub rows: Vec<RouteHeadwayRow>,
+}
+
+/// Classify a single row into one of four display buckets.
+fn classify(row: &RouteHeadwayRow) -> &'static str {
+    // Night: primary service starts at or after midnight (GTFS past-midnight encoding: ≥ 24:00:00 = 86400s)
+    // — checked first so it beats all other buckets.
+    let primary_start = row
+        .weekday_service_start_secs
+        .or(row.saturday_service_start_secs)
+        .or(row.sunday_service_start_secs);
+    if primary_start.is_some_and(|s| s >= 24 * 3600) {
+        return "Night";
+    }
+
+    let has_weekday = row.weekday_headway_mins.is_some();
+    let has_weekend = row.saturday_headway_mins.is_some() || row.sunday_headway_mins.is_some();
+
+    // "Every Day": has weekday AND weekend, or no weekday data at all.
+    if !has_weekday || has_weekend {
+        return "Every Day";
+    }
+
+    // Weekday-only: decide All Day vs Rush Hours.
+    let span_secs = match (row.weekday_service_start_secs, row.weekday_service_end_secs) {
+        (Some(s), Some(e)) => e - s,
+        _ => 0,
+    };
+    let span_hours = span_secs as f64 / 3600.0;
+    let max_gap = row.weekday_max_headway_mins.unwrap_or(f64::INFINITY);
+
+    if span_hours >= 8.0 && max_gap < 180.0 {
+        "Weekday — All Day"
+    } else {
+        "Weekday — Rush Hours"
+    }
+}
+
+/// Group `RouteHeadwayRow` records into display buckets for the UI accordion.
+///
+/// Groups are ordered: Every Day → Weekday — All Day → Weekday — Rush Hours → Night.
+/// Within each group rows are sorted by `primary_headway_min()` ascending.
+/// Empty groups are omitted from the output.
+pub fn group_by_span(rows: Vec<RouteHeadwayRow>) -> Vec<ScheduleGroup> {
+    const TITLES: [&str; 4] = [
+        "Every Day",
+        "Weekday — All Day",
+        "Weekday — Rush Hours",
+        "Night",
+    ];
+
+    let mut buckets: [Vec<RouteHeadwayRow>; 4] = [vec![], vec![], vec![], vec![]];
+
+    for row in rows {
+        let title = classify(&row);
+        let idx = TITLES.iter().position(|&t| t == title).unwrap();
+        buckets[idx].push(row);
+    }
+
+    let cmp = |a: &RouteHeadwayRow, b: &RouteHeadwayRow| {
+        a.primary_headway_min()
+            .partial_cmp(&b.primary_headway_min())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    };
+
+    TITLES
+        .iter()
+        .zip(buckets)
+        .filter_map(|(&title, mut bucket_rows)| {
+            if bucket_rows.is_empty() {
+                return None;
+            }
+            bucket_rows.sort_by(cmp);
+            Some(ScheduleGroup {
+                title,
+                rows: bucket_rows,
+            })
+        })
+        .collect()
 }
 
 pub async fn route_headways(
@@ -479,6 +566,11 @@ WHERE ($1::BIGINT IS NULL OR rd.feed_id = $1)
 ORDER BY
     rd.feed_id,
     COALESCE(
+        ws.weekday_service_end_secs  - ws.weekday_service_start_secs,
+        ss_sat.saturday_service_end_secs - ss_sat.saturday_service_start_secs,
+        ss_sun.sunday_service_end_secs   - ss_sun.sunday_service_start_secs
+    ) DESC NULLS LAST,
+    COALESCE(
         wd.weekday_headway_mins,
         sat.saturday_headway_mins,
         sun.sunday_headway_mins
@@ -507,6 +599,11 @@ mod tests {
 
         // Insert feed
         sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (1, 'http://stm')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        // Insert agency (required by FK constraint on routes.agency_id)
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('stm', 'STM')")
             .execute(&db.pool)
             .await
             .unwrap();
@@ -671,6 +768,106 @@ mod tests {
         assert_eq!(row.weekday_service_span_display(), "06:00-23:30");
     }
 
+    #[tokio::test]
+    async fn routes_sorted_by_span_desc_as_primary_key() {
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (1, 'http://test')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('agency', 'Test Agency')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.5, -73.5)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        // Wide-span route: trips at hours 6 and 22 → span=16h, headway=960min
+        sqlx::query("INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-wide', 'agency', 'W', 'Wide', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (1, 'VA', 'r-wide', 0, 1, 2, true)")
+            .execute(&db.pool).await.unwrap();
+
+        // Narrow-span route: trips at hours 9 and 17 → span=8h, headway=480min (better headway)
+        sqlx::query("INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-narrow', 'agency', 'N', 'Narrow', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (1, 'VB', 'r-narrow', 0, 1, 2, true)")
+            .execute(&db.pool).await.unwrap();
+
+        sqlx::query("INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (1, 'WD', true, true, true, true, true, false, false)")
+            .execute(&db.pool).await.unwrap();
+
+        insert_trip_at_hour(db, 1, "W1", "WD", "VA", 6).await;
+        insert_trip_at_hour(db, 1, "W2", "WD", "VA", 22).await;
+        insert_trip_at_hour(db, 1, "N1", "WD", "VB", 9).await;
+        insert_trip_at_hour(db, 1, "N2", "WD", "VB", 17).await;
+
+        let rows = route_headways(db, None).await.unwrap();
+        assert_eq!(rows.len(), 2);
+        // Wide-span route comes first even though narrow has better headway
+        assert_eq!(rows[0].route_id, RouteId::from("r-wide"));
+        assert_eq!(rows[1].route_id, RouteId::from("r-narrow"));
+    }
+
+    #[tokio::test]
+    async fn routes_with_same_span_sorted_by_headway_asc() {
+        let td = test_utils::setup().await;
+        let db = &td.db;
+
+        sqlx::query("INSERT INTO feeds (id, gtfs_static_url) VALUES (1, 'http://test')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('agency', 'Test Agency')")
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        sqlx::query(
+            "INSERT INTO stops (onestop_id, name, lat, lon) VALUES ('S1', 'Stop 1', 45.5, -73.5)",
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        // Both routes: span 06:00–22:00 (16h)
+        // Slow route: 3 trips at hours 6, 14, 22 → headway=480min
+        sqlx::query("INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-slow', 'agency', 'S', 'Slow', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (1, 'VS', 'r-slow', 0, 1, 3, true)")
+            .execute(&db.pool).await.unwrap();
+
+        // Fast route: 5 trips at hours 6, 10, 14, 18, 22 → headway=240min
+        sqlx::query("INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('r-fast', 'agency', 'F', 'Fast', 3)")
+            .execute(&db.pool).await.unwrap();
+        sqlx::query("INSERT INTO route_variants (feed_id, variant_id, route_id, direction_id, stop_count, trip_count, is_primary) VALUES (1, 'VF', 'r-fast', 0, 1, 5, true)")
+            .execute(&db.pool).await.unwrap();
+
+        sqlx::query("INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES (1, 'WD', true, true, true, true, true, false, false)")
+            .execute(&db.pool).await.unwrap();
+
+        insert_trip_at_hour(db, 1, "S1", "WD", "VS", 6).await;
+        insert_trip_at_hour(db, 1, "S2", "WD", "VS", 14).await;
+        insert_trip_at_hour(db, 1, "S3", "WD", "VS", 22).await;
+
+        insert_trip_at_hour(db, 1, "F1", "WD", "VF", 6).await;
+        insert_trip_at_hour(db, 1, "F2", "WD", "VF", 10).await;
+        insert_trip_at_hour(db, 1, "F3", "WD", "VF", 14).await;
+        insert_trip_at_hour(db, 1, "F4", "WD", "VF", 18).await;
+        insert_trip_at_hour(db, 1, "F5", "WD", "VF", 22).await;
+
+        let rows = route_headways(db, None).await.unwrap();
+        assert_eq!(rows.len(), 2);
+        // Same span (16h): fast route (240min) before slow route (480min)
+        assert_eq!(rows[0].route_id, RouteId::from("r-fast"));
+        assert_eq!(rows[1].route_id, RouteId::from("r-slow"));
+    }
+
     #[test]
     fn weekday_service_span_display_wraps_after_midnight() {
         let mut row = make_row(Some(8.0), None, None);
@@ -735,6 +932,87 @@ mod tests {
         assert_eq!(row.weekday_badge_variant(), "good");
     }
 
+    // --- group_by_span tests ---
+
+    #[test]
+    fn group_by_span_weekend_route_goes_to_every_day() {
+        let row = make_row(Some(10.0), Some(20.0), None);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Every Day");
+    }
+
+    #[test]
+    fn group_by_span_wide_span_weekday_goes_to_all_day() {
+        // make_row sets span 06:00–23:30 (17.5h) and max_headway=30min → "Weekday — All Day"
+        let row = make_row(Some(10.0), None, None);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Weekday — All Day");
+    }
+
+    #[test]
+    fn group_by_span_short_span_goes_to_rush_hours() {
+        // 3h span → "Weekday — Rush Hours"
+        let mut row = make_row(Some(10.0), None, None);
+        row.weekday_service_end_secs = Some(9 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Weekday — Rush Hours");
+    }
+
+    #[test]
+    fn group_by_span_large_gap_goes_to_rush_hours() {
+        // 5h max gap → "Weekday — Rush Hours"
+        let mut row = make_row(Some(10.0), None, None);
+        row.weekday_max_headway_mins = Some(300.0);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Weekday — Rush Hours");
+    }
+
+    #[test]
+    fn group_by_span_sorts_within_group_by_headway_asc() {
+        let slow = make_row(Some(30.0), Some(40.0), None);
+        let fast = make_row(Some(5.0), Some(10.0), None);
+        let groups = group_by_span(vec![slow, fast]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Every Day");
+        // fast route (primary_headway=5.0) must come before slow (30.0)
+        assert_eq!(groups[0].rows[0].weekday_headway_mins, Some(5.0));
+        assert_eq!(groups[0].rows[1].weekday_headway_mins, Some(30.0));
+    }
+
+    #[test]
+    fn group_by_span_weekend_only_route_goes_to_every_day() {
+        let row = make_row(None, Some(20.0), None); // saturday-only, no weekday
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Every Day");
+    }
+
+    #[test]
+    fn group_by_span_omits_empty_groups() {
+        // Only every-day and all-day routes — rush-hours bucket should be absent
+        let every_day_row = make_row(Some(10.0), Some(15.0), None);
+        let all_day_row = make_row(Some(8.0), None, None); // weekday-only, wide span, small gap
+        let groups = group_by_span(vec![every_day_row, all_day_row]);
+        assert_eq!(
+            groups.len(),
+            2,
+            "rush-hours group should be omitted when empty"
+        );
+        assert_eq!(groups[0].title, "Every Day");
+        assert_eq!(groups[1].title, "Weekday — All Day");
+        assert!(!groups.iter().any(|g| g.title == "Weekday — Rush Hours"));
+    }
+
+    #[test]
+    fn group_by_span_empty_input_returns_empty() {
+        let groups = group_by_span(vec![]);
+        assert!(groups.is_empty());
+    }
+
     #[test]
     fn saturday_badge_variant_delegates_to_headway() {
         let row = make_row(None, Some(15.0), None);
@@ -745,6 +1023,112 @@ mod tests {
     fn sunday_badge_variant_delegates_to_headway() {
         let row = make_row(None, None, Some(25.0));
         assert_eq!(row.sunday_badge_variant(), "bad");
+    }
+
+    // --- Night bucket tests ---
+
+    #[test]
+    fn group_by_span_weekday_night_route_goes_to_night() {
+        let mut row = make_row(Some(30.0), None, None);
+        row.weekday_service_start_secs = Some(25 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_weekend_night_route_goes_to_night() {
+        let mut row = make_row(None, Some(30.0), None);
+        row.saturday_service_start_secs = Some(25 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_every_day_night_route_goes_to_night() {
+        // Would normally be "Every Day" (weekday + weekend) but night check beats it
+        let mut row = make_row(Some(10.0), Some(15.0), None);
+        row.weekday_service_start_secs = Some(25 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_daytime_route_is_not_night() {
+        // make_row sets weekday start at 6am — should be "Weekday — All Day", not "Night"
+        let row = make_row(Some(10.0), None, None);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_ne!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_route_starting_at_22_is_not_night() {
+        // 22:00 = 79200s < 86400s — must NOT go to Night
+        let mut row = make_row(Some(10.0), None, None);
+        row.weekday_service_start_secs = Some(22 * 3600); // 79200 < 86400
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_ne!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_night_threshold_is_exactly_midnight() {
+        // 24*3600 = midnight: Night
+        let mut row = make_row(Some(30.0), None, None);
+        row.weekday_service_start_secs = Some(24 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups[0].title, "Night");
+
+        // 24*3600 - 1 = one second before midnight: not Night
+        let mut row2 = make_row(Some(30.0), None, None);
+        row2.weekday_service_start_secs = Some(24 * 3600 - 1);
+        let groups2 = group_by_span(vec![row2]);
+        assert_ne!(groups2[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_night_routes_sorted_by_headway_asc() {
+        let mut slow = make_row(Some(60.0), None, None);
+        slow.weekday_service_start_secs = Some(25 * 3600);
+        slow.route_id = RouteId::from("r-slow");
+
+        let mut fast = make_row(Some(15.0), None, None);
+        fast.weekday_service_start_secs = Some(25 * 3600);
+        fast.route_id = RouteId::from("r-fast");
+
+        let groups = group_by_span(vec![slow, fast]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+        assert_eq!(groups[0].rows[0].route_id, RouteId::from("r-fast"));
+        assert_eq!(groups[0].rows[1].route_id, RouteId::from("r-slow"));
+    }
+
+    #[test]
+    fn group_by_span_sunday_only_night_route_goes_to_night() {
+        let mut row = make_row(None, None, Some(30.0));
+        row.sunday_service_start_secs = Some(25 * 3600);
+        let groups = group_by_span(vec![row]);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Night");
+    }
+
+    #[test]
+    fn group_by_span_night_appears_after_rush_hours_in_output() {
+        // Every Day route
+        let every_day = make_row(Some(10.0), Some(15.0), None);
+        // Rush Hours route: weekday-only, 3h span (start 06:00, end 09:00)
+        let mut rush = make_row(Some(10.0), None, None);
+        rush.weekday_service_end_secs = Some(9 * 3600);
+        // Night route
+        let mut night = make_row(Some(30.0), None, None);
+        night.weekday_service_start_secs = Some(25 * 3600);
+
+        let groups = group_by_span(vec![every_day, rush, night]);
+        assert_eq!(groups[0].title, "Every Day");
+        assert_eq!(groups[groups.len() - 1].title, "Night");
     }
 
     async fn setup_route(
@@ -760,6 +1144,11 @@ mod tests {
         .execute(&db.pool)
         .await
         .unwrap();
+        // Insert agency (required by FK constraint on routes.agency_id)
+        sqlx::query("INSERT INTO agencies (onestop_id, name) VALUES ('agency', 'Test Agency') ON CONFLICT DO NOTHING")
+            .execute(&db.pool)
+            .await
+            .unwrap();
         sqlx::query(&format!(
             "INSERT INTO routes (onestop_id, agency_id, short_name, long_name, route_type) VALUES ('{route_id}', 'agency', '{short_name}', '{long_name}', 3)"
         ))
@@ -774,7 +1163,14 @@ mod tests {
         .unwrap();
     }
 
-    async fn insert_service(db: &crate::db::Database, feed_id: i64, service_id: &str, weekday: bool, saturday: bool, sunday: bool) {
+    async fn insert_service(
+        db: &crate::db::Database,
+        feed_id: i64,
+        service_id: &str,
+        weekday: bool,
+        saturday: bool,
+        sunday: bool,
+    ) {
         sqlx::query(&format!(
             "INSERT INTO services (feed_id, service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday) VALUES ({feed_id}, '{service_id}', {weekday}, {weekday}, {weekday}, {weekday}, {weekday}, {saturday}, {sunday})"
         ))
@@ -808,13 +1204,10 @@ mod tests {
     #[tokio::test]
     async fn route_hourly_frequency_returns_none_for_unknown_route() {
         let td = test_utils::setup().await;
-        let result = route_hourly_frequency(
-            &td.db,
-            FeedId::from(1i64),
-            &RouteId::from("r-unknown"),
-        )
-        .await
-        .unwrap();
+        let result =
+            route_hourly_frequency(&td.db, FeedId::from(1i64), &RouteId::from("r-unknown"))
+                .await
+                .unwrap();
         assert!(result.is_none());
     }
 
@@ -885,7 +1278,10 @@ mod tests {
         let freq = RouteHourlyFrequency {
             short_name: "1".to_string(),
             long_name: "Route 1".to_string(),
-            weekday_bins: vec![HourBin { hour: 8, trip_count: 3 }],
+            weekday_bins: vec![HourBin {
+                hour: 8,
+                trip_count: 3,
+            }],
             saturday_bins: vec![],
             sunday_bins: vec![],
         };

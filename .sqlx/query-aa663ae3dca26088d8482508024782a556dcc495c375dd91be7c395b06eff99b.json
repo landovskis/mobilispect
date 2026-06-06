@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO networks (id, region_id, name)\n         VALUES (1, 1, $1)\n         ON CONFLICT (id) DO UPDATE SET name = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aa663ae3dca26088d8482508024782a556dcc495c375dd91be7c395b06eff99b"
+}
