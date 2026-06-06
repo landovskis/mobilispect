@@ -151,9 +151,46 @@ impl TransitlandClient {
         let body: StopsResponse = response.json().await?;
         Ok(body.stops.into_iter().next().map(|r| {
             let stop_id = StopId::from(r.onestop_id);
-            let station_id = r.parent_station.map(|s| StationId::from(s.onestop_id));
+            let station_id = r.parent.map(|s| StationId::from(s.onestop_id));
             (stop_id, station_id)
         }))
+    }
+
+    pub async fn resolve_stops_for_feed(
+        &self,
+        feed_onestop_id: &str,
+    ) -> anyhow::Result<std::collections::HashMap<String, (StopId, Option<StationId>)>> {
+        let url = format!("{}/stops.json", self.base_url);
+        let mut after = None;
+        let mut resolved = std::collections::HashMap::new();
+
+        loop {
+            let request = self
+                .http
+                .get(&url)
+                .query(&[("feed_onestop_id", feed_onestop_id), ("limit", "1000")]);
+            let request = match after {
+                Some(cursor) => request.query(&[("after", cursor)]),
+                None => request,
+            };
+            let response = self.apply_auth(request).send().await?.error_for_status()?;
+            let body: StopsResponse = response.json().await?;
+            after = body.meta.and_then(|meta| meta.after);
+
+            for record in body.stops {
+                let station_id = record
+                    .parent
+                    .map(|station| StationId::from(station.onestop_id));
+                resolved.insert(
+                    record.stop_id,
+                    (StopId::from(record.onestop_id), station_id),
+                );
+            }
+
+            if after.is_none() {
+                return Ok(resolved);
+            }
+        }
     }
 }
 
@@ -225,12 +262,22 @@ struct RouteRecord {
 #[derive(serde::Deserialize)]
 struct StopsResponse {
     stops: Vec<StopRecord>,
+    #[serde(default)]
+    meta: Option<PaginationMeta>,
 }
 
 #[derive(serde::Deserialize)]
 struct StopRecord {
+    #[serde(default)]
+    stop_id: String,
     onestop_id: String,
-    parent_station: Option<StationRecord>,
+    #[serde(default, alias = "parent_station")]
+    parent: Option<StationRecord>,
+}
+
+#[derive(serde::Deserialize)]
+struct PaginationMeta {
+    after: Option<i64>,
 }
 
 #[derive(serde::Deserialize)]
@@ -255,7 +302,7 @@ fn unique_feed_ids(operators: &[OperatorRecord]) -> Vec<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use wiremock::matchers::{method, path, query_param};
+    use wiremock::matchers::{method, path, query_param, query_param_is_missing};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     fn client_for(server: &MockServer) -> TransitlandClient {
@@ -354,6 +401,118 @@ mod tests {
                 Some(StationId::from("s-f25e-berri"))
             ))
         );
+    }
+
+    #[tokio::test]
+    async fn resolve_stops_for_feed_returns_map() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/stops.json"))
+            .and(query_param("feed_onestop_id", "f-f25d-stm"))
+            .and(query_param("limit", "1000"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "stops": [
+                    {
+                        "stop_id": "56789",
+                        "onestop_id": "s-f25ek-berrinord",
+                        "parent": {"onestop_id": "s-f25e-berri"}
+                    },
+                    {
+                        "stop_id": "11111",
+                        "onestop_id": "s-f25ek-somewhere",
+                        "parent": null
+                    }
+                ],
+                "meta": {}
+            })))
+            .mount(&server)
+            .await;
+
+        let client = client_for(&server);
+        let result = client.resolve_stops_for_feed("f-f25d-stm").await.unwrap();
+
+        assert_eq!(
+            result.get("56789"),
+            Some(&(
+                StopId::from("s-f25ek-berrinord"),
+                Some(StationId::from("s-f25e-berri"))
+            ))
+        );
+        assert_eq!(
+            result.get("11111"),
+            Some(&(StopId::from("s-f25ek-somewhere"), None))
+        );
+    }
+
+    #[tokio::test]
+    async fn resolve_stops_for_feed_follows_pagination() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/stops.json"))
+            .and(query_param("feed_onestop_id", "f-test"))
+            .and(query_param("limit", "1000"))
+            .and(query_param_is_missing("after"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "stops": [{
+                    "stop_id": "first",
+                    "onestop_id": "s-first",
+                    "parent": null
+                }],
+                "meta": {"after": 42}
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/stops.json"))
+            .and(query_param("feed_onestop_id", "f-test"))
+            .and(query_param("limit", "1000"))
+            .and(query_param("after", "42"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "stops": [{
+                    "stop_id": "second",
+                    "onestop_id": "s-second",
+                    "parent": null
+                }],
+                "meta": {}
+            })))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let client = client_for(&server);
+        let result = client.resolve_stops_for_feed("f-test").await.unwrap();
+
+        assert_eq!(result.get("first"), Some(&(StopId::from("s-first"), None)));
+        assert_eq!(
+            result.get("second"),
+            Some(&(StopId::from("s-second"), None))
+        );
+    }
+
+    #[tokio::test]
+    async fn resolve_stops_for_feed_propagates_later_page_error() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/stops.json"))
+            .and(query_param_is_missing("after"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "stops": [],
+                "meta": {"after": 42}
+            })))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/stops.json"))
+            .and(query_param("after", "42"))
+            .respond_with(ResponseTemplate::new(429))
+            .mount(&server)
+            .await;
+
+        let client = client_for(&server);
+        let error = client.resolve_stops_for_feed("f-test").await.unwrap_err();
+
+        assert!(error.to_string().contains("429 Too Many Requests"));
     }
 
     // ── Discover Feeds ────────────────────────────────────────────────────────

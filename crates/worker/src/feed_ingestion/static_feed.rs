@@ -320,10 +320,11 @@ async fn resolve_stops(
 ) -> Result<HashMap<String, StopId>> {
     let mut map: HashMap<String, StopId> = HashMap::new();
     let mut skipped = 0usize;
+    let resolved_stops = transitland.resolve_stops_for_feed(tl_feed_id).await?;
 
     for (gtfs_stop_id, stop) in &gtfs.stops {
-        match transitland.resolve_stop(gtfs_stop_id, tl_feed_id).await {
-            Ok(Some((stop_onestop_id, maybe_station_id))) => {
+        match resolved_stops.get(gtfs_stop_id).cloned() {
+            Some((stop_onestop_id, maybe_station_id)) => {
                 // Upsert parent station if present
                 if let Some(station_id) = &maybe_station_id {
                     let (lat, lon) = (stop.latitude.unwrap_or(0.0), stop.longitude.unwrap_or(0.0));
@@ -385,17 +386,10 @@ async fn resolve_stops(
 
                 map.insert(gtfs_stop_id.clone(), stop_onestop_id);
             }
-            Ok(None) => {
+            None => {
                 warn!(
                     "Transitland: no match for stop {} in feed {} — skipping",
                     gtfs_stop_id, tl_feed_id
-                );
-                skipped += 1;
-            }
-            Err(e) => {
-                warn!(
-                    "Transitland: error resolving stop {} in feed {}: {:#} — skipping",
-                    gtfs_stop_id, tl_feed_id, e
                 );
                 skipped += 1;
             }
