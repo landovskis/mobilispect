@@ -118,7 +118,7 @@
 /* Accordion */
 .schedule-accordion {
   margin-bottom: 1.25rem;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--line-soft);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -129,21 +129,14 @@
   justify-content: space-between;
   padding: 0.875rem 1.25rem;
   cursor: pointer;
-  background: var(--bg-subtle);
+  background: var(--surface-muted);
   user-select: none;
   gap: 1rem;
 }
 .schedule-accordion summary::-webkit-details-marker { display: none; }
 .schedule-accordion summary:focus-visible {
-  outline: 2px solid var(--cinn);
+  outline: 2px solid var(--civic-red);
   outline-offset: -2px;
-}
-.schedule-accordion__title {
-  font-family: 'Fira Code', monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--cinn);
 }
 .schedule-accordion__meta {
   display: flex;
@@ -153,12 +146,12 @@
 .schedule-accordion__count {
   font-family: 'Jost', sans-serif;
   font-size: 0.75rem;
-  color: var(--muted);
+  color: var(--ink-500);
 }
 .accordion-chevron {
   transition: transform 0.2s ease;
   flex-shrink: 0;
-  color: var(--dim);
+  color: var(--ink-400);
 }
 .schedule-accordion[open] .accordion-chevron {
   transform: rotate(180deg);

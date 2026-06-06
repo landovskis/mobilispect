@@ -24,7 +24,7 @@
   {% for group in &groups %}
   <details class="schedule-accordion" open>
     <summary>
-      <span class="schedule-accordion__title">{{ group.title }}</span>
+      <span class="section-label">{{ group.title }}</span>
       <div class="schedule-accordion__meta">
         <span class="schedule-accordion__count">{% if group.rows.len() == 1 %}1 route{% else %}{{ group.rows.len() }} routes{% endif %}</span>
         <svg class="accordion-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
