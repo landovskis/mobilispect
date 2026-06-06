@@ -8,7 +8,7 @@ use axum::{
 use serde::Deserialize;
 
 use crate::web::{AppState, SetupState};
-use mobilispect_core::db::feeds::store_discovered_feeds;
+use mobilispect_core::db::feeds::{load_feed_options, store_discovered_feeds};
 use mobilispect_core::ids::{FeedId, RouteId};
 use mobilispect_core::on_time_performance::{RouteSummary, RouteTrend, route_summary, route_trend};
 use mobilispect_core::service_frequency::{
@@ -259,7 +259,7 @@ pub async fn speed_page(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agencies: Vec<(String, String)> = vec![];
+    let agencies = load_feed_options(&state.db.pool).await.unwrap_or_default();
     let active_agency = params
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
@@ -386,7 +386,7 @@ pub async fn frequency_page(
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
 
-    let agencies: Vec<(String, String)> = vec![];
+    let agencies = load_feed_options(&state.db.pool).await.unwrap_or_default();
     let active_agency = params
         .agency
         .filter(|s| agencies.iter().any(|(id, _)| id == s))
