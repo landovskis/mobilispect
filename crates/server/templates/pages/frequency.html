@@ -134,6 +134,10 @@
   gap: 1rem;
 }
 .schedule-accordion summary::-webkit-details-marker { display: none; }
+.schedule-accordion summary:focus-visible {
+  outline: 2px solid var(--cinn);
+  outline-offset: -2px;
+}
 .schedule-accordion__title {
   font-family: 'Fira Code', monospace;
   font-size: 0.68rem;
