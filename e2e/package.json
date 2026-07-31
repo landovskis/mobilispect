@@ -1,0 +1,15 @@
+{
+  "name": "mobilispect-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Cross-browser (Playwright) test suite for Mobilispect Corridor Design, REQ-007. Separate Node toolchain, sibling to crates/ — not part of the Cargo workspace.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2"
+  }
+}
