@@ -123,12 +123,12 @@
 ## REQ-005 — Reorder cross-sections
 
 ### Loop A — Test Plan Implementation Breakdown
-- [ ] TC-REQ-005-1 — Reorder a middle cross-section to the start via up/down controls
-- [ ] TC-REQ-005-2 — Move the last cross-section to the first position (boundary)
-- [ ] TC-REQ-005-3 — Move the first cross-section to the last position (boundary)
-- [ ] TC-REQ-005-4 — Reorder request references a cross-section not in the corridor
-- [ ] TC-REQ-005-5 — Reorder rejected when corridor was modified elsewhere (stale-state)
-- [ ] TC-REQ-005-6 — Unauthorized user cannot reorder a corridor
+- [x] TC-REQ-005-1 — Reorder a middle cross-section to the start via up/down controls
+- [x] TC-REQ-005-2 — Move the last cross-section to the first position (boundary)
+- [x] TC-REQ-005-3 — Move the first cross-section to the last position (boundary)
+- [x] TC-REQ-005-4 — Reorder request references a cross-section not in the corridor
+- [x] TC-REQ-005-5 — Reorder rejected when corridor was modified elsewhere (stale-state)
+- [ ] TC-REQ-005-6 — Unauthorized user cannot reorder a corridor — ⚠️ Needs Human Review: ignored — no auth/authorization layer exists anywhere in this codebase; cannot test "unauthorized user" until one is built, tracked as a cross-cutting project blocker (see Implementation Plan Open Risks)
 
 ### Loop B — Task Breakdown
 #### Backend Engineer

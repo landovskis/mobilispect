@@ -129,6 +129,40 @@ pub async fn add_cross_section(
     StatusCode::NOT_IMPLEMENTED.into_response()
 }
 
+/// Request body for `PATCH /corridors/:corridor_id/cross-sections/order`: the
+/// caller's last-known `corridors.sequence_version` (optimistic-concurrency
+/// check) plus the corridor's cross-sections in their desired new order.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ReorderCrossSectionsRequest {
+    pub expected_version: i64,
+    pub cross_section_ids: Vec<i64>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ReorderCrossSectionsResponse {
+    pub version: i64,
+    pub cross_sections: Vec<CrossSectionResponse>,
+}
+
+/// `PATCH /corridors/:corridor_id/cross-sections/order` — reorders every
+/// cross-section in a corridor's sequence to match the submitted ID order,
+/// rejecting the request if it isn't exactly a permutation of the corridor's
+/// current cross-sections (see
+/// `corridor_design::position::compute_reordered_positions`) or if
+/// `expected_version` no longer matches `corridors.sequence_version`.
+///
+/// Route is not yet registered in `web/mod.rs` — that's Loop B's job.
+///
+/// NOT YET IMPLEMENTED — see IMP-REQ-005-07 (Loop B GREEN pass).
+pub async fn reorder_cross_sections(
+    State(state): State<AppState>,
+    Path(corridor_id): Path<i64>,
+    Json(req): Json<ReorderCrossSectionsRequest>,
+) -> axum::response::Response {
+    let _ = (state, corridor_id, req);
+    StatusCode::NOT_IMPLEMENTED.into_response()
+}
+
 /// Decides whether the OSM attribution partial should be included in the corridor
 /// editor page's template context, from the corridor's `geometry_source`.
 ///

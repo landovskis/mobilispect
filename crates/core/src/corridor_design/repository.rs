@@ -108,6 +108,32 @@ pub async fn add_cross_section(
     unimplemented!("IMP-REQ-004-06: add_cross_section not yet implemented")
 }
 
+/// Reorders every cross-section in a corridor's sequence to match
+/// `requested_order`, in a single transaction: validates `requested_order` is
+/// exactly a permutation of the corridor's current cross-section ID set (see
+/// `corridor_design::position::compute_reordered_positions`), batch-rewrites
+/// every row's `position` to the freshly computed evenly-spaced values, and
+/// advances `corridors.sequence_version` by one.
+///
+/// `expected_version` is an optimistic-concurrency check: if it no longer
+/// matches `corridors.sequence_version` (the corridor was reordered elsewhere
+/// since the caller loaded it), the whole operation is rejected and nothing is
+/// written. Returns the new `sequence_version` and the corridor's
+/// cross-sections in their new order on success.
+///
+/// NOT YET IMPLEMENTED — see IMP-REQ-005-05 (Loop B GREEN pass). This stub
+/// exists so Loop A's tests compile and fail for the right reason (production
+/// code absent).
+pub async fn reorder_cross_sections(
+    pool: &sqlx::PgPool,
+    corridor_id: CorridorId,
+    expected_version: i64,
+    requested_order: &[CrossSectionId],
+) -> Result<(i64, Vec<CrossSection>), anyhow::Error> {
+    let _ = (pool, corridor_id, expected_version, requested_order);
+    unimplemented!("IMP-REQ-005-05: reorder_cross_sections not yet implemented")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -656,5 +682,265 @@ mod tests {
             result_a.is_err() || result_b.is_err(),
             "TC-REQ-004-6: at least one concurrent add targeting the same insertion slot should be rejected"
         );
+    }
+
+    // --- REQ-005: reorder cross-sections ---
+    //
+    // `reorder_cross_sections` is itself still a stub at this point in the
+    // sequence, so the fixtures below seed `corridors`/`cross_sections` directly
+    // via SQL, same pattern as REQ-004's fixtures above.
+
+    /// Seeds a corridor (`geometry_source = 'manual'`) with 5 cross-sections at
+    /// fractional positions `1.0..5.0` and `corridors.sequence_version` set to
+    /// `initial_version` — matching TC-REQ-005-1/2/3's stated preconditions (5
+    /// existing cross-sections, `sequence_version = 7`). Returns the corridor id
+    /// and the 5 cross-section ids in position order (`[XS-1, XS-2, XS-3, XS-4,
+    /// XS-5]`).
+    async fn seed_corridor_with_five_cross_sections(
+        pool: &sqlx::PgPool,
+        initial_version: i64,
+    ) -> (CorridorId, Vec<CrossSectionId>) {
+        let corridor_id: i64 = sqlx::query_scalar(
+            "INSERT INTO corridors (name, geometry_source, sequence_version) VALUES ($1, 'manual', $2) RETURNING id",
+        )
+        .bind("REQ-005 Test Corridor")
+        .bind(initial_version)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+        let mut cross_section_ids = Vec::with_capacity(5);
+        for position in 1..=5i64 {
+            let id: i64 = sqlx::query_scalar(
+                "INSERT INTO cross_sections (corridor_id, position, lat, lon) VALUES ($1, $2, $3, $4) RETURNING id",
+            )
+            .bind(corridor_id)
+            .bind(position as f64)
+            .bind(45.500 + (position as f64) * 0.001)
+            .bind(-73.600 + (position as f64) * 0.001)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+            cross_section_ids.push(CrossSectionId::from(id));
+        }
+
+        (CorridorId::from(corridor_id), cross_section_ids)
+    }
+
+    /// TC-REQ-005-1: reordering a middle cross-section (XS-3) to the start —
+    /// `[XS-3, XS-1, XS-2, XS-4, XS-5]` — succeeds, returns the new order and
+    /// advanced `sequence_version`, and persists strictly increasing DB
+    /// positions matching the requested order.
+    #[tokio::test]
+    async fn reorder_cross_sections_moves_middle_to_start() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let (corridor_id, cross_section_ids) =
+            seed_corridor_with_five_cross_sections(&db.pool, 7).await;
+        let requested_order = vec![
+            cross_section_ids[2],
+            cross_section_ids[0],
+            cross_section_ids[1],
+            cross_section_ids[3],
+            cross_section_ids[4],
+        ];
+
+        let result = reorder_cross_sections(&db.pool, corridor_id, 7, &requested_order).await;
+
+        let (new_version, cross_sections) =
+            result.expect("reorder_cross_sections should succeed once implemented");
+        assert_eq!(
+            new_version, 8,
+            "TC-REQ-005-1: sequence_version should advance from 7 to 8"
+        );
+        let returned_ids: Vec<CrossSectionId> = cross_sections.iter().map(|cs| cs.id).collect();
+        assert_eq!(
+            returned_ids, requested_order,
+            "TC-REQ-005-1: returned cross-sections should be in the requested order"
+        );
+
+        let rows: Vec<FractionalPositionRow> = sqlx::query_as(
+            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+        )
+        .bind(corridor_id.as_i64())
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+        let row_ids: Vec<i64> = rows.iter().map(|r| r.id).collect();
+        let expected_ids: Vec<i64> = requested_order.iter().map(|id| id.as_i64()).collect();
+        assert_eq!(
+            row_ids, expected_ids,
+            "TC-REQ-005-1: DB positions should be strictly increasing in the requested order"
+        );
+
+        let db_version: i64 =
+            sqlx::query_scalar("SELECT sequence_version FROM corridors WHERE id = $1")
+                .bind(corridor_id.as_i64())
+                .fetch_one(&db.pool)
+                .await
+                .unwrap();
+        assert_eq!(
+            db_version, 8,
+            "TC-REQ-005-1: corridors.sequence_version should be persisted as 8"
+        );
+    }
+
+    /// TC-REQ-005-2 (boundary): moving the last cross-section (XS-5) to the first
+    /// position leaves it with the smallest `position` value in the corridor.
+    #[tokio::test]
+    async fn reorder_cross_sections_moves_last_to_first_boundary() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let (corridor_id, cross_section_ids) =
+            seed_corridor_with_five_cross_sections(&db.pool, 7).await;
+        let requested_order = vec![
+            cross_section_ids[4],
+            cross_section_ids[0],
+            cross_section_ids[1],
+            cross_section_ids[2],
+            cross_section_ids[3],
+        ];
+
+        let result = reorder_cross_sections(&db.pool, corridor_id, 7, &requested_order).await;
+
+        let (_new_version, cross_sections) =
+            result.expect("reorder_cross_sections should succeed once implemented");
+        let returned_ids: Vec<CrossSectionId> = cross_sections.iter().map(|cs| cs.id).collect();
+        assert_eq!(
+            returned_ids, requested_order,
+            "TC-REQ-005-2: returned cross-sections should be in the requested order"
+        );
+
+        let rows: Vec<FractionalPositionRow> = sqlx::query_as(
+            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+        )
+        .bind(corridor_id.as_i64())
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            rows.first().unwrap().id,
+            cross_section_ids[4].as_i64(),
+            "TC-REQ-005-2: XS-5 should now have the smallest position value in the corridor"
+        );
+    }
+
+    /// TC-REQ-005-3 (boundary): moving the first cross-section (XS-1) to the last
+    /// position leaves it with the largest `position` value in the corridor.
+    #[tokio::test]
+    async fn reorder_cross_sections_moves_first_to_last_boundary() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let (corridor_id, cross_section_ids) =
+            seed_corridor_with_five_cross_sections(&db.pool, 7).await;
+        let requested_order = vec![
+            cross_section_ids[1],
+            cross_section_ids[2],
+            cross_section_ids[3],
+            cross_section_ids[4],
+            cross_section_ids[0],
+        ];
+
+        let result = reorder_cross_sections(&db.pool, corridor_id, 7, &requested_order).await;
+
+        let (_new_version, cross_sections) =
+            result.expect("reorder_cross_sections should succeed once implemented");
+        let returned_ids: Vec<CrossSectionId> = cross_sections.iter().map(|cs| cs.id).collect();
+        assert_eq!(
+            returned_ids, requested_order,
+            "TC-REQ-005-3: returned cross-sections should be in the requested order"
+        );
+
+        let rows: Vec<FractionalPositionRow> = sqlx::query_as(
+            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+        )
+        .bind(corridor_id.as_i64())
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            rows.last().unwrap().id,
+            cross_section_ids[0].as_i64(),
+            "TC-REQ-005-3: XS-1 should now have the largest position value in the corridor"
+        );
+    }
+
+    /// TC-REQ-005-4: a reorder request whose ID list includes a cross-section
+    /// belonging to a *different* corridor is rejected rather than silently
+    /// mixing sequences.
+    #[tokio::test]
+    async fn reorder_cross_sections_with_foreign_cross_section_id_returns_err() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let (corridor_a_id, corridor_a_ids) =
+            seed_corridor_with_five_cross_sections(&db.pool, 7).await;
+        let (_corridor_b_id, corridor_b_ids) =
+            seed_corridor_with_five_cross_sections(&db.pool, 7).await;
+
+        // Swap in a foreign ID from corridor B in place of one of corridor A's
+        // own cross-sections (XS-5 omitted), per TC-REQ-005-4's precondition.
+        let requested_order = vec![
+            corridor_b_ids[0],
+            corridor_a_ids[0],
+            corridor_a_ids[1],
+            corridor_a_ids[2],
+            corridor_a_ids[3],
+        ];
+
+        // TODO(Loop B): assert specific ReorderError::Validation(UnknownCrossSection)
+        // / 400 reorder.invalid_order mapping once implemented (see TC-REQ-005-4).
+        let result = reorder_cross_sections(&db.pool, corridor_a_id, 7, &requested_order).await;
+
+        assert!(
+            result.is_err(),
+            "TC-REQ-005-4: a foreign cross-section ID in the requested order should be rejected"
+        );
+    }
+
+    /// TC-REQ-005-5: a stale `expected_version` (the corridor was already
+    /// reordered elsewhere since the caller loaded it) is rejected rather than
+    /// silently clobbering the concurrent change. Coarse `is_err()` assertion,
+    /// matching this codebase's established precedent for not-yet-typed errors
+    /// (see `add_cross_section_with_anchor_from_different_corridor_returns_err`
+    /// above).
+    #[tokio::test]
+    async fn reorder_cross_sections_with_stale_expected_version_returns_err() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let (corridor_id, cross_section_ids) =
+            seed_corridor_with_five_cross_sections(&db.pool, 7).await;
+        let requested_order = vec![
+            cross_section_ids[4],
+            cross_section_ids[0],
+            cross_section_ids[1],
+            cross_section_ids[2],
+            cross_section_ids[3],
+        ];
+
+        // TODO(Loop B): assert specific ReorderError::VersionConflict { expected:
+        // 6, actual: 7 } / 409 reorder.version_conflict mapping once implemented
+        // (see TC-REQ-005-5).
+        let result = reorder_cross_sections(&db.pool, corridor_id, 6, &requested_order).await;
+
+        assert!(
+            result.is_err(),
+            "TC-REQ-005-5: a stale expected_version should be rejected"
+        );
+    }
+
+    /// TC-REQ-005-6: an analyst without editor access to the corridor's owning
+    /// agency cannot reorder it. There is no auth/authorization layer anywhere in
+    /// this codebase yet (confirmed absent project-wide), so this cannot be
+    /// meaningfully tested until one exists — tracked as a cross-cutting project
+    /// blocker (see Implementation Plan Open Risks), matching this codebase's
+    /// existing precedent for not-yet-buildable auth test cases (e.g.
+    /// `test_tc_req_003_5_no_dismiss_control_on_attribution_strip` in
+    /// `crates/server/src/web/corridor_design.rs`).
+    #[ignore = "IMP-REQ-005-06/07: no auth/authorization layer exists anywhere in this codebase yet — see Corridor Design BRD, no auth constraint"]
+    #[tokio::test]
+    async fn reorder_cross_sections_by_unauthorized_user_returns_403() {
+        todo!()
     }
 }
