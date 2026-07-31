@@ -71,11 +71,11 @@
 ## REQ-003 — Display OSM attribution in the editor
 
 ### Loop A — Test Plan Implementation Breakdown
-- [ ] TC-REQ-003-1 — Imported corridor displays OSM attribution strip in editor
-- [ ] TC-REQ-003-2 — Manual-only corridor does not display OSM attribution strip
-- [ ] TC-REQ-003-3 — Corridor with partially-imported geometry still shows attribution
-- [ ] TC-REQ-003-4 — Corridor with missing geometry_source fails safe to showing attribution
-- [ ] TC-REQ-003-5 — No analyst-facing control can hide or dismiss the attribution strip
+- [x] TC-REQ-003-1 — Imported corridor displays OSM attribution strip in editor
+- [x] TC-REQ-003-2 — Manual-only corridor does not display OSM attribution strip
+- [x] TC-REQ-003-3 — Corridor with partially-imported geometry still shows attribution
+- [x] TC-REQ-003-4 — Corridor with missing geometry_source fails safe to showing attribution
+- [ ] TC-REQ-003-5 — No analyst-facing control can hide or dismiss the attribution strip ⚠️ Needs Human Review: ignored — no real editor page/rendered HTML exists yet to inspect for a dismiss control; deferred to Loop B once IMP-REQ-003-05 lands
 
 ### Loop B — Task Breakdown
 #### Backend Engineer

@@ -1,0 +1,21 @@
+{# Included by the corridor editor page once it exists — see IMP-REQ-003-05 #}
+{# REQ-003: OSM/ODbL required attribution strip. Rendered only when the including
+   page has already decided (via core::corridor_design::attribution::attribution_visible)
+   that the corridor's geometry came from an OSM import — this partial itself takes no
+   corridor-specific parameters and performs no visibility logic of its own; see the
+   Corridor Segment Editor SDD, REQ-003, "Design Approach". Exact wording and link
+   target must not be altered without re-checking OSM's currently-published attribution
+   guidance (see SDD Open Questions). No dismiss/close control — see TC-REQ-003-5. #}
+<div class="osm-attribution"
+     style="position:absolute; bottom:12px; right:12px;
+            background:var(--surface); opacity:0.92;
+            border:1px solid var(--border-light);
+            border-radius:4px; padding:4px 8px;
+            font-family:'Jost',sans-serif; font-size:0.7rem;
+            color:var(--secondary); z-index:20;">
+  © <a href="https://www.openstreetmap.org/copyright"
+       target="_blank" rel="noopener noreferrer"
+       style="color:var(--ox); text-decoration:underline;">
+      OpenStreetMap contributors
+    </a>
+</div>

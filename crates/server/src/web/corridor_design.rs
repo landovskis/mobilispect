@@ -92,12 +92,30 @@ pub async fn finish_manual_corridor(
     StatusCode::NOT_IMPLEMENTED.into_response()
 }
 
+/// Decides whether the OSM attribution partial should be included in the corridor
+/// editor page's template context, from the corridor's `geometry_source`.
+///
+/// Thin wiring around `core::corridor_design::attribution::attribution_visible` —
+/// see that function's doc comment for the fail-safe rationale on `None`. There is no
+/// real editor-page handler yet to call this from (that's a later requirement's Loop
+/// B); this exists so the "thread geometry_source into template context" task
+/// (IMP-REQ-003-03) has a concrete, testable seam now.
+///
+/// NOT YET IMPLEMENTED — see IMP-REQ-003-03 (Loop B GREEN pass).
+pub fn attribution_context(
+    geometry_source: Option<mobilispect_core::corridor_design::GeometrySource>,
+) -> bool {
+    let _ = geometry_source;
+    unimplemented!("IMP-REQ-003-03: attribution_context not yet implemented")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::web::SetupState;
     use axum::http::StatusCode;
     use mobilispect_core::config::Config;
+    use mobilispect_core::corridor_design::GeometrySource;
     use mobilispect_core::db::test_utils;
     use std::sync::Arc;
     use tokio::sync::RwLock;
@@ -166,5 +184,67 @@ mod tests {
             StatusCode::BAD_REQUEST,
             "TC-REQ-002-03: a duplicate/too-close point click should return 400 INVALID_POINT"
         );
+    }
+
+    // --- REQ-003: OSM attribution visibility ---
+    //
+    // There is no real editor-page handler yet (that lands in a later requirement's
+    // Loop B), so TC-REQ-003-1/2/3/4 below are necessarily simplified: each calls
+    // `attribution_context` directly with the `geometry_source` the real scenario's
+    // precondition would seed, and asserts the boolean result, rather than seeding a
+    // corridor in Postgres, requesting `/corridors/{id}/edit`, and asserting on
+    // rendered HTML (`.osm-attribution` element, exact text/href). Full DOM-level
+    // assertion is deferred to when the editor page exists (IMP-REQ-003-05 onward).
+
+    /// Approximates TC-REQ-003-1 (Imported corridor displays OSM attribution strip in
+    /// editor): an imported corridor's geometry_source should make the attribution
+    /// context `true`.
+    #[test]
+    fn test_tc_req_003_1_imported_corridor_attribution_context_true() {
+        let result = attribution_context(Some(GeometrySource::Imported));
+        assert_eq!(result, true);
+    }
+
+    /// Approximates TC-REQ-003-2 (Manual-only corridor does not display OSM
+    /// attribution strip): a manual corridor's geometry_source should make the
+    /// attribution context `false`.
+    #[test]
+    fn test_tc_req_003_2_manual_corridor_attribution_context_false() {
+        let result = attribution_context(Some(GeometrySource::Manual));
+        assert_eq!(result, false);
+    }
+
+    /// Approximates TC-REQ-003-3 (Corridor with partially-imported geometry still
+    /// shows attribution at corridor level): the decision is corridor-level, driven
+    /// solely by `geometry_source = 'imported'`, regardless of what fraction of the
+    /// corridor's individual cross-sections were subsequently hand-edited — this test
+    /// cannot express "partially edited" without real cross_sections rows, so it
+    /// asserts the same `Imported` input as TC-REQ-003-1 still yields `true`.
+    #[test]
+    fn test_tc_req_003_3_partially_imported_corridor_attribution_context_true() {
+        let result = attribution_context(Some(GeometrySource::Imported));
+        assert_eq!(result, true);
+    }
+
+    /// Approximates TC-REQ-003-4 (Corridor with missing geometry_source fails safe to
+    /// showing attribution): a `None` geometry_source (data-migration gap) should
+    /// fail safe to `true`. The real test case also asserts a 200 response and a
+    /// `WARN`-level log line referencing the corridor ID — both require the real
+    /// editor-page handler and are deferred alongside it.
+    #[test]
+    fn test_tc_req_003_4_missing_geometry_source_attribution_context_fails_safe_true() {
+        let result = attribution_context(None);
+        assert_eq!(result, true);
+    }
+
+    /// TC-REQ-003-5 (No analyst-facing control can hide or dismiss the attribution
+    /// strip): requires inspecting real rendered HTML/DOM for the absence of a
+    /// dismiss control and verifying no "hide overlays" editor action removes it —
+    /// there is no real editor page or rendered `_osm_attribution.html` output yet to
+    /// inspect, so this cannot be meaningfully tested at the unit level.
+    #[ignore = "IMP-REQ-003-05/06: needs the real editor page + rendered partial to inspect DOM for a dismiss control"]
+    #[test]
+    fn test_tc_req_003_5_no_dismiss_control_on_attribution_strip() {
+        todo!()
     }
 }

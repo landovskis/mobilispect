@@ -3,11 +3,11 @@
 //! by tracing it manually. See `docs/ddd/bounded-context-canvas.md` (Corridor Design
 //! context) and the Corridor Segment Editor PRD for the full requirement set.
 
+pub mod attribution;
 pub mod geometry;
 pub mod repository;
 
 // Declared incrementally as each requirement's Loop A pass adds its file:
-// pub mod attribution;  // REQ-003
 // pub mod edit;         // REQ-006
 // pub mod position;     // REQ-004/005
 
