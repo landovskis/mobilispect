@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "osm_way_id": 300 },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-73.5800, 45.5000],
+          [-73.5790, 45.5010],
+          [-73.5800, 45.5010],
+          [-73.5790, 45.5000]
+        ]
+      }
+    }
+  ]
+}

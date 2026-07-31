@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "osm_way_id": 400 },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-73.5800, 45.5000],
+          [-73.5796, 45.5004]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "osm_way_id": 401 },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-73.5781, 45.5013],
+          [-73.5777, 45.5017]
+        ]
+      }
+    }
+  ]
+}

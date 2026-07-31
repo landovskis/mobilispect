@@ -1,3 +1,4 @@
+pub mod corridor_design;
 pub mod ids;
 pub use ids::{
     AgencyId, DirectionId, RouteId, ServiceId, StationId, StopId, TripId, VariantId, VehicleId,
