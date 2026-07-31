@@ -95,12 +95,12 @@
 ## REQ-004 — Add cross-sections to a corridor sequence
 
 ### Loop A — Test Plan Implementation Breakdown
-- [ ] TC-REQ-004-1 — Add cross-section at end of corridor sequence
-- [ ] TC-REQ-004-2 — Add cross-section at start of corridor sequence
-- [ ] TC-REQ-004-3 — Add cross-section between two existing mid-sequence cross-sections
-- [ ] TC-REQ-004-4 — Reject add to a non-existent corridor
-- [ ] TC-REQ-004-5 — Reject add when no valid position can be determined
-- [ ] TC-REQ-004-6 — Reject the losing side of a concurrent add targeting the same slot
+- [x] TC-REQ-004-1 — Add cross-section at end of corridor sequence
+- [x] TC-REQ-004-2 — Add cross-section at start of corridor sequence
+- [x] TC-REQ-004-3 — Add cross-section between two existing mid-sequence cross-sections
+- [x] TC-REQ-004-4 — Reject add to a non-existent corridor
+- [x] TC-REQ-004-5 — Reject add when no valid position can be determined
+- [x] TC-REQ-004-6 — Reject the losing side of a concurrent add targeting the same slot
 
 ### Loop B — Task Breakdown
 #### Backend Engineer

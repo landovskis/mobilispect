@@ -5,11 +5,11 @@
 
 pub mod attribution;
 pub mod geometry;
+pub mod position;
 pub mod repository;
 
 // Declared incrementally as each requirement's Loop A pass adds its file:
 // pub mod edit;         // REQ-006
-// pub mod position;     // REQ-004/005
 
 use crate::ids::{CorridorId, CrossSectionId};
 

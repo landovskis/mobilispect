@@ -92,6 +92,43 @@ pub async fn finish_manual_corridor(
     StatusCode::NOT_IMPLEMENTED.into_response()
 }
 
+/// Request body for `POST /corridors/:corridor_id/cross-sections`: the anchor to
+/// insert after (`None` means "insert at the start of the sequence") plus the new
+/// cross-section's coordinate.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AddCrossSectionRequest {
+    pub insert_after_cross_section_id: Option<i64>,
+    pub lat: f64,
+    pub lon: f64,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AddCrossSectionResponse {
+    pub id: i64,
+    pub corridor_id: i64,
+    pub sequence_index: i64,
+    pub sequence_total: i64,
+    pub lat: f64,
+    pub lon: f64,
+}
+
+/// `POST /corridors/:corridor_id/cross-sections` — inserts a new cross-section into
+/// an existing corridor's sequence, at a fractional position between the two rows
+/// bracketing `insert_after_cross_section_id` (see
+/// `corridor_design::position::assign_position`).
+///
+/// Route is not yet registered in `web/mod.rs` — that's Loop B's job.
+///
+/// NOT YET IMPLEMENTED — see IMP-REQ-004-07 (Loop B GREEN pass).
+pub async fn add_cross_section(
+    State(state): State<AppState>,
+    Path(corridor_id): Path<i64>,
+    Json(req): Json<AddCrossSectionRequest>,
+) -> axum::response::Response {
+    let _ = (state, corridor_id, req);
+    StatusCode::NOT_IMPLEMENTED.into_response()
+}
+
 /// Decides whether the OSM attribution partial should be included in the corridor
 /// editor page's template context, from the corridor's `geometry_source`.
 ///
