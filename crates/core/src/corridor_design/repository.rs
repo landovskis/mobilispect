@@ -134,6 +134,37 @@ pub async fn reorder_cross_sections(
     unimplemented!("IMP-REQ-005-05: reorder_cross_sections not yet implemented")
 }
 
+/// Updates a single cross-section's descriptive `label`, enforcing optimistic
+/// concurrency via `expected_version` against the row's `version` column. Issues a
+/// single targeted `UPDATE cross_sections SET label = ..., version = version + 1
+/// WHERE id = $1 AND corridor_id = $2 AND version = $3` — reads and writes exactly
+/// one row, proving the isolation guarantee's data-layer half (see
+/// `corridor_design::edit::apply_cross_section_edit` for the pure Functional-Core
+/// half that proves the same guarantee in memory). Returns an error if
+/// `cross_section_id` does not exist (e.g. deleted since the caller's edit view
+/// loaded) or does not belong to `corridor_id`, or if `expected_version` no longer
+/// matches the stored `version` (a concurrent edit landed first).
+///
+/// NOT YET IMPLEMENTED — see IMP-REQ-006-07 (Loop B GREEN pass). This stub exists
+/// so Loop A's tests compile and fail for the right reason (production code
+/// absent).
+pub async fn update_cross_section_label(
+    pool: &sqlx::PgPool,
+    corridor_id: CorridorId,
+    cross_section_id: CrossSectionId,
+    new_label: Option<String>,
+    expected_version: i32,
+) -> Result<CrossSection, anyhow::Error> {
+    let _ = (
+        pool,
+        corridor_id,
+        cross_section_id,
+        new_label,
+        expected_version,
+    );
+    unimplemented!("IMP-REQ-006-07: update_cross_section_label not yet implemented")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -942,5 +973,236 @@ mod tests {
     #[tokio::test]
     async fn reorder_cross_sections_by_unauthorized_user_returns_403() {
         todo!()
+    }
+
+    // --- REQ-006: edit a single cross-section's label ---
+    //
+    // `update_cross_section_label` is itself still a stub at this point in the
+    // sequence, so the fixtures below seed `corridors`/`cross_sections` directly
+    // via SQL, same pattern as REQ-004/005's fixtures above. Migration 024 has
+    // already added `cross_sections.version`/`label` by the time these tests run.
+
+    #[derive(Debug, PartialEq, sqlx::FromRow)]
+    struct FullCrossSectionRow {
+        id: i64,
+        corridor_id: i64,
+        position: f64,
+        lat: f64,
+        lon: f64,
+        osm_way_id: Option<i64>,
+        osm_node_id: Option<i64>,
+        label: Option<String>,
+        version: i32,
+    }
+
+    async fn fetch_full_cross_section_row(
+        pool: &sqlx::PgPool,
+        id: CrossSectionId,
+    ) -> FullCrossSectionRow {
+        // `position` is stored as NUMERIC (see migration 022); it's cast to
+        // FLOAT8 here so it decodes into this fixture's `f64` field without
+        // requiring sqlx's "bigdecimal"/"rust_decimal" feature (not enabled in
+        // this crate's Cargo.toml — see `position.rs`'s top-of-file note on the
+        // same constraint).
+        sqlx::query_as(
+            "SELECT id, corridor_id, position::float8 AS position, lat, lon, osm_way_id, \
+             osm_node_id, label, version FROM cross_sections WHERE id = $1",
+        )
+        .bind(id.as_i64())
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    /// Seeds a corridor (`geometry_source = 'manual'`) with 3 cross-sections A, B,
+    /// C at fractional positions `1.0, 2.0, 3.0`, each with a distinct label and
+    /// `version = 1` (the column default) — matching TC-REQ-006-1/2's stated
+    /// preconditions. Returns the corridor id and the 3 cross-section ids in
+    /// position order (`[A, B, C]`).
+    async fn seed_corridor_with_three_labeled_cross_sections(
+        pool: &sqlx::PgPool,
+    ) -> (CorridorId, Vec<CrossSectionId>) {
+        let corridor_id: i64 = sqlx::query_scalar(
+            "INSERT INTO corridors (name, geometry_source) VALUES ($1, 'manual') RETURNING id",
+        )
+        .bind("REQ-006 Test Corridor")
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+        let labels = [
+            "Main St @ 5th Ave",
+            "Main St @ 6th Ave",
+            "Main St @ 7th Ave",
+        ];
+        let mut cross_section_ids = Vec::with_capacity(3);
+        for (i, label) in labels.iter().enumerate() {
+            let position = (i + 1) as f64;
+            let id: i64 = sqlx::query_scalar(
+                "INSERT INTO cross_sections (corridor_id, position, lat, lon, label) \
+                 VALUES ($1, $2, $3, $4, $5) RETURNING id",
+            )
+            .bind(corridor_id)
+            .bind(position)
+            .bind(45.500 + position * 0.001)
+            .bind(-73.600 + position * 0.001)
+            .bind(*label)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+            cross_section_ids.push(CrossSectionId::from(id));
+        }
+
+        (CorridorId::from(corridor_id), cross_section_ids)
+    }
+
+    /// TC-REQ-006-1: editing cross-section B's label persists the new label and
+    /// advances `version` from 1 to 2.
+    #[tokio::test]
+    async fn update_cross_section_label_edits_and_saves_successfully() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let (corridor_id, cross_section_ids) =
+            seed_corridor_with_three_labeled_cross_sections(&db.pool).await;
+        let b_id = cross_section_ids[1];
+
+        let result = update_cross_section_label(
+            &db.pool,
+            corridor_id,
+            b_id,
+            Some("Main St @ 6th Ave (widened)".to_string()),
+            1,
+        )
+        .await;
+
+        let updated = result.expect("update_cross_section_label should succeed once implemented");
+        assert_eq!(updated.id, b_id);
+        assert_eq!(
+            updated.label.as_deref(),
+            Some("Main St @ 6th Ave (widened)")
+        );
+
+        let row = fetch_full_cross_section_row(&db.pool, b_id).await;
+        assert_eq!(row.label.as_deref(), Some("Main St @ 6th Ave (widened)"));
+        assert_eq!(
+            row.version, 2,
+            "TC-REQ-006-1: version should advance from 1 to 2 on a successful edit"
+        );
+    }
+
+    /// TC-REQ-006-2 (isolation guarantee, explicit acceptance-criterion check):
+    /// editing B leaves every column of A and C byte-identical before and after.
+    #[tokio::test]
+    async fn update_cross_section_label_does_not_alter_siblings() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let (corridor_id, cross_section_ids) =
+            seed_corridor_with_three_labeled_cross_sections(&db.pool).await;
+        let (a_id, b_id, c_id) = (
+            cross_section_ids[0],
+            cross_section_ids[1],
+            cross_section_ids[2],
+        );
+
+        let before_a = fetch_full_cross_section_row(&db.pool, a_id).await;
+        let before_c = fetch_full_cross_section_row(&db.pool, c_id).await;
+
+        update_cross_section_label(
+            &db.pool,
+            corridor_id,
+            b_id,
+            Some("Main St @ 6th Ave (widened)".to_string()),
+            1,
+        )
+        .await
+        .expect("update_cross_section_label should succeed once implemented");
+
+        let after_a = fetch_full_cross_section_row(&db.pool, a_id).await;
+        let after_c = fetch_full_cross_section_row(&db.pool, c_id).await;
+
+        assert_eq!(
+            before_a, after_a,
+            "TC-REQ-006-2: every column of sibling A must be byte-identical before/after"
+        );
+        assert_eq!(
+            before_c, after_c,
+            "TC-REQ-006-2: every column of sibling C must be byte-identical before/after"
+        );
+    }
+
+    /// TC-REQ-006-5: a second edit submitted with a stale `expected_version` is
+    /// rejected rather than silently clobbering the first edit. Coarse `is_err()`
+    /// assertion, matching this codebase's established precedent for not-yet-typed
+    /// errors (see `reorder_cross_sections_with_stale_expected_version_returns_err`
+    /// above).
+    #[tokio::test]
+    async fn update_cross_section_label_with_stale_version_returns_err() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let (corridor_id, cross_section_ids) =
+            seed_corridor_with_three_labeled_cross_sections(&db.pool).await;
+        let b_id = cross_section_ids[1];
+
+        update_cross_section_label(
+            &db.pool,
+            corridor_id,
+            b_id,
+            Some("First edit".to_string()),
+            1,
+        )
+        .await
+        .expect("first update_cross_section_label should succeed once implemented");
+
+        // TODO(Loop B): assert specific EDIT_CONFLICT / 409 mapping once a typed
+        // error exists (see TC-REQ-006-5).
+        let result = update_cross_section_label(
+            &db.pool,
+            corridor_id,
+            b_id,
+            Some("Second edit, stale version".to_string()),
+            1,
+        )
+        .await;
+
+        assert!(
+            result.is_err(),
+            "TC-REQ-006-5: a stale expected_version should be rejected"
+        );
+    }
+
+    /// TC-REQ-006-6: saving an edit for a cross-section deleted since the edit
+    /// view loaded fails rather than silently succeeding. No delete function
+    /// exists yet in this module, so the deletion is simulated with a raw
+    /// `DELETE` query directly in test setup, matching this pass's precedent for
+    /// not-yet-buildable setup steps.
+    #[tokio::test]
+    async fn update_cross_section_label_for_deleted_cross_section_returns_err() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let (corridor_id, cross_section_ids) =
+            seed_corridor_with_three_labeled_cross_sections(&db.pool).await;
+        let b_id = cross_section_ids[1];
+
+        sqlx::query("DELETE FROM cross_sections WHERE id = $1")
+            .bind(b_id.as_i64())
+            .execute(&db.pool)
+            .await
+            .unwrap();
+
+        // TODO(Loop B): assert specific CROSS_SECTION_NOT_FOUND / 404 mapping once
+        // a typed error exists (see TC-REQ-006-6).
+        let result = update_cross_section_label(
+            &db.pool,
+            corridor_id,
+            b_id,
+            Some("too late".to_string()),
+            1,
+        )
+        .await;
+
+        assert!(
+            result.is_err(),
+            "TC-REQ-006-6: editing a deleted cross-section should be rejected"
+        );
     }
 }

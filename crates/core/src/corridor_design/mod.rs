@@ -4,12 +4,10 @@
 //! context) and the Corridor Segment Editor PRD for the full requirement set.
 
 pub mod attribution;
+pub mod edit;
 pub mod geometry;
 pub mod position;
 pub mod repository;
-
-// Declared incrementally as each requirement's Loop A pass adds its file:
-// pub mod edit;         // REQ-006
 
 use crate::ids::{CorridorId, CrossSectionId};
 
@@ -95,4 +93,7 @@ pub struct CrossSection {
     pub lon: f64,
     pub osm_way_id: Option<i64>,
     pub osm_node_id: Option<i64>,
+    /// Descriptive label, editable via REQ-006's edit shell. `NULL`/`None` until an
+    /// analyst sets one; not populated by REQ-001/002/004's creation paths.
+    pub label: Option<String>,
 }

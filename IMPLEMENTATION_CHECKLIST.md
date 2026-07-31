@@ -153,12 +153,12 @@
 ## REQ-006 — Edit an individual cross-section
 
 ### Loop A — Test Plan Implementation Breakdown
-- [ ] TC-REQ-006-1 — Edit and save a cross-section's label successfully
-- [ ] TC-REQ-006-2 — Editing one cross-section does not alter its siblings (isolation)
-- [ ] TC-REQ-006-3 — Label length boundary is enforced at exactly 200 and 201 characters
-- [ ] TC-REQ-006-4 — Cancel discards edits without contacting the server
-- [ ] TC-REQ-006-5 — Concurrent edit of the same cross-section is rejected with a conflict
-- [ ] TC-REQ-006-6 — Saving an edit for a cross-section deleted since the edit view loaded
+- [x] TC-REQ-006-1 — Edit and save a cross-section's label successfully
+- [x] TC-REQ-006-2 — Editing one cross-section does not alter its siblings (isolation)
+- [x] TC-REQ-006-3 — Label length boundary is enforced at exactly 200 and 201 characters
+- [x] TC-REQ-006-4 — Cancel discards edits without contacting the server — verified via code comment; no server-side assertion applies (client-only behavior), see corridor_design.rs
+- [x] TC-REQ-006-5 — Concurrent edit of the same cross-section is rejected with a conflict
+- [x] TC-REQ-006-6 — Saving an edit for a cross-section deleted since the edit view loaded
 
 ### Loop B — Task Breakdown
 #### Backend Engineer
@@ -248,6 +248,7 @@
 ## Notes on scope adaptation for this local run
 
 - **Environment requirement — `DOCKER_HOST`:** `testcontainers` defaults to `/var/run/docker.sock`, which doesn't exist on this machine — Docker Desktop's real socket is `/Users/alex/.docker/run/docker.sock` (confirmed via `docker context inspect`). Every command that runs DB-backed tests (`repository.rs` integration tests, and any handler test that touches Postgres) must be run with `DOCKER_HOST=unix:///Users/alex/.docker/run/docker.sock` set, e.g. `DOCKER_HOST=unix:///Users/alex/.docker/run/docker.sock cargo nextest run ...`. Confirmed working: with this set, `insert_corridor_persists_ordered_cross_sections` fails for the correct reason (`unimplemented!()` panic), not a Docker connection error.
+- **Loop B landmine — `cross_sections.position` is `NUMERIC` but decoded as `f64` in Rust throughout:** `sqlx`'s `bigdecimal`/`rust_decimal` feature isn't enabled in `crates/core/Cargo.toml` (see REQ-004's deviation note), so every query selecting `position` needs an explicit `position::float8 AS position` cast (or the feature needs to be added as a deliberate Loop B decision). REQ-006's pass hit and fixed this in its own new query; REQ-004/005's existing fixture queries haven't been exercised past their `unimplemented!()` stubs yet, so this same fix will be needed there once Loop B's GREEN passes make those functions real. Flagging here so it's addressed once, consistently, rather than rediscovered per-task.
 
 - REQ-007 (Playwright/cross-browser) requires a Node toolchain this Rust workspace does not have. Loop A will still write REQ-007's test *specifications* as Playwright `.spec.ts` files (per the plan), but they cannot execute inside this cargo-only environment without `npm`/`npx` available — flagged here up front rather than discovered mid-run. Will check for `npm` availability before Loop A processes REQ-007's group.
 - Frontend tasks (Askama templates + inline JS) are implemented as part of Loop B same as backend tasks — this project has no separate frontend test runner; template rendering is verified via Axum test-client integration tests per existing project convention (see `speed_analysis`/`handlers.rs` tests), not a browser-based unit test framework.

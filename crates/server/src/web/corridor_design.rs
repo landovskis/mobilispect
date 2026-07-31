@@ -163,6 +163,57 @@ pub async fn reorder_cross_sections(
     StatusCode::NOT_IMPLEMENTED.into_response()
 }
 
+/// Request body for `PATCH /corridors/:corridor_id/cross-sections/:cross_section_id`:
+/// the analyst's edited label plus the `version` their edit view was loaded at
+/// (optimistic-concurrency check against `cross_sections.version`).
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UpdateCrossSectionRequest {
+    pub label: Option<String>,
+    pub version: i32,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UpdateCrossSectionResponse {
+    pub id: i64,
+    pub label: Option<String>,
+    pub version: i32,
+}
+
+/// `GET /corridors/:corridor_id/cross-sections/:cross_section_id/edit` — fetches
+/// the edit-mode Askama partial for a single cross-section: current `label`,
+/// hidden `version`, and the empty Modal Element Library content-slot (see the
+/// Corridor Segment Editor SDD, REQ-006 "Design Approach").
+///
+/// Route is not yet registered in `web/mod.rs` — that's Loop B's job.
+///
+/// NOT YET IMPLEMENTED — see IMP-REQ-006-08 (Loop B GREEN pass).
+pub async fn get_cross_section_edit(
+    State(state): State<AppState>,
+    Path((corridor_id, cross_section_id)): Path<(i64, i64)>,
+) -> axum::response::Response {
+    let _ = (state, corridor_id, cross_section_id);
+    StatusCode::NOT_IMPLEMENTED.into_response()
+}
+
+/// `PATCH /corridors/:corridor_id/cross-sections/:cross_section_id` — persists an
+/// edit to one cross-section's `label`, enforcing the `version`
+/// optimistic-concurrency check (see
+/// `corridor_design::repository::update_cross_section_label`). Scoped to exactly
+/// one cross-section — there is no whole-corridor rewrite endpoint in this
+/// requirement's surface (see SDD REQ-006 "Design Approach", isolation guarantee).
+///
+/// Route is not yet registered in `web/mod.rs` — that's Loop B's job.
+///
+/// NOT YET IMPLEMENTED — see IMP-REQ-006-08 (Loop B GREEN pass).
+pub async fn update_cross_section(
+    State(state): State<AppState>,
+    Path((corridor_id, cross_section_id)): Path<(i64, i64)>,
+    Json(req): Json<UpdateCrossSectionRequest>,
+) -> axum::response::Response {
+    let _ = (state, corridor_id, cross_section_id, req);
+    StatusCode::NOT_IMPLEMENTED.into_response()
+}
+
 /// Decides whether the OSM attribution partial should be included in the corridor
 /// editor page's template context, from the corridor's `geometry_source`.
 ///
@@ -318,4 +369,44 @@ mod tests {
     fn test_tc_req_003_5_no_dismiss_control_on_attribution_strip() {
         todo!()
     }
+
+    // --- REQ-006: edit an individual cross-section ---
+    //
+    // There is no real editor page or wired-up PATCH handler yet (Loop B), so
+    // TC-REQ-006-3 below calls `validate_label` directly at the handler-adjacent
+    // boundary the real PATCH handler will delegate to, same approximation
+    // pattern used for REQ-003's `attribution_context` tests above. Full
+    // HTTP-level assertion (status code, response body, DB row) is covered by
+    // `repository.rs`'s `update_cross_section_label_*` integration tests and is
+    // deferred here alongside the real handler (IMP-REQ-006-08 onward).
+
+    /// TC-REQ-006-3 (label boundary, handler-adjacent slice): a label of exactly
+    /// 200 characters is accepted; a label of 201 characters is rejected as
+    /// `TooLong`. Mirrors `corridor_design::edit`'s own boundary unit tests but at
+    /// the layer the PATCH handler will call into.
+    #[test]
+    fn test_tc_req_006_3_label_length_boundary_at_200_and_201_chars() {
+        use mobilispect_core::corridor_design::edit::{LabelValidationError, validate_label};
+
+        let label_200 = "a".repeat(200);
+        let result_200 = validate_label(&label_200);
+        assert!(
+            result_200.is_ok(),
+            "TC-REQ-006-3: a 200-character label should be accepted"
+        );
+
+        let label_201 = "a".repeat(201);
+        let result_201 = validate_label(&label_201);
+        assert_eq!(
+            result_201,
+            Err(LabelValidationError::TooLong),
+            "TC-REQ-006-3: a 201-character label should be rejected as TooLong"
+        );
+    }
+
+    // TC-REQ-006-4 (Cancel discards edits without contacting the server) has no
+    // server-side test: per the SDD, Cancel is a pure client-side action issuing
+    // zero HTTP requests. This will be verified in Loop B's frontend
+    // implementation (IMP-REQ-006-12) by manual/browser inspection, not an
+    // automated Rust test.
 }
