@@ -41,12 +41,12 @@
 ## REQ-002 — Manual corridor creation (no import)
 
 ### Loop A — Test Plan Implementation Breakdown
-- [ ] TC-REQ-002-01 — Analyst successfully traces and saves a manual corridor
-- [ ] TC-REQ-002-02 — Finish Trace is rejected at the minimum point boundary
-- [ ] TC-REQ-002-03 — Duplicate/degenerate point click is rejected
-- [ ] TC-REQ-002-04 — Adding a point to a corridor deleted mid-session returns 404
-- [ ] TC-REQ-002-05 — Manually created corridor's schema matches an imported corridor's shape
-- [ ] TC-REQ-002-06 — Point insert fails when database is unavailable
+- [x] TC-REQ-002-01 — Analyst successfully traces and saves a manual corridor
+- [x] TC-REQ-002-02 — Finish Trace is rejected at the minimum point boundary
+- [x] TC-REQ-002-03 — Duplicate/degenerate point click is rejected
+- [x] TC-REQ-002-04 — Adding a point to a corridor deleted mid-session returns 404
+- [x] TC-REQ-002-05 — Manually created corridor's schema matches an imported corridor's shape
+- [ ] TC-REQ-002-06 — Point insert fails when database is unavailable ⚠️ Needs Human Review: ignored — DB-unavailability simulation needs typed error + container-stop helper, deferred to Loop B
 
 ### Loop B — Task Breakdown
 #### Backend Engineer
@@ -246,6 +246,8 @@
 - [ ] TC-REQ-007-4
 
 ## Notes on scope adaptation for this local run
+
+- **Environment requirement — `DOCKER_HOST`:** `testcontainers` defaults to `/var/run/docker.sock`, which doesn't exist on this machine — Docker Desktop's real socket is `/Users/alex/.docker/run/docker.sock` (confirmed via `docker context inspect`). Every command that runs DB-backed tests (`repository.rs` integration tests, and any handler test that touches Postgres) must be run with `DOCKER_HOST=unix:///Users/alex/.docker/run/docker.sock` set, e.g. `DOCKER_HOST=unix:///Users/alex/.docker/run/docker.sock cargo nextest run ...`. Confirmed working: with this set, `insert_corridor_persists_ordered_cross_sections` fails for the correct reason (`unimplemented!()` panic), not a Docker connection error.
 
 - REQ-007 (Playwright/cross-browser) requires a Node toolchain this Rust workspace does not have. Loop A will still write REQ-007's test *specifications* as Playwright `.spec.ts` files (per the plan), but they cannot execute inside this cargo-only environment without `npm`/`npx` available — flagged here up front rather than discovered mid-run. Will check for `npm` availability before Loop A processes REQ-007's group.
 - Frontend tasks (Askama templates + inline JS) are implemented as part of Loop B same as backend tasks — this project has no separate frontend test runner; template rendering is verified via Axum test-client integration tests per existing project convention (see `speed_analysis`/`handlers.rs` tests), not a browser-based unit test framework.

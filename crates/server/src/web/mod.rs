@@ -8,6 +8,7 @@ use tracing::info;
 use mobilispect_core::config::Config;
 use mobilispect_core::db::Database;
 
+mod corridor_design;
 mod corridor_import;
 mod handlers;
 pub mod middleware;
