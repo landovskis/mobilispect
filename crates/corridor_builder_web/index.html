@@ -3,9 +3,18 @@
     <head>
         <meta charset="utf-8" />
         <title>Corridor Builder</title>
-        <link data-trunk rel="rust" href="Cargo.toml" />
-        <script src="https://unpkg.com/maplibre-gl@6.1.0/dist/maplibre-gl.js"></script>
+        <script type="module">
+          // maplibre-gl@6.1.0's ESM build has no default export — only
+          // named exports (Map, Marker, Popup, etc., confirmed via
+          // Object.keys() on the imported module). A namespace import
+          // reconstructs the same shape the old UMD global `maplibregl`
+          // object had, which is what `js_namespace = maplibregl` in
+          // maplibre.rs expects.
+          import * as maplibregl from "https://unpkg.com/maplibre-gl@6.1.0/dist/maplibre-gl.mjs";
+          window.maplibregl = maplibregl;
+        </script>
         <link href="https://unpkg.com/maplibre-gl@6.1.0/dist/maplibre-gl.css" rel="stylesheet" />
+        <link data-trunk rel="rust" href="Cargo.toml" />
     </head>
     <body></body>
 </html>
