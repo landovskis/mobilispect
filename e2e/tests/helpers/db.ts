@@ -12,7 +12,7 @@ import { Client } from 'pg';
 export async function withDb<T>(fn: (client: Client) => Promise<T>): Promise<T> {
   const client = new Client({
     connectionString:
-      process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/mobilispect',
+      process.env.DATABASE_URL ?? 'postgres://mobilispect:mobilispect@localhost:5433/mobilispect',
   });
   await client.connect();
   try {
