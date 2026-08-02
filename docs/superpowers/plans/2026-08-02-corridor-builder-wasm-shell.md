@@ -18,6 +18,7 @@
 - `crates/corridor_builder_web` has no dependency on `mobilispect-core` (see the design spec's Architecture correction note) and is excluded from the root Cargo workspace.
 - Every Askama page, handler, and route from the existing `corridor_design`/`corridor_import` REQ-001–007 scaffolding is untouched by this plan.
 - Design spec: `docs/superpowers/specs/2026-08-02-corridor-builder-wasm-shell-design.md`.
+- **UI must follow the Lumina design system (`DESIGN.md`), per this project's CLAUDE.md ("Follow strictly the rules defined in @DESIGN.md for all UI generation. Do not invent colors, fonts, or spacing values outside the design system.")** — this was missed for Tasks 9-10 when originally written and is remediated by Task 13. **Important:** this codebase's actual shipped CSS (`crates/server/templates/layouts/base.html`, `pages/setup.html`, `partials/setup_form.html`) uses its own token names (`--ink-900`, `--civic-red`, `--link-blue`, no Tailwind framework) that don't literally match `DESIGN.md`'s documented names (`--ink`, `--cinn`, `--ox`) or its Tailwind-based approach. Match the real, shipped CSS for visual consistency with the rest of the app — that's the actual design system in production, and `DESIGN.md`'s literal token names have already drifted from it. Task 13 has the exact reference values.
 
 ---
 
@@ -2915,6 +2916,261 @@ git commit -m "docs(ddd): document the Remix aggregate and Corridor Design bound
 
 ---
 
+## Task 13: Lumina design system compliance
+
+**Run this task before Task 11 (Full verification pass), despite the numbering** — it was added after Tasks 1–12 were originally written and numbered, when a review of the plan found that the WASM app's UI (Tasks 9–10) used bare unstyled HTML instead of this project's mandatory Lumina design system (`DESIGN.md`, enforced by this project's `CLAUDE.md`). Renumbering the already-executed Tasks 11–12 wasn't worth the churn; this task's position in the task list is therefore out of sequence with its position in the actual execution order. If you are executing this plan from scratch (not resuming a partially-completed run), do Task 13 immediately after Task 10 and before Task 11.
+
+**Files:**
+- Modify: `crates/corridor_builder_web/index.html`
+- Modify: `crates/corridor_builder_web/src/pages/landing.rs`
+- Modify: `crates/corridor_builder_web/src/pages/intersection.rs`
+- Modify: `crates/corridor_builder_web/src/pages/corridor.rs`
+- Modify: `crates/corridor_builder_web/src/pages/region_map.rs`
+
+**Interfaces:** none — this task only changes markup/CSS/class names on already-built pages. No Rust function signatures, routes, or component props change.
+
+**Reference material — read before starting:** this codebase's actual shipped Lumina implementation lives in `crates/server/templates/layouts/base.html` (tokens, `.btn`/`.card`/`.alert` classes), `crates/server/templates/pages/setup.html` (`.field`/`.field-label`, the closest existing analog to this task's forms), and `crates/server/templates/partials/setup_form.html` (a single-card "enter a name, submit" form — the closest existing precedent to the landing page's create-remix flow). Match these files' actual token names and class conventions, not `DESIGN.md`'s literal token names (`--ink`, `--cinn`, `--ox`) — those have drifted from what's actually shipped. Do not add Tailwind; the real app doesn't use it despite `DESIGN.md` mentioning it.
+
+- [ ] **Step 1: Add Lumina tokens, fonts, and shared classes to `index.html`**
+
+Add this inside `<head>`, after the `<title>` line and before the MapLibre `<script>`/`<link>` tags:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink-900: #1A1814;
+    --ink-800: #3D3935;
+    --ink-700: #645F5A;
+    --ink-500: #888480;
+    --ink-400: #A8A49B;
+    --paper: #FAFAF7;
+    --surface: #FFFFFF;
+    --surface-muted: #F4F4EF;
+    --line: #E0DDD6;
+    --line-soft: #ECEAE4;
+    --civic-green: #3D9A6B;
+    --civic-amber: #E8A020;
+    --civic-amber-bg: #FDF0D0;
+    --civic-red: #C8463A;
+    --civic-red-bg: #F9DDD9;
+    --link-blue: #1D4E89;
+    --link-blue-hover: #163A67;
+    --link-blue-bg: #D0E0F3;
+    --shadow-sm: 0 1px 2px rgb(26 24 20 / 0.06);
+    --shadow: 0 8px 24px rgb(26 24 20 / 0.10);
+    --radius: 8px;
+    --al-warn-bg: var(--civic-amber-bg); --al-warn-fg: var(--civic-amber); --al-warn-border: var(--civic-amber);
+    --al-err-bg: var(--civic-red-bg);  --al-err-fg: var(--civic-red);  --al-err-border: var(--civic-red);
+  }
+  html.dark {
+    --ink-900: #EDE8E0; --ink-800: #CCC7C0; --ink-700: #B5AFA6; --ink-500: #9E9890; --ink-400: #8C8680;
+    --paper: #0D0B09; --surface: #1E1A16; --surface-muted: #161310;
+    --line: #352C22; --line-soft: #272018;
+    --civic-green: #4DAA7B;
+    --civic-amber: #E8A82A; --civic-amber-bg: rgba(232,168,42,0.15);
+    --civic-red: #D95045; --civic-red-bg: rgba(217,80,69,0.15);
+    --link-blue: #5A94CC; --link-blue-hover: #4A80B8; --link-blue-bg: rgba(90,148,204,0.15);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow: 0 8px 24px rgb(0 0 0 / 0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Jost', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-color: var(--paper);
+    color: var(--ink-900);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0.5rem 1rem; border-radius: var(--radius);
+    font-weight: 600; font-size: 0.875rem; cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    text-decoration: none; border: 1.5px solid var(--line);
+    background: var(--surface); color: var(--ink-900);
+  }
+  .btn-primary { background-color: var(--link-blue); color: white; border-color: var(--link-blue); }
+  .btn-primary:hover { background-color: var(--link-blue-hover); transform: translateY(-1px); }
+  .card {
+    background-color: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm);
+  }
+  .field-label {
+    display: block; font-size: 0.72rem; font-weight: 500; color: var(--ink-500);
+    letter-spacing: 0.05em; margin-bottom: 6px;
+  }
+  .field {
+    width: 100%; font-family: 'Jost', sans-serif; font-size: 0.875rem;
+    border: 1.5px solid var(--line); border-radius: 6px; padding: 0.6rem 0.875rem;
+    background: var(--surface); color: var(--ink-900); box-sizing: border-box;
+  }
+  .field:focus {
+    outline: none; border-color: var(--civic-red);
+    box-shadow: 0 0 0 3px rgba(200,70,58,0.12);
+  }
+  .alert { padding: 0.75rem 1rem; border-radius: var(--radius); border-left: 3px solid; margin-bottom: 1rem; font-size: 0.875rem; }
+  .alert--warn { background: var(--al-warn-bg); color: var(--al-warn-fg); border-left-color: var(--al-warn-border); }
+  .alert--err  { background: var(--al-err-bg);  color: var(--al-err-fg);  border-left-color: var(--al-err-border); }
+  .chip {
+    display: inline-flex; align-items: center; min-height: 2rem; padding: 0.35rem 0.75rem;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+    color: var(--ink-700); font-size: 0.84rem; font-weight: 600; text-decoration: none;
+    box-shadow: var(--shadow-sm);
+  }
+  .chip:hover { border-color: var(--link-blue); color: var(--link-blue); }
+  .setup-wrap { max-width: 480px; margin: 6rem auto 0; padding: 0 1rem; }
+  .setup-card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: 12px; padding: 2.5rem 2rem; box-shadow: var(--shadow-sm); }
+  .setup-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 2.2rem; font-weight: 300; color: var(--ink-900); margin-bottom: 0.4rem; }
+  .setup-sub { color: var(--ink-500); font-size: 0.9rem; margin-bottom: 2rem; }
+</style>
+<script>
+(function initTheme() {
+  const saved = localStorage.getItem('lumina-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === 'dark' || (!saved && prefersDark)) {
+    document.documentElement.classList.add('dark');
+  }
+})();
+</script>
+```
+
+This mirrors `crates/server/templates/layouts/base.html`'s real tokens/classes (trimmed to what this app's pages actually use — no data-table/stop-bar/metric-grid, which don't apply here) plus `setup.html`'s `.field`/`.field-label`/`.setup-*` classes verbatim, so the WASM app's forms look identical to the existing `/setup` page. The `initTheme` script reads the same `localStorage` key (`lumina-theme`) the rest of the app writes via its theme toggle, so a user's dark/light preference carries over when navigating between the Askama pages and `/builder` — this app doesn't need its own toggle button, just to respect the stored preference.
+
+- [ ] **Step 2: Restyle the landing page**
+
+Replace the `html! { ... }` block in `LandingPage`'s body (in `crates/corridor_builder_web/src/pages/landing.rs`) — everything from `html! {` to its closing `}` — with:
+
+```rust
+    html! {
+        <div class="setup-wrap">
+            <div class="setup-card">
+                <h1 class="setup-title">{ "Corridor Builder" }</h1>
+                <p class="setup-sub">{ "Create a new remix or open an existing one." }</p>
+                if let Some(err) = &*load_error {
+                    <div class="alert alert--err">{ err }</div>
+                }
+                {
+                    match &*mode {
+                        Mode::Choose => html! {
+                            <div style="display:flex;gap:0.75rem;">
+                                <button class="btn btn-primary" onclick={on_choose_create}>{ "Create remix" }</button>
+                                <button class="btn" onclick={on_choose_open}>{ "Open remix" }</button>
+                            </div>
+                        },
+                        Mode::Create => html! {
+                            <div>
+                                <label class="field-label" for="create-region">{ "Metro region" }</label>
+                                <select class="field" id="create-region" ref={region_select.clone()}>
+                                    { for regions.iter().map(|r| html! {
+                                        <option value={r.id.to_string()}>{ &r.name }</option>
+                                    }) }
+                                </select>
+                                <label class="field-label" for="create-name" style="margin-top:1rem;">{ "Remix name" }</label>
+                                <input class="field" id="create-name" type="text" ref={name_input.clone()} />
+                                <button class="btn btn-primary" style="width:100%;margin-top:1rem;" onclick={on_submit_create}>{ "Create" }</button>
+                                if let Some(err) = &*create_error {
+                                    <div class="alert alert--err" style="margin-top:1rem;">{ err }</div>
+                                }
+                            </div>
+                        },
+                        Mode::Open => html! {
+                            <div>
+                                <label class="field-label" for="open-region">{ "Metro region" }</label>
+                                <select class="field" id="open-region" ref={open_region_select.clone()} onchange={on_pick_open_region}>
+                                    <option value="" selected=true disabled=true>{ "Select a region" }</option>
+                                    { for regions.iter().map(|r| html! {
+                                        <option value={r.id.to_string()}>{ &r.name }</option>
+                                    }) }
+                                </select>
+                                if let Some(err) = &*remixes_error {
+                                    <div class="alert alert--err" style="margin-top:1rem;">{ err }</div>
+                                }
+                                <ul style="list-style:none;margin-top:1rem;display:flex;flex-direction:column;gap:0.5rem;">
+                                    { for remixes.iter().map(|r| {
+                                        let remix_id = r.id;
+                                        html! {
+                                            <li>
+                                                <Link<Route> classes="chip" to={Route::RegionMap { remix_id }}>{ &r.name }</Link<Route>>
+                                            </li>
+                                        }
+                                    }) }
+                                </ul>
+                            </div>
+                        },
+                    }
+                }
+            </div>
+        </div>
+    }
+```
+
+Every existing `id`/`for` pairing, button text, and error message string is unchanged — this is a pure markup/class restyle, not a behavior change. The `e2e/tests/builder-create-remix.spec.ts` and `builder-open-remix.spec.ts` locators (`getByRole`/`getByLabel`/`getByText`) still resolve to the same elements; re-run them after this step to confirm.
+
+- [ ] **Step 3: Restyle the placeholder pages**
+
+In `crates/corridor_builder_web/src/pages/intersection.rs`, replace the `html! { ... }` block with:
+
+```rust
+    html! {
+        <div class="setup-wrap">
+            <div class="setup-card">
+                <p>{ "Intersection editor coming soon." }</p>
+                <div style="margin-top:1rem;">
+                    <Link<Route> classes="chip" to={Route::RegionMap { remix_id: props.remix_id }}>{ "Back to map" }</Link<Route>>
+                </div>
+            </div>
+        </div>
+    }
+```
+
+In `crates/corridor_builder_web/src/pages/corridor.rs`, the same pattern with `"Corridor editor coming soon."` and the corridor page's own `remix_id`. The exact lowercase substring `"editor coming soon"` in both is unchanged — `e2e/tests/builder-click-routing.spec.ts` depends on it.
+
+- [ ] **Step 4: Fix the region-map page's alert and add card-consistent chrome**
+
+In `crates/corridor_builder_web/src/pages/region_map.rs`, find the WebGL-unsupported alert block (added in Task 10) and any error-state block, and replace them with the `.alert`/`.alert--warn`/`.alert--err` classes now defined in `index.html` instead of any ad-hoc inline `style="background:var(--al-warn-bg)..."` attributes — for example:
+
+```rust
+if !*webgl_ok {
+    <div class="alert alert--warn">
+        <p>{ "Your browser doesn't support WebGL, which the region map requires." }</p>
+    </div>
+} else if let Some(err) = &*error {
+    <div class="alert alert--err">
+        <p>{ err }</p>
+        <Link<Route> classes="chip" to={Route::Landing}>{ "Back to builder" }</Link<Route>>
+    </div>
+}
+```
+
+Match this to whatever the actual current structure of that conditional block is in the file at the time you do this task (Task 10 may have restructured `mount_map`/error-handling since the plan was originally written) — the intent is: use `.alert`/`.alert--warn`/`.alert--err` instead of hand-rolled inline styles referencing CSS variables, and keep every existing conditional branch's behavior (when each message shows) unchanged.
+
+- [ ] **Step 5: Verify visually and via E2E**
+
+```bash
+cd crates/corridor_builder_web && trunk build && cd ../..
+dotenvx run -- cargo run --bin mobilispect-server &
+```
+
+Open `http://localhost:3000/builder` in a browser (or use screenshot tooling if available) and confirm: Cormorant Garamond heading, Jost body text, cream/cinnabar-toned buttons and fields matching the look of `http://localhost:3000/setup`. Then run the full E2E suite to confirm no regressions:
+
+```bash
+cd e2e && npx playwright test builder- --project=chromium
+```
+
+Expect all four `builder-*.spec.ts` files to still pass in full — this task changes markup/classes only, not behavior. Stop the server afterward.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add crates/corridor_builder_web/index.html crates/corridor_builder_web/src/pages/landing.rs crates/corridor_builder_web/src/pages/intersection.rs crates/corridor_builder_web/src/pages/corridor.rs crates/corridor_builder_web/src/pages/region_map.rs
+git commit -m "style(corridor-builder): bring the WASM shell's UI into Lumina design system compliance"
+```
+
+---
+
 ## Summary
 
-After all 12 tasks: an analyst can visit `/builder`, create or open a remix scoped to a metro region, see that region's corridors on an OpenStreetMap-tiled map with edited corridors highlighted in cinnabar, and click either a corridor or one of its endpoints to navigate to a (placeholder) editor page. The intersection editor and the segment/corridor editor are separate follow-up specs, tracked in the design spec's "Out of Scope" section.
+After all 13 tasks: an analyst can visit `/builder`, create or open a remix scoped to a metro region, see that region's corridors on an OpenStreetMap-tiled map with edited corridors highlighted in cinnabar, and click either a corridor or one of its endpoints to navigate to a (placeholder) editor page — styled consistently with the rest of Mobilispect via the Lumina design system. The intersection editor and the segment/corridor editor are separate follow-up specs, tracked in the design spec's "Out of Scope" section.
