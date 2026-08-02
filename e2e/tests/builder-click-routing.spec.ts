@@ -17,17 +17,25 @@ let corridorId: number;
 const CORRIDOR_START = { lat: 45.50, lon: -73.60 };
 const CORRIDOR_END = { lat: 45.52, lon: -73.58 };
 
-test.beforeAll(async () => {
+// The chromium/firefox/webkit projects run truly in parallel, in separate
+// workers, against the same shared dev Postgres (there is no per-test DB
+// isolation here — see helpers/db.ts). This test only ever navigates by the
+// seeded remixId/corridorId (never looks a row up by name), but folding
+// `testInfo.parallelIndex` (guaranteed distinct across concurrently running
+// workers) into the seeded names keeps them unique too, avoiding any
+// incidental collision surface between projects' fixture rows.
+test.beforeAll(async ({}, testInfo) => {
   await ensureRegionHasBoundingBox();
   await withDb(async (client) => {
     const remixResult = await client.query(
-      `INSERT INTO remixes (name, region_id) VALUES ('Click Routing Test Remix', 1) RETURNING id`
+      `INSERT INTO remixes (name, region_id) VALUES ($1, 1) RETURNING id`,
+      [`Click Routing Test Remix ${testInfo.parallelIndex}`]
     );
     remixId = remixResult.rows[0].id;
 
     const corridorResult = await client.query(
-      `INSERT INTO corridors (name, geometry_source, remix_id) VALUES ('Test Corridor', 'manual', $1) RETURNING id`,
-      [remixId]
+      `INSERT INTO corridors (name, geometry_source, remix_id) VALUES ($1, 'manual', $2) RETURNING id`,
+      [`Test Corridor ${testInfo.parallelIndex}`, remixId]
     );
     corridorId = corridorResult.rows[0].id;
 

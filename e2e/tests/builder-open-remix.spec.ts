@@ -8,12 +8,23 @@ import { ensureRegionHasBoundingBox, withDb } from './helpers/db';
  */
 
 let seededRemixId: number;
+let seededRemixName: string;
 
-test.beforeAll(async () => {
+// The chromium/firefox/webkit projects run truly in parallel, in separate
+// workers, against the same shared dev Postgres (there is no per-test DB
+// isolation here — see helpers/db.ts). A fixed fixture name would let two
+// projects' `beforeAll`s both insert a row with the same name at once,
+// making the `getByRole('link', { name: ... })` lookup below resolve to two
+// elements (Playwright strict-mode violation). `testInfo.parallelIndex` is
+// guaranteed distinct across workers running concurrently, so folding it
+// into the name keeps each project's fixture unique.
+test.beforeAll(async ({}, testInfo) => {
+  seededRemixName = `Open Flow Test Remix ${testInfo.parallelIndex}`;
   await ensureRegionHasBoundingBox();
   await withDb(async (client) => {
     const result = await client.query(
-      `INSERT INTO remixes (name, region_id) VALUES ('Open Flow Test Remix', 1) RETURNING id`
+      `INSERT INTO remixes (name, region_id) VALUES ($1, 1) RETURNING id`,
+      [seededRemixName]
     );
     seededRemixId = result.rows[0].id;
   });
@@ -34,7 +45,7 @@ test.describe('Corridor Builder: open remix', () => {
     await page.getByRole('button', { name: 'Open remix' }).click();
     await page.getByLabel('Metro region').selectOption({ label: 'Test Region' });
 
-    const remixLink = page.getByRole('link', { name: 'Open Flow Test Remix' });
+    const remixLink = page.getByRole('link', { name: seededRemixName });
     await expect(remixLink).toBeVisible();
     await remixLink.click();
 
