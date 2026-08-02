@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id AS corridor_id, c.geometry_source, c.created_at, c.updated_at,\n                  cs.id AS cross_section_id, cs.lat, cs.lon\n           FROM corridors c\n           JOIN cross_sections cs ON cs.corridor_id = c.id\n           WHERE c.remix_id = $1\n           ORDER BY c.id, cs.position",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "corridor_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "geometry_source",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "cross_section_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "lon",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5d73397ca84510a7debdb0a2afd5ada9939ece4439aec143d7771782400f1924"
+}

@@ -4,6 +4,7 @@
 
 pub mod geojson;
 pub mod highlight;
+pub mod repository;
 
 use crate::ids::{CorridorId, CrossSectionId, RegionId, RemixId};
 

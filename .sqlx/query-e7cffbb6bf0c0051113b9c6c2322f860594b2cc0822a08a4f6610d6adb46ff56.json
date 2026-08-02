@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, min_lat, min_lon, max_lat, max_lon\n           FROM regions\n           WHERE min_lat IS NOT NULL AND min_lon IS NOT NULL\n             AND max_lat IS NOT NULL AND max_lon IS NOT NULL\n           ORDER BY name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "min_lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "min_lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "max_lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "max_lon",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e7cffbb6bf0c0051113b9c6c2322f860594b2cc0822a08a4f6610d6adb46ff56"
+}
