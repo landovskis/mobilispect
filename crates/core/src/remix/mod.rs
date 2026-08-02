@@ -2,6 +2,7 @@
 //! corridor changes scoped to one metro region. See
 //! `docs/superpowers/specs/2026-08-02-corridor-builder-wasm-shell-design.md`.
 
+pub mod geojson;
 pub mod highlight;
 
 use crate::ids::{CorridorId, CrossSectionId, RegionId, RemixId};
