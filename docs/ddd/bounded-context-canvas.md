@@ -1,6 +1,6 @@
 # Bounded Context Canvas
 
-Four contexts, aligned to the Cargo crate structure.
+Five contexts, aligned to the Cargo crate structure.
 
 ---
 
@@ -79,3 +79,22 @@ Four contexts, aligned to the Cargo crate structure.
 **Depends on:** Performance (calls query functions only — never raw `sqlx` in handlers).
 
 **Policy:** No business logic in handlers. No raw `sqlx` in handlers. Handlers extract params, call slice API, render template.
+
+---
+
+## Corridor Design
+
+**Crate:** `mobilispect-core` (`corridor_design/`, `remix/`); `mobilispect-server` (`web/corridor_design.rs`, `web/remix_api.rs`, `web/corridor_import.rs`); `corridor_builder_web` (Yew WASM shell, served at `/builder`)
+**Purpose:** Analysts define and edit street corridors for proposed changes, scoped to remixes within a metro region.
+
+**Owns:**
+- `regions` table, extended with a bounding box (`min_lat`/`min_lon`/`max_lat`/`max_lon`) used to frame the region map
+- `remixes`, `corridors`, `cross_sections` tables
+- Corridor geometry import (GIS/OSM) and manual tracing; cross-section ordering, labelling, and edit operations
+- Corridor Builder JSON API (regions, remixes, remix corridors) and the Yew WASM create/open-remix UI
+
+**Aggregates:** `Region` (extended with a bounding box), `Remix`, `Corridor`, `CrossSection`
+
+**Relationships:** A `Remix` belongs to one `Region`. A `Corridor` belongs to one `Remix`.
+
+**Policy:** Edit and highlight-eligibility logic (`corridor_design::edit`, `remix::highlight`) is pure — no I/O. The repository layer persists and reads only; it performs no validation.
