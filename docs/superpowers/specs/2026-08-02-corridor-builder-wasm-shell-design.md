@@ -27,8 +27,8 @@ This spec covers only the shell: remix creation/selection, region selection, the
 | `regions` table | Add nullable `min_lat`, `min_lon`, `max_lat`, `max_lon` (`DOUBLE PRECISION`) columns |
 | Database | New `remixes` table: `id`, `name`, `region_id` (FK), `created_at`, `updated_at` |
 | `corridors` table | Add nullable `remix_id BIGINT REFERENCES remixes(id)` — corridors currently exist in a flat global namespace with no region/remix association |
-| New crate | `crates/corridor_builder_web` — Yew WASM app, built with Trunk |
-| `crates/core` | New `remix` module: pure domain logic (bounding box validation, highlight-rule computation) plus a `region` submodule extension; compiled for both native (server) and `wasm32-unknown-unknown` (client) targets |
+| New crate | `crates/corridor_builder_web` — Yew WASM app, built with Trunk. Deliberately **excluded** from the root `[workspace]` (via `exclude = [...]` in the root `Cargo.toml`), since `cargo build --workspace`/`cargo nextest run --workspace` would otherwise try to link it as a native host binary and fail — a `wasm-bindgen` binary crate only links successfully for the `wasm32-unknown-unknown` target. It keeps its own `Cargo.lock` and is built independently via `trunk build`/`trunk serve`, matching how the existing `e2e/` Playwright suite is already a separate Node toolchain living alongside the Cargo workspace rather than inside it |
+| `crates/core` | New `remix` module: pure domain logic (bounding box validation, highlight-rule computation, GeoJSON assembly) plus a `region` submodule extension. Server-side only — see note below |
 | `crates/server` | New `crates/server/src/web/remix_api.rs` — JSON API handlers (see below); `build_router` gains these routes plus a static-file mount for the built WASM assets at `/builder` |
 | `docs/ddd/bounded-context-canvas.md`, `ubiquitous-language.md` | Updated with the terms above (tracked as an implementation task, per this project's DDD rule) |
 
@@ -37,6 +37,8 @@ This spec covers only the shell: remix creation/selection, region selection, the
 - Existing Askama-rendered pages (`/`, `/speed`, `/schedule`, etc.) are untouched.
 - The existing `corridor_design`/`corridor_import` Askama scaffolding (REQ-001–007, Loop A complete, Loop B not started) is **not modified by this spec**. It will be reworked into WASM by the follow-up segment-editor spec. Its Playwright specs in `e2e/` continue to fail for the same "route not wired" reason they do today, unaffected by this work.
 - `crates/core/src/corridor_design/*` (existing `Coordinate`, `GeometrySource`, `Corridor`, `CrossSection` types) is reused as-is; this spec only adds the `remix_id` association.
+
+**Correction from initial design pass:** `mobilispect-core` cannot be compiled to `wasm32-unknown-unknown` as a whole — it's built around `sqlx` (Postgres/TCP sockets), `tokio` (`full`), `reqwest`, and `testcontainers`, none of which run in a browser sandbox, and even its "pure" types (`Coordinate`, `GeometrySource`) derive `sqlx::Type`/`sqlx::FromRow`, coupling them to the same dependency graph. For this shell, that turns out not to matter: the highlight-rule predicate only needs to run once, server-side, when building the API response (`highlighted: bool` is sent as data); the WASM client never needs to recompute it, and MapLibre's own `queryRenderedFeatures` handles click hit-testing natively rather than needing custom Rust geometry code in the browser. So `corridor_builder_web` has no dependency on `mobilispect-core` at all — it's a self-contained presentation layer talking to the JSON API. Compiling shared *pure* logic to `wasm32` (e.g. client-side label-length validation) becomes relevant for the follow-up segment-editor spec, and introducing a feature-gated split of `mobilispect-core` (isolating pure modules from the `sqlx`/`tokio`/`reqwest` ones behind a default-on Cargo feature) is deferred to that spec, where it's actually needed.
 
 ## Data Model
 
@@ -74,7 +76,7 @@ This touches `crates/core/migrations/` — per this project's Safety Rules, call
 2. **Create remix**: pick a metro region (dropdown, from `regions` with a bounding box set) and enter a name → `POST /api/remixes` → navigate to the region map for the new remix.
 3. **Open remix**: pick a metro region first, then see a list of that region's remixes (most-recently-updated first) → select one → navigate to its region map.
 4. **Region map** (`/builder/remix/:remix_id`): MapLibre GL JS renders OSM base tiles framed by the region's bounding box. The remix's corridors are drawn as a GeoJSON overlay; corridors matching the "edited corridor" rule are visually highlighted (distinct color/weight), others are drawn but not highlighted.
-5. **Click an intersection node** → navigate to `/builder/remix/:remix_id/intersection/:node_id` — a real route, placeholder "editor coming soon" page.
+5. **Click an intersection node** → navigate to `/builder/remix/:remix_id/intersection/:node_id` — a real route, placeholder "editor coming soon" page. **Identifier clarification:** this shell has no separate "Intersection" aggregate yet (that's the intersection-editor follow-up spec's job). A corridor's two endpoints — its first and last cross-section — stand in as its intersections, identified by `cross_sections.id`. This works uniformly for both imported and manually-traced corridors, since manual corridors have no `osm_node_id` (it's `NULL` for hand-drawn points) but always have a cross-section `id`.
 6. **Click a segment between intersections** (a corridor) → navigate to `/builder/remix/:remix_id/corridor/:corridor_id` — a real route, placeholder page. Reuses the existing `corridor_id` identity from the REQ-001–007 work.
 
 ## API Endpoints (new)
@@ -85,7 +87,7 @@ This touches `crates/core/migrations/` — per this project's Safety Rules, call
 | `GET /api/regions/:id/remixes` | List remixes for a region, most-recently-updated first |
 | `POST /api/remixes` | Create a remix: `{name, region_id}` → `{id}` |
 | `GET /api/remixes/:id` | Remix detail: `{id, name, region: {id, name, bbox}}` |
-| `GET /api/remixes/:id/corridors` | GeoJSON `FeatureCollection`; one `LineString` feature per corridor with properties `{corridor_id, highlighted: bool}` |
+| `GET /api/remixes/:id/corridors` | GeoJSON `FeatureCollection` with two feature kinds per corridor: one `LineString` (`properties: {feature_type: "corridor", corridor_id, highlighted}`) and one `Point` per endpoint (`properties: {feature_type: "intersection", cross_section_id}`) for its first and last cross-section |
 
 All handlers live in `crates/server/src/web/remix_api.rs`, following this project's vertical-slice convention (query + computation + handler together), with pure logic (bounding box validation, the highlight-rule predicate) in `crates/core/src/remix/`.
 
@@ -93,7 +95,7 @@ All handlers live in `crates/server/src/web/remix_api.rs`, following this projec
 
 - `crates/corridor_builder_web`: Yew app, built with Trunk, output served by Axum via a static-file mount at `/builder` with an `index.html` fallback for client-side routing (Yew Router).
 - Client-side routes: `/builder`, `/builder/remix/:id`, `/builder/remix/:id/intersection/:node_id` (placeholder), `/builder/remix/:id/corridor/:id` (placeholder).
-- Map rendering is delegated to MapLibre GL JS via `wasm-bindgen` interop — OSM tiles, the corridor GeoJSON overlay, pan/zoom, and click events all go through MapLibre; the Yew app owns state (current remix, region, corridor list) and click-to-route logic, calling into `mobilispect-core`'s pure functions (compiled for `wasm32` as well as native) for hit-testing and the highlight-rule predicate.
+- Map rendering is delegated to MapLibre GL JS via hand-written `wasm-bindgen` extern bindings (not an unofficial third-party wrapper crate) — OSM tiles, the corridor/intersection GeoJSON overlay (rendered as two MapLibre layers: `line` for corridors, `circle` for intersection points), pan/zoom, and click hit-testing (via MapLibre's own `queryRenderedFeatures`, layer-scoped) all go through MapLibre. The Yew app owns UI state (current remix, region, corridor list) and turns a clicked feature's `feature_type` property into a client-side route push via `yew-router`. No `mobilispect-core` dependency (see the correction note above) — highlighting is precomputed server-side and delivered as data.
 
 ## Error Handling
 
