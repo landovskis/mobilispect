@@ -62,6 +62,12 @@ pub fn build_router(state: AppState) -> Router {
             "/api/remixes/:remix_id/corridors",
             get(remix_api::list_remix_corridors),
         )
+        .nest_service(
+            "/builder",
+            ServeDir::new("crates/corridor_builder_web/dist").not_found_service(ServeFile::new(
+                "crates/corridor_builder_web/dist/index.html",
+            )),
+        )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             middleware::require_region_configured,

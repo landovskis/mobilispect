@@ -1,5 +1,6 @@
 [workspace]
 members = ["crates/core", "crates/server", "crates/worker"]
+exclude = ["crates/corridor_builder_web"]
 resolver = "2"
 
 # Binary tool requirements (not enforced by Cargo — install manually):
