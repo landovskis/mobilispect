@@ -14,9 +14,13 @@ pub struct IntersectionPageProps {
 #[component]
 pub fn IntersectionPage(props: &IntersectionPageProps) -> Html {
     html! {
-        <div class="builder-placeholder">
-            <p>{ "Intersection editor coming soon." }</p>
-            <Link<Route> to={Route::RegionMap { remix_id: props.remix_id }}>{ "Back to map" }</Link<Route>>
+        <div class="setup-wrap">
+            <div class="setup-card">
+                <p>{ "Intersection editor coming soon." }</p>
+                <div style="margin-top:1rem;">
+                    <Link<Route> classes="chip" to={Route::RegionMap { remix_id: props.remix_id }}>{ "Back to map" }</Link<Route>>
+                </div>
+            </div>
         </div>
     }
 }

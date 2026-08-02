@@ -41,13 +41,13 @@ pub fn RegionMapPage(props: &RegionMapPageProps) -> Html {
     html! {
         <div class="builder-region-map">
             if !*webgl_ok {
-                <div class="alert" style="background:var(--al-warn-bg);border-color:var(--al-warn-bd);">
-                    <p style="color:var(--al-warn-title);">{ "Your browser doesn't support WebGL, which the region map requires." }</p>
+                <div class="alert alert--warn">
+                    <p>{ "Your browser doesn't support WebGL, which the region map requires." }</p>
                 </div>
             } else if let Some(err) = &*error {
-                <div class="builder-error">
-                    <p class="error">{ err }</p>
-                    <Link<Route> to={Route::Landing}>{ "Back to builder" }</Link<Route>>
+                <div class="alert alert--err">
+                    <p>{ err }</p>
+                    <Link<Route> classes="chip" to={Route::Landing}>{ "Back to builder" }</Link<Route>>
                 </div>
             }
             <div id="map" style="width: 100%; height: 100vh;"></div>

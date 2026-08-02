@@ -14,9 +14,13 @@ pub struct CorridorPageProps {
 #[component]
 pub fn CorridorPage(props: &CorridorPageProps) -> Html {
     html! {
-        <div class="builder-placeholder">
-            <p>{ "Corridor editor coming soon." }</p>
-            <Link<Route> to={Route::RegionMap { remix_id: props.remix_id }}>{ "Back to map" }</Link<Route>>
+        <div class="setup-wrap">
+            <div class="setup-card">
+                <p>{ "Corridor editor coming soon." }</p>
+                <div style="margin-top:1rem;">
+                    <Link<Route> classes="chip" to={Route::RegionMap { remix_id: props.remix_id }}>{ "Back to map" }</Link<Route>>
+                </div>
+            </div>
         </div>
     }
 }

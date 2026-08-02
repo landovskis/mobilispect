@@ -109,61 +109,64 @@ pub fn LandingPage() -> Html {
     };
 
     html! {
-        <div class="builder-landing">
-            <h1>{ "Corridor Builder" }</h1>
-            if let Some(err) = &*load_error {
-                <p class="error">{ err }</p>
-            }
-            {
-                match &*mode {
-                    Mode::Choose => html! {
-                        <div>
-                            <button onclick={on_choose_create}>{ "Create remix" }</button>
-                            <button onclick={on_choose_open}>{ "Open remix" }</button>
-                        </div>
-                    },
-                    Mode::Create => html! {
-                        <div>
-                            <label for="create-region">{ "Metro region" }</label>
-                            <select id="create-region" ref={region_select.clone()}>
-                                { for regions.iter().map(|r| html! {
-                                    <option value={r.id.to_string()}>{ &r.name }</option>
-                                }) }
-                            </select>
-                            <label for="create-name">{ "Remix name" }</label>
-                            <input id="create-name" type="text" ref={name_input.clone()} />
-                            <button onclick={on_submit_create}>{ "Create" }</button>
-                            if let Some(err) = &*create_error {
-                                <p class="error">{ err }</p>
-                            }
-                        </div>
-                    },
-                    Mode::Open => html! {
-                        <div>
-                            <label for="open-region">{ "Metro region" }</label>
-                            <select id="open-region" ref={open_region_select.clone()} onchange={on_pick_open_region}>
-                                <option value="" selected=true disabled=true>{ "Select a region" }</option>
-                                { for regions.iter().map(|r| html! {
-                                    <option value={r.id.to_string()}>{ &r.name }</option>
-                                }) }
-                            </select>
-                            if let Some(err) = &*remixes_error {
-                                <p class="error">{ err }</p>
-                            }
-                            <ul>
-                                { for remixes.iter().map(|r| {
-                                    let remix_id = r.id;
-                                    html! {
-                                        <li>
-                                            <Link<Route> to={Route::RegionMap { remix_id }}>{ &r.name }</Link<Route>>
-                                        </li>
-                                    }
-                                }) }
-                            </ul>
-                        </div>
-                    },
+        <div class="setup-wrap">
+            <div class="setup-card">
+                <h1 class="setup-title">{ "Corridor Builder" }</h1>
+                <p class="setup-sub">{ "Create a new remix or open an existing one." }</p>
+                if let Some(err) = &*load_error {
+                    <div class="alert alert--err">{ err }</div>
                 }
-            }
+                {
+                    match &*mode {
+                        Mode::Choose => html! {
+                            <div style="display:flex;gap:0.75rem;">
+                                <button class="btn btn-primary" onclick={on_choose_create}>{ "Create remix" }</button>
+                                <button class="btn" onclick={on_choose_open}>{ "Open remix" }</button>
+                            </div>
+                        },
+                        Mode::Create => html! {
+                            <div>
+                                <label class="field-label" for="create-region">{ "Metro region" }</label>
+                                <select class="field" id="create-region" ref={region_select.clone()}>
+                                    { for regions.iter().map(|r| html! {
+                                        <option value={r.id.to_string()}>{ &r.name }</option>
+                                    }) }
+                                </select>
+                                <label class="field-label" for="create-name" style="margin-top:1rem;">{ "Remix name" }</label>
+                                <input class="field" id="create-name" type="text" ref={name_input.clone()} />
+                                <button class="btn btn-primary" style="width:100%;margin-top:1rem;" onclick={on_submit_create}>{ "Create" }</button>
+                                if let Some(err) = &*create_error {
+                                    <div class="alert alert--err" style="margin-top:1rem;">{ err }</div>
+                                }
+                            </div>
+                        },
+                        Mode::Open => html! {
+                            <div>
+                                <label class="field-label" for="open-region">{ "Metro region" }</label>
+                                <select class="field" id="open-region" ref={open_region_select.clone()} onchange={on_pick_open_region}>
+                                    <option value="" selected=true disabled=true>{ "Select a region" }</option>
+                                    { for regions.iter().map(|r| html! {
+                                        <option value={r.id.to_string()}>{ &r.name }</option>
+                                    }) }
+                                </select>
+                                if let Some(err) = &*remixes_error {
+                                    <div class="alert alert--err" style="margin-top:1rem;">{ err }</div>
+                                }
+                                <ul style="list-style:none;margin-top:1rem;display:flex;flex-direction:column;gap:0.5rem;">
+                                    { for remixes.iter().map(|r| {
+                                        let remix_id = r.id;
+                                        html! {
+                                            <li>
+                                                <Link<Route> classes="chip" to={Route::RegionMap { remix_id }}>{ &r.name }</Link<Route>>
+                                            </li>
+                                        }
+                                    }) }
+                                </ul>
+                            </div>
+                        },
+                    }
+                }
+            </div>
         </div>
     }
 }
