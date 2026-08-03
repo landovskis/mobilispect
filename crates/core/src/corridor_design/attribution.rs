@@ -18,8 +18,7 @@ use crate::corridor_design::GeometrySource;
 /// NOT YET IMPLEMENTED — see IMP-REQ-003-02 (Loop B GREEN pass). This stub exists so
 /// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn attribution_visible(geometry_source: Option<GeometrySource>) -> bool {
-    let _ = geometry_source;
-    unimplemented!("IMP-REQ-003-02: attribution_visible not yet implemented")
+    !matches!(geometry_source, Some(GeometrySource::Manual))
 }
 
 #[cfg(test)]

@@ -114,8 +114,14 @@ pub fn validate_next_point(
     existing: &[Coordinate],
     candidate: Coordinate,
 ) -> Result<(), GeometryValidationError> {
-    let _ = (existing, candidate);
-    unimplemented!("IMP-REQ-002-04: validate_next_point not yet implemented")
+    let Some(previous) = existing.last() else {
+        return Ok(());
+    };
+    const EPSILON: f64 = 1e-9;
+    if haversine_meters(*previous, candidate) < MIN_POINT_SEPARATION_METERS - EPSILON {
+        return Err(GeometryValidationError::DuplicateOrTooClose);
+    }
+    Ok(())
 }
 
 /// Enforces the minimum point count (>= 2) required to finish a manual trace.
@@ -125,8 +131,10 @@ pub fn validate_next_point(
 /// NOT YET IMPLEMENTED — see IMP-REQ-002-04 (Loop B GREEN pass). This stub exists so
 /// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn validate_finishable(points: &[Coordinate]) -> Result<(), GeometryValidationError> {
-    let _ = points;
-    unimplemented!("IMP-REQ-002-04: validate_finishable not yet implemented")
+    if points.len() < 2 {
+        return Err(GeometryValidationError::InsufficientPoints);
+    }
+    Ok(())
 }
 
 /// Computes the next `position` value for a new cross-section given the current
@@ -137,8 +145,7 @@ pub fn validate_finishable(points: &[Coordinate]) -> Result<(), GeometryValidati
 /// NOT YET IMPLEMENTED — see IMP-REQ-002-04 (Loop B GREEN pass). This stub exists so
 /// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn next_position(existing: &[Coordinate]) -> i32 {
-    let _ = existing;
-    unimplemented!("IMP-REQ-002-04: next_position not yet implemented")
+    existing.len() as i32
 }
 
 /// Orders a set of way segments into one connected, non-self-intersecting sequence
@@ -154,8 +161,189 @@ pub fn next_position(existing: &[Coordinate]) -> i32 {
 pub fn normalize_corridor_geometry(
     raw: RawGeometry,
 ) -> Result<NormalizedCorridor, ImportGeometryError> {
-    let _ = raw;
-    unimplemented!("IMP-REQ-001-06: normalize_corridor_geometry not yet implemented")
+    if raw.segments.is_empty() {
+        return Err(ImportGeometryError::IncompleteGeometry);
+    }
+    for segment in &raw.segments {
+        if segment.points.len() < 2 {
+            return Err(ImportGeometryError::IncompleteGeometry);
+        }
+        for point in &segment.points {
+            if !point.coordinate.is_valid() {
+                return Err(ImportGeometryError::Malformed(format!(
+                    "coordinate ({}, {}) is outside valid WGS84 range",
+                    point.coordinate.lat, point.coordinate.lon
+                )));
+            }
+        }
+    }
+
+    let ordered_points = order_segments_into_path(&raw.segments)?;
+
+    if path_self_intersects(&ordered_points) {
+        return Err(ImportGeometryError::SelfIntersecting);
+    }
+
+    let cross_sections = ordered_points
+        .into_iter()
+        .enumerate()
+        .map(|(i, p)| CrossSectionPoint {
+            position: i as i32,
+            coordinate: p.coordinate,
+            osm_way_id: p.osm_way_id,
+            osm_node_id: p.osm_node_id,
+        })
+        .collect();
+
+    Ok(NormalizedCorridor { cross_sections })
+}
+
+fn haversine_meters(a: Coordinate, b: Coordinate) -> f64 {
+    const EARTH_RADIUS_M: f64 = 6_371_000.0;
+    let lat1 = a.lat.to_radians();
+    let lat2 = b.lat.to_radians();
+    let delta_lat = (b.lat - a.lat).to_radians();
+    let delta_lon = (b.lon - a.lon).to_radians();
+    let h =
+        (delta_lat / 2.0).sin().powi(2) + lat1.cos() * lat2.cos() * (delta_lon / 2.0).sin().powi(2);
+    2.0 * EARTH_RADIUS_M * h.sqrt().asin()
+}
+
+#[derive(Debug, Clone, Copy)]
+struct OrderedPoint {
+    coordinate: Coordinate,
+    osm_way_id: Option<i64>,
+    osm_node_id: Option<i64>,
+}
+
+/// Orders way segments end-to-end into one connected path. A single segment is
+/// trivially "ordered" as-is. Multiple segments must chain via shared endpoint
+/// coordinates (within floating-point tolerance) — this rejects (as
+/// `Disconnected`) any segment that doesn't connect to the growing chain at
+/// either end.
+fn order_segments_into_path(
+    segments: &[RawWaySegment],
+) -> Result<Vec<OrderedPoint>, ImportGeometryError> {
+    const COORDINATE_TOLERANCE: f64 = 1e-9;
+
+    fn coords_match(a: Coordinate, b: Coordinate) -> bool {
+        (a.lat - b.lat).abs() < COORDINATE_TOLERANCE && (a.lon - b.lon).abs() < COORDINATE_TOLERANCE
+    }
+
+    fn segment_points(segment: &RawWaySegment) -> Vec<OrderedPoint> {
+        segment
+            .points
+            .iter()
+            .map(|p| OrderedPoint {
+                coordinate: p.coordinate,
+                osm_way_id: segment.osm_way_id,
+                osm_node_id: p.osm_node_id,
+            })
+            .collect()
+    }
+
+    let mut remaining: Vec<&RawWaySegment> = segments.iter().collect();
+    let first = remaining.remove(0);
+    let mut chain = segment_points(first);
+
+    while !remaining.is_empty() {
+        let chain_start = chain.first().unwrap().coordinate;
+        let chain_end = chain.last().unwrap().coordinate;
+
+        let match_index = remaining.iter().position(|seg| {
+            let seg_start = seg.points.first().unwrap().coordinate;
+            let seg_end = seg.points.last().unwrap().coordinate;
+            coords_match(chain_end, seg_start)
+                || coords_match(chain_end, seg_end)
+                || coords_match(chain_start, seg_start)
+                || coords_match(chain_start, seg_end)
+        });
+
+        let Some(index) = match_index else {
+            return Err(ImportGeometryError::Disconnected);
+        };
+
+        let segment = remaining.remove(index);
+        let seg_start = segment.points.first().unwrap().coordinate;
+        let seg_end = segment.points.last().unwrap().coordinate;
+        let mut points = segment_points(segment);
+
+        if coords_match(chain_end, seg_start) {
+            // Appends after the chain's end, dropping the duplicate shared point.
+            points.remove(0);
+            chain.extend(points);
+        } else if coords_match(chain_end, seg_end) {
+            points.reverse();
+            points.remove(0);
+            chain.extend(points);
+        } else if coords_match(chain_start, seg_end) {
+            points.pop();
+            points.extend(chain);
+            chain = points;
+        } else {
+            // coords_match(chain_start, seg_start)
+            points.reverse();
+            points.pop();
+            points.extend(chain);
+            chain = points;
+        }
+    }
+
+    Ok(chain)
+}
+
+/// True if any two non-adjacent segments of the path cross each other.
+/// Adjacent segments sharing an endpoint are not considered a self-intersection.
+fn path_self_intersects(points: &[OrderedPoint]) -> bool {
+    if points.len() < 4 {
+        return false;
+    }
+    for i in 0..points.len() - 1 {
+        let a1 = points[i].coordinate;
+        let a2 = points[i + 1].coordinate;
+        for j in (i + 2)..points.len() - 1 {
+            // Skip the pair that shares an endpoint with segment i (the path's
+            // own last segment wrapping to its first point, if ever closed).
+            if i == 0
+                && j == points.len() - 2
+                && points[0].coordinate == points[points.len() - 1].coordinate
+            {
+                continue;
+            }
+            let b1 = points[j].coordinate;
+            let b2 = points[j + 1].coordinate;
+            if segments_intersect(a1, a2, b1, b2) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn segments_intersect(p1: Coordinate, p2: Coordinate, p3: Coordinate, p4: Coordinate) -> bool {
+    fn orientation(a: Coordinate, b: Coordinate, c: Coordinate) -> f64 {
+        (b.lon - a.lon) * (c.lat - a.lat) - (b.lat - a.lat) * (c.lon - a.lon)
+    }
+    fn on_segment(a: Coordinate, b: Coordinate, c: Coordinate) -> bool {
+        c.lon.min(a.lon.min(b.lon)) <= c.lon
+            && c.lon <= a.lon.max(b.lon.max(c.lon))
+            && c.lat.min(a.lat.min(b.lat)) <= c.lat
+            && c.lat <= a.lat.max(b.lat.max(c.lat))
+    }
+
+    let o1 = orientation(p1, p2, p3);
+    let o2 = orientation(p1, p2, p4);
+    let o3 = orientation(p3, p4, p1);
+    let o4 = orientation(p3, p4, p2);
+
+    if (o1 > 0.0) != (o2 > 0.0) && (o3 > 0.0) != (o4 > 0.0) && o1 != 0.0 && o2 != 0.0 {
+        return true;
+    }
+
+    (o1 == 0.0 && on_segment(p1, p2, p3))
+        || (o2 == 0.0 && on_segment(p1, p2, p4))
+        || (o3 == 0.0 && on_segment(p3, p4, p1))
+        || (o4 == 0.0 && on_segment(p3, p4, p2))
 }
 
 #[cfg(test)]
