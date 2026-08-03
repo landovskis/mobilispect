@@ -33,5 +33,6 @@ extern "C" {
     pub fn on(this: &Map, event_type: &str, callback: &Closure<dyn FnMut(JsValue)>);
 
     #[wasm_bindgen(method, js_name = queryRenderedFeatures)]
-    pub fn query_rendered_features(this: &Map, point: &JsValue, options: &JsValue) -> js_sys::Array;
+    pub fn query_rendered_features(this: &Map, point: &JsValue, options: &JsValue)
+    -> js_sys::Array;
 }

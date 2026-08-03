@@ -121,8 +121,7 @@ async fn mount_map(
     let load_map = map.clone();
     let load_navigator = navigator.clone();
     let onload = Closure::wrap(Box::new(move |_event: JsValue| {
-        if let Err(e) = finish_map_setup(&load_map, &bbox, &corridors, &load_navigator, remix_id)
-        {
+        if let Err(e) = finish_map_setup(&load_map, &bbox, &corridors, &load_navigator, remix_id) {
             error.set(Some(e));
         }
     }) as Box<dyn FnMut(JsValue)>);
@@ -221,10 +220,9 @@ fn handle_map_click(map: &Map, event: &JsValue, navigator: &Navigator, remix_id:
                 }
             }
             "corridor-lines" => {
-                if let Some(corridor_id) =
-                    js_sys::Reflect::get(&properties, &"corridor_id".into())
-                        .ok()
-                        .and_then(|v| v.as_f64())
+                if let Some(corridor_id) = js_sys::Reflect::get(&properties, &"corridor_id".into())
+                    .ok()
+                    .and_then(|v| v.as_f64())
                 {
                     navigator.push(&Route::Corridor {
                         remix_id,

@@ -23,6 +23,11 @@ COPY . .
 
 RUN cargo build --release
 
+# Build the Corridor Builder WASM frontend, served by mobilispect-server at /builder.
+RUN rustup target add wasm32-unknown-unknown \
+    && cargo install trunk --locked \
+    && (cd crates/corridor_builder_web && trunk build --release)
+
 # =============================================================================
 # Stage 2 — Runtime
 # =============================================================================
@@ -41,6 +46,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # macro that embeds migration SQL directly into the binary.
 COPY --from=builder /build/target/release/mobilispect-server /usr/local/bin/mobilispect-server
 COPY --from=builder /build/target/release/mobilispect-worker /usr/local/bin/mobilispect-worker
+
+# Corridor Builder WASM assets, served by mobilispect-server at /builder via
+# ServeDir::new("crates/corridor_builder_web/dist") — a path relative to the
+# server process's CWD. There's no WORKDIR set here (CWD defaults to /), so
+# this is copied to the absolute path that relative path resolves to.
+COPY --from=builder /build/crates/corridor_builder_web/dist /crates/corridor_builder_web/dist
 
 # config.toml must be available in the working directory, or set MOBILISPECT_CONFIG.
 # Secret values referenced by *_env config fields must be present in the process env.
