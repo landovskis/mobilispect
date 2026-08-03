@@ -39,6 +39,26 @@ jobs:
           tool: nextest
       - name: Run tests
         run: cargo nextest run --profile ci
+  wasm-lint:
+    name: WASM Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates/corridor_builder_web
+      - name: Check formatting
+        run: cargo fmt --check --manifest-path crates/corridor_builder_web/Cargo.toml
+      - name: Clippy
+        run: cargo clippy --manifest-path crates/corridor_builder_web/Cargo.toml --target wasm32-unknown-unknown -- -D warnings
+      - name: Install trunk
+        run: cargo install trunk --locked
+      - name: Build
+        run: cd crates/corridor_builder_web && trunk build
   audit:
     name: Audit
     runs-on: ubuntu-latest

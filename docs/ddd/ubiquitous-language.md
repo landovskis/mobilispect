@@ -36,3 +36,5 @@ Terms used consistently across code, specs, and conversations. When a new featur
 | GTFS-RT Feed | — | A protobuf stream of real-time vehicle positions and delay updates. |
 | Early Threshold | `i64` (seconds) | How many seconds early a trip can arrive and still be considered on-time. Configured per agency. |
 | Late Threshold | `i64` (seconds) | How many seconds late a trip can arrive and still be considered on-time. Configured per agency. |
+| Remix | `RemixId` | A named, user-created draft of proposed street corridor changes, scoped to exactly one metro region. Not tied to any user account. |
+| Edited corridor | — | A corridor that differs from a pristine imported state: manually traced, or mutated since creation. Drives the region map's highlight overlay. |

@@ -135,6 +135,9 @@ int_id!(FeedId);
 int_id!(RegionId);
 int_id!(NetworkId);
 int_id!(DirectionId);
+int_id!(CorridorId);
+int_id!(CrossSectionId);
+int_id!(RemixId);
 
 /// Convert from config `id: u32` to `FeedId`.
 impl From<u32> for FeedId {

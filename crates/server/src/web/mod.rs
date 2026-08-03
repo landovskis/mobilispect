@@ -1,15 +1,22 @@
 use anyhow::Result;
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
 use mobilispect_core::config::Config;
 use mobilispect_core::db::Database;
 
+mod corridor_design;
+mod corridor_import;
 mod handlers;
 pub mod middleware;
+mod remix_api;
 
 #[derive(Debug)]
 pub enum SetupState {
@@ -44,6 +51,23 @@ pub fn build_router(state: AppState) -> Router {
         .route("/routes/:agency_id/:route_id", get(handlers::route_detail))
         .route("/api/routes", get(handlers::api_routes))
         .route("/api/routes/speed", get(handlers::api_route_speed))
+        .route("/api/regions", get(remix_api::list_regions))
+        .route(
+            "/api/regions/:region_id/remixes",
+            get(remix_api::list_region_remixes),
+        )
+        .route("/api/remixes", post(remix_api::create_remix))
+        .route("/api/remixes/:remix_id", get(remix_api::get_remix))
+        .route(
+            "/api/remixes/:remix_id/corridors",
+            get(remix_api::list_remix_corridors),
+        )
+        .nest_service(
+            "/builder",
+            ServeDir::new("crates/corridor_builder_web/dist").not_found_service(ServeFile::new(
+                "crates/corridor_builder_web/dist/index.html",
+            )),
+        )
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             middleware::require_region_configured,
