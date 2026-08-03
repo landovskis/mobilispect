@@ -6,6 +6,7 @@
 pub mod attribution;
 pub mod edit;
 pub mod geometry;
+pub mod lanes;
 pub mod position;
 pub mod repository;
 
