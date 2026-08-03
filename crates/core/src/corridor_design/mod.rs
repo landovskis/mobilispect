@@ -88,7 +88,7 @@ impl TryFrom<String> for GeometrySourceColumn {
 pub struct CrossSection {
     pub id: CrossSectionId,
     pub corridor_id: CorridorId,
-    pub position: i32,
+    pub position: f64,
     pub lat: f64,
     pub lon: f64,
     pub osm_way_id: Option<i64>,

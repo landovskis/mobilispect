@@ -102,13 +102,13 @@ mod tests {
 
     /// Builds a `CrossSection` fixture with a distinct position/coordinate/label,
     /// matching the shape TC-REQ-006-1/2's A/B/C fixture describes.
-    fn make_cross_section(id: i64, position: i32, label: &str) -> CrossSection {
+    fn make_cross_section(id: i64, position: f64, label: &str) -> CrossSection {
         CrossSection {
             id: CrossSectionId::from(id),
             corridor_id: CorridorId::from(1),
             position,
-            lat: 45.500 + f64::from(position) * 0.001,
-            lon: -73.600 + f64::from(position) * 0.001,
+            lat: 45.500 + position * 0.001,
+            lon: -73.600 + position * 0.001,
             osm_way_id: None,
             osm_node_id: None,
             label: Some(label.to_string()),
@@ -119,9 +119,9 @@ mod tests {
     /// preconditions (distinct labels, position order A < B < C).
     fn sample_three() -> Vec<CrossSection> {
         vec![
-            make_cross_section(1, 0, "Main St @ 5th Ave"),
-            make_cross_section(2, 1, "Main St @ 6th Ave"),
-            make_cross_section(3, 2, "Main St @ 7th Ave"),
+            make_cross_section(1, 0.0, "Main St @ 5th Ave"),
+            make_cross_section(2, 1.0, "Main St @ 6th Ave"),
+            make_cross_section(3, 2.0, "Main St @ 7th Ave"),
         ]
     }
 
@@ -150,7 +150,7 @@ mod tests {
         assert_eq!(updated[1].id, target_id);
         assert_eq!(updated[1].label.as_deref(), Some(new_label.as_str()));
         // Every non-label field on the target itself is also unchanged.
-        assert_eq!(updated[1].position, 1);
+        assert_eq!(updated[1].position, 1.0);
         assert_eq!(updated[1].corridor_id, CorridorId::from(1));
     }
 

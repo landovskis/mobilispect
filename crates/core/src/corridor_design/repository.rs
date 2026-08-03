@@ -201,7 +201,7 @@ mod tests {
 
     #[derive(sqlx::FromRow)]
     struct CrossSectionRow {
-        position: i32,
+        position: f64,
         lat: f64,
         lon: f64,
     }
@@ -234,8 +234,8 @@ mod tests {
         .unwrap();
 
         assert_eq!(rows.len(), 3);
-        let positions: Vec<i32> = rows.iter().map(|r| r.position).collect();
-        assert_eq!(positions, vec![0, 1, 2]);
+        let positions: Vec<f64> = rows.iter().map(|r| r.position).collect();
+        assert_eq!(positions, vec![0.0, 1.0, 2.0]);
         for (row, expected) in rows.iter().zip(normalized.cross_sections.iter()) {
             assert!((row.lat - expected.coordinate.lat).abs() < 1e-9);
             assert!((row.lon - expected.coordinate.lon).abs() < 1e-9);
@@ -314,8 +314,8 @@ mod tests {
         .unwrap();
 
         assert_eq!(rows.len(), 4);
-        let positions: Vec<i32> = rows.iter().map(|r| r.position).collect();
-        assert_eq!(positions, vec![0, 1, 2, 3]);
+        let positions: Vec<f64> = rows.iter().map(|r| r.position).collect();
+        assert_eq!(positions, vec![0.0, 1.0, 2.0, 3.0]);
         for (row, expected) in rows.iter().zip(points.iter()) {
             assert!((row.lat - expected.lat).abs() < 1e-9);
             assert!((row.lon - expected.lon).abs() < 1e-9);
@@ -406,10 +406,10 @@ mod tests {
         assert_eq!(manual_sections.len(), 4);
         assert_eq!(imported_sections.len(), 4);
 
-        let manual_positions: Vec<i32> = manual_sections.iter().map(|cs| cs.position).collect();
-        let imported_positions: Vec<i32> = imported_sections.iter().map(|cs| cs.position).collect();
-        assert_eq!(manual_positions, vec![0, 1, 2, 3]);
-        assert_eq!(imported_positions, vec![0, 1, 2, 3]);
+        let manual_positions: Vec<f64> = manual_sections.iter().map(|cs| cs.position).collect();
+        let imported_positions: Vec<f64> = imported_sections.iter().map(|cs| cs.position).collect();
+        assert_eq!(manual_positions, vec![0.0, 1.0, 2.0, 3.0]);
+        assert_eq!(imported_positions, vec![0.0, 1.0, 2.0, 3.0]);
 
         for (manual, imported) in manual_sections.iter().zip(imported_sections.iter()) {
             assert_eq!(
