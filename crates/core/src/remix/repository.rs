@@ -27,16 +27,27 @@ pub async fn list_regions_with_bounding_box(pool: &PgPool) -> anyhow::Result<Vec
 
     Ok(rows
         .into_iter()
-        .map(|row| Region {
-            id: RegionId::from(row.id),
-            name: row.name,
-            bounding_box: BoundingBox {
+        .filter_map(|row| {
+            let region_id = row.id;
+            let bounding_box = BoundingBox {
                 // Safe: the WHERE clause guarantees these four columns are non-null.
                 min_lat: row.min_lat.unwrap(),
                 min_lon: row.min_lon.unwrap(),
                 max_lat: row.max_lat.unwrap(),
                 max_lon: row.max_lon.unwrap(),
-            },
+            };
+            if bounding_box.validate().is_err() {
+                tracing::warn!(
+                    region_id,
+                    "region has an invalid bounding box; excluding it from the metro-region picker"
+                );
+                return None;
+            }
+            Some(Region {
+                id: RegionId::from(region_id),
+                name: row.name,
+                bounding_box,
+            })
         })
         .collect())
 }
@@ -239,6 +250,23 @@ mod tests {
 
         assert_eq!(regions.len(), 1);
         assert_eq!(regions[0].name, "Has Bbox");
+    }
+
+    #[tokio::test]
+    async fn list_regions_with_bounding_box_excludes_regions_with_an_invalid_bounding_box() {
+        let td = test_utils::setup().await;
+        let pool = &td.db.pool;
+        let invalid_bbox = BoundingBox {
+            min_lat: 45.60,
+            min_lon: -73.70,
+            max_lat: 45.40, // min_lat > max_lat: degenerate
+            max_lon: -73.50,
+        };
+        seed_region(pool, 1, "Invalid Bbox", Some(invalid_bbox)).await;
+
+        let regions = list_regions_with_bounding_box(pool).await.unwrap();
+
+        assert_eq!(regions.len(), 0);
     }
 
     #[tokio::test]
