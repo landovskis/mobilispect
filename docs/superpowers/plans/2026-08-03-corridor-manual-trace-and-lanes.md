@@ -838,28 +838,39 @@ pub async fn insert_corridor(
 ) -> Result<CorridorId, anyhow::Error> {
     let mut tx = pool.begin().await?;
 
-    let corridor_id: i64 = sqlx::query_scalar(
+    // `RETURNING id` on a non-test-seeding insert uses the compile-time-checked
+    // `query!` macro, per this plan's Global Constraints — the test-seeding
+    // exception (runtime `sqlx::query_scalar`) doesn't apply to production code.
+    let corridor_id = sqlx::query!(
         "INSERT INTO corridors (remix_id, name, geometry_source, import_format, osm_attribution) \
          VALUES ($1, $2, 'imported', $3, $4) RETURNING id",
+        remix_id.as_i64(),
+        name,
+        import_format,
+        osm_attribution,
     )
-    .bind(remix_id.as_i64())
-    .bind(name)
-    .bind(import_format)
-    .bind(osm_attribution)
     .fetch_one(&mut *tx)
-    .await?;
+    .await?
+    .id;
 
     for cs in &normalized.cross_sections {
-        sqlx::query(
+        // `$2::float8`: `position` is a NUMERIC column and this crate has no
+        // bigdecimal/rust_decimal sqlx feature enabled (see `position.rs`'s
+        // top-of-file note on the same constraint) — casting the bind
+        // placeholder to `float8` lets `query!` accept an `f64` argument here
+        // (Postgres implicitly casts float8 -> numeric on insert), mirroring
+        // this codebase's existing `position::float8 AS "position!"` pattern
+        // for the read direction.
+        sqlx::query!(
             "INSERT INTO cross_sections (corridor_id, position, lat, lon, osm_way_id, osm_node_id) \
-             VALUES ($1, $2, $3, $4, $5, $6)",
+             VALUES ($1, $2::float8, $3, $4, $5, $6)",
+            corridor_id,
+            f64::from(cs.position),
+            cs.coordinate.lat,
+            cs.coordinate.lon,
+            cs.osm_way_id,
+            cs.osm_node_id,
         )
-        .bind(corridor_id)
-        .bind(f64::from(cs.position))
-        .bind(cs.coordinate.lat)
-        .bind(cs.coordinate.lon)
-        .bind(cs.osm_way_id)
-        .bind(cs.osm_node_id)
         .execute(&mut *tx)
         .await?;
     }
@@ -908,13 +919,14 @@ pub async fn start_manual_corridor(
     remix_id: RemixId,
     name: &str,
 ) -> Result<CorridorId, anyhow::Error> {
-    let corridor_id: i64 = sqlx::query_scalar(
+    let corridor_id = sqlx::query!(
         "INSERT INTO corridors (remix_id, name, geometry_source) VALUES ($1, $2, 'manual') RETURNING id",
+        remix_id.as_i64(),
+        name,
     )
-    .bind(remix_id.as_i64())
-    .bind(name)
     .fetch_one(pool)
-    .await?;
+    .await?
+    .id;
     Ok(CorridorId::from(corridor_id))
 }
 
@@ -929,24 +941,30 @@ pub async fn insert_cross_section(
     coordinate: Coordinate,
     position: i32,
 ) -> Result<CrossSectionId, anyhow::Error> {
-    let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM corridors WHERE id = $1)")
-            .bind(corridor_id.as_i64())
-            .fetch_one(pool)
-            .await?;
+    // `AS "exists!"`: `EXISTS(...)` always yields a genuine boolean, but sqlx's
+    // `describe` reports computed expressions as nullable by default — the `!`
+    // suffix forces the non-null type, matching this codebase's established
+    // force-non-null idiom (e.g. `db/feeds.rs`'s `agency_onestop_id!`).
+    let exists = sqlx::query_scalar!(
+        r#"SELECT EXISTS(SELECT 1 FROM corridors WHERE id = $1) AS "exists!""#,
+        corridor_id.as_i64(),
+    )
+    .fetch_one(pool)
+    .await?;
     if !exists {
         anyhow::bail!("corridor {corridor_id} does not exist");
     }
 
-    let id: i64 = sqlx::query_scalar(
-        "INSERT INTO cross_sections (corridor_id, position, lat, lon) VALUES ($1, $2, $3, $4) RETURNING id",
+    let id = sqlx::query!(
+        "INSERT INTO cross_sections (corridor_id, position, lat, lon) VALUES ($1, $2::float8, $3, $4) RETURNING id",
+        corridor_id.as_i64(),
+        f64::from(position),
+        coordinate.lat,
+        coordinate.lon,
     )
-    .bind(corridor_id.as_i64())
-    .bind(f64::from(position))
-    .bind(coordinate.lat)
-    .bind(coordinate.lon)
     .fetch_one(pool)
-    .await?;
+    .await?
+    .id;
     Ok(CrossSectionId::from(id))
 }
 
@@ -962,11 +980,12 @@ pub async fn finalize_corridor(
     pool: &sqlx::PgPool,
     corridor_id: CorridorId,
 ) -> Result<(), anyhow::Error> {
-    let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM corridors WHERE id = $1)")
-            .bind(corridor_id.as_i64())
-            .fetch_one(pool)
-            .await?;
+    let exists = sqlx::query_scalar!(
+        r#"SELECT EXISTS(SELECT 1 FROM corridors WHERE id = $1) AS "exists!""#,
+        corridor_id.as_i64(),
+    )
+    .fetch_one(pool)
+    .await?;
     if !exists {
         anyhow::bail!("corridor {corridor_id} does not exist");
     }
@@ -992,31 +1011,37 @@ pub async fn insert_lanes_for_cross_section(
     let mut lane_ids = Vec::with_capacity(drafts.len());
 
     for (i, draft) in drafts.iter().enumerate() {
-        let lane_id: i64 = sqlx::query_scalar(
+        let position = (i + 1) as f64;
+        let lane_type = draft.lane_type.as_db_str();
+        let direction = draft.direction.as_db_str();
+        // `$2::float8` — same NUMERIC-column reasoning as `insert_corridor`'s
+        // cross-section insert above.
+        let lane_id = sqlx::query!(
             "INSERT INTO lanes (cross_section_id, position, lane_type, width_meters, direction) \
-             VALUES ($1, $2, $3, $4, $5) RETURNING id",
+             VALUES ($1, $2::float8, $3, $4, $5) RETURNING id",
+            cross_section_id.as_i64(),
+            position,
+            lane_type,
+            draft.width_meters,
+            direction,
         )
-        .bind(cross_section_id.as_i64())
-        .bind((i + 1) as f64)
-        .bind(draft.lane_type.as_db_str())
-        .bind(draft.width_meters)
-        .bind(draft.direction.as_db_str())
         .fetch_one(&mut *tx)
-        .await?;
+        .await?
+        .id;
 
         for rule in &draft.access_rules {
             let (days, start_time, end_time) = time_window_columns(rule);
             let allowed_modes: Vec<&str> =
                 rule.allowed_modes.iter().map(|m| m.as_db_str()).collect();
-            sqlx::query(
+            sqlx::query!(
                 "INSERT INTO lane_access_rules (lane_id, days, start_time, end_time, allowed_modes) \
                  VALUES ($1, $2, $3, $4, $5)",
+                lane_id,
+                days,
+                start_time,
+                end_time,
+                &allowed_modes as &[&str],
             )
-            .bind(lane_id)
-            .bind(days)
-            .bind(start_time)
-            .bind(end_time)
-            .bind(&allowed_modes)
             .execute(&mut *tx)
             .await?;
         }
