@@ -68,7 +68,7 @@ CREATE INDEX idx_corridors_remix ON corridors (remix_id);
 
 This touches `crates/core/migrations/` — per this project's Safety Rules, called out explicitly here and again in the implementation plan.
 
-**Note on bounding box population:** the existing first-launch setup flow (`POST /setup`, see `2026-06-03-first-launch-region-setup-design.md`) inserts a `regions` row without a bounding box, and there's no admin UI to set one. This spec does not touch that flow. The metro-region picker (below) only lists regions where a bounding box has been set (`WHERE min_lat IS NOT NULL`); populating it for now is a manual one-time operator step (direct `UPDATE`), documented in the migration file's comment. Building an admin UI for this is out of scope.
+**Note on bounding box population:** the existing first-launch setup flow (`POST /setup`, see `2026-06-03-first-launch-region-setup-design.md`) inserts a `regions` row without a bounding box, and there's no admin UI to set one. This spec does not touch that flow. The metro-region picker (below) only lists regions where a bounding box has been set (`WHERE min_lat IS NOT NULL`); populating it for now is a manual one-time operator step (direct `UPDATE`), documented in `crates/corridor_builder_web/README.md`. Building an admin UI for this is out of scope.
 
 ## User Flow
 
