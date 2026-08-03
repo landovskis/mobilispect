@@ -560,7 +560,15 @@ pub fn validate_next_point(
     let Some(previous) = existing.last() else {
         return Ok(());
     };
-    if haversine_meters(*previous, candidate) < MIN_POINT_SEPARATION_METERS {
+    // Boundary points constructed via degree-based math (see
+    // `point_north_of` in the test fixtures) round-trip through the
+    // haversine formula with ~1e-9m of floating-point drift; the epsilon
+    // keeps a point exactly at MIN_POINT_SEPARATION_METERS from being
+    // rejected by that drift without masking genuinely-too-close points
+    // (the nearest rejection case in the test suite is 9 orders of
+    // magnitude further away than this epsilon).
+    const EPSILON: f64 = 1e-9;
+    if haversine_meters(*previous, candidate) < MIN_POINT_SEPARATION_METERS - EPSILON {
         return Err(GeometryValidationError::DuplicateOrTooClose);
     }
     Ok(())
@@ -729,9 +737,16 @@ fn path_self_intersects(points: &[OrderedPoint]) -> bool {
         let a1 = points[i].coordinate;
         let a2 = points[i + 1].coordinate;
         for j in (i + 2)..points.len() - 1 {
-            // Skip the pair that shares an endpoint with segment i (the path's
-            // own last segment wrapping to its first point, if ever closed).
-            if i == 0 && j == points.len() - 2 {
+            // Skip the pair that shares an endpoint with segment i, but only
+            // when the path is actually closed (points[0] == points[last]).
+            // An unconditional skip here misses real self-intersections on
+            // open paths — e.g. the bowtie (0,0)->(1,1)->(0,1)->(1,0), whose
+            // only checkable pair (i=0, j=points.len()-2) crosses at
+            // (0.5, 0.5) but would never be checked.
+            if i == 0
+                && j == points.len() - 2
+                && points[0].coordinate == points[points.len() - 1].coordinate
+            {
                 continue;
             }
             let b1 = points[j].coordinate;
