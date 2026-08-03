@@ -17,7 +17,7 @@ fn internal_error(context: &str, err: anyhow::Error) -> ApiError {
     tracing::error!(error = %err, "{context}");
     (
         StatusCode::INTERNAL_SERVER_ERROR,
-        Json(serde_json::json!({ "error": err.to_string() })),
+        Json(serde_json::json!({ "error": "Internal Server Error" })),
     )
 }
 
