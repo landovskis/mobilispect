@@ -22,13 +22,24 @@ export async function withDb<T>(fn: (client: Client) => Promise<T>): Promise<T> 
   }
 }
 
-/** Ensures region id=1 (the single region this repo's first-launch setup
- * creates) has a bounding box, so it appears in the metro-region picker. */
+/** Ensures region id=1 exists, is named "Test Region" (matching the
+ * hardcoded label the builder-*.spec.ts specs select in the picker), and has
+ * a bounding box, so it appears in the metro-region picker. Owns the fixture
+ * outright — inserts the row if it's missing (e.g. a fresh DB where
+ * first-launch setup hasn't run) and overwrites name/bbox if it already
+ * exists, so the specs never depend on prior manual seeding. */
 export async function ensureRegionHasBoundingBox(): Promise<void> {
   await withDb(async (client) => {
     await client.query(
-      `UPDATE regions SET min_lat = 45.40, min_lon = -73.70, max_lat = 45.60, max_lon = -73.50
-       WHERE id = 1`
+      `INSERT INTO regions (id, name, timezone, min_lat, min_lon, max_lat, max_lon)
+       VALUES (1, 'Test Region', 'UTC', 45.40, -73.70, 45.60, -73.50)
+       ON CONFLICT (id) DO UPDATE SET
+         name = EXCLUDED.name,
+         timezone = EXCLUDED.timezone,
+         min_lat = EXCLUDED.min_lat,
+         min_lon = EXCLUDED.min_lon,
+         max_lat = EXCLUDED.max_lat,
+         max_lon = EXCLUDED.max_lon`
     );
   });
 }
