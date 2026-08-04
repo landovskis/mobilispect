@@ -1249,10 +1249,7 @@ mod tests {
     /// agency cannot reorder it. There is no auth/authorization layer anywhere in
     /// this codebase yet (confirmed absent project-wide), so this cannot be
     /// meaningfully tested until one exists — tracked as a cross-cutting project
-    /// blocker (see Implementation Plan Open Risks), matching this codebase's
-    /// existing precedent for not-yet-buildable auth test cases (e.g.
-    /// `test_tc_req_003_5_no_dismiss_control_on_attribution_strip` in
-    /// `crates/server/src/web/corridor_design.rs`).
+    /// blocker (see Implementation Plan Open Risks).
     #[ignore = "IMP-REQ-005-06/07: no auth/authorization layer exists anywhere in this codebase yet — see Corridor Design BRD, no auth constraint"]
     #[tokio::test]
     async fn reorder_cross_sections_by_unauthorized_user_returns_403() {

@@ -14,9 +14,6 @@ use crate::corridor_design::GeometrySource;
 /// `geometry_source` (e.g. a data-migration gap) fails safe to `true` — see
 /// SDD REQ-003 "Error Handling" for the accompanying `tracing::warn!` requirement,
 /// which belongs to the imperative shell that calls this function, not here.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-003-02 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn attribution_visible(geometry_source: Option<GeometrySource>) -> bool {
     !matches!(geometry_source, Some(GeometrySource::Manual))
 }

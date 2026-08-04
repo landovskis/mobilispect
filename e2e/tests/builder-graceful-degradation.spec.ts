@@ -4,9 +4,7 @@ import { ensureRegionHasBoundingBox } from './helpers/db';
 /**
  * Corridor Builder WASM shell — WebGL graceful degradation (see design
  * spec's Error Handling table). Scoped to what this shell's map actually
- * depends on (WebGL, for MapLibre GL JS), distinct from the existing
- * canvas/Pointer-Events feature-detection pattern in feature-detection.spec.ts
- * (which covers the separate, canvas-based corridor segment editor).
+ * depends on: WebGL, for MapLibre GL JS.
  */
 
 test.beforeAll(async () => {

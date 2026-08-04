@@ -107,9 +107,6 @@ pub const MIN_POINT_SEPARATION_METERS: f64 = 5.0;
 ///
 /// Pure — no I/O. Rejects points that are duplicate or within
 /// `MIN_POINT_SEPARATION_METERS` of the immediately preceding point.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-002-04 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn validate_next_point(
     existing: &[Coordinate],
     candidate: Coordinate,
@@ -117,6 +114,12 @@ pub fn validate_next_point(
     let Some(previous) = existing.last() else {
         return Ok(());
     };
+    // Boundary points constructed via degree-based math (see `point_north_of`
+    // in the test fixtures) round-trip through the haversine formula with
+    // ~1e-9m of floating-point drift; the epsilon keeps a point exactly at
+    // MIN_POINT_SEPARATION_METERS from being rejected by that drift without
+    // masking genuinely-too-close points (the nearest rejection case in the
+    // test suite is 9 orders of magnitude further away than this epsilon).
     const EPSILON: f64 = 1e-9;
     if haversine_meters(*previous, candidate) < MIN_POINT_SEPARATION_METERS - EPSILON {
         return Err(GeometryValidationError::DuplicateOrTooClose);
@@ -127,9 +130,6 @@ pub fn validate_next_point(
 /// Enforces the minimum point count (>= 2) required to finish a manual trace.
 ///
 /// Pure — no I/O.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-002-04 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn validate_finishable(points: &[Coordinate]) -> Result<(), GeometryValidationError> {
     if points.len() < 2 {
         return Err(GeometryValidationError::InsufficientPoints);
@@ -141,9 +141,6 @@ pub fn validate_finishable(points: &[Coordinate]) -> Result<(), GeometryValidati
 /// ordered list of points: `0` for an empty list, `existing.len()` otherwise.
 ///
 /// Pure — no I/O.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-002-04 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn next_position(existing: &[Coordinate]) -> i32 {
     existing.len() as i32
 }
@@ -155,9 +152,6 @@ pub fn next_position(existing: &[Coordinate]) -> i32 {
 /// RFC 7946, and the CRS OSM/Overpass data is published in) — this function validates
 /// that assumption via range/finiteness checks rather than performing CRS conversion;
 /// out-of-range or non-finite coordinates are rejected as malformed, not reprojected.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-001-06 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn normalize_corridor_geometry(
     raw: RawGeometry,
 ) -> Result<NormalizedCorridor, ImportGeometryError> {
@@ -302,8 +296,12 @@ fn path_self_intersects(points: &[OrderedPoint]) -> bool {
         let a1 = points[i].coordinate;
         let a2 = points[i + 1].coordinate;
         for j in (i + 2)..points.len() - 1 {
-            // Skip the pair that shares an endpoint with segment i (the path's
-            // own last segment wrapping to its first point, if ever closed).
+            // Skip the pair that shares an endpoint with segment i, but only
+            // when the path is actually closed (points[0] == points[last]).
+            // An unconditional skip here misses real self-intersections on
+            // open paths — e.g. the bowtie (0,0)->(1,1)->(0,1)->(1,0), whose
+            // only checkable pair (i=0, j=points.len()-2) crosses at
+            // (0.5, 0.5) but would never be checked.
             if i == 0
                 && j == points.len() - 2
                 && points[0].coordinate == points[points.len() - 1].coordinate
@@ -325,10 +323,10 @@ fn segments_intersect(p1: Coordinate, p2: Coordinate, p3: Coordinate, p4: Coordi
         (b.lon - a.lon) * (c.lat - a.lat) - (b.lat - a.lat) * (c.lon - a.lon)
     }
     fn on_segment(a: Coordinate, b: Coordinate, c: Coordinate) -> bool {
-        c.lon.min(a.lon.min(b.lon)) <= c.lon
-            && c.lon <= a.lon.max(b.lon.max(c.lon))
-            && c.lat.min(a.lat.min(b.lat)) <= c.lat
-            && c.lat <= a.lat.max(b.lat.max(c.lat))
+        a.lon.min(b.lon) <= c.lon
+            && c.lon <= a.lon.max(b.lon)
+            && a.lat.min(b.lat) <= c.lat
+            && c.lat <= a.lat.max(b.lat)
     }
 
     let o1 = orientation(p1, p2, p3);
@@ -425,6 +423,34 @@ mod tests {
 
         let result = normalize_corridor_geometry(raw);
         assert_eq!(result, Err(ImportGeometryError::SelfIntersecting));
+    }
+
+    /// Regression: `on_segment`'s bounding-box check must compare the candidate
+    /// point `c` against `a`/`b`'s range only — including `c` in its own
+    /// `min`/`max` comparison makes every conjunct a tautology, which flags any
+    /// exactly-collinear point (any point lying exactly on the infinite line
+    /// through another segment) as an intersection regardless of whether it's
+    /// actually within that segment's bounding box. A straight run of 4+ points
+    /// sharing an exact longitude (common with fixed-precision OSM data) must
+    /// normalize cleanly, not be rejected as self-intersecting.
+    #[test]
+    fn normalize_corridor_geometry_accepts_straight_collinear_path() {
+        let raw = RawGeometry {
+            segments: vec![RawWaySegment {
+                osm_way_id: Some(700),
+                points: vec![
+                    point(45.500, -73.580, Some(70)),
+                    point(45.501, -73.580, Some(71)),
+                    point(45.502, -73.580, Some(72)),
+                    point(45.503, -73.580, Some(73)),
+                    point(45.504, -73.580, Some(74)),
+                ],
+            }],
+        };
+
+        let normalized = normalize_corridor_geometry(raw)
+            .expect("straight collinear path does not self-intersect");
+        assert_eq!(normalized.cross_sections.len(), 5);
     }
 
     /// TC-REQ-001-4 (unit slice): two way segments with no shared endpoint (a real

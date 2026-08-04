@@ -152,7 +152,15 @@ fn mount_trace_map(
         let click_error = click_error.clone();
         wasm_bindgen_futures::spawn_local(async move {
             match api::add_manual_point(corridor_id, lat, lon).await {
-                Ok(_) => click_point_count.set(*click_point_count + 1),
+                // `click_point_count` is a snapshot from the render where this
+                // closure was created (Yew 0.23 hazard: a `UseStateHandle`
+                // captured into a `Closure` that outlives the render doesn't
+                // see later updates), so a client-side increment off of it
+                // would always compute `0 + 1`. Use the server's own
+                // authoritative count instead — `position` is the 0-based
+                // index the server assigned this point at insert time, so
+                // the count of points placed so far is `position + 1`.
+                Ok(response) => click_point_count.set(response.position as usize + 1),
                 Err(e) => click_error.set(Some(e)),
             }
         });

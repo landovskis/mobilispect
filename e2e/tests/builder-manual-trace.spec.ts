@@ -47,6 +47,10 @@ test.describe('Corridor Design: manual trace', () => {
     await canvas.click({ position: { x: 320, y: 220 } });
     await canvas.click({ position: { x: 340, y: 240 } });
 
+    await expect(
+      page.getByText('Click the map to place points (3 placed so far, minimum 2).')
+    ).toBeVisible();
+
     await page.getByRole('button', { name: 'Finish trace' }).click();
 
     await expect(page).toHaveURL(new RegExp(`/builder/remix/${remixId}/corridor/\\d+$`));

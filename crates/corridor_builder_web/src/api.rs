@@ -1,5 +1,7 @@
 //! JSON API client for the server's `/api/regions`, `/api/remixes` endpoints
-//! (see `crates/server/src/web/remix_api.rs`).
+//! (see `crates/server/src/web/remix_api.rs`) and the `/api/remixes/:id/corridors`,
+//! `/api/corridors` manual-tracing endpoints (see
+//! `crates/server/src/web/corridor_api.rs`).
 
 use serde::{Deserialize, Serialize};
 
@@ -139,12 +141,14 @@ struct AddManualPointRequest {
     lon: f64,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Deserialize)]
 pub struct CrossSectionResponse {
+    #[allow(dead_code)]
     pub id: i64,
     pub position: f64,
+    #[allow(dead_code)]
     pub lat: f64,
+    #[allow(dead_code)]
     pub lon: f64,
 }
 

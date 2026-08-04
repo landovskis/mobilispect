@@ -763,11 +763,18 @@ fn segments_intersect(p1: Coordinate, p2: Coordinate, p3: Coordinate, p4: Coordi
     fn orientation(a: Coordinate, b: Coordinate, c: Coordinate) -> f64 {
         (b.lon - a.lon) * (c.lat - a.lat) - (b.lat - a.lat) * (c.lon - a.lon)
     }
+    // Bounding-box containment check for a point c already known to be
+    // collinear with a/b (the caller only calls this when the orientation
+    // test found o == 0.0). Compares c against a/b's range only — folding c
+    // into its own min/max (as an earlier draft of this function did) makes
+    // every conjunct a tautology (`min(c, x) <= c` and `c <= max(c, x)` are
+    // always true), which flags any exactly-collinear point as "on segment"
+    // regardless of whether it actually falls within a/b's bounding box.
     fn on_segment(a: Coordinate, b: Coordinate, c: Coordinate) -> bool {
-        c.lon.min(a.lon.min(b.lon)) <= c.lon
-            && c.lon <= a.lon.max(b.lon.max(c.lon))
-            && c.lat.min(a.lat.min(b.lat)) <= c.lat
-            && c.lat <= a.lat.max(b.lat.max(c.lat))
+        a.lon.min(b.lon) <= c.lon
+            && c.lon <= a.lon.max(b.lon)
+            && a.lat.min(b.lat) <= c.lat
+            && c.lat <= a.lat.max(b.lat)
     }
 
     let o1 = orientation(p1, p2, p3);
