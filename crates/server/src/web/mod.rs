@@ -12,6 +12,7 @@ use tracing::info;
 use mobilispect_core::config::Config;
 use mobilispect_core::db::Database;
 
+mod corridor_api;
 mod handlers;
 pub mod middleware;
 mod remix_api;
@@ -59,6 +60,18 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/api/remixes/:remix_id/corridors",
             get(remix_api::list_remix_corridors),
+        )
+        .route(
+            "/api/remixes/:remix_id/corridors/manual",
+            post(corridor_api::start_manual_corridor),
+        )
+        .route(
+            "/api/corridors/:corridor_id/points",
+            post(corridor_api::add_manual_point),
+        )
+        .route(
+            "/api/corridors/:corridor_id/finish",
+            post(corridor_api::finish_manual_corridor),
         )
         .nest_service(
             "/builder",
