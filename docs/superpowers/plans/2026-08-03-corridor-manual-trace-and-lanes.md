@@ -1383,7 +1383,7 @@ git commit -m "feat(corridor-design): implement remix-scoped corridor/cross-sect
 
 **Interfaces:**
 - Consumes: `mobilispect_core::corridor_design::{geometry, repository}` (Tasks 5-6), `mobilispect_core::ids::{RemixId, CorridorId}`.
-- Produces: `POST /api/remixes/:remix_id/corridors/manual`, `POST /api/corridors/:corridor_id/points`, `DELETE /api/corridors/:corridor_id/points/last`, `POST /api/corridors/:corridor_id/finish`.
+- Produces: `POST /api/remixes/:remix_id/corridors/manual`, `POST /api/corridors/:corridor_id/points`, `POST /api/corridors/:corridor_id/finish`. (An earlier draft of this line also advertised `DELETE /api/corridors/:corridor_id/points/last`, but neither this task's own Steps nor Task 9's Consumes line ever implement or call it — corrected to match what the task actually builds.)
 
 - [ ] **Step 1: Write the failing tests**
 
