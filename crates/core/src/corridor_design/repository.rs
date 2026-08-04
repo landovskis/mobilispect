@@ -6,83 +6,338 @@
 use crate::corridor_design::Coordinate;
 use crate::corridor_design::CrossSection;
 use crate::corridor_design::geometry::NormalizedCorridor;
-use crate::ids::{CorridorId, CrossSectionId};
+use crate::corridor_design::lanes::{Lane, LaneDirection, LaneDraft, LaneType, TimedAccessRule};
+use crate::ids::{CorridorId, CrossSectionId, LaneId, RemixId};
 
-/// Persists a newly imported corridor and its ordered cross-sections.
-///
-/// `normalized` must already be validated (see `geometry::normalize_corridor_geometry`)
-/// — this function performs no geometry validation of its own.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-001-07 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
+/// Persists a newly imported corridor and its ordered cross-sections, scoped to
+/// `remix_id`. `normalized` must already be validated (see
+/// `geometry::normalize_corridor_geometry`) — this function performs no geometry
+/// validation of its own. Does not create any lanes; callers that want an
+/// OSM-tag-derived baseline lane set insert them separately via
+/// `insert_lanes_for_cross_section` after this returns.
 pub async fn insert_corridor(
     pool: &sqlx::PgPool,
+    remix_id: RemixId,
     name: &str,
     import_format: &str,
     osm_attribution: Option<&str>,
     normalized: &NormalizedCorridor,
 ) -> Result<CorridorId, anyhow::Error> {
-    let _ = (pool, name, import_format, osm_attribution, normalized);
-    unimplemented!("IMP-REQ-001-07: insert_corridor not yet implemented")
+    let mut tx = pool.begin().await?;
+
+    // `RETURNING id` on a non-test-seeding insert uses the compile-time-checked
+    // `query!` macro, per this plan's Global Constraints — the test-seeding
+    // exception (runtime `sqlx::query_scalar`) doesn't apply to production code.
+    let corridor_id = sqlx::query!(
+        "INSERT INTO corridors (remix_id, name, geometry_source, import_format, osm_attribution) \
+         VALUES ($1, $2, 'imported', $3, $4) RETURNING id",
+        remix_id.as_i64(),
+        name,
+        import_format,
+        osm_attribution,
+    )
+    .fetch_one(&mut *tx)
+    .await?
+    .id;
+
+    for cs in &normalized.cross_sections {
+        // `$2::float8`: `position` is a NUMERIC column and this crate has no
+        // bigdecimal/rust_decimal sqlx feature enabled (see `position.rs`'s
+        // top-of-file note on the same constraint) — casting the bind
+        // placeholder to `float8` lets `query!` accept an `f64` argument here
+        // (Postgres implicitly casts float8 -> numeric on insert), mirroring
+        // this codebase's existing `position::float8 AS "position!"` pattern
+        // for the read direction.
+        sqlx::query!(
+            "INSERT INTO cross_sections (corridor_id, position, lat, lon, osm_way_id, osm_node_id) \
+             VALUES ($1, $2::float8, $3, $4, $5, $6)",
+            corridor_id,
+            f64::from(cs.position),
+            cs.coordinate.lat,
+            cs.coordinate.lon,
+            cs.osm_way_id,
+            cs.osm_node_id,
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
+    Ok(CorridorId::from(corridor_id))
 }
 
 /// Fetches all cross-sections for a corridor, ordered by `position`.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-001-07 (Loop B GREEN pass). This stub exists so
-/// later requirements' integration tests can compile and fail for the right reason.
 pub async fn get_corridor_cross_sections(
     pool: &sqlx::PgPool,
     corridor_id: CorridorId,
 ) -> Result<Vec<CrossSection>, anyhow::Error> {
-    let _ = (pool, corridor_id);
-    unimplemented!("IMP-REQ-001-07: get_corridor_cross_sections not yet implemented")
+    let rows = sqlx::query!(
+        r#"SELECT id, corridor_id, position::float8 AS "position!", lat, lon,
+                  osm_way_id, osm_node_id, label
+           FROM cross_sections
+           WHERE corridor_id = $1
+           ORDER BY position"#,
+        corridor_id.as_i64(),
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows
+        .into_iter()
+        .map(|row| CrossSection {
+            id: CrossSectionId::from(row.id),
+            corridor_id: CorridorId::from(row.corridor_id),
+            position: row.position,
+            lat: row.lat,
+            lon: row.lon,
+            osm_way_id: row.osm_way_id,
+            osm_node_id: row.osm_node_id,
+            label: row.label,
+        })
+        .collect())
 }
 
-/// Creates a new corridor for a manual trace (REQ-002), with `geometry_source =
-/// 'manual'` and no `import_format`/`osm_attribution`. Cross-sections are added one
-/// at a time afterward via `insert_cross_section` as the analyst clicks.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-002-06 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
+/// Creates a new corridor for a manual trace (REQ-002), scoped to `remix_id`,
+/// with `geometry_source = 'manual'` and no `import_format`/`osm_attribution`.
+/// Cross-sections are added one at a time afterward via `insert_cross_section`
+/// as the analyst clicks.
 pub async fn start_manual_corridor(
     pool: &sqlx::PgPool,
+    remix_id: RemixId,
     name: &str,
 ) -> Result<CorridorId, anyhow::Error> {
-    let _ = (pool, name);
-    unimplemented!("IMP-REQ-002-06: start_manual_corridor not yet implemented")
+    let corridor_id = sqlx::query!(
+        "INSERT INTO corridors (remix_id, name, geometry_source) VALUES ($1, $2, 'manual') RETURNING id",
+        remix_id.as_i64(),
+        name,
+    )
+    .fetch_one(pool)
+    .await?
+    .id;
+    Ok(CorridorId::from(corridor_id))
 }
 
 /// Inserts a single cross-section point at `position` for an existing corridor.
-///
-/// Caller must have already validated `coordinate` against the corridor's existing
-/// points (see `geometry::validate_next_point`) — this function performs no geometry
-/// validation of its own. Returns an error if `corridor_id` does not reference an
-/// existing corridor.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-002-06 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
+/// Caller must have already validated `coordinate` against the corridor's
+/// existing points (see `geometry::validate_next_point`) — this function
+/// performs no geometry validation of its own. Returns an error if
+/// `corridor_id` does not reference an existing corridor.
 pub async fn insert_cross_section(
     pool: &sqlx::PgPool,
     corridor_id: CorridorId,
     coordinate: Coordinate,
     position: i32,
 ) -> Result<CrossSectionId, anyhow::Error> {
-    let _ = (pool, corridor_id, coordinate, position);
-    unimplemented!("IMP-REQ-002-06: insert_cross_section not yet implemented")
+    // `AS "exists!"`: `EXISTS(...)` always yields a genuine boolean, but sqlx's
+    // `describe` reports computed expressions as nullable by default — the `!`
+    // suffix forces the non-null type, matching this codebase's established
+    // force-non-null idiom (e.g. `db/feeds.rs`'s `agency_onestop_id!`).
+    let exists = sqlx::query_scalar!(
+        r#"SELECT EXISTS(SELECT 1 FROM corridors WHERE id = $1) AS "exists!""#,
+        corridor_id.as_i64(),
+    )
+    .fetch_one(pool)
+    .await?;
+    if !exists {
+        anyhow::bail!("corridor {corridor_id} does not exist");
+    }
+
+    let id = sqlx::query!(
+        "INSERT INTO cross_sections (corridor_id, position, lat, lon) VALUES ($1, $2::float8, $3, $4) RETURNING id",
+        corridor_id.as_i64(),
+        f64::from(position),
+        coordinate.lat,
+        coordinate.lon,
+    )
+    .fetch_one(pool)
+    .await?
+    .id;
+    Ok(CrossSectionId::from(id))
 }
 
-/// Marks a manually-traced corridor as finished. Caller must have already validated
-/// the corridor has enough points (see `geometry::validate_finishable`) — this
-/// function performs no geometry validation of its own.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-002-06 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
+/// Marks a manually-traced corridor as finished. Caller must have already
+/// validated the corridor has enough points (see `geometry::validate_finishable`)
+/// — this function performs no geometry validation of its own. Currently a
+/// no-op beyond confirming the corridor exists (there is no "finished" flag on
+/// `corridors` yet) — kept as its own function/step because the manual-trace
+/// UI flow (start -> add points -> finish) treats it as a distinct action, and
+/// a later plan may add real finalization behavior here (e.g. a
+/// `finalized_at` timestamp).
 pub async fn finalize_corridor(
     pool: &sqlx::PgPool,
     corridor_id: CorridorId,
 ) -> Result<(), anyhow::Error> {
-    let _ = (pool, corridor_id);
-    unimplemented!("IMP-REQ-002-06: finalize_corridor not yet implemented")
+    let exists = sqlx::query_scalar!(
+        r#"SELECT EXISTS(SELECT 1 FROM corridors WHERE id = $1) AS "exists!""#,
+        corridor_id.as_i64(),
+    )
+    .fetch_one(pool)
+    .await?;
+    if !exists {
+        anyhow::bail!("corridor {corridor_id} does not exist");
+    }
+    Ok(())
+}
+
+fn time_window_columns(
+    rule: &TimedAccessRule,
+) -> (
+    Option<String>,
+    Option<chrono::NaiveTime>,
+    Option<chrono::NaiveTime>,
+) {
+    match &rule.time_window {
+        Some(w) => (Some(w.days.clone()), Some(w.start_time), Some(w.end_time)),
+        None => (None, None, None),
+    }
+}
+
+/// Inserts `drafts` as new lanes for `cross_section_id`, in the given order
+/// (left-to-right), assigning each a fractional `position` (`1.0`, `2.0`, ...).
+/// Each lane's `access_rules` are inserted as `lane_access_rules` rows.
+pub async fn insert_lanes_for_cross_section(
+    pool: &sqlx::PgPool,
+    cross_section_id: CrossSectionId,
+    drafts: &[LaneDraft],
+) -> Result<Vec<LaneId>, anyhow::Error> {
+    let mut tx = pool.begin().await?;
+    let mut lane_ids = Vec::with_capacity(drafts.len());
+
+    for (i, draft) in drafts.iter().enumerate() {
+        let position = (i + 1) as f64;
+        let lane_type = draft.lane_type.as_db_str();
+        let direction = draft.direction.as_db_str();
+        // `$2::float8` — same NUMERIC-column reasoning as `insert_corridor`'s
+        // cross-section insert above.
+        let lane_id = sqlx::query!(
+            "INSERT INTO lanes (cross_section_id, position, lane_type, width_meters, direction) \
+             VALUES ($1, $2::float8, $3, $4, $5) RETURNING id",
+            cross_section_id.as_i64(),
+            position,
+            lane_type,
+            draft.width_meters,
+            direction,
+        )
+        .fetch_one(&mut *tx)
+        .await?
+        .id;
+
+        for rule in &draft.access_rules {
+            let (days, start_time, end_time) = time_window_columns(rule);
+            let allowed_modes: Vec<&str> =
+                rule.allowed_modes.iter().map(|m| m.as_db_str()).collect();
+            sqlx::query!(
+                "INSERT INTO lane_access_rules (lane_id, days, start_time, end_time, allowed_modes) \
+                 VALUES ($1, $2, $3, $4, $5)",
+                lane_id,
+                days,
+                start_time,
+                end_time,
+                &allowed_modes as &[&str],
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        lane_ids.push(LaneId::from(lane_id));
+    }
+
+    tx.commit().await?;
+    Ok(lane_ids)
+}
+
+struct LaneRow {
+    id: i64,
+    cross_section_id: i64,
+    position: f64,
+    lane_type: String,
+    width_meters: f64,
+    direction: String,
+}
+
+struct AccessRuleRow {
+    lane_id: i64,
+    days: Option<String>,
+    start_time: Option<chrono::NaiveTime>,
+    end_time: Option<chrono::NaiveTime>,
+    allowed_modes: Vec<String>,
+}
+
+/// Fetches all lanes for a cross-section, ordered left-to-right, each with its
+/// access rules.
+pub async fn get_lanes_for_cross_section(
+    pool: &sqlx::PgPool,
+    cross_section_id: CrossSectionId,
+) -> Result<Vec<Lane>, anyhow::Error> {
+    let lane_rows: Vec<LaneRow> = sqlx::query_as!(
+        LaneRow,
+        r#"SELECT id, cross_section_id, position::float8 AS "position!", lane_type, width_meters, direction
+           FROM lanes
+           WHERE cross_section_id = $1
+           ORDER BY position"#,
+        cross_section_id.as_i64(),
+    )
+    .fetch_all(pool)
+    .await?;
+
+    if lane_rows.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let lane_ids: Vec<i64> = lane_rows.iter().map(|r| r.id).collect();
+    let rule_rows: Vec<AccessRuleRow> = sqlx::query_as!(
+        AccessRuleRow,
+        r#"SELECT lane_id, days, start_time, end_time, allowed_modes AS "allowed_modes!"
+           FROM lane_access_rules
+           WHERE lane_id = ANY($1)"#,
+        &lane_ids,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut lanes = Vec::with_capacity(lane_rows.len());
+    for row in lane_rows {
+        let lane_type = LaneType::from_db_str(&row.lane_type)
+            .ok_or_else(|| anyhow::anyhow!("unknown lane_type value: {}", row.lane_type))?;
+        let direction = LaneDirection::from_db_str(&row.direction)
+            .ok_or_else(|| anyhow::anyhow!("unknown direction value: {}", row.direction))?;
+
+        let mut access_rules = Vec::new();
+        for rule_row in rule_rows.iter().filter(|r| r.lane_id == row.id) {
+            let mut allowed_modes = Vec::with_capacity(rule_row.allowed_modes.len());
+            for mode_str in &rule_row.allowed_modes {
+                let mode = crate::corridor_design::lanes::AccessMode::from_db_str(mode_str)
+                    .ok_or_else(|| anyhow::anyhow!("unknown access mode value: {mode_str}"))?;
+                allowed_modes.push(mode);
+            }
+            let time_window = match (&rule_row.days, rule_row.start_time, rule_row.end_time) {
+                (Some(days), Some(start_time), Some(end_time)) => {
+                    Some(crate::corridor_design::lanes::TimeWindow {
+                        days: days.clone(),
+                        start_time,
+                        end_time,
+                    })
+                }
+                _ => None,
+            };
+            access_rules.push(TimedAccessRule {
+                time_window,
+                allowed_modes,
+            });
+        }
+
+        lanes.push(Lane {
+            id: LaneId::from(row.id),
+            cross_section_id: CrossSectionId::from(row.cross_section_id),
+            position: row.position,
+            lane_type,
+            width_meters: row.width_meters,
+            direction,
+            access_rules,
+        });
+    }
+
+    Ok(lanes)
 }
 
 /// Inserts a new cross-section into an existing corridor's sequence, at a
@@ -170,7 +425,29 @@ mod tests {
     use super::*;
     use crate::corridor_design::Coordinate;
     use crate::corridor_design::geometry::CrossSectionPoint;
+    use crate::corridor_design::lanes::{LaneDirection, LaneDraft, LaneType, TimedAccessRule};
     use crate::db::test_utils;
+
+    /// Seeds a region (with a bounding box) and a remix in it, returning the
+    /// remix id. Every REQ-001/002 test needs a remix to scope its corridor to.
+    async fn seed_remix(pool: &sqlx::PgPool) -> RemixId {
+        sqlx::query(
+            "INSERT INTO regions (id, name, timezone, min_lat, min_lon, max_lat, max_lon) \
+             VALUES (1, 'Test Region', 'UTC', 45.40, -73.70, 45.60, -73.50) \
+             ON CONFLICT (id) DO NOTHING",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        let remix_id: i64 =
+            sqlx::query_scalar("INSERT INTO remixes (name, region_id) VALUES ($1, 1) RETURNING id")
+                .bind("Test Remix")
+                .fetch_one(pool)
+                .await
+                .unwrap();
+        RemixId::from(remix_id)
+    }
 
     /// A normalized 3-point corridor spanning two source ways, matching the shape
     /// `normalize_corridor_geometry` would produce for TC-REQ-001-1's fixture.
@@ -214,9 +491,11 @@ mod tests {
         let td = test_utils::setup().await;
         let db = td.db;
         let normalized = sample_normalized();
+        let remix_id = seed_remix(&db.pool).await;
 
         let corridor_id = insert_corridor(
             &db.pool,
+            remix_id,
             "Test Corridor A",
             "geojson_osm_export",
             Some("© OpenStreetMap contributors"),
@@ -226,7 +505,7 @@ mod tests {
         .expect("insert_corridor should succeed once implemented");
 
         let rows: Vec<CrossSectionRow> = sqlx::query_as(
-            "SELECT position, lat, lon FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+            "SELECT position::float8 AS position, lat, lon FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
         )
         .bind(corridor_id.as_i64())
         .fetch_all(&db.pool)
@@ -250,9 +529,11 @@ mod tests {
         let db = td.db;
         let normalized = sample_normalized();
         let attribution = "© OpenStreetMap contributors";
+        let remix_id = seed_remix(&db.pool).await;
 
         let corridor_id = insert_corridor(
             &db.pool,
+            remix_id,
             "Test Corridor B",
             "geojson_osm_export",
             Some(attribution),
@@ -284,8 +565,9 @@ mod tests {
     async fn manual_trace_start_add_points_and_finalize_persists_ordered_cross_sections() {
         let td = test_utils::setup().await;
         let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
 
-        let corridor_id = start_manual_corridor(&db.pool, "5th Ave Transit Priority")
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "5th Ave Transit Priority")
             .await
             .expect("start_manual_corridor should succeed once implemented");
 
@@ -306,7 +588,7 @@ mod tests {
             .expect("finalize_corridor should succeed once implemented");
 
         let rows: Vec<CrossSectionRow> = sqlx::query_as(
-            "SELECT position, lat, lon FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+            "SELECT position::float8 AS position, lat, lon FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
         )
         .bind(corridor_id.as_i64())
         .fetch_all(&db.pool)
@@ -342,8 +624,9 @@ mod tests {
     async fn manual_and_imported_cross_sections_have_identical_shape() {
         let td = test_utils::setup().await;
         let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
 
-        let manual_corridor_id = start_manual_corridor(&db.pool, "CORR-MANUAL")
+        let manual_corridor_id = start_manual_corridor(&db.pool, remix_id, "CORR-MANUAL")
             .await
             .expect("start_manual_corridor should succeed once implemented");
         let manual_points = [
@@ -388,6 +671,7 @@ mod tests {
         };
         let imported_corridor_id = insert_corridor(
             &db.pool,
+            remix_id,
             "CORR-IMPORTED",
             "geojson_osm_export",
             Some("© OpenStreetMap contributors"),
@@ -1204,5 +1488,158 @@ mod tests {
             result.is_err(),
             "TC-REQ-006-6: editing a deleted cross-section should be rejected"
         );
+    }
+
+    // --- Lane persistence ---
+
+    fn sample_lane_drafts() -> Vec<LaneDraft> {
+        vec![
+            LaneDraft {
+                lane_type: LaneType::Sidewalk,
+                width_meters: 1.8,
+                direction: LaneDirection::None,
+                access_rules: vec![crate::corridor_design::lanes::default_access_rule_for(
+                    LaneType::Sidewalk,
+                )],
+            },
+            LaneDraft {
+                lane_type: LaneType::Travel,
+                width_meters: 3.0,
+                direction: LaneDirection::Forward,
+                access_rules: vec![crate::corridor_design::lanes::default_access_rule_for(
+                    LaneType::Travel,
+                )],
+            },
+        ]
+    }
+
+    async fn seed_bare_cross_section(pool: &sqlx::PgPool, remix_id: RemixId) -> CrossSectionId {
+        let corridor_id = start_manual_corridor(pool, remix_id, "Lane Test Corridor")
+            .await
+            .unwrap();
+        insert_cross_section(pool, corridor_id, Coordinate::new(45.50, -73.60), 0)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn insert_lanes_for_cross_section_persists_in_order() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+
+        let lane_ids =
+            insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+                .await
+                .expect("insert_lanes_for_cross_section should succeed");
+
+        assert_eq!(lane_ids.len(), 2);
+
+        let lanes = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .expect("get_lanes_for_cross_section should succeed");
+
+        assert_eq!(lanes.len(), 2);
+        assert_eq!(lanes[0].lane_type, LaneType::Sidewalk);
+        assert_eq!(lanes[0].width_meters, 1.8);
+        assert_eq!(lanes[0].direction, LaneDirection::None);
+        assert_eq!(lanes[1].lane_type, LaneType::Travel);
+        assert_eq!(lanes[1].width_meters, 3.0);
+        assert_eq!(lanes[1].direction, LaneDirection::Forward);
+        assert!(lanes[0].position < lanes[1].position);
+    }
+
+    #[tokio::test]
+    async fn insert_lanes_for_cross_section_persists_default_access_rules() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+
+        insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+            .await
+            .unwrap();
+
+        let lanes = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .unwrap();
+
+        let travel_lane = lanes
+            .iter()
+            .find(|l| l.lane_type == LaneType::Travel)
+            .unwrap();
+        assert_eq!(travel_lane.access_rules.len(), 1);
+        assert_eq!(travel_lane.access_rules[0].time_window, None);
+        assert_eq!(
+            travel_lane.access_rules[0].allowed_modes,
+            vec![
+                crate::corridor_design::lanes::AccessMode::Car,
+                crate::corridor_design::lanes::AccessMode::Emergency
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn insert_lanes_for_cross_section_persists_time_windowed_rule() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+
+        let bat_lane = LaneDraft {
+            lane_type: LaneType::Transit,
+            width_meters: 3.2,
+            direction: LaneDirection::Forward,
+            access_rules: vec![TimedAccessRule {
+                time_window: Some(crate::corridor_design::lanes::TimeWindow {
+                    days: "weekdays".to_string(),
+                    start_time: chrono::NaiveTime::from_hms_opt(7, 0, 0).unwrap(),
+                    end_time: chrono::NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+                }),
+                allowed_modes: vec![
+                    crate::corridor_design::lanes::AccessMode::Transit,
+                    crate::corridor_design::lanes::AccessMode::Car,
+                ],
+            }],
+        };
+
+        insert_lanes_for_cross_section(&db.pool, cross_section_id, &[bat_lane])
+            .await
+            .unwrap();
+
+        let lanes = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .unwrap();
+
+        assert_eq!(lanes.len(), 1);
+        assert_eq!(lanes[0].access_rules.len(), 1);
+        let window = lanes[0].access_rules[0]
+            .time_window
+            .as_ref()
+            .expect("time window should round-trip");
+        assert_eq!(window.days, "weekdays");
+        assert_eq!(
+            window.start_time,
+            chrono::NaiveTime::from_hms_opt(7, 0, 0).unwrap()
+        );
+        assert_eq!(
+            window.end_time,
+            chrono::NaiveTime::from_hms_opt(9, 0, 0).unwrap()
+        );
+    }
+
+    #[tokio::test]
+    async fn get_lanes_for_cross_section_returns_empty_for_a_cross_section_with_no_lanes() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+
+        let lanes = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .unwrap();
+
+        assert_eq!(lanes.len(), 0);
     }
 }
