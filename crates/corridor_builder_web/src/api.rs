@@ -111,3 +111,61 @@ pub async fn get_remix_corridors(remix_id: i64) -> Result<serde_json::Value, Str
     )))
     .await
 }
+
+#[derive(Debug, Clone, Serialize)]
+struct StartManualCorridorRequest {
+    name: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct StartManualCorridorResponse {
+    pub id: i64,
+}
+
+pub async fn start_manual_corridor(
+    remix_id: i64,
+    name: String,
+) -> Result<StartManualCorridorResponse, String> {
+    let request = gloo_net::http::Request::post(&format!(
+        "{API_BASE}/remixes/{remix_id}/corridors/manual"
+    ))
+    .json(&StartManualCorridorRequest { name })
+    .map_err(|e| e.to_string())?;
+    send_and_decode(request).await
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct AddManualPointRequest {
+    lat: f64,
+    lon: f64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CrossSectionResponse {
+    pub id: i64,
+    pub position: f64,
+    pub lat: f64,
+    pub lon: f64,
+}
+
+pub async fn add_manual_point(
+    corridor_id: i64,
+    lat: f64,
+    lon: f64,
+) -> Result<CrossSectionResponse, String> {
+    let request = gloo_net::http::Request::post(&format!("{API_BASE}/corridors/{corridor_id}/points"))
+        .json(&AddManualPointRequest { lat, lon })
+        .map_err(|e| e.to_string())?;
+    send_and_decode(request).await
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct FinishManualCorridorResponse {
+    pub id: i64,
+    pub cross_section_count: i64,
+}
+
+pub async fn finish_manual_corridor(corridor_id: i64) -> Result<FinishManualCorridorResponse, String> {
+    let request = gloo_net::http::Request::post(&format!("{API_BASE}/corridors/{corridor_id}/finish"));
+    send_and_decode(request).await
+}
