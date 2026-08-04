@@ -278,7 +278,7 @@ mod tests {
         .await
         .unwrap();
 
-        add_manual_point(
+        let _ = add_manual_point(
             State(state.clone()),
             Path(corridor_id.as_i64()),
             Json(AddManualPointRequest {
@@ -333,7 +333,7 @@ mod tests {
         .await
         .unwrap();
 
-        add_manual_point(
+        let _ = add_manual_point(
             State(state.clone()),
             Path(corridor_id.as_i64()),
             Json(AddManualPointRequest {
@@ -343,7 +343,7 @@ mod tests {
         )
         .await
         .unwrap();
-        add_manual_point(
+        let _ = add_manual_point(
             State(state.clone()),
             Path(corridor_id.as_i64()),
             Json(AddManualPointRequest {

@@ -29,20 +29,20 @@ mod tests {
     /// geometry_source shows attribution.
     #[test]
     fn attribution_visible_true_for_imported() {
-        assert_eq!(attribution_visible(Some(GeometrySource::Imported)), true);
+        assert!(attribution_visible(Some(GeometrySource::Imported)));
     }
 
     /// SDD REQ-003 unit test 2 / TC-REQ-003-2 (unit slice): a manual-only corridor's
     /// geometry_source does not show attribution.
     #[test]
     fn attribution_visible_false_for_manual() {
-        assert_eq!(attribution_visible(Some(GeometrySource::Manual)), false);
+        assert!(!attribution_visible(Some(GeometrySource::Manual)));
     }
 
     /// SDD REQ-003 unit test 3 / TC-REQ-003-4 (unit slice): a missing/unset
     /// geometry_source (data-migration gap) fails safe to showing attribution.
     #[test]
     fn attribution_visible_true_for_missing_geometry_source() {
-        assert_eq!(attribution_visible(None), true);
+        assert!(attribution_visible(None));
     }
 }

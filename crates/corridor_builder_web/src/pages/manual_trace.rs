@@ -136,10 +136,16 @@ fn mount_trace_map(
         let Ok(lng_lat) = js_sys::Reflect::get(&event, &"lngLat".into()) else {
             return;
         };
-        let Some(lon) = js_sys::Reflect::get(&lng_lat, &"lng".into()).ok().and_then(|v| v.as_f64()) else {
+        let Some(lon) = js_sys::Reflect::get(&lng_lat, &"lng".into())
+            .ok()
+            .and_then(|v| v.as_f64())
+        else {
             return;
         };
-        let Some(lat) = js_sys::Reflect::get(&lng_lat, &"lat".into()).ok().and_then(|v| v.as_f64()) else {
+        let Some(lat) = js_sys::Reflect::get(&lng_lat, &"lat".into())
+            .ok()
+            .and_then(|v| v.as_f64())
+        else {
             return;
         };
         let click_point_count = click_point_count.clone();
