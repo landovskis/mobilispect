@@ -32,7 +32,9 @@ placeholder from the manual-trace plan)
      "zoom in to load streets" hint)
   -> WASM sends the current viewport bounding box to POST /api/remixes/:remix_id/streets
   -> server builds an Overpass QL query (highway=* filter incl. cycleway/path, "out
-     geom tags") and fetches it via a new OverpassClient (crates/core/src/osm/mod.rs)
+     geom;" -- confirmed via a live query that this alone returns both tags and full
+     node-by-node geometry, no separate "tags" keyword needed) and fetches it via a
+     new OverpassClient (crates/core/src/osm/mod.rs)
   -> server returns parsed ways (osm_way_id, ordered node coordinates, tags) as JSON
   -> WASM renders them as a MapLibre line layer; holds the full way list in state
   -> analyst clicks ways to toggle selection (highlighted distinctly); click order
@@ -66,7 +68,12 @@ pub struct OverpassClient {
 #[derive(Debug, Clone, PartialEq)]
 pub struct OsmWay {
     pub osm_way_id: i64,
-    pub points: Vec<Coordinate>,        // ordered, as returned by Overpass's "out geom"
+    // Reuses `corridor_design::geometry::RawPoint` directly (coordinate + optional
+    // OSM node id per point) rather than a parallel type -- this is exactly the
+    // shape `RawWaySegment.points` needs, and Overpass's response gives us both a
+    // `nodes` array (node ids) and a `geometry` array (lat/lon) as parallel,
+    // same-order, same-length arrays per way -- confirmed against a live query.
+    pub points: Vec<crate::corridor_design::geometry::RawPoint>,
     pub tags: std::collections::HashMap<String, String>,
 }
 
@@ -128,10 +135,17 @@ pub struct SearchStreetsRequest {
     pub min_lat: f64, pub min_lon: f64, pub max_lat: f64, pub max_lon: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OsmPointResponse {
+    pub lat: f64,
+    pub lon: f64,
+    pub osm_node_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OsmWayResponse {
     pub osm_way_id: i64,
-    pub points: Vec<(f64, f64)>,
+    pub points: Vec<OsmPointResponse>,
     pub tags: std::collections::HashMap<String, String>,
 }
 
