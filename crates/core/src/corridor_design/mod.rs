@@ -7,6 +7,7 @@ pub mod attribution;
 pub mod edit;
 pub mod geometry;
 pub mod lanes;
+pub mod lanes_from_osm;
 pub mod position;
 pub mod repository;
 
