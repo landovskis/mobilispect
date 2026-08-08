@@ -53,14 +53,23 @@ No protobuf types leak past `realtime.rs`. The domain `AgencyId` is passed in fr
 
 ## Transitland API
 
-Translation happens in `crates/core/src/transitland/mod.rs` — a synchronous,
-on-demand external lookup (resolving IDs during import), not a batch/background
-job, so it lives in `crates/core` rather than `crates/worker` (unlike GTFS
-static/real-time translation below, which IS a batch/background job and does
-live in `crates/worker`). The Transitland REST API is called during static
-feed ingest to resolve GTFS-local IDs to canonical Onestop IDs.
+Translation happens in `crates/core/src/transitland/mod.rs`. Unlike GTFS
+static/real-time translation below (which is exclusively a
+`crates/worker` batch/background concern), the Transitland client is shared
+by both `crates/worker` (constructed in `crates/worker/src/main.rs` and used
+by the batch static-feed ingest job in
+`crates/worker/src/feed_ingestion/static_feed.rs`) and `crates/server`
+(called on-demand from `crates/server/src/web/handlers.rs`). Because both
+crates need it, the client lives in `crates/core` rather than being
+duplicated — the same "shared by more than one crate" reasoning that puts
+`crates/core/src/db/` in `crates/core`. The Transitland REST API is called
+during static feed ingest, and on demand from web handlers, to resolve
+GTFS-local IDs to canonical Onestop IDs.
 
-**Rule:** No `reqwest` calls to Transitland may appear in `crates/core/` or `crates/server/`.
+**Rule:** No `reqwest` calls to Transitland may appear in `crates/server/` —
+handlers call into `mobilispect_core::transitland::TransitlandClient`, never
+`reqwest` directly. (`crates/core/src/transitland/` itself is exempt: it *is*
+the client.)
 
 Translations:
 - `gtfs_agency_id: String` → `AgencyId` (operator Onestop ID, `o-` prefix)

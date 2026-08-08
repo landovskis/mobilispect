@@ -52,6 +52,18 @@ extern "C" {
     #[wasm_bindgen(method, js_name = setPaintProperty)]
     pub fn set_paint_property(this: &Map, layer_id: &str, name: &str, value: &JsValue);
 
+    /// Removes a previously-added layer. MapLibre throws if `id` doesn't
+    /// currently exist as a layer -- only call this when you know it does
+    /// (see `pages/import_osm.rs`'s `layer_added_ref` tracking).
+    #[wasm_bindgen(method, js_name = removeLayer)]
+    pub fn remove_layer(this: &Map, id: &str);
+
+    /// Removes a previously-added source. Same "only call when it exists"
+    /// caveat as `remove_layer` -- and a source must have no layers still
+    /// referencing it, so always call `remove_layer` first for the same id.
+    #[wasm_bindgen(method, js_name = removeSource)]
+    pub fn remove_source(this: &Map, id: &str);
+
     #[wasm_bindgen(js_namespace = maplibregl)]
     pub type LngLatBounds;
 

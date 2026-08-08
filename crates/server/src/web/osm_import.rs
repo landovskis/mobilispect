@@ -74,6 +74,19 @@ pub async fn search_streets(
         return Err(bad_request("bounding box is invalid"));
     }
 
+    // Roughly the zoom-15 viewport the WASM client itself gates "Load
+    // streets" behind (see `MIN_LOAD_STREETS_ZOOM` in
+    // `crates/corridor_builder_web/src/pages/import_osm.rs`) -- that gate is
+    // client-side only, so this guards the endpoint against a direct POST
+    // with an oversized bbox that would otherwise be forwarded to Overpass
+    // and its (potentially huge) response buffered entirely into memory.
+    const MAX_BBOX_SPAN_DEGREES: f64 = 0.05;
+    if (bbox.max_lat - bbox.min_lat) > MAX_BBOX_SPAN_DEGREES
+        || (bbox.max_lon - bbox.min_lon) > MAX_BBOX_SPAN_DEGREES
+    {
+        return Err(bad_request("bounding box is too large"));
+    }
+
     let client = OverpassClient::new();
     let ways = client
         .fetch_ways_in_bbox(bbox)
@@ -296,6 +309,27 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn search_streets_with_too_large_bbox_returns_400() {
+        let (state, _td) = test_state().await;
+        let remix_id = seed_remix(&state).await;
+
+        let response = search_streets(
+            State(state),
+            Path(remix_id),
+            Json(SearchStreetsRequest {
+                min_lat: 40.0,
+                min_lon: -80.0,
+                max_lat: 50.0,
+                max_lon: -70.0,
+            }),
+        )
+        .await;
+
+        assert!(response.is_err());
+        assert_eq!(response.unwrap_err().0, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
     async fn search_streets_happy_path_returns_parsed_ways() {
         let server = MockServer::start().await;
         Mock::given(method("POST"))
@@ -325,10 +359,10 @@ mod tests {
             State(state),
             Path(remix_id),
             Json(SearchStreetsRequest {
-                min_lat: 45.40,
-                min_lon: -73.70,
-                max_lat: 45.60,
-                max_lon: -73.50,
+                min_lat: 45.49,
+                min_lon: -73.60,
+                max_lat: 45.51,
+                max_lon: -73.58,
             }),
         )
         .await
@@ -355,10 +389,10 @@ mod tests {
             State(state),
             Path(remix_id),
             Json(SearchStreetsRequest {
-                min_lat: 45.40,
-                min_lon: -73.70,
-                max_lat: 45.60,
-                max_lon: -73.50,
+                min_lat: 45.49,
+                min_lon: -73.60,
+                max_lat: 45.51,
+                max_lon: -73.58,
             }),
         )
         .await;

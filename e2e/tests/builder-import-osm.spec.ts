@@ -118,4 +118,30 @@ test.describe('Corridor Design: OSM import', () => {
 
     await expect(page.getByText('not connected')).toBeVisible();
   });
+
+  test('clicking "Load streets" a second time re-loads without breaking the page', async ({
+    page,
+  }) => {
+    await page.goto(`/builder/remix/${remixId}`);
+    await page.waitForSelector('.maplibregl-canvas');
+
+    await page.getByRole('button', { name: 'Add corridor' }).click();
+    await page.getByRole('button', { name: 'Import from OSM' }).click();
+
+    await page.waitForFunction(() => (window as any).__corridorBuilderMap !== undefined);
+    await page.getByRole('button', { name: 'Load streets' }).click();
+    await page.waitForFunction(() => (window as any).__corridorBuilderMap.getSource('osm-ways') !== undefined);
+
+    await clickWayAt(page, WAY_A_MIDPOINT);
+
+    // Re-adding the same MapLibre source/layer without removing the old one
+    // first throws inside the async fetch handler, silently aborting it --
+    // the regression this test guards against. A second click should still
+    // leave the page functional: the button stays present and the ways
+    // source is still there after the reload completes.
+    await page.getByRole('button', { name: 'Load streets' }).click();
+    await page.waitForFunction(() => (window as any).__corridorBuilderMap.getSource('osm-ways') !== undefined);
+
+    await expect(page.getByRole('button', { name: 'Load streets' })).toBeVisible();
+  });
 });

@@ -17,6 +17,13 @@ use crate::corridor_design::lanes::{
     LaneDirection, LaneDraft, LaneType, default_access_rule_for, default_width_meters_for,
 };
 
+/// No real street exceeds this many lanes in one direction; OSM data claiming
+/// more is malformed. Clamping here (rather than rejecting the whole import)
+/// keeps this function total, matching its existing "never fails" contract —
+/// a clamped lane count is still a reasonable starting point for the analyst
+/// to correct, same posture as this module's other approximations.
+const MAX_LANES_PER_DIRECTION: u32 = 16;
+
 /// Derives a left-to-right `Vec<LaneDraft>` from an OSM way's tags. Total —
 /// never fails. Falls back to a single bidirectional `Travel` lane when none
 /// of the recognized tags (`lanes`, `lanes:forward`, `lanes:backward`,
@@ -90,9 +97,11 @@ pub fn derive_lanes_from_osm_tags(tags: &HashMap<String, String>) -> Vec<LaneDra
 fn travel_lane_counts(tags: &HashMap<String, String>, oneway: bool) -> (u32, u32) {
     let forward_backward = (
         tags.get("lanes:forward")
-            .and_then(|v| v.parse::<u32>().ok()),
+            .and_then(|v| v.parse::<u32>().ok())
+            .map(|v| v.min(MAX_LANES_PER_DIRECTION)),
         tags.get("lanes:backward")
-            .and_then(|v| v.parse::<u32>().ok()),
+            .and_then(|v| v.parse::<u32>().ok())
+            .map(|v| v.min(MAX_LANES_PER_DIRECTION)),
     );
     if let (Some(forward), Some(backward)) = forward_backward {
         return (forward, backward);
@@ -101,7 +110,8 @@ fn travel_lane_counts(tags: &HashMap<String, String>, oneway: bool) -> (u32, u32
     let total = tags
         .get("lanes")
         .and_then(|v| v.parse::<u32>().ok())
-        .unwrap_or(if oneway { 1 } else { 2 });
+        .map(|v| v.min(MAX_LANES_PER_DIRECTION))
+        .unwrap_or(if oneway { 1 } else { 2 }.min(MAX_LANES_PER_DIRECTION));
     if oneway {
         (total, 0)
     } else {
@@ -242,6 +252,19 @@ mod tests {
         let lanes =
             derive_lanes_from_osm_tags(&tags(&[("parking:lane:both", "no"), ("lanes", "2")]));
         assert!(!lanes.iter().any(|l| l.lane_type == LaneType::Parking));
+    }
+
+    #[test]
+    fn absurd_lanes_value_is_clamped_to_a_sane_maximum() {
+        let lanes = derive_lanes_from_osm_tags(&tags(&[("lanes", "999999")]));
+        let travel_lane_count = lanes
+            .iter()
+            .filter(|l| l.lane_type == LaneType::Travel)
+            .count();
+        assert!(
+            travel_lane_count <= (MAX_LANES_PER_DIRECTION as usize) * 2,
+            "clamped lane count should never approach the unclamped input, got {travel_lane_count} travel lanes"
+        );
     }
 
     #[test]

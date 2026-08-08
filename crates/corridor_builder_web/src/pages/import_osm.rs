@@ -45,6 +45,16 @@ pub fn ImportOsmPage(props: &ImportOsmPageProps) -> Html {
     let map_ref = use_mut_ref(|| None::<Map>);
     let ways_ref = use_mut_ref(|| None::<Vec<api::OsmWayResponse>>);
     let selected_ref = use_mut_ref(HashSet::<i64>::new);
+    // Rust-side, authoritative tracking of whether `add_source`/`add_layer`
+    // has ever succeeded for the "osm-ways" source/layer -- simpler and more
+    // robust than querying MapLibre's own state, since it only ever becomes
+    // `true` right after a successful add, so a `remove_layer`/`remove_source`
+    // call gated on it is always safe. Needed because "Load streets" can be
+    // clicked more than once per page visit (pan, then reload); without this,
+    // the second `add_source` call throws inside the `spawn_local` future and
+    // silently aborts it -- see the design spec's known-issues note on this
+    // page.
+    let layer_added_ref = use_mut_ref(|| false);
 
     let selection_count = use_state(|| 0usize);
     let name_value = use_state(String::new);
@@ -111,6 +121,9 @@ pub fn ImportOsmPage(props: &ImportOsmPageProps) -> Html {
     let on_load_streets = {
         let map_ref = map_ref.clone();
         let ways_ref = ways_ref.clone();
+        let selected_ref = selected_ref.clone();
+        let selection_count = selection_count.clone();
+        let layer_added_ref = layer_added_ref.clone();
         let error = error.clone();
         Callback::from(move |_: MouseEvent| {
             let Some(map) = map_ref.borrow().clone() else {
@@ -125,15 +138,25 @@ pub fn ImportOsmPage(props: &ImportOsmPageProps) -> Html {
             );
             let map_ref = map_ref.clone();
             let ways_ref = ways_ref.clone();
+            let selected_ref = selected_ref.clone();
+            let selection_count = selection_count.clone();
+            let layer_added_ref = layer_added_ref.clone();
             let error = error.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 match api::search_streets(remix_id, min_lat, min_lon, max_lat, max_lon).await {
                     Ok(fetched) => {
                         if let Some(map) = map_ref.borrow().clone() {
+                            if *layer_added_ref.borrow() {
+                                map.remove_layer("osm-ways");
+                                map.remove_source("osm-ways");
+                            }
                             render_ways_layer(&map, &fetched);
                             fit_bounds_to_ways(&map, &fetched);
+                            *layer_added_ref.borrow_mut() = true;
                         }
                         *ways_ref.borrow_mut() = Some(fetched);
+                        selected_ref.borrow_mut().clear();
+                        selection_count.set(0);
                     }
                     Err(e) => error.set(Some(e)),
                 }
