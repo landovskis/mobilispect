@@ -2084,9 +2084,10 @@ pub fn ImportOsmPage(props: &ImportOsmPageProps) -> Html {
     let has_selection = *selection_count > 0;
 
     html! {
-        <div class="setup-wrap">
-            <div class="setup-card">
-                <h1 class="setup-title">{ "Import a corridor from OpenStreetMap" }</h1>
+        <div class="builder-region-map">
+            <div id="import-map" style="width: 100%; height: 100vh;"></div>
+            <div class="setup-card" style="position:absolute; top:16px; right:16px; z-index:10; width:320px;">
+                <h1 class="setup-title">{ "Import from OpenStreetMap" }</h1>
                 if let Some(err) = &*error {
                     <div class="alert alert--err">{ err }</div>
                 }
@@ -2103,7 +2104,6 @@ pub fn ImportOsmPage(props: &ImportOsmPageProps) -> Html {
                     </div>
                 }
             </div>
-            <div id="import-map" style="width: 100%; height: 100vh; margin-top:1rem;"></div>
         </div>
     }
 }
