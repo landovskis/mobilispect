@@ -1,6 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
 import { ensureRegionHasBoundingBox, withDb } from './helpers/db';
-import { startOverpassFixture, stopOverpassFixture } from './helpers/overpass-fixture';
 
 /**
  * Corridor Design — OSM import flow (see
@@ -12,10 +11,12 @@ import { startOverpassFixture, stopOverpassFixture } from './helpers/overpass-fi
  * for the fixture ways below, since MapLibre's pan/zoom means a rendered
  * way's screen position isn't otherwise predictable from outside the page.
  *
- * Requires `mobilispect-server` to have been started with
- * `OVERPASS_BASE_URL=http://localhost:19999` so its Overpass calls hit this
- * spec's local fixture server (started in `beforeAll`) instead of the real
- * overpass-api.de.
+ * The Overpass fixture server this test's OSM data comes from is started
+ * once for the whole suite by `../global-setup.ts` (not per-file
+ * `beforeAll`) -- see that file's doc comment for why. Requires
+ * `mobilispect-server` to have been started with
+ * `OVERPASS_BASE_URL=http://localhost:19999` so its Overpass calls hit that
+ * fixture server instead of the real overpass-api.de.
  */
 
 const WAY_A_MIDPOINT = { lat: 45.5005, lon: -73.5795 }; // fixture way 9001001
@@ -25,7 +26,6 @@ const WAY_C_MIDPOINT = { lat: 45.5055, lon: -73.5745 }; // fixture way 9001003, 
 let remixId: number;
 
 test.beforeAll(async ({}, testInfo) => {
-  await startOverpassFixture();
   await ensureRegionHasBoundingBox();
   await withDb(async (client) => {
     const result = await client.query(
@@ -51,7 +51,6 @@ test.afterAll(async () => {
     await client.query(`DELETE FROM corridors WHERE remix_id = $1`, [remixId]);
     await client.query(`DELETE FROM remixes WHERE id = $1`, [remixId]);
   });
-  await stopOverpassFixture();
 });
 
 async function clickWayAt(page: Page, lonLat: { lat: number; lon: number }) {
