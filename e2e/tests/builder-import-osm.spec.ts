@@ -77,6 +77,12 @@ test.describe('Corridor Design: OSM import', () => {
     await page.waitForFunction(() => (window as any).__corridorBuilderMap !== undefined);
     await page.getByRole('button', { name: 'Load streets' }).click();
 
+    // The ways layer (and the camera fit_bounds to it) only exist once
+    // search_streets's response has been processed -- waiting for the
+    // GeoJSON source to exist avoids a race where a click computed via
+    // map.project() lands before the camera has actually moved to show it.
+    await page.waitForFunction(() => (window as any).__corridorBuilderMap.getSource('osm-ways') !== undefined);
+
     await clickWayAt(page, WAY_A_MIDPOINT);
     await clickWayAt(page, WAY_B_MIDPOINT);
 
@@ -98,6 +104,12 @@ test.describe('Corridor Design: OSM import', () => {
 
     await page.waitForFunction(() => (window as any).__corridorBuilderMap !== undefined);
     await page.getByRole('button', { name: 'Load streets' }).click();
+
+    // The ways layer (and the camera fit_bounds to it) only exist once
+    // search_streets's response has been processed -- waiting for the
+    // GeoJSON source to exist avoids a race where a click computed via
+    // map.project() lands before the camera has actually moved to show it.
+    await page.waitForFunction(() => (window as any).__corridorBuilderMap.getSource('osm-ways') !== undefined);
 
     await clickWayAt(page, WAY_A_MIDPOINT);
     await clickWayAt(page, WAY_C_MIDPOINT);

@@ -167,6 +167,8 @@ fn mount_trace_map(
     }) as Box<dyn FnMut(JsValue)>);
     map.on("click", &onclick);
     onclick.forget();
+
+    crate::maplibre::expose_map_for_e2e_tests(&map);
 }
 
 fn to_js_value<T: serde::Serialize>(value: &T) -> Result<JsValue, String> {

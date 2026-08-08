@@ -35,4 +35,46 @@ extern "C" {
     #[wasm_bindgen(method, js_name = queryRenderedFeatures)]
     pub fn query_rendered_features(this: &Map, point: &JsValue, options: &JsValue)
     -> js_sys::Array;
+
+    /// Current visible geographic bounds — used to build the Overpass bbox
+    /// query when the analyst clicks "Load streets" (see
+    /// `pages/import_osm.rs`).
+    #[wasm_bindgen(method, js_name = getBounds)]
+    pub fn get_bounds(this: &Map) -> LngLatBounds;
+
+    /// Current zoom level — used to gate the "Load streets" button.
+    #[wasm_bindgen(method, js_name = getZoom)]
+    pub fn get_zoom(this: &Map) -> f64;
+
+    /// Updates one paint property of an already-added layer — used to
+    /// re-color selected OSM ways as the analyst clicks them (see
+    /// `pages/import_osm.rs`), without re-adding the layer.
+    #[wasm_bindgen(method, js_name = setPaintProperty)]
+    pub fn set_paint_property(this: &Map, layer_id: &str, name: &str, value: &JsValue);
+
+    #[wasm_bindgen(js_namespace = maplibregl)]
+    pub type LngLatBounds;
+
+    #[wasm_bindgen(method, js_name = getWest)]
+    pub fn get_west(this: &LngLatBounds) -> f64;
+
+    #[wasm_bindgen(method, js_name = getSouth)]
+    pub fn get_south(this: &LngLatBounds) -> f64;
+
+    #[wasm_bindgen(method, js_name = getEast)]
+    pub fn get_east(this: &LngLatBounds) -> f64;
+
+    #[wasm_bindgen(method, js_name = getNorth)]
+    pub fn get_north(this: &LngLatBounds) -> f64;
+}
+
+/// Stashes `map` on `window.__corridorBuilderMap` so Playwright E2E tests can
+/// compute exact click pixel coordinates via `map.project(...)` instead of
+/// guessing. Shared across every page that mounts its own MapLibre map
+/// instance (`pages/region_map.rs`, `pages/manual_trace.rs`,
+/// `pages/import_osm.rs`).
+pub fn expose_map_for_e2e_tests(map: &Map) {
+    if let Some(window) = web_sys::window() {
+        let _ = js_sys::Reflect::set(&window, &"__corridorBuilderMap".into(), map);
+    }
 }
