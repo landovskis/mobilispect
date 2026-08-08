@@ -804,10 +804,19 @@ git commit -m "feat(corridor-design): add OSM tag to baseline lane parser"
 **Files:**
 - Create: `crates/server/src/web/osm_import.rs`
 - Modify: `crates/server/src/web/mod.rs`
+- Modify: `crates/server/Cargo.toml`
 
 **Interfaces:**
 - Consumes: `mobilispect_core::osm::{OverpassClient, OsmWay}` (Task 1), `mobilispect_core::corridor_design::lanes_from_osm::derive_lanes_from_osm_tags` (Task 2), `mobilispect_core::corridor_design::geometry::{RawGeometry, RawWaySegment, RawPoint, normalize_corridor_geometry}` (existing), `mobilispect_core::corridor_design::repository::{insert_corridor, get_corridor_cross_sections, insert_lanes_for_cross_section}` (existing), `mobilispect_core::remix::BoundingBox` (existing).
 - Produces: `POST /api/remixes/:remix_id/streets`, `POST /api/remixes/:remix_id/corridors/import`. Response DTOs `osm_import::{OsmPointResponse, OsmWayResponse, ImportCorridorResponse}` — Task 5 (WASM) mirrors these field-for-field in `api.rs`.
+
+- [ ] **Step 0: Add `wiremock` as a `crates/server` dev-dependency**
+
+This crate's tests don't yet depend on `wiremock` (only `crates/core` does, for `TransitlandClient`'s tests) — Step 1's tests below need it too, to mock the Overpass HTTP call `search_streets` makes. In `crates/server/Cargo.toml`'s `[dev-dependencies]` section, add:
+
+```toml
+wiremock = "0.6"
+```
 
 - [ ] **Step 1: Write the module with its tests**
 
@@ -1337,7 +1346,7 @@ Expected: succeeds with no errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add crates/server/src/web/osm_import.rs crates/server/src/web/mod.rs
+git add crates/server/src/web/osm_import.rs crates/server/src/web/mod.rs crates/server/Cargo.toml
 git commit -m "feat(corridor-design): add search/import JSON API for OSM corridor import"
 ```
 
