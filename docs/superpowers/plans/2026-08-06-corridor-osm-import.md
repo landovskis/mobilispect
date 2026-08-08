@@ -969,11 +969,17 @@ pub async fn import_corridor(
 
     let normalized = normalize_corridor_geometry(raw).map_err(|e| bad_request(&e.to_string()))?;
 
+    // `corridors.import_format` has a CHECK constraint (migration 021) that
+    // only allows 'geojson_osm_export' -- predates this plan, and this plan
+    // adds no new migration, so this is the only valid value here despite
+    // the OSM data actually arriving via Overpass, not a GeoJSON export.
+    // Provenance is still fully captured by `geometry_source = 'imported'`
+    // and the OSM attribution string passed below.
     let corridor_id = repository::insert_corridor(
         &state.db.pool,
         RemixId::from(remix_id),
         req.name.trim(),
-        "overpass_import",
+        "geojson_osm_export",
         Some("© OpenStreetMap contributors"),
         &normalized,
     )
