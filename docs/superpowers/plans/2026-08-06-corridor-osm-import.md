@@ -1357,10 +1357,15 @@ git commit -m "feat(corridor-design): add search/import JSON API for OSM corrido
 **Files:**
 - Create: `e2e/tests/helpers/overpass-fixture.ts`
 - Create: `e2e/tests/builder-import-osm.spec.ts`
+- Create: `e2e/global-setup.ts`
+- Create: `e2e/global-teardown.ts`
+- Modify: `e2e/playwright.config.ts`
 
 **Interfaces:**
 - Consumes: `ensureRegionHasBoundingBox`, `withDb` (existing, `e2e/tests/helpers/db.ts`).
 - Produces: `startOverpassFixture(): Promise<void>`, `stopOverpassFixture(): Promise<void>` — a fixed-port (`19999`) local Overpass stand-in that Task 6's verification run points `mobilispect-server` at via `OVERPASS_BASE_URL`.
+
+**Why `globalSetup`/`globalTeardown`, not per-spec `beforeAll`/`afterAll`:** `e2e/playwright.config.ts` sets `fullyParallel: true` across three browser projects (chromium/firefox/webkit), each running in its own worker process locally (`workers` is unset for local runs, only pinned to 1 under CI). Playwright's own docs confirm a spec file's `beforeAll`/`afterAll` run once *per worker*, not once globally — so a per-spec `beforeAll` calling `startOverpassFixture()` would have every worker racing to bind the same fixed port 19999 (the losing workers' `listen()` calls reject with `EADDRINUSE`, throwing inside `beforeAll` and failing those workers' tests outright), and whichever worker's `afterAll` finishes first would tear down the one shared fixture server out from under the others still mid-test. `globalSetup`/`globalTeardown` run exactly once for the whole suite regardless of worker/project count, which is the right shape for this one shared, fixed-port resource — no error-swallowing or reference-counting workaround needed.
 
 - [ ] **Step 1: Write the Overpass fixture helper**
 
@@ -1455,14 +1460,58 @@ export function stopOverpassFixture(): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Write the spec**
+- [ ] **Step 2: Wire the fixture into `globalSetup`/`globalTeardown`**
+
+Create `e2e/global-setup.ts`:
+
+```typescript
+import type { FullConfig } from '@playwright/test';
+import { startOverpassFixture } from './tests/helpers/overpass-fixture';
+
+/**
+ * Starts the Overpass fixture server exactly once, before any test
+ * worker/project starts running tests. `globalSetup`/`globalTeardown` run
+ * once for the entire suite regardless of worker or project count, unlike a
+ * per-spec `beforeAll`/`afterAll` (which runs once *per worker process* --
+ * with `fullyParallel: true` across three browser projects, that would mean
+ * multiple workers racing to bind the fixture's one fixed port, and racing
+ * on which worker's `afterAll` tears the shared server down first). See
+ * `tests/helpers/overpass-fixture.ts` for the fixture itself.
+ */
+async function globalSetup(_config: FullConfig) {
+  await startOverpassFixture();
+}
+
+export default globalSetup;
+```
+
+Create `e2e/global-teardown.ts`:
+
+```typescript
+import type { FullConfig } from '@playwright/test';
+import { stopOverpassFixture } from './tests/helpers/overpass-fixture';
+
+async function globalTeardown(_config: FullConfig) {
+  await stopOverpassFixture();
+}
+
+export default globalTeardown;
+```
+
+In `e2e/playwright.config.ts`, add `globalSetup`/`globalTeardown` to the `defineConfig({...})` call, alongside the existing `testDir`/`fullyParallel`/etc. top-level options (not inside `use` or `projects`):
+
+```typescript
+  globalSetup: require.resolve('./global-setup'),
+  globalTeardown: require.resolve('./global-teardown'),
+```
+
+- [ ] **Step 3: Write the spec**
 
 Create `e2e/tests/builder-import-osm.spec.ts`:
 
 ```typescript
 import { test, expect, type Page } from '@playwright/test';
 import { ensureRegionHasBoundingBox, withDb } from './helpers/db';
-import { startOverpassFixture, stopOverpassFixture } from './helpers/overpass-fixture';
 
 /**
  * Corridor Design — OSM import flow (see
@@ -1474,10 +1523,12 @@ import { startOverpassFixture, stopOverpassFixture } from './helpers/overpass-fi
  * for the fixture ways below, since MapLibre's pan/zoom means a rendered
  * way's screen position isn't otherwise predictable from outside the page.
  *
- * Requires `mobilispect-server` to have been started with
- * `OVERPASS_BASE_URL=http://localhost:19999` so its Overpass calls hit this
- * spec's local fixture server (started in `beforeAll`) instead of the real
- * overpass-api.de.
+ * The Overpass fixture server this test's OSM data comes from is started
+ * once for the whole suite by `../global-setup.ts` (not per-file
+ * `beforeAll`) -- see that file's doc comment for why. Requires
+ * `mobilispect-server` to have been started with
+ * `OVERPASS_BASE_URL=http://localhost:19999` so its Overpass calls hit that
+ * fixture server instead of the real overpass-api.de.
  */
 
 const WAY_A_MIDPOINT = { lat: 45.5005, lon: -73.5795 }; // fixture way 9001001
@@ -1487,7 +1538,6 @@ const WAY_C_MIDPOINT = { lat: 45.5055, lon: -73.5745 }; // fixture way 9001003, 
 let remixId: number;
 
 test.beforeAll(async ({}, testInfo) => {
-  await startOverpassFixture();
   await ensureRegionHasBoundingBox();
   await withDb(async (client) => {
     const result = await client.query(
@@ -1513,7 +1563,6 @@ test.afterAll(async () => {
     await client.query(`DELETE FROM corridors WHERE remix_id = $1`, [remixId]);
     await client.query(`DELETE FROM remixes WHERE id = $1`, [remixId]);
   });
-  await stopOverpassFixture();
 });
 
 async function clickWayAt(page: Page, lonLat: { lat: number; lon: number }) {
@@ -1572,7 +1621,7 @@ test.describe('Corridor Design: OSM import', () => {
 });
 ```
 
-- [ ] **Step 3: Confirm it fails for the right reason**
+- [ ] **Step 4: Confirm it fails for the right reason**
 
 With the dev server running (per the environment setup pattern established in `docs/superpowers/plans/2026-08-03-corridor-manual-trace-and-lanes.md`'s Task 8/9/10 — Postgres via `mobilispect-pg`, `mobilispect-server` started in the background; `OVERPASS_BASE_URL` doesn't need to be set for this RED check, since the spec should fail before ever reaching a real Overpass call):
 
@@ -1581,12 +1630,12 @@ cd e2e && npx playwright test builder-import-osm --project=chromium --list
 npx playwright test builder-import-osm --project=chromium
 ```
 
-Expected: both tests discovered with no parse errors; both fail because `getByRole('button', { name: 'Import from OSM' })` times out — the region-map page's "Import from OSM" button is still `disabled=true` (Task 9 of the manual-trace plan left it as a placeholder), so clicking it does nothing and the page never navigates.
+Expected: both tests discovered with no parse errors; both fail because `getByRole('button', { name: 'Import from OSM' })` times out — the region-map page's "Import from OSM" button is still `disabled=true` (Task 9 of the manual-trace plan left it as a placeholder), so clicking it does nothing and the page never navigates. `globalSetup` should run once (visible in Playwright's console output as a brief pause before "Running N tests" — no per-test fixture-startup noise), confirming it isn't running per-worker.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add e2e/tests/helpers/overpass-fixture.ts e2e/tests/builder-import-osm.spec.ts
+git add e2e/tests/helpers/overpass-fixture.ts e2e/tests/builder-import-osm.spec.ts e2e/global-setup.ts e2e/global-teardown.ts e2e/playwright.config.ts
 git commit -m "test(corridor-design): add failing E2E spec and fixture server for OSM import"
 ```
 
