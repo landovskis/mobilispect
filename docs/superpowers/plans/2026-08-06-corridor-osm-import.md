@@ -1588,6 +1588,11 @@ test.describe('Corridor Design: OSM import', () => {
 
     await page.waitForFunction(() => (window as any).__corridorBuilderMap !== undefined);
     await page.getByRole('button', { name: 'Load streets' }).click();
+    // The ways layer (and the camera fit_bounds to it) only exist once
+    // search_streets's response has been processed -- waiting for the
+    // GeoJSON source to exist avoids a race where a click computed via
+    // map.project() lands before the camera has actually moved to show it.
+    await page.waitForFunction(() => (window as any).__corridorBuilderMap.getSource('osm-ways') !== undefined);
 
     await clickWayAt(page, WAY_A_MIDPOINT);
     await clickWayAt(page, WAY_B_MIDPOINT);
@@ -1610,6 +1615,11 @@ test.describe('Corridor Design: OSM import', () => {
 
     await page.waitForFunction(() => (window as any).__corridorBuilderMap !== undefined);
     await page.getByRole('button', { name: 'Load streets' }).click();
+    // The ways layer (and the camera fit_bounds to it) only exist once
+    // search_streets's response has been processed -- waiting for the
+    // GeoJSON source to exist avoids a race where a click computed via
+    // map.project() lands before the camera has actually moved to show it.
+    await page.waitForFunction(() => (window as any).__corridorBuilderMap.getSource('osm-ways') !== undefined);
 
     await clickWayAt(page, WAY_A_MIDPOINT);
     await clickWayAt(page, WAY_C_MIDPOINT);
@@ -2028,6 +2038,7 @@ pub fn ImportOsmPage(props: &ImportOsmPageProps) -> Html {
                     Ok(fetched) => {
                         if let Some(map) = map_ref.borrow().clone() {
                             render_ways_layer(&map, &fetched);
+                            fit_bounds_to_ways(&map, &fetched);
                         }
                         *ways_ref.borrow_mut() = Some(fetched);
                     }
@@ -2195,6 +2206,44 @@ fn render_ways_layer(map: &Map, ways: &[api::OsmWayResponse]) {
     if let Ok(layer) = to_js_value(&osm_ways_layer()) {
         map.add_layer(&layer);
     }
+}
+
+/// Re-centers the camera to fit all of `ways`' geometry. Without this, a
+/// fetched way outside the map's *current* on-screen viewport (e.g. beyond
+/// the visible height/width at the page's default center/zoom) would render
+/// on the map but never be reachable by a click — the analyst would have to
+/// manually pan/zoom to find it. `animate: false` (matching
+/// `region_map.rs`'s `finish_map_setup`, which has the same requirement for
+/// the same reason) snaps the camera immediately rather than easing into
+/// place, so a click landing right after this call — including in the E2E
+/// spec, which computes click pixels via `map.project()` — sees the final
+/// camera position, not a mid-animation one.
+fn fit_bounds_to_ways(map: &Map, ways: &[api::OsmWayResponse]) {
+    let mut min_lat = f64::MAX;
+    let mut min_lon = f64::MAX;
+    let mut max_lat = f64::MIN;
+    let mut max_lon = f64::MIN;
+    for way in ways {
+        for point in &way.points {
+            min_lat = min_lat.min(point.lat);
+            max_lat = max_lat.max(point.lat);
+            min_lon = min_lon.min(point.lon);
+            max_lon = max_lon.max(point.lon);
+        }
+    }
+    if min_lat > max_lat || min_lon > max_lon {
+        return;
+    }
+    let Ok(bounds) = to_js_value(&serde_json::json!([
+        [min_lon, min_lat],
+        [max_lon, max_lat]
+    ])) else {
+        return;
+    };
+    let Ok(options) = to_js_value(&serde_json::json!({ "padding": 40, "animate": false })) else {
+        return;
+    };
+    map.fit_bounds(&bounds, &options);
 }
 
 fn restyle_ways_layer(map: &Map, selected_ids: &HashSet<i64>) {
