@@ -115,7 +115,10 @@ test.describe('Corridor Design: lane editor', () => {
     await expect(page.getByLabel('Width (meters)')).toHaveValue('3.5');
 
     await page.getByLabel('Lane type').selectOption('turn');
-    await expect(page.getByText('Turn')).toBeVisible();
+    // Scoped to `.xs-lane`: the lane-type <select> also has an <option>
+    // labeled "Turn" (all lane types are always present as options), so an
+    // unscoped `getByText('Turn')` is ambiguous once the edit panel is open.
+    await expect(page.locator('.xs-lane').getByText('Turn')).toBeVisible();
 
     await page.getByLabel('Direction').selectOption('backward');
     await expect(page.getByLabel('Direction')).toHaveValue('backward');

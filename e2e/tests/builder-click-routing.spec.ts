@@ -79,7 +79,10 @@ test.describe('Corridor Builder: click routing', () => {
     await page.locator('.maplibregl-canvas').click({ position: px });
 
     await expect(page).toHaveURL(`/builder/remix/${remixId}/corridor/${corridorId}`);
-    await expect(page.getByText('editor coming soon')).toBeVisible();
+    // The corridor page is now the real lane editor (Task 5); no
+    // cross-section is selected yet, so it shows the "click to select"
+    // prompt rather than the old placeholder text.
+    await expect(page.getByText('Click a point on the map to select a cross-section.')).toBeVisible();
   });
 
   test('clicking an intersection point navigates to its placeholder page', async ({ page }) => {

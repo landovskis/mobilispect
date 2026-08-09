@@ -54,7 +54,10 @@ test.describe('Corridor Design: manual trace', () => {
     await page.getByRole('button', { name: 'Finish trace' }).click();
 
     await expect(page).toHaveURL(new RegExp(`/builder/remix/${remixId}/corridor/\\d+$`));
-    await expect(page.getByText('editor coming soon')).toBeVisible();
+    // The corridor page is now the real lane editor (Task 5); a freshly
+    // traced corridor has no cross-sections yet, so it shows the "click to
+    // select" prompt rather than the old placeholder text.
+    await expect(page.getByText('Click a point on the map to select a cross-section.')).toBeVisible();
   });
 
   test('finishing a trace with fewer than two points shows an error and stays on the trace screen', async ({

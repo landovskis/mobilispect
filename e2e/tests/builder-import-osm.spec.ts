@@ -90,7 +90,10 @@ test.describe('Corridor Design: OSM import', () => {
     await page.getByRole('button', { name: 'Import' }).click();
 
     await expect(page).toHaveURL(new RegExp(`/builder/remix/${remixId}/corridor/\\d+$`));
-    await expect(page.getByText('editor coming soon')).toBeVisible();
+    // The corridor page is now the real lane editor (Task 5); a freshly
+    // imported corridor has no cross-sections yet, so it shows the "click to
+    // select" prompt rather than the old placeholder text.
+    await expect(page.getByText('Click a point on the map to select a cross-section.')).toBeVisible();
   });
 
   test('selecting two disconnected ways shows a disconnected error and stays on the import screen', async ({
