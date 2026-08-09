@@ -31,9 +31,21 @@ const test = base.extend<Fixtures>({
       );
       crossSectionId = crossSectionResult.rows[0].id;
 
-      await client.query(
-        `INSERT INTO lanes (cross_section_id, position, lane_type, width_meters, direction) VALUES ($1, 1, 'travel', 3.0, 'forward')`,
+      const laneResult = await client.query(
+        `INSERT INTO lanes (cross_section_id, position, lane_type, width_meters, direction) VALUES ($1, 1, 'travel', 3.0, 'forward') RETURNING id`,
         [crossSectionId]
+      );
+      const laneId = laneResult.rows[0].id;
+
+      // Matches what a freshly-inserted 'travel' lane actually gets via
+      // default_access_rule_for(LaneType::Travel) in
+      // crates/core/src/corridor_design/lanes.rs: car + emergency, no time
+      // window. Without this row, the seeded lane has zero access rules and
+      // the "adding and removing an access rule" test's initial
+      // toHaveCount(1) assertion below would fail for the wrong reason.
+      await client.query(
+        `INSERT INTO lane_access_rules (lane_id, days, start_time, end_time, allowed_modes) VALUES ($1, NULL, NULL, NULL, $2)`,
+        [laneId, ['car', 'emergency']]
       );
     });
 
