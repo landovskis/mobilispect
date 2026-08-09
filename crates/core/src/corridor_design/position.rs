@@ -329,6 +329,23 @@ mod tests {
         }
     }
 
+    /// `assert_valid_reorder`'s "strictly increasing, no duplicates" invariant
+    /// holds for any positive, strictly-increasing spacing formula, so it can't
+    /// tell `(index + 1) * 1024.0` apart from e.g. `(index + 1) + 1024.0` or
+    /// `(index + 1) / 1024.0` — both are also strictly increasing over
+    /// non-negative indices. Pin the exact literal spacing so a regression in
+    /// the formula itself (not just its ordering) is caught.
+    #[test]
+    fn compute_reordered_positions_spaces_positions_by_1024() {
+        let current = five_ids();
+        let requested = current.clone();
+
+        let result = compute_reordered_positions(&current, &requested).unwrap();
+
+        let positions: Vec<f64> = result.iter().map(|(_, position)| *position).collect();
+        assert_eq!(positions, vec![1024.0, 2048.0, 3072.0, 4096.0, 5120.0]);
+    }
+
     /// SDD REQ-005 unit test 5a: a requested order referencing a cross-section ID
     /// unknown to the corridor's current sequence is rejected as
     /// `UnknownCrossSection`, not silently accepted or misreported as something
