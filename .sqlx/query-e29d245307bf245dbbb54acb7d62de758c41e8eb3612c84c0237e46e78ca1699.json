@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE lanes SET lane_type = $1, width_meters = $2, direction = $3\n           WHERE id = $4\n           RETURNING id, cross_section_id, position::float8 AS \"position!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "cross_section_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "position!",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Float8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "e29d245307bf245dbbb54acb7d62de758c41e8eb3612c84c0237e46e78ca1699"
+}
