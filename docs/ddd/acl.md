@@ -53,10 +53,23 @@ No protobuf types leak past `realtime.rs`. The domain `AgencyId` is passed in fr
 
 ## Transitland API
 
-Translation happens in `crates/worker/src/transitland/`. The Transitland REST API is called
-during static feed ingest to resolve GTFS-local IDs to canonical Onestop IDs.
+Translation happens in `crates/core/src/transitland/mod.rs`. Unlike GTFS
+static/real-time translation below (which is exclusively a
+`crates/worker` batch/background concern), the Transitland client is shared
+by both `crates/worker` (constructed in `crates/worker/src/main.rs` and used
+by the batch static-feed ingest job in
+`crates/worker/src/feed_ingestion/static_feed.rs`) and `crates/server`
+(called on-demand from `crates/server/src/web/handlers.rs`). Because both
+crates need it, the client lives in `crates/core` rather than being
+duplicated — the same "shared by more than one crate" reasoning that puts
+`crates/core/src/db/` in `crates/core`. The Transitland REST API is called
+during static feed ingest, and on demand from web handlers, to resolve
+GTFS-local IDs to canonical Onestop IDs.
 
-**Rule:** No `reqwest` calls to Transitland may appear in `crates/core/` or `crates/server/`.
+**Rule:** No `reqwest` calls to Transitland may appear in `crates/server/` —
+handlers call into `mobilispect_core::transitland::TransitlandClient`, never
+`reqwest` directly. (`crates/core/src/transitland/` itself is exempt: it *is*
+the client.)
 
 Translations:
 - `gtfs_agency_id: String` → `AgencyId` (operator Onestop ID, `o-` prefix)
@@ -68,6 +81,30 @@ entities (routes of unresolved agencies, trips of unresolved routes, etc.) are a
 
 Junction tables (`feed_agency_ids`, `feed_route_ids`, `feed_stop_ids`) are the persisted
 translation boundary — they map feed-local GTFS IDs to canonical Onestop IDs.
+
+## Overpass API (OSM Import)
+
+Translation happens in `crates/core/src/osm/mod.rs`. The Overpass API is called
+on-demand when an analyst searches for or imports OSM street geometry — a
+synchronous, user-triggered lookup, not a batch ingestion job, so (like
+Transitland above) it lives in `crates/core` rather than `crates/worker`.
+
+**Rule:** No `reqwest` calls to Overpass may appear in `crates/server` — route
+handlers call into `mobilispect_core::osm::OverpassClient`, never `reqwest`
+directly.
+
+Translations:
+- Overpass's raw JSON `elements` array → `OsmWay { osm_way_id: i64, points:
+  Vec<corridor_design::geometry::RawPoint>, tags: HashMap<String, String> }`.
+  Node ids and lat/lon coordinates are Overpass's `nodes`/`geometry` parallel
+  arrays, zipped by index into `RawPoint { coordinate, osm_node_id }` —
+  reusing the existing corridor-geometry type directly rather than a parallel
+  one.
+- No translation to domain ID newtypes happens here — OSM way/node ids stay
+  plain `i64` (`osm_way_id`, `osm_node_id`) all the way through persistence,
+  matching the existing `cross_sections.osm_way_id`/`osm_node_id` columns'
+  own convention (see
+  `docs/superpowers/specs/2026-08-03-corridor-segment-editor-design.md`).
 
 ---
 

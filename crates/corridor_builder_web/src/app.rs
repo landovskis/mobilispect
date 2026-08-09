@@ -2,6 +2,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::pages::corridor::CorridorPage;
+use crate::pages::import_osm::ImportOsmPage;
 use crate::pages::intersection::IntersectionPage;
 use crate::pages::landing::LandingPage;
 use crate::pages::manual_trace::ManualTracePage;
@@ -15,6 +16,8 @@ pub enum Route {
     RegionMap { remix_id: i64 },
     #[at("/builder/remix/:remix_id/trace")]
     ManualTrace { remix_id: i64 },
+    #[at("/builder/remix/:remix_id/import")]
+    ImportCorridor { remix_id: i64 },
     #[at("/builder/remix/:remix_id/intersection/:cross_section_id")]
     Intersection {
         remix_id: i64,
@@ -32,6 +35,7 @@ fn switch(route: Route) -> Html {
         Route::Landing => html! { <LandingPage /> },
         Route::RegionMap { remix_id } => html! { <RegionMapPage {remix_id} /> },
         Route::ManualTrace { remix_id } => html! { <ManualTracePage {remix_id} /> },
+        Route::ImportCorridor { remix_id } => html! { <ImportOsmPage {remix_id} /> },
         Route::Intersection {
             remix_id,
             cross_section_id,

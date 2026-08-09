@@ -29,6 +29,12 @@ pub fn RegionMapPage(props: &RegionMapPageProps) -> Html {
             navigator.push(&Route::ManualTrace { remix_id });
         })
     };
+    let on_choose_import_osm = {
+        let navigator = navigator.clone();
+        Callback::from(move |_: MouseEvent| {
+            navigator.push(&Route::ImportCorridor { remix_id });
+        })
+    };
 
     {
         let error = error.clone();
@@ -66,7 +72,7 @@ pub fn RegionMapPage(props: &RegionMapPageProps) -> Html {
                 if *show_add_menu {
                     <div class="setup-card" style="padding:1rem;">
                         <button class="btn btn-primary" style="display:block; width:100%; margin-bottom:0.5rem;" onclick={on_choose_manual_trace}>{ "Manual trace" }</button>
-                        <button class="btn" style="display:block; width:100%;" disabled=true title="Coming soon">{ "Import from OSM" }</button>
+                        <button class="btn" style="display:block; width:100%;" onclick={on_choose_import_osm}>{ "Import from OSM" }</button>
                     </div>
                 } else {
                     <button class="btn btn-primary" onclick={on_open_add_menu}>{ "Add corridor" }</button>
@@ -197,7 +203,7 @@ fn finish_map_setup(
     map.on("click", &onclick);
     onclick.forget();
 
-    expose_map_for_e2e_tests(map);
+    crate::maplibre::expose_map_for_e2e_tests(map);
 
     Ok(())
 }
@@ -254,14 +260,5 @@ fn handle_map_click(map: &Map, event: &JsValue, navigator: &Navigator, remix_id:
             _ => {}
         }
         return;
-    }
-}
-
-/// Stashes the map instance on `window.__corridorBuilderMap` so Playwright
-/// E2E tests can compute exact click pixel coordinates via `map.project()`
-/// instead of guessing — see `e2e/tests/builder-click-routing.spec.ts`.
-fn expose_map_for_e2e_tests(map: &Map) {
-    if let Some(window) = web_sys::window() {
-        let _ = js_sys::Reflect::set(&window, &"__corridorBuilderMap".into(), map);
     }
 }

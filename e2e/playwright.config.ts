@@ -30,6 +30,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
+  globalSetup: './global-setup.ts',
+  globalTeardown: './global-teardown.ts',
   reporter: 'html',
 
   use: {

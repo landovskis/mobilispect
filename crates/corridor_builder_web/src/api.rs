@@ -178,3 +178,66 @@ pub async fn finish_manual_corridor(
         gloo_net::http::Request::post(&format!("{API_BASE}/corridors/{corridor_id}/finish"));
     send_and_decode(request).await
 }
+
+#[derive(Debug, Clone, Serialize)]
+struct SearchStreetsRequest {
+    min_lat: f64,
+    min_lon: f64,
+    max_lat: f64,
+    max_lon: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OsmPointResponse {
+    pub lat: f64,
+    pub lon: f64,
+    pub osm_node_id: Option<i64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct OsmWayResponse {
+    pub osm_way_id: i64,
+    pub points: Vec<OsmPointResponse>,
+    pub tags: std::collections::HashMap<String, String>,
+}
+
+pub async fn search_streets(
+    remix_id: i64,
+    min_lat: f64,
+    min_lon: f64,
+    max_lat: f64,
+    max_lon: f64,
+) -> Result<Vec<OsmWayResponse>, String> {
+    let request = gloo_net::http::Request::post(&format!("{API_BASE}/remixes/{remix_id}/streets"))
+        .json(&SearchStreetsRequest {
+            min_lat,
+            min_lon,
+            max_lat,
+            max_lon,
+        })
+        .map_err(|e| e.to_string())?;
+    send_and_decode(request).await
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ImportCorridorRequest {
+    name: String,
+    ways: Vec<OsmWayResponse>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ImportCorridorResponse {
+    pub id: i64,
+}
+
+pub async fn import_corridor(
+    remix_id: i64,
+    name: String,
+    ways: Vec<OsmWayResponse>,
+) -> Result<ImportCorridorResponse, String> {
+    let request =
+        gloo_net::http::Request::post(&format!("{API_BASE}/remixes/{remix_id}/corridors/import"))
+            .json(&ImportCorridorRequest { name, ways })
+            .map_err(|e| e.to_string())?;
+    send_and_decode(request).await
+}
