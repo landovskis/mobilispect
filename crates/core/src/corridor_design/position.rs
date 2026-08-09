@@ -155,7 +155,14 @@ pub fn assign_position(neighbors: Neighbors) -> Result<f64, PositionAssignmentEr
             if before >= after {
                 return Err(PositionAssignmentError::NonMonotonicNeighbors);
             }
-            Ok((before + after) / 2.0)
+            let midpoint = before + (after - before) / 2.0;
+            if midpoint <= before || midpoint >= after {
+                // Floating-point precision exhausted: `before`/`after` are so
+                // close together that no representable value lies strictly
+                // between them.
+                return Err(PositionAssignmentError::UnresolvableInterval);
+            }
+            Ok(midpoint)
         }
         (None, Some(after)) => Ok(after - 1.0),
         (Some(before), None) => Ok(before + 1.0),

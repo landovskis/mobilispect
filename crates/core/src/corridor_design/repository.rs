@@ -73,7 +73,7 @@ pub async fn get_corridor_cross_sections(
 ) -> Result<Vec<CrossSection>, anyhow::Error> {
     let rows = sqlx::query!(
         r#"SELECT id, corridor_id, position::float8 AS "position!", lat, lon,
-                  osm_way_id, osm_node_id, label
+                  osm_way_id, osm_node_id, label, version
            FROM cross_sections
            WHERE corridor_id = $1
            ORDER BY position"#,
@@ -93,6 +93,7 @@ pub async fn get_corridor_cross_sections(
             osm_way_id: row.osm_way_id,
             osm_node_id: row.osm_node_id,
             label: row.label,
+            version: row.version,
         })
         .collect())
 }
@@ -556,11 +557,12 @@ pub async fn update_cross_section_label(
     new_label: Option<String>,
     expected_version: i32,
 ) -> Result<CrossSection, anyhow::Error> {
-    let updated = sqlx::query!(
+    let row = sqlx::query!(
         r#"UPDATE cross_sections
            SET label = $1, version = version + 1
            WHERE id = $2 AND corridor_id = $3 AND version = $4
-           RETURNING id, corridor_id, position::float8 AS "position!", lat, lon, osm_way_id, osm_node_id, label"#,
+           RETURNING id, corridor_id, position::float8 AS "position!", lat, lon,
+                     osm_way_id, osm_node_id, label, version"#,
         new_label,
         cross_section_id.as_i64(),
         corridor_id.as_i64(),
@@ -569,11 +571,16 @@ pub async fn update_cross_section_label(
     .fetch_optional(pool)
     .await?;
 
-    let Some(row) = updated else {
-        anyhow::bail!(
-            "cross-section {cross_section_id} not found in corridor {corridor_id} at version {expected_version}"
-        );
-    };
+    // A single query covers all three failure modes at once (doesn't exist,
+    // belongs to a different corridor, or a concurrent edit already advanced
+    // `version`) -- matching this file's established "coarse is_err()"
+    // precedent for not-yet-typed errors (see the REQ-004/005 stubs' own test
+    // comments).
+    let row = row.ok_or_else(|| {
+        anyhow::anyhow!(
+            "cross-section {cross_section_id} not found, not part of corridor {corridor_id}, or version conflict"
+        )
+    })?;
 
     Ok(CrossSection {
         id: CrossSectionId::from(row.id),
@@ -584,6 +591,7 @@ pub async fn update_cross_section_label(
         osm_way_id: row.osm_way_id,
         osm_node_id: row.osm_node_id,
         label: row.label,
+        version: row.version,
     })
 }
 

@@ -124,6 +124,7 @@ mod tests {
             osm_way_id: None,
             osm_node_id: None,
             label: Some(label.to_string()),
+            version: 1,
         }
     }
 

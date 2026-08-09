@@ -98,4 +98,8 @@ pub struct CrossSection {
     /// Descriptive label, editable via REQ-006's edit shell. `NULL`/`None` until an
     /// analyst sets one; not populated by REQ-001/002/004's creation paths.
     pub label: Option<String>,
+    /// Optimistic-concurrency counter (migration 024's `cross_sections.version`
+    /// column, `DEFAULT 1`). Bumped on every successful `update_cross_section_label`
+    /// call.
+    pub version: i32,
 }
