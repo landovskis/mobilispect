@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT corridor_id, position::float8 AS \"position!\" FROM cross_sections WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "corridor_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "position!",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "8e078714dcbb84a8b0dd26816aeb450187f6ad60154498fc55a3c3ca3a96820a"
+}
