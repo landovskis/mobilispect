@@ -15,6 +15,7 @@ use mobilispect_core::db::Database;
 mod corridor_api;
 mod handlers;
 pub mod middleware;
+mod osm_import;
 mod remix_api;
 
 #[derive(Debug)]
@@ -72,6 +73,14 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/api/corridors/:corridor_id/finish",
             post(corridor_api::finish_manual_corridor),
+        )
+        .route(
+            "/api/remixes/:remix_id/streets",
+            post(osm_import::search_streets),
+        )
+        .route(
+            "/api/remixes/:remix_id/corridors/import",
+            post(osm_import::import_corridor),
         )
         .nest_service(
             "/builder",
