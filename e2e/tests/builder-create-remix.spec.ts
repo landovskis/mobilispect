@@ -4,9 +4,7 @@ import { ensureRegionHasBoundingBox } from './helpers/db';
 /**
  * Corridor Builder WASM shell — create-remix flow (see
  * docs/superpowers/specs/2026-08-02-corridor-builder-wasm-shell-design.md,
- * "User Flow" steps 1-2). Written before the /builder app exists, so it
- * fails today for the correct reason (404/timeout), matching this repo's
- * established Loop-A-style precedent (see req-001-import.spec.ts).
+ * "User Flow" steps 1-2).
  */
 
 test.beforeAll(async () => {

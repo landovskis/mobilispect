@@ -1,8 +1,7 @@
 //! WebGL availability check for MapLibre GL JS graceful degradation.
-//! Mirrors the feature-detection pattern already established for the
-//! (separate, canvas-based) corridor segment editor's REQ-007 — see
-//! e2e/tests/feature-detection.spec.ts — scoped here to what this shell's
-//! map actually depends on: WebGL, not canvas-2D/Pointer Events.
+//! Scoped to what this shell's map actually depends on: WebGL — see
+//! e2e/tests/builder-graceful-degradation.spec.ts for the corresponding
+//! E2E coverage.
 
 use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;

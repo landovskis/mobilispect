@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, cross_section_id, position::float8 AS \"position!\", lane_type, width_meters, direction\n           FROM lanes\n           WHERE cross_section_id = $1\n           ORDER BY position",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "cross_section_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "position!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "lane_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "width_meters",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "direction",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "58f0194f07dc5e02b54f9c1fa9c1fce896afaf33c995da49811c7d5edc7d5508"
+}

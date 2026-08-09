@@ -4,6 +4,7 @@ use yew_router::prelude::*;
 use crate::pages::corridor::CorridorPage;
 use crate::pages::intersection::IntersectionPage;
 use crate::pages::landing::LandingPage;
+use crate::pages::manual_trace::ManualTracePage;
 use crate::pages::region_map::RegionMapPage;
 
 #[derive(Clone, Routable, PartialEq, Debug)]
@@ -12,6 +13,8 @@ pub enum Route {
     Landing,
     #[at("/builder/remix/:remix_id")]
     RegionMap { remix_id: i64 },
+    #[at("/builder/remix/:remix_id/trace")]
+    ManualTrace { remix_id: i64 },
     #[at("/builder/remix/:remix_id/intersection/:cross_section_id")]
     Intersection {
         remix_id: i64,
@@ -28,6 +31,7 @@ fn switch(route: Route) -> Html {
     match route {
         Route::Landing => html! { <LandingPage /> },
         Route::RegionMap { remix_id } => html! { <RegionMapPage {remix_id} /> },
+        Route::ManualTrace { remix_id } => html! { <ManualTracePage {remix_id} /> },
         Route::Intersection {
             remix_id,
             cross_section_id,

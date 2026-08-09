@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cross_sections (corridor_id, position, lat, lon, osm_way_id, osm_node_id) VALUES ($1, $2::float8, $3, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "414c0c97014a3893797da3d0f584a0838bc59fc74c49f3a1482255aaf1dbcb79"
+}

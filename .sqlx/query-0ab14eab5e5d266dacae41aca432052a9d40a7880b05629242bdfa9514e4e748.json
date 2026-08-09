@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO lanes (cross_section_id, position, lane_type, width_meters, direction) VALUES ($1, $2::float8, $3, $4, $5) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Float8",
+        "Text",
+        "Float8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0ab14eab5e5d266dacae41aca432052a9d40a7880b05629242bdfa9514e4e748"
+}

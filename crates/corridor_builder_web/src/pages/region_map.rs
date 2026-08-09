@@ -18,6 +18,17 @@ pub fn RegionMapPage(props: &RegionMapPageProps) -> Html {
     let navigator = use_navigator().expect("BrowserRouter provides a Navigator");
     let error = use_state(|| None::<String>);
     let webgl_ok = use_state(webgl_is_supported);
+    let show_add_menu = use_state(|| false);
+    let on_open_add_menu = {
+        let show_add_menu = show_add_menu.clone();
+        Callback::from(move |_: MouseEvent| show_add_menu.set(true))
+    };
+    let on_choose_manual_trace = {
+        let navigator = navigator.clone();
+        Callback::from(move |_: MouseEvent| {
+            navigator.push(&Route::ManualTrace { remix_id });
+        })
+    };
 
     {
         let error = error.clone();
@@ -51,6 +62,16 @@ pub fn RegionMapPage(props: &RegionMapPageProps) -> Html {
                 </div>
             }
             <div id="map" style="width: 100%; height: 100vh;"></div>
+            <div style="position:absolute; top:16px; right:16px; z-index:10;">
+                if *show_add_menu {
+                    <div class="setup-card" style="padding:1rem;">
+                        <button class="btn btn-primary" style="display:block; width:100%; margin-bottom:0.5rem;" onclick={on_choose_manual_trace}>{ "Manual trace" }</button>
+                        <button class="btn" style="display:block; width:100%;" disabled=true title="Coming soon">{ "Import from OSM" }</button>
+                    </div>
+                } else {
+                    <button class="btn btn-primary" onclick={on_open_add_menu}>{ "Add corridor" }</button>
+                }
+            </div>
         </div>
     }
 }
