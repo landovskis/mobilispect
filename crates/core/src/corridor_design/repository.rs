@@ -546,10 +546,6 @@ pub async fn reorder_cross_sections(
 /// `cross_section_id` does not exist (e.g. deleted since the caller's edit view
 /// loaded) or does not belong to `corridor_id`, or if `expected_version` no longer
 /// matches the stored `version` (a concurrent edit landed first).
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-006-07 (Loop B GREEN pass). This stub exists
-/// so Loop A's tests compile and fail for the right reason (production code
-/// absent).
 pub async fn update_cross_section_label(
     pool: &sqlx::PgPool,
     corridor_id: CorridorId,

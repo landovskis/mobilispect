@@ -63,10 +63,6 @@ pub const MAX_LABEL_LENGTH: usize = 200;
 /// label, a label longer than [`MAX_LABEL_LENGTH`] characters, and a label
 /// containing control characters. See the Corridor Segment Editor SDD, REQ-006
 /// "Security" section.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-006-05 (Loop B GREEN pass). This stub exists
-/// so Loop A's tests compile and fail for the right reason (production code
-/// absent).
 pub fn validate_label(raw: &str) -> Result<Option<String>, LabelValidationError> {
     let trimmed = raw.trim();
     if trimmed.is_empty() {
@@ -91,10 +87,6 @@ pub fn validate_label(raw: &str) -> Result<Option<String>, LabelValidationError>
 /// `target_id` does not match any cross-section in `cross_sections` — the input
 /// `Vec` was taken by value, so there is nothing left to "roll back"; the caller
 /// simply never receives a mutated sequence.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-006-05 (Loop B GREEN pass). This stub exists
-/// so Loop A's tests compile and fail for the right reason (production code
-/// absent).
 pub fn apply_cross_section_edit(
     mut cross_sections: Vec<CrossSection>,
     target_id: CrossSectionId,

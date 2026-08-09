@@ -146,9 +146,6 @@ pub fn compute_reordered_positions(
 /// Pure — no I/O. `before = None` means "insert at the start of the sequence";
 /// `after = None` means "insert at the end"; both `None` means the corridor has no
 /// existing cross-sections yet.
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-004-04 (Loop B GREEN pass). This stub exists so
-/// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn assign_position(neighbors: Neighbors) -> Result<f64, PositionAssignmentError> {
     match (neighbors.before, neighbors.after) {
         (Some(before), Some(after)) => {
