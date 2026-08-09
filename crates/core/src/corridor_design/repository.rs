@@ -359,8 +359,99 @@ pub async fn add_cross_section(
     insert_after: Option<CrossSectionId>,
     coordinate: Coordinate,
 ) -> Result<CrossSection, anyhow::Error> {
-    let _ = (pool, corridor_id, insert_after, coordinate);
-    unimplemented!("IMP-REQ-004-06: add_cross_section not yet implemented")
+    // The neighbor read and the position INSERT must happen inside one
+    // SERIALIZABLE transaction, not as separate autocommit statements on the
+    // pool: two concurrent calls targeting the same insertion slot both need
+    // to observe the *same* pre-insert neighbor state and compute the same
+    // `new_position`, so that whichever commits second is guaranteed to
+    // conflict rather than silently reading the other's already-committed
+    // row and computing a different, non-colliding position. Under plain
+    // READ COMMITTED that guarantee only holds if the two calls happen to
+    // overlap in time; SERIALIZABLE's predicate locking (SSI) makes Postgres
+    // detect the write skew and abort one transaction even when the actual
+    // wall-clock overlap is small. See TC-REQ-004-6.
+    let mut tx = pool.begin().await?;
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+        .execute(&mut *tx)
+        .await?;
+
+    let corridor_exists = sqlx::query_scalar!(
+        r#"SELECT EXISTS(SELECT 1 FROM corridors WHERE id = $1) AS "exists!""#,
+        corridor_id.as_i64(),
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+    if !corridor_exists {
+        anyhow::bail!("corridor {corridor_id} does not exist");
+    }
+
+    let (before, after) = match insert_after {
+        Some(anchor_id) => {
+            let anchor = sqlx::query!(
+                r#"SELECT corridor_id, position::float8 AS "position!" FROM cross_sections WHERE id = $1"#,
+                anchor_id.as_i64(),
+            )
+            .fetch_optional(&mut *tx)
+            .await?;
+            let Some(anchor) = anchor else {
+                anyhow::bail!("insert_after cross-section {anchor_id} does not exist");
+            };
+            if anchor.corridor_id != corridor_id.as_i64() {
+                anyhow::bail!(
+                    "insert_after cross-section {anchor_id} does not belong to corridor {corridor_id}"
+                );
+            }
+            let after = sqlx::query_scalar!(
+                r#"SELECT position::float8 AS "position!" FROM cross_sections
+                   WHERE corridor_id = $1 AND position > $2::float8
+                   ORDER BY position ASC LIMIT 1"#,
+                corridor_id.as_i64(),
+                anchor.position,
+            )
+            .fetch_optional(&mut *tx)
+            .await?;
+            (Some(anchor.position), after)
+        }
+        None => {
+            let after = sqlx::query_scalar!(
+                r#"SELECT position::float8 AS "position!" FROM cross_sections
+                   WHERE corridor_id = $1 ORDER BY position ASC LIMIT 1"#,
+                corridor_id.as_i64(),
+            )
+            .fetch_optional(&mut *tx)
+            .await?;
+            (None, after)
+        }
+    };
+
+    let new_position = crate::corridor_design::position::assign_position(
+        crate::corridor_design::position::Neighbors { before, after },
+    )
+    .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    let id = sqlx::query_scalar!(
+        "INSERT INTO cross_sections (corridor_id, position, lat, lon) \
+         VALUES ($1, $2::float8, $3, $4) RETURNING id",
+        corridor_id.as_i64(),
+        new_position,
+        coordinate.lat,
+        coordinate.lon,
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(CrossSection {
+        id: CrossSectionId::from(id),
+        corridor_id,
+        position: new_position,
+        lat: coordinate.lat,
+        lon: coordinate.lon,
+        osm_way_id: None,
+        osm_node_id: None,
+        label: None,
+    })
 }
 
 /// Reorders every cross-section in a corridor's sequence to match
@@ -385,8 +476,63 @@ pub async fn reorder_cross_sections(
     expected_version: i64,
     requested_order: &[CrossSectionId],
 ) -> Result<(i64, Vec<CrossSection>), anyhow::Error> {
-    let _ = (pool, corridor_id, expected_version, requested_order);
-    unimplemented!("IMP-REQ-005-05: reorder_cross_sections not yet implemented")
+    let current_order: Vec<CrossSectionId> = sqlx::query_scalar!(
+        "SELECT id FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+        corridor_id.as_i64(),
+    )
+    .fetch_all(pool)
+    .await?
+    .into_iter()
+    .map(CrossSectionId::from)
+    .collect();
+
+    let new_positions = crate::corridor_design::position::compute_reordered_positions(
+        &current_order,
+        requested_order,
+    )
+    .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    let mut tx = pool.begin().await?;
+
+    let current_version = sqlx::query_scalar!(
+        "SELECT sequence_version FROM corridors WHERE id = $1 FOR UPDATE",
+        corridor_id.as_i64(),
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+    let Some(current_version) = current_version else {
+        anyhow::bail!("corridor {corridor_id} does not exist");
+    };
+    if current_version != expected_version {
+        anyhow::bail!(
+            "stale expected_version: expected {expected_version}, corridor is at {current_version}"
+        );
+    }
+
+    for (id, position) in &new_positions {
+        sqlx::query!(
+            "UPDATE cross_sections SET position = $1::float8 WHERE id = $2 AND corridor_id = $3",
+            position,
+            id.as_i64(),
+            corridor_id.as_i64(),
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    let new_version = current_version + 1;
+    sqlx::query!(
+        "UPDATE corridors SET sequence_version = $1 WHERE id = $2",
+        new_version,
+        corridor_id.as_i64(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    let cross_sections = get_corridor_cross_sections(pool, corridor_id).await?;
+    Ok((new_version, cross_sections))
 }
 
 /// Updates a single cross-section's descriptive `label`, enforcing optimistic
@@ -410,14 +556,35 @@ pub async fn update_cross_section_label(
     new_label: Option<String>,
     expected_version: i32,
 ) -> Result<CrossSection, anyhow::Error> {
-    let _ = (
-        pool,
-        corridor_id,
-        cross_section_id,
+    let updated = sqlx::query!(
+        r#"UPDATE cross_sections
+           SET label = $1, version = version + 1
+           WHERE id = $2 AND corridor_id = $3 AND version = $4
+           RETURNING id, corridor_id, position::float8 AS "position!", lat, lon, osm_way_id, osm_node_id, label"#,
         new_label,
+        cross_section_id.as_i64(),
+        corridor_id.as_i64(),
         expected_version,
-    );
-    unimplemented!("IMP-REQ-006-07: update_cross_section_label not yet implemented")
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    let Some(row) = updated else {
+        anyhow::bail!(
+            "cross-section {cross_section_id} not found in corridor {corridor_id} at version {expected_version}"
+        );
+    };
+
+    Ok(CrossSection {
+        id: CrossSectionId::from(row.id),
+        corridor_id: CorridorId::from(row.corridor_id),
+        position: row.position,
+        lat: row.lat,
+        lon: row.lon,
+        osm_way_id: row.osm_way_id,
+        osm_node_id: row.osm_node_id,
+        label: row.label,
+    })
 }
 
 #[cfg(test)]
@@ -819,7 +986,7 @@ mod tests {
         assert_eq!(new_cross_section.corridor_id, corridor_id);
 
         let rows: Vec<FractionalPositionRow> = sqlx::query_as(
-            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+            "SELECT id, position::float8 AS position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
         )
         .bind(corridor_id.as_i64())
         .fetch_all(&db.pool)
@@ -854,7 +1021,7 @@ mod tests {
         let new_cross_section = result.expect("add_cross_section should succeed once implemented");
 
         let rows: Vec<FractionalPositionRow> = sqlx::query_as(
-            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+            "SELECT id, position::float8 AS position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
         )
         .bind(corridor_id.as_i64())
         .fetch_all(&db.pool)
@@ -896,7 +1063,7 @@ mod tests {
         let new_cross_section = result.expect("add_cross_section should succeed once implemented");
 
         let rows: Vec<FractionalPositionRow> = sqlx::query_as(
-            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+            "SELECT id, position::float8 AS position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
         )
         .bind(corridor_id.as_i64())
         .fetch_all(&db.pool)
@@ -965,7 +1132,16 @@ mod tests {
     /// TC-REQ-004-6: two concurrent adds targeting the same `insert_after` slot must
     /// not both succeed — one wins the insertion, the other loses to the unique
     /// `(corridor_id, position)` constraint and is rejected.
-    #[tokio::test]
+    ///
+    /// Needs a real multi-threaded runtime: on the default current-thread
+    /// flavor, `tokio::join!` only interleaves the two futures cooperatively
+    /// on one OS thread, so one side can run its entire read-then-insert
+    /// sequence to completion (and commit) before the other's first query is
+    /// even dispatched — no actual race, so nothing to reject. Two worker
+    /// threads let both sides' queries genuinely execute concurrently, which
+    /// `add_cross_section`'s SERIALIZABLE transaction then relies on to
+    /// detect the conflict deterministically.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn concurrent_add_targeting_same_slot_rejects_at_least_one() {
         let td = test_utils::setup().await;
         let db = td.db;
@@ -974,24 +1150,50 @@ mod tests {
             seed_corridor_with_four_cross_sections(&db.pool).await;
         let anchor = cross_section_ids[1]; // "cs_002"
 
+        // A plain `tokio::join!` only interleaves these two futures
+        // cooperatively; nothing stops one from running its entire
+        // read-then-insert sequence to completion (and committing) before
+        // the other's first query is even dispatched, which would make this
+        // test non-deterministic — a real race requires both sides to reach
+        // the database at (as close as possible to) the same instant. A
+        // `Barrier` combined with the multi-thread runtime above gives each
+        // side its own OS thread and forces them to start their DB work
+        // together.
+        let barrier = std::sync::Arc::new(tokio::sync::Barrier::new(2));
+
+        let pool_a = db.pool.clone();
+        let barrier_a = std::sync::Arc::clone(&barrier);
+        let task_a = tokio::spawn(async move {
+            barrier_a.wait().await;
+            add_cross_section(
+                &pool_a,
+                corridor_id,
+                Some(anchor),
+                Coordinate::new(45.41, -75.685),
+            )
+            .await
+        });
+
+        let pool_b = db.pool.clone();
+        let barrier_b = std::sync::Arc::clone(&barrier);
+        let task_b = tokio::spawn(async move {
+            barrier_b.wait().await;
+            add_cross_section(
+                &pool_b,
+                corridor_id,
+                Some(anchor),
+                Coordinate::new(45.415, -75.686),
+            )
+            .await
+        });
+
         // TODO(Loop B): once real conflict detection exists, assert exactly one 201 /
         // one 409 POSITION_COLLISION, and that the DB ends up with exactly 5 rows with
         // all-distinct positions (see TC-REQ-004-6). This coarsely asserts at least
         // one side fails, per this pass's precedent for not-yet-typed errors.
-        let (result_a, result_b) = tokio::join!(
-            add_cross_section(
-                &db.pool,
-                corridor_id,
-                Some(anchor),
-                Coordinate::new(45.41, -75.685),
-            ),
-            add_cross_section(
-                &db.pool,
-                corridor_id,
-                Some(anchor),
-                Coordinate::new(45.415, -75.686),
-            ),
-        );
+        let (result_a, result_b) = tokio::join!(task_a, task_b);
+        let result_a = result_a.expect("task_a panicked");
+        let result_b = result_b.expect("task_b panicked");
 
         assert!(
             result_a.is_err() || result_b.is_err(),
@@ -1075,7 +1277,7 @@ mod tests {
         );
 
         let rows: Vec<FractionalPositionRow> = sqlx::query_as(
-            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+            "SELECT id, position::float8 AS position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
         )
         .bind(corridor_id.as_i64())
         .fetch_all(&db.pool)
@@ -1127,7 +1329,7 @@ mod tests {
         );
 
         let rows: Vec<FractionalPositionRow> = sqlx::query_as(
-            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+            "SELECT id, position::float8 AS position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
         )
         .bind(corridor_id.as_i64())
         .fetch_all(&db.pool)
@@ -1167,7 +1369,7 @@ mod tests {
         );
 
         let rows: Vec<FractionalPositionRow> = sqlx::query_as(
-            "SELECT id, position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
+            "SELECT id, position::float8 AS position FROM cross_sections WHERE corridor_id = $1 ORDER BY position",
         )
         .bind(corridor_id.as_i64())
         .fetch_all(&db.pool)

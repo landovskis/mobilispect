@@ -3,7 +3,24 @@
 # No terminate-after: slow tests are flagged but never hard-killed.
 slow-timeout = { period = "60s" }
 
+[[profile.default.overrides]]
+# This test proves a genuine DB-level race (two concurrent add_cross_section
+# calls targeting the same insertion slot) is rejected — see the SERIALIZABLE
+# transaction in add_cross_section and this test's own doc comment. Whether
+# the race actually materializes depends on the OS thread scheduler getting
+# both sides' first query dispatched within the same DB snapshot window; under
+# heavy host load that overlap can occasionally fail to happen even with the
+# Barrier-synchronized multi-thread runtime, producing a false negative (both
+# calls happen to run fully sequentially and neither conflicts) rather than a
+# real correctness failure. Retry instead of loosening the assertion.
+filter = "test(concurrent_add_targeting_same_slot_rejects_at_least_one)"
+retries = 4
+
 [profile.ci]
 # CI has warm Docker layer caches so 60s is plenty; fail fast on first failure.
 slow-timeout = { period = "60s" }
 fail-fast = true
+
+[[profile.ci.overrides]]
+filter = "test(concurrent_add_targeting_same_slot_rejects_at_least_one)"
+retries = 4

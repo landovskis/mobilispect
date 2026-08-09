@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE cross_sections\n           SET label = $1, version = version + 1\n           WHERE id = $2 AND corridor_id = $3 AND version = $4\n           RETURNING id, corridor_id, position::float8 AS \"position!\", lat, lon, osm_way_id, osm_node_id, label",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "corridor_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "position!",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "osm_way_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "osm_node_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "label",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "17f855c9a83cf5768d557118c4b37201b42ee4fc728da10f3534dc6852491ce7"
+}

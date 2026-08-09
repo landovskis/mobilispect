@@ -68,8 +68,17 @@ pub const MAX_LABEL_LENGTH: usize = 200;
 /// so Loop A's tests compile and fail for the right reason (production code
 /// absent).
 pub fn validate_label(raw: &str) -> Result<Option<String>, LabelValidationError> {
-    let _ = raw;
-    unimplemented!("IMP-REQ-006-05: validate_label not yet implemented")
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return Err(LabelValidationError::Empty);
+    }
+    if trimmed.chars().count() > MAX_LABEL_LENGTH {
+        return Err(LabelValidationError::TooLong);
+    }
+    if trimmed.chars().any(|c| c.is_control()) {
+        return Err(LabelValidationError::ContainsControlCharacters);
+    }
+    Ok(Some(trimmed.to_string()))
 }
 
 /// Returns a new `Vec<CrossSection>` in which every cross-section other than
@@ -87,12 +96,15 @@ pub fn validate_label(raw: &str) -> Result<Option<String>, LabelValidationError>
 /// so Loop A's tests compile and fail for the right reason (production code
 /// absent).
 pub fn apply_cross_section_edit(
-    cross_sections: Vec<CrossSection>,
+    mut cross_sections: Vec<CrossSection>,
     target_id: CrossSectionId,
     new_label: Option<String>,
 ) -> Result<Vec<CrossSection>, EditError> {
-    let _ = (cross_sections, target_id, new_label);
-    unimplemented!("IMP-REQ-006-05: apply_cross_section_edit not yet implemented")
+    let Some(target) = cross_sections.iter_mut().find(|cs| cs.id == target_id) else {
+        return Err(EditError::NotFound(target_id));
+    };
+    target.label = new_label;
+    Ok(cross_sections)
 }
 
 #[cfg(test)]
