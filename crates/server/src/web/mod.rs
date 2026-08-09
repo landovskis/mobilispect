@@ -14,6 +14,7 @@ use mobilispect_core::db::Database;
 
 mod corridor_api;
 mod handlers;
+mod lane_editor_api;
 pub mod middleware;
 mod osm_import;
 mod remix_api;
@@ -81,6 +82,26 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/api/remixes/:remix_id/corridors/import",
             post(osm_import::import_corridor),
+        )
+        .route(
+            "/api/corridors/:corridor_id/cross-sections",
+            get(lane_editor_api::list_cross_sections),
+        )
+        .route(
+            "/api/corridors/:corridor_id/cross-sections/:cross_section_id/label",
+            axum::routing::patch(lane_editor_api::update_label),
+        )
+        .route(
+            "/api/cross-sections/:cross_section_id/lanes",
+            get(lane_editor_api::list_lanes).post(lane_editor_api::insert_lane),
+        )
+        .route(
+            "/api/lanes/:lane_id",
+            axum::routing::patch(lane_editor_api::update_lane).delete(lane_editor_api::delete_lane),
+        )
+        .route(
+            "/api/lanes/:lane_id/access-rules",
+            axum::routing::put(lane_editor_api::set_access_rules),
         )
         .nest_service(
             "/builder",
