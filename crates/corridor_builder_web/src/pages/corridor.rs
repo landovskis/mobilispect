@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::rc::Rc;
+
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -30,6 +34,42 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
     let lanes = use_state(Vec::<api::LaneResponse>::new);
     let selected_lane_id = use_state(|| None::<i64>);
     let error = use_state(|| None::<String>);
+
+    // `access_rules_ref`/`lane_fields_ref` are `Rc<RefCell<...>>` (via
+    // `use_mut_ref`), not `UseStateHandle`s, for the same reason
+    // `pages/import_osm.rs`'s `ways_ref`/`selected_ref` are (see that file's
+    // state-management comment): every edit control here does a
+    // read-modify-write of the lane's *whole* server-side record (the
+    // access-rule endpoint is a whole-list replace, the lane endpoint a
+    // whole-record PATCH), and reading the "before" half of that from a value
+    // derived from the `lanes` state means reading whatever that state was at
+    // the last render -- not what earlier events in the same tick already
+    // changed. Concretely: typing in one rule's "Allowed modes" field and then
+    // clicking another rule's remove button fires `blur` and then `click`
+    // before Yew re-renders anything, so both handlers would read the same
+    // pre-edit snapshot and the two resulting PUTs would each omit the other's
+    // change, silently discarding whichever landed first.
+    //
+    // These two refs are the live, always-current picture of the selected
+    // lane's editable fields. Each handler mutates them synchronously and
+    // sends the *mutated* value, so back-to-back events compose (WASM/JS is
+    // single-threaded and a DOM handler runs to completion before the next one
+    // starts, so the second handler's `borrow_mut()` always observes the
+    // first's mutation). They are resynced from server-confirmed state by the
+    // `use_effect_with` below. Rendering still comes from `lanes` /
+    // `selected_lane` -- Yew needs reactive state to re-render, and the refs
+    // only decide what gets *sent*.
+    let access_rules_ref = use_mut_ref(Vec::<api::AccessRuleValue>::new);
+    let lane_fields_ref = use_mut_ref(|| (String::new(), 0.0_f64, String::new()));
+    let synced_lane_id = use_mut_ref(|| None::<i64>);
+
+    // Pending writes are drained by a single sequential worker so that two
+    // near-simultaneous edits reach the server in the order the analyst made
+    // them. Firing both concurrently would leave the final database state up
+    // to whichever request the server happened to finish last -- the same data
+    // loss, just moved from the client to the network.
+    let write_queue = use_mut_ref(VecDeque::<PendingWrite>::new);
+    let write_worker_running = use_mut_ref(|| false);
 
     // Mounts the mini-map once, fetches the corridor's cross-sections, and
     // renders them as a clickable point layer.
@@ -150,15 +190,86 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
         .find(|l| Some(l.id) == *selected_lane_id)
         .cloned();
 
-    let on_width_blur = {
+    // Resyncs the live-edit refs from the rendered (server-confirmed) lane.
+    {
+        let access_rules_ref = access_rules_ref.clone();
+        let lane_fields_ref = lane_fields_ref.clone();
+        let synced_lane_id = synced_lane_id.clone();
+        let write_worker_running = write_worker_running.clone();
+        use_effect_with(selected_lane.clone(), move |lane| {
+            let lane_id = lane.as_ref().map(|l| l.id);
+            let same_lane = lane_id == *synced_lane_id.borrow();
+            // While writes for the SAME lane are still in flight the refs hold
+            // edits the server hasn't acknowledged yet, and an earlier
+            // response carries a lane that predates them -- adopting it would
+            // reintroduce exactly the loss this fix removes. The worker clears
+            // its "running" flag *before* publishing the last response, so
+            // there is always a final, unskipped run of this effect that
+            // adopts the server's authoritative state.
+            // Switching to a different lane (or to none) always resyncs: the
+            // refs describe whichever lane the panel is editing, and any write
+            // still queued for the previous lane already carries its own
+            // fully-formed payload.
+            if !(same_lane && *write_worker_running.borrow()) {
+                match lane {
+                    Some(lane) => {
+                        *access_rules_ref.borrow_mut() = lane.access_rules.clone();
+                        *lane_fields_ref.borrow_mut() = (
+                            lane.lane_type.clone(),
+                            lane.width_meters,
+                            lane.direction.clone(),
+                        );
+                    }
+                    None => {
+                        access_rules_ref.borrow_mut().clear();
+                        *lane_fields_ref.borrow_mut() = (String::new(), 0.0, String::new());
+                    }
+                }
+                *synced_lane_id.borrow_mut() = lane_id;
+            }
+            || ()
+        });
+    }
+
+    // Applies one lane-attribute change to the live `lane_fields_ref` and
+    // queues a PATCH carrying the mutated triple -- never a triple rebuilt
+    // from the render's `selected_lane`.
+    let stage_lane_field = {
+        let lane_fields_ref = lane_fields_ref.clone();
+        let write_queue = write_queue.clone();
+        let write_worker_running = write_worker_running.clone();
         let lanes = lanes.clone();
-        let selected_lane_id = selected_lane_id.clone();
         let error = error.clone();
+        Callback::from(move |(lane_id, change): (i64, LaneFieldChange)| {
+            let (lane_type, width_meters, direction) = {
+                let mut fields = lane_fields_ref.borrow_mut();
+                match change {
+                    LaneFieldChange::Type(value) => fields.0 = value,
+                    LaneFieldChange::Width(value) => fields.1 = value,
+                    LaneFieldChange::Direction(value) => fields.2 = value,
+                }
+                fields.clone()
+            };
+            enqueue_write(
+                &write_queue,
+                &write_worker_running,
+                &lanes,
+                &error,
+                PendingWrite::LaneFields {
+                    lane_id,
+                    lane_type,
+                    width_meters,
+                    direction,
+                },
+            );
+        })
+    };
+
+    let on_width_blur = {
+        let selected_lane_id = selected_lane_id.clone();
+        let stage_lane_field = stage_lane_field.clone();
         Callback::from(move |e: FocusEvent| {
             let Some(lane_id) = *selected_lane_id else {
-                return;
-            };
-            let Some(current) = lanes.iter().find(|l| l.id == lane_id).cloned() else {
                 return;
             };
             let value = e
@@ -168,66 +279,37 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
             let Ok(width_meters) = value.parse::<f64>() else {
                 return;
             };
-            persist_lane_update(
-                lanes.clone(),
-                error.clone(),
-                lane_id,
-                current.lane_type.clone(),
-                width_meters,
-                current.direction.clone(),
-            );
+            stage_lane_field.emit((lane_id, LaneFieldChange::Width(width_meters)));
         })
     };
 
     let on_type_change = {
-        let lanes = lanes.clone();
         let selected_lane_id = selected_lane_id.clone();
-        let error = error.clone();
+        let stage_lane_field = stage_lane_field.clone();
         Callback::from(move |e: Event| {
             let Some(lane_id) = *selected_lane_id else {
-                return;
-            };
-            let Some(current) = lanes.iter().find(|l| l.id == lane_id).cloned() else {
                 return;
             };
             let value = e
                 .target_dyn_into::<web_sys::HtmlSelectElement>()
                 .map(|el| el.value())
                 .unwrap_or_default();
-            persist_lane_update(
-                lanes.clone(),
-                error.clone(),
-                lane_id,
-                value,
-                current.width_meters,
-                current.direction.clone(),
-            );
+            stage_lane_field.emit((lane_id, LaneFieldChange::Type(value)));
         })
     };
 
     let on_direction_change = {
-        let lanes = lanes.clone();
         let selected_lane_id = selected_lane_id.clone();
-        let error = error.clone();
+        let stage_lane_field = stage_lane_field.clone();
         Callback::from(move |e: Event| {
             let Some(lane_id) = *selected_lane_id else {
-                return;
-            };
-            let Some(current) = lanes.iter().find(|l| l.id == lane_id).cloned() else {
                 return;
             };
             let value = e
                 .target_dyn_into::<web_sys::HtmlSelectElement>()
                 .map(|el| el.value())
                 .unwrap_or_default();
-            persist_lane_update(
-                lanes.clone(),
-                error.clone(),
-                lane_id,
-                current.lane_type.clone(),
-                current.width_meters,
-                value,
-            );
+            stage_lane_field.emit((lane_id, LaneFieldChange::Direction(value)));
         })
     };
 
@@ -285,132 +367,92 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
     };
 
     // Every access-rule control (add/remove a rule, edit one of its fields)
-    // rebuilds the lane's full rule list client-side and immediately persists
-    // it via `set_access_rules` -- access rules have no per-rule `id` in the
-    // domain model, so whole-list replace (matching the repository/API
-    // layer's own shape) is simpler than tracking per-rule identity in the UI.
-    let persist_access_rules = {
+    // persists the lane's full rule list via `set_access_rules` -- access rules
+    // have no per-rule `id` in the domain model, so whole-list replace
+    // (matching the repository/API layer's own shape) is simpler than tracking
+    // per-rule identity in the UI. Because the whole list is replaced, the list
+    // that gets sent must be the live one from `access_rules_ref` with this
+    // edit applied on top, never one rebuilt from the render's `selected_lane`.
+    let stage_access_rule_edit = {
+        let access_rules_ref = access_rules_ref.clone();
+        let write_queue = write_queue.clone();
+        let write_worker_running = write_worker_running.clone();
         let lanes = lanes.clone();
         let error = error.clone();
-        Callback::from(move |(lane_id, rules): (i64, Vec<api::AccessRuleValue>)| {
-            // An edited `days` field of "" means "always active" -- normalize
-            // back to `time_window: None` before sending, rather than sending
-            // a half-filled time window.
-            let normalized: Vec<api::AccessRuleValue> = rules
-                .into_iter()
-                .map(|rule| api::AccessRuleValue {
-                    time_window: rule.time_window.filter(|w| !w.days.trim().is_empty()),
-                    allowed_modes: rule.allowed_modes,
-                })
-                .collect();
-            let lanes = lanes.clone();
-            let error = error.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                match api::set_access_rules(lane_id, normalized).await {
-                    Ok(updated_rules) => {
-                        let mut next: Vec<api::LaneResponse> = (*lanes).clone();
-                        if let Some(entry) = next.iter_mut().find(|l| l.id == lane_id) {
-                            entry.access_rules = updated_rules;
-                        }
-                        lanes.set(next);
-                    }
-                    Err(e) => error.set(Some(e)),
-                }
-            });
+        Callback::from(move |(lane_id, edit): (i64, AccessRuleEdit)| {
+            let rules = {
+                let mut live = access_rules_ref.borrow_mut();
+                apply_access_rule_edit(&mut live, edit);
+                normalized_for_persist(&live)
+            };
+            enqueue_write(
+                &write_queue,
+                &write_worker_running,
+                &lanes,
+                &error,
+                PendingWrite::AccessRules { lane_id, rules },
+            );
         })
     };
 
     let on_add_time_window = {
-        let selected_lane = selected_lane.clone();
-        let persist_access_rules = persist_access_rules.clone();
+        let selected_lane_id = selected_lane_id.clone();
+        let stage_access_rule_edit = stage_access_rule_edit.clone();
         Callback::from(move |_: MouseEvent| {
-            let Some(lane) = &selected_lane else {
-                return;
-            };
-            let mut rules = lane.access_rules.clone();
-            rules.push(api::AccessRuleValue {
-                time_window: Some(api::TimeWindowValue {
-                    days: "weekdays".to_string(),
-                    start_time: "07:00".to_string(),
-                    end_time: "09:00".to_string(),
-                }),
-                allowed_modes: vec![],
-            });
-            persist_access_rules.emit((lane.id, rules));
+            if let Some(lane_id) = *selected_lane_id {
+                stage_access_rule_edit.emit((lane_id, AccessRuleEdit::AddTimeWindow));
+            }
         })
     };
 
     let on_remove_access_rule = {
-        let selected_lane = selected_lane.clone();
-        let persist_access_rules = persist_access_rules.clone();
+        let selected_lane_id = selected_lane_id.clone();
+        let stage_access_rule_edit = stage_access_rule_edit.clone();
         Callback::from(move |rule_index: usize| {
-            let Some(lane) = &selected_lane else {
-                return;
-            };
-            let rules: Vec<api::AccessRuleValue> = lane
-                .access_rules
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| *i != rule_index)
-                .map(|(_, r)| r.clone())
-                .collect();
-            persist_access_rules.emit((lane.id, rules));
+            if let Some(lane_id) = *selected_lane_id {
+                stage_access_rule_edit.emit((lane_id, AccessRuleEdit::Remove(rule_index)));
+            }
         })
     };
 
     let on_rule_days_blur = {
-        let selected_lane = selected_lane.clone();
-        let persist_access_rules = persist_access_rules.clone();
+        let selected_lane_id = selected_lane_id.clone();
+        let stage_access_rule_edit = stage_access_rule_edit.clone();
         Callback::from(move |(rule_index, value): (usize, String)| {
-            let Some(lane) = &selected_lane else {
-                return;
-            };
-            let rules = with_rule_time_window_field(lane, rule_index, value, |w, v| w.days = v);
-            persist_access_rules.emit((lane.id, rules));
+            if let Some(lane_id) = *selected_lane_id {
+                stage_access_rule_edit.emit((lane_id, AccessRuleEdit::Days(rule_index, value)));
+            }
         })
     };
 
     let on_rule_start_time_blur = {
-        let selected_lane = selected_lane.clone();
-        let persist_access_rules = persist_access_rules.clone();
+        let selected_lane_id = selected_lane_id.clone();
+        let stage_access_rule_edit = stage_access_rule_edit.clone();
         Callback::from(move |(rule_index, value): (usize, String)| {
-            let Some(lane) = &selected_lane else {
-                return;
-            };
-            let rules =
-                with_rule_time_window_field(lane, rule_index, value, |w, v| w.start_time = v);
-            persist_access_rules.emit((lane.id, rules));
+            if let Some(lane_id) = *selected_lane_id {
+                stage_access_rule_edit
+                    .emit((lane_id, AccessRuleEdit::StartTime(rule_index, value)));
+            }
         })
     };
 
     let on_rule_end_time_blur = {
-        let selected_lane = selected_lane.clone();
-        let persist_access_rules = persist_access_rules.clone();
+        let selected_lane_id = selected_lane_id.clone();
+        let stage_access_rule_edit = stage_access_rule_edit.clone();
         Callback::from(move |(rule_index, value): (usize, String)| {
-            let Some(lane) = &selected_lane else {
-                return;
-            };
-            let rules = with_rule_time_window_field(lane, rule_index, value, |w, v| w.end_time = v);
-            persist_access_rules.emit((lane.id, rules));
+            if let Some(lane_id) = *selected_lane_id {
+                stage_access_rule_edit.emit((lane_id, AccessRuleEdit::EndTime(rule_index, value)));
+            }
         })
     };
 
     let on_rule_modes_blur = {
-        let selected_lane = selected_lane.clone();
-        let persist_access_rules = persist_access_rules.clone();
+        let selected_lane_id = selected_lane_id.clone();
+        let stage_access_rule_edit = stage_access_rule_edit.clone();
         Callback::from(move |(rule_index, value): (usize, String)| {
-            let Some(lane) = &selected_lane else {
-                return;
-            };
-            let mut rules = lane.access_rules.clone();
-            if let Some(rule) = rules.get_mut(rule_index) {
-                rule.allowed_modes = value
-                    .split(',')
-                    .map(|s| s.trim().to_string())
-                    .filter(|s| !s.is_empty())
-                    .collect();
+            if let Some(lane_id) = *selected_lane_id {
+                stage_access_rule_edit.emit((lane_id, AccessRuleEdit::Modes(rule_index, value)));
             }
-            persist_access_rules.emit((lane.id, rules));
         })
     };
 
@@ -565,57 +607,224 @@ fn lane_color(lane_type: &str) -> &'static str {
     }
 }
 
-/// Shared tail of `on_width_blur`/`on_type_change`/`on_direction_change`:
-/// each of those callbacks reads the currently-selected lane's current
-/// `(lane_type, width_meters, direction)` and computes one changed field
-/// itself (parsing/reading the triggering event is per-field and stays in
-/// the caller), then hands all three fields here to persist via
-/// `update_lane` and merge the result back into `lanes`.
-fn persist_lane_update(
-    lanes: UseStateHandle<Vec<api::LaneResponse>>,
-    error: UseStateHandle<Option<String>>,
-    lane_id: i64,
-    lane_type: String,
-    width_meters: f64,
-    direction: String,
-) {
-    wasm_bindgen_futures::spawn_local(async move {
-        match api::update_lane(lane_id, lane_type, width_meters, direction).await {
-            Ok(updated) => {
-                let mut next: Vec<api::LaneResponse> = (*lanes).clone();
-                if let Some(entry) = next.iter_mut().find(|l| l.id == updated.id) {
-                    *entry = updated;
-                }
-                lanes.set(next);
+/// Which of the selected lane's three editable attributes one event changed.
+/// Applied to the live `lane_fields_ref` triple, which then supplies the other
+/// two -- so an edit never carries a stale copy of its neighbors.
+enum LaneFieldChange {
+    Type(String),
+    Width(f64),
+    Direction(String),
+}
+
+/// One user-level edit to a lane's access-rule list, applied in place to the
+/// live list by `apply_access_rule_edit`.
+enum AccessRuleEdit {
+    AddTimeWindow,
+    Remove(usize),
+    Days(usize, String),
+    StartTime(usize, String),
+    EndTime(usize, String),
+    Modes(usize, String),
+}
+
+/// Pure: applies one edit to `rules` in place.
+///
+/// Out-of-range indices are ignored rather than panicking. A rule index comes
+/// from the last render, and a burst of edits (two removals clicked before the
+/// first response lands, say) can shrink the live list below it; the render
+/// catches up as soon as the writes are acknowledged.
+fn apply_access_rule_edit(rules: &mut Vec<api::AccessRuleValue>, edit: AccessRuleEdit) {
+    match edit {
+        AccessRuleEdit::AddTimeWindow => rules.push(api::AccessRuleValue {
+            time_window: Some(api::TimeWindowValue {
+                days: "weekdays".to_string(),
+                start_time: "07:00".to_string(),
+                end_time: "09:00".to_string(),
+            }),
+            allowed_modes: vec![],
+        }),
+        AccessRuleEdit::Remove(index) => {
+            if index < rules.len() {
+                rules.remove(index);
             }
-            Err(e) => error.set(Some(e)),
+        }
+        AccessRuleEdit::Days(index, value) => {
+            set_time_window_field(rules, index, |w| w.days = value);
+        }
+        AccessRuleEdit::StartTime(index, value) => {
+            set_time_window_field(rules, index, |w| w.start_time = value);
+        }
+        AccessRuleEdit::EndTime(index, value) => {
+            set_time_window_field(rules, index, |w| w.end_time = value);
+        }
+        AccessRuleEdit::Modes(index, value) => {
+            if let Some(rule) = rules.get_mut(index) {
+                rule.allowed_modes = value
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+            }
+        }
+    }
+}
+
+/// Sets one field of one access rule's `TimeWindowValue`, defaulting to an
+/// empty window if the rule had none yet (normalized back to `None` by
+/// `normalized_for_persist` if `days` ends up blank).
+fn set_time_window_field(
+    rules: &mut [api::AccessRuleValue],
+    index: usize,
+    set_field: impl FnOnce(&mut api::TimeWindowValue),
+) {
+    let Some(rule) = rules.get_mut(index) else {
+        return;
+    };
+    let mut window = rule.time_window.clone().unwrap_or(api::TimeWindowValue {
+        days: String::new(),
+        start_time: String::new(),
+        end_time: String::new(),
+    });
+    set_field(&mut window);
+    rule.time_window = Some(window);
+}
+
+/// Pure: an edited `days` field of "" means "always active" -- normalize back
+/// to `time_window: None` before sending, rather than sending a half-filled
+/// time window. The live ref keeps the un-normalized form; it converges once
+/// the server's response is adopted.
+fn normalized_for_persist(rules: &[api::AccessRuleValue]) -> Vec<api::AccessRuleValue> {
+    rules
+        .iter()
+        .map(|rule| api::AccessRuleValue {
+            time_window: rule
+                .time_window
+                .clone()
+                .filter(|w| !w.days.trim().is_empty()),
+            allowed_modes: rule.allowed_modes.clone(),
+        })
+        .collect()
+}
+
+/// One queued server write. Both variants replace their target wholesale
+/// (`PATCH /api/lanes/:id`, `PUT /api/lanes/:id/access-rules`), so each carries
+/// a complete, self-contained payload captured at the moment the edit happened
+/// -- nothing is re-read from a ref at send time, which is what makes it safe
+/// for a write to sit in the queue while the analyst keeps editing.
+enum PendingWrite {
+    LaneFields {
+        lane_id: i64,
+        lane_type: String,
+        width_meters: f64,
+        direction: String,
+    },
+    AccessRules {
+        lane_id: i64,
+        rules: Vec<api::AccessRuleValue>,
+    },
+}
+
+/// The server's confirmed state after one `PendingWrite`.
+enum WriteOutcome {
+    Lane(api::LaneResponse),
+    AccessRules {
+        lane_id: i64,
+        rules: Vec<api::AccessRuleValue>,
+    },
+}
+
+/// Queues `write` and, unless a drain loop is already running, starts one.
+///
+/// The queue exists so writes reach the server strictly in the order the
+/// analyst made them. Two overlapping whole-record writes fired concurrently
+/// would leave the final database row up to whichever request the server
+/// happened to finish last -- so even with each payload correctly carrying the
+/// union of the edits so far, an out-of-order arrival could still drop the
+/// newer one.
+fn enqueue_write(
+    queue: &Rc<RefCell<VecDeque<PendingWrite>>>,
+    running: &Rc<RefCell<bool>>,
+    lanes: &UseStateHandle<Vec<api::LaneResponse>>,
+    error: &UseStateHandle<Option<String>>,
+    write: PendingWrite,
+) {
+    queue.borrow_mut().push_back(write);
+    if *running.borrow() {
+        return;
+    }
+    *running.borrow_mut() = true;
+
+    let queue = queue.clone();
+    let running = running.clone();
+    let lanes = lanes.clone();
+    let error = error.clone();
+    wasm_bindgen_futures::spawn_local(async move {
+        // Working copy of the lane list, seeded from the render that queued the
+        // first write of this burst and updated in place as each response
+        // lands. A `UseStateHandle` captured into a future always dereferences
+        // to its creating render's value, so re-cloning `*lanes` per response
+        // would make every response after the first overwrite its predecessor
+        // with an ever-staler base.
+        let mut working: Vec<api::LaneResponse> = (*lanes).clone();
+        loop {
+            let next = queue.borrow_mut().pop_front();
+            let Some(write) = next else {
+                *running.borrow_mut() = false;
+                break;
+            };
+            let outcome = send_write(write).await;
+            // Clearing the flag BEFORE publishing matters: `lanes.set` can
+            // re-render (and so run the resync effect) synchronously, and on
+            // the last response of a burst that effect must see an idle queue
+            // so it adopts the server's authoritative state into the refs.
+            let idle = queue.borrow().is_empty();
+            if idle {
+                *running.borrow_mut() = false;
+            }
+            match outcome {
+                Ok(outcome) => {
+                    apply_write_outcome(&mut working, outcome);
+                    lanes.set(working.clone());
+                }
+                Err(e) => error.set(Some(e)),
+            }
+            if idle {
+                break;
+            }
         }
     });
 }
 
-/// Shared body of `on_rule_days_blur`/`on_rule_start_time_blur`/
-/// `on_rule_end_time_blur`: each edits one field of one access rule's
-/// `TimeWindowValue` (defaulting to an empty window if the rule had none
-/// yet -- normalized back to `None` later by `persist_access_rules` if
-/// `days` ends up blank) and returns the lane's full rebuilt rule list,
-/// ready for the caller to hand to `persist_access_rules.emit(...)`.
-fn with_rule_time_window_field(
-    lane: &api::LaneResponse,
-    rule_index: usize,
-    value: String,
-    set_field: impl Fn(&mut api::TimeWindowValue, String),
-) -> Vec<api::AccessRuleValue> {
-    let mut rules = lane.access_rules.clone();
-    if let Some(rule) = rules.get_mut(rule_index) {
-        let mut window = rule.time_window.clone().unwrap_or(api::TimeWindowValue {
-            days: String::new(),
-            start_time: String::new(),
-            end_time: String::new(),
-        });
-        set_field(&mut window, value);
-        rule.time_window = Some(window);
+async fn send_write(write: PendingWrite) -> Result<WriteOutcome, String> {
+    match write {
+        PendingWrite::LaneFields {
+            lane_id,
+            lane_type,
+            width_meters,
+            direction,
+        } => api::update_lane(lane_id, lane_type, width_meters, direction)
+            .await
+            .map(WriteOutcome::Lane),
+        PendingWrite::AccessRules { lane_id, rules } => api::set_access_rules(lane_id, rules)
+            .await
+            .map(|rules| WriteOutcome::AccessRules { lane_id, rules }),
     }
-    rules
+}
+
+/// Pure: merges one server response into the lane list backing the diagram.
+fn apply_write_outcome(lanes: &mut [api::LaneResponse], outcome: WriteOutcome) {
+    match outcome {
+        WriteOutcome::Lane(updated) => {
+            if let Some(entry) = lanes.iter_mut().find(|l| l.id == updated.id) {
+                *entry = updated;
+            }
+        }
+        WriteOutcome::AccessRules { lane_id, rules } => {
+            if let Some(entry) = lanes.iter_mut().find(|l| l.id == lane_id) {
+                entry.access_rules = rules;
+            }
+        }
+    }
 }
 
 /// Renders one "+" gap-insert control. `before`/`after` are the flanking

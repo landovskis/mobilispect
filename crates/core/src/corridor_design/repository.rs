@@ -2147,6 +2147,25 @@ mod tests {
             updated.access_rules[0].allowed_modes,
             vec![crate::corridor_design::lanes::AccessMode::Pedestrian]
         );
+
+        // Independent read-back. `update_lane` builds the `Lane` it returns from
+        // its own lane_type/width_meters/direction ARGUMENTS (only id,
+        // cross_section_id and position come from the RETURNING clause), so the
+        // assertions above would hold even if the UPDATE never wrote those
+        // columns at all. Only a fresh SELECT proves the write landed.
+        let persisted = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .unwrap()
+            .into_iter()
+            .find(|l| l.id == sidewalk_lane_id)
+            .expect("the updated lane is still in the cross-section");
+        assert_eq!(persisted.lane_type, LaneType::Parking);
+        assert_eq!(persisted.width_meters, 2.0);
+        assert_eq!(persisted.direction, LaneDirection::None);
+        assert_eq!(
+            persisted.access_rules[0].allowed_modes,
+            vec![crate::corridor_design::lanes::AccessMode::Pedestrian]
+        );
     }
 
     #[tokio::test]

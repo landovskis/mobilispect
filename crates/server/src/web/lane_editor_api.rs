@@ -130,7 +130,16 @@ pub async fn update_label(
         req.expected_version,
     )
     .await
-    .map_err(|e| conflict(&e.to_string()))?;
+    .map_err(|e| {
+        // Deliberately a fixed message rather than `e.to_string()`. The
+        // adjudicated failure modes (not found / wrong corridor / stale
+        // version) are all described by it, and `update_cross_section_label`
+        // can also surface a raw `sqlx::Error` (pool timeout, connection
+        // loss) through the same `?` -- whose text can carry SQL fragments and
+        // column names. Logged for operators exactly as `internal_error` does.
+        tracing::error!(error = %e, "update_label");
+        conflict("cross-section not found, not part of this corridor, or has been edited since you loaded it")
+    })?;
 
     Ok(Json(CrossSectionResponse {
         id: updated.id.as_i64(),
@@ -595,8 +604,8 @@ mod tests {
 
     #[tokio::test]
     async fn update_lane_happy_path() {
-        let (state, _td) = test_state().await;
-        let (_remix_id, _corridor_id, _cross_section_id, lane_id) =
+        let (state, td) = test_state().await;
+        let (_remix_id, _corridor_id, cross_section_id, lane_id) =
             seed_corridor_with_cross_section_and_lanes(&state).await;
 
         let response = update_lane(
@@ -614,6 +623,24 @@ mod tests {
         assert_eq!(response.0.lane_type, "turn");
         assert_eq!(response.0.width_meters, 3.2);
         assert_eq!(response.0.direction, "backward");
+
+        // Independent read-back: the handler's response body is built from
+        // `repository::update_lane`'s return value, which echoes back the
+        // type/width/direction it was *given* rather than what the row now
+        // holds. A fresh query is the only thing here that can fail if the
+        // UPDATE stopped writing one of those columns.
+        let persisted = repository::get_lanes_for_cross_section(
+            &td.db.pool,
+            CrossSectionId::from(cross_section_id),
+        )
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|l| l.id.as_i64() == lane_id)
+        .expect("the updated lane is still in the cross-section");
+        assert_eq!(persisted.lane_type.as_db_str(), "turn");
+        assert_eq!(persisted.width_meters, 3.2);
+        assert_eq!(persisted.direction.as_db_str(), "backward");
     }
 
     #[tokio::test]

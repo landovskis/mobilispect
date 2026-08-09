@@ -137,6 +137,16 @@ test.describe('Corridor Design: lane editor', () => {
 
     await page.getByLabel('Direction').selectOption('backward');
     await expect(page.getByLabel('Direction')).toHaveValue('backward');
+
+    // Everything above only proves the DOM reflects what was just typed or
+    // selected. Reload (as the label test does) and re-select the lane, so the
+    // values come back from the database via GET /api/cross-sections/:id/lanes
+    // -- the only assertion here that fails if an edit never persisted.
+    await selectFirstCrossSection(page, corridorId, remixId);
+    await page.locator('.xs-lane').click();
+    await expect(page.getByLabel('Width (meters)')).toHaveValue('3.5');
+    await expect(page.getByLabel('Lane type')).toHaveValue('turn');
+    await expect(page.getByLabel('Direction')).toHaveValue('backward');
   });
 
   test('inserting a lane via a gap control adds it to the diagram', async ({ page, seededCrossSection }) => {
@@ -172,5 +182,47 @@ test.describe('Corridor Design: lane editor', () => {
 
     await page.getByLabel('Remove access rule').nth(1).click();
     await expect(page.getByLabel('Allowed modes')).toHaveCount(1);
+  });
+
+  test('two access-rule edits fired in the same tick both persist', async ({
+    page,
+    seededCrossSection,
+  }) => {
+    const { remixId, corridorId } = seededCrossSection;
+    await selectFirstCrossSection(page, corridorId, remixId);
+    await page.locator('.xs-lane').click();
+
+    await expect(page.getByLabel('Allowed modes')).toHaveCount(1);
+    await page.getByText('+ Add time window').click();
+    await expect(page.getByLabel('Allowed modes')).toHaveCount(2);
+
+    await page.getByLabel('Allowed modes').nth(1).fill('transit,emergency');
+
+    // Blur the edited field and click another rule's remove button inside a
+    // SINGLE browser task, so the second handler runs before Yew has had any
+    // chance to re-render (which is exactly what happens when an analyst types
+    // in one field and clicks a button in another row). Driving this through
+    // two separate Playwright actions would leave enough time between them for
+    // the first PUT to come back, which is why the sequential test above never
+    // exercised this path. Each handler must apply its change on top of the
+    // other's, not on top of the list the page last rendered.
+    await page.evaluate(() => {
+      const modes = document.querySelectorAll<HTMLInputElement>('input[aria-label="Allowed modes"]');
+      const removes = document.querySelectorAll<HTMLButtonElement>(
+        'button[aria-label="Remove access rule"]',
+      );
+      modes[1].blur();
+      removes[0].click();
+    });
+
+    await expect(page.getByLabel('Allowed modes')).toHaveCount(1);
+
+    // Reload: BOTH edits (the modes text and the removal) must be in the
+    // database, not just whichever request the server finished last.
+    await selectFirstCrossSection(page, corridorId, remixId);
+    await page.locator('.xs-lane').click();
+    await expect(page.getByLabel('Allowed modes')).toHaveCount(1);
+    await expect(page.getByLabel('Allowed modes')).toHaveValue('transit,emergency');
+    await expect(page.getByLabel('Days')).toHaveValue('weekdays');
   });
 });
