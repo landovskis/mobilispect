@@ -168,27 +168,14 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
             let Ok(width_meters) = value.parse::<f64>() else {
                 return;
             };
-            let lanes = lanes.clone();
-            let error = error.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                match api::update_lane(
-                    lane_id,
-                    current.lane_type.clone(),
-                    width_meters,
-                    current.direction.clone(),
-                )
-                .await
-                {
-                    Ok(updated) => {
-                        let mut next: Vec<api::LaneResponse> = (*lanes).clone();
-                        if let Some(entry) = next.iter_mut().find(|l| l.id == updated.id) {
-                            *entry = updated;
-                        }
-                        lanes.set(next);
-                    }
-                    Err(e) => error.set(Some(e)),
-                }
-            });
+            persist_lane_update(
+                lanes.clone(),
+                error.clone(),
+                lane_id,
+                current.lane_type.clone(),
+                width_meters,
+                current.direction.clone(),
+            );
         })
     };
 
@@ -207,27 +194,14 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
                 .target_dyn_into::<web_sys::HtmlSelectElement>()
                 .map(|el| el.value())
                 .unwrap_or_default();
-            let lanes = lanes.clone();
-            let error = error.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                match api::update_lane(
-                    lane_id,
-                    value,
-                    current.width_meters,
-                    current.direction.clone(),
-                )
-                .await
-                {
-                    Ok(updated) => {
-                        let mut next: Vec<api::LaneResponse> = (*lanes).clone();
-                        if let Some(entry) = next.iter_mut().find(|l| l.id == updated.id) {
-                            *entry = updated;
-                        }
-                        lanes.set(next);
-                    }
-                    Err(e) => error.set(Some(e)),
-                }
-            });
+            persist_lane_update(
+                lanes.clone(),
+                error.clone(),
+                lane_id,
+                value,
+                current.width_meters,
+                current.direction.clone(),
+            );
         })
     };
 
@@ -246,27 +220,14 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
                 .target_dyn_into::<web_sys::HtmlSelectElement>()
                 .map(|el| el.value())
                 .unwrap_or_default();
-            let lanes = lanes.clone();
-            let error = error.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                match api::update_lane(
-                    lane_id,
-                    current.lane_type.clone(),
-                    current.width_meters,
-                    value,
-                )
-                .await
-                {
-                    Ok(updated) => {
-                        let mut next: Vec<api::LaneResponse> = (*lanes).clone();
-                        if let Some(entry) = next.iter_mut().find(|l| l.id == updated.id) {
-                            *entry = updated;
-                        }
-                        lanes.set(next);
-                    }
-                    Err(e) => error.set(Some(e)),
-                }
-            });
+            persist_lane_update(
+                lanes.clone(),
+                error.clone(),
+                lane_id,
+                current.lane_type.clone(),
+                current.width_meters,
+                value,
+            );
         })
     };
 
@@ -404,19 +365,7 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
             let Some(lane) = &selected_lane else {
                 return;
             };
-            let mut rules = lane.access_rules.clone();
-            if let Some(rule) = rules.get_mut(rule_index) {
-                let (_, start, end) = rule
-                    .time_window
-                    .clone()
-                    .map(|w| (w.days, w.start_time, w.end_time))
-                    .unwrap_or_default();
-                rule.time_window = Some(api::TimeWindowValue {
-                    days: value,
-                    start_time: start,
-                    end_time: end,
-                });
-            }
+            let rules = with_rule_time_window_field(lane, rule_index, value, |w, v| w.days = v);
             persist_access_rules.emit((lane.id, rules));
         })
     };
@@ -428,19 +377,8 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
             let Some(lane) = &selected_lane else {
                 return;
             };
-            let mut rules = lane.access_rules.clone();
-            if let Some(rule) = rules.get_mut(rule_index) {
-                let (days, _, end) = rule
-                    .time_window
-                    .clone()
-                    .map(|w| (w.days, w.start_time, w.end_time))
-                    .unwrap_or_default();
-                rule.time_window = Some(api::TimeWindowValue {
-                    days,
-                    start_time: value,
-                    end_time: end,
-                });
-            }
+            let rules =
+                with_rule_time_window_field(lane, rule_index, value, |w, v| w.start_time = v);
             persist_access_rules.emit((lane.id, rules));
         })
     };
@@ -452,19 +390,7 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
             let Some(lane) = &selected_lane else {
                 return;
             };
-            let mut rules = lane.access_rules.clone();
-            if let Some(rule) = rules.get_mut(rule_index) {
-                let (days, start, _) = rule
-                    .time_window
-                    .clone()
-                    .map(|w| (w.days, w.start_time, w.end_time))
-                    .unwrap_or_default();
-                rule.time_window = Some(api::TimeWindowValue {
-                    days,
-                    start_time: start,
-                    end_time: value,
-                });
-            }
+            let rules = with_rule_time_window_field(lane, rule_index, value, |w, v| w.end_time = v);
             persist_access_rules.emit((lane.id, rules));
         })
     };
@@ -637,6 +563,59 @@ fn lane_color(lane_type: &str) -> &'static str {
         "buffer" => "#C8C4BC", // cream-400
         _ => "#888480",
     }
+}
+
+/// Shared tail of `on_width_blur`/`on_type_change`/`on_direction_change`:
+/// each of those callbacks reads the currently-selected lane's current
+/// `(lane_type, width_meters, direction)` and computes one changed field
+/// itself (parsing/reading the triggering event is per-field and stays in
+/// the caller), then hands all three fields here to persist via
+/// `update_lane` and merge the result back into `lanes`.
+fn persist_lane_update(
+    lanes: UseStateHandle<Vec<api::LaneResponse>>,
+    error: UseStateHandle<Option<String>>,
+    lane_id: i64,
+    lane_type: String,
+    width_meters: f64,
+    direction: String,
+) {
+    wasm_bindgen_futures::spawn_local(async move {
+        match api::update_lane(lane_id, lane_type, width_meters, direction).await {
+            Ok(updated) => {
+                let mut next: Vec<api::LaneResponse> = (*lanes).clone();
+                if let Some(entry) = next.iter_mut().find(|l| l.id == updated.id) {
+                    *entry = updated;
+                }
+                lanes.set(next);
+            }
+            Err(e) => error.set(Some(e)),
+        }
+    });
+}
+
+/// Shared body of `on_rule_days_blur`/`on_rule_start_time_blur`/
+/// `on_rule_end_time_blur`: each edits one field of one access rule's
+/// `TimeWindowValue` (defaulting to an empty window if the rule had none
+/// yet -- normalized back to `None` later by `persist_access_rules` if
+/// `days` ends up blank) and returns the lane's full rebuilt rule list,
+/// ready for the caller to hand to `persist_access_rules.emit(...)`.
+fn with_rule_time_window_field(
+    lane: &api::LaneResponse,
+    rule_index: usize,
+    value: String,
+    set_field: impl Fn(&mut api::TimeWindowValue, String),
+) -> Vec<api::AccessRuleValue> {
+    let mut rules = lane.access_rules.clone();
+    if let Some(rule) = rules.get_mut(rule_index) {
+        let mut window = rule.time_window.clone().unwrap_or(api::TimeWindowValue {
+            days: String::new(),
+            start_time: String::new(),
+            end_time: String::new(),
+        });
+        set_field(&mut window, value);
+        rule.time_window = Some(window);
+    }
+    rules
 }
 
 /// Renders one "+" gap-insert control. `before`/`after` are the flanking
