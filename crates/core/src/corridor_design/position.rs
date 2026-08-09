@@ -106,8 +106,38 @@ pub fn compute_reordered_positions(
     current_order: &[CrossSectionId],
     requested_order: &[CrossSectionId],
 ) -> Result<Vec<(CrossSectionId, f64)>, ReorderValidationError> {
-    let _ = (current_order, requested_order);
-    unimplemented!("IMP-REQ-005-03: compute_reordered_positions not yet implemented")
+    if requested_order.is_empty() {
+        return Err(ReorderValidationError::EmptyOrder);
+    }
+
+    let mut seen = std::collections::HashSet::new();
+    for id in requested_order {
+        if !seen.insert(*id) {
+            return Err(ReorderValidationError::DuplicateCrossSection(*id));
+        }
+    }
+
+    let current_set: std::collections::HashSet<CrossSectionId> =
+        current_order.iter().copied().collect();
+    for id in requested_order {
+        if !current_set.contains(id) {
+            return Err(ReorderValidationError::UnknownCrossSection(*id));
+        }
+    }
+
+    let requested_set: std::collections::HashSet<CrossSectionId> =
+        requested_order.iter().copied().collect();
+    for id in current_order {
+        if !requested_set.contains(id) {
+            return Err(ReorderValidationError::MissingCrossSection(*id));
+        }
+    }
+
+    Ok(requested_order
+        .iter()
+        .enumerate()
+        .map(|(i, id)| (*id, ((i + 1) as f64) * 1024.0))
+        .collect())
 }
 
 /// Computes a new fractional `position` for a cross-section being inserted between
@@ -120,8 +150,17 @@ pub fn compute_reordered_positions(
 /// NOT YET IMPLEMENTED — see IMP-REQ-004-04 (Loop B GREEN pass). This stub exists so
 /// Loop A's tests compile and fail for the right reason (production code absent).
 pub fn assign_position(neighbors: Neighbors) -> Result<f64, PositionAssignmentError> {
-    let _ = neighbors;
-    unimplemented!("IMP-REQ-004-04: assign_position not yet implemented")
+    match (neighbors.before, neighbors.after) {
+        (Some(before), Some(after)) => {
+            if before >= after {
+                return Err(PositionAssignmentError::NonMonotonicNeighbors);
+            }
+            Ok((before + after) / 2.0)
+        }
+        (None, Some(after)) => Ok(after - 1.0),
+        (Some(before), None) => Ok(before + 1.0),
+        (None, None) => Ok(0.0),
+    }
 }
 
 #[cfg(test)]
