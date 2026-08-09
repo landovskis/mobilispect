@@ -73,6 +73,21 @@ const test = base.extend<Fixtures>({
 async function selectFirstCrossSection(page: Page, corridorId: number, remixId: number) {
   await page.goto(`/builder/remix/${remixId}/corridor/${corridorId}`);
   await page.waitForFunction(() => (window as any).__corridorBuilderMap !== undefined);
+  await page.waitForFunction(
+    () => (window as any).__corridorBuilderMap.getSource('cross-section-points') !== undefined,
+  );
+  // The click handler resolves the clicked cross-section via
+  // `queryRenderedFeatures` restricted to the 'cross-section-points' layer
+  // (see `extract_clicked_cross_section_id` in
+  // crates/corridor_builder_web/src/pages/corridor.rs). The source existing
+  // is not sufficient -- the layer must have completed at least one render
+  // pass before a click will find the feature, so wait for that directly.
+  await page.waitForFunction(
+    () =>
+      (window as any).__corridorBuilderMap.queryRenderedFeatures({
+        layers: ['cross-section-points'],
+      }).length > 0,
+  );
   const px = await page.evaluate(() => {
     const point = (window as any).__corridorBuilderMap.project([-73.6, 45.5]);
     return { x: point.x, y: point.y };
