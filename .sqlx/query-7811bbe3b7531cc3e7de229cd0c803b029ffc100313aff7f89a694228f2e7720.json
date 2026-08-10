@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE cross_sections\n           SET label = $1, version = version + 1\n           WHERE id = $2 AND corridor_id = $3 AND version = $4\n           RETURNING id, corridor_id, position::float8 AS \"position!\", lat, lon, osm_way_id, osm_node_id, label",
+  "query": "UPDATE cross_sections\n           SET label = $1, version = version + 1\n           WHERE id = $2 AND corridor_id = $3 AND version = $4\n           RETURNING id, corridor_id, position::float8 AS \"position!\", lat, lon,\n                     osm_way_id, osm_node_id, label, version, bus_stop",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,16 @@
         "ordinal": 7,
         "name": "label",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "version",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "bus_stop",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -60,8 +70,10 @@
       false,
       true,
       true,
+      true,
+      false,
       true
     ]
   },
-  "hash": "17f855c9a83cf5768d557118c4b37201b42ee4fc728da10f3534dc6852491ce7"
+  "hash": "7811bbe3b7531cc3e7de229cd0c803b029ffc100313aff7f89a694228f2e7720"
 }

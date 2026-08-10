@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO intersection_treatments (cross_section_id, bus_gate, turn_conflict)\n           VALUES ($1, $2, $3)\n           ON CONFLICT (cross_section_id) DO UPDATE\n           SET bus_gate = EXCLUDED.bus_gate, turn_conflict = EXCLUDED.turn_conflict",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5b62019c7b9dbac5847986b2a7f6226b0bfc7908ff96f6dda7a246b20a2ae900"
+}

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT bus_gate, turn_conflict FROM intersection_treatments WHERE cross_section_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bus_gate",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "turn_conflict",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "d7f68bc053c3c99d5c18d2e94ea80ee13963bd950c0a697d5725e498bc1c72ba"
+}
