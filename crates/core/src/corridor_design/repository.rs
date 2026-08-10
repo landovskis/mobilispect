@@ -654,6 +654,7 @@ pub async fn add_cross_section(
         osm_way_id: None,
         osm_node_id: None,
         label: None,
+        version: 1,
     })
 }
 
