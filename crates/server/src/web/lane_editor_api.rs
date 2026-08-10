@@ -6,6 +6,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 
 use mobilispect_core::corridor_design::edit::validate_label;
+use mobilispect_core::corridor_design::intersection::{BusGate, BusStop, TurnConflict};
 use mobilispect_core::corridor_design::lanes::{
     AccessMode, Lane, LaneDirection, LaneType, TimeWindow, TimedAccessRule,
 };
@@ -73,6 +74,7 @@ pub struct CrossSectionResponse {
     pub lat: f64,
     pub lon: f64,
     pub version: i32,
+    pub bus_stop: Option<String>,
 }
 
 /// `GET /api/corridors/:corridor_id/cross-sections` — for the corridor page's
@@ -96,6 +98,7 @@ pub async fn list_cross_sections(
                 lat: cs.lat,
                 lon: cs.lon,
                 version: cs.version,
+                bus_stop: cs.bus_stop.map(|b| b.as_db_str().to_string()),
             })
             .collect(),
     ))
@@ -148,6 +151,7 @@ pub async fn update_label(
         lat: updated.lat,
         lon: updated.lon,
         version: updated.version,
+        bus_stop: updated.bus_stop.map(|b| b.as_db_str().to_string()),
     }))
 }
 
@@ -360,6 +364,116 @@ pub async fn set_access_rules(
     Ok(Json(
         rules.into_iter().map(to_access_rule_response).collect(),
     ))
+}
+
+// --- Intersection treatments ---
+
+#[derive(Debug, serde::Serialize)]
+pub struct IntersectionTreatmentResponse {
+    pub bus_gate: Option<String>,
+    pub turn_conflict: Option<String>,
+}
+
+fn to_intersection_treatment_response(
+    treatment: mobilispect_core::corridor_design::intersection::IntersectionTreatment,
+) -> IntersectionTreatmentResponse {
+    IntersectionTreatmentResponse {
+        bus_gate: treatment.bus_gate.map(|g| g.as_db_str().to_string()),
+        turn_conflict: treatment.turn_conflict.map(|c| c.as_db_str().to_string()),
+    }
+}
+
+/// `GET /api/cross-sections/:cross_section_id/intersection-treatment`
+pub async fn get_intersection_treatment(
+    State(state): State<AppState>,
+    Path(cross_section_id): Path<i64>,
+) -> Result<Json<IntersectionTreatmentResponse>, ApiError> {
+    let treatment = repository::get_intersection_treatment(
+        &state.db.pool,
+        CrossSectionId::from(cross_section_id),
+    )
+    .await
+    .map_err(|e| internal_error("get_intersection_treatment", e))?;
+    Ok(Json(to_intersection_treatment_response(treatment)))
+}
+
+fn parse_bus_gate(raw: &Option<String>) -> Result<Option<BusGate>, ApiError> {
+    raw.as_deref()
+        .map(|s| BusGate::from_db_str(s).ok_or_else(|| bad_request("unrecognized bus_gate")))
+        .transpose()
+}
+
+fn parse_turn_conflict(raw: &Option<String>) -> Result<Option<TurnConflict>, ApiError> {
+    raw.as_deref()
+        .map(|s| {
+            TurnConflict::from_db_str(s).ok_or_else(|| bad_request("unrecognized turn_conflict"))
+        })
+        .transpose()
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct SetIntersectionTreatmentRequest {
+    pub bus_gate: Option<String>,
+    pub turn_conflict: Option<String>,
+}
+
+/// `PUT /api/cross-sections/:cross_section_id/intersection-treatment`
+pub async fn set_intersection_treatment(
+    State(state): State<AppState>,
+    Path(cross_section_id): Path<i64>,
+    Json(req): Json<SetIntersectionTreatmentRequest>,
+) -> Result<Json<IntersectionTreatmentResponse>, ApiError> {
+    let bus_gate = parse_bus_gate(&req.bus_gate)?;
+    let turn_conflict = parse_turn_conflict(&req.turn_conflict)?;
+
+    let treatment = repository::set_intersection_treatment(
+        &state.db.pool,
+        CrossSectionId::from(cross_section_id),
+        bus_gate,
+        turn_conflict,
+    )
+    .await
+    .map_err(|e| internal_error("set_intersection_treatment", e))?;
+
+    Ok(Json(to_intersection_treatment_response(treatment)))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct UpdateBusStopRequest {
+    pub bus_stop: Option<String>,
+}
+
+fn parse_bus_stop(raw: &Option<String>) -> Result<Option<BusStop>, ApiError> {
+    raw.as_deref()
+        .map(|s| BusStop::from_db_str(s).ok_or_else(|| bad_request("unrecognized bus_stop")))
+        .transpose()
+}
+
+/// `PATCH /api/cross-sections/:cross_section_id/bus-stop`
+pub async fn update_bus_stop(
+    State(state): State<AppState>,
+    Path(cross_section_id): Path<i64>,
+    Json(req): Json<UpdateBusStopRequest>,
+) -> Result<Json<CrossSectionResponse>, ApiError> {
+    let bus_stop = parse_bus_stop(&req.bus_stop)?;
+
+    let updated = repository::update_cross_section_bus_stop(
+        &state.db.pool,
+        CrossSectionId::from(cross_section_id),
+        bus_stop,
+    )
+    .await
+    .map_err(|e| internal_error("update_bus_stop", e))?;
+
+    Ok(Json(CrossSectionResponse {
+        id: updated.id.as_i64(),
+        position: updated.position,
+        label: updated.label,
+        lat: updated.lat,
+        lon: updated.lon,
+        version: updated.version,
+        bus_stop: updated.bus_stop.map(|b| b.as_db_str().to_string()),
+    }))
 }
 
 #[cfg(test)]
@@ -703,5 +817,158 @@ mod tests {
 
         assert!(response.is_err());
         assert_eq!(response.unwrap_err().0, StatusCode::BAD_REQUEST);
+    }
+
+    // --- Intersection treatments (bus gate, turn conflict, bus stop) ---
+
+    #[tokio::test]
+    async fn get_intersection_treatment_returns_all_none_for_untreated_cross_section() {
+        let (state, _td) = test_state().await;
+        let (_remix_id, _corridor_id, cross_section_id, _lane_id) =
+            seed_corridor_with_cross_section_and_lanes(&state).await;
+
+        let response = get_intersection_treatment(State(state), Path(cross_section_id))
+            .await
+            .unwrap();
+
+        assert_eq!(response.0.bus_gate, None);
+        assert_eq!(response.0.turn_conflict, None);
+    }
+
+    #[tokio::test]
+    async fn set_intersection_treatment_happy_path_persists_and_reads_back() {
+        let (state, td) = test_state().await;
+        let (_remix_id, _corridor_id, cross_section_id, _lane_id) =
+            seed_corridor_with_cross_section_and_lanes(&state).await;
+
+        let response = set_intersection_treatment(
+            State(state.clone()),
+            Path(cross_section_id),
+            Json(SetIntersectionTreatmentRequest {
+                bus_gate: Some("signal_controlled".to_string()),
+                turn_conflict: Some("right_in_right_out".to_string()),
+            }),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(response.0.bus_gate.as_deref(), Some("signal_controlled"));
+        assert_eq!(
+            response.0.turn_conflict.as_deref(),
+            Some("right_in_right_out")
+        );
+
+        // Independent read-back, matching this file's `update_lane_happy_path`
+        // precedent -- proves the DB actually holds it, not just the handler's
+        // echoed response.
+        let persisted = repository::get_intersection_treatment(
+            &td.db.pool,
+            CrossSectionId::from(cross_section_id),
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            persisted.bus_gate,
+            Some(mobilispect_core::corridor_design::intersection::BusGate::SignalControlled)
+        );
+    }
+
+    #[tokio::test]
+    async fn set_intersection_treatment_with_unrecognized_bus_gate_returns_400() {
+        let (state, _td) = test_state().await;
+        let (_remix_id, _corridor_id, cross_section_id, _lane_id) =
+            seed_corridor_with_cross_section_and_lanes(&state).await;
+
+        let response = set_intersection_treatment(
+            State(state),
+            Path(cross_section_id),
+            Json(SetIntersectionTreatmentRequest {
+                bus_gate: Some("spaceship".to_string()),
+                turn_conflict: None,
+            }),
+        )
+        .await;
+
+        assert!(response.is_err());
+        assert_eq!(response.unwrap_err().0, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn update_bus_stop_happy_path_persists() {
+        let (state, td) = test_state().await;
+        let (_remix_id, _corridor_id, cross_section_id, _lane_id) =
+            seed_corridor_with_cross_section_and_lanes(&state).await;
+
+        let response = update_bus_stop(
+            State(state),
+            Path(cross_section_id),
+            Json(UpdateBusStopRequest {
+                bus_stop: Some("bus_bulb".to_string()),
+            }),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(response.0.bus_stop.as_deref(), Some("bus_bulb"));
+
+        let persisted = repository::get_corridor_cross_sections(&td.db.pool, {
+            let corridor_id: i64 =
+                sqlx::query_scalar("SELECT corridor_id FROM cross_sections WHERE id = $1")
+                    .bind(cross_section_id)
+                    .fetch_one(&td.db.pool)
+                    .await
+                    .unwrap();
+            CorridorId::from(corridor_id)
+        })
+        .await
+        .unwrap();
+        assert_eq!(
+            persisted[0].bus_stop,
+            Some(mobilispect_core::corridor_design::intersection::BusStop::BusBulb)
+        );
+    }
+
+    #[tokio::test]
+    async fn update_bus_stop_with_unrecognized_value_returns_400() {
+        let (state, _td) = test_state().await;
+        let (_remix_id, _corridor_id, cross_section_id, _lane_id) =
+            seed_corridor_with_cross_section_and_lanes(&state).await;
+
+        let response = update_bus_stop(
+            State(state),
+            Path(cross_section_id),
+            Json(UpdateBusStopRequest {
+                bus_stop: Some("spaceship".to_string()),
+            }),
+        )
+        .await;
+
+        assert!(response.is_err());
+        assert_eq!(response.unwrap_err().0, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn list_cross_sections_includes_bus_stop_field() {
+        let (state, _td) = test_state().await;
+        let (_remix_id, corridor_id, cross_section_id, _lane_id) =
+            seed_corridor_with_cross_section_and_lanes(&state).await;
+        let _ = update_bus_stop(
+            State(state.clone()),
+            Path(cross_section_id),
+            Json(UpdateBusStopRequest {
+                bus_stop: Some("signal_protected_platform".to_string()),
+            }),
+        )
+        .await
+        .unwrap();
+
+        let response = list_cross_sections(State(state), Path(corridor_id))
+            .await
+            .unwrap();
+
+        assert_eq!(
+            response.0[0].bus_stop.as_deref(),
+            Some("signal_protected_platform")
+        );
     }
 }
