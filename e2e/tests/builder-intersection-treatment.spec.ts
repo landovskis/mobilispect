@@ -87,4 +87,66 @@ test.describe('Corridor Design: intersection treatment editor', () => {
     await page.getByText('Back to map').click();
     await expect(page).toHaveURL(`/builder/remix/${remixId}`);
   });
+
+  test('changing bus gate and turn-conflict type in the same tick both persist', async ({
+    page,
+    seededCrossSection,
+  }) => {
+    const { remixId, crossSectionId } = seededCrossSection;
+    await page.goto(`/builder/remix/${remixId}/intersection/${crossSectionId}`);
+
+    await expect(page.getByLabel('Bus gate')).toHaveValue('');
+    await expect(page.getByLabel('Turn-conflict type')).toHaveValue('');
+
+    // Count completed PUTs to the intersection-treatment endpoint. Registered
+    // BEFORE the same-tick dispatch below so no response is missed, and
+    // polled (rather than `page.waitForResponse`'d twice) because two
+    // concurrent `waitForResponse` calls with the same predicate can both
+    // resolve off the SAME first matching response instead of each capturing
+    // a distinct one.
+    let putResponseCount = 0;
+    page.on('response', (response) => {
+      if (
+        response.request().method() === 'PUT' &&
+        response.url().includes('/intersection-treatment')
+      ) {
+        putResponseCount += 1;
+      }
+    });
+
+    // Fire both selects' native `change` events inside a SINGLE browser task
+    // (mirroring `builder-lane-editor.spec.ts`'s "two access-rule edits fired
+    // in the same tick both persist" test), so the two PUTs to
+    // /api/cross-sections/:id/intersection-treatment are queued before either
+    // response can come back. Driving this through two separate Playwright
+    // actions would leave enough time between them for the first PUT to
+    // complete first, which is exactly the case the sequential test above
+    // already covers -- it can't exercise the completion-order hazard the
+    // write queue in `pages/intersection.rs` exists to close.
+    await page.evaluate(() => {
+      const busGate = document.getElementById('bus-gate') as HTMLSelectElement;
+      const turnConflict = document.getElementById('turn-conflict') as HTMLSelectElement;
+      busGate.value = 'signal_controlled';
+      busGate.dispatchEvent(new Event('change', { bubbles: true }));
+      turnConflict.value = 'right_in_right_out';
+      turnConflict.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    await expect(page.getByLabel('Bus gate')).toHaveValue('signal_controlled');
+    await expect(page.getByLabel('Turn-conflict type')).toHaveValue('right_in_right_out');
+
+    // Wait for BOTH queued PUTs to actually complete before reloading --
+    // reloading (a real navigation) can abort an in-flight `fetch`, which
+    // would silently drop a write for a reason that has nothing to do with
+    // the hazard this test exists to catch. The assertions above only prove
+    // the optimistic client-side state; this is what makes the reload below
+    // a meaningful check of server-persisted state.
+    await expect.poll(() => putResponseCount).toBe(2);
+
+    // Reload: BOTH edits must be in the database, not just whichever PUT the
+    // server happened to finish last.
+    await page.goto(`/builder/remix/${remixId}/intersection/${crossSectionId}`);
+    await expect(page.getByLabel('Bus gate')).toHaveValue('signal_controlled');
+    await expect(page.getByLabel('Turn-conflict type')).toHaveValue('right_in_right_out');
+  });
 });
