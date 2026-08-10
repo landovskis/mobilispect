@@ -185,6 +185,36 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
         })
     };
 
+    let on_bus_stop_change = {
+        let cross_sections = cross_sections.clone();
+        let selected_cross_section_id = selected_cross_section_id.clone();
+        let error = error.clone();
+        Callback::from(move |e: Event| {
+            let Some(cross_section_id) = *selected_cross_section_id else {
+                return;
+            };
+            let value = e
+                .target_dyn_into::<web_sys::HtmlSelectElement>()
+                .map(|el| el.value())
+                .unwrap_or_default();
+            let bus_stop = if value.is_empty() { None } else { Some(value) };
+            let cross_sections = cross_sections.clone();
+            let error = error.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                match api::update_bus_stop(cross_section_id, bus_stop).await {
+                    Ok(updated) => {
+                        let mut next: Vec<api::CrossSectionSummary> = (*cross_sections).clone();
+                        if let Some(entry) = next.iter_mut().find(|cs| cs.id == updated.id) {
+                            *entry = updated;
+                        }
+                        cross_sections.set(next);
+                    }
+                    Err(e) => error.set(Some(e)),
+                }
+            });
+        })
+    };
+
     let selected_lane = lanes
         .iter()
         .find(|l| Some(l.id) == *selected_lane_id)
@@ -467,6 +497,13 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
                     <label class="field-label" for="cross-section-label">{ "Cross-section label" }</label>
                     <input class="field" id="cross-section-label" type="text" value={cs.label.clone().unwrap_or_default()} onblur={on_label_blur} />
 
+                    <label class="field-label" for="cross-section-bus-stop" style="margin-top:0.75rem;">{ "Bus stop" }</label>
+                    <select class="field" id="cross-section-bus-stop" onchange={on_bus_stop_change}>
+                        { for BUS_STOPS.iter().map(|(value, label)| html! {
+                            <option value={*value} selected={cs.bus_stop.as_deref() == (if value.is_empty() { None } else { Some(*value) })}>{ *label }</option>
+                        }) }
+                    </select>
+
                     <div class="xs-diagram" style="margin-top:1rem;">
                         { insert_button("Add lane at start", None, lanes.first().map(|l| l.position), on_insert_lane.clone()) }
                         { for lanes.iter().enumerate().map(|(i, lane)| {
@@ -577,6 +614,12 @@ const LANE_DIRECTIONS: &[(&str, &str)] = &[
     ("backward", "Backward"),
     ("both", "Both"),
     ("none", "None"),
+];
+
+const BUS_STOPS: &[(&str, &str)] = &[
+    ("", "None"),
+    ("bus_bulb", "Bus bulb"),
+    ("signal_protected_platform", "Signal-protected platform"),
 ];
 
 fn lane_type_label(lane_type: &str) -> &'static str {
