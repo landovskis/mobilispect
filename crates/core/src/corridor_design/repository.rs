@@ -6,7 +6,9 @@
 use crate::corridor_design::Coordinate;
 use crate::corridor_design::CrossSection;
 use crate::corridor_design::geometry::NormalizedCorridor;
-use crate::corridor_design::lanes::{Lane, LaneDirection, LaneDraft, LaneType, TimedAccessRule};
+use crate::corridor_design::lanes::{
+    AccessMode, Lane, LaneDirection, LaneDraft, LaneType, TimeWindow, TimedAccessRule,
+};
 use crate::ids::{CorridorId, CrossSectionId, LaneId, RemixId};
 
 /// Persists a newly imported corridor and its ordered cross-sections, scoped to
@@ -73,7 +75,7 @@ pub async fn get_corridor_cross_sections(
 ) -> Result<Vec<CrossSection>, anyhow::Error> {
     let rows = sqlx::query!(
         r#"SELECT id, corridor_id, position::float8 AS "position!", lat, lon,
-                  osm_way_id, osm_node_id, label
+                  osm_way_id, osm_node_id, label, version
            FROM cross_sections
            WHERE corridor_id = $1
            ORDER BY position"#,
@@ -93,6 +95,7 @@ pub async fn get_corridor_cross_sections(
             osm_way_id: row.osm_way_id,
             osm_node_id: row.osm_node_id,
             label: row.label,
+            version: row.version,
         })
         .collect())
 }
@@ -340,6 +343,206 @@ pub async fn get_lanes_for_cross_section(
     Ok(lanes)
 }
 
+/// Inserts a new lane into `cross_section_id` at `position` (already computed by
+/// the caller via `position::assign_position` — this function does no position
+/// arithmetic of its own, keeping that pure logic in the Functional Core). Defaults
+/// the new lane's access rule via `lanes::default_access_rule_for(lane_type)`, so
+/// it's never silently inaccessible to every mode.
+pub async fn insert_lane(
+    pool: &sqlx::PgPool,
+    cross_section_id: CrossSectionId,
+    lane_type: LaneType,
+    width_meters: f64,
+    direction: LaneDirection,
+    position: f64,
+) -> Result<Lane, anyhow::Error> {
+    let lane_type_str = lane_type.as_db_str();
+    let direction_str = direction.as_db_str();
+
+    let mut tx = pool.begin().await?;
+
+    let lane_id = sqlx::query!(
+        "INSERT INTO lanes (cross_section_id, position, lane_type, width_meters, direction) \
+         VALUES ($1, $2::float8, $3, $4, $5) RETURNING id",
+        cross_section_id.as_i64(),
+        position,
+        lane_type_str,
+        width_meters,
+        direction_str,
+    )
+    .fetch_one(&mut *tx)
+    .await?
+    .id;
+
+    let default_rule = crate::corridor_design::lanes::default_access_rule_for(lane_type);
+    let (days, start_time, end_time) = time_window_columns(&default_rule);
+    let allowed_modes: Vec<&str> = default_rule
+        .allowed_modes
+        .iter()
+        .map(|m| m.as_db_str())
+        .collect();
+    sqlx::query!(
+        "INSERT INTO lane_access_rules (lane_id, days, start_time, end_time, allowed_modes) \
+         VALUES ($1, $2, $3, $4, $5)",
+        lane_id,
+        days,
+        start_time,
+        end_time,
+        &allowed_modes as &[&str],
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(Lane {
+        id: LaneId::from(lane_id),
+        cross_section_id,
+        position,
+        lane_type,
+        width_meters,
+        direction,
+        access_rules: vec![default_rule],
+    })
+}
+
+struct LaneUpdateRow {
+    id: i64,
+    cross_section_id: i64,
+    position: f64,
+}
+
+/// Updates an existing lane's own attributes (type, width, direction). Position
+/// and access rules are untouched -- reordering isn't exposed through this
+/// function, and access rules have their own dedicated `set_lane_access_rules`.
+pub async fn update_lane(
+    pool: &sqlx::PgPool,
+    lane_id: LaneId,
+    lane_type: LaneType,
+    width_meters: f64,
+    direction: LaneDirection,
+) -> Result<Lane, anyhow::Error> {
+    let lane_type_str = lane_type.as_db_str();
+    let direction_str = direction.as_db_str();
+
+    let row: Option<LaneUpdateRow> = sqlx::query_as!(
+        LaneUpdateRow,
+        r#"UPDATE lanes SET lane_type = $1, width_meters = $2, direction = $3
+           WHERE id = $4
+           RETURNING id, cross_section_id, position::float8 AS "position!""#,
+        lane_type_str,
+        width_meters,
+        direction_str,
+        lane_id.as_i64(),
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    let row = row.ok_or_else(|| anyhow::anyhow!("lane {lane_id} not found"))?;
+    let access_rules = fetch_access_rules_for_lane(pool, row.id).await?;
+
+    Ok(Lane {
+        id: LaneId::from(row.id),
+        cross_section_id: CrossSectionId::from(row.cross_section_id),
+        position: row.position,
+        lane_type,
+        width_meters,
+        direction,
+        access_rules,
+    })
+}
+
+/// Deletes a lane. Cascades to its access rules via `lane_access_rules`' existing
+/// foreign key (`ON DELETE CASCADE`, migration 026).
+pub async fn delete_lane(pool: &sqlx::PgPool, lane_id: LaneId) -> Result<(), anyhow::Error> {
+    let result = sqlx::query!("DELETE FROM lanes WHERE id = $1", lane_id.as_i64())
+        .execute(pool)
+        .await?;
+    if result.rows_affected() == 0 {
+        anyhow::bail!("lane {lane_id} not found");
+    }
+    Ok(())
+}
+
+/// Replaces a lane's whole access-rule list (delete-then-reinsert, mirroring
+/// `insert_lanes_for_cross_section`'s existing shape) rather than exposing
+/// individual rule IDs for fine-grained CRUD -- access rules have no `id` in the
+/// domain model, and lists are small (1-2 rules is the common case).
+pub async fn set_lane_access_rules(
+    pool: &sqlx::PgPool,
+    lane_id: LaneId,
+    rules: &[TimedAccessRule],
+) -> Result<(), anyhow::Error> {
+    let mut tx = pool.begin().await?;
+
+    sqlx::query!(
+        "DELETE FROM lane_access_rules WHERE lane_id = $1",
+        lane_id.as_i64(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    for rule in rules {
+        let (days, start_time, end_time) = time_window_columns(rule);
+        let allowed_modes: Vec<&str> = rule.allowed_modes.iter().map(|m| m.as_db_str()).collect();
+        sqlx::query!(
+            "INSERT INTO lane_access_rules (lane_id, days, start_time, end_time, allowed_modes) \
+             VALUES ($1, $2, $3, $4, $5)",
+            lane_id.as_i64(),
+            days,
+            start_time,
+            end_time,
+            &allowed_modes as &[&str],
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Fetches every access rule for one lane. Shares its per-row decode logic with
+/// `get_lanes_for_cross_section`'s batch (`= ANY($1)`) query, scoped here to a
+/// single `lane_id` (`update_lane` needs just one lane's rules, not a batch).
+async fn fetch_access_rules_for_lane(
+    pool: &sqlx::PgPool,
+    lane_id: i64,
+) -> Result<Vec<TimedAccessRule>, anyhow::Error> {
+    let rows: Vec<AccessRuleRow> = sqlx::query_as!(
+        AccessRuleRow,
+        r#"SELECT lane_id, days, start_time, end_time, allowed_modes AS "allowed_modes!"
+           FROM lane_access_rules
+           WHERE lane_id = $1"#,
+        lane_id,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut access_rules = Vec::with_capacity(rows.len());
+    for rule_row in rows {
+        let mut allowed_modes = Vec::with_capacity(rule_row.allowed_modes.len());
+        for mode_str in &rule_row.allowed_modes {
+            let mode = AccessMode::from_db_str(mode_str)
+                .ok_or_else(|| anyhow::anyhow!("unknown access mode value: {mode_str}"))?;
+            allowed_modes.push(mode);
+        }
+        let time_window = match (&rule_row.days, rule_row.start_time, rule_row.end_time) {
+            (Some(days), Some(start_time), Some(end_time)) => Some(TimeWindow {
+                days: days.clone(),
+                start_time,
+                end_time,
+            }),
+            _ => None,
+        };
+        access_rules.push(TimedAccessRule {
+            time_window,
+            allowed_modes,
+        });
+    }
+    Ok(access_rules)
+}
+
 /// Inserts a new cross-section into an existing corridor's sequence, at a
 /// fractional `position` computed between the two rows bracketing `insert_after`
 /// (see `corridor_design::position::assign_position`). `insert_after = None` means
@@ -451,6 +654,7 @@ pub async fn add_cross_section(
         osm_way_id: None,
         osm_node_id: None,
         label: None,
+        version: 1,
     })
 }
 
@@ -545,10 +749,6 @@ pub async fn reorder_cross_sections(
 /// `cross_section_id` does not exist (e.g. deleted since the caller's edit view
 /// loaded) or does not belong to `corridor_id`, or if `expected_version` no longer
 /// matches the stored `version` (a concurrent edit landed first).
-///
-/// NOT YET IMPLEMENTED — see IMP-REQ-006-07 (Loop B GREEN pass). This stub exists
-/// so Loop A's tests compile and fail for the right reason (production code
-/// absent).
 pub async fn update_cross_section_label(
     pool: &sqlx::PgPool,
     corridor_id: CorridorId,
@@ -556,11 +756,12 @@ pub async fn update_cross_section_label(
     new_label: Option<String>,
     expected_version: i32,
 ) -> Result<CrossSection, anyhow::Error> {
-    let updated = sqlx::query!(
+    let row = sqlx::query!(
         r#"UPDATE cross_sections
            SET label = $1, version = version + 1
            WHERE id = $2 AND corridor_id = $3 AND version = $4
-           RETURNING id, corridor_id, position::float8 AS "position!", lat, lon, osm_way_id, osm_node_id, label"#,
+           RETURNING id, corridor_id, position::float8 AS "position!", lat, lon,
+                     osm_way_id, osm_node_id, label, version"#,
         new_label,
         cross_section_id.as_i64(),
         corridor_id.as_i64(),
@@ -569,11 +770,16 @@ pub async fn update_cross_section_label(
     .fetch_optional(pool)
     .await?;
 
-    let Some(row) = updated else {
-        anyhow::bail!(
-            "cross-section {cross_section_id} not found in corridor {corridor_id} at version {expected_version}"
-        );
-    };
+    // A single query covers all three failure modes at once (doesn't exist,
+    // belongs to a different corridor, or a concurrent edit already advanced
+    // `version`) -- matching this file's established "coarse is_err()"
+    // precedent for not-yet-typed errors (see the REQ-004/005 stubs' own test
+    // comments).
+    let row = row.ok_or_else(|| {
+        anyhow::anyhow!(
+            "cross-section {cross_section_id} not found, not part of corridor {corridor_id}, or version conflict"
+        )
+    })?;
 
     Ok(CrossSection {
         id: CrossSectionId::from(row.id),
@@ -584,6 +790,7 @@ pub async fn update_cross_section_label(
         osm_way_id: row.osm_way_id,
         osm_node_id: row.osm_node_id,
         label: row.label,
+        version: row.version,
     })
 }
 
@@ -1840,5 +2047,243 @@ mod tests {
             .unwrap();
 
         assert_eq!(lanes.len(), 0);
+    }
+
+    // --- Lane CRUD (insert/update/delete/access-rules) ---
+
+    #[tokio::test]
+    async fn insert_lane_computes_position_between_neighbors_and_defaults_access_rule() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+        // sample_lane_drafts() (existing helper) produces lanes at position 1.0, 2.0.
+        insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+            .await
+            .unwrap();
+
+        let new_lane = insert_lane(
+            &db.pool,
+            cross_section_id,
+            LaneType::CycleLane,
+            1.5,
+            LaneDirection::Forward,
+            1.5, // midpoint of the two existing lanes' positions
+        )
+        .await
+        .expect("insert_lane should succeed");
+
+        assert_eq!(new_lane.lane_type, LaneType::CycleLane);
+        assert_eq!(new_lane.width_meters, 1.5);
+        assert_eq!(new_lane.direction, LaneDirection::Forward);
+        assert_eq!(new_lane.position, 1.5);
+        assert_eq!(new_lane.access_rules.len(), 1);
+        assert_eq!(
+            new_lane.access_rules[0].allowed_modes,
+            vec![crate::corridor_design::lanes::AccessMode::Bicycle],
+            "a freshly-inserted lane defaults its access rule from LaneType, per default_access_rule_for"
+        );
+
+        let all_lanes = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .unwrap();
+        assert_eq!(all_lanes.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn insert_lane_at_start_of_sequence_with_no_before_neighbor() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+        insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+            .await
+            .unwrap();
+
+        let new_lane = insert_lane(
+            &db.pool,
+            cross_section_id,
+            LaneType::Sidewalk,
+            1.8,
+            LaneDirection::None,
+            0.5, // caller (API layer, per Task 3) computes this via assign_position
+                 // with neighbors { before: None, after: Some(1.0) }; the repository
+                 // function itself just persists whatever position it's given.
+        )
+        .await
+        .expect("insert_lane should succeed");
+
+        assert!(new_lane.position < 1.0);
+    }
+
+    #[tokio::test]
+    async fn update_lane_changes_type_width_direction_but_not_access_rules() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+        let lane_ids =
+            insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+                .await
+                .unwrap();
+        let sidewalk_lane_id = lane_ids[0];
+
+        let updated = update_lane(
+            &db.pool,
+            sidewalk_lane_id,
+            LaneType::Parking,
+            2.0,
+            LaneDirection::None,
+        )
+        .await
+        .expect("update_lane should succeed");
+
+        assert_eq!(updated.lane_type, LaneType::Parking);
+        assert_eq!(updated.width_meters, 2.0);
+        assert_eq!(updated.direction, LaneDirection::None);
+        // access_rules unchanged -- the original Sidewalk default (Pedestrian-only),
+        // not re-derived for the new Parking type; update_lane only touches the
+        // lane's own type/width/direction columns, never lane_access_rules.
+        assert_eq!(
+            updated.access_rules[0].allowed_modes,
+            vec![crate::corridor_design::lanes::AccessMode::Pedestrian]
+        );
+
+        // Independent read-back. `update_lane` builds the `Lane` it returns from
+        // its own lane_type/width_meters/direction ARGUMENTS (only id,
+        // cross_section_id and position come from the RETURNING clause), so the
+        // assertions above would hold even if the UPDATE never wrote those
+        // columns at all. Only a fresh SELECT proves the write landed.
+        let persisted = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .unwrap()
+            .into_iter()
+            .find(|l| l.id == sidewalk_lane_id)
+            .expect("the updated lane is still in the cross-section");
+        assert_eq!(persisted.lane_type, LaneType::Parking);
+        assert_eq!(persisted.width_meters, 2.0);
+        assert_eq!(persisted.direction, LaneDirection::None);
+        assert_eq!(
+            persisted.access_rules[0].allowed_modes,
+            vec![crate::corridor_design::lanes::AccessMode::Pedestrian]
+        );
+    }
+
+    #[tokio::test]
+    async fn update_lane_for_nonexistent_lane_returns_err() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let result = update_lane(
+            &db.pool,
+            LaneId::from(999_999_i64),
+            LaneType::Travel,
+            3.0,
+            LaneDirection::Forward,
+        )
+        .await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn delete_lane_removes_it_and_its_access_rules() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+        let lane_ids =
+            insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+                .await
+                .unwrap();
+        let sidewalk_lane_id = lane_ids[0];
+
+        delete_lane(&db.pool, sidewalk_lane_id)
+            .await
+            .expect("delete_lane should succeed");
+
+        let remaining = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert!(!remaining.iter().any(|l| l.id == sidewalk_lane_id));
+
+        let orphaned_rule_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM lane_access_rules WHERE lane_id = $1")
+                .bind(sidewalk_lane_id.as_i64())
+                .fetch_one(&db.pool)
+                .await
+                .unwrap();
+        assert_eq!(
+            orphaned_rule_count, 0,
+            "deleting a lane must cascade-delete its access rules"
+        );
+    }
+
+    #[tokio::test]
+    async fn delete_lane_for_nonexistent_lane_returns_err() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let result = delete_lane(&db.pool, LaneId::from(999_999_i64)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn set_lane_access_rules_replaces_existing_rules() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+        let lane_ids =
+            insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+                .await
+                .unwrap();
+        let travel_lane_id = lane_ids[1];
+
+        let new_rules = vec![
+            TimedAccessRule {
+                time_window: Some(crate::corridor_design::lanes::TimeWindow {
+                    days: "weekdays".to_string(),
+                    start_time: chrono::NaiveTime::from_hms_opt(7, 0, 0).unwrap(),
+                    end_time: chrono::NaiveTime::from_hms_opt(9, 0, 0).unwrap(),
+                }),
+                allowed_modes: vec![crate::corridor_design::lanes::AccessMode::Transit],
+            },
+            TimedAccessRule {
+                time_window: None,
+                allowed_modes: vec![
+                    crate::corridor_design::lanes::AccessMode::Car,
+                    crate::corridor_design::lanes::AccessMode::Emergency,
+                ],
+            },
+        ];
+
+        set_lane_access_rules(&db.pool, travel_lane_id, &new_rules)
+            .await
+            .expect("set_lane_access_rules should succeed");
+
+        let lanes = get_lanes_for_cross_section(&db.pool, cross_section_id)
+            .await
+            .unwrap();
+        let travel_lane = lanes.iter().find(|l| l.id == travel_lane_id).unwrap();
+        assert_eq!(
+            travel_lane.access_rules.len(),
+            2,
+            "the original single default rule should be replaced, not appended to"
+        );
+        assert!(
+            travel_lane
+                .access_rules
+                .iter()
+                .any(|r| r.time_window.is_some())
+        );
+        assert!(
+            travel_lane
+                .access_rules
+                .iter()
+                .any(|r| r.time_window.is_none())
+        );
     }
 }

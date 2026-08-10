@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM lane_access_rules WHERE lane_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a193d2aec0cbdd0c0e65dee87b1b6ef2d63c8eeb833aa7cb76c2da1236263c13"
+}

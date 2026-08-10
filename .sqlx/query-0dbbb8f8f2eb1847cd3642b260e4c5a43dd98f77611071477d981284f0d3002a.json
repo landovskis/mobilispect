@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, corridor_id, position::float8 AS \"position!\", lat, lon,\n                  osm_way_id, osm_node_id, label\n           FROM cross_sections\n           WHERE corridor_id = $1\n           ORDER BY position",
+  "query": "SELECT id, corridor_id, position::float8 AS \"position!\", lat, lon,\n                  osm_way_id, osm_node_id, label, version\n           FROM cross_sections\n           WHERE corridor_id = $1\n           ORDER BY position",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,11 @@
         "ordinal": 7,
         "name": "label",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "version",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -57,8 +62,9 @@
       false,
       true,
       true,
-      true
+      true,
+      false
     ]
   },
-  "hash": "528724d15be391dab5d51a2923dec8e95ad72da4af8b2d5c5d078f13e5000ff2"
+  "hash": "0dbbb8f8f2eb1847cd3642b260e4c5a43dd98f77611071477d981284f0d3002a"
 }
