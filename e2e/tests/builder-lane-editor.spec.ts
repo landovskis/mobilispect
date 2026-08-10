@@ -225,4 +225,17 @@ test.describe('Corridor Design: lane editor', () => {
     await expect(page.getByLabel('Allowed modes')).toHaveValue('transit,emergency');
     await expect(page.getByLabel('Days')).toHaveValue('weekdays');
   });
+
+  test('setting the bus stop select persists across reload', async ({ page, seededCrossSection }) => {
+    const { remixId, corridorId } = seededCrossSection;
+    await selectFirstCrossSection(page, corridorId, remixId);
+
+    await expect(page.getByLabel('Bus stop')).toHaveValue('');
+    await page.getByLabel('Bus stop').selectOption('bus_bulb');
+    await expect(page.getByLabel('Bus stop')).toHaveValue('bus_bulb');
+
+    // Reload to confirm the edit actually persisted server-side, not just in local state.
+    await selectFirstCrossSection(page, corridorId, remixId);
+    await expect(page.getByLabel('Bus stop')).toHaveValue('bus_bulb');
+  });
 });
