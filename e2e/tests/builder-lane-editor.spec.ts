@@ -88,10 +88,27 @@ async function selectFirstCrossSection(page: Page, corridorId: number, remixId: 
         layers: ['cross-section-points'],
       }).length > 0,
   );
-  const px = await page.evaluate(() => {
-    const point = (window as any).__corridorBuilderMap.project([-73.6, 45.5]);
-    return { x: point.x, y: point.y };
-  });
+  await clickCrossSectionAt(page, -73.6, 45.5);
+}
+
+/**
+ * Clicks the mini-map at the projected pixel position of a cross-section's
+ * (lon, lat), on a page that has already navigated and rendered the
+ * 'cross-section-points' layer (see `selectFirstCrossSection`, which does
+ * that setup before calling this for the corridor's first seeded point).
+ * Used directly -- without re-navigating -- to select a SECOND cross-section
+ * on the same page, so the side panel's DOM nodes (notably the Bus stop
+ * `<select>`) are reused rather than remounted, matching what happens when
+ * an analyst clicks from one cross-section straight to another.
+ */
+async function clickCrossSectionAt(page: Page, lon: number, lat: number) {
+  const px = await page.evaluate(
+    ({ lon, lat }) => {
+      const point = (window as any).__corridorBuilderMap.project([lon, lat]);
+      return { x: point.x, y: point.y };
+    },
+    { lon, lat },
+  );
   await page.locator('.maplibregl-canvas').click({ position: px });
 }
 
@@ -237,5 +254,73 @@ test.describe('Corridor Design: lane editor', () => {
     // Reload to confirm the edit actually persisted server-side, not just in local state.
     await selectFirstCrossSection(page, corridorId, remixId);
     await expect(page.getByLabel('Bus stop')).toHaveValue('bus_bulb');
+  });
+
+  test('switching cross-sections clears a dirtied Bus stop select instead of leaking the previous value', async ({
+    page,
+    seededCrossSection,
+  }) => {
+    const { remixId, corridorId } = seededCrossSection;
+    // A second cross-section beyond the fixture's one -- the fixture only
+    // seeds one, so it's added directly here via `withDb`, matching this
+    // file's established convention (see the `two access-rule edits` test
+    // above for another example of test-local `withDb` use on top of the
+    // fixture). Placed far enough from the first point that its projected
+    // screen position doesn't overlap the first point's 8px-radius click
+    // target.
+    const secondLon = -73.603;
+    const secondLat = 45.5;
+    let secondCrossSectionId = 0;
+
+    await withDb(async (client) => {
+      const result = await client.query(
+        `INSERT INTO cross_sections (corridor_id, position, lat, lon, label) VALUES ($1, 1, $2, $3, 'Second St @ 6th') RETURNING id`,
+        [corridorId, secondLat, secondLon],
+      );
+      secondCrossSectionId = result.rows[0].id;
+    });
+
+    try {
+      await selectFirstCrossSection(page, corridorId, remixId);
+      await expect(page.getByLabel('Bus stop')).toHaveValue('');
+      await page.getByLabel('Bus stop').selectOption('bus_bulb');
+      await expect(page.getByLabel('Bus stop')).toHaveValue('bus_bulb');
+
+      // Click the second cross-section on the mini-map WITHOUT reloading --
+      // Yew reuses the same <select> DOM node for the side panel rather than
+      // unmounting it, so this is the regression path: the native <select>'s
+      // 'bus_bulb' option was dirtied by the selectOption() above, and per
+      // the HTML spec a dirtied option no longer resyncs its selectedness
+      // from `selected` attribute changes. Before the fix in
+      // crates/corridor_builder_web/src/pages/corridor.rs, this assertion
+      // fails -- the select keeps showing "Bus bulb" even though the second
+      // cross-section's bus_stop is actually NULL.
+      await clickCrossSectionAt(page, secondLon, secondLat);
+      await expect(page.getByLabel('Cross-section label')).toHaveValue('Second St @ 6th');
+      await expect(page.getByLabel('Bus stop')).toHaveValue('');
+
+      await page.getByLabel('Bus stop').selectOption('signal_protected_platform');
+      await expect(page.getByLabel('Bus stop')).toHaveValue('signal_protected_platform');
+
+      // Reload and re-select both cross-sections to confirm each one's
+      // bus_stop persisted independently server-side, not just in local
+      // state -- and that the first cross-section's earlier edit wasn't
+      // clobbered by the second's.
+      await selectFirstCrossSection(page, corridorId, remixId);
+      await expect(page.getByLabel('Bus stop')).toHaveValue('bus_bulb');
+
+      await clickCrossSectionAt(page, secondLon, secondLat);
+      await expect(page.getByLabel('Cross-section label')).toHaveValue('Second St @ 6th');
+      await expect(page.getByLabel('Bus stop')).toHaveValue('signal_protected_platform');
+    } finally {
+      // The fixture's own teardown deletes `cross_sections WHERE corridor_id
+      // = $1`, which would cover this row too, but that runs after `use()`
+      // returns -- clean up explicitly here so a failed assertion above
+      // doesn't skip it and leak into any code that runs before the fixture
+      // teardown.
+      await withDb(async (client) => {
+        await client.query(`DELETE FROM cross_sections WHERE id = $1`, [secondCrossSectionId]);
+      });
+    }
   });
 });

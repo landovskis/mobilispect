@@ -304,8 +304,14 @@ fn enqueue_write(
             }
             match outcome {
                 Ok(confirmed) => {
-                    bus_gate.set(confirmed.bus_gate);
-                    turn_conflict.set(confirmed.turn_conflict);
+                    // Only the LAST response in a burst is published --
+                    // publishing every intermediate response would flicker
+                    // the selects through each momentarily-stale confirmed
+                    // value before settling on the final one.
+                    if idle {
+                        bus_gate.set(confirmed.bus_gate);
+                        turn_conflict.set(confirmed.turn_conflict);
+                    }
                 }
                 Err(e) => error.set(Some(e)),
             }
