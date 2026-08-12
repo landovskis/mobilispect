@@ -253,6 +253,7 @@ pub struct CrossSectionSummary {
     pub lat: f64,
     pub lon: f64,
     pub version: i32,
+    pub bus_stop: Option<String>,
 }
 
 pub async fn list_cross_sections(corridor_id: i64) -> Result<Vec<CrossSectionSummary>, String> {
@@ -399,5 +400,59 @@ pub async fn set_access_rules(
     let request = gloo_net::http::Request::put(&format!("{API_BASE}/lanes/{lane_id}/access-rules"))
         .json(&SetAccessRulesRequest { rules })
         .map_err(|e| e.to_string())?;
+    send_and_decode(request).await
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct UpdateBusStopRequest {
+    bus_stop: Option<String>,
+}
+
+pub async fn update_bus_stop(
+    cross_section_id: i64,
+    bus_stop: Option<String>,
+) -> Result<CrossSectionSummary, String> {
+    let request = gloo_net::http::Request::patch(&format!(
+        "{API_BASE}/cross-sections/{cross_section_id}/bus-stop"
+    ))
+    .json(&UpdateBusStopRequest { bus_stop })
+    .map_err(|e| e.to_string())?;
+    send_and_decode(request).await
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct IntersectionTreatmentValue {
+    pub bus_gate: Option<String>,
+    pub turn_conflict: Option<String>,
+}
+
+pub async fn get_intersection_treatment(
+    cross_section_id: i64,
+) -> Result<IntersectionTreatmentValue, String> {
+    send_and_decode(gloo_net::http::Request::get(&format!(
+        "{API_BASE}/cross-sections/{cross_section_id}/intersection-treatment"
+    )))
+    .await
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct SetIntersectionTreatmentRequest {
+    bus_gate: Option<String>,
+    turn_conflict: Option<String>,
+}
+
+pub async fn set_intersection_treatment(
+    cross_section_id: i64,
+    bus_gate: Option<String>,
+    turn_conflict: Option<String>,
+) -> Result<IntersectionTreatmentValue, String> {
+    let request = gloo_net::http::Request::put(&format!(
+        "{API_BASE}/cross-sections/{cross_section_id}/intersection-treatment"
+    ))
+    .json(&SetIntersectionTreatmentRequest {
+        bus_gate,
+        turn_conflict,
+    })
+    .map_err(|e| e.to_string())?;
     send_and_decode(request).await
 }

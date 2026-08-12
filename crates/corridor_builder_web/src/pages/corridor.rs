@@ -71,6 +71,23 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
     let write_queue = use_mut_ref(VecDeque::<PendingWrite>::new);
     let write_worker_running = use_mut_ref(|| false);
 
+    // `<option selected={...}>` is a plain HTML *attribute* in Yew's VDOM
+    // diffing, and native `<select>`/`<option>` elements stop honoring
+    // attribute-driven selection changes once the option has been "dirtied"
+    // by ANY prior interaction (a real click, or `<select>.value = ...`
+    // script assignment) -- per the HTML spec, a dirtied option's
+    // selectedness no longer resyncs from `selected` attribute mutations.
+    // Concretely: an analyst selects cross-section A, sets its Bus stop to
+    // "Bus bulb" (dirtying this select's options), then clicks cross-section
+    // B on the mini-map. The side panel isn't unmounted (Yew reuses the same
+    // `<select>` DOM node), so without this fix the display would keep
+    // showing "Bus bulb" even though B's `bus_stop` is actually `None`.
+    // Mirrors `pages/intersection.rs`'s `bus_gate_ref`/`turn_conflict_ref`
+    // fix for the identical bug class -- see that file's comment for the
+    // full explanation. Setting the DOM `.value` PROPERTY directly (not the
+    // `selected` attribute) always takes effect regardless of dirtiness.
+    let bus_stop_ref = use_node_ref();
+
     // Mounts the mini-map once, fetches the corridor's cross-sections, and
     // renders them as a clickable point layer.
     {
@@ -142,6 +159,23 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
         .find(|cs| Some(cs.id) == *selected_cross_section_id)
         .cloned();
 
+    {
+        let bus_stop_ref = bus_stop_ref.clone();
+        use_effect_with(
+            selected_cross_section.clone(),
+            move |selected_cross_section| {
+                if let Some(select) = bus_stop_ref.cast::<web_sys::HtmlSelectElement>() {
+                    let value = selected_cross_section
+                        .as_ref()
+                        .and_then(|cs| cs.bus_stop.as_deref())
+                        .unwrap_or("");
+                    select.set_value(value);
+                }
+                || ()
+            },
+        );
+    }
+
     let on_label_blur = {
         let cross_sections = cross_sections.clone();
         let selected_cross_section_id = selected_cross_section_id.clone();
@@ -172,6 +206,36 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
                 )
                 .await
                 {
+                    Ok(updated) => {
+                        let mut next: Vec<api::CrossSectionSummary> = (*cross_sections).clone();
+                        if let Some(entry) = next.iter_mut().find(|cs| cs.id == updated.id) {
+                            *entry = updated;
+                        }
+                        cross_sections.set(next);
+                    }
+                    Err(e) => error.set(Some(e)),
+                }
+            });
+        })
+    };
+
+    let on_bus_stop_change = {
+        let cross_sections = cross_sections.clone();
+        let selected_cross_section_id = selected_cross_section_id.clone();
+        let error = error.clone();
+        Callback::from(move |e: Event| {
+            let Some(cross_section_id) = *selected_cross_section_id else {
+                return;
+            };
+            let value = e
+                .target_dyn_into::<web_sys::HtmlSelectElement>()
+                .map(|el| el.value())
+                .unwrap_or_default();
+            let bus_stop = if value.is_empty() { None } else { Some(value) };
+            let cross_sections = cross_sections.clone();
+            let error = error.clone();
+            wasm_bindgen_futures::spawn_local(async move {
+                match api::update_bus_stop(cross_section_id, bus_stop).await {
                     Ok(updated) => {
                         let mut next: Vec<api::CrossSectionSummary> = (*cross_sections).clone();
                         if let Some(entry) = next.iter_mut().find(|cs| cs.id == updated.id) {
@@ -467,6 +531,13 @@ pub fn CorridorPage(props: &CorridorPageProps) -> Html {
                     <label class="field-label" for="cross-section-label">{ "Cross-section label" }</label>
                     <input class="field" id="cross-section-label" type="text" value={cs.label.clone().unwrap_or_default()} onblur={on_label_blur} />
 
+                    <label class="field-label" for="cross-section-bus-stop" style="margin-top:0.75rem;">{ "Bus stop" }</label>
+                    <select class="field" id="cross-section-bus-stop" ref={bus_stop_ref.clone()} onchange={on_bus_stop_change}>
+                        { for BUS_STOPS.iter().map(|(value, label)| html! {
+                            <option value={*value} selected={cs.bus_stop.as_deref() == (if value.is_empty() { None } else { Some(*value) })}>{ *label }</option>
+                        }) }
+                    </select>
+
                     <div class="xs-diagram" style="margin-top:1rem;">
                         { insert_button("Add lane at start", None, lanes.first().map(|l| l.position), on_insert_lane.clone()) }
                         { for lanes.iter().enumerate().map(|(i, lane)| {
@@ -577,6 +648,12 @@ const LANE_DIRECTIONS: &[(&str, &str)] = &[
     ("backward", "Backward"),
     ("both", "Both"),
     ("none", "None"),
+];
+
+const BUS_STOPS: &[(&str, &str)] = &[
+    ("", "None"),
+    ("bus_bulb", "Bus bulb"),
+    ("signal_protected_platform", "Signal-protected platform"),
 ];
 
 fn lane_type_label(lane_type: &str) -> &'static str {

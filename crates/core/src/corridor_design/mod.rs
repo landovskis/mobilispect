@@ -6,6 +6,7 @@
 pub mod attribution;
 pub mod edit;
 pub mod geometry;
+pub mod intersection;
 pub mod lanes;
 pub mod lanes_from_osm;
 pub mod position;
@@ -102,4 +103,8 @@ pub struct CrossSection {
     /// column, `DEFAULT 1`). Bumped on every successful `update_cross_section_label`
     /// call.
     pub version: i32,
+    /// Bus-stop platform type, editable from the lane editor's side panel
+    /// (migration 027's `cross_sections.bus_stop` column). `None` until an
+    /// analyst sets one.
+    pub bus_stop: Option<intersection::BusStop>,
 }

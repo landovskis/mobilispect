@@ -97,6 +97,8 @@ test.describe('Corridor Builder: click routing', () => {
     await page.locator('.maplibregl-canvas').click({ position: px });
 
     await expect(page).toHaveURL(new RegExp(`/builder/remix/${remixId}/intersection/\\d+$`));
-    await expect(page.getByText('editor coming soon')).toBeVisible();
+    // The intersection page is now a real form (bus gate / turn-conflict
+    // type), not the old placeholder -- assert on the form instead.
+    await expect(page.getByLabel('Bus gate')).toBeVisible();
   });
 });

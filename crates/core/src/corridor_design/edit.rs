@@ -117,6 +117,7 @@ mod tests {
             osm_node_id: None,
             label: Some(label.to_string()),
             version: 1,
+            bus_stop: None,
         }
     }
 
