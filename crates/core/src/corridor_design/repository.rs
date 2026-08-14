@@ -828,13 +828,38 @@ pub async fn create_or_match_intersection(
     .fetch_one(&mut *tx)
     .await?;
     if let Some(node_id) = osm_node_id {
-        sqlx::query!(
-            "INSERT INTO intersection_osm_nodes (intersection_id, osm_node_id) VALUES ($1, $2)",
+        // Atomic upsert against `intersection_osm_nodes.osm_node_id UNIQUE`
+        // (migration 028): the initial SELECT above is only a fast-path
+        // optimization, not a guarantee -- two concurrent callers can both
+        // miss it and race to here. `ON CONFLICT ... DO NOTHING RETURNING`
+        // makes the actual claim atomic: at most one concurrent INSERT wins
+        // the row and gets a `Some` back; the loser gets `None` instead of a
+        // raw unique-violation propagating out of this function.
+        let inserted = sqlx::query_scalar!(
+            r#"INSERT INTO intersection_osm_nodes (intersection_id, osm_node_id)
+               VALUES ($1, $2)
+               ON CONFLICT (osm_node_id) DO NOTHING
+               RETURNING intersection_id"#,
             id,
             node_id,
         )
-        .execute(&mut *tx)
+        .fetch_optional(&mut *tx)
         .await?;
+
+        if inserted.is_none() {
+            // Lost the race: some other concurrent call already claimed
+            // `node_id` first. Roll back this transaction -- discarding the
+            // `intersections` row just inserted above, which would otherwise
+            // be an orphan -- and match onto the winner's row instead.
+            tx.rollback().await?;
+            let winner = sqlx::query_scalar!(
+                "SELECT intersection_id FROM intersection_osm_nodes WHERE osm_node_id = $1",
+                node_id,
+            )
+            .fetch_one(pool)
+            .await?;
+            return Ok(IntersectionId::from(winner));
+        }
     }
     tx.commit().await?;
 
@@ -2497,6 +2522,38 @@ mod tests {
             first, second,
             "manual/private intersections never auto-match"
         );
+    }
+
+    /// Two concurrent calls racing to claim the same `osm_node_id` must both
+    /// resolve to the same `IntersectionId`, and neither may surface a raw
+    /// unique-violation error -- regression test for the
+    /// SELECT-then-INSERT TOCTOU race on `intersection_osm_nodes.osm_node_id
+    /// UNIQUE` (migration 028) that `create_or_match_intersection`'s
+    /// `ON CONFLICT ... DO NOTHING RETURNING` + re-select fallback closes.
+    /// `tokio::join!` starts both futures on the same pool essentially
+    /// simultaneously, so both are very likely to miss the initial
+    /// fast-path SELECT and race on the INSERT.
+    #[tokio::test]
+    async fn create_or_match_intersection_concurrent_calls_with_same_osm_node_id_do_not_race() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let (first, second) = tokio::join!(
+            create_or_match_intersection(&db.pool, 45.50, -73.60, Some(400)),
+            create_or_match_intersection(&db.pool, 45.50, -73.60, Some(400)),
+        );
+
+        let first = first.expect("first concurrent call should not surface a raw DB error");
+        let second = second.expect("second concurrent call should not surface a raw DB error");
+        assert_eq!(
+            first, second,
+            "both concurrent callers should resolve to the single winning intersection"
+        );
+
+        // Exactly one `intersections` row should exist for this node -- the
+        // loser's row must have been rolled back, not left as an orphan.
+        let intersection = get_intersection(&db.pool, first).await.unwrap();
+        assert_eq!(intersection.osm_node_ids, vec![400]);
     }
 
     #[tokio::test]
