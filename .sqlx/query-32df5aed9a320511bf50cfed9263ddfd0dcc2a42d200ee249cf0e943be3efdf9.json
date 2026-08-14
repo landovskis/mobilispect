@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO intersection_osm_nodes (intersection_id, osm_node_id) VALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "32df5aed9a320511bf50cfed9263ddfd0dcc2a42d200ee249cf0e943be3efdf9"
+}

@@ -6,10 +6,11 @@
 use crate::corridor_design::Coordinate;
 use crate::corridor_design::CrossSection;
 use crate::corridor_design::geometry::NormalizedCorridor;
+use crate::corridor_design::intersection::{BusGate, BusStop, Intersection, TurnConflict};
 use crate::corridor_design::lanes::{
     AccessMode, Lane, LaneDirection, LaneDraft, LaneType, TimeWindow, TimedAccessRule,
 };
-use crate::ids::{CorridorId, CrossSectionId, LaneId, RemixId};
+use crate::ids::{CorridorId, CrossSectionId, IntersectionId, LaneId, RemixId};
 
 /// Persists a newly imported corridor and its ordered cross-sections, scoped to
 /// `remix_id`. `normalized` must already be validated (see
@@ -795,6 +796,162 @@ pub async fn update_cross_section_label(
         version: row.version,
         intersection_id: row.intersection_id.map(crate::ids::IntersectionId::from),
     })
+}
+
+/// Looks up an existing `Intersection` by `osm_node_id` (if present); creates
+/// a new one otherwise. `osm_node_id = None` (manual/private endpoints)
+/// always creates a new row -- there is nothing to match on.
+pub async fn create_or_match_intersection(
+    pool: &sqlx::PgPool,
+    lat: f64,
+    lon: f64,
+    osm_node_id: Option<i64>,
+) -> Result<IntersectionId, anyhow::Error> {
+    if let Some(node_id) = osm_node_id {
+        let matched = sqlx::query_scalar!(
+            "SELECT intersection_id FROM intersection_osm_nodes WHERE osm_node_id = $1",
+            node_id,
+        )
+        .fetch_optional(pool)
+        .await?;
+        if let Some(intersection_id) = matched {
+            return Ok(IntersectionId::from(intersection_id));
+        }
+    }
+
+    let mut tx = pool.begin().await?;
+    let id = sqlx::query_scalar!(
+        "INSERT INTO intersections (lat, lon) VALUES ($1, $2) RETURNING id",
+        lat,
+        lon,
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+    if let Some(node_id) = osm_node_id {
+        sqlx::query!(
+            "INSERT INTO intersection_osm_nodes (intersection_id, osm_node_id) VALUES ($1, $2)",
+            id,
+            node_id,
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+    tx.commit().await?;
+
+    Ok(IntersectionId::from(id))
+}
+
+/// Fetches a single `Intersection`, including its full `osm_node_ids` list.
+pub async fn get_intersection(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+) -> Result<Intersection, anyhow::Error> {
+    let row = sqlx::query!(
+        "SELECT id, lat, lon, bus_gate, turn_conflict, bus_stop FROM intersections WHERE id = $1",
+        intersection_id.as_i64(),
+    )
+    .fetch_optional(pool)
+    .await?;
+    let row = row.ok_or_else(|| anyhow::anyhow!("intersection {intersection_id} not found"))?;
+
+    let osm_node_ids: Vec<i64> = sqlx::query_scalar!(
+        "SELECT osm_node_id FROM intersection_osm_nodes WHERE intersection_id = $1",
+        intersection_id.as_i64(),
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(Intersection {
+        id: IntersectionId::from(row.id),
+        lat: row.lat,
+        lon: row.lon,
+        osm_node_ids,
+        bus_gate: row
+            .bus_gate
+            .map(|s| {
+                BusGate::from_db_str(&s)
+                    .ok_or_else(|| anyhow::anyhow!("unknown bus_gate value: {s}"))
+            })
+            .transpose()?,
+        turn_conflict: row
+            .turn_conflict
+            .map(|s| {
+                TurnConflict::from_db_str(&s)
+                    .ok_or_else(|| anyhow::anyhow!("unknown turn_conflict value: {s}"))
+            })
+            .transpose()?,
+        bus_stop: row
+            .bus_stop
+            .map(|s| {
+                BusStop::from_db_str(&s)
+                    .ok_or_else(|| anyhow::anyhow!("unknown bus_stop value: {s}"))
+            })
+            .transpose()?,
+    })
+}
+
+/// Whole-record replace of an intersection's treatment fields, matching this
+/// file's established `set_lane_access_rules` precedent -- `None` clears a
+/// field, it does not mean "leave unchanged".
+pub async fn set_intersection_treatment(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+    bus_gate: Option<BusGate>,
+    turn_conflict: Option<TurnConflict>,
+    bus_stop: Option<BusStop>,
+) -> Result<Intersection, anyhow::Error> {
+    let updated = sqlx::query_scalar!(
+        r#"UPDATE intersections SET bus_gate = $1, turn_conflict = $2, bus_stop = $3
+           WHERE id = $4 RETURNING id"#,
+        bus_gate.map(|g| g.as_db_str()),
+        turn_conflict.map(|c| c.as_db_str()),
+        bus_stop.map(|b| b.as_db_str()),
+        intersection_id.as_i64(),
+    )
+    .fetch_optional(pool)
+    .await?;
+    updated.ok_or_else(|| anyhow::anyhow!("intersection {intersection_id} not found"))?;
+
+    get_intersection(pool, intersection_id).await
+}
+
+/// Links a cross-section to the intersection it's an endpoint of. Does not
+/// validate that `cross_section_id` is actually a corridor endpoint (by
+/// position) -- callers (Task 8's `resolve_corridor_endpoints`) are
+/// responsible for only calling this on a first/last cross-section, per this
+/// design's Open Points decision to enforce that invariant in application
+/// code rather than a DB constraint.
+pub async fn set_cross_section_intersection(
+    pool: &sqlx::PgPool,
+    cross_section_id: CrossSectionId,
+    intersection_id: IntersectionId,
+) -> Result<(), anyhow::Error> {
+    let result = sqlx::query!(
+        "UPDATE cross_sections SET intersection_id = $1 WHERE id = $2",
+        intersection_id.as_i64(),
+        cross_section_id.as_i64(),
+    )
+    .execute(pool)
+    .await?;
+    if result.rows_affected() == 0 {
+        anyhow::bail!("cross-section {cross_section_id} not found");
+    }
+    Ok(())
+}
+
+/// Every distinct corridor with at least one cross-section referencing
+/// `intersection_id`.
+pub async fn corridors_at_intersection(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+) -> Result<Vec<CorridorId>, anyhow::Error> {
+    let ids: Vec<i64> = sqlx::query_scalar!(
+        "SELECT DISTINCT corridor_id FROM cross_sections WHERE intersection_id = $1",
+        intersection_id.as_i64(),
+    )
+    .fetch_all(pool)
+    .await?;
+    Ok(ids.into_iter().map(CorridorId::from).collect())
 }
 
 #[cfg(test)]
@@ -2288,5 +2445,155 @@ mod tests {
                 .iter()
                 .any(|r| r.time_window.is_none())
         );
+    }
+
+    // --- Intersections ---
+
+    use crate::corridor_design::intersection::{BusGate, BusStop, TurnConflict};
+    use crate::ids::IntersectionId;
+
+    #[tokio::test]
+    async fn create_or_match_intersection_with_no_matching_node_creates_new_row() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let id = create_or_match_intersection(&db.pool, 45.50, -73.60, Some(100))
+            .await
+            .expect("create_or_match_intersection should succeed");
+
+        let intersection = get_intersection(&db.pool, id).await.unwrap();
+        assert_eq!(intersection.lat, 45.50);
+        assert_eq!(intersection.osm_node_ids, vec![100]);
+    }
+
+    #[tokio::test]
+    async fn create_or_match_intersection_with_matching_node_reuses_existing_row() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let first = create_or_match_intersection(&db.pool, 45.50, -73.60, Some(200))
+            .await
+            .unwrap();
+        let second = create_or_match_intersection(&db.pool, 45.50, -73.60, Some(200))
+            .await
+            .expect("second call with the same osm_node_id should match, not create");
+
+        assert_eq!(first, second);
+    }
+
+    #[tokio::test]
+    async fn create_or_match_intersection_without_osm_node_id_always_creates_new_row() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let first = create_or_match_intersection(&db.pool, 45.50, -73.60, None)
+            .await
+            .unwrap();
+        let second = create_or_match_intersection(&db.pool, 45.50, -73.60, None)
+            .await
+            .unwrap();
+
+        assert_ne!(
+            first, second,
+            "manual/private intersections never auto-match"
+        );
+    }
+
+    #[tokio::test]
+    async fn get_intersection_returns_not_found_error_for_unknown_id() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let result = get_intersection(&db.pool, IntersectionId::from(999_999)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn set_intersection_treatment_persists_all_three_fields() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let id = create_or_match_intersection(&db.pool, 45.50, -73.60, None)
+            .await
+            .unwrap();
+
+        let updated = set_intersection_treatment(
+            &db.pool,
+            id,
+            Some(BusGate::SignalControlled),
+            Some(TurnConflict::RightInRightOut),
+            Some(BusStop::BusBulb),
+        )
+        .await
+        .expect("set_intersection_treatment should succeed");
+
+        assert_eq!(updated.bus_gate, Some(BusGate::SignalControlled));
+        assert_eq!(updated.turn_conflict, Some(TurnConflict::RightInRightOut));
+        assert_eq!(updated.bus_stop, Some(BusStop::BusBulb));
+
+        let reloaded = get_intersection(&db.pool, id).await.unwrap();
+        assert_eq!(reloaded, updated);
+    }
+
+    #[tokio::test]
+    async fn set_cross_section_intersection_persists_the_link() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Test Corridor")
+            .await
+            .unwrap();
+        let cross_section_id =
+            insert_cross_section(&db.pool, corridor_id, Coordinate::new(45.50, -73.60), 0)
+                .await
+                .unwrap();
+        let intersection_id = create_or_match_intersection(&db.pool, 45.50, -73.60, None)
+            .await
+            .unwrap();
+
+        set_cross_section_intersection(&db.pool, cross_section_id, intersection_id)
+            .await
+            .expect("set_cross_section_intersection should succeed");
+
+        let cross_sections = get_corridor_cross_sections(&db.pool, corridor_id)
+            .await
+            .unwrap();
+        assert_eq!(cross_sections[0].intersection_id, Some(intersection_id));
+    }
+
+    #[tokio::test]
+    async fn corridors_at_intersection_lists_every_corridor_referencing_it() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let intersection_id = create_or_match_intersection(&db.pool, 45.50, -73.60, Some(300))
+            .await
+            .unwrap();
+
+        let corridor_a = start_manual_corridor(&db.pool, remix_id, "Corridor A")
+            .await
+            .unwrap();
+        let cs_a = insert_cross_section(&db.pool, corridor_a, Coordinate::new(45.50, -73.60), 0)
+            .await
+            .unwrap();
+        set_cross_section_intersection(&db.pool, cs_a, intersection_id)
+            .await
+            .unwrap();
+
+        let corridor_b = start_manual_corridor(&db.pool, remix_id, "Corridor B")
+            .await
+            .unwrap();
+        let cs_b = insert_cross_section(&db.pool, corridor_b, Coordinate::new(45.50, -73.60), 0)
+            .await
+            .unwrap();
+        set_cross_section_intersection(&db.pool, cs_b, intersection_id)
+            .await
+            .unwrap();
+
+        let corridors = corridors_at_intersection(&db.pool, intersection_id)
+            .await
+            .unwrap();
+        assert_eq!(corridors.len(), 2);
+        assert!(corridors.contains(&corridor_a));
+        assert!(corridors.contains(&corridor_b));
     }
 }

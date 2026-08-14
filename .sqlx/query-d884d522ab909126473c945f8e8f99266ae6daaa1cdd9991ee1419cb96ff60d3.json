@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE intersections SET bus_gate = $1, turn_conflict = $2, bus_stop = $3\n           WHERE id = $4 RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d884d522ab909126473c945f8e8f99266ae6daaa1cdd9991ee1419cb96ff60d3"
+}
