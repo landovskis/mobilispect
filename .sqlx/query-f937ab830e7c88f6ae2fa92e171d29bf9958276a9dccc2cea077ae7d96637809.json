@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE intersection_osm_nodes SET intersection_id = $1 WHERE intersection_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f937ab830e7c88f6ae2fa92e171d29bf9958276a9dccc2cea077ae7d96637809"
+}

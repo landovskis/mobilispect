@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE cross_sections SET intersection_id = $1 WHERE intersection_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b55e5aad7b53b2f250847f27e4953d0354daacb6a1930446469df3290f085848"
+}

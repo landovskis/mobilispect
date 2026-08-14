@@ -1140,6 +1140,106 @@ pub async fn split_corridor_at_cross_section(
     ))
 }
 
+/// Merges `absorbed` into `surviving`: re-points every cross-section and
+/// intersection_osm_nodes row from `absorbed` onto `surviving`, reconciles
+/// treatment fields (survivor's own non-null value always wins; a real
+/// conflict -- both sides non-null and different -- is recorded, not
+/// silently dropped or averaged), deletes the absorbed row, and returns the
+/// audit log entry.
+pub async fn merge_intersections(
+    pool: &sqlx::PgPool,
+    surviving: IntersectionId,
+    absorbed: IntersectionId,
+) -> Result<crate::corridor_design::intersection::IntersectionMerge, anyhow::Error> {
+    let mut tx = pool.begin().await?;
+
+    let survivor_row = sqlx::query!(
+        "SELECT bus_gate, turn_conflict, bus_stop FROM intersections WHERE id = $1 FOR UPDATE",
+        surviving.as_i64(),
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or_else(|| anyhow::anyhow!("intersection {surviving} not found"))?;
+    let absorbed_row = sqlx::query!(
+        "SELECT bus_gate, turn_conflict, bus_stop FROM intersections WHERE id = $1 FOR UPDATE",
+        absorbed.as_i64(),
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or_else(|| anyhow::anyhow!("intersection {absorbed} not found"))?;
+
+    fn reconcile(survivor: Option<String>, absorbed: Option<String>) -> (Option<String>, bool) {
+        match (&survivor, &absorbed) {
+            (Some(s), Some(a)) if s != a => (survivor, true),
+            (Some(_), _) => (survivor, false),
+            (None, Some(_)) => (absorbed, false),
+            (None, None) => (None, false),
+        }
+    }
+    let (bus_gate, bus_gate_conflict) = reconcile(survivor_row.bus_gate, absorbed_row.bus_gate);
+    let (turn_conflict, turn_conflict_conflict) =
+        reconcile(survivor_row.turn_conflict, absorbed_row.turn_conflict);
+    let (bus_stop, bus_stop_conflict) = reconcile(survivor_row.bus_stop, absorbed_row.bus_stop);
+    let treatment_conflict = bus_gate_conflict || turn_conflict_conflict || bus_stop_conflict;
+
+    sqlx::query!(
+        "UPDATE intersections SET bus_gate = $1, turn_conflict = $2, bus_stop = $3 WHERE id = $4",
+        bus_gate,
+        turn_conflict,
+        bus_stop,
+        surviving.as_i64(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query!(
+        "UPDATE cross_sections SET intersection_id = $1 WHERE intersection_id = $2",
+        surviving.as_i64(),
+        absorbed.as_i64(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    let absorbed_osm_node_ids: Vec<i64> = sqlx::query_scalar!(
+        "SELECT osm_node_id FROM intersection_osm_nodes WHERE intersection_id = $1",
+        absorbed.as_i64(),
+    )
+    .fetch_all(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "UPDATE intersection_osm_nodes SET intersection_id = $1 WHERE intersection_id = $2",
+        surviving.as_i64(),
+        absorbed.as_i64(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query!("DELETE FROM intersections WHERE id = $1", absorbed.as_i64())
+        .execute(&mut *tx)
+        .await?;
+
+    let merged_at = sqlx::query_scalar!(
+        r#"INSERT INTO intersection_merges
+             (surviving_intersection_id, absorbed_osm_node_ids, treatment_conflict)
+           VALUES ($1, $2, $3)
+           RETURNING merged_at"#,
+        surviving.as_i64(),
+        &absorbed_osm_node_ids,
+        treatment_conflict,
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok(crate::corridor_design::intersection::IntersectionMerge {
+        surviving_intersection_id: surviving,
+        absorbed_osm_node_ids,
+        treatment_conflict,
+        merged_at,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2998,5 +3098,104 @@ mod tests {
             split_corridor_at_cross_section(&db.pool, corridor_id, cross_section_ids[0], 0).await;
 
         assert!(result.is_err());
+    }
+
+    // --- Dual-carriageway merge ---
+
+    #[tokio::test]
+    async fn merge_intersections_repoints_cross_sections_and_deletes_absorbed_row() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+
+        let survivor = create_or_match_intersection(&db.pool, 45.5000, -73.6000, Some(10))
+            .await
+            .unwrap();
+        let absorbed = create_or_match_intersection(&db.pool, 45.50005, -73.6000, Some(20))
+            .await
+            .unwrap();
+
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Corridor on absorbed side")
+            .await
+            .unwrap();
+        let cross_section_id = insert_cross_section(
+            &db.pool,
+            corridor_id,
+            Coordinate::new(45.50005, -73.6000),
+            0,
+        )
+        .await
+        .unwrap();
+        set_cross_section_intersection(&db.pool, cross_section_id, absorbed)
+            .await
+            .unwrap();
+
+        let merge_record = merge_intersections(&db.pool, survivor, absorbed)
+            .await
+            .expect("merge should succeed");
+
+        assert_eq!(merge_record.surviving_intersection_id, survivor);
+        assert_eq!(merge_record.absorbed_osm_node_ids, vec![20]);
+        assert!(!merge_record.treatment_conflict);
+
+        let cross_sections = get_corridor_cross_sections(&db.pool, corridor_id)
+            .await
+            .unwrap();
+        assert_eq!(cross_sections[0].intersection_id, Some(survivor));
+
+        let survivor_details = get_intersection(&db.pool, survivor).await.unwrap();
+        assert_eq!(survivor_details.osm_node_ids.len(), 2);
+        assert!(survivor_details.osm_node_ids.contains(&10));
+        assert!(survivor_details.osm_node_ids.contains(&20));
+
+        let absorbed_still_exists = get_intersection(&db.pool, absorbed).await;
+        assert!(
+            absorbed_still_exists.is_err(),
+            "absorbed intersection row should be gone"
+        );
+    }
+
+    #[tokio::test]
+    async fn merge_intersections_flags_conflicting_non_null_treatment_values() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let survivor = create_or_match_intersection(&db.pool, 45.5000, -73.6000, Some(30))
+            .await
+            .unwrap();
+        set_intersection_treatment(
+            &db.pool,
+            survivor,
+            Some(BusGate::SignalControlled),
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+        let absorbed = create_or_match_intersection(&db.pool, 45.50005, -73.6000, Some(40))
+            .await
+            .unwrap();
+        set_intersection_treatment(
+            &db.pool,
+            absorbed,
+            Some(BusGate::YieldControlled),
+            None,
+            None,
+        )
+        .await
+        .unwrap();
+
+        let merge_record = merge_intersections(&db.pool, survivor, absorbed)
+            .await
+            .unwrap();
+
+        assert!(merge_record.treatment_conflict);
+        let survivor_details = get_intersection(&db.pool, survivor).await.unwrap();
+        assert_eq!(
+            survivor_details.bus_gate,
+            Some(BusGate::SignalControlled),
+            "survivor's own value wins on conflict, not the absorbed side's"
+        );
     }
 }

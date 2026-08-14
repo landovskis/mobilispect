@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT bus_gate, turn_conflict, bus_stop FROM intersections WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bus_gate",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "turn_conflict",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "bus_stop",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "07927912c3a67a02efaacf2c18b921df95dbc5bd7bbd75ef33afbc4fccf395a4"
+}
