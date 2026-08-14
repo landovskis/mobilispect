@@ -4,6 +4,7 @@
 //! context) and the Corridor Segment Editor PRD for the full requirement set.
 
 pub mod attribution;
+pub mod dual_carriageway;
 pub mod edit;
 pub mod geometry;
 pub mod intersection;
