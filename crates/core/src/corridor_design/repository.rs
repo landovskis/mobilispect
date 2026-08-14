@@ -979,6 +979,167 @@ pub async fn corridors_at_intersection(
     Ok(ids.into_iter().map(CorridorId::from).collect())
 }
 
+/// Splits `corridor_id` at `cross_section_id` into two corridors meeting at a
+/// new shared `Intersection`. `expected_sequence_version` is an
+/// optimistic-concurrency check against `corridors.sequence_version`
+/// (migration 023) -- reused here rather than adding a new column, since a
+/// split is exactly the kind of cross-section-arrangement change that column
+/// already exists to guard. Returns `(head_corridor_id, tail_corridor_id,
+/// new_intersection_id)`.
+pub async fn split_corridor_at_cross_section(
+    pool: &sqlx::PgPool,
+    corridor_id: CorridorId,
+    cross_section_id: CrossSectionId,
+    expected_sequence_version: i64,
+) -> Result<(CorridorId, CorridorId, IntersectionId), anyhow::Error> {
+    let cross_sections = get_corridor_cross_sections(pool, corridor_id).await?;
+    let partition = crate::corridor_design::splitting::partition_at_split_point(
+        &cross_sections,
+        cross_section_id,
+    )
+    .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+    let mut tx = pool.begin().await?;
+
+    // `FOR UPDATE` locks the corridor row for the duration of the
+    // transaction, serializing concurrent splits/reorders of the same
+    // corridor so the sequence-version check below can't race.
+    let current_version = sqlx::query_scalar!(
+        "SELECT sequence_version FROM corridors WHERE id = $1 FOR UPDATE",
+        corridor_id.as_i64(),
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+    let Some(current_version) = current_version else {
+        anyhow::bail!("corridor {corridor_id} does not exist");
+    };
+    if current_version != expected_sequence_version {
+        anyhow::bail!(
+            "stale expected_sequence_version: expected {expected_sequence_version}, corridor is at {current_version}"
+        );
+    }
+
+    // The new Intersection is never itself a dual-carriageway merge
+    // candidate (Task 6) -- it wasn't derived from a oneway-tagged way pair,
+    // it's a split point. Mirrors `create_or_match_intersection`'s
+    // TOCTOU-safe `ON CONFLICT ... DO NOTHING RETURNING` claim on
+    // `intersection_osm_nodes.osm_node_id UNIQUE` in case the split point's
+    // `osm_node_id` (when present) is already linked to another Intersection
+    // -- e.g. this corridor's endpoint coincides with an already-imported
+    // node elsewhere.
+    let new_intersection_id: i64 = {
+        let inserted = sqlx::query_scalar!(
+            "INSERT INTO intersections (lat, lon) VALUES ($1, $2) RETURNING id",
+            partition.new_intersection_lat,
+            partition.new_intersection_lon,
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        if let Some(node_id) = partition.new_intersection_osm_node_id {
+            let claimed = sqlx::query_scalar!(
+                r#"INSERT INTO intersection_osm_nodes (intersection_id, osm_node_id)
+                   VALUES ($1, $2)
+                   ON CONFLICT (osm_node_id) DO NOTHING
+                   RETURNING intersection_id"#,
+                inserted,
+                node_id,
+            )
+            .fetch_optional(&mut *tx)
+            .await?;
+
+            match claimed {
+                Some(_) => inserted,
+                None => {
+                    // Lost the race: `node_id` is already linked to another
+                    // Intersection. Discard the just-inserted orphan row and
+                    // match onto the existing one instead.
+                    sqlx::query!("DELETE FROM intersections WHERE id = $1", inserted)
+                        .execute(&mut *tx)
+                        .await?;
+                    sqlx::query_scalar!(
+                        "SELECT intersection_id FROM intersection_osm_nodes WHERE osm_node_id = $1",
+                        node_id,
+                    )
+                    .fetch_one(&mut *tx)
+                    .await?
+                }
+            }
+        } else {
+            inserted
+        }
+    };
+
+    // `remix_id` is carried across via this SELECT (not a separate bind) --
+    // otherwise the tail corridor would be created with a NULL remix_id and
+    // silently vanish from `list_corridors_for_remix`.
+    let new_corridor_id = sqlx::query_scalar!(
+        "INSERT INTO corridors (remix_id, name, geometry_source) \
+         SELECT remix_id, name || ' (split)', geometry_source FROM corridors WHERE id = $1 \
+         RETURNING id",
+        corridor_id.as_i64(),
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+
+    // Reassign every tail cross-section after the split point to the new
+    // corridor, keeping their existing `position` values (unique per
+    // corridor, and the fresh corridor has no other rows yet, so no
+    // collision). The split point itself (`partition.tail[0]`) stays on the
+    // ORIGINAL corridor (head) as its new last cross-section -- only one row
+    // can carry that id in the database, and `partition_at_split_point`
+    // deliberately includes it in both `head` and `tail`. The tail's first
+    // cross-section is a freshly inserted row at the same coordinate, not a
+    // second reference to the same id.
+    for cs in partition.tail.iter().skip(1) {
+        sqlx::query!(
+            "UPDATE cross_sections SET corridor_id = $1 WHERE id = $2",
+            new_corridor_id,
+            cs.id.as_i64(),
+        )
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    let split_point = &partition.tail[0];
+    sqlx::query!(
+        "INSERT INTO cross_sections \
+         (corridor_id, position, lat, lon, osm_way_id, osm_node_id, intersection_id) \
+         VALUES ($1, 0, $2, $3, $4, $5, $6)",
+        new_corridor_id,
+        split_point.lat,
+        split_point.lon,
+        split_point.osm_way_id,
+        split_point.osm_node_id,
+        new_intersection_id,
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query!(
+        "UPDATE cross_sections SET intersection_id = $1 WHERE id = $2",
+        new_intersection_id,
+        split_point.id.as_i64(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query!(
+        "UPDATE corridors SET sequence_version = sequence_version + 1 WHERE id = $1",
+        corridor_id.as_i64(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+
+    Ok((
+        corridor_id,
+        CorridorId::from(new_corridor_id),
+        IntersectionId::from(new_intersection_id),
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2652,5 +2813,190 @@ mod tests {
         assert_eq!(corridors.len(), 2);
         assert!(corridors.contains(&corridor_a));
         assert!(corridors.contains(&corridor_b));
+    }
+
+    // --- Splitting ---
+    //
+    // NOTE: this task's brief called `insert_cross_section(&db.pool,
+    // corridor_id, Coordinate::new(lat, -73.600))` (3 args, returning a
+    // struct with a `.id` field). The real signature (see
+    // `insert_cross_section` above) takes an explicit 4th `position: i32`
+    // argument and returns `CrossSectionId` directly -- there is no
+    // auto-increment. These tests pass `position` explicitly (0, 1, 2, ...)
+    // in the order each point is inserted, and use the returned
+    // `CrossSectionId` directly instead of `.id`.
+
+    #[tokio::test]
+    async fn split_corridor_at_cross_section_creates_new_corridor_and_intersection() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Splittable Corridor")
+            .await
+            .unwrap();
+
+        // Four points ~111m apart, well beyond the split guard's minimum
+        // distance -- points at (45.500,45.501,45.502,45.503).
+        let mut cross_section_ids = Vec::new();
+        for (position, lat) in [45.500, 45.501, 45.502, 45.503].into_iter().enumerate() {
+            let cross_section_id = insert_cross_section(
+                &db.pool,
+                corridor_id,
+                Coordinate::new(lat, -73.600),
+                position as i32,
+            )
+            .await
+            .unwrap();
+            cross_section_ids.push(cross_section_id);
+        }
+
+        let (head_id, tail_id, new_intersection_id) = split_corridor_at_cross_section(
+            &db.pool,
+            corridor_id,
+            cross_section_ids[1],
+            0, // sequence_version starts at 0 (migration 023's default)
+        )
+        .await
+        .expect("split should succeed");
+
+        assert_eq!(head_id, corridor_id, "head keeps the original corridor id");
+        assert_ne!(tail_id, corridor_id, "tail is a new corridor");
+
+        let head_sections = get_corridor_cross_sections(&db.pool, head_id)
+            .await
+            .unwrap();
+        assert_eq!(head_sections.len(), 2);
+        assert_eq!(
+            head_sections.last().unwrap().intersection_id,
+            Some(new_intersection_id)
+        );
+
+        let tail_sections = get_corridor_cross_sections(&db.pool, tail_id)
+            .await
+            .unwrap();
+        assert_eq!(
+            tail_sections.len(),
+            3,
+            "tail includes the split point plus everything after it"
+        );
+        assert_eq!(
+            tail_sections.first().unwrap().intersection_id,
+            Some(new_intersection_id)
+        );
+    }
+
+    #[tokio::test]
+    async fn split_corridor_at_cross_section_preserves_lane_data_on_moved_cross_sections() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Splittable Corridor")
+            .await
+            .unwrap();
+
+        let mut cross_section_ids = Vec::new();
+        for (position, lat) in [45.500, 45.501, 45.502].into_iter().enumerate() {
+            let cross_section_id = insert_cross_section(
+                &db.pool,
+                corridor_id,
+                Coordinate::new(lat, -73.600),
+                position as i32,
+            )
+            .await
+            .unwrap();
+            cross_section_ids.push(cross_section_id);
+        }
+        // Attach a lane with an access rule to the cross-section that will
+        // move to the tail after splitting at index 1.
+        let drafts = vec![LaneDraft {
+            lane_type: LaneType::Travel,
+            width_meters: 3.0,
+            direction: LaneDirection::Forward,
+            access_rules: vec![TimedAccessRule {
+                time_window: None,
+                allowed_modes: vec![AccessMode::Car],
+            }],
+        }];
+        insert_lanes_for_cross_section(&db.pool, cross_section_ids[2], &drafts)
+            .await
+            .unwrap();
+
+        let (_, tail_id, _) =
+            split_corridor_at_cross_section(&db.pool, corridor_id, cross_section_ids[1], 0)
+                .await
+                .unwrap();
+
+        let tail_sections = get_corridor_cross_sections(&db.pool, tail_id)
+            .await
+            .unwrap();
+        let moved_cross_section = tail_sections
+            .iter()
+            .find(|cs| cs.id == cross_section_ids[2])
+            .expect("cross-section 2 should have moved to the tail corridor");
+        let lanes = get_lanes_for_cross_section(&db.pool, moved_cross_section.id)
+            .await
+            .unwrap();
+        assert_eq!(lanes.len(), 1);
+        assert_eq!(
+            lanes[0].access_rules[0].allowed_modes,
+            vec![AccessMode::Car]
+        );
+    }
+
+    #[tokio::test]
+    async fn split_corridor_at_cross_section_rejects_stale_sequence_version() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Splittable Corridor")
+            .await
+            .unwrap();
+        let mut cross_section_ids = Vec::new();
+        for (position, lat) in [45.500, 45.501, 45.502].into_iter().enumerate() {
+            let cross_section_id = insert_cross_section(
+                &db.pool,
+                corridor_id,
+                Coordinate::new(lat, -73.600),
+                position as i32,
+            )
+            .await
+            .unwrap();
+            cross_section_ids.push(cross_section_id);
+        }
+
+        let result =
+            split_corridor_at_cross_section(&db.pool, corridor_id, cross_section_ids[1], 999).await;
+
+        assert!(
+            result.is_err(),
+            "wrong expected_sequence_version should be rejected"
+        );
+    }
+
+    #[tokio::test]
+    async fn split_corridor_at_cross_section_rejects_split_at_endpoint() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Splittable Corridor")
+            .await
+            .unwrap();
+        let mut cross_section_ids = Vec::new();
+        for (position, lat) in [45.500, 45.501, 45.502].into_iter().enumerate() {
+            let cross_section_id = insert_cross_section(
+                &db.pool,
+                corridor_id,
+                Coordinate::new(lat, -73.600),
+                position as i32,
+            )
+            .await
+            .unwrap();
+            cross_section_ids.push(cross_section_id);
+        }
+
+        let result =
+            split_corridor_at_cross_section(&db.pool, corridor_id, cross_section_ids[0], 0).await;
+
+        assert!(result.is_err());
     }
 }

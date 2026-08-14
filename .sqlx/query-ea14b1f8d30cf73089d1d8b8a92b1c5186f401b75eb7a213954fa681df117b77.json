@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE corridors SET sequence_version = sequence_version + 1 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ea14b1f8d30cf73089d1d8b8a92b1c5186f401b75eb7a213954fa681df117b77"
+}

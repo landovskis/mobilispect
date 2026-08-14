@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO corridors (remix_id, name, geometry_source) SELECT remix_id, name || ' (split)', geometry_source FROM corridors WHERE id = $1 RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "22d2ac13edb20946d173872bf430a725604140f87c7418bb9cb19c1af761caad"
+}
