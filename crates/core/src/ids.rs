@@ -139,6 +139,7 @@ int_id!(CorridorId);
 int_id!(CrossSectionId);
 int_id!(RemixId);
 int_id!(LaneId);
+int_id!(IntersectionId);
 
 /// Convert from config `id: u32` to `FeedId`.
 impl From<u32> for FeedId {
@@ -291,6 +292,28 @@ mod tests {
     #[test]
     fn network_id_is_copy() {
         let a = NetworkId(3);
+        let b = a;
+        assert_eq!(a, b);
+    }
+
+    // --- IntersectionId (i64) ---
+
+    #[test]
+    fn intersection_id_from_i64_roundtrips() {
+        let id = IntersectionId::from(15i64);
+        assert_eq!(id.as_i64(), 15);
+        assert_eq!(id, 15i64);
+    }
+
+    #[test]
+    fn intersection_id_display() {
+        let id = IntersectionId(8);
+        assert_eq!(id.to_string(), "8");
+    }
+
+    #[test]
+    fn intersection_id_is_copy() {
+        let a = IntersectionId(4);
         let b = a;
         assert_eq!(a, b);
     }
