@@ -103,8 +103,10 @@ pub struct CrossSection {
     /// column, `DEFAULT 1`). Bumped on every successful `update_cross_section_label`
     /// call.
     pub version: i32,
-    /// Bus-stop platform type, editable from the lane editor's side panel
-    /// (migration 027's `cross_sections.bus_stop` column). `None` until an
-    /// analyst sets one.
-    pub bus_stop: Option<intersection::BusStop>,
+    /// `Some` only for a corridor's first/last cross-section (an "endpoint");
+    /// always `None` for an interior cross-section. Populated by
+    /// `repository::resolve_corridor_endpoints` (Task 8), not by this
+    /// column's own `ALTER TABLE` -- a freshly inserted cross-section starts
+    /// with no Intersection until that resolution step runs.
+    pub intersection_id: Option<crate::ids::IntersectionId>,
 }

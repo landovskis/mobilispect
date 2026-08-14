@@ -75,7 +75,7 @@ pub async fn get_corridor_cross_sections(
 ) -> Result<Vec<CrossSection>, anyhow::Error> {
     let rows = sqlx::query!(
         r#"SELECT id, corridor_id, position::float8 AS "position!", lat, lon,
-                  osm_way_id, osm_node_id, label, version, bus_stop
+                  osm_way_id, osm_node_id, label, version, intersection_id
            FROM cross_sections
            WHERE corridor_id = $1
            ORDER BY position"#,
@@ -84,10 +84,9 @@ pub async fn get_corridor_cross_sections(
     .fetch_all(pool)
     .await?;
 
-    let mut cross_sections = Vec::with_capacity(rows.len());
-    for row in rows {
-        let bus_stop = decode_bus_stop(row.bus_stop)?;
-        cross_sections.push(CrossSection {
+    Ok(rows
+        .into_iter()
+        .map(|row| CrossSection {
             id: CrossSectionId::from(row.id),
             corridor_id: CorridorId::from(row.corridor_id),
             position: row.position,
@@ -97,23 +96,9 @@ pub async fn get_corridor_cross_sections(
             osm_node_id: row.osm_node_id,
             label: row.label,
             version: row.version,
-            bus_stop,
-        });
-    }
-    Ok(cross_sections)
-}
-
-/// Shared by every function in this file that reads `cross_sections.bus_stop`
-/// -- decodes the raw `TEXT` column into the domain enum, or `None` when the
-/// column is `NULL` (no bus stop configured yet, the common case).
-fn decode_bus_stop(
-    raw: Option<String>,
-) -> Result<Option<crate::corridor_design::intersection::BusStop>, anyhow::Error> {
-    raw.map(|s| {
-        crate::corridor_design::intersection::BusStop::from_db_str(&s)
-            .ok_or_else(|| anyhow::anyhow!("unknown bus_stop value: {s}"))
-    })
-    .transpose()
+            intersection_id: row.intersection_id.map(crate::ids::IntersectionId::from),
+        })
+        .collect())
 }
 
 /// Creates a new corridor for a manual trace (REQ-002), scoped to `remix_id`,
@@ -671,7 +656,7 @@ pub async fn add_cross_section(
         osm_node_id: None,
         label: None,
         version: 1,
-        bus_stop: None,
+        intersection_id: None,
     })
 }
 
@@ -778,7 +763,7 @@ pub async fn update_cross_section_label(
            SET label = $1, version = version + 1
            WHERE id = $2 AND corridor_id = $3 AND version = $4
            RETURNING id, corridor_id, position::float8 AS "position!", lat, lon,
-                     osm_way_id, osm_node_id, label, version, bus_stop"#,
+                     osm_way_id, osm_node_id, label, version, intersection_id"#,
         new_label,
         cross_section_id.as_i64(),
         corridor_id.as_i64(),
@@ -797,7 +782,6 @@ pub async fn update_cross_section_label(
             "cross-section {cross_section_id} not found, not part of corridor {corridor_id}, or version conflict"
         )
     })?;
-    let bus_stop = decode_bus_stop(row.bus_stop)?;
 
     Ok(CrossSection {
         id: CrossSectionId::from(row.id),
@@ -809,136 +793,7 @@ pub async fn update_cross_section_label(
         osm_node_id: row.osm_node_id,
         label: row.label,
         version: row.version,
-        bus_stop,
-    })
-}
-
-/// Fetches an intersection treatment for `cross_section_id`. Returns an
-/// all-`None` value (not an error) when no row exists yet -- a cross-section
-/// with no bus gate or turn-conflict configured is the common case, not an
-/// exceptional one (see `intersection::IntersectionTreatment`'s doc comment).
-pub async fn get_intersection_treatment(
-    pool: &sqlx::PgPool,
-    cross_section_id: CrossSectionId,
-) -> Result<crate::corridor_design::intersection::IntersectionTreatment, anyhow::Error> {
-    use crate::corridor_design::intersection::{BusGate, IntersectionTreatment, TurnConflict};
-
-    let row = sqlx::query!(
-        "SELECT bus_gate, turn_conflict FROM intersection_treatments WHERE cross_section_id = $1",
-        cross_section_id.as_i64(),
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    let (bus_gate_str, turn_conflict_str) = match row {
-        Some(row) => (row.bus_gate, row.turn_conflict),
-        None => (None, None),
-    };
-
-    let bus_gate = bus_gate_str
-        .map(|s| {
-            BusGate::from_db_str(&s).ok_or_else(|| anyhow::anyhow!("unknown bus_gate value: {s}"))
-        })
-        .transpose()?;
-    let turn_conflict = turn_conflict_str
-        .map(|s| {
-            TurnConflict::from_db_str(&s)
-                .ok_or_else(|| anyhow::anyhow!("unknown turn_conflict value: {s}"))
-        })
-        .transpose()?;
-
-    Ok(IntersectionTreatment {
-        cross_section_id,
-        bus_gate,
-        turn_conflict,
-    })
-}
-
-/// Upserts `cross_section_id`'s intersection treatment. `bus_gate`/
-/// `turn_conflict = None` clears that field (not "leave unchanged") -- the
-/// whole row is replaced each call, matching this file's established
-/// `set_lane_access_rules` whole-record-replace precedent. Returns an error
-/// if `cross_section_id` does not reference an existing cross-section (the
-/// table's foreign key would otherwise surface this as an opaque constraint
-/// violation).
-pub async fn set_intersection_treatment(
-    pool: &sqlx::PgPool,
-    cross_section_id: CrossSectionId,
-    bus_gate: Option<crate::corridor_design::intersection::BusGate>,
-    turn_conflict: Option<crate::corridor_design::intersection::TurnConflict>,
-) -> Result<crate::corridor_design::intersection::IntersectionTreatment, anyhow::Error> {
-    let exists = sqlx::query_scalar!(
-        r#"SELECT EXISTS(SELECT 1 FROM cross_sections WHERE id = $1) AS "exists!""#,
-        cross_section_id.as_i64(),
-    )
-    .fetch_one(pool)
-    .await?;
-    if !exists {
-        anyhow::bail!("cross-section {cross_section_id} does not exist");
-    }
-
-    let bus_gate_str = bus_gate.map(|g| g.as_db_str());
-    let turn_conflict_str = turn_conflict.map(|c| c.as_db_str());
-
-    sqlx::query!(
-        r#"INSERT INTO intersection_treatments (cross_section_id, bus_gate, turn_conflict)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (cross_section_id) DO UPDATE
-           SET bus_gate = EXCLUDED.bus_gate, turn_conflict = EXCLUDED.turn_conflict"#,
-        cross_section_id.as_i64(),
-        bus_gate_str,
-        turn_conflict_str,
-    )
-    .execute(pool)
-    .await?;
-
-    Ok(
-        crate::corridor_design::intersection::IntersectionTreatment {
-            cross_section_id,
-            bus_gate,
-            turn_conflict,
-        },
-    )
-}
-
-/// Sets (or clears, with `None`) a cross-section's bus-stop platform type.
-/// Unlike `update_cross_section_label`, this has no optimistic-concurrency
-/// story -- `bus_stop` is edited from a single dedicated `<select>` with no
-/// same-tick concurrent-edit surface the way the label/lane fields have (see
-/// this plan's Architecture note). Returns an error if `cross_section_id`
-/// does not exist.
-pub async fn update_cross_section_bus_stop(
-    pool: &sqlx::PgPool,
-    cross_section_id: CrossSectionId,
-    bus_stop: Option<crate::corridor_design::intersection::BusStop>,
-) -> Result<CrossSection, anyhow::Error> {
-    let bus_stop_str = bus_stop.map(|b| b.as_db_str());
-    let row = sqlx::query!(
-        r#"UPDATE cross_sections
-           SET bus_stop = $1
-           WHERE id = $2
-           RETURNING id, corridor_id, position::float8 AS "position!", lat, lon,
-                     osm_way_id, osm_node_id, label, version, bus_stop"#,
-        bus_stop_str,
-        cross_section_id.as_i64(),
-    )
-    .fetch_optional(pool)
-    .await?;
-
-    let row = row.ok_or_else(|| anyhow::anyhow!("cross-section {cross_section_id} not found"))?;
-    let bus_stop = decode_bus_stop(row.bus_stop)?;
-
-    Ok(CrossSection {
-        id: CrossSectionId::from(row.id),
-        corridor_id: CorridorId::from(row.corridor_id),
-        position: row.position,
-        lat: row.lat,
-        lon: row.lon,
-        osm_way_id: row.osm_way_id,
-        osm_node_id: row.osm_node_id,
-        label: row.label,
-        version: row.version,
-        bus_stop,
+        intersection_id: row.intersection_id.map(crate::ids::IntersectionId::from),
     })
 }
 
@@ -2432,204 +2287,6 @@ mod tests {
                 .access_rules
                 .iter()
                 .any(|r| r.time_window.is_none())
-        );
-    }
-
-    // --- Intersection treatments (bus gate, turn conflict, bus stop) ---
-
-    use crate::corridor_design::intersection::{
-        BusGate, BusStop, IntersectionTreatment, TurnConflict,
-    };
-
-    /// Seeds a corridor with a single bare cross-section (no lanes), returning
-    /// its id. Mirrors `seed_bare_cross_section` used elsewhere in this test
-    /// module for the lane tests, scoped down to what the intersection tests
-    /// need: just one cross-section to attach a treatment / bus stop to.
-    async fn seed_cross_section_for_intersection_tests(pool: &sqlx::PgPool) -> CrossSectionId {
-        let remix_id = seed_remix(pool).await;
-        let corridor_id: i64 = sqlx::query_scalar(
-            "INSERT INTO corridors (name, geometry_source, remix_id) VALUES ($1, 'manual', $2) RETURNING id",
-        )
-        .bind("Intersection Test Corridor")
-        .bind(remix_id.as_i64())
-        .fetch_one(pool)
-        .await
-        .unwrap();
-        let cross_section_id: i64 = sqlx::query_scalar(
-            "INSERT INTO cross_sections (corridor_id, position, lat, lon) VALUES ($1, 0, 45.50, -73.60) RETURNING id",
-        )
-        .bind(corridor_id)
-        .fetch_one(pool)
-        .await
-        .unwrap();
-        CrossSectionId::from(cross_section_id)
-    }
-
-    #[tokio::test]
-    async fn get_intersection_treatment_returns_all_none_when_no_row_exists() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-        let cross_section_id = seed_cross_section_for_intersection_tests(&db.pool).await;
-
-        let treatment = get_intersection_treatment(&db.pool, cross_section_id)
-            .await
-            .expect("get_intersection_treatment should succeed even with no row yet");
-
-        assert_eq!(
-            treatment,
-            IntersectionTreatment {
-                cross_section_id,
-                bus_gate: None,
-                turn_conflict: None,
-            }
-        );
-    }
-
-    #[tokio::test]
-    async fn set_intersection_treatment_persists_both_fields() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-        let cross_section_id = seed_cross_section_for_intersection_tests(&db.pool).await;
-
-        let saved = set_intersection_treatment(
-            &db.pool,
-            cross_section_id,
-            Some(BusGate::SignalControlled),
-            Some(TurnConflict::RightInRightOut),
-        )
-        .await
-        .expect("set_intersection_treatment should succeed");
-
-        assert_eq!(saved.bus_gate, Some(BusGate::SignalControlled));
-        assert_eq!(saved.turn_conflict, Some(TurnConflict::RightInRightOut));
-
-        let reloaded = get_intersection_treatment(&db.pool, cross_section_id)
-            .await
-            .expect("get_intersection_treatment should succeed");
-        assert_eq!(reloaded, saved);
-    }
-
-    #[tokio::test]
-    async fn set_intersection_treatment_twice_overwrites_not_appends() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-        let cross_section_id = seed_cross_section_for_intersection_tests(&db.pool).await;
-
-        set_intersection_treatment(
-            &db.pool,
-            cross_section_id,
-            Some(BusGate::SignalControlled),
-            Some(TurnConflict::RightInRightOut),
-        )
-        .await
-        .unwrap();
-
-        // Second call clears turn_conflict and changes bus_gate -- an upsert,
-        // not an insert that would violate the table's PRIMARY KEY.
-        let saved = set_intersection_treatment(
-            &db.pool,
-            cross_section_id,
-            Some(BusGate::YieldControlled),
-            None,
-        )
-        .await
-        .expect(
-            "set_intersection_treatment should succeed on a second call for the same cross-section",
-        );
-
-        assert_eq!(saved.bus_gate, Some(BusGate::YieldControlled));
-        assert_eq!(saved.turn_conflict, None);
-
-        let row_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM intersection_treatments WHERE cross_section_id = $1",
-        )
-        .bind(cross_section_id.as_i64())
-        .fetch_one(&db.pool)
-        .await
-        .unwrap();
-        assert_eq!(
-            row_count, 1,
-            "the second call should overwrite the one row, not add a second"
-        );
-    }
-
-    #[tokio::test]
-    async fn set_intersection_treatment_for_nonexistent_cross_section_returns_err() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-
-        let result = set_intersection_treatment(
-            &db.pool,
-            CrossSectionId::from(999_999_i64),
-            Some(BusGate::SignalControlled),
-            None,
-        )
-        .await;
-
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn update_cross_section_bus_stop_persists_and_clears() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-        let cross_section_id = seed_cross_section_for_intersection_tests(&db.pool).await;
-
-        let updated =
-            update_cross_section_bus_stop(&db.pool, cross_section_id, Some(BusStop::BusBulb))
-                .await
-                .expect("update_cross_section_bus_stop should succeed");
-        assert_eq!(updated.bus_stop, Some(BusStop::BusBulb));
-
-        let cleared = update_cross_section_bus_stop(&db.pool, cross_section_id, None)
-            .await
-            .expect("update_cross_section_bus_stop should succeed clearing the value");
-        assert_eq!(cleared.bus_stop, None);
-    }
-
-    #[tokio::test]
-    async fn update_cross_section_bus_stop_for_nonexistent_cross_section_returns_err() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-
-        let result = update_cross_section_bus_stop(
-            &db.pool,
-            CrossSectionId::from(999_999_i64),
-            Some(BusStop::BusBulb),
-        )
-        .await;
-
-        assert!(result.is_err());
-    }
-
-    #[tokio::test]
-    async fn get_corridor_cross_sections_includes_bus_stop() {
-        let td = test_utils::setup().await;
-        let db = td.db;
-        let cross_section_id = seed_cross_section_for_intersection_tests(&db.pool).await;
-        update_cross_section_bus_stop(
-            &db.pool,
-            cross_section_id,
-            Some(BusStop::SignalProtectedPlatform),
-        )
-        .await
-        .unwrap();
-
-        let corridor_id: i64 =
-            sqlx::query_scalar("SELECT corridor_id FROM cross_sections WHERE id = $1")
-                .bind(cross_section_id.as_i64())
-                .fetch_one(&db.pool)
-                .await
-                .unwrap();
-
-        let cross_sections = get_corridor_cross_sections(&db.pool, CorridorId::from(corridor_id))
-            .await
-            .unwrap();
-
-        assert_eq!(cross_sections.len(), 1);
-        assert_eq!(
-            cross_sections[0].bus_stop,
-            Some(BusStop::SignalProtectedPlatform)
         );
     }
 }

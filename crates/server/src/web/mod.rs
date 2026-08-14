@@ -103,15 +103,6 @@ pub fn build_router(state: AppState) -> Router {
             "/api/lanes/:lane_id/access-rules",
             axum::routing::put(lane_editor_api::set_access_rules),
         )
-        .route(
-            "/api/cross-sections/:cross_section_id/intersection-treatment",
-            get(lane_editor_api::get_intersection_treatment)
-                .put(lane_editor_api::set_intersection_treatment),
-        )
-        .route(
-            "/api/cross-sections/:cross_section_id/bus-stop",
-            axum::routing::patch(lane_editor_api::update_bus_stop),
-        )
         .nest_service(
             "/builder",
             ServeDir::new("crates/corridor_builder_web/dist").not_found_service(ServeFile::new(
