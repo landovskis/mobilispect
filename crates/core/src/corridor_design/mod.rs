@@ -11,6 +11,7 @@ pub mod lanes;
 pub mod lanes_from_osm;
 pub mod position;
 pub mod repository;
+pub mod splitting;
 
 use crate::ids::{CorridorId, CrossSectionId};
 
