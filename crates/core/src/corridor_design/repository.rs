@@ -1007,6 +1007,53 @@ pub async fn corridors_at_intersection(
     Ok(ids.into_iter().map(CorridorId::from).collect())
 }
 
+/// Failure modes of [`split_corridor_at_cross_section`]. Kept distinct from a
+/// bare `anyhow::Error` so callers (`intersection_api::split_corridor`) can
+/// tell a client-fixable domain-validation failure (bad split point, stale
+/// `expected_sequence_version`, unknown corridor) apart from a genuine
+/// infrastructure failure (DB connection loss, etc.) -- the former should
+/// answer `400 Bad Request`, the latter `500 Internal Server Error`. Only
+/// `Database` can carry a raw underlying error; the other variants are
+/// deliberately opaque so a caller can produce a fixed, safe client-facing
+/// message without ever echoing internal error text.
+#[derive(Debug)]
+pub enum SplitCorridorError {
+    /// The split point itself is invalid -- see
+    /// `splitting::SplitError` for the specific reason (not found, already
+    /// an endpoint, too close to an endpoint).
+    Split(crate::corridor_design::splitting::SplitError),
+    /// `corridor_id` does not reference an existing corridor.
+    CorridorNotFound,
+    /// `expected_sequence_version` no longer matches `corridors.sequence_version`
+    /// -- another change landed on this corridor since the caller last read it.
+    StaleVersion { expected: i64, actual: i64 },
+    /// A genuine infrastructure failure (e.g. a `sqlx::Error` propagated via
+    /// `?`) rather than a domain-validation failure.
+    Database(anyhow::Error),
+}
+
+impl std::fmt::Display for SplitCorridorError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SplitCorridorError::Split(e) => write!(f, "{e}"),
+            SplitCorridorError::CorridorNotFound => write!(f, "corridor does not exist"),
+            SplitCorridorError::StaleVersion { expected, actual } => write!(
+                f,
+                "stale expected_sequence_version: expected {expected}, corridor is at {actual}"
+            ),
+            SplitCorridorError::Database(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl std::error::Error for SplitCorridorError {}
+
+impl From<sqlx::Error> for SplitCorridorError {
+    fn from(err: sqlx::Error) -> Self {
+        SplitCorridorError::Database(err.into())
+    }
+}
+
 /// Splits `corridor_id` at `cross_section_id` into two corridors meeting at a
 /// new shared `Intersection`. `expected_sequence_version` is an
 /// optimistic-concurrency check against `corridors.sequence_version`
@@ -1019,13 +1066,15 @@ pub async fn split_corridor_at_cross_section(
     corridor_id: CorridorId,
     cross_section_id: CrossSectionId,
     expected_sequence_version: i64,
-) -> Result<(CorridorId, CorridorId, IntersectionId), anyhow::Error> {
-    let cross_sections = get_corridor_cross_sections(pool, corridor_id).await?;
+) -> Result<(CorridorId, CorridorId, IntersectionId), SplitCorridorError> {
+    let cross_sections = get_corridor_cross_sections(pool, corridor_id)
+        .await
+        .map_err(SplitCorridorError::Database)?;
     let partition = crate::corridor_design::splitting::partition_at_split_point(
         &cross_sections,
         cross_section_id,
     )
-    .map_err(|e| anyhow::anyhow!("{e}"))?;
+    .map_err(SplitCorridorError::Split)?;
 
     let mut tx = pool.begin().await?;
 
@@ -1039,12 +1088,13 @@ pub async fn split_corridor_at_cross_section(
     .fetch_optional(&mut *tx)
     .await?;
     let Some(current_version) = current_version else {
-        anyhow::bail!("corridor {corridor_id} does not exist");
+        return Err(SplitCorridorError::CorridorNotFound);
     };
     if current_version != expected_sequence_version {
-        anyhow::bail!(
-            "stale expected_sequence_version: expected {expected_sequence_version}, corridor is at {current_version}"
-        );
+        return Err(SplitCorridorError::StaleVersion {
+            expected: expected_sequence_version,
+            actual: current_version,
+        });
     }
 
     // The new Intersection is never itself a dual-carriageway merge

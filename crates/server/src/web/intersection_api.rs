@@ -10,6 +10,8 @@ use mobilispect_core::corridor_design::intersection::{
     BusGate, BusStop, TurnConflict, TurnMovementSource,
 };
 use mobilispect_core::corridor_design::repository;
+use mobilispect_core::corridor_design::repository::SplitCorridorError;
+use mobilispect_core::corridor_design::splitting::SplitError;
 use mobilispect_core::ids::{CorridorId, CrossSectionId, IntersectionId, LaneId};
 
 use crate::web::AppState;
@@ -207,9 +209,37 @@ pub async fn split_corridor(
             req.expected_sequence_version,
         )
         .await
-        .map_err(|e| {
-            tracing::warn!(error = %e, "split_corridor");
-            bad_request(&e.to_string())
+        .map_err(|e| match e {
+            // Domain-validation failures: the client can fix these by
+            // retrying with a different split point or a fresh
+            // `expected_sequence_version`, so they're 400s. Each gets a
+            // fixed, client-safe message rather than echoing the
+            // underlying error's `Display` text.
+            SplitCorridorError::Split(split_err) => {
+                tracing::warn!(error = %split_err, "split_corridor: invalid split point");
+                bad_request(match split_err {
+                    SplitError::NotFound(_) => "cross-section not found in this corridor",
+                    SplitError::AlreadyEndpoint(_) => {
+                        "cross-section is already an endpoint; nothing to split"
+                    }
+                    SplitError::TooCloseToEndpoint(_) => {
+                        "cross-section is too close to an existing endpoint to split there"
+                    }
+                })
+            }
+            SplitCorridorError::CorridorNotFound => {
+                tracing::warn!("split_corridor: corridor not found");
+                bad_request("corridor not found")
+            }
+            SplitCorridorError::StaleVersion { expected, actual } => {
+                tracing::warn!(expected, actual, "split_corridor: stale sequence version");
+                bad_request("corridor has changed since you loaded it; reload and try again")
+            }
+            // Genuine infrastructure failure (e.g. a DB connection error) --
+            // not something the client can fix by changing its request, so
+            // this is a 500 with the codebase's standard generic message,
+            // logged at error level like every other `internal_error` path.
+            SplitCorridorError::Database(err) => internal_error("split_corridor", err),
         })?;
 
     Ok(Json(SplitCorridorResponse {
@@ -380,6 +410,89 @@ mod tests {
             Path((corridor_id.as_i64(), cs_id.as_i64())),
             Json(SplitCorridorRequest {
                 expected_sequence_version: 0,
+            }),
+        )
+        .await;
+
+        assert!(response.is_err());
+        assert_eq!(response.unwrap_err().0, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn split_corridor_too_close_to_endpoint_returns_400() {
+        let (state, _td) = test_state().await;
+        let remix_id = seed_remix(&state).await;
+        let corridor_id = repository::start_manual_corridor(
+            &state.db.pool,
+            mobilispect_core::ids::RemixId::from(remix_id),
+            "Corridor",
+        )
+        .await
+        .unwrap();
+        // Second point is ~1.1m from the first (well under
+        // `splitting::MIN_SPLIT_ENDPOINT_DISTANCE_METERS` = 3.0m), so
+        // splitting there should be rejected as `TooCloseToEndpoint` rather
+        // than accepted.
+        let mut cross_section_ids = Vec::new();
+        for (position, lat) in [45.500, 45.50001, 45.502, 45.503].into_iter().enumerate() {
+            let cs_id = repository::insert_cross_section(
+                &state.db.pool,
+                corridor_id,
+                Coordinate::new(lat, -73.600),
+                position as i32,
+            )
+            .await
+            .unwrap();
+            cross_section_ids.push(cs_id);
+        }
+
+        let response = split_corridor(
+            State(state),
+            Path((corridor_id.as_i64(), cross_section_ids[1].as_i64())),
+            Json(SplitCorridorRequest {
+                expected_sequence_version: 0,
+            }),
+        )
+        .await;
+
+        assert!(response.is_err());
+        assert_eq!(response.unwrap_err().0, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn split_corridor_with_stale_sequence_version_returns_400() {
+        let (state, _td) = test_state().await;
+        let remix_id = seed_remix(&state).await;
+        let corridor_id = repository::start_manual_corridor(
+            &state.db.pool,
+            mobilispect_core::ids::RemixId::from(remix_id),
+            "Corridor",
+        )
+        .await
+        .unwrap();
+        let mut cross_section_ids = Vec::new();
+        for (position, lat) in [45.500, 45.501, 45.502].into_iter().enumerate() {
+            let cs_id = repository::insert_cross_section(
+                &state.db.pool,
+                corridor_id,
+                Coordinate::new(lat, -73.600),
+                position as i32,
+            )
+            .await
+            .unwrap();
+            cross_section_ids.push(cs_id);
+        }
+
+        // Corridor's real `sequence_version` starts at 0 (migration 023's
+        // default); passing a stale-looking 999 should be rejected as a
+        // client-fixable 400, not a 500 -- this is the
+        // `SplitCorridorError::StaleVersion` path, distinct from a genuine
+        // infrastructure failure (`SplitCorridorError::Database`).
+        let response = split_corridor(
+            State(state),
+            Path((corridor_id.as_i64(), cross_section_ids[1].as_i64())),
+            Json(SplitCorridorRequest {
+                expected_sequence_version: 999,
             }),
         )
         .await;
