@@ -1140,12 +1140,21 @@ pub async fn split_corridor_at_cross_section(
     ))
 }
 
-/// Merges `absorbed` into `surviving`: re-points every cross-section and
-/// intersection_osm_nodes row from `absorbed` onto `surviving`, reconciles
-/// treatment fields (survivor's own non-null value always wins; a real
-/// conflict -- both sides non-null and different -- is recorded, not
-/// silently dropped or averaged), deletes the absorbed row, and returns the
-/// audit log entry.
+/// Merges `absorbed` into `surviving`: re-points every cross-section,
+/// turn_movement, and intersection_osm_nodes row from `absorbed` onto
+/// `surviving`, reconciles treatment fields (survivor's own non-null value
+/// always wins; a real conflict -- both sides non-null and different -- is
+/// recorded, not silently dropped or averaged), deletes the absorbed row,
+/// and returns the audit log entry.
+///
+/// `turn_movements.intersection_id` has `ON DELETE CASCADE` (migration 028),
+/// so this function MUST re-point any turn movements already attached to
+/// `absorbed` before it deletes that row -- otherwise they'd be silently
+/// destroyed by the cascade rather than merged onto `surviving`. Callers
+/// should therefore prefer running merges before turn-movement inference
+/// when both are part of the same import (as Task 8's import orchestration
+/// does), but this function is safe to call regardless of ordering: any
+/// turn movement already on `absorbed` survives the merge.
 pub async fn merge_intersections(
     pool: &sqlx::PgPool,
     surviving: IntersectionId,
@@ -1194,6 +1203,31 @@ pub async fn merge_intersections(
 
     sqlx::query!(
         "UPDATE cross_sections SET intersection_id = $1 WHERE intersection_id = $2",
+        surviving.as_i64(),
+        absorbed.as_i64(),
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    // Re-point turn movements from `absorbed` onto `surviving`, guarding
+    // against `turn_movements`' `UNIQUE (intersection_id, from_lane_id,
+    // to_lane_id)` constraint (migration 028): if `surviving` already has a
+    // row for the same `(from_lane_id, to_lane_id)` pair, the plain UPDATE
+    // below skips that absorbed-side row via the NOT EXISTS guard rather
+    // than hitting a unique-violation. Any row left un-repointed by the
+    // guard (a genuine collision) is then cleaned up by the `DELETE FROM
+    // intersections WHERE id = $absorbed` below, which cascades onto any
+    // remaining `turn_movements.intersection_id = absorbed` rows.
+    sqlx::query!(
+        r#"UPDATE turn_movements
+           SET intersection_id = $1
+           WHERE intersection_id = $2
+             AND NOT EXISTS (
+                 SELECT 1 FROM turn_movements t2
+                 WHERE t2.intersection_id = $1
+                   AND t2.from_lane_id = turn_movements.from_lane_id
+                   AND t2.to_lane_id = turn_movements.to_lane_id
+             )"#,
         surviving.as_i64(),
         absorbed.as_i64(),
     )
@@ -3196,6 +3230,122 @@ mod tests {
             survivor_details.bus_gate,
             Some(BusGate::SignalControlled),
             "survivor's own value wins on conflict, not the absorbed side's"
+        );
+    }
+
+    /// Regression test for the reviewer finding on Task 6:
+    /// `turn_movements.intersection_id` has `ON DELETE CASCADE` (migration
+    /// 028), so `merge_intersections` deleting the absorbed row without
+    /// first re-pointing `turn_movements` would silently destroy any turn
+    /// movements already attached to the absorbed intersection.
+    #[tokio::test]
+    async fn merge_intersections_repoints_turn_movements() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+
+        let survivor = create_or_match_intersection(&db.pool, 45.5000, -73.6000, Some(50))
+            .await
+            .unwrap();
+        let absorbed = create_or_match_intersection(&db.pool, 45.50005, -73.6000, Some(60))
+            .await
+            .unwrap();
+
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+        let lane_ids =
+            insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+                .await
+                .unwrap();
+        let from_lane_id = lane_ids[0];
+        let to_lane_id = lane_ids[1];
+
+        sqlx::query!(
+            "INSERT INTO turn_movements (intersection_id, from_lane_id, to_lane_id, source) \
+             VALUES ($1, $2, $3, 'inferred')",
+            absorbed.as_i64(),
+            from_lane_id.as_i64(),
+            to_lane_id.as_i64(),
+        )
+        .execute(&db.pool)
+        .await
+        .unwrap();
+
+        merge_intersections(&db.pool, survivor, absorbed)
+            .await
+            .expect("merge should succeed");
+
+        let remaining_intersection_id: i64 = sqlx::query_scalar!(
+            "SELECT intersection_id FROM turn_movements WHERE from_lane_id = $1 AND to_lane_id = $2",
+            from_lane_id.as_i64(),
+            to_lane_id.as_i64(),
+        )
+        .fetch_one(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            remaining_intersection_id,
+            survivor.as_i64(),
+            "turn movement should be re-pointed onto the surviving intersection, not lost to the CASCADE delete"
+        );
+    }
+
+    /// Same regression as above, but exercises the unique-constraint
+    /// collision path: both the surviving and absorbed intersection already
+    /// have a `turn_movements` row for the same `(from_lane_id,
+    /// to_lane_id)` pair. The absorbed-side duplicate must be dropped
+    /// (via the `ON DELETE CASCADE` once the guarded UPDATE skips it),
+    /// leaving exactly one row on the survivor -- not a unique-violation
+    /// error.
+    #[tokio::test]
+    async fn merge_intersections_drops_colliding_duplicate_turn_movement() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+
+        let survivor = create_or_match_intersection(&db.pool, 45.5000, -73.6000, Some(70))
+            .await
+            .unwrap();
+        let absorbed = create_or_match_intersection(&db.pool, 45.50005, -73.6000, Some(80))
+            .await
+            .unwrap();
+
+        let cross_section_id = seed_bare_cross_section(&db.pool, remix_id).await;
+        let lane_ids =
+            insert_lanes_for_cross_section(&db.pool, cross_section_id, &sample_lane_drafts())
+                .await
+                .unwrap();
+        let from_lane_id = lane_ids[0];
+        let to_lane_id = lane_ids[1];
+
+        for intersection_id in [survivor, absorbed] {
+            sqlx::query!(
+                "INSERT INTO turn_movements (intersection_id, from_lane_id, to_lane_id, source) \
+                 VALUES ($1, $2, $3, 'inferred')",
+                intersection_id.as_i64(),
+                from_lane_id.as_i64(),
+                to_lane_id.as_i64(),
+            )
+            .execute(&db.pool)
+            .await
+            .unwrap();
+        }
+
+        merge_intersections(&db.pool, survivor, absorbed)
+            .await
+            .expect("merge should succeed despite the colliding pair");
+
+        let rows: Vec<i64> = sqlx::query_scalar!(
+            "SELECT intersection_id FROM turn_movements WHERE from_lane_id = $1 AND to_lane_id = $2",
+            from_lane_id.as_i64(),
+            to_lane_id.as_i64(),
+        )
+        .fetch_all(&db.pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            rows,
+            vec![survivor.as_i64()],
+            "exactly one turn movement should remain, on the surviving intersection"
         );
     }
 }

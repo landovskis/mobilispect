@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT intersection_id FROM turn_movements WHERE from_lane_id = $1 AND to_lane_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "intersection_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9417e002c1b4505b31b58a6badb7eb544684fcb7c4cdc4c7234c40933bdc72ca"
+}

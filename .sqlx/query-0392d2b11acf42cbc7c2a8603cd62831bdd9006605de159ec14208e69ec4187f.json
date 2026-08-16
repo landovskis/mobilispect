@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE turn_movements\n           SET intersection_id = $1\n           WHERE intersection_id = $2\n             AND NOT EXISTS (\n                 SELECT 1 FROM turn_movements t2\n                 WHERE t2.intersection_id = $1\n                   AND t2.from_lane_id = turn_movements.from_lane_id\n                   AND t2.to_lane_id = turn_movements.to_lane_id\n             )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0392d2b11acf42cbc7c2a8603cd62831bdd9006605de159ec14208e69ec4187f"
+}
