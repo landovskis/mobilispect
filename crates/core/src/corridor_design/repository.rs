@@ -1364,6 +1364,200 @@ pub async fn delete_turn_movement(
     Ok(())
 }
 
+/// Orchestrates endpoint resolution for a freshly-imported corridor: creates
+/// or matches an `Intersection` for its first and last cross-section, runs
+/// the dual-carriageway merge heuristic for each against every other
+/// existing intersection, and infers turn movements for any intersection
+/// that now has more than one corridor. `tags_by_way_id` is the same map
+/// `import_corridor` already builds from the analyst's selected OSM ways.
+///
+/// This is the imperative shell tying together the pure functions in
+/// `splitting.rs` (not used here directly), `dual_carriageway.rs`, and
+/// `turn_inference.rs` with I/O -- see this design's "Import flow".
+pub async fn resolve_corridor_endpoints(
+    pool: &sqlx::PgPool,
+    corridor_id: CorridorId,
+    tags_by_way_id: &std::collections::HashMap<i64, std::collections::HashMap<String, String>>,
+) -> Result<(), anyhow::Error> {
+    let cross_sections = get_corridor_cross_sections(pool, corridor_id).await?;
+    let Some(first) = cross_sections.first() else {
+        return Ok(());
+    };
+    let last = cross_sections.last().unwrap();
+
+    let empty_tags = std::collections::HashMap::new();
+    let mut touched_intersections = Vec::new();
+
+    for endpoint in [first, last] {
+        let intersection_id =
+            create_or_match_intersection(pool, endpoint.lat, endpoint.lon, endpoint.osm_node_id)
+                .await?;
+        set_cross_section_intersection(pool, endpoint.id, intersection_id).await?;
+
+        let way_tags = endpoint
+            .osm_way_id
+            .and_then(|id| tags_by_way_id.get(&id))
+            .unwrap_or(&empty_tags);
+        let is_oneway = matches!(
+            way_tags.get("oneway").map(String::as_str),
+            Some("yes") | Some("-1")
+        );
+        let name = way_tags.get("name").cloned();
+        let reference = way_tags.get("ref").cloned();
+
+        touched_intersections.push((
+            intersection_id,
+            endpoint.lat,
+            endpoint.lon,
+            is_oneway,
+            name,
+            reference,
+        ));
+    }
+
+    for (candidate_id, lat, lon, is_oneway, name, reference) in touched_intersections {
+        let final_intersection_id = run_dual_carriageway_merge_pass(
+            pool,
+            candidate_id,
+            lat,
+            lon,
+            is_oneway,
+            name,
+            reference,
+        )
+        .await?;
+        infer_and_insert_turn_movements(pool, final_intersection_id, tags_by_way_id).await?;
+    }
+
+    Ok(())
+}
+
+/// Checks `candidate_id` against every other existing intersection for a
+/// dual-carriageway merge; if found, merges and returns the surviving id
+/// (which may be `candidate_id` itself, or the other intersection, depending
+/// on which has the lower id per `dual_carriageway::detect_dual_carriageway_merge`'s
+/// documented "lower id wins" tie-break). Returns `candidate_id` unchanged if
+/// no merge applies.
+async fn run_dual_carriageway_merge_pass(
+    pool: &sqlx::PgPool,
+    candidate_id: IntersectionId,
+    lat: f64,
+    lon: f64,
+    is_oneway: bool,
+    name: Option<String>,
+    reference: Option<String>,
+) -> Result<IntersectionId, anyhow::Error> {
+    use crate::corridor_design::dual_carriageway::{
+        IntersectionCandidate, detect_dual_carriageway_merge,
+    };
+
+    if !is_oneway {
+        return Ok(candidate_id);
+    }
+
+    let rows = sqlx::query!(
+        r#"SELECT i.id, i.lat, i.lon
+           FROM intersections i
+           WHERE i.id != $1
+           ORDER BY i.id ASC"#,
+        candidate_id.as_i64(),
+    )
+    .fetch_all(pool)
+    .await?;
+
+    // This candidate list treats every other existing intersection as
+    // `is_oneway: true` for the purpose of the distance/name check --
+    // `detect_dual_carriageway_merge` itself still requires the CALLER
+    // (`candidate`) to be oneway, and matches on name/ref regardless of the
+    // other side's own oneway-ness recorded at ITS creation time (not
+    // re-derived here). This mirrors the design's documented heuristic scope
+    // (oneway pair + matching name/ref) applied from the newly-arriving
+    // corridor's perspective. `others` is ordered by id ascending per
+    // `detect_dual_carriageway_merge`'s documented contract, so the
+    // lowest-id qualifying intersection always wins when multiple qualify.
+    let others: Vec<IntersectionCandidate> = rows
+        .into_iter()
+        .map(|row| IntersectionCandidate {
+            id: IntersectionId::from(row.id),
+            lat: row.lat,
+            lon: row.lon,
+            is_oneway: true,
+            name: name.clone(),
+            reference: reference.clone(),
+        })
+        .collect();
+
+    let candidate = IntersectionCandidate {
+        id: candidate_id,
+        lat,
+        lon,
+        is_oneway,
+        name,
+        reference,
+    };
+
+    let Some(merge_into) = detect_dual_carriageway_merge(&candidate, &others) else {
+        return Ok(candidate_id);
+    };
+
+    let (surviving, absorbed) = if merge_into.as_i64() < candidate_id.as_i64() {
+        (merge_into, candidate_id)
+    } else {
+        (candidate_id, merge_into)
+    };
+    merge_intersections(pool, surviving, absorbed).await?;
+    Ok(surviving)
+}
+
+/// Infers turn movements between every pair of distinct corridors currently
+/// sharing `intersection_id`, using each corridor's endpoint way's tags.
+async fn infer_and_insert_turn_movements(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+    tags_by_way_id: &std::collections::HashMap<i64, std::collections::HashMap<String, String>>,
+) -> Result<(), anyhow::Error> {
+    use crate::corridor_design::turn_inference::infer_turn_movements;
+
+    let corridors = corridors_at_intersection(pool, intersection_id).await?;
+    if corridors.len() < 2 {
+        return Ok(());
+    }
+
+    let empty_tags = std::collections::HashMap::new();
+    for i in 0..corridors.len() {
+        for j in 0..corridors.len() {
+            if i == j {
+                continue;
+            }
+            let from_cross_sections = get_corridor_cross_sections(pool, corridors[i]).await?;
+            let Some(from_endpoint) = from_cross_sections
+                .iter()
+                .find(|cs| cs.intersection_id == Some(intersection_id))
+            else {
+                continue;
+            };
+            let from_lanes = get_lanes_for_cross_section(pool, from_endpoint.id).await?;
+            let from_tags = from_endpoint
+                .osm_way_id
+                .and_then(|id| tags_by_way_id.get(&id))
+                .unwrap_or(&empty_tags);
+
+            let to_cross_sections = get_corridor_cross_sections(pool, corridors[j]).await?;
+            let Some(to_endpoint) = to_cross_sections
+                .iter()
+                .find(|cs| cs.intersection_id == Some(intersection_id))
+            else {
+                continue;
+            };
+            let to_lanes = get_lanes_for_cross_section(pool, to_endpoint.id).await?;
+
+            let pairs = infer_turn_movements(from_tags, &from_lanes, &to_lanes);
+            insert_inferred_turn_movements(pool, intersection_id, &pairs).await?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3580,5 +3774,152 @@ mod tests {
             .await
             .unwrap();
         assert!(movements.is_empty());
+    }
+
+    // --- Endpoint resolution orchestration ---
+
+    #[tokio::test]
+    async fn resolve_corridor_endpoints_links_both_endpoints_to_intersections() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let normalized = NormalizedCorridor {
+            cross_sections: vec![
+                CrossSectionPoint {
+                    position: 0,
+                    coordinate: Coordinate::new(45.500, -73.580),
+                    osm_way_id: Some(1),
+                    osm_node_id: Some(100),
+                },
+                CrossSectionPoint {
+                    position: 1,
+                    coordinate: Coordinate::new(45.501, -73.579),
+                    osm_way_id: Some(1),
+                    osm_node_id: Some(101),
+                },
+            ],
+        };
+        let corridor_id = insert_corridor(
+            &db.pool,
+            remix_id,
+            "Test",
+            "geojson_osm_export",
+            None,
+            &normalized,
+        )
+        .await
+        .unwrap();
+
+        resolve_corridor_endpoints(&db.pool, corridor_id, &std::collections::HashMap::new())
+            .await
+            .expect("resolve_corridor_endpoints should succeed");
+
+        let cross_sections = get_corridor_cross_sections(&db.pool, corridor_id)
+            .await
+            .unwrap();
+        assert!(cross_sections[0].intersection_id.is_some());
+        assert!(cross_sections[1].intersection_id.is_some());
+        assert_ne!(
+            cross_sections[0].intersection_id,
+            cross_sections[1].intersection_id
+        );
+    }
+
+    #[tokio::test]
+    async fn resolve_corridor_endpoints_merges_dual_carriageway_pair_and_infers_turns() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+
+        // Two oneway ways with matching name meeting a cross street at
+        // nearly the same point (5.5m apart, well under MERGE_DISTANCE_METERS).
+        let corridor_a = insert_corridor(
+            &db.pool,
+            remix_id,
+            "Main St Eastbound",
+            "geojson_osm_export",
+            None,
+            &NormalizedCorridor {
+                cross_sections: vec![
+                    CrossSectionPoint {
+                        position: 0,
+                        coordinate: Coordinate::new(45.50000, -73.580),
+                        osm_way_id: Some(1),
+                        osm_node_id: Some(200),
+                    },
+                    CrossSectionPoint {
+                        position: 1,
+                        coordinate: Coordinate::new(45.501, -73.579),
+                        osm_way_id: Some(1),
+                        osm_node_id: Some(201),
+                    },
+                ],
+            },
+        )
+        .await
+        .unwrap();
+        let mut tags_a = std::collections::HashMap::new();
+        tags_a.insert(1i64, {
+            let mut m = std::collections::HashMap::new();
+            m.insert("oneway".to_string(), "yes".to_string());
+            m.insert("name".to_string(), "Main St".to_string());
+            m
+        });
+        resolve_corridor_endpoints(&db.pool, corridor_a, &tags_a)
+            .await
+            .unwrap();
+
+        let corridor_b = insert_corridor(
+            &db.pool,
+            remix_id,
+            "Main St Westbound",
+            "geojson_osm_export",
+            None,
+            &NormalizedCorridor {
+                cross_sections: vec![
+                    CrossSectionPoint {
+                        position: 0,
+                        coordinate: Coordinate::new(45.50005, -73.580), // ~5.5m from way 1's start
+                        osm_way_id: Some(2),
+                        osm_node_id: Some(300),
+                    },
+                    CrossSectionPoint {
+                        position: 1,
+                        coordinate: Coordinate::new(45.502, -73.579),
+                        osm_way_id: Some(2),
+                        osm_node_id: Some(301),
+                    },
+                ],
+            },
+        )
+        .await
+        .unwrap();
+        let mut tags_b = std::collections::HashMap::new();
+        tags_b.insert(2i64, {
+            let mut m = std::collections::HashMap::new();
+            m.insert("oneway".to_string(), "yes".to_string());
+            m.insert("name".to_string(), "Main St".to_string());
+            m
+        });
+        resolve_corridor_endpoints(&db.pool, corridor_b, &tags_b)
+            .await
+            .unwrap();
+
+        let sections_a = get_corridor_cross_sections(&db.pool, corridor_a)
+            .await
+            .unwrap();
+        let sections_b = get_corridor_cross_sections(&db.pool, corridor_b)
+            .await
+            .unwrap();
+        assert_eq!(
+            sections_a[0].intersection_id, sections_b[0].intersection_id,
+            "the two corridors' near-coincident endpoints should have merged onto one Intersection"
+        );
+
+        let corridors_sharing_it =
+            corridors_at_intersection(&db.pool, sections_a[0].intersection_id.unwrap())
+                .await
+                .unwrap();
+        assert_eq!(corridors_sharing_it.len(), 2);
     }
 }
