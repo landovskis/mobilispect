@@ -67,6 +67,22 @@ CREATE TABLE intersection_merges (
 -- NOT run the dual-carriageway merge heuristic (Task 6) -- it only matches
 -- exact existing osm_node_id collisions; new imports going forward get the
 -- heuristic pass, existing data does not get retroactively re-evaluated.
+--
+-- DATA-PRESERVATION EXCEPTION: the loop also picks up any cross-section that
+-- carries #027 treatment data (an `intersection_treatments` row, or a
+-- non-null `bus_stop`) even when it is NOT a corridor endpoint. #027 imposed
+-- no endpoint restriction -- `intersection_treatments`' primary key is a bare
+-- `cross_section_id` FK and `PATCH /api/cross-sections/:id/bus-stop` was
+-- wired into the lane editor, which operates on ANY selected cross-section --
+-- so interior cross-sections can legitimately hold treatment data. Without
+-- this clause the carry-over UPDATEs below would only see the endpoint subset
+-- and the rest would be destroyed silently by this migration's DROPs. Such an
+-- interior cross-section therefore gets its own Intersection and a
+-- `cross_sections.intersection_id` link, deliberately breaking the "only
+-- endpoints carry intersection_id" convention this migration otherwise
+-- delegates to application code: losing an analyst's treatment data is worse
+-- than a one-time backfill leaving an interior link behind, and the analyst
+-- can see and clean up the extra Intersection in the editor.
 DO $$
 DECLARE
     r RECORD;
@@ -81,6 +97,12 @@ BEGIN
               )
            OR cs.position = (
                   SELECT MAX(c2.position) FROM cross_sections c2 WHERE c2.corridor_id = cs.corridor_id
+              )
+           OR cs.bus_stop IS NOT NULL
+           OR EXISTS (
+                  SELECT 1 FROM intersection_treatments it
+                  WHERE it.cross_section_id = cs.id
+                    AND (it.bus_gate IS NOT NULL OR it.turn_conflict IS NOT NULL)
               )
         ORDER BY cs.corridor_id, cs.position
     LOOP
@@ -107,17 +129,54 @@ BEGIN
 END $$;
 
 -- Move #027's per-cross-section treatment data onto the Intersection each
--- endpoint now references.
+-- cross-section now references. Thanks to the data-preservation exception in
+-- the backfill above, every cross-section that had treatment data has a
+-- non-null `intersection_id` by this point, so nothing is left behind when the
+-- DROPs below run.
+--
+-- TIE-BREAK: several cross-sections can resolve onto ONE Intersection (two
+-- corridors meeting at the same osm_node_id, or a dual carriageway's two
+-- endpoints), and each of them may carry its own, different #027 treatment
+-- values. `DISTINCT ON (cs.intersection_id) ... ORDER BY cs.intersection_id,
+-- cs.id` makes the winner the LOWEST `cross_sections.id` -- i.e. the
+-- oldest-created cross-section at that intersection -- rather than whatever
+-- order Postgres happened to produce rows in, which is what the previous plain
+-- correlated UPDATE relied on. Rows losing the tie-break are dropped; this is
+-- deliberately simpler than `merge_intersections`' `treatment_conflict`
+-- auditing, which is for ongoing merges rather than a one-time backfill.
 UPDATE intersections i
-SET bus_gate = it.bus_gate, turn_conflict = it.turn_conflict
-FROM intersection_treatments it
-JOIN cross_sections cs ON cs.id = it.cross_section_id
-WHERE i.id = cs.intersection_id;
+SET bus_gate = src.bus_gate, turn_conflict = src.turn_conflict
+FROM (
+    SELECT DISTINCT ON (cs.intersection_id)
+           cs.intersection_id, it.bus_gate, it.turn_conflict
+    FROM intersection_treatments it
+    JOIN cross_sections cs ON cs.id = it.cross_section_id
+    WHERE cs.intersection_id IS NOT NULL
+      AND (it.bus_gate IS NOT NULL OR it.turn_conflict IS NOT NULL)
+    ORDER BY cs.intersection_id, cs.id
+) src
+WHERE i.id = src.intersection_id;
 
 UPDATE intersections i
-SET bus_stop = cs.bus_stop
-FROM cross_sections cs
-WHERE i.id = cs.intersection_id AND cs.bus_stop IS NOT NULL;
+SET bus_stop = src.bus_stop
+FROM (
+    SELECT DISTINCT ON (cs.intersection_id) cs.intersection_id, cs.bus_stop
+    FROM cross_sections cs
+    WHERE cs.intersection_id IS NOT NULL AND cs.bus_stop IS NOT NULL
+    ORDER BY cs.intersection_id, cs.id
+) src
+WHERE i.id = src.intersection_id;
 
 DROP TABLE intersection_treatments;
 ALTER TABLE cross_sections DROP COLUMN bus_stop;
+
+-- Indexes on the new hot foreign keys. `cross_sections.intersection_id` is the
+-- filter column for `corridors_at_intersection`, `merge_intersections`'
+-- re-point UPDATE, and the per-row LATERAL join in
+-- `run_dual_carriageway_merge_pass`. `turn_movements.from_lane_id`/`to_lane_id`
+-- are `ON DELETE CASCADE` FKs, so without these every `DELETE FROM lanes`
+-- sequentially scans `turn_movements`. Naming follows migration 021's
+-- `idx_cross_sections_corridor` / 026's `idx_lanes_cross_section`.
+CREATE INDEX idx_cross_sections_intersection ON cross_sections (intersection_id);
+CREATE INDEX idx_turn_movements_from_lane ON turn_movements (from_lane_id);
+CREATE INDEX idx_turn_movements_to_lane ON turn_movements (to_lane_id);
