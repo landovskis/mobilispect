@@ -964,6 +964,34 @@ pub async fn set_cross_section_intersection(
     Ok(())
 }
 
+/// Persists the originating OSM way's `oneway`/`name`/`ref` tags onto a
+/// cross-section (migration 029). Called once per cross-section during OSM
+/// import, after cross-sections already exist -- mirroring
+/// `insert_lanes_for_cross_section`'s existing "insert cross-sections, then
+/// enrich each one from `tags_by_way_id`" pattern -- so that
+/// `run_dual_carriageway_merge_pass` can later read back each intersection's
+/// real street identity instead of only the newly-arriving corridor's.
+/// Manually-traced cross-sections (`insert_cross_section`) never call this,
+/// so their tag columns stay `NULL`.
+pub async fn set_cross_section_osm_way_tags(
+    pool: &sqlx::PgPool,
+    cross_section_id: CrossSectionId,
+    is_oneway: bool,
+    name: Option<&str>,
+    reference: Option<&str>,
+) -> Result<(), anyhow::Error> {
+    sqlx::query!(
+        "UPDATE cross_sections SET osm_way_oneway = $1, osm_way_name = $2, osm_way_ref = $3 WHERE id = $4",
+        is_oneway,
+        name,
+        reference,
+        cross_section_id.as_i64(),
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// Every distinct corridor with at least one cross-section referencing
 /// `intersection_id`.
 pub async fn corridors_at_intersection(
@@ -1364,6 +1392,17 @@ pub async fn delete_turn_movement(
     Ok(())
 }
 
+/// Whether an OSM way's `oneway` tag marks it as one-directional. Shared by
+/// `resolve_corridor_endpoints`'s endpoint tag derivation and the OSM-import
+/// handler's `set_cross_section_osm_way_tags` calls, so the two definitions
+/// of "oneway" can't drift apart.
+pub fn is_oneway_tag(way_tags: &std::collections::HashMap<String, String>) -> bool {
+    matches!(
+        way_tags.get("oneway").map(String::as_str),
+        Some("yes") | Some("-1")
+    )
+}
+
 /// Orchestrates endpoint resolution for a freshly-imported corridor: creates
 /// or matches an `Intersection` for its first and last cross-section, runs
 /// the dual-carriageway merge heuristic for each against every other
@@ -1385,10 +1424,23 @@ pub async fn resolve_corridor_endpoints(
     };
     let last = cross_sections.last().unwrap();
 
+    // A single-cross-section corridor (e.g. a manually-traced one with only
+    // one point so far) has `first.id == last.id` -- resolving it as an
+    // endpoint twice would call `create_or_match_intersection` twice (it has
+    // no way to know the second call is "the same" endpoint when
+    // `osm_node_id` is `None`, so it creates a second row), then the second
+    // `set_cross_section_intersection` call overwrites the first, orphaning
+    // the first Intersection row. Resolve each distinct cross-section once.
+    let endpoints: Vec<&CrossSection> = if first.id == last.id {
+        vec![first]
+    } else {
+        vec![first, last]
+    };
+
     let empty_tags = std::collections::HashMap::new();
     let mut touched_intersections = Vec::new();
 
-    for endpoint in [first, last] {
+    for endpoint in endpoints {
         let intersection_id =
             create_or_match_intersection(pool, endpoint.lat, endpoint.lon, endpoint.osm_node_id)
                 .await?;
@@ -1398,10 +1450,7 @@ pub async fn resolve_corridor_endpoints(
             .osm_way_id
             .and_then(|id| tags_by_way_id.get(&id))
             .unwrap_or(&empty_tags);
-        let is_oneway = matches!(
-            way_tags.get("oneway").map(String::as_str),
-            Some("yes") | Some("-1")
-        );
+        let is_oneway = is_oneway_tag(way_tags);
         let name = way_tags.get("name").cloned();
         let reference = way_tags.get("ref").cloned();
 
@@ -1455,9 +1504,29 @@ async fn run_dual_carriageway_merge_pass(
         return Ok(candidate_id);
     }
 
+    // Each other intersection's real street identity comes from ITS OWN
+    // linked cross-section(s)' persisted `osm_way_oneway`/`osm_way_name`/
+    // `osm_way_ref` columns (migration 029) -- never from `candidate`'s tags.
+    // An intersection can have multiple linked cross-sections (one per
+    // corridor meeting there); a `LEFT JOIN LATERAL` picks exactly one
+    // representative row per intersection, preferring a row with a non-null
+    // `osm_way_name` (falling back to the lowest cross-section id when none
+    // has one, e.g. a manually-traced endpoint) -- dual-carriageway partners
+    // are expected to agree on name/ref in practice, so which of several
+    // matching rows is picked doesn't change the result.
     let rows = sqlx::query!(
-        r#"SELECT i.id, i.lat, i.lon
+        r#"SELECT i.id, i.lat, i.lon,
+                  cs.osm_way_oneway AS "osm_way_oneway?",
+                  cs.osm_way_name AS "osm_way_name?",
+                  cs.osm_way_ref AS "osm_way_ref?"
            FROM intersections i
+           LEFT JOIN LATERAL (
+               SELECT osm_way_oneway, osm_way_name, osm_way_ref
+               FROM cross_sections cs2
+               WHERE cs2.intersection_id = i.id
+               ORDER BY (osm_way_name IS NOT NULL) DESC, cs2.id ASC
+               LIMIT 1
+           ) cs ON true
            WHERE i.id != $1
            ORDER BY i.id ASC"#,
         candidate_id.as_i64(),
@@ -1465,25 +1534,18 @@ async fn run_dual_carriageway_merge_pass(
     .fetch_all(pool)
     .await?;
 
-    // This candidate list treats every other existing intersection as
-    // `is_oneway: true` for the purpose of the distance/name check --
-    // `detect_dual_carriageway_merge` itself still requires the CALLER
-    // (`candidate`) to be oneway, and matches on name/ref regardless of the
-    // other side's own oneway-ness recorded at ITS creation time (not
-    // re-derived here). This mirrors the design's documented heuristic scope
-    // (oneway pair + matching name/ref) applied from the newly-arriving
-    // corridor's perspective. `others` is ordered by id ascending per
-    // `detect_dual_carriageway_merge`'s documented contract, so the
-    // lowest-id qualifying intersection always wins when multiple qualify.
+    // `others` is ordered by id ascending per `detect_dual_carriageway_merge`'s
+    // documented contract, so the lowest-id qualifying intersection always
+    // wins when multiple qualify.
     let others: Vec<IntersectionCandidate> = rows
         .into_iter()
         .map(|row| IntersectionCandidate {
             id: IntersectionId::from(row.id),
             lat: row.lat,
             lon: row.lon,
-            is_oneway: true,
-            name: name.clone(),
-            reference: reference.clone(),
+            is_oneway: row.osm_way_oneway.unwrap_or(false),
+            name: row.osm_way_name,
+            reference: row.osm_way_ref,
         })
         .collect();
 
@@ -3865,6 +3927,19 @@ mod tests {
             m.insert("name".to_string(), "Main St".to_string());
             m
         });
+        // In production `import_corridor` populates these via
+        // `set_cross_section_osm_way_tags` for every cross-section before
+        // `resolve_corridor_endpoints` runs -- do the same here so the merge
+        // pass has real persisted tags to read back for each side, not just
+        // the newly-resolving corridor's own in-memory `tags_a`/`tags_b`.
+        for cs in get_corridor_cross_sections(&db.pool, corridor_a)
+            .await
+            .unwrap()
+        {
+            set_cross_section_osm_way_tags(&db.pool, cs.id, true, Some("Main St"), None)
+                .await
+                .unwrap();
+        }
         resolve_corridor_endpoints(&db.pool, corridor_a, &tags_a)
             .await
             .unwrap();
@@ -3901,6 +3976,14 @@ mod tests {
             m.insert("name".to_string(), "Main St".to_string());
             m
         });
+        for cs in get_corridor_cross_sections(&db.pool, corridor_b)
+            .await
+            .unwrap()
+        {
+            set_cross_section_osm_way_tags(&db.pool, cs.id, true, Some("Main St"), None)
+                .await
+                .unwrap();
+        }
         resolve_corridor_endpoints(&db.pool, corridor_b, &tags_b)
             .await
             .unwrap();
@@ -3921,5 +4004,170 @@ mod tests {
                 .await
                 .unwrap();
         assert_eq!(corridors_sharing_it.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn resolve_corridor_endpoints_does_not_merge_oneway_pair_with_different_names() {
+        // Regression test for a bug where `run_dual_carriageway_merge_pass`
+        // cloned the CANDIDATE's own name/reference onto every "other"
+        // intersection row instead of reading that other intersection's real
+        // persisted name/reference -- making the name/ref check in
+        // `detect_dual_carriageway_merge` trivially true for any nearby
+        // oneway intersection, regardless of its actual street. Two
+        // close-together, both-oneway intersections with genuinely different
+        // street names must NOT merge.
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+
+        let corridor_a = insert_corridor(
+            &db.pool,
+            remix_id,
+            "Main St Eastbound",
+            "geojson_osm_export",
+            None,
+            &NormalizedCorridor {
+                cross_sections: vec![
+                    CrossSectionPoint {
+                        position: 0,
+                        coordinate: Coordinate::new(45.50000, -73.580),
+                        osm_way_id: Some(1),
+                        osm_node_id: Some(400),
+                    },
+                    CrossSectionPoint {
+                        position: 1,
+                        coordinate: Coordinate::new(45.501, -73.579),
+                        osm_way_id: Some(1),
+                        osm_node_id: Some(401),
+                    },
+                ],
+            },
+        )
+        .await
+        .unwrap();
+        let mut tags_a = std::collections::HashMap::new();
+        tags_a.insert(1i64, {
+            let mut m = std::collections::HashMap::new();
+            m.insert("oneway".to_string(), "yes".to_string());
+            m.insert("name".to_string(), "Main St".to_string());
+            m
+        });
+        for cs in get_corridor_cross_sections(&db.pool, corridor_a)
+            .await
+            .unwrap()
+        {
+            set_cross_section_osm_way_tags(&db.pool, cs.id, true, Some("Main St"), None)
+                .await
+                .unwrap();
+        }
+        resolve_corridor_endpoints(&db.pool, corridor_a, &tags_a)
+            .await
+            .unwrap();
+
+        // A second, unrelated oneway street (different name) whose endpoint
+        // happens to land ~5.5m from corridor_a's start -- well under
+        // MERGE_DISTANCE_METERS, but a different street, so it must not
+        // merge onto corridor_a's intersection.
+        let corridor_b = insert_corridor(
+            &db.pool,
+            remix_id,
+            "Elm St",
+            "geojson_osm_export",
+            None,
+            &NormalizedCorridor {
+                cross_sections: vec![
+                    CrossSectionPoint {
+                        position: 0,
+                        coordinate: Coordinate::new(45.50005, -73.580),
+                        osm_way_id: Some(2),
+                        osm_node_id: Some(500),
+                    },
+                    CrossSectionPoint {
+                        position: 1,
+                        coordinate: Coordinate::new(45.502, -73.579),
+                        osm_way_id: Some(2),
+                        osm_node_id: Some(501),
+                    },
+                ],
+            },
+        )
+        .await
+        .unwrap();
+        let mut tags_b = std::collections::HashMap::new();
+        tags_b.insert(2i64, {
+            let mut m = std::collections::HashMap::new();
+            m.insert("oneway".to_string(), "yes".to_string());
+            m.insert("name".to_string(), "Elm St".to_string());
+            m
+        });
+        for cs in get_corridor_cross_sections(&db.pool, corridor_b)
+            .await
+            .unwrap()
+        {
+            set_cross_section_osm_way_tags(&db.pool, cs.id, true, Some("Elm St"), None)
+                .await
+                .unwrap();
+        }
+        resolve_corridor_endpoints(&db.pool, corridor_b, &tags_b)
+            .await
+            .unwrap();
+
+        let sections_a = get_corridor_cross_sections(&db.pool, corridor_a)
+            .await
+            .unwrap();
+        let sections_b = get_corridor_cross_sections(&db.pool, corridor_b)
+            .await
+            .unwrap();
+        assert_ne!(
+            sections_a[0].intersection_id, sections_b[0].intersection_id,
+            "different street names must not merge, even when close and both oneway"
+        );
+    }
+
+    #[tokio::test]
+    async fn resolve_corridor_endpoints_on_single_cross_section_corridor_creates_one_intersection()
+    {
+        // Regression test for a bug where `for endpoint in [first, last]`
+        // resolved the same cross-section twice when a corridor has only one
+        // cross-section, creating two Intersection rows (one orphaned) and
+        // running the merge/inference pass twice for what is really one
+        // endpoint.
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+
+        let intersections_before: i64 =
+            sqlx::query_scalar!("SELECT COUNT(*) AS \"count!\" FROM intersections")
+                .fetch_one(&db.pool)
+                .await
+                .unwrap();
+
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Single Point Corridor")
+            .await
+            .unwrap();
+        insert_cross_section(&db.pool, corridor_id, Coordinate::new(45.50, -73.60), 0)
+            .await
+            .unwrap();
+
+        resolve_corridor_endpoints(&db.pool, corridor_id, &std::collections::HashMap::new())
+            .await
+            .expect("resolve_corridor_endpoints should succeed on a single-cross-section corridor");
+
+        let cross_sections = get_corridor_cross_sections(&db.pool, corridor_id)
+            .await
+            .unwrap();
+        assert_eq!(cross_sections.len(), 1);
+        assert!(cross_sections[0].intersection_id.is_some());
+
+        let intersections_after: i64 =
+            sqlx::query_scalar!("SELECT COUNT(*) AS \"count!\" FROM intersections")
+                .fetch_one(&db.pool)
+                .await
+                .unwrap();
+        assert_eq!(
+            intersections_after,
+            intersections_before + 1,
+            "exactly one new Intersection should be created, not two -- no orphan row left behind"
+        );
     }
 }

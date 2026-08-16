@@ -197,6 +197,16 @@ pub async fn import_corridor(
         repository::insert_lanes_for_cross_section(&state.db.pool, cross_section.id, &drafts)
             .await
             .map_err(|e| internal_error("import_corridor: insert_lanes_for_cross_section", e))?;
+
+        repository::set_cross_section_osm_way_tags(
+            &state.db.pool,
+            cross_section.id,
+            repository::is_oneway_tag(tags),
+            tags.get("name").map(String::as_str),
+            tags.get("ref").map(String::as_str),
+        )
+        .await
+        .map_err(|e| internal_error("import_corridor: set_cross_section_osm_way_tags", e))?;
     }
 
     repository::resolve_corridor_endpoints(&state.db.pool, corridor_id, &tags_by_way_id)
