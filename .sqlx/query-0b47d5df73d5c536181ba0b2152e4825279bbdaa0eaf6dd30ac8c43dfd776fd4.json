@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE cross_sections SET intersection_id = NULL WHERE corridor_id = $1 AND intersection_id IS NOT NULL AND id <> ALL($2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0b47d5df73d5c536181ba0b2152e4825279bbdaa0eaf6dd30ac8c43dfd776fd4"
+}

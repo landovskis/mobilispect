@@ -54,6 +54,13 @@ fn tags_match(a: &IntersectionCandidate, b: &IntersectionCandidate) -> bool {
 /// or `reference`. Deterministic on `others`' order -- callers should pass
 /// `others` sorted by id ascending so the lower-id intersection always wins
 /// as the survivor when multiple candidates qualify.
+///
+/// This function only knows about intersections, not the corridors that
+/// reference them, so it CANNOT tell that two candidates are the two ends of
+/// the same corridor -- a pair that must never merge, or that corridor collapses
+/// into a degenerate self-loop. Excluding same-corridor candidates from `others`
+/// is the caller's responsibility; `repository::run_dual_carriageway_merge_pass`
+/// does it in its candidate query.
 pub fn detect_dual_carriageway_merge(
     candidate: &IntersectionCandidate,
     others: &[IntersectionCandidate],
