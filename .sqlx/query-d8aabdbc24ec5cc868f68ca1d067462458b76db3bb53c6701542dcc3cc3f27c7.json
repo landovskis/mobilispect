@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO turn_movements (intersection_id, from_lane_id, to_lane_id, source)\n           VALUES ($1, $2, $3, $4)\n           ON CONFLICT (intersection_id, from_lane_id, to_lane_id) DO UPDATE SET source = EXCLUDED.source",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d8aabdbc24ec5cc868f68ca1d067462458b76db3bb53c6701542dcc3cc3f27c7"
+}

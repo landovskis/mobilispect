@@ -1274,6 +1274,96 @@ pub async fn merge_intersections(
     })
 }
 
+/// Fetches all turn movements recorded for `intersection_id`.
+pub async fn list_turn_movements(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+) -> Result<Vec<crate::corridor_design::intersection::TurnMovement>, anyhow::Error> {
+    use crate::corridor_design::intersection::{TurnMovement, TurnMovementSource};
+    let rows = sqlx::query!(
+        "SELECT from_lane_id, to_lane_id, source FROM turn_movements WHERE intersection_id = $1",
+        intersection_id.as_i64(),
+    )
+    .fetch_all(pool)
+    .await?;
+    rows.into_iter()
+        .map(|row| {
+            Ok(TurnMovement {
+                intersection_id,
+                from_lane_id: LaneId::from(row.from_lane_id),
+                to_lane_id: LaneId::from(row.to_lane_id),
+                source: TurnMovementSource::from_db_str(&row.source).ok_or_else(|| {
+                    anyhow::anyhow!("unknown turn_movement source: {}", row.source)
+                })?,
+            })
+        })
+        .collect()
+}
+
+/// Inserts or overwrites one turn movement. Used both for analyst-authored
+/// (`source = Manual`) and one-off inferred rows.
+pub async fn set_turn_movement(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+    from_lane_id: LaneId,
+    to_lane_id: LaneId,
+    source: crate::corridor_design::intersection::TurnMovementSource,
+) -> Result<(), anyhow::Error> {
+    sqlx::query!(
+        r#"INSERT INTO turn_movements (intersection_id, from_lane_id, to_lane_id, source)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (intersection_id, from_lane_id, to_lane_id) DO UPDATE SET source = EXCLUDED.source"#,
+        intersection_id.as_i64(),
+        from_lane_id.as_i64(),
+        to_lane_id.as_i64(),
+        source.as_db_str(),
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Bulk-inserts inference results with `source = 'inferred'`, skipping any
+/// pair that already has a row -- crucially, this means skipping (not
+/// overwriting) a pair already marked `Manual`, since `ON CONFLICT DO
+/// NOTHING` never touches an existing row regardless of its current source.
+pub async fn insert_inferred_turn_movements(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+    pairs: &[(LaneId, LaneId)],
+) -> Result<(), anyhow::Error> {
+    for (from_lane_id, to_lane_id) in pairs {
+        sqlx::query!(
+            r#"INSERT INTO turn_movements (intersection_id, from_lane_id, to_lane_id, source)
+               VALUES ($1, $2, $3, 'inferred')
+               ON CONFLICT (intersection_id, from_lane_id, to_lane_id) DO NOTHING"#,
+            intersection_id.as_i64(),
+            from_lane_id.as_i64(),
+            to_lane_id.as_i64(),
+        )
+        .execute(pool)
+        .await?;
+    }
+    Ok(())
+}
+
+pub async fn delete_turn_movement(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+    from_lane_id: LaneId,
+    to_lane_id: LaneId,
+) -> Result<(), anyhow::Error> {
+    sqlx::query!(
+        "DELETE FROM turn_movements WHERE intersection_id = $1 AND from_lane_id = $2 AND to_lane_id = $3",
+        intersection_id.as_i64(),
+        from_lane_id.as_i64(),
+        to_lane_id.as_i64(),
+    )
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3347,5 +3437,148 @@ mod tests {
             vec![survivor.as_i64()],
             "exactly one turn movement should remain, on the surviving intersection"
         );
+    }
+
+    // --- Turn movements ---
+
+    use crate::corridor_design::intersection::TurnMovementSource;
+
+    #[tokio::test]
+    async fn set_turn_movement_then_list_returns_it_with_manual_source() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let intersection_id = create_or_match_intersection(&db.pool, 45.50, -73.60, None)
+            .await
+            .unwrap();
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Corridor")
+            .await
+            .unwrap();
+        let cs_id = insert_cross_section(&db.pool, corridor_id, Coordinate::new(45.50, -73.60), 0)
+            .await
+            .unwrap();
+        let drafts = vec![LaneDraft {
+            lane_type: LaneType::Travel,
+            width_meters: 3.0,
+            direction: LaneDirection::Forward,
+            access_rules: vec![],
+        }];
+        insert_lanes_for_cross_section(&db.pool, cs_id, &drafts)
+            .await
+            .unwrap();
+        let lanes = get_lanes_for_cross_section(&db.pool, cs_id).await.unwrap();
+        let lane_id = lanes[0].id;
+
+        set_turn_movement(
+            &db.pool,
+            intersection_id,
+            lane_id,
+            lane_id,
+            TurnMovementSource::Manual,
+        )
+        .await
+        .expect("set_turn_movement should succeed");
+
+        let movements = list_turn_movements(&db.pool, intersection_id)
+            .await
+            .unwrap();
+        assert_eq!(movements.len(), 1);
+        assert_eq!(movements[0].source, TurnMovementSource::Manual);
+    }
+
+    #[tokio::test]
+    async fn insert_inferred_turn_movements_skips_pairs_already_marked_manual() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let intersection_id = create_or_match_intersection(&db.pool, 45.50, -73.60, None)
+            .await
+            .unwrap();
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Corridor")
+            .await
+            .unwrap();
+        let cs_id = insert_cross_section(&db.pool, corridor_id, Coordinate::new(45.50, -73.60), 0)
+            .await
+            .unwrap();
+        let drafts = vec![LaneDraft {
+            lane_type: LaneType::Travel,
+            width_meters: 3.0,
+            direction: LaneDirection::Forward,
+            access_rules: vec![],
+        }];
+        insert_lanes_for_cross_section(&db.pool, cs_id, &drafts)
+            .await
+            .unwrap();
+        let lanes = get_lanes_for_cross_section(&db.pool, cs_id).await.unwrap();
+        let lane_id = lanes[0].id;
+
+        set_turn_movement(
+            &db.pool,
+            intersection_id,
+            lane_id,
+            lane_id,
+            TurnMovementSource::Manual,
+        )
+        .await
+        .unwrap();
+
+        insert_inferred_turn_movements(&db.pool, intersection_id, &[(lane_id, lane_id)])
+            .await
+            .expect("insert_inferred_turn_movements should succeed");
+
+        let movements = list_turn_movements(&db.pool, intersection_id)
+            .await
+            .unwrap();
+        assert_eq!(
+            movements.len(),
+            1,
+            "the manual row must not be duplicated or overwritten"
+        );
+        assert_eq!(movements[0].source, TurnMovementSource::Manual);
+    }
+
+    #[tokio::test]
+    async fn delete_turn_movement_removes_it() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let intersection_id = create_or_match_intersection(&db.pool, 45.50, -73.60, None)
+            .await
+            .unwrap();
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Corridor")
+            .await
+            .unwrap();
+        let cs_id = insert_cross_section(&db.pool, corridor_id, Coordinate::new(45.50, -73.60), 0)
+            .await
+            .unwrap();
+        let drafts = vec![LaneDraft {
+            lane_type: LaneType::Travel,
+            width_meters: 3.0,
+            direction: LaneDirection::Forward,
+            access_rules: vec![],
+        }];
+        insert_lanes_for_cross_section(&db.pool, cs_id, &drafts)
+            .await
+            .unwrap();
+        let lanes = get_lanes_for_cross_section(&db.pool, cs_id).await.unwrap();
+        let lane_id = lanes[0].id;
+        set_turn_movement(
+            &db.pool,
+            intersection_id,
+            lane_id,
+            lane_id,
+            TurnMovementSource::Manual,
+        )
+        .await
+        .unwrap();
+
+        delete_turn_movement(&db.pool, intersection_id, lane_id, lane_id)
+            .await
+            .expect("delete_turn_movement should succeed");
+
+        let movements = list_turn_movements(&db.pool, intersection_id)
+            .await
+            .unwrap();
+        assert!(movements.is_empty());
     }
 }
