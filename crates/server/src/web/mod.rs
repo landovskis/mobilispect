@@ -14,6 +14,7 @@ use mobilispect_core::db::Database;
 
 mod corridor_api;
 mod handlers;
+mod intersection_api;
 mod lane_editor_api;
 pub mod middleware;
 mod osm_import;
@@ -102,6 +103,23 @@ pub fn build_router(state: AppState) -> Router {
         .route(
             "/api/lanes/:lane_id/access-rules",
             axum::routing::put(lane_editor_api::set_access_rules),
+        )
+        .route(
+            "/api/intersections/:id",
+            get(intersection_api::get_intersection)
+                .put(intersection_api::set_intersection_treatment),
+        )
+        .route(
+            "/api/intersections/:id/turn-movements",
+            get(intersection_api::list_turn_movements).post(intersection_api::set_turn_movement),
+        )
+        .route(
+            "/api/intersections/:id/turn-movements/:from_lane_id/:to_lane_id",
+            axum::routing::delete(intersection_api::delete_turn_movement),
+        )
+        .route(
+            "/api/corridors/:corridor_id/cross-sections/:cross_section_id/split",
+            post(intersection_api::split_corridor),
         )
         .nest_service(
             "/builder",
