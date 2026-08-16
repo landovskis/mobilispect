@@ -253,12 +253,26 @@ pub struct CrossSectionSummary {
     pub lat: f64,
     pub lon: f64,
     pub version: i32,
-    pub bus_stop: Option<String>,
+    /// `Some` only for a corridor's first/last cross-section (an
+    /// "endpoint") -- lets `IntersectionPage` resolve which `Intersection`
+    /// (if any) a given cross-section belongs to.
+    pub intersection_id: Option<i64>,
 }
 
 pub async fn list_cross_sections(corridor_id: i64) -> Result<Vec<CrossSectionSummary>, String> {
     send_and_decode(gloo_net::http::Request::get(&format!(
         "{API_BASE}/corridors/{corridor_id}/cross-sections"
+    )))
+    .await
+}
+
+/// `GET /api/cross-sections/:cross_section_id` — single-resource lookup,
+/// independent of the owning corridor. Used by `IntersectionPage`, which is
+/// reached via a route carrying only `cross_section_id`, to resolve the
+/// cross-section's `intersection_id`.
+pub async fn get_cross_section(cross_section_id: i64) -> Result<CrossSectionSummary, String> {
+    send_and_decode(gloo_net::http::Request::get(&format!(
+        "{API_BASE}/cross-sections/{cross_section_id}"
     )))
     .await
 }
@@ -403,34 +417,26 @@ pub async fn set_access_rules(
     send_and_decode(request).await
 }
 
-#[derive(Debug, Clone, Serialize)]
-struct UpdateBusStopRequest {
-    bus_stop: Option<String>,
-}
-
-pub async fn update_bus_stop(
-    cross_section_id: i64,
-    bus_stop: Option<String>,
-) -> Result<CrossSectionSummary, String> {
-    let request = gloo_net::http::Request::patch(&format!(
-        "{API_BASE}/cross-sections/{cross_section_id}/bus-stop"
-    ))
-    .json(&UpdateBusStopRequest { bus_stop })
-    .map_err(|e| e.to_string())?;
-    send_and_decode(request).await
-}
+// --- Intersections (see `crates/server/src/web/intersection_api.rs`) ---
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
-pub struct IntersectionTreatmentValue {
+pub struct IntersectionResponse {
+    pub id: i64,
+    #[allow(dead_code)]
+    pub lat: f64,
+    #[allow(dead_code)]
+    pub lon: f64,
+    #[allow(dead_code)]
+    pub osm_node_ids: Vec<i64>,
     pub bus_gate: Option<String>,
     pub turn_conflict: Option<String>,
+    pub bus_stop: Option<String>,
 }
 
-pub async fn get_intersection_treatment(
-    cross_section_id: i64,
-) -> Result<IntersectionTreatmentValue, String> {
+/// `GET /api/intersections/:id`
+pub async fn get_intersection(intersection_id: i64) -> Result<IntersectionResponse, String> {
     send_and_decode(gloo_net::http::Request::get(&format!(
-        "{API_BASE}/cross-sections/{cross_section_id}/intersection-treatment"
+        "{API_BASE}/intersections/{intersection_id}"
     )))
     .await
 }
@@ -439,19 +445,132 @@ pub async fn get_intersection_treatment(
 struct SetIntersectionTreatmentRequest {
     bus_gate: Option<String>,
     turn_conflict: Option<String>,
+    bus_stop: Option<String>,
 }
 
+/// `PUT /api/intersections/:id`
 pub async fn set_intersection_treatment(
-    cross_section_id: i64,
+    intersection_id: i64,
     bus_gate: Option<String>,
     turn_conflict: Option<String>,
-) -> Result<IntersectionTreatmentValue, String> {
-    let request = gloo_net::http::Request::put(&format!(
-        "{API_BASE}/cross-sections/{cross_section_id}/intersection-treatment"
+    bus_stop: Option<String>,
+) -> Result<IntersectionResponse, String> {
+    let request =
+        gloo_net::http::Request::put(&format!("{API_BASE}/intersections/{intersection_id}"))
+            .json(&SetIntersectionTreatmentRequest {
+                bus_gate,
+                turn_conflict,
+                bus_stop,
+            })
+            .map_err(|e| e.to_string())?;
+    send_and_decode(request).await
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct TurnMovementResponse {
+    pub from_lane_id: i64,
+    pub to_lane_id: i64,
+    pub source: String,
+}
+
+/// `GET /api/intersections/:id/turn-movements`
+pub async fn list_turn_movements(intersection_id: i64) -> Result<Vec<TurnMovementResponse>, String> {
+    send_and_decode(gloo_net::http::Request::get(&format!(
+        "{API_BASE}/intersections/{intersection_id}/turn-movements"
+    )))
+    .await
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct SetTurnMovementRequest {
+    from_lane_id: i64,
+    to_lane_id: i64,
+}
+
+/// `POST /api/intersections/:id/turn-movements` -- 204 No Content, no
+/// response body, so this doesn't go through `send_and_decode` (mirrors
+/// `delete_lane`'s manual `response.ok()` check above).
+pub async fn set_turn_movement(
+    intersection_id: i64,
+    from_lane_id: i64,
+    to_lane_id: i64,
+) -> Result<(), String> {
+    let response = gloo_net::http::Request::post(&format!(
+        "{API_BASE}/intersections/{intersection_id}/turn-movements"
     ))
-    .json(&SetIntersectionTreatmentRequest {
-        bus_gate,
-        turn_conflict,
+    .json(&SetTurnMovementRequest {
+        from_lane_id,
+        to_lane_id,
+    })
+    .map_err(|e| e.to_string())?
+    .send()
+    .await
+    .map_err(|e| e.to_string())?;
+    if response.ok() {
+        Ok(())
+    } else {
+        let body: serde_json::Value = response.json().await.unwrap_or_default();
+        Err(body["error"]
+            .as_str()
+            .unwrap_or("request failed")
+            .to_string())
+    }
+}
+
+/// `DELETE /api/intersections/:id/turn-movements/:from_lane_id/:to_lane_id`
+/// -- 204 No Content, no response body.
+pub async fn delete_turn_movement(
+    intersection_id: i64,
+    from_lane_id: i64,
+    to_lane_id: i64,
+) -> Result<(), String> {
+    let response = gloo_net::http::Request::delete(&format!(
+        "{API_BASE}/intersections/{intersection_id}/turn-movements/{from_lane_id}/{to_lane_id}"
+    ))
+    .send()
+    .await
+    .map_err(|e| e.to_string())?;
+    if response.ok() {
+        Ok(())
+    } else {
+        let body: serde_json::Value = response.json().await.unwrap_or_default();
+        Err(body["error"]
+            .as_str()
+            .unwrap_or("request failed")
+            .to_string())
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct SplitCorridorRequest {
+    expected_sequence_version: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct SplitCorridorResponse {
+    #[allow(dead_code)]
+    pub head_corridor_id: i64,
+    #[allow(dead_code)]
+    pub tail_corridor_id: i64,
+    #[allow(dead_code)]
+    pub new_intersection_id: i64,
+}
+
+/// `POST /api/corridors/:corridor_id/cross-sections/:cross_section_id/split`
+/// -- not called by this task's UI (no "Split here" button was in scope; see
+/// this plan's Task 10 brief), but wired here per the corrections file so a
+/// small follow-up UI task can call it directly.
+#[allow(dead_code)]
+pub async fn split_corridor(
+    corridor_id: i64,
+    cross_section_id: i64,
+    expected_sequence_version: i64,
+) -> Result<SplitCorridorResponse, String> {
+    let request = gloo_net::http::Request::post(&format!(
+        "{API_BASE}/corridors/{corridor_id}/cross-sections/{cross_section_id}/split"
+    ))
+    .json(&SplitCorridorRequest {
+        expected_sequence_version,
     })
     .map_err(|e| e.to_string())?;
     send_and_decode(request).await

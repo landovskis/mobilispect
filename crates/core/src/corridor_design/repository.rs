@@ -102,6 +102,39 @@ pub async fn get_corridor_cross_sections(
         .collect())
 }
 
+/// Fetches a single cross-section by id, regardless of which corridor it
+/// belongs to. Used by the WASM intersection editor to resolve a
+/// cross-section's `intersection_id` when it only has the cross-section id
+/// on hand (the `Route::Intersection` URL carries `cross_section_id`, not
+/// `corridor_id` or `intersection_id`).
+pub async fn get_cross_section(
+    pool: &sqlx::PgPool,
+    cross_section_id: CrossSectionId,
+) -> Result<Option<CrossSection>, anyhow::Error> {
+    let row = sqlx::query!(
+        r#"SELECT id, corridor_id, position::float8 AS "position!", lat, lon,
+                  osm_way_id, osm_node_id, label, version, intersection_id
+           FROM cross_sections
+           WHERE id = $1"#,
+        cross_section_id.as_i64(),
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    Ok(row.map(|row| CrossSection {
+        id: CrossSectionId::from(row.id),
+        corridor_id: CorridorId::from(row.corridor_id),
+        position: row.position,
+        lat: row.lat,
+        lon: row.lon,
+        osm_way_id: row.osm_way_id,
+        osm_node_id: row.osm_node_id,
+        label: row.label,
+        version: row.version,
+        intersection_id: row.intersection_id.map(crate::ids::IntersectionId::from),
+    }))
+}
+
 /// Creates a new corridor for a manual trace (REQ-002), scoped to `remix_id`,
 /// with `geometry_source = 'manual'` and no `import_format`/`osm_attribution`.
 /// Cross-sections are added one at a time afterward via `insert_cross_section`
@@ -4219,5 +4252,48 @@ mod tests {
             intersections_before + 1,
             "exactly one new Intersection should be created, not two -- no orphan row left behind"
         );
+    }
+
+    /// `get_cross_section` is the lookup the WASM intersection editor uses to
+    /// resolve `intersection_id` from a bare `cross_section_id` (its route
+    /// only carries the latter). It must return the cross-section's own
+    /// `intersection_id` once one has been assigned.
+    #[tokio::test]
+    async fn get_cross_section_returns_row_with_intersection_id() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+        let remix_id = seed_remix(&db.pool).await;
+        let corridor_id = start_manual_corridor(&db.pool, remix_id, "Corridor")
+            .await
+            .unwrap();
+        let cs_id = insert_cross_section(&db.pool, corridor_id, Coordinate::new(45.50, -73.60), 0)
+            .await
+            .unwrap();
+        let intersection_id = create_or_match_intersection(&db.pool, 45.50, -73.60, None)
+            .await
+            .unwrap();
+        set_cross_section_intersection(&db.pool, cs_id, intersection_id)
+            .await
+            .unwrap();
+
+        let fetched = get_cross_section(&db.pool, cs_id)
+            .await
+            .unwrap()
+            .expect("cross-section should be found");
+
+        assert_eq!(fetched.id, cs_id);
+        assert_eq!(fetched.intersection_id, Some(intersection_id));
+    }
+
+    #[tokio::test]
+    async fn get_cross_section_returns_none_for_unknown_id() {
+        let td = test_utils::setup().await;
+        let db = td.db;
+
+        let fetched = get_cross_section(&db.pool, CrossSectionId::from(999_999))
+            .await
+            .unwrap();
+
+        assert!(fetched.is_none());
     }
 }

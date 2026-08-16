@@ -93,6 +93,10 @@ pub fn build_router(state: AppState) -> Router {
             axum::routing::patch(lane_editor_api::update_label),
         )
         .route(
+            "/api/cross-sections/:cross_section_id",
+            get(lane_editor_api::get_cross_section),
+        )
+        .route(
             "/api/cross-sections/:cross_section_id/lanes",
             get(lane_editor_api::list_lanes).post(lane_editor_api::insert_lane),
         )

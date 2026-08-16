@@ -46,6 +46,13 @@ fn conflict(message: &str) -> ApiError {
     )
 }
 
+fn not_found(message: &str) -> ApiError {
+    (
+        StatusCode::NOT_FOUND,
+        Json(serde_json::json!({ "error": message })),
+    )
+}
+
 const MAX_LANE_WIDTH_METERS: f64 = 20.0;
 
 fn parse_lane_type(raw: &str) -> Result<LaneType, ApiError> {
@@ -73,6 +80,25 @@ pub struct CrossSectionResponse {
     pub lat: f64,
     pub lon: f64,
     pub version: i32,
+    /// `Some` only for a corridor's first/last cross-section (an
+    /// "endpoint") -- see `CrossSection::intersection_id`'s own doc comment.
+    /// Lets the WASM intersection editor resolve which `Intersection` (if
+    /// any) a given cross-section belongs to.
+    pub intersection_id: Option<i64>,
+}
+
+fn to_cross_section_response(
+    cs: mobilispect_core::corridor_design::CrossSection,
+) -> CrossSectionResponse {
+    CrossSectionResponse {
+        id: cs.id.as_i64(),
+        position: cs.position,
+        label: cs.label,
+        lat: cs.lat,
+        lon: cs.lon,
+        version: cs.version,
+        intersection_id: cs.intersection_id.map(|id| id.as_i64()),
+    }
 }
 
 /// `GET /api/corridors/:corridor_id/cross-sections` — for the corridor page's
@@ -89,16 +115,27 @@ pub async fn list_cross_sections(
     Ok(Json(
         cross_sections
             .into_iter()
-            .map(|cs| CrossSectionResponse {
-                id: cs.id.as_i64(),
-                position: cs.position,
-                label: cs.label,
-                lat: cs.lat,
-                lon: cs.lon,
-                version: cs.version,
-            })
+            .map(to_cross_section_response)
             .collect(),
     ))
+}
+
+/// `GET /api/cross-sections/:cross_section_id` — minimal single-resource
+/// lookup, independent of the owning corridor. Primarily for the WASM
+/// intersection editor, which reaches this page from a route that carries
+/// only `cross_section_id` (not `corridor_id`) and needs the
+/// cross-section's `intersection_id` to load the right `Intersection`.
+pub async fn get_cross_section(
+    State(state): State<AppState>,
+    Path(cross_section_id): Path<i64>,
+) -> Result<Json<CrossSectionResponse>, ApiError> {
+    let cross_section =
+        repository::get_cross_section(&state.db.pool, CrossSectionId::from(cross_section_id))
+            .await
+            .map_err(|e| internal_error("get_cross_section", e))?
+            .ok_or_else(|| not_found("cross-section not found"))?;
+
+    Ok(Json(to_cross_section_response(cross_section)))
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -141,14 +178,7 @@ pub async fn update_label(
         conflict("cross-section not found, not part of this corridor, or has been edited since you loaded it")
     })?;
 
-    Ok(Json(CrossSectionResponse {
-        id: updated.id.as_i64(),
-        position: updated.position,
-        label: updated.label,
-        lat: updated.lat,
-        lon: updated.lon,
-        version: updated.version,
-    }))
+    Ok(Json(to_cross_section_response(updated)))
 }
 
 // --- Lanes ---
@@ -450,6 +480,33 @@ mod tests {
         assert_eq!(response.0[0].id, cross_section_id);
         assert_eq!(response.0[0].label.as_deref(), Some("Main St @ 5th"));
         assert_eq!(response.0[0].version, 1);
+    }
+
+    #[tokio::test]
+    async fn get_cross_section_returns_seeded_cross_section() {
+        let (state, _td) = test_state().await;
+        let (_remix_id, _corridor_id, cross_section_id, _lane_id) =
+            seed_corridor_with_cross_section_and_lanes(&state).await;
+
+        let response = get_cross_section(State(state), Path(cross_section_id))
+            .await
+            .unwrap();
+
+        assert_eq!(response.0.id, cross_section_id);
+        assert_eq!(response.0.label.as_deref(), Some("Main St @ 5th"));
+        // Seeded via a raw INSERT that omits `intersection_id`, so this
+        // cross-section is not an endpoint of any intersection.
+        assert_eq!(response.0.intersection_id, None);
+    }
+
+    #[tokio::test]
+    async fn get_cross_section_with_unknown_id_returns_404() {
+        let (state, _td) = test_state().await;
+
+        let response = get_cross_section(State(state), Path(999_999)).await;
+
+        assert!(response.is_err());
+        assert_eq!(response.unwrap_err().0, StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
