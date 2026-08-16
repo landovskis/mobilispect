@@ -1411,6 +1411,31 @@ pub async fn list_turn_movements(
         .collect()
 }
 
+/// Whether both `from_lane_id` and `to_lane_id` sit on a cross-section whose
+/// `intersection_id` is `intersection_id`. The `turn_movements` foreign keys
+/// only guarantee the lanes *exist*, not that they belong to the
+/// intersection being edited -- this closes that gap for the manual
+/// turn-movement API (see `set_turn_movement` handler in
+/// `crates/server/src/web/intersection_api.rs`).
+pub async fn lanes_belong_to_intersection(
+    pool: &sqlx::PgPool,
+    intersection_id: IntersectionId,
+    from_lane_id: LaneId,
+    to_lane_id: LaneId,
+) -> Result<bool, anyhow::Error> {
+    let matching = sqlx::query_scalar!(
+        r#"SELECT COUNT(*) AS "count!"
+           FROM lanes l
+           JOIN cross_sections cs ON cs.id = l.cross_section_id
+           WHERE l.id = ANY($1) AND cs.intersection_id = $2"#,
+        &[from_lane_id.as_i64(), to_lane_id.as_i64()],
+        intersection_id.as_i64(),
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(matching == 2)
+}
+
 /// Inserts or overwrites one turn movement. Used both for analyst-authored
 /// (`source = Manual`) and one-off inferred rows.
 pub async fn set_turn_movement(

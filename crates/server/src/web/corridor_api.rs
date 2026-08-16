@@ -147,6 +147,20 @@ pub async fn finish_manual_corridor(
         .await
         .map_err(|e| internal_error("finish_manual_corridor: finalize_corridor", e))?;
 
+    // Manually-traced corridors never went through OSM import's endpoint
+    // resolution, so their endpoint cross-sections would otherwise be left
+    // with `intersection_id = NULL` forever. Resolve them here, the same way
+    // `import_corridor` does for OSM-imported corridors -- with an empty tag
+    // map, since a manual trace has no OSM way tags to derive endpoint names
+    // or oneway-ness from.
+    repository::resolve_corridor_endpoints(
+        &state.db.pool,
+        corridor_id,
+        &std::collections::HashMap::new(),
+    )
+    .await
+    .map_err(|e| internal_error("finish_manual_corridor: resolve_corridor_endpoints", e))?;
+
     Ok(Json(FinishManualCorridorResponse {
         id: corridor_id.as_i64(),
         cross_section_count: existing.len() as i64,
@@ -360,5 +374,61 @@ mod tests {
 
         assert_eq!(response.0.id, corridor_id.as_i64());
         assert_eq!(response.0.cross_section_count, 2);
+    }
+
+    /// Finding 1 (final-review fix): manually-traced corridors must get their
+    /// endpoint cross-sections resolved to `Intersection` rows on finish, the
+    /// same way `import_corridor` resolves them for OSM-imported corridors.
+    /// Without this, `cross_sections.intersection_id` stays NULL forever for
+    /// manual traces and the intersection editor becomes unreachable for them.
+    #[tokio::test]
+    async fn finish_manual_corridor_sets_intersection_id_on_endpoints() {
+        let (state, _td) = test_state().await;
+        let remix_id = seed_remix(&state).await;
+        let corridor_id = repository::start_manual_corridor(
+            &state.db.pool,
+            RemixId::from(remix_id),
+            "Test Corridor",
+        )
+        .await
+        .unwrap();
+
+        let _ = add_manual_point(
+            State(state.clone()),
+            Path(corridor_id.as_i64()),
+            Json(AddManualPointRequest {
+                lat: 45.5017,
+                lon: -73.5673,
+            }),
+        )
+        .await
+        .unwrap();
+        let _ = add_manual_point(
+            State(state.clone()),
+            Path(corridor_id.as_i64()),
+            Json(AddManualPointRequest {
+                lat: 45.5031,
+                lon: -73.5661,
+            }),
+        )
+        .await
+        .unwrap();
+
+        let _ = finish_manual_corridor(State(state.clone()), Path(corridor_id.as_i64()))
+            .await
+            .unwrap();
+
+        let cross_sections = repository::get_corridor_cross_sections(&state.db.pool, corridor_id)
+            .await
+            .unwrap();
+        assert_eq!(cross_sections.len(), 2);
+        assert!(
+            cross_sections.first().unwrap().intersection_id.is_some(),
+            "first cross-section should have an intersection_id after finish"
+        );
+        assert!(
+            cross_sections.last().unwrap().intersection_id.is_some(),
+            "last cross-section should have an intersection_id after finish"
+        );
     }
 }

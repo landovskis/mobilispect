@@ -155,11 +155,32 @@ pub async fn set_turn_movement(
     Path(id): Path<i64>,
     Json(req): Json<SetTurnMovementRequest>,
 ) -> Result<StatusCode, ApiError> {
+    let intersection_id = IntersectionId::from(id);
+    let from_lane_id = LaneId::from(req.from_lane_id);
+    let to_lane_id = LaneId::from(req.to_lane_id);
+
+    // The FK constraints on `turn_movements` only prove the lanes exist --
+    // not that they belong to a cross-section of *this* intersection. Reject
+    // cross-intersection mismatches before writing the row.
+    let lanes_belong = repository::lanes_belong_to_intersection(
+        &state.db.pool,
+        intersection_id,
+        from_lane_id,
+        to_lane_id,
+    )
+    .await
+    .map_err(|e| internal_error("set_turn_movement: lanes_belong_to_intersection", e))?;
+    if !lanes_belong {
+        return Err(bad_request(
+            "from_lane_id and to_lane_id must both belong to this intersection",
+        ));
+    }
+
     repository::set_turn_movement(
         &state.db.pool,
-        IntersectionId::from(id),
-        LaneId::from(req.from_lane_id),
-        LaneId::from(req.to_lane_id),
+        intersection_id,
+        from_lane_id,
+        to_lane_id,
         TurnMovementSource::Manual,
     )
     .await
@@ -499,5 +520,106 @@ mod tests {
 
         assert!(response.is_err());
         assert_eq!(response.unwrap_err().0, StatusCode::BAD_REQUEST);
+    }
+
+    /// Finding 3 (final-review fix): a lane belonging to a *different*
+    /// intersection's cross-section must be rejected as 400, not silently
+    /// accepted just because it passes the DB foreign-key check.
+    #[tokio::test]
+    async fn set_turn_movement_with_lane_from_different_intersection_returns_400() {
+        let (state, _td) = test_state().await;
+        let remix_id = seed_remix(&state).await;
+
+        // Intersection A: the intersection we're editing, with one lane.
+        let corridor_a = repository::start_manual_corridor(
+            &state.db.pool,
+            mobilispect_core::ids::RemixId::from(remix_id),
+            "Corridor A",
+        )
+        .await
+        .unwrap();
+        let cs_a = repository::insert_cross_section(
+            &state.db.pool,
+            corridor_a,
+            Coordinate::new(45.500, -73.600),
+            0,
+        )
+        .await
+        .unwrap();
+        let intersection_a =
+            repository::create_or_match_intersection(&state.db.pool, 45.500, -73.600, None)
+                .await
+                .unwrap();
+        repository::set_cross_section_intersection(&state.db.pool, cs_a, intersection_a)
+            .await
+            .unwrap();
+        let lane_drafts = sample_lane_drafts();
+        let lanes_a =
+            repository::insert_lanes_for_cross_section(&state.db.pool, cs_a, &lane_drafts)
+                .await
+                .unwrap();
+
+        // Intersection B: an unrelated intersection, with its own lane.
+        let corridor_b = repository::start_manual_corridor(
+            &state.db.pool,
+            mobilispect_core::ids::RemixId::from(remix_id),
+            "Corridor B",
+        )
+        .await
+        .unwrap();
+        let cs_b = repository::insert_cross_section(
+            &state.db.pool,
+            corridor_b,
+            Coordinate::new(45.510, -73.610),
+            0,
+        )
+        .await
+        .unwrap();
+        let intersection_b =
+            repository::create_or_match_intersection(&state.db.pool, 45.510, -73.610, None)
+                .await
+                .unwrap();
+        repository::set_cross_section_intersection(&state.db.pool, cs_b, intersection_b)
+            .await
+            .unwrap();
+        let lanes_b =
+            repository::insert_lanes_for_cross_section(&state.db.pool, cs_b, &lane_drafts)
+                .await
+                .unwrap();
+
+        // Try to record a turn movement on intersection A using a lane that
+        // actually belongs to intersection B's cross-section.
+        let response = set_turn_movement(
+            State(state),
+            Path(intersection_a.as_i64()),
+            Json(SetTurnMovementRequest {
+                from_lane_id: lanes_a[0].as_i64(),
+                to_lane_id: lanes_b[0].as_i64(),
+            }),
+        )
+        .await;
+
+        assert!(response.is_err());
+        assert_eq!(response.unwrap_err().0, StatusCode::BAD_REQUEST);
+    }
+
+    fn sample_lane_drafts() -> Vec<mobilispect_core::corridor_design::lanes::LaneDraft> {
+        use mobilispect_core::corridor_design::lanes::{
+            LaneDirection, LaneDraft, LaneType, default_access_rule_for,
+        };
+        vec![
+            LaneDraft {
+                lane_type: LaneType::Travel,
+                width_meters: 3.0,
+                direction: LaneDirection::Forward,
+                access_rules: vec![default_access_rule_for(LaneType::Travel)],
+            },
+            LaneDraft {
+                lane_type: LaneType::Travel,
+                width_meters: 3.0,
+                direction: LaneDirection::Backward,
+                access_rules: vec![default_access_rule_for(LaneType::Travel)],
+            },
+        ]
     }
 }
