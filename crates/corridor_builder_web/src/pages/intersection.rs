@@ -364,10 +364,9 @@ pub fn IntersectionPage(props: &IntersectionPageProps) -> Html {
             let Some(iid) = *intersection_id else {
                 return;
             };
-            let (Ok(from_lane_id), Ok(to_lane_id)) = (
-                from_lane_input.parse::<i64>(),
-                to_lane_input.parse::<i64>(),
-            ) else {
+            let (Ok(from_lane_id), Ok(to_lane_id)) =
+                (from_lane_input.parse::<i64>(), to_lane_input.parse::<i64>())
+            else {
                 turn_movement_error.set(Some(
                     "From lane ID and To lane ID must both be numbers".to_string(),
                 ));

@@ -105,7 +105,10 @@ mod tests {
     fn detects_merge_for_close_oneway_pair_with_matching_name() {
         let a = candidate(1, 45.5000, -73.6000, true, Some("Main St"));
         let b = candidate(2, 45.50005, -73.6000, true, Some("Main St")); // ~5.5m away
-        assert_eq!(detect_dual_carriageway_merge(&a, &[b.clone()]), Some(b.id));
+        assert_eq!(
+            detect_dual_carriageway_merge(&a, std::slice::from_ref(&b)),
+            Some(b.id)
+        );
     }
 
     #[test]
@@ -143,7 +146,10 @@ mod tests {
         a.reference = Some("Route 7".to_string());
         let mut b = candidate(2, 45.50005, -73.6000, true, None);
         b.reference = Some("Route 7".to_string());
-        assert_eq!(detect_dual_carriageway_merge(&a, &[b.clone()]), Some(b.id));
+        assert_eq!(
+            detect_dual_carriageway_merge(&a, std::slice::from_ref(&b)),
+            Some(b.id)
+        );
     }
 
     #[test]

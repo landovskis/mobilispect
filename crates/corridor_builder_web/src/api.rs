@@ -474,7 +474,9 @@ pub struct TurnMovementResponse {
 }
 
 /// `GET /api/intersections/:id/turn-movements`
-pub async fn list_turn_movements(intersection_id: i64) -> Result<Vec<TurnMovementResponse>, String> {
+pub async fn list_turn_movements(
+    intersection_id: i64,
+) -> Result<Vec<TurnMovementResponse>, String> {
     send_and_decode(gloo_net::http::Request::get(&format!(
         "{API_BASE}/intersections/{intersection_id}/turn-movements"
     )))
