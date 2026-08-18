@@ -28,6 +28,7 @@ impl Database {
 }
 
 pub mod feeds;
+pub mod regions;
 
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_utils {
