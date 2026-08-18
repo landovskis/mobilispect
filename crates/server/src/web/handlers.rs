@@ -673,6 +673,7 @@ mod e2e_tests {
             retention_days: 30,
             worker_health_bind_address: "0.0.0.0:9090".to_string(),
             transitland_api_key: None,
+            osm_cache_dir: "./osm-cache".to_string(),
         }
     }
 
