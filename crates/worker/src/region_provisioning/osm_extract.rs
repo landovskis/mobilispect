@@ -4,6 +4,8 @@
 
 use std::path::{Path, PathBuf};
 
+use tracing::info;
+
 use mobilispect_core::remix::BoundingBox;
 
 use super::provinces::Province;
@@ -86,6 +88,7 @@ pub async fn download_provincial_pbf(
         "https://download.geofabrik.de/north-america/canada/{}-latest.osm.pbf",
         province.geofabrik_slug
     );
+    info!(province = %province.name, "region_provisioning: downloading provincial OSM extract");
     let bytes = reqwest::get(&url).await?.error_for_status()?.bytes().await?;
     tokio::fs::write(&path, &bytes).await?;
     Ok(path)

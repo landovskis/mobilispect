@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE regions SET min_lat = $1, min_lon = $2, max_lat = $3, max_lon = $4 WHERE id = $5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "248d045954547dfd767984ec34555b5f2a22da66e37fed87618b58ee30fb1764"
+}
