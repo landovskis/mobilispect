@@ -36,9 +36,14 @@ FROM debian:bookworm-slim AS runtime
 # Install runtime dependencies:
 #   - ca-certificates: trust anchors for TLS (reqwest HTTPS calls to GTFS APIs)
 #   - libssl3: OpenSSL shared library required by the dynamically-linked binary
+#   - osmium-tool: `osmium extract`/`osmium merge` CLI, shelled out to by
+#     mobilispect-worker's region_provisioning module to clip/merge Geofabrik
+#     OSM PBF extracts down to a region's bounding box. Not needed by the
+#     builder stage -- only the running worker container invokes it.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     libssl3 \
+    osmium-tool \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only the compiled binary from the builder stage.
