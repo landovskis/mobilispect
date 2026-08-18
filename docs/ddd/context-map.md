@@ -28,3 +28,12 @@ The database schema for schedule data mirrors GTFS structure intentionally (rout
 ### Performance → Reporting: Customer/Supplier
 
 Reporting is the downstream consumer. Performance is the upstream supplier. Performance exposes query functions (in `metrics/`, `speed/`, `frequency/`) that Reporting calls. Reporting has no write access to Performance's tables.
+
+### Feed Ingestion → Corridor Design: Upstream/Downstream
+
+`region_provisioning` (Feed Ingestion, `crates/worker`) populates
+`regions.min_lat/min_lon/max_lat/max_lon` — a field Corridor Design owns
+(added by migration 025 for the Corridor Builder map). Feed Ingestion is
+upstream: it writes the field once per region as a background job. Corridor
+Design only ever reads it (to frame the region map); it has no write access
+to `region_provisioning`'s cached OSM extract files either.

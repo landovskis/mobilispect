@@ -108,6 +108,32 @@ Translations:
 
 ---
 
+## StatsCan / Geofabrik (Region OSM Data Caching)
+
+Translation happens in `crates/worker/src/region_provisioning/`. Unlike
+Transitland/Overpass above (shared by `crates/core`, called from both worker
+and server), nothing in `crates/server` needs this data yet, so it follows
+`feed_ingestion`'s precedent and lives in `crates/worker` as a batch/background
+job run once per region at worker startup, not `crates/core`.
+
+**Rule:** No `reqwest`/`shapefile`/`zip`/`dbase` calls related to StatsCan or
+Geofabrik may appear outside `crates/worker/src/region_provisioning/`.
+
+Translations:
+- StatsCan's raw shapefile+DBF records → `CmaCaRecord { name: String,
+  points_lambert: Vec<(f64, f64)> }` (`statcan.rs`) — only the `CMANAME` field
+  and raw Lambert-projection (EPSG:3347) point coordinates cross the
+  boundary; `CMAUID`, `CMATYPE`, `CMAPUID`, `PRUID` are read by nothing here.
+- Geofabrik's per-province `.osm.pbf` files never get parsed into any Rust
+  type at all — they're clipped/merged by shelling out to the `osmium` CLI
+  (`osm_extract.rs`) and only the resulting cached file path crosses into the
+  rest of the app.
+- The only domain type either translation produces is `BoundingBox` (already
+  existing, `mobilispect_core::remix::BoundingBox`) — reprojected to WGS84 and
+  written into `regions.min_lat/min_lon/max_lat/max_lon`.
+
+---
+
 ## Adding a New External Source
 
 If a future feature adds a new external data source (e.g., a cycling network feed):
