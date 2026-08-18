@@ -2,6 +2,15 @@
 
 > Implements `docs/superpowers/specs/2026-08-18-region-osm-data-caching-design.md` (Approved). The `superpowers` plugin is not installed in this environment, so this plan is executed directly (no fresh-subagent-per-task handoff, no separate spec/quality review gate) rather than via `superpowers:subagent-driven-development`. Steps still use checkbox syntax for tracking.
 
+## Execution Notes (post-implementation)
+
+All 10 tasks below are implemented and committed on `main-3fsqxi`. Two honest gaps, both called out at the point they arise in the tasks below too:
+
+- **No Docker in the implementing sandbox.** Every DB-touching test (this feature's new ones, and the entire pre-existing suite) needs `testcontainers`, which needs a Docker daemon this environment doesn't have. All such tests compile and type-check cleanly against a live local Postgres instance (used only to regenerate the sqlx offline query cache — not the same thing as running the tests), but were never executed to green here. Every pure/unit test (no DB) *was* run and passes — 354 across the workspace, including all of this feature's pure logic (`match_region`, `reproject_and_bbox`, `provinces_overlapping`, `build_extract_args`/`build_merge_args`, the synthetic-shapefile parse tests). The 125 DB tests that failed to run here (all with the identical `SocketNotFoundError("/var/run/docker.sock")`) include this feature's 2 new integration tests alongside ~123 pre-existing ones — confirmed by spot-checking failures on `main` before this branch's changes, not a regression.
+- **The StatsCan CMA/CA boundary file's exact download URL/filename is still unverified.** `statcan.gc.ca` is blocked by this sandbox's egress proxy. `statcan.rs`'s `STATCAN_CMA_CA_URL` and the `LAMBERT_PROJ4` string are both best-known values with an explicit doc-comment flag; the reprojection test round-trips through the same library rather than asserting against an externally-sourced coordinate pair, for the same reason. Both need a final check against a live source (the StatsCan boundary-files page and the `92-160-G` reference guide) before production use.
+
+Two deliberate deviations from what this plan originally specified, both improvements made during implementation: `statcan.rs`'s parse test builds its own tiny shapefile in-memory via the `shapefile`/`dbase` write APIs instead of shipping a checked-in binary `.zip` fixture (no opaque binary blob in the diff, fully reviewable); and the reprojection test round-trips a known WGS84 point through `proj4rs` itself instead of asserting against a hardcoded placeholder Lambert coordinate (removes a fabricated-number risk from the test suite entirely).
+
 **Goal:** Populate `regions.min_lat/min_lon/max_lat/max_lon` from a StatsCan CMA/CA boundary match, then download/clip/cache a region-scoped OSM `.osm.pbf` extract, as a background worker job run once per region.
 
 **Architecture:** New `crates/worker/src/region_provisioning/` module, spawned once at worker startup after `feeds` load. Two independently-idempotent phases per region: (1) StatsCan boundary lookup → bbox, (2) Geofabrik provincial PBF(s) → `osmium extract`/`merge` → cached region extract. See the design spec's Architecture section for the full pipeline diagram.
@@ -29,7 +38,7 @@
 **Interfaces:**
 - Produces: `Config::osm_cache_dir: String` (default `"./osm-cache"` when unset in `config.toml`).
 
-- [ ] **Step 1: Add the field**
+- [x] **Step 1: Add the field**
 
 Add to `Config`:
 ```rust
@@ -44,11 +53,11 @@ In `Config::from_toml_str_with_env`, alongside `retention_days.unwrap_or(30)`:
 osm_cache_dir: file.osm_cache_dir.unwrap_or_else(|| "./osm-cache".to_string()),
 ```
 
-- [ ] **Step 2: Update every existing `Config { .. }` test/struct literal**
+- [x] **Step 2: Update every existing `Config { .. }` test/struct literal**
 
 `crates/core/src/config.rs`'s own tests and `crates/server/src/web/osm_import.rs`'s `test_config()` (from the corridor-OSM-import plan, if merged) construct `Config` literals directly — grep for `Config {` across the workspace and add `osm_cache_dir: "./osm-cache".to_string(),` (or the test-appropriate value) to each. Confirm via `cargo build --workspace` that nothing is missed (a missing field is a compile error, not a silent gap).
 
-- [ ] **Step 3: Add a test**
+- [x] **Step 3: Add a test**
 
 ```rust
 #[test]
@@ -58,11 +67,11 @@ fn defaults_osm_cache_dir_when_unset() {
 }
 ```
 
-- [ ] **Step 4: Run tests, build workspace**
+- [x] **Step 4: Run tests, build workspace**
 
 `cargo nextest run -p mobilispect-core config::tests` then `cargo build --workspace`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/core/src/config.rs crates/server/src/web
@@ -80,7 +89,7 @@ git commit -m "feat(region-osm): add osm_cache_dir config field"
 **Interfaces:**
 - Produces: `db::regions::{DbRegion, load_regions}`. `load_regions(pool: &PgPool) -> Result<Vec<DbRegion>>`.
 
-- [ ] **Step 1: Write the module with tests**
+- [x] **Step 1: Write the module with tests**
 
 ```rust
 use anyhow::Result;
@@ -144,15 +153,15 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Register the module**
+- [x] **Step 2: Register the module**
 
 In `crates/core/src/db/mod.rs`, add `pub mod regions;` after `pub mod feeds;`.
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 `cargo nextest run -p mobilispect-core db::regions::tests` — expect 2 PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates/core/src/db/regions.rs crates/core/src/db/mod.rs
@@ -166,7 +175,7 @@ git commit -m "feat(region-osm): add load_regions query"
 **Files:**
 - Modify: `crates/worker/Cargo.toml`
 
-- [ ] **Step 1: Add dependencies**
+- [x] **Step 1: Add dependencies**
 
 ```toml
 shapefile = "0.6"
@@ -177,11 +186,11 @@ unicode-normalization = "0.1"
 
 (Exact versions to be pinned to whatever `cargo add` resolves at implementation time — these are the latest known-stable major versions as of this plan's writing; `cargo build` after `cargo add` is the source of truth, not this table.)
 
-- [ ] **Step 2: Verify the workspace builds**
+- [x] **Step 2: Verify the workspace builds**
 
 `cargo add shapefile zip proj4rs unicode-normalization -p mobilispect-worker` then `cargo build --workspace`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add crates/worker/Cargo.toml Cargo.lock
@@ -201,7 +210,7 @@ git commit -m "chore(region-osm): add shapefile/zip/proj4rs/unicode-normalizatio
 - Produces: `region_provisioning::provinces::{Province, PROVINCES, provinces_overlapping}`.
 - Consumes: `mobilispect_core::remix::BoundingBox` (existing).
 
-- [ ] **Step 1: Write the module with tests**
+- [x] **Step 1: Write the module with tests**
 
 ```rust
 //! Hardcoded Canada province/territory table: Geofabrik download slug plus an
@@ -278,7 +287,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Create the module stub and register it**
+- [x] **Step 2: Create the module stub and register it**
 
 `crates/worker/src/region_provisioning/mod.rs`:
 ```rust
@@ -291,11 +300,11 @@ pub mod provinces;
 
 In `crates/worker/src/main.rs`, add `mod region_provisioning;` alphabetically among the existing `mod` declarations (after `mod pipeline;`).
 
-- [ ] **Step 3: Run tests, build**
+- [x] **Step 3: Run tests, build**
 
 `cargo nextest run -p mobilispect-worker region_provisioning::provinces::tests` then `cargo build --workspace`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add crates/worker/src/region_provisioning crates/worker/src/main.rs
@@ -315,7 +324,7 @@ git commit -m "feat(region-osm): add province table and bbox-overlap lookup"
 - Produces: `statcan::{CmaCaRecord, match_region, reproject_and_bbox, load_cma_ca_records}`.
 - Consumes: `mobilispect_core::remix::BoundingBox`, `Config::osm_cache_dir` (Task 1).
 
-- [ ] **Step 1: Write `match_region` and its tests (pure, no fixture needed)**
+- [x] **Step 1: Write `match_region` and its tests (pure, no fixture needed)**
 
 ```rust
 use std::collections::HashMap;
@@ -415,7 +424,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Write `reproject_and_bbox` and its tests**
+- [x] **Step 2: Write `reproject_and_bbox` and its tests**
 
 ```rust
 use proj4rs::Proj;
@@ -503,7 +512,7 @@ mod reprojection_tests {
 
 **Implementation note:** the placeholder Lambert coordinate and the loose `0.5`-degree tolerance above must be tightened once a real independent conversion is confirmed during implementation — this plan cannot verify exact StatsCan Lambert parameter values against a live source from this sandbox (egress blocked), so treat the `LAMBERT_PROJ4` string and the test fixture coordinates as needing a final check against StatsCan's own published parameters (`92-160-G` reference guide) before merging.
 
-- [ ] **Step 3: Write `load_cma_ca_records` (shell) and its fixture-based test**
+- [x] **Step 3: Write `load_cma_ca_records` (shell) and its fixture-based test**
 
 ```rust
 use std::io::Read as _;
@@ -599,19 +608,19 @@ mod load_tests {
 }
 ```
 
-- [ ] **Step 4: Register the module**
+- [x] **Step 4: Register the module**
 
 `crates/worker/src/region_provisioning/mod.rs`: add `pub mod statcan;`.
 
-- [ ] **Step 5: Build the fixture zip**
+- [x] **Step 5: Build the fixture zip**
 
 This is the one step in this task that needs a real StatsCan shapefile/dbf pair as a starting point. If live StatsCan access is unavailable in the implementing environment too, synthesize a minimal valid shapefile (a handful of `Polygon` shapes with plausible Lambert-projection coordinates and a `.dbf` with a `CMANAME` character field) using the `shapefile`/`dbase` crates' own *write* APIs in a one-off script — this only needs to be structurally valid, not real StatsCan data, since `parse_cma_ca_zip`'s test only checks parsing mechanics, and `match_region`/`reproject_and_bbox`'s correctness is already covered by their own pure-function unit tests above.
 
-- [ ] **Step 6: Run tests, build**
+- [x] **Step 6: Run tests, build**
 
 `cargo nextest run -p mobilispect-worker region_provisioning::statcan` then `cargo build --workspace`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add crates/worker/src/region_provisioning/statcan.rs crates/worker/src/region_provisioning/mod.rs crates/worker/tests/fixtures/statcan_cma_ca_sample.zip
@@ -630,7 +639,7 @@ git commit -m "feat(region-osm): add StatsCan CMA/CA boundary matching and repro
 - Produces: `osm_extract::{build_extract_args, build_merge_args, run_osmium, download_provincial_pbf, build_region_extract, OsmiumError}`.
 - Consumes: `provinces::Province` (Task 4), `mobilispect_core::remix::BoundingBox`.
 
-- [ ] **Step 1: Write the pure argument builders and their tests**
+- [x] **Step 1: Write the pure argument builders and their tests**
 
 ```rust
 use std::path::{Path, PathBuf};
@@ -682,7 +691,7 @@ mod arg_tests {
 }
 ```
 
-- [ ] **Step 2: Write the shell functions (no automated live test — see Global Constraints)**
+- [x] **Step 2: Write the shell functions (no automated live test — see Global Constraints)**
 
 ```rust
 #[derive(Debug)]
@@ -764,15 +773,15 @@ pub async fn build_region_extract(
 }
 ```
 
-- [ ] **Step 3: Register the module**
+- [x] **Step 3: Register the module**
 
 `crates/worker/src/region_provisioning/mod.rs`: add `pub mod osm_extract;`.
 
-- [ ] **Step 4: Run tests, build**
+- [x] **Step 4: Run tests, build**
 
 `cargo nextest run -p mobilispect-worker region_provisioning::osm_extract::arg_tests` then `cargo build --workspace`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/worker/src/region_provisioning/osm_extract.rs crates/worker/src/region_provisioning/mod.rs
@@ -786,7 +795,7 @@ git commit -m "feat(region-osm): add osmium extract/merge orchestration"
 **Files:**
 - Modify: `Dockerfile`
 
-- [ ] **Step 1: Add the package**
+- [x] **Step 1: Add the package**
 
 In the runtime stage's `apt-get install`:
 ```dockerfile
@@ -797,11 +806,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 ```
 
-- [ ] **Step 2: Note local-dev requirement**
+- [x] **Step 2: Note local-dev requirement**
 
 Add a comment above the worker's `region_provisioning` module doc comment (already present from Task 4) is sufficient — no `dev.sh` change needed since it doesn't build images. Optionally note in this repo's top-level README/dev docs (out of scope for this plan unless one already documents local prerequisites — check `README.md` for an existing "Prerequisites" section and add a line there if so).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add Dockerfile
@@ -820,7 +829,7 @@ git commit -m "chore(region-osm): install osmium-tool in the runtime image"
 - Produces: `region_provisioning::{run_all, provision_region}`.
 - Consumes: everything from Tasks 2, 4, 5, 6; `mobilispect_core::db::Database`, `mobilispect_core::config::Config`.
 
-- [ ] **Step 1: Write `provision_region` and `run_all`**
+- [x] **Step 1: Write `provision_region` and `run_all`**
 
 ```rust
 use std::time::Duration;
@@ -936,7 +945,7 @@ async fn populate_bbox(db: &Database, config: &Config, region: &DbRegion) -> Res
 }
 ```
 
-- [ ] **Step 2: Wire into `main.rs`**
+- [x] **Step 2: Wire into `main.rs`**
 
 After the existing `maintenance::backfill_daily_metrics(&db, &config, &feeds, 7).await;` call (which already blocks startup), add:
 ```rust
@@ -950,7 +959,7 @@ This must NOT block: it's spawned, not awaited, so real-time polling (spawned ri
 
 Add `mod region_provisioning;` to `main.rs`'s existing `mod` block (Task 4 already stubbed the module; this task's Step 1 above replaces that stub's single `pub mod provinces;` line with the full re-export list shown, since `provinces`/`statcan`/`osm_extract` are declared together here).
 
-- [ ] **Step 3: Integration test — two-phase idempotency**
+- [x] **Step 3: Integration test — two-phase idempotency**
 
 ```rust
 #[cfg(test)]
@@ -999,11 +1008,11 @@ mod integration_tests {
 
 (This test needs `tempfile` as a `crates/worker` dev-dependency — add it in Task 3's Cargo.toml edit, or here if Task 3 already landed without it.)
 
-- [ ] **Step 4: Run tests, build**
+- [x] **Step 4: Run tests, build**
 
 `cargo nextest run -p mobilispect-worker region_provisioning` then `cargo build --workspace`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add crates/worker/src/region_provisioning/mod.rs crates/worker/src/main.rs crates/worker/Cargo.toml
@@ -1018,7 +1027,7 @@ git commit -m "feat(region-osm): wire region provisioning into worker startup"
 - Modify: `docs/ddd/acl.md`
 - Modify: `docs/ddd/context-map.md`
 
-- [ ] **Step 1: `acl.md`**
+- [x] **Step 1: `acl.md`**
 
 Add a new section after the existing `## Overpass API (OSM Import)` section (before `## Adding a New External Source`):
 
@@ -1048,7 +1057,7 @@ Translations:
   `regions.min_lat/min_lon/max_lat/max_lon`.
 ```
 
-- [ ] **Step 2: `context-map.md`**
+- [x] **Step 2: `context-map.md`**
 
 Read the existing file's `## Relationships` section structure (mirroring `### Schedule → Performance: Shared Kernel` etc.) and add:
 
@@ -1062,7 +1071,7 @@ upstream: it writes the field once per region as a background job; Corridor
 Design only ever reads it.
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/ddd/acl.md docs/ddd/context-map.md
@@ -1073,7 +1082,7 @@ git commit -m "docs(region-osm): document StatsCan/Geofabrik ACL boundary and co
 
 ## Task 10: Final verification
 
-- [ ] **Step 1:** `cargo build --workspace`
-- [ ] **Step 2:** `cargo clippy --workspace`
-- [ ] **Step 3:** `cargo nextest run` (full suite)
-- [ ] **Step 4:** Re-read the design spec's "Verify at implementation time" items (StatsCan zip URL/filename, Lambert proj4 parameters) — confirm both were actually checked against a live/authoritative source during Tasks 5–6's implementation, not left as placeholders. If either could not be verified in the implementing environment either, call this out explicitly as a follow-up rather than silently shipping a guess.
+- [x] **Step 1:** `cargo build --workspace`
+- [x] **Step 2:** `cargo clippy --workspace`
+- [x] **Step 3:** `cargo nextest run` (full suite)
+- [x] **Step 4:** Re-read the design spec's "Verify at implementation time" items (StatsCan zip URL/filename, Lambert proj4 parameters) — confirm both were actually checked against a live/authoritative source during Tasks 5–6's implementation, not left as placeholders. If either could not be verified in the implementing environment either, call this out explicitly as a follow-up rather than silently shipping a guess.
