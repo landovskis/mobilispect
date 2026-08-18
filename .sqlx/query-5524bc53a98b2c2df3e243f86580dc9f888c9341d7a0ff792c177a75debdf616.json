@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO turn_movements (intersection_id, from_lane_id, to_lane_id, source)\n               VALUES ($1, $2, $3, 'inferred')\n               ON CONFLICT (intersection_id, from_lane_id, to_lane_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5524bc53a98b2c2df3e243f86580dc9f888c9341d7a0ff792c177a75debdf616"
+}

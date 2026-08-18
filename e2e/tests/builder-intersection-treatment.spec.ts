@@ -2,7 +2,12 @@ import { test as base, expect } from '@playwright/test';
 import { ensureRegionHasBoundingBox, withDb } from './helpers/db';
 
 type Fixtures = {
-  seededCrossSection: { remixId: number; corridorId: number; crossSectionId: number };
+  seededCrossSection: {
+    remixId: number;
+    corridorId: number;
+    crossSectionId: number;
+    intersectionId: number;
+  };
 };
 
 const test = base.extend<Fixtures>({
@@ -11,6 +16,7 @@ const test = base.extend<Fixtures>({
     let remixId = 0;
     let corridorId = 0;
     let crossSectionId = 0;
+    let intersectionId = 0;
 
     await withDb(async (client) => {
       const remixResult = await client.query(
@@ -25,18 +31,38 @@ const test = base.extend<Fixtures>({
       );
       corridorId = corridorResult.rows[0].id;
 
+      // As of migration 028, treatment fields (bus_gate/turn_conflict/bus_stop)
+      // live on a real `intersections` row, not on the cross-section itself --
+      // a cross-section only carries a nullable `intersection_id` FK to it.
+      // The page under test resolves cross_section_id -> intersection_id via
+      // GET /api/cross-sections/:id before it will render the treatment form
+      // at all (see `LoadState::NotAnIntersection` in
+      // crates/corridor_builder_web/src/pages/intersection.rs), so a
+      // cross-section seeded WITHOUT an `intersection_id` renders the "not an
+      // intersection endpoint" alert instead of the form under test here.
+      const intersectionResult = await client.query(
+        `INSERT INTO intersections (lat, lon) VALUES (45.500, -73.600) RETURNING id`
+      );
+      intersectionId = intersectionResult.rows[0].id;
+
       const crossSectionResult = await client.query(
-        `INSERT INTO cross_sections (corridor_id, position, lat, lon) VALUES ($1, 0, 45.500, -73.600) RETURNING id`,
-        [corridorId]
+        `INSERT INTO cross_sections (corridor_id, position, lat, lon, intersection_id) VALUES ($1, 0, 45.500, -73.600, $2) RETURNING id`,
+        [corridorId, intersectionId]
       );
       crossSectionId = crossSectionResult.rows[0].id;
     });
 
-    await use({ remixId, corridorId, crossSectionId });
+    await use({ remixId, corridorId, crossSectionId, intersectionId });
 
     await withDb(async (client) => {
-      await client.query(`DELETE FROM intersection_treatments WHERE cross_section_id = $1`, [crossSectionId]);
+      // `turn_movements` and `intersection_osm_nodes` both
+      // `ON DELETE CASCADE` from `intersections`, so no separate delete is
+      // needed for them. `cross_sections.intersection_id` has no
+      // `ON DELETE CASCADE` (see migration 028's comment on that column), so
+      // the referencing cross-section must go before the intersection it
+      // points to, or the intersection DELETE below fails its FK check.
       await client.query(`DELETE FROM cross_sections WHERE corridor_id = $1`, [corridorId]);
+      await client.query(`DELETE FROM intersections WHERE id = $1`, [intersectionId]);
       await client.query(`DELETE FROM corridors WHERE id = $1`, [corridorId]);
       await client.query(`DELETE FROM remixes WHERE id = $1`, [remixId]);
     });
@@ -92,23 +118,32 @@ test.describe('Corridor Design: intersection treatment editor', () => {
     page,
     seededCrossSection,
   }) => {
-    const { remixId, crossSectionId } = seededCrossSection;
+    const { remixId, crossSectionId, intersectionId } = seededCrossSection;
     await page.goto(`/builder/remix/${remixId}/intersection/${crossSectionId}`);
 
     await expect(page.getByLabel('Bus gate')).toHaveValue('');
     await expect(page.getByLabel('Turn-conflict type')).toHaveValue('');
 
-    // Count completed PUTs to the intersection-treatment endpoint. Registered
-    // BEFORE the same-tick dispatch below so no response is missed, and
-    // polled (rather than `page.waitForResponse`'d twice) because two
-    // concurrent `waitForResponse` calls with the same predicate can both
-    // resolve off the SAME first matching response instead of each capturing
-    // a distinct one.
+    // Count completed PUTs to the intersection endpoint,
+    // `/api/intersections/:id` (Task 9's replacement for the old, dropped
+    // `/api/cross-sections/:id/intersection-treatment` route -- see
+    // `set_intersection_treatment` in
+    // crates/server/src/web/intersection_api.rs and
+    // `set_intersection_treatment` in
+    // crates/corridor_builder_web/src/api.rs). Matched by exact path (not a
+    // substring) so this doesn't also pick up PUTs the turn-movement or
+    // split-corridor endpoints under the same `/api/intersections/` prefix
+    // might fire. Registered BEFORE the same-tick dispatch below so no
+    // response is missed, and polled (rather than `page.waitForResponse`'d
+    // twice) because two concurrent `waitForResponse` calls with the same
+    // predicate can both resolve off the SAME first matching response
+    // instead of each capturing a distinct one.
     let putResponseCount = 0;
+    const intersectionPutPath = `/api/intersections/${intersectionId}`;
     page.on('response', (response) => {
       if (
         response.request().method() === 'PUT' &&
-        response.url().includes('/intersection-treatment')
+        new URL(response.url()).pathname === intersectionPutPath
       ) {
         putResponseCount += 1;
       }
@@ -117,12 +152,12 @@ test.describe('Corridor Design: intersection treatment editor', () => {
     // Fire both selects' native `change` events inside a SINGLE browser task
     // (mirroring `builder-lane-editor.spec.ts`'s "two access-rule edits fired
     // in the same tick both persist" test), so the two PUTs to
-    // /api/cross-sections/:id/intersection-treatment are queued before either
-    // response can come back. Driving this through two separate Playwright
-    // actions would leave enough time between them for the first PUT to
-    // complete first, which is exactly the case the sequential test above
-    // already covers -- it can't exercise the completion-order hazard the
-    // write queue in `pages/intersection.rs` exists to close.
+    // /api/intersections/:id are queued before either response can come
+    // back. Driving this through two separate Playwright actions would leave
+    // enough time between them for the first PUT to complete first, which is
+    // exactly the case the sequential test above already covers -- it can't
+    // exercise the completion-order hazard the write queue in
+    // `pages/intersection.rs` exists to close.
     await page.evaluate(() => {
       const busGate = document.getElementById('bus-gate') as HTMLSelectElement;
       const turnConflict = document.getElementById('turn-conflict') as HTMLSelectElement;

@@ -14,6 +14,8 @@ import { ensureRegionHasBoundingBox, withDb } from './helpers/db';
 
 let remixId: number;
 let corridorId: number;
+let startIntersectionId: number;
+let endIntersectionId: number;
 const CORRIDOR_START = { lat: 45.50, lon: -73.60 };
 const CORRIDOR_END = { lat: 45.52, lon: -73.58 };
 
@@ -39,9 +41,30 @@ test.beforeAll(async ({}, testInfo) => {
     );
     corridorId = corridorResult.rows[0].id;
 
+    // As of migration 028 an endpoint cross-section is only an "intersection"
+    // if it carries a real `intersections` FK -- `IntersectionPage` resolves
+    // cross_section_id -> intersection_id via GET /api/cross-sections/:id and
+    // renders its `LoadState::NotAnIntersection` alert instead of the
+    // treatment form when that column is NULL (see
+    // crates/corridor_builder_web/src/pages/intersection.rs). The
+    // intersection-click test below asserts on that form, so both endpoints
+    // get their own seeded Intersection here -- same fixture pattern as
+    // builder-intersection-treatment.spec.ts. The interior cross-section
+    // deliberately gets none, matching the endpoint-only invariant.
+    const startIntersection = await client.query(
+      `INSERT INTO intersections (lat, lon) VALUES ($1, $2) RETURNING id`,
+      [CORRIDOR_START.lat, CORRIDOR_START.lon]
+    );
+    startIntersectionId = startIntersection.rows[0].id;
+    const endIntersection = await client.query(
+      `INSERT INTO intersections (lat, lon) VALUES ($1, $2) RETURNING id`,
+      [CORRIDOR_END.lat, CORRIDOR_END.lon]
+    );
+    endIntersectionId = endIntersection.rows[0].id;
+
     await client.query(
-      `INSERT INTO cross_sections (corridor_id, position, lat, lon) VALUES
-         ($1, 0, $2, $3), ($1, 1, $4, $5), ($1, 2, $6, $7)`,
+      `INSERT INTO cross_sections (corridor_id, position, lat, lon, intersection_id) VALUES
+         ($1, 0, $2, $3, $8), ($1, 1, $4, $5, NULL), ($1, 2, $6, $7, $9)`,
       [
         corridorId,
         CORRIDOR_START.lat,
@@ -50,6 +73,8 @@ test.beforeAll(async ({}, testInfo) => {
         -73.59,
         CORRIDOR_END.lat,
         CORRIDOR_END.lon,
+        startIntersectionId,
+        endIntersectionId,
       ]
     );
   });
@@ -57,7 +82,15 @@ test.beforeAll(async ({}, testInfo) => {
 
 test.afterAll(async () => {
   await withDb(async (client) => {
+    // FK-ordered teardown: `cross_sections.intersection_id` has no
+    // `ON DELETE CASCADE` (see migration 028's comment on that column), so the
+    // referencing cross-sections must go before the intersections they point
+    // to. Deleting the corridor cascades its cross-sections away, so that
+    // DELETE has to come first too.
     await client.query(`DELETE FROM corridors WHERE id = $1`, [corridorId]);
+    await client.query(`DELETE FROM intersections WHERE id = ANY($1)`, [
+      [startIntersectionId, endIntersectionId],
+    ]);
     await client.query(`DELETE FROM remixes WHERE id = $1`, [remixId]);
   });
 });

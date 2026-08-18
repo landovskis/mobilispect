@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT COUNT(*) AS \"count!\"\n           FROM lanes l\n           JOIN cross_sections cs ON cs.id = l.cross_section_id\n           WHERE l.id = ANY($1) AND cs.intersection_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "80bc47ef70594bb386d245a818be8cdbac53d2d454d0036baadb3b039bb5218b"
+}

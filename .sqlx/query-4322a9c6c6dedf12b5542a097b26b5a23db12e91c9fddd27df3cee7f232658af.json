@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO intersection_osm_nodes (intersection_id, osm_node_id)\n                   VALUES ($1, $2)\n                   ON CONFLICT (osm_node_id) DO NOTHING\n                   RETURNING intersection_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "intersection_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4322a9c6c6dedf12b5542a097b26b5a23db12e91c9fddd27df3cee7f232658af"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH copied AS (\n               INSERT INTO lanes (cross_section_id, position, lane_type, width_meters, direction)\n               SELECT $1, position, lane_type, width_meters, direction\n               FROM lanes WHERE cross_section_id = $2\n               RETURNING id, position\n           )\n           INSERT INTO lane_access_rules (lane_id, days, start_time, end_time, allowed_modes)\n           SELECT copied.id, r.days, r.start_time, r.end_time, r.allowed_modes\n           FROM copied\n           JOIN lanes original\n             ON original.cross_section_id = $2 AND original.position = copied.position\n           JOIN lane_access_rules r ON r.lane_id = original.id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0520b9457b4089e1ad21edca47f8668c175ede7ac3941751a6d85d001216ed4f"
+}

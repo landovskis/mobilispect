@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, corridor_id, position::float8 AS \"position!\", lat, lon,\n                  osm_way_id, osm_node_id, label, version, bus_stop\n           FROM cross_sections\n           WHERE corridor_id = $1\n           ORDER BY position",
+  "query": "SELECT id, corridor_id, position::float8 AS \"position!\", lat, lon,\n                  osm_way_id, osm_node_id, label, version, intersection_id\n           FROM cross_sections\n           WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -50,8 +50,8 @@
       },
       {
         "ordinal": 9,
-        "name": "bus_stop",
-        "type_info": "Text"
+        "name": "intersection_id",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -72,5 +72,5 @@
       true
     ]
   },
-  "hash": "e488dcc401d8aa143d269bf935290e7ec2fa186fa8b310d3e68cba94350ad1bd"
+  "hash": "b2818d96a0637804bfc6fb89228bf33e2ada41109bd51779df1c4af81238fa4b"
 }

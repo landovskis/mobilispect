@@ -14,6 +14,7 @@ use mobilispect_core::db::Database;
 
 mod corridor_api;
 mod handlers;
+mod intersection_api;
 mod lane_editor_api;
 pub mod middleware;
 mod osm_import;
@@ -92,6 +93,10 @@ pub fn build_router(state: AppState) -> Router {
             axum::routing::patch(lane_editor_api::update_label),
         )
         .route(
+            "/api/cross-sections/:cross_section_id",
+            get(lane_editor_api::get_cross_section),
+        )
+        .route(
             "/api/cross-sections/:cross_section_id/lanes",
             get(lane_editor_api::list_lanes).post(lane_editor_api::insert_lane),
         )
@@ -104,13 +109,21 @@ pub fn build_router(state: AppState) -> Router {
             axum::routing::put(lane_editor_api::set_access_rules),
         )
         .route(
-            "/api/cross-sections/:cross_section_id/intersection-treatment",
-            get(lane_editor_api::get_intersection_treatment)
-                .put(lane_editor_api::set_intersection_treatment),
+            "/api/intersections/:id",
+            get(intersection_api::get_intersection)
+                .put(intersection_api::set_intersection_treatment),
         )
         .route(
-            "/api/cross-sections/:cross_section_id/bus-stop",
-            axum::routing::patch(lane_editor_api::update_bus_stop),
+            "/api/intersections/:id/turn-movements",
+            get(intersection_api::list_turn_movements).post(intersection_api::set_turn_movement),
+        )
+        .route(
+            "/api/intersections/:id/turn-movements/:from_lane_id/:to_lane_id",
+            axum::routing::delete(intersection_api::delete_turn_movement),
+        )
+        .route(
+            "/api/corridors/:corridor_id/cross-sections/:cross_section_id/split",
+            post(intersection_api::split_corridor),
         )
         .nest_service(
             "/builder",

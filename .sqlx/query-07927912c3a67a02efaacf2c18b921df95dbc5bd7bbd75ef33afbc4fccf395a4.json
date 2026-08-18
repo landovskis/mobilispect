@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT bus_gate, turn_conflict FROM intersection_treatments WHERE cross_section_id = $1",
+  "query": "SELECT bus_gate, turn_conflict, bus_stop FROM intersections WHERE id = $1 FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,11 @@
         "ordinal": 1,
         "name": "turn_conflict",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "bus_stop",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -21,8 +26,9 @@
     },
     "nullable": [
       true,
+      true,
       true
     ]
   },
-  "hash": "d7f68bc053c3c99d5c18d2e94ea80ee13963bd950c0a697d5725e498bc1c72ba"
+  "hash": "07927912c3a67a02efaacf2c18b921df95dbc5bd7bbd75ef33afbc4fccf395a4"
 }

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cross_sections (corridor_id, position, lat, lon, osm_way_id, osm_node_id, intersection_id, label, osm_way_oneway, osm_way_name, osm_way_ref) SELECT $1, 0, lat, lon, osm_way_id, osm_node_id, $3, label, osm_way_oneway, osm_way_name, osm_way_ref FROM cross_sections WHERE id = $2 RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3078ed4abd7b71f513e3728162bc46e3220f28e4710c32f7dc9532d3c1b801c6"
+}

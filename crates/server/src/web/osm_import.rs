@@ -197,7 +197,21 @@ pub async fn import_corridor(
         repository::insert_lanes_for_cross_section(&state.db.pool, cross_section.id, &drafts)
             .await
             .map_err(|e| internal_error("import_corridor: insert_lanes_for_cross_section", e))?;
+
+        repository::set_cross_section_osm_way_tags(
+            &state.db.pool,
+            cross_section.id,
+            repository::is_oneway_tag(tags),
+            tags.get("name").map(String::as_str),
+            tags.get("ref").map(String::as_str),
+        )
+        .await
+        .map_err(|e| internal_error("import_corridor: set_cross_section_osm_way_tags", e))?;
     }
+
+    repository::resolve_corridor_endpoints(&state.db.pool, corridor_id, &tags_by_way_id)
+        .await
+        .map_err(|e| internal_error("import_corridor: resolve_corridor_endpoints", e))?;
 
     Ok((
         StatusCode::CREATED,
@@ -510,5 +524,35 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(lanes.len(), 2, "lanes=2 tag should derive 2 travel lanes");
+    }
+
+    #[tokio::test]
+    async fn import_corridor_resolves_endpoints_to_intersections() {
+        let (state, _td) = test_state().await;
+        let remix_id = seed_remix(&state).await;
+
+        let way = sample_way_response(
+            42,
+            vec![(45.500, -73.580, 10), (45.501, -73.579, 11)],
+            HashMap::new(),
+        );
+
+        let response = import_corridor(
+            State(state.clone()),
+            Path(remix_id),
+            Json(ImportCorridorRequest {
+                name: "Test Imported Corridor".to_string(),
+                ways: vec![way],
+            }),
+        )
+        .await
+        .unwrap();
+
+        let corridor_id = mobilispect_core::ids::CorridorId::from(response.1.id);
+        let cross_sections = repository::get_corridor_cross_sections(&state.db.pool, corridor_id)
+            .await
+            .unwrap();
+        assert!(cross_sections[0].intersection_id.is_some());
+        assert!(cross_sections[1].intersection_id.is_some());
     }
 }

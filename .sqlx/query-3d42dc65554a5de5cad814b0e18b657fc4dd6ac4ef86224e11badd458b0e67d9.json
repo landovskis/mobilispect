@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT EXISTS(SELECT 1 FROM cross_sections WHERE id = $1) AS \"exists!\"",
+  "query": "SELECT EXISTS(SELECT 1 FROM intersections WHERE id = $1) AS \"exists!\"",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       null
     ]
   },
-  "hash": "c1aedf8708a8fc2a74da08f9eb118ef93ed8e57e4a56a38c5665fdbc1ac54d00"
+  "hash": "3d42dc65554a5de5cad814b0e18b657fc4dd6ac4ef86224e11badd458b0e67d9"
 }

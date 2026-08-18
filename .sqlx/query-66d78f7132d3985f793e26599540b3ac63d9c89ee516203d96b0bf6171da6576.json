@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, lat, lon, bus_gate, turn_conflict, bus_stop FROM intersections WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "bus_gate",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "turn_conflict",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "bus_stop",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "66d78f7132d3985f793e26599540b3ac63d9c89ee516203d96b0bf6171da6576"
+}
