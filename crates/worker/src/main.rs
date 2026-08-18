@@ -11,6 +11,7 @@ mod feed_ingestion;
 mod health;
 mod maintenance;
 mod pipeline;
+mod region_provisioning;
 
 #[tokio::main]
 async fn main() -> Result<()> {
