@@ -3,3 +3,4 @@
 //! `docs/superpowers/specs/2026-08-18-region-osm-data-caching-design.md`.
 
 pub mod provinces;
+pub mod statcan;

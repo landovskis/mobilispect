@@ -1919,6 +1919,7 @@ dependencies = [
  "axum",
  "bytes",
  "chrono",
+ "dbase",
  "gtfs-structures",
  "hex",
  "mobilispect-core",
