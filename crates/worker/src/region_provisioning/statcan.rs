@@ -54,6 +54,14 @@ fn normalize(s: &str) -> String {
         .to_string()
 }
 
+/// EPSG:3347 (NAD83 / Statistics Canada Lambert). Confirmed via independent
+/// search against spatialreference.org/epsg.io (direct fetch to those
+/// domains is blocked in this sandbox, so this was verified through search
+/// result text, not a live page render) -- the published proj4 string uses
+/// `+ellps=GRS80 +towgs84=...` where this uses the equivalent `+datum=NAD83`
+/// shorthand (NAD83 is defined as GRS80 with a near-zero WGS84 shift, so
+/// these resolve to the same transform); all numeric parameters
+/// (lat_1/lat_2/lat_0/lon_0/x_0/y_0) match exactly.
 const LAMBERT_PROJ4: &str = "+proj=lcc +lat_1=49 +lat_2=77 +lat_0=63.390675 +lon_0=-91.86666666666666 +x_0=6200000 +y_0=3000000 +datum=NAD83 +units=m +no_defs";
 const WGS84_PROJ4: &str = "+proj=longlat +datum=WGS84 +no_defs";
 
@@ -113,15 +121,27 @@ pub fn reproject_and_bbox(records: &[&CmaCaRecord]) -> Result<BoundingBox, Proje
 /// and unzips the national CMA/CA cartographic boundary file, then parses
 /// every record via the `shapefile` crate.
 ///
-/// **Implementation note:** the download URL below is StatsCan's own
-/// documented boundary-file base path
-/// (`boundary-limites/files-fichiers/`) with a best-known filename for the
-/// 2021 CMA/CA cartographic boundary shapefile. This sandbox's egress proxy
-/// blocks `statcan.gc.ca` outright, so the exact filename could not be
-/// confirmed live while writing this module -- confirm it against the real
-/// download page (`https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index2021-eng.cfm`)
-/// before relying on this in production. See the design spec's "Verify at
-/// implementation time" note.
+/// **Implementation note:** this sandbox's egress proxy blocks
+/// `statcan.gc.ca` outright (confirmed via both direct fetch and search),
+/// so the exact 2021 CMA/CA cartographic boundary zip filename could not be
+/// confirmed with certainty. Two candidate filename patterns turned up
+/// searching independently:
+/// - `lcma000b21a_e.zip` -- the `a` (ArcInfo/shapefile export) format-code
+///   letter StatsCan's boundary files have used across census cycles back to
+///   at least 2001/2006/2011/2016 (a real `lcma000b16a_e.zip` for the 2016
+///   census was found via search).
+/// - `lcma000b21s_e.zip` -- multiple layer names on StatsCan's live 2021
+///   `Cartographic_boundary_files` ArcGIS `MapServer` use an `s` suffix
+///   (`lcma000b21s_e`, `lcd_000b21s_e`, `lfsa000b21s_e`, etc.), though that's
+///   the REST service's internal layer naming, not necessarily the
+///   downloadable zip's filename.
+///
+/// `download_statcan_zip` tries `a` first (the pattern with historical
+/// precedent as an actual download filename) and falls back to `s` on a 404,
+/// rather than hardcoding a single guess. Confirm against the real download
+/// page (`https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/index2021-eng.cfm`)
+/// when this runs somewhere with real network access, and simplify back to
+/// one URL once confirmed.
 pub async fn load_cma_ca_records(cache_dir: &Path) -> anyhow::Result<Vec<CmaCaRecord>> {
     let zip_path = cache_dir.join("statcan").join("cma_ca_2021.zip");
     if !zip_path.exists() {
@@ -131,19 +151,31 @@ pub async fn load_cma_ca_records(cache_dir: &Path) -> anyhow::Result<Vec<CmaCaRe
     tokio::task::spawn_blocking(move || parse_cma_ca_zip(&zip_path)).await?
 }
 
-const STATCAN_CMA_CA_URL: &str = "https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/files-fichiers/lcma000b21a_e.zip";
+const STATCAN_CMA_CA_URL_CANDIDATES: &[&str] = &[
+    "https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/files-fichiers/lcma000b21a_e.zip",
+    "https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/files-fichiers/lcma000b21s_e.zip",
+];
 
 async fn download_statcan_zip(dest: &Path) -> anyhow::Result<()> {
     if let Some(parent) = dest.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
-    let bytes = reqwest::get(STATCAN_CMA_CA_URL)
-        .await?
-        .error_for_status()?
-        .bytes()
-        .await?;
-    tokio::fs::write(dest, &bytes).await?;
-    Ok(())
+
+    let mut last_err = None;
+    for url in STATCAN_CMA_CA_URL_CANDIDATES {
+        match reqwest::get(*url).await.and_then(|r| r.error_for_status()) {
+            Ok(response) => {
+                let bytes = response.bytes().await?;
+                tokio::fs::write(dest, &bytes).await?;
+                return Ok(());
+            }
+            Err(e) => last_err = Some(e),
+        }
+    }
+    Err(anyhow::anyhow!(
+        "all StatsCan CMA/CA boundary file URL candidates failed: {}",
+        last_err.expect("STATCAN_CMA_CA_URL_CANDIDATES is non-empty")
+    ))
 }
 
 /// Synchronous (the `shapefile`/`zip` crates are blocking I/O) -- always
@@ -273,14 +305,13 @@ mod reprojection_tests {
     /// Round-trips a known WGS84 point through the same `proj4rs` library
     /// (WGS84 -> Lambert, forward) and back via `reproject_and_bbox`
     /// (Lambert -> WGS84, the function under test), rather than asserting
-    /// against an externally-sourced Lambert coordinate pair -- this
-    /// sandbox has no live access to an independent EPSG:3347 converter to
-    /// confirm one against (see this module's `load_cma_ca_records` doc
-    /// comment). A round trip still proves `reproject_and_bbox` correctly
-    /// drives `proj4rs` and correctly converts radians<->degrees; it does
-    /// not independently verify `LAMBERT_PROJ4`'s parameters are the exact
-    /// ones StatsCan's file uses, which should be checked against the
-    /// `92-160-G` reference guide before this ships to production.
+    /// against a hardcoded Lambert coordinate pair -- this sandbox has no
+    /// live access to feed the same point through an independent EPSG:3347
+    /// converter to cross-check a hardcoded value against (`LAMBERT_PROJ4`'s
+    /// own parameters are separately confirmed correct via search against
+    /// spatialreference.org/epsg.io -- see that constant's doc comment). A
+    /// round trip still proves `reproject_and_bbox` correctly drives
+    /// `proj4rs` and correctly converts radians<->degrees.
     #[test]
     fn reprojection_round_trips_a_known_wgs84_point() {
         let wgs84 = Proj::from_proj_string(WGS84_PROJ4).unwrap();
