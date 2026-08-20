@@ -9,3 +9,5 @@
 /.claude/worktrees
 /.symphony
 /.symphony-runtime.json
+/mutants.out
+/mutants.out.old

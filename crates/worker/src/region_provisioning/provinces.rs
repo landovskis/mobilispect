@@ -228,4 +228,37 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn every_province_is_in_the_northern_western_hemisphere() {
+        // All of Canada sits north of the equator and west of the prime
+        // meridian -- pins down every coordinate's sign (min_lat/max_lat
+        // positive, min_lon/max_lon negative), not just their relative
+        // ordering, which `every_province_has_a_non_degenerate_bbox` alone
+        // doesn't catch (e.g. a sign-flipped max_lon still satisfies
+        // min_lon < max_lon by making the interval wider, not degenerate).
+        for province in PROVINCES {
+            let b = province.approx_bbox;
+            assert!(
+                b.min_lat > 0.0,
+                "{} min_lat should be north of the equator",
+                province.name
+            );
+            assert!(
+                b.max_lat > 0.0,
+                "{} max_lat should be north of the equator",
+                province.name
+            );
+            assert!(
+                b.min_lon < 0.0,
+                "{} min_lon should be west of the prime meridian",
+                province.name
+            );
+            assert!(
+                b.max_lon < 0.0,
+                "{} max_lon should be west of the prime meridian",
+                province.name
+            );
+        }
+    }
 }

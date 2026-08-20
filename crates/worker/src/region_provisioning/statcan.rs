@@ -117,6 +117,22 @@ pub fn reproject_and_bbox(records: &[&CmaCaRecord]) -> Result<BoundingBox, Proje
     })
 }
 
+/// Test-only: forward WGS84 (degrees) -> EPSG:3347 Lambert (metres), the
+/// inverse of `reproject_and_bbox`'s direction. Lets tests build
+/// `CmaCaRecord` fixtures from an easy-to-reason-about lat/lon instead of a
+/// hand-picked Lambert coordinate. `pub(crate)` (not nested in a `tests`
+/// submodule) so `region_provisioning::mod`'s own tests can use it too, via
+/// the same `#[cfg(test)]`-wide visibility this codebase's other
+/// cross-module test helpers rely on.
+#[cfg(test)]
+pub(crate) fn wgs84_to_lambert_for_tests(lat: f64, lon: f64) -> (f64, f64) {
+    let from = Proj::from_proj_string(WGS84_PROJ4).unwrap();
+    let to = Proj::from_proj_string(LAMBERT_PROJ4).unwrap();
+    let mut point = (lon.to_radians(), lat.to_radians(), 0.0);
+    proj4rs::transform::transform(&from, &to, &mut point).unwrap();
+    (point.0, point.1)
+}
+
 /// Downloads (if not already cached at `{cache_dir}/statcan/cma_ca_2021.zip`)
 /// and unzips the national CMA/CA cartographic boundary file, then parses
 /// every record via the `shapefile` crate.
@@ -161,9 +177,19 @@ async fn download_statcan_zip(dest: &Path) -> anyhow::Result<()> {
         tokio::fs::create_dir_all(parent).await?;
     }
 
+    // Test-only override, so E2E/unit runs can point this at a local
+    // fixture server without threading a new field through `Config` --
+    // mirrors this codebase's existing `OVERPASS_BASE_URL` convention for
+    // `OverpassClient`. Falls back to the real candidate URLs when unset.
+    let override_url = std::env::var("STATCAN_CMA_CA_URL_OVERRIDE").ok();
+    let candidates: Vec<&str> = match &override_url {
+        Some(url) => vec![url.as_str()],
+        None => STATCAN_CMA_CA_URL_CANDIDATES.to_vec(),
+    };
+
     let mut last_err = None;
-    for url in STATCAN_CMA_CA_URL_CANDIDATES {
-        match reqwest::get(*url).await.and_then(|r| r.error_for_status()) {
+    for url in candidates {
+        match reqwest::get(url).await.and_then(|r| r.error_for_status()) {
             Ok(response) => {
                 let bytes = response.bytes().await?;
                 tokio::fs::write(dest, &bytes).await?;
@@ -302,6 +328,12 @@ mod match_tests {
 mod reprojection_tests {
     use super::*;
 
+    #[test]
+    fn projection_error_display_includes_message() {
+        let err = ProjectionError("boom".to_string());
+        assert_eq!(err.to_string(), "projection error: boom");
+    }
+
     /// Round-trips a known WGS84 point through the same `proj4rs` library
     /// (WGS84 -> Lambert, forward) and back via `reproject_and_bbox`
     /// (Lambert -> WGS84, the function under test), rather than asserting
@@ -380,8 +412,8 @@ mod parse_tests {
         let tmp = tempfile::tempdir().unwrap();
         let shp_path = tmp.path().join("test.shp");
 
-        let table_builder =
-            dbase::TableWriterBuilder::new().add_character_field("CMANAME".try_into().unwrap(), 100);
+        let table_builder = dbase::TableWriterBuilder::new()
+            .add_character_field("CMANAME".try_into().unwrap(), 100);
         let mut writer = shapefile::Writer::from_path(&shp_path, table_builder).unwrap();
 
         let polygon = shapefile::Polygon::new(shapefile::PolygonRing::Outer(vec![
@@ -410,8 +442,8 @@ mod parse_tests {
         let tmp = tempfile::tempdir().unwrap();
         let shp_path = tmp.path().join("test.shp");
 
-        let table_builder =
-            dbase::TableWriterBuilder::new().add_character_field("CMANAME".try_into().unwrap(), 100);
+        let table_builder = dbase::TableWriterBuilder::new()
+            .add_character_field("CMANAME".try_into().unwrap(), 100);
         let mut writer = shapefile::Writer::from_path(&shp_path, table_builder).unwrap();
 
         let polygon = shapefile::Polygon::new(shapefile::PolygonRing::Outer(vec![
@@ -431,5 +463,107 @@ mod parse_tests {
 
         let records = parse_cma_ca_shapefile(&shp_path).unwrap();
         assert!(records.is_empty());
+    }
+}
+
+/// Test-only: builds a small, valid CMA/CA-shaped `.shp`/`.shx`/`.dbf`
+/// triple around `point_lambert` (all four ring points offset slightly from
+/// it, so the ring is non-degenerate) and packages it into a real `.zip` at
+/// `dest` -- mirrors what a downloaded StatsCan archive looks like, without
+/// a checked-in binary fixture or live network access. `pub(crate)` (not
+/// nested in a `tests` submodule) so `region_provisioning::mod`'s own tests
+/// can build fixtures too.
+#[cfg(test)]
+pub(crate) fn build_fixture_zip(dest: &Path, cma_name: &str, point_lambert: (f64, f64)) {
+    use std::convert::TryInto;
+
+    let src_dir = tempfile::tempdir().unwrap();
+    let shp_path = src_dir.path().join("cma.shp");
+
+    let table_builder =
+        dbase::TableWriterBuilder::new().add_character_field("CMANAME".try_into().unwrap(), 100);
+    let mut writer = shapefile::Writer::from_path(&shp_path, table_builder).unwrap();
+    let (x, y) = point_lambert;
+    let polygon = shapefile::Polygon::new(shapefile::PolygonRing::Outer(vec![
+        shapefile::Point::new(x, y),
+        shapefile::Point::new(x + 10_000.0, y),
+        shapefile::Point::new(x + 10_000.0, y + 10_000.0),
+        shapefile::Point::new(x, y),
+    ]));
+    let mut record = dbase::Record::default();
+    record.insert(
+        "CMANAME".to_string(),
+        dbase::FieldValue::Character(Some(cma_name.to_string())),
+    );
+    writer.write_shape_and_record(&polygon, &record).unwrap();
+    drop(writer);
+
+    if let Some(parent) = dest.parent() {
+        std::fs::create_dir_all(parent).unwrap();
+    }
+    let mut zip = zip::ZipWriter::new(std::fs::File::create(dest).unwrap());
+    for ext in ["shp", "shx", "dbf"] {
+        let bytes = std::fs::read(src_dir.path().join(format!("cma.{ext}"))).unwrap();
+        zip.start_file(
+            format!("cma.{ext}"),
+            zip::write::SimpleFileOptions::default(),
+        )
+        .unwrap();
+        std::io::Write::write_all(&mut zip, &bytes).unwrap();
+    }
+    zip.finish().unwrap();
+}
+
+#[cfg(test)]
+mod shell_tests {
+    use super::*;
+    use wiremock::matchers::method;
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[test]
+    fn parse_cma_ca_zip_extracts_records_from_a_real_zip() {
+        let tmp = tempfile::tempdir().unwrap();
+        let zip_path = tmp.path().join("fixture.zip");
+        build_fixture_zip(&zip_path, "Test City", (7_600_000.0, 1_500_000.0));
+
+        let records = parse_cma_ca_zip(&zip_path).unwrap();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].name, "Test City");
+    }
+
+    #[tokio::test]
+    async fn download_statcan_zip_writes_response_body_to_dest() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .respond_with(ResponseTemplate::new(200).set_body_bytes(b"fake zip bytes".to_vec()))
+            .mount(&server)
+            .await;
+        // cargo nextest isolates each test in its own process (unlike plain
+        // `cargo test`'s shared-process threads), so this env var never
+        // leaks between tests -- same convention as this codebase's
+        // existing OVERPASS_BASE_URL test override.
+        unsafe {
+            std::env::set_var("STATCAN_CMA_CA_URL_OVERRIDE", server.uri());
+        }
+
+        let tmp = tempfile::tempdir().unwrap();
+        let dest = tmp.path().join("statcan").join("cma_ca_2021.zip");
+        download_statcan_zip(&dest).await.unwrap();
+
+        let contents = tokio::fs::read(&dest).await.unwrap();
+        assert_eq!(contents, b"fake zip bytes");
+    }
+
+    #[tokio::test]
+    async fn load_cma_ca_records_skips_download_when_already_cached() {
+        let tmp = tempfile::tempdir().unwrap();
+        let zip_path = tmp.path().join("statcan").join("cma_ca_2021.zip");
+        build_fixture_zip(&zip_path, "Cached City", (7_600_000.0, 1_500_000.0));
+
+        let records = load_cma_ca_records(tmp.path()).await.unwrap();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].name, "Cached City");
     }
 }

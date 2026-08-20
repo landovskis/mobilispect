@@ -21,11 +21,16 @@ use mobilispect_core::remix::BoundingBox;
 
 const RETRY_BACKOFF: Duration = Duration::from_secs(5 * 60);
 
-/// Spawns one background task per region row currently in the DB. Each task
-/// retries its own region on transient failure and gives up (permanently,
-/// for this process's lifetime) on a failure that re-running won't fix. Does
-/// not block the caller -- intended to be `tokio::spawn`ed itself, not
-/// awaited, so it never delays worker startup.
+/// Spawns one task per region row currently in the DB and awaits all of
+/// them via a `JoinSet` (mirrors `main.rs`'s own pattern for loading
+/// per-agency static GTFS feeds) before returning. Each task retries its own
+/// region on transient failure and gives up (permanently, for this
+/// process's lifetime) on a failure that re-running won't fix -- so this
+/// only returns once every region has either succeeded or hit a permanent
+/// failure (a region stuck in transient retries keeps its task, and this
+/// call, running). Does not block worker startup itself: the caller
+/// (`main.rs`) wraps this whole call in its own `tokio::spawn`, not `.await`s
+/// it directly.
 pub async fn run_all(db: Database, config: Config) {
     let regions = match load_regions(&db.pool).await {
         Ok(r) => r,
@@ -34,10 +39,11 @@ pub async fn run_all(db: Database, config: Config) {
             return;
         }
     };
+    let mut set = tokio::task::JoinSet::new();
     for region in regions {
         let db = db.clone();
         let config = config.clone();
-        tokio::spawn(async move {
+        set.spawn(async move {
             loop {
                 match provision_region(&db, &config, &region).await {
                     Ok(()) => break,
@@ -61,6 +67,7 @@ pub async fn run_all(db: Database, config: Config) {
             }
         });
     }
+    while set.join_next().await.is_some() {}
 }
 
 #[derive(Debug)]
@@ -82,7 +89,12 @@ async fn provision_region(
     config: &Config,
     region: &DbRegion,
 ) -> Result<(), ProvisionError> {
-    let bbox = match (region.min_lat, region.min_lon, region.max_lat, region.max_lon) {
+    let bbox = match (
+        region.min_lat,
+        region.min_lon,
+        region.max_lat,
+        region.max_lon,
+    ) {
         (Some(min_lat), Some(min_lon), Some(max_lat), Some(max_lon)) => BoundingBox {
             min_lat,
             min_lon,
@@ -170,6 +182,58 @@ mod tests {
             transitland_api_key: None,
             osm_cache_dir: cache_dir.display().to_string(),
         }
+    }
+
+    #[test]
+    fn retry_backoff_is_five_minutes() {
+        assert_eq!(RETRY_BACKOFF, Duration::from_secs(300));
+    }
+
+    #[tokio::test]
+    async fn run_all_awaits_provisioning_and_persists_the_populated_bbox() {
+        // A whole-function no-op mutant for run_all returns `()` immediately
+        // without ever calling load_regions/provision_region, which is
+        // otherwise unobservable (the real fn's return type is also `()`).
+        // This test forces an observable, awaited side effect: seed a
+        // region with NO bbox, name-matched to a StatsCan fixture whose
+        // polygon reprojects to a real lat/lon outside every entry in
+        // `provinces::PROVINCES` (so Phase 2 fails fast, permanently, with
+        // no network call) -- then assert the DB's bbox actually changed
+        // from NULL to that reprojected value. A no-op mutant leaves it
+        // NULL; only a real Phase 1 run populates it.
+        let td = test_utils::setup().await;
+        let tmp = tempfile::tempdir().unwrap();
+        let region_id = 1i64;
+        sqlx::query!(
+            "INSERT INTO regions (id, name, timezone) VALUES ($1, 'Fixture City', 'UTC')",
+            region_id,
+        )
+        .execute(&td.db.pool)
+        .await
+        .unwrap();
+
+        // Mid-Atlantic: north of the equator, west of the prime meridian
+        // (matching every real Canadian province's sign convention, so this
+        // isn't caught by degenerate-bbox checks alone), but east of every
+        // PROVINCES entry's max_lon (Newfoundland's, the easternmost, tops
+        // out at -52.6) -- guaranteed no province overlap.
+        let point = statcan::wgs84_to_lambert_for_tests(40.0, -40.0);
+        let zip_path = tmp.path().join("statcan").join("cma_ca_2021.zip");
+        statcan::build_fixture_zip(&zip_path, "Fixture City", point);
+
+        run_all(td.db.clone(), test_config(tmp.path())).await;
+
+        let region = load_regions(&td.db.pool).await.unwrap().remove(0);
+        assert!(
+            region.min_lat.is_some(),
+            "Phase 1 should have populated the bbox"
+        );
+        let lat = region.min_lat.unwrap();
+        let lon = region.min_lon.unwrap();
+        assert!(
+            (39.0..=41.0).contains(&lat) && (-41.0..=-39.0).contains(&lon),
+            "expected bbox near (40, -40), got ({lat}, {lon})"
+        );
     }
 
     #[tokio::test]
