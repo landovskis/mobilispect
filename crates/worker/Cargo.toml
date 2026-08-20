@@ -24,14 +24,17 @@ serde_json = "1"
 bytes = "1"
 chrono = { version = "0.4", features = ["serde"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "migrate"] }
+shapefile = "0.9.0"
+zip = "8.6.0"
+proj4rs = "0.1.10"
+unicode-normalization = "0.1.25"
+tempfile = "3.27.0"
+dbase = "0.8.0"
 
 [dev-dependencies]
 mobilispect-core = { path = "../core", features = ["test-utils"] }
 tokio = { version = "1", features = ["full"] }
+wiremock = "0.6.5"
 
 [build-dependencies]
 prost-build = "0.13"
-
-[package.metadata.cargo-mutants]
-# main() is the binary entry point and cannot be unit tested.
-exclude_re = ["crates/worker/src/main\\.rs"]

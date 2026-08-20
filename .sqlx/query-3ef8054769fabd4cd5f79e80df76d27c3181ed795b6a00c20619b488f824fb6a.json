@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, name, timezone, min_lat, min_lon, max_lat, max_lon FROM regions",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "timezone",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "min_lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 4,
+        "name": "min_lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 5,
+        "name": "max_lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 6,
+        "name": "max_lon",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "3ef8054769fabd4cd5f79e80df76d27c3181ed795b6a00c20619b488f824fb6a"
+}

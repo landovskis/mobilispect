@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO regions (id, name, timezone, min_lat, min_lon, max_lat, max_lon)\n             VALUES (1, 'Test Region', 'UTC', 45.40, -73.70, 45.60, -73.50)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "432c983fb67905105a37ee4cc7db134d9ec9e66a0db92c0a8f244438959add53"
+}

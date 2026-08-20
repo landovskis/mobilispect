@@ -33,6 +33,9 @@ pub struct Config {
     /// Shared Transitland API key for all feeds. When None, unauthenticated requests
     /// are made (subject to rate limits).
     pub transitland_api_key: Option<String>,
+    /// Local directory used to cache downloaded StatsCan boundary data and
+    /// Geofabrik OSM PBF extracts. See `crates/worker/src/region_provisioning/`.
+    pub osm_cache_dir: String,
 }
 
 impl Config {
@@ -90,6 +93,9 @@ impl Config {
                 .worker_health_bind_address
                 .unwrap_or_else(|| "0.0.0.0:9090".to_string()),
             transitland_api_key,
+            osm_cache_dir: file
+                .osm_cache_dir
+                .unwrap_or_else(|| "./osm-cache".to_string()),
         })
     }
 }
@@ -104,6 +110,7 @@ struct TomlConfig {
     on_time_late_threshold_secs: Option<i64>,
     retention_days: Option<u32>,
     worker_health_bind_address: Option<String>,
+    osm_cache_dir: Option<String>,
     /// Transitland API key (direct value — not recommended for secrets).
     transitland_api_key: Option<String>,
     /// Env var name holding the Transitland API key (preferred for secrets).
@@ -209,6 +216,7 @@ database_url = "postgres://localhost/mobilispect"
         assert_eq!(config.on_time_late_threshold_secs, 300);
         assert_eq!(config.retention_days, 30);
         assert_eq!(config.worker_health_bind_address, "0.0.0.0:9090");
+        assert_eq!(config.osm_cache_dir, "./osm-cache");
     }
 
     #[test]

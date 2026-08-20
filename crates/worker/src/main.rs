@@ -11,6 +11,7 @@ mod feed_ingestion;
 mod health;
 mod maintenance;
 mod pipeline;
+mod region_provisioning;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -74,6 +75,15 @@ async fn main() -> Result<()> {
     // caused by restarts or deployments that ran at the start of the UTC day before
     // any service data had accumulated.
     maintenance::backfill_daily_metrics(&db, &config, &feeds, 7).await;
+
+    // Not awaited: downloading StatsCan boundary data and Geofabrik OSM
+    // extracts can take a while on first run and must not delay real-time
+    // GTFS-RT polling from starting below.
+    let db_provisioning = db.clone();
+    let config_provisioning = config.clone();
+    tokio::spawn(async move {
+        region_provisioning::run_all(db_provisioning, config_provisioning).await;
+    });
 
     for agency in loaded {
         let db_rt = db.clone();

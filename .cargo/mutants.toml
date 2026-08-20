@@ -1,0 +1,9 @@
+# cargo-mutants configuration. Read from `.cargo/mutants.toml` by default --
+# `[package.metadata.cargo-mutants]` in a crate's own Cargo.toml is NOT read
+# by cargo-mutants (confirmed against cargo-mutants 27.1.0's own --help /
+# --emit-schema=config output); a stale copy of this exclusion previously
+# lived there and had no effect.
+exclude_re = [
+    # main() is the binary entry point and cannot be unit tested.
+    "crates/worker/src/main\\.rs",
+]
